@@ -94,8 +94,9 @@
     },
     "INSANITY": {
       "_source": "Core Rules p.65",
+      "_enemy_count_note": "1 is CORRECT and both modifiers are right — do not 'fix' this to 0. TWO different pages apply and reading only one gets it backwards. p.93 (enemy numbers): 'If the campaign's difficulty mode is Hardcore or Insanity, add +1 to the final number faced' — names BOTH modes, so enemy_count_modifier is 1 here exactly as it is for Hardcore. p.65 (setup) adds 'an additional Specialist enemy', and p.93 defines that as a re-arming, not a body: 'Note that Specialists are not additional figures. They are part of the number of opponents already generated above, but are armed differently.' So Insanity gets +1 figure (p.93) AND one more of them is a Specialist (p.65).",
       "xp_bonus": 0,
-      "enemy_count_modifier": 0,
+      "enemy_count_modifier": 1,
       "specialist_enemy_modifier": 1,
       "reroll_low_enemy_dice": false,
       "starting_story_points_modifier": -999,

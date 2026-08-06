@@ -81,7 +81,7 @@ func _build() -> void:
 	panel_style.bg_color = UIColors.COLOR_ELEVATED
 	panel_style.border_color = UIColors.COLOR_BORDER
 	panel_style.set_border_width_all(1)
-	panel_style.set_corner_radius_all(12)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(UIColors.SPACING_MD)
 	_panel.add_theme_stylebox_override("panel", panel_style)
 	add_child(_panel)
@@ -105,7 +105,7 @@ func _build() -> void:
 	# Wrap it instead so the header min width stays tiny.
 	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.custom_minimum_size.x = 0.0
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	header.add_child(_title_label)

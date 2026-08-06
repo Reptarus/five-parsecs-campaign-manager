@@ -179,9 +179,18 @@ func finalize() -> void:
 		campaign.add_raw_materials(2)
 	if tutorial_results.get("analysis_success", false):
 		var rp_bonus: int = 3 if tutorial_results.get("analysis_all_six", false) else 2
-		campaign.research_points_per_turn += 0  # RP bonus is one-time, not per-turn
-		# Store as starting RP (will be handled by research system)
-		campaign.research_data["starting_rp"] = rp_bonus
+		# Award into current_rp, the pool the colony actually spends.
+		#
+		# This used to write research_data["starting_rp"] with the comment "will be
+		# handled by research system" — that handling was never built.
+		# `starting_rp` has ZERO readers anywhere in src/; every consumer reads
+		# current_rp (PlanetfallResearchSystem.get_current_rp:116,
+		# PlanetfallPostMissionSystem:86/114, PlanetfallMissionDataSystem:180,
+		# PlanetfallEndGameSystem:185). The key round-tripped through the save
+		# perfectly, so the loss looked like it had persisted correctly while the
+		# player never received the points.
+		campaign.research_data["current_rp"] = \
+			int(campaign.research_data.get("current_rp", 0)) + rp_bonus
 	if tutorial_results.get("perimeter_success", false):
 		campaign.adjust_morale(3)
 	campaign.tutorial_missions = tutorial_results.get("missions", {
@@ -239,7 +248,13 @@ func _apply_expedition_bonus(campaign: PlanetfallCampaignCore) -> void:
 		if entry.get("type", "") == exp_type:
 			var bonus: Dictionary = entry.get("bonus", {})
 			if bonus.has("research_points"):
-				campaign.research_data["starting_rp"] = campaign.research_data.get("starting_rp", 0) + bonus.research_points
+				# current_rp, not starting_rp — see the tutorial award above. This is
+				# the "Scientific Mission" expedition's 3 RP
+				# (data/planetfall/expedition_types.json), one of six player-selectable
+				# options at creation, and it was landing in a key nothing reads while
+				# every sibling bonus below used a real mutator.
+				campaign.research_data["current_rp"] = \
+					int(campaign.research_data.get("current_rp", 0)) + int(bonus.research_points)
 			if bonus.has("raw_materials"):
 				campaign.add_raw_materials(bonus.raw_materials)
 			if bonus.has("story_points"):

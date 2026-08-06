@@ -27,7 +27,6 @@ var combat_value: Label
 var reactions_value: Label
 var toughness_value: Label
 var savvy_value: Label
-var tech_value: Label
 var speed_value: Label
 var luck_value: Label
 
@@ -67,8 +66,91 @@ func _ready() -> void:
 	
 	_initialize_ui_components()
 	_connect_signals()
-	
+	_style_buttons()
+	_make_dialog_responsive()
+
 	pass # _ready() completed
+
+
+## Give the four action buttons their shared roles.
+##
+## Four identical default buttons in one row told the player nothing about which
+## one commits the captain and which one throws the work away. Create is the
+## commit, Cancel discards, Randomize is a helper, Back leaves the screen.
+## Called after _initialize_ui_components(), which is what resolves the refs.
+func _style_buttons() -> void:
+	DialogStyles.style_confirm_button(create_button)
+	DialogStyles.style_cancel_button(cancel_button)
+	DialogStyles.style_secondary_button(randomize_button)
+	DialogStyles.style_back_button(back_button)
+
+
+## Fit the creator dialog to the screen instead of assuming an 800x600 desktop one.
+##
+## The scene pins the dialog at +/-400 x +/-300 around centre, and the form inside it
+## needs 435x933 — so on every size measured it hung off the edges, by 231px on a
+## phone and still 2px on a 1080p desktop. Two changes, both required: the panel is
+## now sized from the viewport (capped at the original 800x600 so a big screen looks
+## unchanged), and the form scrolls, because 933px of fields does not fit a phone at
+## any dialog size.
+func _make_dialog_responsive() -> void:
+	var dialog := get_node_or_null("Dialog")
+	if dialog == null or not (dialog is Control):
+		return
+	var form := dialog.get_node_or_null("VBoxContainer")
+	if form is Control and not (form.get_parent() is ScrollContainer):
+		var scroll := ScrollContainer.new()
+		scroll.name = "FormScroll"
+		scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		dialog.remove_child(form)
+		dialog.add_child(scroll)
+		scroll.add_child(form)
+		(form as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Dropdowns take their minimum width from the CURRENTLY SELECTED item's text, and
+	# background names are long ("Wealthy Merchant Family"), so one row demanded 421px
+	# in a 310px space. Clipping with an ellipsis lets the row shrink; expand-fill
+	# keeps the control filling whatever width is actually there, so nothing jitters
+	# as the selection changes.
+	for node in _all_descendants(dialog):
+		if node is OptionButton:
+			var opt := node as OptionButton
+			opt.clip_text = true
+			opt.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			opt.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	_fit_dialog_to_viewport()
+	if not get_viewport().size_changed.is_connected(_fit_dialog_to_viewport):
+		get_viewport().size_changed.connect(_fit_dialog_to_viewport)
+
+
+func _all_descendants(root_node: Node) -> Array[Node]:
+	var out: Array[Node] = []
+	var stack: Array[Node] = [root_node]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+			out.append(c)
+	return out
+
+
+func _fit_dialog_to_viewport() -> void:
+	var dialog := get_node_or_null("Dialog")
+	if dialog == null or not (dialog is Control) or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var ds: Vector2 = vp.get_visible_rect().size
+	var w: float = minf(800.0, maxf(240.0, ds.x - 32.0))
+	var h: float = minf(600.0, maxf(240.0, ds.y - 32.0))
+	var ctl := dialog as Control
+	ctl.offset_left = -w * 0.5
+	ctl.offset_right = w * 0.5
+	ctl.offset_top = -h * 0.5
+	ctl.offset_bottom = h * 0.5
 
 func _load_character_data() -> void:
 	## Load character creation data from JSON files
@@ -92,7 +174,6 @@ func _initialize_ui_components() -> void:
 	reactions_value = get_node_or_null("%ReactionsValue")
 	toughness_value = get_node_or_null("%ToughnessValue")
 	savvy_value = get_node_or_null("%SavvyValue")
-	tech_value = get_node_or_null("%TechValue")
 	speed_value = get_node_or_null("%SpeedValue")
 	luck_value = get_node_or_null("%LuckValue")
 	
@@ -118,7 +199,6 @@ func _initialize_ui_components() -> void:
 	if not reactions_value: missing_components.append("ReactionsValue")
 	if not toughness_value: missing_components.append("ToughnessValue")
 	if not savvy_value: missing_components.append("SavvyValue")
-	if not tech_value: missing_components.append("TechValue")
 	if not speed_value: missing_components.append("SpeedValue")
 	if not luck_value: missing_components.append("LuckValue")
 	if not randomize_button: missing_components.append("RandomizeButton")
@@ -170,10 +250,6 @@ func _try_alternative_node_paths() -> void:
 	var full_savvy_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyValue")
 	if full_savvy_value and not savvy_value:
 		savvy_value = full_savvy_value
-	
-	var full_tech_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechValue")
-	if full_tech_value and not tech_value:
-		tech_value = full_tech_value
 	
 	var full_speed_value = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedValue")
 	if full_speed_value and not speed_value:
@@ -313,14 +389,6 @@ func _connect_stat_buttons() -> void:
 	if savvy_down and not savvy_down.pressed.is_connected(_on_savvy_down):
 		savvy_down.pressed.connect(_on_savvy_down)
 	
-	# Tech buttons
-	var tech_up = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons/TechUp")
-	var tech_down = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons/TechDown")
-	if tech_up and not tech_up.pressed.is_connected(_on_tech_up):
-		tech_up.pressed.connect(_on_tech_up)
-	if tech_down and not tech_down.pressed.is_connected(_on_tech_down):
-		tech_down.pressed.connect(_on_tech_down)
-	
 	# Speed buttons
 	var speed_up = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons/SpeedUp")
 	var speed_down = get_node_or_null("Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons/SpeedDown")
@@ -412,7 +480,6 @@ func _generate_random_stats() -> void:
 	current_character.reactions = _roll_stat()
 	current_character.toughness = _roll_stat()
 	current_character.savvy = _roll_stat()
-	current_character.tech = _roll_stat()
 	current_character.speed = _roll_stat()
 	current_character.luck = 1 # Starting luck
 
@@ -459,8 +526,6 @@ func _update_stats_display() -> void:
 		toughness_value.text = str(current_character.toughness)
 	if savvy_value:
 		savvy_value.text = str(current_character.savvy)
-	if tech_value:
-		tech_value.text = str(current_character.tech)
 	if speed_value:
 		speed_value.text = str(current_character.speed)
 	if luck_value:
@@ -512,7 +577,6 @@ func _update_description() -> void:
 	description_text += "[color=yellow]Reactions:[/color] %d\n" % current_character.reactions
 	description_text += "[color=yellow]Toughness:[/color] %d\n" % current_character.toughness
 	description_text += "[color=yellow]Savvy:[/color] %d\n" % current_character.savvy
-	description_text += "[color=yellow]Tech:[/color] %d\n" % current_character.tech
 	description_text += "[color=yellow]Speed:[/color] %d\n" % current_character.speed
 	description_text += "[color=yellow]Luck:[/color] %d\n" % current_character.luck
 	
@@ -572,7 +636,6 @@ func _on_origin_changed(index: int) -> void:
 			current_character.toughness += modifiers.get(
 				"toughness", 0)
 			current_character.savvy += modifiers.get("savvy", 0)
-			current_character.tech += modifiers.get("tech", 0)
 			current_character.speed += modifiers.get("speed", 0)
 
 			# Recalculate health
@@ -868,16 +931,6 @@ func _on_savvy_up() -> void:
 func _on_savvy_down() -> void:
 	if current_character and current_character.savvy > 1:
 		current_character.savvy -= 1
-		_update_stats_display()
-
-func _on_tech_up() -> void:
-	if current_character and current_character.tech < 6:
-		current_character.tech += 1
-		_update_stats_display()
-
-func _on_tech_down() -> void:
-	if current_character and current_character.tech > 1:
-		current_character.tech -= 1
 		_update_stats_display()
 
 func _on_speed_up() -> void:

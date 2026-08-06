@@ -12,6 +12,13 @@ var _rtl: RichTextLabel
 func _ready() -> void:
 	_build_ui()
 	_load_from_context()
+	# Push the header below the floating gear/bug buttons. Belt-and-braces: the
+	# autoload's own scene_changed net only fires for a screen that becomes
+	# current_scene, and this viewer is also opened as a child from the EULA and
+	# settings screens. reserve_band_on() is idempotent, so both routes are safe.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _build_ui() -> void:
@@ -26,6 +33,9 @@ func _build_ui() -> void:
 	outer.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	outer.offset_left = UIColors.SPACING_XL
 	outer.offset_right = -UIColors.SPACING_XL
+	# 32px per side is a fifth of a 360dp phone. PortraitChrome trims it to the
+	# 16dp page margin in portrait and restores this value in landscape.
+	ScreenChrome.apply_page_chrome_offsets(self, outer)
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
@@ -44,9 +54,13 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "Legal Document"
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	# Document titles ("Privacy Policy", "End User License Agreement") are long, and an
+	# unclipped Label in an HBox header demands its full unwrapped width as a minimum.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(_title_label)
 
 	# Scrollable content
@@ -65,7 +79,7 @@ func _build_ui() -> void:
 	_rtl.fit_content = true
 	_rtl.size_flags_horizontal = SIZE_EXPAND_FILL
 	_rtl.custom_minimum_size.x = 300
-	_rtl.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	center.add_child(_rtl)
 
@@ -75,7 +89,7 @@ func _build_ui() -> void:
 
 	var close_btn := Button.new()
 	close_btn.text = "Close"
-	close_btn.custom_minimum_size = Vector2(200, UIColors.TOUCH_TARGET_MIN)
+	close_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	DialogStyles.style_primary_button(close_btn)
 	close_btn.pressed.connect(_on_back_pressed)
 	footer.add_child(close_btn)

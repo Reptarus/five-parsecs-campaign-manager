@@ -164,7 +164,12 @@ static func calculate_rewards(battle_result: Dictionary) -> Dictionary:
 		}
 	else:
 		var failure_rewards: Dictionary = data.get("rewards", {}).get("failure", {})
-		var casualties: int = battle_result.get("casualties_count", 0)
+		# "casualties_count" is a key NO battle producer writes — this read was
+		# always 0, so the Appendix III failure payout ("1cr per casualty from
+		# Unity") always paid nothing. The canonical key is "casualties", an
+		# Array of dicts; count it through the SSOT helper.
+		var NormalizerClass := load("res://src/core/battle/BattleResultNormalizer.gd")
+		var casualties: int = NormalizerClass.casualty_count(battle_result)
 		return {
 			"is_victory": false,
 			"standard_failed_rewards": true,

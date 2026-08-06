@@ -1,5 +1,20 @@
 {
-  "last_updated": "2026-07-06",
+  "battle_phase_delivery_audit_2026_08_06": {
+    "date": "2026-08-06",
+    "status": "SHIPPED — 5 commits on branch campaign-editor-and-fixits (740db7e36, 0f10cbfcd, e32445c9b, dbc33c70a, 64aa28011). Working tree clean.",
+    "summary": "Battle-phase DELIVERY audit. Prior audits asked 'is the rule implemented correctly?' and the answer was almost always yes. This one asked 'does the player ever reach it?' and found FOUR Compendium chapters unreachable in campaign play: No-Minis pp.66-73, Stealth pp.117-122, Street Fights pp.123-136, Salvage pp.137-147. Cause was an early return in TacticalBattleUI.initialize_battle keyed on selected_tier, which CampaignTurnController stamps on EVERY campaign battle. Also fixed: Hold the Field scored as a Win in Rival/Invasion battles (p.91/p.92 say there is no Win condition) at all four success producers; the p.137 salvage availability D6 which had never rolled in any campaign; the tracking tier being locked for the whole battle; grid movement being campaign-wide contra p.90; Insanity campaigns earning story points contra p.65.",
+    "generalization": "When a rule appears missing, check whether a function implementing it already exists WITH NO CALLER. That was the answer five separate times in one day. No key census finds this class — both halves exist and are correct; only execution order is wrong.",
+    "verification": {
+      "tests_unit": "2254/2254 across 194 suites",
+      "verify_battle_ui": "79/79 (grown from 49 checks)",
+      "verify_post_battle": "46/46 — first fully green run",
+      "parse_sweep": "0 errors via --headless --import (--quit misses non-startup scripts)",
+      "lints": "signal_wiring / tscn_connections / autoload_lookups / data_ownership all CLEAN; orphan_assets orphans=0",
+      "apk": "build/fpfh-0.9.7-aug06c.apk — verified by unzip AND decompressed-bytecode content match"
+    },
+    "notes_for_routing": "Two of three long-standing verify_post_battle failures were TEST defects, not code. A red harness row is a lead, not a verdict. Also: --headless --quit reported clean while a script failed to parse and took the whole post-battle wizard down; use --import."
+  },
+  "last_updated": "2026-08-06",
   "battle_companion_f9_f10": {
     "date": "2026-07-06",
     "status": "CODE+TESTS DONE; on-device re-test (Test18 APK) + git COMMIT PENDING",
@@ -20,7 +35,11 @@
       "adb install -r Test18 + fresh played battle: mark down (compact rows) -> Record Result -> declare Deliver achieved -> PostBattle, capture on-device visuals",
       "git commit (4 edits + 2 new test files, all uncommitted)"
     ],
-    "related_memories": ["project_session_jul05_battle_companion_f9_f10.md", "reference_played_log_only_battle_needs_record_result.md", "reference_drawer_downed_card_collapse_touch_scroll.md"]
+    "related_memories": [
+      "project_session_jul05_battle_companion_f9_f10.md",
+      "reference_played_log_only_battle_needs_record_result.md",
+      "reference_drawer_downed_card_collapse_touch_scroll.md"
+    ]
   },
   "portrait_density_slider_hybrid": {
     "date": "2026-06-07",
@@ -34,7 +53,10 @@
       "W6 equipment-row -> ItemPreviewPopup (optional polish)",
       "On-device safe-area/touch/DPI validation (all testing was Windows desktop, screen_get_scale=1.0)"
     ],
-    "related_memories": ["project_portrait_density_slider_hybrid.md", "project_mobile_repivot_responsive.md"]
+    "related_memories": [
+      "project_portrait_density_slider_hybrid.md",
+      "project_mobile_repivot_responsive.md"
+    ]
   },
   "sheet_export_sprint_2_5": {
     "date": "2026-05-24",
@@ -120,9 +142,9 @@
     "uncommitted": "Tree clean — commit 1305d22d swept up the Phase 2 + follow-up work mid-session. Only .claude/skills/campaign-systems/references/save-load-persistence.md modified (stale from May 17, not this session).",
     "cross_mode": "All 4 entry-point battle_mode branches MCP-verified (Bug Hunt/Planetfall/Tactics via preserved _try_auto_init_from_temp_data delegation; standalone Battle Sim direct). _is_bug_hunt_mode/_is_planetfall_mode flags set correctly per mode, drawers populate identically across all four."
   },
-  "current_phase": "Phase A.1 — Modiphius Partnership Workback (post Apr 29 meeting + Apr 30 forecast deep-dive + Apr 30 forecast delivery prep). DEAL FRAME LOCKED: 5PFH 4,219 DTRPG / 30K phys, 5L 2,700 DTRPG / 20K phys, 50/50 net split, 5x system as foundation for Modiphius's wider digital strategy. FOUR MUTUALLY AGREED STRATEGIC THESES (T1-T4) captured Apr 30: T1 companion app not digital port, T2 establishing a category not entering one, T3 multi-project platform R&D investment, T4 active digital→physical conversion strategy. See MEETING_FOLLOWUPS_2026-04-29.md §1.5 for canonical statement. Apr 30 forecast deep-dive (MODIPHIUS_DIGITAL_FORECAST.md): Steam-first refocus (0.72 → 0.70 multiplier, mobile = Phase 2 pocket port), §11 industry research (7 subsections, 30+ sourced URLs covering Steam tabletop comps, wishlist conversion, EA risk, pricing psychology, cannibalization, TTRPG market tailwinds), §11.5a five-mechanism digital→physical strategy, §11.1 right-comparison-vector restructure. Phase A.1 deliverables UPDATED Apr 30: forecast doc has +2,500 words industry research, CLOSED_ALPHA_PLAN.md adds §6.1 category-perception probe + §6.5 digital→physical mechanism specs (Phase B alpha deliverables). FORECAST SENT TO MODIPHIUS 2026-04-30: 1-page executive summary PDF (rendered from docs/MODIPHIUS_FORECAST_SUMMARY.md) + current Windows build .exe sent to Chris (CC Gavin) via Gmail. Email body archived at docs/EMAIL_DRAFT_FORECAST_DELIVERY.txt. Full forecast PDF (rendered from docs/MODIPHIUS_DIGITAL_FORECAST.md) staged in reserve for instant send-on-request. Spot-check completed pre-send: Section D contractor frames mapping corrected (Frame A has $100K-$180K break-even range; Frames B+C are pure additional cost, no break-even — earlier draft conflated frames with §9b structures). Reusable renderer at scripts/render_md_to_print_html.py (Pandoc-free, browser Print-to-PDF flow). Awaiting Modiphius reply — log responses in MEETING_FOLLOWUPS_2026-04-29.md §9 tracking table. Next: Phase A.2 (May 5-11) external preliminary planning — first weekly Gavin sync, partnership-on-paper conversation, contractor scope discussion (Frame B retainer is recommended lead), discount-code sizing coordination for T4 mechanisms. Steam EA target late Sep 2026. ENGINEERING (2026-05-27): SceneStage character slots (roster-aware crew figures, tree-order depth) + ambient 'living painting' motion SHIPPED as a PoC on story_event_01 (one-pager screenshot sent to Modiphius). Authoring SOP at docs/sop/narrative-scene-authoring.md. NEW SPRINT ROADMAP at docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md decomposes narrative integration (A1-A5) + combat modes (B0-B4); LEAD SPRINT chosen = B0+B1 No-Minis combat foundation (battle-systems-engineer; fidelity-check BattleResolver vs Nominis.json, then wire). See project_sprint_roadmap_narrative_combat memory.",
+  "current_phase": "Pre-tablet hardening on branch campaign-editor-and-fixits. PARTNERSHIP (Jul 27 2026 call outcome, supersedes the Apr 29/30 frame previously recorded here): $9.99 one-time base + per-book unlocks APPROVED, no subscription; taper accepted pending his team; Five Parsecs own-IP scope adopted (Traveller out); LOI moving to Modiphius letterhead — diff it against the agreed Google Doc before signing. Alpha kickoff date deliberately DEFERRED for social coordination; do not re-propose one unprompted. The four strategic theses T1-T4 still stand. ⚠ MODIPHIUS_CORRESPONDENCE_JOURNAL.md stops at Jun 4 2026 — for anything later, pull Gmail + Google Doc comments, NOT the repo.",
   "key_metrics": {
-    "game_mechanics_compliance": "100% (170/170)",
+    "game_mechanics_compliance": "100% IMPLEMENTED (170/170) — ⚠ implemented is NOT delivered. This figure was true while Quests were unplayable end to end and four Compendium chapters could not be opened in a campaign. Cross-check docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md and docs/RULES_WIRING_AUDIT_2026-08.md before quoting it.",
     "core_rules_systems": "11/11 verified",
     "campaign_turn_phases": "9/9 fully wired",
     "campaign_creation": "7-phase coordinator system",
@@ -140,7 +162,9 @@
     "fabricated_files_flagged": 0,
     "runtime_qa_waves_complete": "5/5",
     "bugs_found_this_sprint": 14,
-    "bugs_fixed_this_sprint": 14
+    "bugs_fixed_this_sprint": 14,
+    "wiring_lints_2026_08_06": "signal_wiring / tscn_connections / autoload_lookups / data_ownership all CLEAN (exit 0); orphan_assets orphans=0, 41 test-only files tracked as a product decision",
+    "test_suite_2026_08_06": "2254/2254 unit across 194 suites; verify_battle_ui 79/79; verify_post_battle 46/46"
   },
   "phase_48_verification": {
     "status": "COMPLETE — 8 domains verified against core_rulebook.txt",
@@ -175,41 +199,146 @@
     ]
   },
   "completed_phases": [
-    { "phase": "1-4", "description": "Godot 4.5.1 → 4.6 Migration" },
-    { "phase": "5", "description": "Script Consolidation (9 sprints)" },
-    { "phase": "6-10", "description": "LSP, Refs, Signals (25+ sprints)" },
-    { "phase": "11", "description": "Campaign Creation (4 sprints)" },
-    { "phase": "12", "description": "Save/Load Persistence" },
-    { "phase": "13", "description": "Dashboard + UI Framework" },
-    { "phase": "14", "description": "Campaign Loop Fixes (7 sprints)" },
-    { "phase": "15", "description": "JSON Data Accuracy (12 sprints)" },
-    { "phase": "16-18", "description": "Battle Audit + Wiring (30 sprints)" },
-    { "phase": "21", "description": "World→Battle Data Flow (3 sub-phases)" },
-    { "phase": "22", "description": "Equipment + PreBattle (4 sprints)" },
-    { "phase": "23", "description": "UI/UX Asset Integration (5 sprints)" },
-    { "phase": "24", "description": "Store/Paywall System (7 sprints)" },
-    { "phase": "25", "description": "Review System (2 sprints)" },
-    { "phase": "26", "description": "TweenFX Integration (8 sprints)" },
-    { "phase": "27", "description": "Battle Map + UI Overhaul (6 files)" },
-    { "phase": "28-29", "description": "QA Sprint Fix Plan + Runtime Demo (22 files)" },
-    { "phase": "30", "description": "Core Rules Parity (difficulty, elite ranks)" },
-    { "phase": "31", "description": "QA Bug Fix Sprint (14 files)" },
-    { "phase": "33", "description": "Codebase Optimization (12 sprints)" },
-    { "phase": "34-36", "description": "QA Sprints + Full Test Coverage (293 tests)" },
-    { "phase": "37", "description": "Equipment & Compendium Data Audit (8 data files)" },
-    { "phase": "38", "description": "Full Rules Parity (4 data + 10 code files)" },
-    { "phase": "39", "description": "Compendium Data Audit (6 data + 2 new + 5 code files)" },
-    { "phase": "40", "description": "Compendium Mission Types + Full Wiring (3 data + 7 UI files)" },
-    { "phase": "41", "description": "Rules Gap Remediation (5 sprints)" },
-    { "phase": "42", "description": "Foundational DLC Data (5 sprints)" },
-    { "phase": "43", "description": "Core+Compendium Gap Remediation (6 sprints, 18 files)" },
-    { "phase": "44", "description": "Integration Gap Audit + Psionics (6 sprints, 22 files)" },
-    { "phase": "45", "description": "Full JSON Data Consistency (8 sprints, 19 files, -575 net lines)" },
-    { "phase": "46-47", "description": "QA Audit + Data Rewrite (7 fabricated JSONs rewritten, 17 JSONs wired)" },
-    { "phase": "48", "description": "Book Verification Sprint (8 domains verified, ~250 values promoted, 18 fixes)" },
-    { "phase": "Bug Hunt", "description": "~25 sprints + 7 wiring + 5 cleanup" },
-    { "phase": "Compendium", "description": "Mechanics Wiring Audit (10 sprints)" },
-    { "phase": "Functional Gaps", "description": "Cleanup (7 sprints F-1 to F-7)" }
+    {
+      "phase": "1-4",
+      "description": "Godot 4.5.1 → 4.6 Migration"
+    },
+    {
+      "phase": "5",
+      "description": "Script Consolidation (9 sprints)"
+    },
+    {
+      "phase": "6-10",
+      "description": "LSP, Refs, Signals (25+ sprints)"
+    },
+    {
+      "phase": "11",
+      "description": "Campaign Creation (4 sprints)"
+    },
+    {
+      "phase": "12",
+      "description": "Save/Load Persistence"
+    },
+    {
+      "phase": "13",
+      "description": "Dashboard + UI Framework"
+    },
+    {
+      "phase": "14",
+      "description": "Campaign Loop Fixes (7 sprints)"
+    },
+    {
+      "phase": "15",
+      "description": "JSON Data Accuracy (12 sprints)"
+    },
+    {
+      "phase": "16-18",
+      "description": "Battle Audit + Wiring (30 sprints)"
+    },
+    {
+      "phase": "21",
+      "description": "World→Battle Data Flow (3 sub-phases)"
+    },
+    {
+      "phase": "22",
+      "description": "Equipment + PreBattle (4 sprints)"
+    },
+    {
+      "phase": "23",
+      "description": "UI/UX Asset Integration (5 sprints)"
+    },
+    {
+      "phase": "24",
+      "description": "Store/Paywall System (7 sprints)"
+    },
+    {
+      "phase": "25",
+      "description": "Review System (2 sprints)"
+    },
+    {
+      "phase": "26",
+      "description": "TweenFX Integration (8 sprints)"
+    },
+    {
+      "phase": "27",
+      "description": "Battle Map + UI Overhaul (6 files)"
+    },
+    {
+      "phase": "28-29",
+      "description": "QA Sprint Fix Plan + Runtime Demo (22 files)"
+    },
+    {
+      "phase": "30",
+      "description": "Core Rules Parity (difficulty, elite ranks)"
+    },
+    {
+      "phase": "31",
+      "description": "QA Bug Fix Sprint (14 files)"
+    },
+    {
+      "phase": "33",
+      "description": "Codebase Optimization (12 sprints)"
+    },
+    {
+      "phase": "34-36",
+      "description": "QA Sprints + Full Test Coverage (293 tests)"
+    },
+    {
+      "phase": "37",
+      "description": "Equipment & Compendium Data Audit (8 data files)"
+    },
+    {
+      "phase": "38",
+      "description": "Full Rules Parity (4 data + 10 code files)"
+    },
+    {
+      "phase": "39",
+      "description": "Compendium Data Audit (6 data + 2 new + 5 code files)"
+    },
+    {
+      "phase": "40",
+      "description": "Compendium Mission Types + Full Wiring (3 data + 7 UI files)"
+    },
+    {
+      "phase": "41",
+      "description": "Rules Gap Remediation (5 sprints)"
+    },
+    {
+      "phase": "42",
+      "description": "Foundational DLC Data (5 sprints)"
+    },
+    {
+      "phase": "43",
+      "description": "Core+Compendium Gap Remediation (6 sprints, 18 files)"
+    },
+    {
+      "phase": "44",
+      "description": "Integration Gap Audit + Psionics (6 sprints, 22 files)"
+    },
+    {
+      "phase": "45",
+      "description": "Full JSON Data Consistency (8 sprints, 19 files, -575 net lines)"
+    },
+    {
+      "phase": "46-47",
+      "description": "QA Audit + Data Rewrite (7 fabricated JSONs rewritten, 17 JSONs wired)"
+    },
+    {
+      "phase": "48",
+      "description": "Book Verification Sprint (8 domains verified, ~250 values promoted, 18 fixes)"
+    },
+    {
+      "phase": "Bug Hunt",
+      "description": "~25 sprints + 7 wiring + 5 cleanup"
+    },
+    {
+      "phase": "Compendium",
+      "description": "Mechanics Wiring Audit (10 sprints)"
+    },
+    {
+      "phase": "Functional Gaps",
+      "description": "Cleanup (7 sprints F-1 to F-7)"
+    }
   ],
   "roadmap": {
     "next_priority": "Phase A.2 (May 5-11): first weekly Gavin sync, partnership-on-paper conversation (LOI), contractor scope discussion (Frames A/B/C — lead with Frame B retainer per §9.5), asset delivery begins, telemetry scaffolding code, Van Westendorp Prolific recruitment, T4 discount-code sizing coordination with Modiphius (15-20% placeholder), T4 newsletter API endpoint coordination, Steam wishlist target setting (10K-20K by EA per §11.2). Phase A.3 (May 12-24): cut alpha branch, A0 sanity-check, tester onboarding, T4 mechanism mock-ups in build, category-perception probe questions finalized. Alpha kickoff Mon May 25.",
@@ -227,7 +356,11 @@
     "active_workback_phases": "A.1 COMPLETE / A.2 next week / A.3 alpha prep / B closed alpha (May 25-Jul 6) / C refinement (Jul 7-20) / D beta + Steam Playtest (Jul 21-Sep 1) / E marketing lock (Sep 2-22) / F EA launch (Sep 23-30 target) / G post-EA toward 1.0",
     "remaining_pdf_verification": "~100 Compendium/DLC values in 11 compendium_*.gd files (Core Rules domains 100% complete)",
     "equipment_database": "FULLY WIRED + VERIFIED. 36 Core Rules weapons confirmed. Dazzle Grenade synced across weapons.json + equipment_database.json.",
-    "compendium_not_in_scope": ["species text helpers", "PvP/Co-op modes", "5 phantom non-Core weapons confirmed non-existent"],
+    "compendium_not_in_scope": [
+      "species text helpers",
+      "PvP/Co-op modes",
+      "5 phantom non-Core weapons confirmed non-existent"
+    ],
     "store_ids": "Placeholder — need real IDs from Modiphius",
     "public_beta": "Beta = Steam Playtest cohort 100-200 testers, Phase D (Jul 21-Sep 1)"
   },

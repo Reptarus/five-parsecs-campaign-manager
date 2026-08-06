@@ -9,6 +9,7 @@ class_name MissionPrepComponent
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 
 # UI Components
 @onready var mission_prep_container: VBoxContainer = %MissionPrepContainer
@@ -93,6 +94,15 @@ func initialize_mission_prep(mission: Dictionary, crew: Array, equipment: Array)
 			elif eq_item is String:
 				eq_ids.append(eq_item)
 		crew_equipment_assignments[member_id] = eq_ids
+
+	# Compendium p.80, verbatim: "Check for Connections any time you determine that
+	# you will be playing an Opportunity mission. WHILE ESTABLISHING THE OBJECTIVES
+	# AND PARAMETERS, roll 1D6 with a 5 or 6 indicating that the mission has a
+	# Connection." This step IS that moment — it is the last World Phase step, the
+	# mission is settled, and the crew has not deployed. Rolling it later (at the
+	# battle chokepoint) would be after the parameters are fixed; rolling it
+	# earlier (at job acceptance) would be before the mission is chosen.
+	_check_for_connection()
 
 	prep_completed = false
 	_update_ui_display()
@@ -304,7 +314,11 @@ func _build_zone_info_section() -> void:
 
 	var is_red: bool = mission_data.get("is_red_zone", false)
 	var is_black: bool = mission_data.get("is_black_zone", false)
-	if not is_red and not is_black:
+	# The Connection card shares this container: it is the same kind of thing —
+	# a rules block the player must read before deploying — and it can appear on
+	# an ordinary Opportunity mission that is neither Red nor Black.
+	var connection: Dictionary = _pending_connection()
+	if not is_red and not is_black and connection.is_empty():
 		return
 
 	_zone_info_container = VBoxContainer.new()
@@ -315,6 +329,9 @@ func _build_zone_info_section() -> void:
 		_build_red_zone_info()
 	elif is_black:
 		_build_black_zone_info()
+
+	if not connection.is_empty():
+		_build_connection_info(connection)
 
 	# Insert after the HeaderPanel in MissionPrepContainer
 	if mission_prep_container:
@@ -335,7 +352,7 @@ func _build_red_zone_info() -> void:
 
 	var title: Label = Label.new()
 	title.text = "RED ZONE MISSION"
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	title.add_theme_color_override(
 		"font_color", Color(1, 0.5, 0.5, 1))
 	vbox.add_child(title)
@@ -350,7 +367,7 @@ func _build_red_zone_info() -> void:
 		opp_rules.get("base_enemy_count", 7),
 		opp_rules.get("specialist_count", 3)]
 	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	opp_label.add_theme_font_size_override("font_size", 13)
+	opp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	opp_label.add_theme_color_override(
 		"font_color", Color(0.88, 0.88, 0.88, 1))
 	vbox.add_child(opp_label)
@@ -362,7 +379,7 @@ func _build_red_zone_info() -> void:
 		+ "Time Constraint: Checked at end of Round 6 (D6)\n"
 		+ "Invasion rolls: +2 | Galactic War: -1")
 	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	warn_label.add_theme_color_override(
 		"font_color", Color(0.7, 0.7, 0.7, 1))
 	vbox.add_child(warn_label)
@@ -373,7 +390,7 @@ func _build_red_zone_info() -> void:
 		"Improved Rewards: +1 XP/survivor (held field), "
 		+ "credits roll 2x pick best, extra Loot roll on Win")
 	reward_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	reward_label.add_theme_font_size_override("font_size", 12)
+	reward_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	reward_label.add_theme_color_override(
 		"font_color", Color(0.063, 0.725, 0.506, 1))
 	vbox.add_child(reward_label)
@@ -389,7 +406,7 @@ func _build_black_zone_info() -> void:
 
 	var title: Label = Label.new()
 	title.text = "BLACK ZONE MISSION — Unity Drop"
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	title.add_theme_color_override(
 		"font_color", Color(0.85, 0.6, 1.0, 1))
 	vbox.add_child(title)
@@ -401,7 +418,7 @@ func _build_black_zone_info() -> void:
 		bz_mission.get("name", "Unknown"),
 		bz_mission.get("description", "")]
 	mission_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	mission_label.add_theme_font_size_override("font_size", 13)
+	mission_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	mission_label.add_theme_color_override(
 		"font_color", Color(0.88, 0.88, 0.88, 1))
 	vbox.add_child(mission_label)
@@ -415,7 +432,7 @@ func _build_black_zone_info() -> void:
 		+ "(Active/Passive system)\n"
 		+ "No Notable Sights or Deployment Conditions")
 	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	opp_label.add_theme_font_size_override("font_size", 12)
+	opp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	opp_label.add_theme_color_override(
 		"font_color", Color(0.7, 0.7, 0.7, 1))
 	vbox.add_child(opp_label)
@@ -426,7 +443,7 @@ func _build_black_zone_info() -> void:
 		"WARNING: This is not intended to be fair. "
 		+ "Your entire team may become casualties.")
 	warn_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warn_label.add_theme_font_size_override("font_size", 12)
+	warn_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	warn_label.add_theme_color_override(
 		"font_color", Color(0.86, 0.15, 0.15, 1))
 	vbox.add_child(warn_label)
@@ -437,12 +454,124 @@ func _build_black_zone_info() -> void:
 		"Advantages: 3 free Weapon Table rolls, "
 		+ "no Upkeep, no Rival interference")
 	adv_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	adv_label.add_theme_font_size_override("font_size", 12)
+	adv_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	adv_label.add_theme_color_override(
 		"font_color", Color(0.063, 0.725, 0.506, 1))
 	vbox.add_child(adv_label)
 
 	_zone_info_container.add_child(card)
+
+## ── Expanded Connections (Compendium pp.80-86) ──────────────────────────────
+
+func _campaign() -> Variant:
+	var gs = get_node_or_null("/root/GameState")
+	return gs.get_current_campaign() if gs and gs.has_method("get_current_campaign") else null
+
+
+func _pending_connection() -> Dictionary:
+	return ExpandedConnectionsRef.get_pending(_campaign())
+
+
+func _check_for_connection() -> void:
+	## The p.80 check plus, on a hit, the p.81 D6 main table and its subtable.
+	## Runs once per mission-prep initialisation; a Connection already pending
+	## from an unplayed offer is left alone (p.81 gives it until next turn).
+	var campaign: Variant = _campaign()
+	if campaign == null or not ExpandedConnectionsRef.is_enabled():
+		return
+	if not ExpandedConnectionsRef.get_pending(campaign).is_empty():
+		return
+
+	var source: String = str(mission_data.get("mission_source",
+		mission_data.get("source", "")))
+	var outcome: Dictionary = ExpandedConnectionsRef.check(campaign, source)
+	if not bool(outcome.get("applies", false)):
+		return
+	if not bool(outcome.get("triggered", false)):
+		# Remembered so the no-roll option's "every other time" alternates.
+		ExpandedConnectionsRef.note_no_connection(campaign)
+		return
+
+	var turn: int = 0
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		turn = int(campaign.progress_data.get("turns_played", 0))
+	var record: Dictionary = ExpandedConnectionsRef.roll_connection(campaign, turn)
+	if record.is_empty():
+		return
+	# Stamp it so the battle and the post-battle side read the mission rather
+	# than re-deriving it.
+	mission_data.merge(ExpandedConnectionsRef.mission_stamp(campaign), true)
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "A Connection",
+			"description": str(record.get("instruction", "")),
+			"tags": ["connection", "compendium", "expanded_connections"],
+		})
+
+
+func _build_connection_info(record: Dictionary) -> void:
+	## The Connection's own card. The instruction is printed verbatim — for a
+	## tabletop companion that text IS the feature, and the 30 subtable entries
+	## each set up their own scenario in prose the app cannot compress.
+	var card: PanelContainer = _create_zone_card(
+		Color(0.35, 0.22, 0.55, 0.30), Color(0.545, 0.361, 0.965, 1))
+	var vbox: VBoxContainer = card.get_child(0)
+
+	var header := Label.new()
+	header.text = "CONNECTION — %s" % str(record.get("category_instruction",
+		"this mission ties back to your campaign")).trim_prefix("CONNECTION TYPE: ")
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	header.add_theme_color_override("font_color", Color(0.545, 0.361, 0.965, 1))
+	vbox.add_child(header)
+
+	var body := Label.new()
+	body.text = str(record.get("instruction", ""))
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(body)
+
+	if bool(record.get("decline_allowed", false)):
+		# p.81: "Some events may allow you to turn the job down. If so, fight a
+		# random Opportunity mission without generating a Connection for it."
+		var note := Label.new()
+		note.text = ("You may turn this job down (marked * in the book). "
+			+ "Declining leaves the mission as an ordinary Opportunity fight.")
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_color_override("font_color", Color(0.502, 0.502, 0.502, 1))
+		vbox.add_child(note)
+
+		var decline := Button.new()
+		decline.text = "Turn the job down"
+		decline.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		decline.pressed.connect(_on_decline_connection_pressed)
+		vbox.add_child(decline)
+
+	if _zone_info_container:
+		_zone_info_container.add_child(card)
+
+
+func _on_decline_connection_pressed() -> void:
+	var campaign: Variant = _campaign()
+	var record: Dictionary = ExpandedConnectionsRef.resolve_pending(campaign, true)
+	if record.is_empty():
+		return
+	for key in ["connection_id", "connection_category", "connection_subtable",
+			"connection_instruction", "connection_decline_allowed"]:
+		mission_data.erase(key)
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "Connection declined",
+			"description": "The crew turned the job down (Compendium p.81). "
+				+ "The mission is fought as an ordinary Opportunity job.",
+			"tags": ["connection", "compendium", "expanded_connections"],
+		})
+	_update_mission_briefing()
+
 
 func _create_zone_card(
 		bg_color: Color, border_color: Color) -> PanelContainer:
@@ -455,7 +584,7 @@ func _create_zone_card(
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	style.border_color = border_color
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 16.0
 	style.content_margin_top = 12.0
 	style.content_margin_right = 16.0

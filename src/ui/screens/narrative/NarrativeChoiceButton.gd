@@ -17,16 +17,16 @@ extends Button
 const TOUCH_TARGET_MIN := 48
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_TEXT_DISABLED := Color("#404040")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED
 # Visible button styling — without these, the inherited theme background can
 # blend into the narrative panel and the button reads as empty space (May 29
 # runtime regression: user reported "no way to continue or exit").
-const COLOR_BUTTON_NORMAL := Color("#252542")    # elevated, matches CalloutCard
-const COLOR_BUTTON_HOVER := Color("#3A3A5C")     # +20% brightness on hover
-const COLOR_BUTTON_PRESSED := Color("#1A1A2E")   # darker on press
-const COLOR_BUTTON_BORDER := Color("#4FC3F7")    # cyan accent border
+const COLOR_BUTTON_NORMAL := UIColors.COLOR_SECONDARY    # elevated, matches CalloutCard
+const COLOR_BUTTON_HOVER := UIColors.COLOR_BORDER     # +20% brightness on hover
+const COLOR_BUTTON_PRESSED := UIColors.COLOR_PRIMARY   # darker on press
+const COLOR_BUTTON_BORDER := UIColors.COLOR_CYAN    # cyan accent border
 const SPACING_XS := 4
 const SPACING_SM := 8
 const SPACING_MD := 16
@@ -69,7 +69,7 @@ func _ready() -> void:
 
 	_label_main = Label.new()
 	_label_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label_main.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_label_main.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_label_main.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_label_main.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_main.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -78,7 +78,7 @@ func _ready() -> void:
 
 	_label_hint = Label.new()
 	_label_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label_hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_label_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_label_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_label_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label_hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL

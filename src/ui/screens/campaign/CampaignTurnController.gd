@@ -8,9 +8,16 @@ const MissionTableManagerClass = preload("res://src/core/mission/MissionTableMan
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd")
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
+## Core Rules p.85 "Check for Rivals". Path preload for the same stale-class-cache
+## reason as the two consts above.
+const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 ## Version of the battle-result → NarrativeScreen event_data contract produced by
 ## _battle_result_to_narrative_dict(). BUMP THIS whenever a field is added/renamed/
@@ -65,8 +72,35 @@ func _ready() -> void:
 
 	_connect_core_signals()
 
+	# Page chrome: the SettingsOverlay band (keeps content clear of the floating
+	# gear/bug buttons, which are drawn on their own CanvasLayer above this screen)
+	# plus a portrait gutter for the turn/phase strip.
+	#
+	# The strip used to run edge to edge. The earlier note here said there was
+	# nothing for PortraitChrome to trim -- true of the ROOT, whose only child was a
+	# full-rect VBoxContainer, and the conclusion drawn was that the embedded
+	# WorldPhaseController's own trimming covered this screen. It does not: that
+	# covers the hosted PHASE, while the header strip is this shell's own chrome and
+	# so had no gutter at all on any screen size. HeaderMargin exists now purely to
+	# give PortraitChrome something to trim, and it wraps ONLY the header -- the
+	# phase container stays full-bleed so hosted screens keep managing their own
+	# gutters instead of getting a second one stacked on top.
+	ScreenChrome.apply_page_chrome(
+		self, get_node_or_null("MainContainer/HeaderMargin") as MarginContainer
+	)
+
 	# Restore turn number from loaded campaign data BEFORE UI init
 	var campaign = game_state.get_current_campaign()
+
+	# Rebind the phase manager if this is a DIFFERENT campaign than it currently
+	# holds. It is an autoload, so turn_number / current_phase / the post-battle
+	# campaign reference otherwise survive a campaign switch — and the turn number
+	# then gets written into the new campaign and autosaved. bind_campaign() is a
+	# no-op when the identity is unchanged, so re-entering the turn controller
+	# mid-campaign still preserves in-flight turn and phase state.
+	if campaign and campaign_phase_manager.has_method("bind_campaign"):
+		campaign_phase_manager.bind_campaign(campaign)
+
 	if campaign and "progress_data" in campaign:
 		var saved_turn: int = campaign.progress_data.get("turns_played", 0)
 		if saved_turn > 0 and campaign_phase_manager.turn_number == 0:
@@ -115,6 +149,12 @@ func _connect_core_signals() -> void:
 			post_battle_handler.patron_status_resolved.connect(_on_post_battle_patron_resolved)
 		if post_battle_handler.has_signal("experience_awarded"):
 			post_battle_handler.experience_awarded.connect(_on_post_battle_experience_awarded)
+		# Story Track outcome prose. Every event authors completion_win /
+		# completion_lose and nothing rendered either, so a Story Event battle
+		# ended with no word on what it meant.
+		if post_battle_handler.has_signal("story_track_advanced"):
+			post_battle_handler.story_track_advanced.connect(
+				_on_story_track_advanced)
 	else:
 		push_warning("CampaignTurnController: post_battle_phase_handler is null - post-battle events (rival/patron resolution, XP) may not update correctly")
 		# Note: Post-battle will still function via UI signals from PostBattleSequence
@@ -305,16 +345,11 @@ func _initialize_backend_systems() -> void:
 	else:
 		push_warning("CampaignTurnController: RivalBattleGenerator not available")
 
-	# Connect GalacticWarManager endgame signal — one-shot per campaign.
-	# When a war track reaches its max-progress threshold with
-	# effects.campaign_ending == true (JSON-driven), this fires and we route
-	# the player to GameOverScreen. CONNECT_ONE_SHOT auto-disconnects so the
-	# signal can't fire twice on the same controller instance.
-	var war_manager: Node = get_node_or_null("/root/GalacticWarManager")
-	if war_manager and war_manager.has_signal("campaign_ending_triggered"):
-		war_manager.campaign_ending_triggered.connect(
-			_on_galactic_war_endgame, CONNECT_ONE_SHOT)
-
+	# NO GalacticWarManager endgame wiring. That autoload drove a fabricated
+	# "war track" system (absent from both rulebooks) whose campaign_ending_
+	# triggered signal could have ENDED a campaign on invented criteria. The
+	# subsystem was inert (zero external mutators) and has been removed; the
+	# real mechanic is the Core Rules p.126 2D6 table in GalacticWarProcessor.
 
 ## Backend System Signal Handlers
 
@@ -347,34 +382,6 @@ func _on_backend_rival_battle_generated(battle_data) -> void:
 func _on_backend_rival_defeated(_rival_id: String) -> void:
 	## Handle rival permanent defeat from backend
 	pass
-
-func _on_galactic_war_endgame(track_id: String, ending_type: String) -> void:
-	## Handle GalacticWarManager.campaign_ending_triggered — campaign-over transition.
-	## CONNECT_ONE_SHOT ensures this fires only once per controller lifetime.
-	push_warning("CampaignTurnController: Galactic War endgame triggered: %s (%s)" % [
-		track_id, ending_type])
-
-	# Write a journal entry so the endgame appears in the chronicle.
-	# Use create_entry directly — auto_create_milestone_entry has internal
-	# title/description lookups that don't cover the galactic_war milestone type.
-	var journal: Node = get_node_or_null("/root/CampaignJournal")
-	if journal and journal.has_method("create_entry"):
-		journal.create_entry({
-			"type": "galactic_war",
-			"title": "Galactic War: %s" % ending_type.capitalize().replace("_", " "),
-			"description": ("The %s track has reached its endgame condition." % track_id),
-			"tags": ["galactic_war", "milestone", "endgame"],
-			"mood": "triumph" if ending_type.ends_with("_victory") else "defeat",
-		})
-
-	# Route to GameOverScreen
-	var router: Node = get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("navigate_to"):
-		router.navigate_to("game_over", {
-			"reason": "galactic_war",
-			"track_id": track_id,
-			"ending_type": ending_type,
-		})
 
 ## Post-Battle Phase Signal Handlers
 
@@ -410,46 +417,99 @@ func _get_current_planet_id() -> String:
 	# Fallback to turn-based planet ID
 	return "planet_" + str(campaign_phase_manager.get_turn_number())
 
-func _check_rival_encounter_backend(planet_id: String, turn_number: int) -> void:
-	## Check for rival encounters (Core Rules pp.85-86).
-	## Roll 1D6; if <= number of Rivals, one tracks you down.
-	var rival_generator = get_node_or_null("BackendRivalGenerator")
-	if rival_generator and rival_generator.has_method("check_rival_encounter"):
-		var encounter_data = rival_generator.check_rival_encounter(planet_id, turn_number)
-		if encounter_data and encounter_data.get("has_encounter", false):
-			battle_results["rival_encounter"] = encounter_data
-			if battle_transition_ui and battle_transition_ui.has_method("set_rival_encounter_data"):
-				battle_transition_ui.set_rival_encounter_data(encounter_data)
+func _story_rival_suppression_reason() -> String:
+	## Returns a non-empty reason when the current Story Event forbids the p.85
+	## Rival check this campaign turn. Empty on any normal turn.
+	##
+	## Book wording per event (Core Rules Appendix V):
+	##   Event 1 p.153 "Do not roll for existing Rivals interfering this campaign
+	##                  turn, and you cannot Track Rivals."
+	##   Event 4 p.156 "You cannot be attacked by Rivals this campaign turn."
+	##   Event 5 p.157 "you manage to slip away without any Rivals having a
+	##                  chance to attack."
+	##   Event 6 p.158 "you will manage to dodge any Rivals coming after you."
+	## Event 3 is the explicit opposite — "can_be_attacked_by_rivals" — so it must
+	## NOT suppress even though it shares the cannot_track_rivals restriction.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return ""
+	var mods: Dictionary = cpm.get_story_turn_mods()
+	if mods.is_empty():
+		return ""
+	if bool(mods.get("can_be_attacked_by_rivals", false)):
+		return ""
+	for key: String in [
+		"no_rival_interference", "rivals_cannot_attack", "rivals_dodged"
+	]:
+		if bool(mods.get(key, false)):
+			return "Story Event: Rivals cannot attack this campaign turn " \
+				+ "(Core Rules Appendix V)."
+	return ""
+
+func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> void:
+	## Core Rules p.85, World Step 6 "Check for Rivals": tally your Rivals, roll a
+	## D6, and if the roll is equal to or lower than the count, one of them has
+	## tracked you down. "Select the exact Rival at random from those on your list."
+	##
+	## THIS NEVER RAN. The old first branch asked RivalBattleGenerator for
+	## `check_rival_encounter()`, a method that does not exist anywhere in the repo,
+	## so the guard was permanently false; and the fallback keyed off
+	## progress_data["rival_count"], which nothing writes, so it returned before
+	## rolling. Rivals could not track the crew down at all, and the Decoy crew
+	## task modified a roll that was never made.
+	##
+	## The count now comes from the CANONICAL list (FiveParsecsCampaignCore.rivals,
+	## the same array RivalPatronResolver adds to and removes from), and the chosen
+	## Rival's id rides along so post-battle Step 1 (p.119) can roll to remove them.
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or not gs.current_campaign:
+		return
+	var campaign = gs.current_campaign
+	var rivals: Array = []
+	if "rivals" in campaign and campaign.rivals is Array:
+		rivals = campaign.rivals
+	elif campaign is Dictionary:
+		rivals = campaign.get("rivals", [])
+	if rivals.is_empty():
 		return
 
-	# Fallback: Core Rules 1D6 <= rival count (pp.85-86)
-	var rival_count: int = 0
 	var decoy_count: int = 0
-	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
-		rival_count = gs.current_campaign.progress_data.get(
-			"rival_count", 0)
-		decoy_count = gs.current_campaign.progress_data.get(
-			"decoy_crew_count", 0)
-	if rival_count <= 0:
+	if "progress_data" in campaign:
+		decoy_count = int(campaign.progress_data.get("decoy_crew_count", 0))
+
+	# Story Event turn modifications can call this check off entirely. They were
+	# parsed, displayed by StoryPhasePanel, and enforced by nothing — so a turn
+	# the book says you cannot be attacked on still rolled for Rival attacks.
+	var check: Dictionary = RivalEncounterCheckClass.check(
+		rivals, decoy_count, null, _story_rival_suppression_reason())
+	if not check.get("has_encounter", false):
 		return
+
+	# p.91 attack type. A Rival you Tracked down yourself is always a Showdown;
+	# one that tracked YOU down rolls on the D10 table.
+	var tracked_ids: Array = []
+	if "progress_data" in campaign:
+		tracked_ids = campaign.progress_data.get("tracked_rivals", [])
+	var was_tracked_by_crew: bool = str(check.get("rival_id", "")) in tracked_ids
 
 	var table_mgr := MissionTableManagerClass.new()
-	var check: Dictionary = table_mgr.check_rival_tracking(
-		rival_count, decoy_count)
-	if check.get("tracked_down", false):
-		var attack: Dictionary = table_mgr.roll_rival_attack_type()
-		var encounter_data: Dictionary = {
-			"has_encounter": true,
-			"attack_type": attack.get("type", "SHOWDOWN"),
-			"attack_description": attack.get("description", ""),
-			"roll": check.get("roll", 0),
-		}
-		battle_results["rival_encounter"] = encounter_data
-		if battle_transition_ui and battle_transition_ui.has_method(
-				"set_rival_encounter_data"):
-			battle_transition_ui.set_rival_encounter_data(
-				encounter_data)
+	var attack: Dictionary = table_mgr.roll_rival_attack_type(was_tracked_by_crew)
+	var encounter_data: Dictionary = {
+		"has_encounter": true,
+		"rival_id": str(check.get("rival_id", "")),
+		"rival_name": str(check.get("rival_name", "")),
+		"attack_type": attack.get("type", "SHOWDOWN"),
+		"attack_description": attack.get("description", ""),
+		"roll": check.get("roll", 0),
+		"rival_count": check.get("rival_count", 0),
+		"decoy_bonus": check.get("decoy_bonus", 0),
+		"reason": str(check.get("reason", "")),
+	}
+	battle_results["rival_encounter"] = encounter_data
+	if battle_transition_ui and battle_transition_ui.has_method(
+			"set_rival_encounter_data"):
+		battle_transition_ui.set_rival_encounter_data(
+			encounter_data)
 
 ## Campaign Turn Orchestration
 func start_new_campaign_turn() -> void:
@@ -560,6 +620,21 @@ func _show_phase_ui(phase: int) -> void:
 
 		GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION:
 			if post_battle_ui:
+				# RE-READ the real battle result before showing the wizard.
+				#
+				# THE BUG THIS FIXES: PostBattleSequence._load_battle_results() was
+				# called ONLY from its own _ready() (:136). PostBattleUI is a permanent
+				# instanced child of this scene (CampaignTurnController.tscn:75), so
+				# _ready() fires once at scene load — long before any battle exists.
+				# get_battle_results() was empty then, so it fell through to the
+				# hardcoded {"victory": true, ...} placeholder at :306 and NEVER
+				# re-read it.
+				#
+				# Every post-battle wizard therefore ran on a fabricated victory: the
+				# displayed outcome, the step gating and the manual Get Paid victory
+				# bonus all came from the stub rather than the battle just fought.
+				if post_battle_ui.has_method("refresh_from_battle_results"):
+					post_battle_ui.refresh_from_battle_results()
 				post_battle_ui.show()
 				current_ui_phase = post_battle_ui
 
@@ -617,6 +692,37 @@ func _hide_all_phase_uis() -> void:
 		story_phase_panel.hide()
 
 ## Battle Integration
+## Whether this battle is part of a Quest. Both spellings are live: the job offer
+## screen sets mission_source "quest" and stamps `is_quest_finale`, while some
+## older paths set the source to "quest_finale" directly.
+func _is_quest_mission(mission_data: Dictionary) -> bool:
+	var source: String = str(mission_data.get("mission_source",
+		mission_data.get("source", "")))
+	return source == "quest" or source == "quest_finale" \
+		or bool(mission_data.get("is_quest", false)) \
+		or bool(mission_data.get("is_quest_finale", false))
+
+
+## Both crew shapes are live here — a loaded campaign holds Dictionaries, a
+## freshly created one can still hold Character Resources — and `character_class`
+## is a validated String on both, so one str() cast covers them.
+func _crew_has_engineer(crew: Array) -> bool:
+	for member: Variant in crew:
+		var value: Variant = null
+		if member is Dictionary:
+			value = member.get("character_class", member.get("class", ""))
+		elif member != null and "character_class" in member:
+			value = member.character_class
+		if "engineer" in str(value).to_lower():
+			return true
+	return false
+
+
+func _is_quest_finale_mission(mission_data: Dictionary) -> bool:
+	return bool(mission_data.get("is_quest_finale", false)) \
+		or str(mission_data.get("mission_source", "")) == "quest_finale"
+
+
 func _initiate_battle_sequence() -> void:
 	## Start battle with current mission data and check for rival encounters
 	var mission_data = game_state.get_current_mission()
@@ -634,6 +740,52 @@ func _initiate_battle_sequence() -> void:
 	var crew_size: int = 6
 	if game_state and game_state.has_method("get_campaign_crew_size"):
 		crew_size = game_state.get_campaign_crew_size()
+	# Difficulty must reach the generator: it drives the Unique Individual roll
+	# (Hardcore +1, Insanity always-present with 11-12 = two — Core Rules pp.93-94).
+	if not mission_data.has("difficulty_mode") and game_state.current_campaign \
+			and "progress_data" in game_state.current_campaign:
+		mission_data["difficulty_mode"] = game_state.current_campaign.progress_data.get(
+			"difficulty_mode", 0)
+	# p.93: "Modify this, based on the size of your crew in the field. If you are
+	# fielding a crew of 2 or more figures below the standard size for your
+	# campaign (typically 6), subtract 1 from the enemy numbers." The generator
+	# had no way to know how many crew actually deployed — it only ever received
+	# the campaign SETTING (4/5/6) — so the clause could not be implemented.
+	mission_data["crew_in_field"] = active_crew.size()
+	# The world's traits (Core Rules pp.73-75). Stamped here because the generator
+	# is a detached Resource and cannot resolve autoloads — and because the
+	# post-battle side needs the same list the battle was built from, not
+	# whatever world the crew has travelled to by the time it runs.
+	mission_data["world_traits"] = WorldTraitEffectsClass.traits_for_current_world(
+		game_state.current_campaign)
+	# Expanded Quest Progression (Compendium pp.78-80). Stamped for the same
+	# reason as the world traits: the generator cannot reach the campaign, and the
+	# post-battle side must discharge the obligation the battle was FOUGHT for —
+	# `quest_step_id` is what tells it which. Merged (not overwritten) so a mission
+	# that already named its step keeps that identity, and returns {} whenever the
+	# player has the chapter switched off.
+	if _is_quest_mission(mission_data):
+		mission_data.merge(ExpandedQuestRef.mission_stamp(
+			game_state.current_campaign), false)
+		# p.80 Quest Conclusion: "the enemy is always accompanied by a Unique
+		# Individual." Stated flatly, so it replaces the pp.93-94 2D6 roll for
+		# this one battle instead of modifying it. Core-rules finales are
+		# unaffected — the core p.120 finale has no such clause.
+		if ExpandedQuestRef.is_enabled() and _is_quest_finale_mission(mission_data):
+			mission_data["force_unique_individual"] = true
+		# p.79 row 54-65: "If you have an Engineer among your crew, add +1 to the
+		# score." Resolved here rather than in the battle screen because this is
+		# where the campaign roster is in hand.
+		if int(mission_data.get("quest_survival_target", 0)) > 0:
+			mission_data["quest_engineer_bonus"] = 1 if _crew_has_engineer(active_crew) else 0
+
+	# Expanded Connections (Compendium pp.80-86). The Connection is ROLLED in the
+	# Mission Prep step, which is the book's own moment ("while establishing the
+	# objectives and parameters"); this only re-stamps whatever is pending, so a
+	# battle reached by a path that skips that step still carries it. Merged
+	# without overwrite for the same reason.
+	mission_data.merge(ExpandedConnectionsRef.mission_stamp(
+		game_state.current_campaign), false)
 	var enemies: Array = enemy_gen.generate_enemies_as_dicts(
 		mission_data, crew_size)
 	game_state.set_current_enemies(enemies)
@@ -652,6 +804,14 @@ func _initiate_battle_sequence() -> void:
 		"panic": first_enemy.get("panic", "1-2"),
 		"weapons": first_enemy.get("weapons", []),
 		"special_rules": first_enemy.get("special_rules", []),
+		# Category-level context. PreBattleUI renders a "Category rules" block and
+		# a NUMBERS column from these; both were dead UI because the live generator
+		# never emitted the keys and this hoist never carried them.
+		"category": first_enemy.get("category", ""),
+		"category_name": first_enemy.get("category_name", ""),
+		"category_rules": first_enemy.get("category_rules", ""),
+		"seize_initiative_modifier": int(
+			first_enemy.get("seize_initiative_modifier", 0)),
 		"units": enemies,
 	}
 	# Ensure mission_source flows to BattlePhase for Compendium battle type (p.118)
@@ -659,10 +819,31 @@ func _initiate_battle_sequence() -> void:
 		mission_data["mission_source"] = mission_data.get(
 			"source", "opportunity")
 
+	# ── Story Track / Introductory Campaign battle identity ──────────────
+	# Stamped HERE because this is the one chokepoint every battle path crosses
+	# before the fight, and because the post-battle sequence can only know what
+	# mission_data carries. Restores the injection lost when phases/BattlePhase.gd
+	# was deleted (99fad30b2); PostBattleCompletion.gd:176 has been reading
+	# `is_story_battle` off battle_result ever since, with no producer.
+	var narrative_cfg: Dictionary = _stamp_narrative_battle_config(mission_data)
+	var suppress_sight: bool = bool(narrative_cfg.get("no_notable_sights", false))
+	var suppress_condition: bool = bool(
+		narrative_cfg.get("no_deployment_conditions", false))
+
 	# Enrich with Core Rules tables (pp.88-91, 120-121)
 	var mtm := MissionTableManagerClass.new()
 	var source: String = mission_data.get(
 		"mission_source", "opportunity")
+
+	# The Quest finale never rolls (Core Rules p.89): "If this is the final
+	# battle of a Quest, it is always a Fight Off objective". p.120 says the same
+	# battle "will always be a Straight-up Fight". Nothing enforced this because
+	# `is_quest_finale` had no producer anywhere — the finale, when it finally
+	# arrived, was generated as an ordinary Quest mission and could roll Move
+	# Through or Defend, which the book does not allow.
+	var _finale: bool = _is_quest_finale_mission(mission_data)
+	if _finale and not mission_data.has("objective_details"):
+		mission_data["objective_details"] = _quest_finale_objective(mtm)
 
 	# Roll mission objective from D10 table if not already set
 	if not mission_data.has("objective_details"):
@@ -680,7 +861,12 @@ func _initiate_battle_sequence() -> void:
 				"placement_rules"]
 
 	# Roll Notable Sight (Core Rules p.88)
-	if not mission_data.has("notable_sight") \
+	# p.153 suppresses this outright on a Story Event turn: "During Story Event
+	# battles, you never roll for Deployment Conditions or Notable Sights."
+	# The Introductory Campaign withholds it for its early guided turns too.
+	if suppress_sight:
+		mission_data["notable_sight"] = {}
+	elif not mission_data.has("notable_sight") \
 			and source != "invasion":
 		var sight_col: String = mtm.get_deployment_column_for_type(
 			source)
@@ -697,18 +883,72 @@ func _initiate_battle_sequence() -> void:
 		# Rival attack type modifies battle setup (Core Rules pp.85-86)
 		var attack_type: String = rival_enc.get("attack_type", "SHOWDOWN")
 		mission_data["rival_attack_type"] = attack_type
+		# WHICH Rival — the identity the whole post-battle Rival step turns on.
+		# p.119: "If you just fought against an existing Rival and Held the Field,
+		# roll a 1D6 [...] On a 4 or better [...] you can remove them from your
+		# Rivals list." The normalizer stamps this id onto every defeated enemy so
+		# RivalPatronResolver can recognise the fight as a Rival fight; without it
+		# `fought_existing_rival` was permanently false and the removal roll was
+		# unreachable — holding the field against a Rival could only ADD Rivals.
+		mission_data["rival_id"] = str(rival_enc.get("rival_id", ""))
+		mission_data["mission_source"] = "rival"
+
+	# Invasion battle flag (Core Rules p.92). Downstream this is read as
+	# `is_invasion` — the gate on "no payment" (p.120 Step 4), "cannot roll on
+	# Battlefield Finds" (p.120 Step 5), "you receive no Loot" (p.121 Step 7) and
+	# the p.119 Rival-status skip. Every one of those consumers was already
+	# written and every one was unreachable, because the only marker on the
+	# mission was `mission_source == "invasion"` and nothing translated it.
+	mission_data["is_invasion"] = BattleSetupRulesClass.is_invasion(mission_data)
+
+	# Is the enemy an Invasion Threat? p.121 Step 6: "If the enemy you just
+	# battled is an Invasion Threat (listed in their profile in the Battle
+	# chapter), you must roll to see if the world is Invaded." The profiles carry
+	# it in enemy_types.json as the special rule "Invasion Threat", and
+	# PaymentProcessor.process_invasion_check() reads a boolean nothing derived —
+	# so the Invasion check could never fire from a battle.
+	var threat_info: Dictionary = _enemy_force_invasion_threat(
+		mission_data.get("enemy_force", {}))
+	mission_data["enemy_is_invasion_threat"] = threat_info["is_threat"]
+	mission_data["invasion_threat_modifier"] = threat_info["modifier"]
+
+	# Where this happened. p.119 notes a new Rival "for this planet", and the
+	# journal joins battle entries by location.
+	# Which encounter table the enemy came from. p.101 Roving Threats: "Enemies
+	# from this list never become Rivals" — the p.119 Step 1 skip needs to know.
+	mission_data["enemy_category"] = str(
+		mission_data.get("enemy_force", {}).get("category", ""))
+
+	mission_data["planet_id"] = current_planet_id
+	if not mission_data.has("location") or str(mission_data.get("location", "")) == "":
+		var pdm_node = get_node_or_null("/root/PlanetDataManager")
+		if pdm_node and pdm_node.has_method("get_current_planet"):
+			var cur = pdm_node.get_current_planet()
+			if cur is Dictionary:
+				mission_data["location"] = str(cur.get("name", ""))
 
 	# NOTE: battlefield generation happens BELOW (after the deployment
 	# condition roll + objective normalization) — the condition can affect
 	# the terrain output, so book order is condition first (2026-07-02).
 
 	# Roll deployment condition (Core Rules p.88)
+	# Skipped entirely on a Story Event turn (p.153) and on the Introductory
+	# Campaign turns that have not introduced the mechanic yet (Compendium p.105).
 	var deployment_condition: Dictionary = {}
 	var deploy_sys = FPCM_DeploymentConditionsSystem.new()
 	var deploy_mission_type := _infer_deployment_mission_type(
 		mission_data)
-	var condition = deploy_sys.roll_deployment_condition(
-		deploy_mission_type)
+	# p.88, closing line of the table: "This table is ignored during an Invasion
+	# battle." ENFORCED on the next line by the is_invasion guard. Without it an
+	# Invasion could arrive Delayed or Caught off guard on top of its own p.92
+	# structure (extra enemy, 6-round hold, no Win condition) — the hardest
+	# scenario in the base game made harder by a rule the book switches off for
+	# it. (This comment read "Unimplemented" until Aug 6 2026, describing the
+	# state before the line below it was written; comment drift of exactly this
+	# kind is what produced two wrong entries in the wiring ledger.)
+	var condition = null
+	if not suppress_condition and not bool(mission_data.get("is_invasion", false)):
+		condition = deploy_sys.roll_deployment_condition(deploy_mission_type)
 	if condition:
 		deployment_condition = {
 			"condition_id": condition.condition_id,
@@ -720,29 +960,63 @@ func _initiate_battle_sequence() -> void:
 		}
 	battle_results["deployment_condition"] = deployment_condition
 
-	# Apply deployment condition enemy count modifiers (Core Rules p.88)
-	var condition_id: String = deployment_condition.get("condition_id", "")
-	if condition_id == "SMALL_ENCOUNTER" and not enemies.is_empty():
-		var remove_count: int = 1
-		if enemies.size() > crew_size:
-			remove_count = 2  # Outnumbered = remove 2
-		for i in range(mini(remove_count, enemies.size() - 1)):
-			enemies.pop_back()
+	# Setup-time scenario modifications: Rival attack type (pp.91-92), Invasion
+	# structure (p.92) and the deployment condition (p.88), computed in one
+	# book-cited place. Before this, `rival_attack_type` reached only a label,
+	# Invasion had no extra enemy or hold clock, and of the conditions only Small
+	# Encounter's ENEMY half was applied — its crew-sit-out half never was.
+	mission_data["deployment_condition"] = deployment_condition
+	var setup_bundle: Dictionary = BattleSetupRulesClass.compute(
+		mission_data, enemies.size(), crew_size)
+	if setup_bundle["enemy_delta"] != 0 and not enemies.is_empty():
+		enemies = BattleSetupRulesClass.apply_enemy_delta(
+			enemies, setup_bundle["enemy_delta"])
 		game_state.set_current_enemies(enemies)
 		mission_data["enemy_force"]["count"] = enemies.size()
 		mission_data["enemy_force"]["units"] = enemies
+	# p.90 Defend: "If the opposing AI is normally Cautious, Defensive, or
+	# Tactical, change it to Aggressive." Applied here because this is where the
+	# enemy list becomes final; the AI code is what TacticalBattleUI, the AI
+	# prompt card and both auto-resolvers read to decide how the enemy behaves.
+	var _ai_override: Dictionary = setup_bundle.get("force_enemy_ai", {})
+	if not _ai_override.is_empty() and not enemies.is_empty():
+		var _from: Array = _ai_override.get("from", [])
+		var _to: String = str(_ai_override.get("to", "A"))
+		for enemy in enemies:
+			if str(enemy.get("ai", "")).to_upper() in _from:
+				enemy["ai"] = _to
+		game_state.set_current_enemies(enemies)
+		mission_data["enemy_force"]["units"] = enemies
+		mission_data["enemy_force"]["ai"] = enemies[0].get("ai", "A")
 
-	# Quest finale +1 enemy (Core Rules p.89)
-	var is_quest_finale: bool = mission_data.get("is_quest_finale", false) \
-		or mission_data.get("mission_source", "") == "quest_finale"
+	mission_data["setup_rules"] = setup_bundle
+	battle_results["setup_rules"] = setup_bundle
+
+	# Quest finale +1 enemy (Core Rules p.89) and fight-to-the-death (p.120).
+	var is_quest_finale: bool = _is_quest_finale_mission(mission_data)
 	if is_quest_finale and not enemies.is_empty():
 		# Duplicate last enemy for +1
 		var extra: Dictionary = enemies[-1].duplicate()
 		extra["name"] = extra.get("name", "Enemy") + " (Reinforcement)"
 		enemies.append(extra)
+		# p.120: "the opponents will always fight to the death." Both battle
+		# resolvers and MoralePanicTracker already honour Fearless — enemies with
+		# it never Bail on a Morale die — so the rule is expressed in the term the
+		# rest of the battle layer speaks. Without this the finale's enemy could
+		# rout on the first Panic roll and hand the player the climax for free.
+		for enemy in enemies:
+			enemy["fearless"] = true
+			enemy["is_fearless"] = true
+			var rules: Array = enemy.get("special_rules", [])
+			if not rules.any(func(r): return "fearless" in str(r).to_lower()):
+				rules = rules.duplicate()
+				rules.append("Fearless (Quest finale, Core Rules p.120)")
+				enemy["special_rules"] = rules
 		game_state.set_current_enemies(enemies)
 		mission_data["enemy_force"]["count"] = enemies.size()
 		mission_data["enemy_force"]["units"] = enemies
+		mission_data["enemy_force"]["special_rules"] = enemies[0].get(
+			"special_rules", [])
 
 	# Build initiative context for InitiativeCalculator auto-configuration
 	# (Core Rules p.112: 2D6 + highest Savvy + modifiers >= 10)
@@ -767,11 +1041,40 @@ func _initiate_battle_sequence() -> void:
 		init_sys.set_enemy_modifier(enemy_init_mod,
 			first_enemy.get("type", "Enemy"))
 
+	# Difficulty index in InitiativeCalculator's dropdown order
+	# (0 Normal / 1 Challenging / 2 Hardcore -2 / 3 Insanity -3), mapped from
+	# GlobalEnums.DifficultyLevel {CHALLENGING=4, HARDCORE=6, INSANITY=8}.
+	var difficulty_index: int = 0
+	match difficulty:
+		4: difficulty_index = 1
+		6: difficulty_index = 2
+		8: difficulty_index = 3
+
 	mission_data["initiative_context"] = {
 		"highest_savvy": init_sys.highest_savvy,
 		"modifiers": init_sys.get_current_modifiers(),
 		"required_roll": init_sys.calculate_required_roll(),
 		"success_probability": init_sys.get_success_probability(),
+		# RAW INPUTS, added so the in-battle InitiativeCalculator can actually
+		# apply what was computed here. Previously this dict held only the derived
+		# display values and was read by PreBattleUI alone, so the app showed a
+		# required roll before the battle and then rolled against a different,
+		# unmodified target inside it (Core Rules p.112).
+		"outnumbered": enemies.size() > active_crew.size(),
+		"difficulty_index": difficulty_index,
+		# The Hired Muscle -1 (Core Rules p.112) is stored on the ENCOUNTER
+		# CATEGORY in enemy_types.json, so it arrives here inside
+		# seize_initiative_modifier and is applied once, through enemy_modifier.
+		# Deliberately NOT also flagged as hired_muscle — the calculator has its
+		# own -1 toggle for that rule and setting both would apply it twice.
+		"hired_muscle": false,
+		"enemy_modifier": enemy_init_mod,
+		"enemy_name": first_enemy.get("type", "Enemy"),
+		# Core Rules p.91, Rival Ambush: "cannot roll to Seize the Initiative".
+		# The only scenario in the battle chapter that forbids the roll outright.
+		"can_seize": bool(setup_bundle.get("can_seize_initiative", true)),
+		"cannot_seize_reason": "" if setup_bundle.get("can_seize_initiative", true) \
+			else "Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)",
 	}
 
 	# Normalize data keys for downstream consumers
@@ -924,6 +1227,107 @@ func _initiate_battle_sequence() -> void:
 		game_state.current_campaign.progress_data["current_mission"] = mission_data
 	_launch_pre_battle_directly(mission_data, crew_data)
 
+func _on_story_track_advanced(result: Dictionary) -> void:
+	## Show the Story Event's closing narration once its battle has resolved.
+	## Core Rules Appendix V gives every event a "completion_win"/"completion_lose"
+	## paragraph; StoryEvent has always parsed them and no surface ever displayed
+	## one, so the Story Track's actual storytelling never reached the player.
+	var prose: String = str(result.get("outcome_text", ""))
+	if prose.is_empty():
+		return  # normal turn (clock tick only) — nothing to narrate
+
+	var title: String = "Event %d: %s" % [
+		int(result.get("event_number", 0)),
+		str(result.get("event_title", "Story Event"))]
+	var applied: Array = result.get("applied", [])
+	var body: String = prose
+	if applied is Array and not applied.is_empty():
+		# The mechanical consequences the applier just carried out, so the player
+		# can reconcile the prose against their sheet.
+		body += "\n\n" + ", ".join(PackedStringArray(applied)).capitalize() + "."
+
+	var dialog_script := load(
+		"res://src/ui/components/common/AcknowledgeDialog.gd")
+	if dialog_script and dialog_script.has_method("show_message"):
+		dialog_script.show_message(self, "%s\n\n%s" % [title, body])
+		return
+	# Fallback: never lose the beat — it is also in the journal.
+	push_warning("CampaignTurnController: no AcknowledgeDialog; story outcome "
+		+ "only recorded to the journal.")
+
+func _stamp_narrative_battle_config(mission_data: Dictionary) -> Dictionary:
+	## Stamp Story Track / Introductory Campaign identity + battle overrides onto
+	## mission_data, and report the suppression flags the caller needs.
+	##
+	## THE RULE THIS ENFORCES (Aug 1 data-funnel sprint): anything the post-battle
+	## sequence needs to know about the scenario must be stamped onto mission_data
+	## BEFORE the battle and pass through BattleResultNormalizer. A consumer read
+	## without a producer write is the bug, not the feature — and the story keys
+	## were exactly that for two months.
+	var out: Dictionary = {}
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null:
+		return out
+
+	# ── Story Track (Core Rules Appendix V) ──────────────────────────────
+	if cpm.has_method("is_story_event_turn") and cpm.is_story_event_turn():
+		var cfg: Dictionary = {}
+		if cpm.has_method("get_story_battle_config"):
+			cfg = cpm.get_story_battle_config()
+		if not cfg.is_empty():
+			mission_data["is_story_battle"] = true
+			# Key-name bridge: get_battle_config() emits event_id/event_number,
+			# but PostBattleCompletion.gd:176-180 reads story_event_id /
+			# story_event_number. Map here rather than renaming the system's API.
+			mission_data["story_event_id"] = str(cfg.get("event_id", ""))
+			mission_data["story_event_number"] = int(cfg.get("event_number", 0))
+			mission_data["mission_source"] = "story_track"
+
+			# Curated content — the whole point of a scripted Story Event battle.
+			var deploy: Dictionary = cfg.get("deployment", {})
+			if not deploy.is_empty():
+				mission_data["story_deployment"] = deploy
+			var story_enemies: Dictionary = cfg.get("enemies", {})
+			if not story_enemies.is_empty():
+				mission_data["story_enemies"] = story_enemies
+			var objectives: Dictionary = cfg.get("objectives", {})
+			if not objectives.is_empty():
+				mission_data["story_objectives"] = objectives
+
+			# p.153, verbatim: "During Story Event battles, you never roll for
+			# Deployment Conditions or Notable Sights."
+			out["no_deployment_conditions"] = true
+			out["no_notable_sights"] = true
+		return out
+
+	# ── Introductory Campaign (Compendium pp.104-109) ────────────────────
+	# battle_config was authored in full for all 6 guided turns and read by
+	# nothing. Only pre_battle_enabled ever had a consumer.
+	if cpm.has_method("get_intro_battle_config"):
+		var intro_cfg: Dictionary = cpm.get_intro_battle_config()
+		if not intro_cfg.is_empty():
+			mission_data["is_intro_battle"] = true
+			mission_data["intro_battle_config"] = intro_cfg
+			if bool(intro_cfg.get("is_training_battle", false)):
+				mission_data["is_training_battle"] = true
+			if bool(intro_cfg.get("no_deployment_conditions", false)):
+				out["no_deployment_conditions"] = true
+			if bool(intro_cfg.get("no_notable_sights", false)):
+				out["no_notable_sights"] = true
+			if bool(intro_cfg.get("no_unique_individuals", false)):
+				mission_data["no_unique_individuals"] = true
+			if bool(intro_cfg.get("no_seize_initiative", false)):
+				mission_data["no_seize_initiative"] = true
+			if intro_cfg.has("seize_initiative_bonus"):
+				mission_data["seize_initiative_modifier"] = int(
+					mission_data.get("seize_initiative_modifier", 0)
+				) + int(intro_cfg.get("seize_initiative_bonus", 0))
+			if intro_cfg.has("enemy_combat_skill_cap"):
+				mission_data["enemy_combat_skill_cap"] = int(
+					intro_cfg.get("enemy_combat_skill_cap", 99))
+
+	return out
+
 func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> void:
 	## UX streamline: Skip BattleTransitionUI, go directly to PreBattleUI.
 	## Replicates the data handoff that _on_battle_ready_to_launch() did,
@@ -948,6 +1352,19 @@ func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> 
 				var deploy_limit: int = 6
 				if game_state.has_method("get_campaign_crew_size"):
 					deploy_limit = game_state.get_campaign_crew_size()
+				# Scenarios that shrink the deployment: Rival Ambush ("deploy one
+				# crew member less than standard", p.91) and Small Encounter
+				# ("a random crew member sits out", p.88). The cap was previously
+				# always the full campaign crew size, so neither ever bit.
+				var setup_rules: Dictionary = mission_data.get("setup_rules", {})
+				deploy_limit = maxi(1,
+					deploy_limit + int(setup_rules.get("crew_cap_delta", 0)))
+				# "Small Squad — You cannot deploy more than 4 crew" (p.84) is an
+				# absolute ceiling, applied AFTER the deltas so a scenario that
+				# already shrank the squad cannot push back above it.
+				var hard_cap: int = int(setup_rules.get("crew_cap_max", 0))
+				if hard_cap > 0:
+					deploy_limit = mini(deploy_limit, hard_cap)
 				pre_battle_ui.setup_crew_selection(
 					_deployable(crew_data), deploy_limit)
 
@@ -1006,13 +1423,55 @@ func _on_battle_completed(results: Dictionary) -> void:
 func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	## Auto-resolve battle using BattleResolver combat math engine
 
-	var crew_data = game_state.get_active_crew()
+	# FILTER, exactly as the three sibling crew-to-battle sites do (:962, :1448, :1516).
+	# This was the fourth door and the only unguarded one: get_active_crew() returns the
+	# raw crew_data["members"] array with NO status filter, and injured members STAY in
+	# that array (PostBattleContext.apply_crew_injury sets in_sick_bay/recovery_turns in
+	# place and never removes them). So a crew member wounded on turn N was correctly
+	# hidden from the pre-battle list on turn N+1 but still fought — adding attack dice,
+	# counting as a casualty and taking fresh hits — the moment the player chose
+	# PreBattleUI's "Play it out for me". Same for anyone carrying a `departed` or
+	# `skip_next_battle` Character Event (Core Rules pp.55, 76, 128-130).
+	var crew_data = _deployable(game_state.get_active_crew())
 	var mission_data = game_state.get_current_mission()
 
-	# Build enemy list from mission data
+	# Build the enemy list from the SAME source the tactical path uses (:1577).
+	#
+	# THE BUG THIS FIXES: this read mission_data["enemies"], a key NOTHING EVER
+	# WRITES. The generated squad lives in GameState._current_enemies
+	# (set_current_enemies at :649/:741) and in mission_data["enemy_force"]["units"]
+	# (:654). current_mission is built as a literal at WorldPhaseController.gd:1170-1206
+	# with objective/enemy_type/pay/danger_pay and no "enemies" key at all — verified
+	# against every writer of that dict.
+	#
+	# So `enemies` was ALWAYS []. BattleResolver.calculate_battle_outcome:527-530
+	# short-circuits `if enemies_alive == 0: success = true; held_field = true`, which
+	# made every single "Play it out for me" an instant flawless victory: zero rounds
+	# fought, zero enemies defeated, zero crew hurt. Today's _deployable and
+	# _map_resolver_crew_outcome fixes were faithfully mapping the casualties of a
+	# battle that had no opponent.
 	var enemies: Array = []
-	if mission_data.has("enemies"):
-		enemies = mission_data["enemies"]
+	if game_state.has_method("get_current_enemies"):
+		var live: Variant = game_state.get_current_enemies()
+		if live is Array:
+			enemies = live
+	if enemies.is_empty():
+		# Fallback to the squad stashed on the mission itself before giving up.
+		var force: Variant = mission_data.get("enemy_force", {})
+		if force is Dictionary:
+			var units: Variant = (force as Dictionary).get("units", [])
+			if units is Array:
+				enemies = units
+	if enemies.is_empty():
+		# REFUSE to auto-resolve an unopposed battle rather than hand the player a
+		# free win. Silently resolving an empty enemy list is what hid this for so
+		# long; a visible failure is strictly better than a fake victory.
+		push_error("CampaignTurnController: auto-resolve has no enemies — "
+			+ "refusing to resolve a battle with no opposition")
+		var nm := get_node_or_null("/root/NotificationManager")
+		if nm and nm.has_method("show_notification"):
+			nm.show_notification("Could not auto-resolve: no enemy force was generated.")
+		return
 
 	# Use BattleResolver for real combat resolution
 	var dice_roller := func() -> int:
@@ -1040,7 +1499,58 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 	if not resolved.has("won"):
 		resolved["won"] = resolved.get("success", false)
 
+	_map_resolver_crew_outcome(resolved, crew_data)
+
 	_on_battle_completed(resolved)
+
+
+func _map_resolver_crew_outcome(resolved: Dictionary, deployed: Array) -> void:
+	## Turn the resolver's COUNTS into the per-character arrays post-battle consumes.
+	##
+	## THE BUG THIS FIXES: there are two auto-resolve producers and only one was mapped.
+	## TacticalBattleUI's in-battle auto-resolve walks crew_units_final and builds
+	## crew_casualties / crew_injuries from the matching characters
+	## (TacticalBattleUI.gd:4338-4360). This campaign-map path passed the router's
+	## return value through UNTOUCHED — and BattleResolver returns only counts
+	## ("crew_casualties": <int>) plus crew_units_final, with no crew_participants, no
+	## crew_injuries_data, no crew_casualties_data.
+	##
+	## BattleResultNormalizer derives injuries_sustained from crew_injuries_data and
+	## casualties from crew_casualties_data, so both came out EMPTY. InjuryProcessor
+	## iterates ctx.injuries_sustained and is the only caller of apply_crew_injury —
+	## the sole writer of the canonical Sick Bay shape. So every battle resolved through
+	## PreBattleUI's "Play it out for me" was consequence-free: the wizard announced
+	## "Casualty 1: Serious injury (2 turns recovery)" and afterwards nobody had
+	## in_sick_bay, recovery_turns, injuries[] or status "injured" — nobody entered Sick
+	## Bay, nobody died, upkeep and crew-task eligibility were untouched.
+	##
+	## Also restored here: crew_participants, without which PostBattleCompletion:87
+	## attributes the battle to NO crew member (empty characters_involved in the journal,
+	## so it never appears in CharacterHistoryPanel) and PaymentProcessor:101 computes
+	## zero battlefield-find search attempts.
+	var finals: Array = resolved.get("crew_units_final", [])
+	var casualties: Array = []
+	var injuries: Array = []
+	for i in range(deployed.size()):
+		var is_alive := true
+		if i < finals.size() and finals[i] is Dictionary:
+			is_alive = bool((finals[i] as Dictionary).get("is_alive", true))
+		if is_alive:
+			continue
+		# Core Rules p.114 post-battle casualty roll decides dead vs injured. The
+		# resolver only reports "down", so the distinction is rolled here — matching
+		# how the tactical path treats a downed crew member.
+		var roll: int = (randi() % 6) + 1
+		if roll == 1:
+			casualties.append(deployed[i])
+		else:
+			injuries.append(deployed[i])
+	if not resolved.has("crew_casualties_data"):
+		resolved["crew_casualties_data"] = casualties
+	if not resolved.has("crew_injuries_data"):
+		resolved["crew_injuries_data"] = injuries
+	if not resolved.has("crew_participants"):
+		resolved["crew_participants"] = deployed.duplicate()
 
 
 # --- B2 narrative bridge -----------------------------------------------------
@@ -1173,7 +1683,11 @@ static func _battle_result_to_narrative_dict(result: Dictionary) -> Dictionary:
 	# successes (lost objective but held position) as withdrawals.
 	var held_field: bool = result.get("held_field", result.get("held_the_field", false))
 	var rounds: int = int(result.get("rounds_played", result.get("rounds", 0)))
-	var casualties: int = int(result.get("casualties", 0))
+	# NOT int(result.get("casualties", 0)) — the normalizer guarantees an Array
+	# here, and `int(Array)` is "Nonexistent 'int' constructor", which aborted
+	# this whole function. The post-battle narrative screen never opened after
+	# ANY battle. See BattleResultNormalizer.casualty_count().
+	var casualties: int = BattleResultNormalizerClass.casualty_count(result)
 	var combat_mode: String = "Auto-resolved"
 	if result.get("no_minis", false) or result.get("combat_mode", "") == "no_minis":
 		combat_mode = "No-Minis combat"
@@ -1285,21 +1799,100 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 
 ## Late-Game Phase Completion Handlers
 
+## Each late-game panel emits a completion payload describing what the player
+## just did, and every one of these handlers used to drop it on the floor. The
+## campaign journal is the record of a campaign turn, so that is where they go —
+## one entry each, through CampaignJournal.create_entry(), which resolves turn
+## and location at its own chokepoint.
+func _journal_world_phase(results: Dictionary) -> void:
+	## One summary line for the whole World Step, assembled from the per-step
+	## results the controller already gathers.
+	if results.is_empty():
+		return
+	var parts: Array[String] = []
+
+	var upkeep: Dictionary = results.get("upkeep_results", {})
+	if upkeep is Dictionary and not upkeep.is_empty():
+		var total: int = int(upkeep.get("total", 0))
+		if total > 0:
+			parts.append("Upkeep paid: %d cr" % total)
+
+	var tasks: Array = results.get("crew_task_results", [])
+	if tasks is Array and not tasks.is_empty():
+		parts.append("%d crew task(s) resolved" % tasks.size())
+
+	var job: Dictionary = results.get("job_results", {})
+	if job is Dictionary and not job.is_empty():
+		var objective: String = str(job.get("objective", ""))
+		var patron: String = str(job.get("patron_name", job.get("patron", "")))
+		if not objective.is_empty():
+			parts.append("Accepted a %s job%s" % [
+				objective, (" for %s" % patron) if not patron.is_empty() else ""])
+
+	if parts.is_empty():
+		return
+	_journal_phase("event", "World Step", ". ".join(parts) + ".", ["upkeep"])
+
+func _journal_phase(entry_type: String, title: String, description: String, tags: Array) -> void:
+	## `entry_type` and every tag MUST come from JournalEntryTypes (STRING_TO_TYPE
+	## and TAGS respectively). validate_entry() only WARNS on a non-canonical
+	## value — it never rejects — so a wrong type here would produce entries that
+	## render with a default colour/icon and filter oddly, with nothing failing.
+	if description.is_empty():
+		return
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": entry_type,
+			"auto_generated": true,
+			"title": title,
+			"description": description,
+			"tags": tags,
+		})
+
 func _on_advancement_phase_completed(phase_data: Dictionary) -> void:
+	var count: int = int(phase_data.get("crew_count", 0))
+	if count > 0:
+		_journal_phase("experience", "Advancement",
+			"Reviewed advancement for %d crew member(s)." % count, ["advancement"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_trade_phase_completed(phase_data: Dictionary) -> void:
+	var bought: Array = phase_data.get("purchased_items", [])
+	var sold: Array = phase_data.get("sold_items", [])
+	if not bought.is_empty() or not sold.is_empty():
+		_journal_phase("purchase", "Trading",
+			"Bought %d item(s), sold %d item(s). Credits on hand: %d." % [
+				bought.size(), sold.size(), int(phase_data.get("credits", 0))],
+			["trading", "finance"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_character_phase_completed(phase_data: Dictionary) -> void:
+	var events: int = int(phase_data.get("event_count", (phase_data.get("events", []) as Array).size()))
+	if events > 0:
+		_journal_phase("character_event", "Character events",
+			"Resolved %d character event(s)." % events, ["character_event"])
 	campaign_phase_manager.complete_current_phase()
 
 func _on_story_phase_completed(phase_data: Dictionary) -> void:
-	campaign_phase_manager.complete_current_phase()
+	## The Story Event briefing has been acknowledged. Hand off to the world
+	## phase, which is where the turn actually gets played.
+	##
+	## complete_current_phase() would follow the declared order STORY -> TRAVEL,
+	## but TRAVEL is folded into WorldPhaseController step 1 and has no UI of its
+	## own, so the turn would stall on a phase nothing renders. UPKEEP is what
+	## opens the world phase.
+	campaign_phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.UPKEEP)
 
 func _on_end_phase_completed(phase_data: Dictionary) -> void:
-	if phase_data.get("victory_achieved", false):
-		pass
+	# The `victory_achieved` read that used to sit here was doubly dead:
+	# EndPhasePanel emits cycle_summary / save_completed / cycle_completed and
+	# has never emitted that key, and the branch body was `pass`. Victory is
+	# evaluated by VictoryChecker at turn rollover, which is where it belongs.
+	var summary: String = str(phase_data.get("cycle_summary", ""))
+	if not summary.is_empty():
+		_journal_phase("milestone", "Turn complete", summary, ["milestone", "completion"])
 	campaign_phase_manager.complete_current_phase()
 
 ## Sprint D: Post-battle crew status validation
@@ -1393,6 +1986,14 @@ func _on_return_to_travel() -> void:
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.
+
+	# The `results` parameter was never referenced. WorldPhaseController builds
+	# a full world_phase_results dict (upkeep, crew tasks, job, equipment,
+	# rumors), emits it here and ALSO persisted it into progress_data — and
+	# nothing anywhere read either copy. Journal it instead: the journal is the
+	# campaign's record, and this is the one place that sees the whole turn's
+	# world step at once. The redundant progress_data copy is gone.
+	_journal_world_phase(results)
 
 	# Skip intermediate phases (STORY, TRAVEL, PRE_MISSION) — they're covered
 	# by the world phase steps. Go directly to MISSION for battle sequence.
@@ -1660,17 +2261,69 @@ func _get_phase_name(phase: int) -> String:
 		GlobalEnums.FiveParsecsCampaignPhase.RETIREMENT: return "Retirement"
 		_: return "Unknown Phase"
 
+## The forced objective for a Quest finale (Core Rules p.89: "If this is the
+## final battle of a Quest, it is always a Fight Off objective"). Pulls the
+## definition out of the same mission_objectives.json every other objective
+## comes from, so the win text, placement rules and tracker id all match a
+## rolled Fight Off exactly — `roll: 0` marks it as forced rather than rolled.
+func _quest_finale_objective(mtm) -> Dictionary:
+	var definition: Dictionary = mtm.get_objective_definition("FIGHT_OFF")
+	return {
+		"type": "FIGHT_OFF",
+		"name": definition.get("name", "Fight Off"),
+		"description": definition.get("description",
+			"There is no objective other than driving off the enemy."),
+		"placement_rules": definition.get("placement_rules", ""),
+		"victory_condition": definition.get("victory_condition",
+			"Hold the Field."),
+		"roll": 0,
+		"forced_by": "quest_finale",
+	}
+
 ## Infer deployment mission type from mission data
+func _enemy_force_invasion_threat(enemy_force: Dictionary) -> Dictionary:
+	## Core Rules p.121 Step 6: "If the enemy you just battled is an Invasion
+	## Threat (listed in their profile in the Battle chapter), you must roll to
+	## see if the world is Invaded."
+	##
+	## The profiles carry it as a special rule string. Verified verbatim on p.101:
+	## Converted Acquisition reads "Invasion Threat. Test at +1." while Converted
+	## Infiltrators / Abductor Raiders / Swarm Brood read a bare "Invasion Threat."
+	## So the +1 is a real per-profile modifier, not an app invention, and it is
+	## returned alongside the flag rather than folded into it.
+	var out: Dictionary = {"is_threat": false, "modifier": 0}
+	var rules: Array = enemy_force.get("special_rules", [])
+	for rule in rules:
+		var text: String = str(rule).to_lower()
+		if not text.contains("invasion threat"):
+			continue
+		out["is_threat"] = true
+		# "Test at +1" — accept the book's phrasing and the JSON's parenthetical.
+		if text.contains("+1"):
+			out["modifier"] = 1
+	return out
+
 func _infer_deployment_mission_type(
 	mission_data
 ) -> FPCM_DeploymentConditionsSystem.MissionType:
 	if not mission_data:
 		return FPCM_DeploymentConditionsSystem.MissionType.OPPORTUNITY
+	# `mission_source` FIRST, `source` only as a fallback. A Rival ambush is
+	# stamped onto mission_source alone (the p.85 check overwrites it when a
+	# Rival tracks the crew down), while `source` still holds the ORIGINAL job's
+	# type — so every Rival battle consulted the Opportunity/Patron column of the
+	# p.88 table instead of the Rival one. The columns are not close: No Condition
+	# is 1-40 on Opportunity/Patron and only 1-10 on Rival, so a Rival fight
+	# arrived with no complication 40% of the time where the book allows 10%.
 	var source: String = ""
 	if mission_data is Dictionary:
-		source = mission_data.get("source", "").to_lower()
-	elif mission_data is Object and "source" in mission_data:
-		source = str(mission_data.source).to_lower()
+		source = str(mission_data.get("mission_source",
+			mission_data.get("source", ""))).to_lower()
+	elif mission_data is Object:
+		if "mission_source" in mission_data:
+			source = str(mission_data.mission_source).to_lower()
+		elif "source" in mission_data:
+			source = str(mission_data.source).to_lower()
 	if "patron" in source:
 		return FPCM_DeploymentConditionsSystem.MissionType.PATRON
 	if "rival" in source:

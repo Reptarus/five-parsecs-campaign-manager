@@ -3,6 +3,7 @@ extends Node
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameState = preload("res://src/core/state/GameState.gd")
 const _ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const ShiplessSystemRef = preload("res://src/core/ship/ShiplessSystem.gd")
 
 signal game_state_changed(new_state: int)
 signal credits_changed(new_amount: int)
@@ -99,27 +100,38 @@ func set_auto_save_enabled(enabled: bool) -> void:
 # var for UI consumers that still read GameStateManager directly. The legacy
 # `progress_data["credits"/"supplies"/"reputation"/"story_points"]` sync was
 # a dead write target (nobody read it back) and has been removed.
+## All three setters below follow the shape set_story_progress already uses
+## (see its comment at the "Write through ... UNCONDITIONALLY" block): the owner
+## write is NOT change-guarded, because the local mirror can already equal
+## new_amount while the campaign Resource is stale — right after a campaign
+## switch, or after any code that wrote campaign.<field> directly. Only the mirror
+## update and the signal are guarded. The guard itself compares against the FRESH
+## value via the getter, so a direct owner write is never mistaken for "no change".
+
 func set_credits(new_amount: int) -> void:
-	if credits != new_amount:
+	var current := get_credits()
+	if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
+		game_state.current_campaign.credits = new_amount
+	if current != new_amount:
 		credits = new_amount
-		if game_state and game_state.current_campaign and "credits" in game_state.current_campaign:
-			game_state.current_campaign.credits = new_amount
 		credits_changed.emit(credits)
 
 func set_supplies(new_amount: int) -> void:
-	if supplies != new_amount:
+	var current := get_supplies()
+	var camp = game_state.current_campaign if game_state else null
+	if camp and "supplies" in camp:
+		camp.supplies = new_amount
+	if current != new_amount:
 		supplies = new_amount
-		var camp = game_state.current_campaign if game_state else null
-		if camp and "supplies" in camp:
-			camp.supplies = new_amount
 		supplies_changed.emit(supplies)
 
 func set_reputation(new_amount: int) -> void:
-	if reputation != new_amount:
+	var current := get_reputation()
+	var camp = game_state.current_campaign if game_state else null
+	if camp and "reputation" in camp:
+		camp.reputation = new_amount
+	if current != new_amount:
 		reputation = new_amount
-		var camp = game_state.current_campaign if game_state else null
-		if camp and "reputation" in camp:
-			camp.reputation = new_amount
 		reputation_changed.emit(reputation)
 
 func set_story_progress(new_amount: int) -> void:
@@ -136,6 +148,34 @@ func set_story_progress(new_amount: int) -> void:
 		story_progress_changed.emit(story_progress)
 
 # Getters
+
+func _canonical_int(field: String, cached: int) -> int:
+	## Re-read a resource value from its CANONICAL OWNER before returning it.
+	##
+	## `credits` / `supplies` / `reputation` / `story_progress` on this manager are
+	## CACHES. FiveParsecsCampaignCore's top-level @vars own them (data-ownership
+	## table, CLAUDE.md). Returning the cache unchecked is what made the resource
+	## arithmetic lossy: add_credits/remove_credits/modify_credits/modify_story_progress
+	## all compute `set_X(f(get_X()))`, so they derived the new canonical value FROM
+	## THE CACHE. Any code that wrote the owner directly was therefore invisible to
+	## them and got silently reverted by the next write.
+	##
+	## Concretely (RedZoneSystem.gd:108): `campaign.credits -= 15` for the Red Zone
+	## licence, then `_commit_zone_travel` calls modify_credits(-5) computed from the
+	## stale cache — the 15cr fee is refunded and the player keeps the licence.
+	## Core Rules Appendix III's endgame gate was free. Other direct writers with the
+	## same exposure: AdvancementPhasePanel.gd:553/557, PostBattleSequence.gd:2594,
+	## ShiplessSystem.gd:53/135, CharacterGeneration.gd:443.
+	##
+	## Note `c.get(field)` is the ONE-arg Object.get(), which is valid. The two-arg
+	## Dictionary-style .get(key, default) on a Resource is an invalid call that
+	## silently aborts the caller — do not "improve" this into that.
+	var c = _get_campaign()
+	if c and field in c:
+		return int(c.get(field))
+	return cached
+
+
 func get_game_state() -> GameState:
 	return game_state
 
@@ -144,13 +184,21 @@ func get_difficulty() -> int:
 	return difficulty_level
 
 func get_credits() -> int:
+	credits = _canonical_int("credits", credits)
 	return credits
 
 
+func get_supplies() -> int:
+	supplies = _canonical_int("supplies", supplies)
+	return supplies
+
+
 func get_reputation() -> int:
+	reputation = _canonical_int("reputation", reputation)
 	return reputation
 
 func get_story_progress() -> int:
+	story_progress = _canonical_int("story_points", story_progress)
 	return story_progress
 
 # Campaign lifecycle
@@ -312,6 +360,16 @@ func increment_turns_played() -> void:
 	if c and "progress_data" in c:
 		c.progress_data["turns_played"] = c.progress_data.get("turns_played", 0) + 1
 
+## Directly set the campaign turn counter (progress_data["turns_played"]). Sanctioned
+## write-through for the Campaign Editor (onboarding a mid-campaign game / corrections);
+## CampaignPhaseManager remains the normal advance path via increment_turns_played().
+## Clamped to >= 0. NOTE: the Story Track clock is a separate field — this only moves the
+## turn counter (display + a few turn-gate reads), not the story clock.
+func set_turns_played(n: int) -> void:
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["turns_played"] = max(0, n)
+
 func increment_missions_completed() -> void:
 	var c = _get_campaign()
 	if c and "progress_data" in c:
@@ -326,6 +384,35 @@ func increment_battles_lost() -> void:
 	var c = _get_campaign()
 	if c and "progress_data" in c:
 		c.progress_data["battles_lost"] = c.progress_data.get("battles_lost", 0) + 1
+
+func increment_unique_individual_kills(count: int = 1) -> void:
+	## Campaign-level tally behind the "Kill 10/25 Unique Individuals" Victory
+	## Conditions (Core Rules p.64). Per-battle unique kills already travel on the
+	## battle result (BattleResultsInputForm -> ExperienceTrainingProcessor), but
+	## nothing has ever ACCUMULATED them, so the two conditions had no number to
+	## read even once they were mapped.
+	if count <= 0:
+		return
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["unique_individuals_killed"] = \
+			c.progress_data.get("unique_individuals_killed", 0) + count
+
+func record_character_upgrade_milestone(count: int = 1) -> void:
+	## Counts CHARACTERS who have reached 10 Upgrades, for the three "Upgrade N
+	## Characters 10 Times" Victory Conditions (Core Rules p.64).
+	##
+	## Deliberately a count of characters, not of upgrades: "the characters do not
+	## have to be in the crew at the same time. If one character Upgrades 10 times
+	## and dies, all 10 Character Upgrades still count" — so once a character has
+	## banked the milestone it survives their death, and the live roster is the
+	## wrong place to compute it from.
+	if count <= 0:
+		return
+	var c = _get_campaign()
+	if c and "progress_data" in c:
+		c.progress_data["characters_upgraded_10"] = \
+			c.progress_data.get("characters_upgraded_10", 0) + count
 
 # --- Reputation arithmetic ---
 
@@ -436,9 +523,10 @@ func has_pending_invasion() -> bool:
 		return gs.has_pending_invasion()
 	return false
 
-func apply_ship_damage(amount: int) -> int:
+func apply_ship_damage(amount: int, in_space: bool = false) -> int:
 	## Apply hull damage with trait modifiers (Core Rules p.30)
-	## Returns actual damage dealt after trait effects
+	## Returns actual damage dealt after trait effects.
+	## in_space selects which p.59 wreck outcome applies if the hull reaches 0.
 	var c = _get_campaign()
 	if not c:
 		return amount
@@ -483,7 +571,61 @@ func apply_ship_damage(amount: int) -> int:
 
 	var current_hull: int = ship.get("hull_points", 0)
 	ship["hull_points"] = maxi(0, current_hull - final_amount)
+
+	# Core Rules p.59, verbatim: "Once that amount of damage has been accumulated,
+	# the ship is a wreck, and no longer usable."
+	#
+	# The clamp above was the end of the story: a ship at 0 Hull Points was merely
+	# grounded, and the free 1-point-per-turn repair floated it again next turn, so
+	# a crew could never actually lose their ship to damage and the 1D6+5 scrap was
+	# never paid. ShiplessSystem.apply_ship_destruction() had zero callers.
+	if ship["hull_points"] <= 0 and int(ship.get("max_hull", 0)) > 0:
+		_wreck_ship(c, in_space)
+
 	return final_amount
+
+
+func _wreck_ship(campaign, in_space: bool) -> void:
+	## The two outcomes on p.59 are NOT the same, and applying the wrong one is
+	## either a windfall or a robbery:
+	##
+	##   In space  -> "being without a ship": "you lose all credits and can only
+	##                retain 2 items per crew member. Everything else is lost in
+	##                deep space." (ShiplessSystem.apply_ship_destruction)
+	##   On ground -> "you can reclaim 1D6+5 credits' worth of scrap parts."
+	##                No credit loss and no item loss at all.
+	##
+	## Every current caller of apply_ship_damage() is a post-battle or campaign
+	## event, i.e. on the ground, which is why in_space defaults to false.
+	if not ("has_ship" in campaign) or not campaign.has_ship:
+		return  # already a wreck; never apply the consequences twice
+
+	var message: String = ""
+	if in_space:
+		ShiplessSystemRef.apply_ship_destruction(campaign)
+		message = ("Your ship broke up in transit. You escaped by shuttle with"
+			+ " nothing but 2 items per crew member.")
+	else:
+		campaign.has_ship = false
+		var scrap: int = randi_range(1, 6) + 5
+		add_credits(scrap)
+		message = ("Your ship is a wreck. You stripped %d credits' worth of scrap"
+			+ " parts from the hull.") % scrap
+
+	var journal: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/CampaignJournal") if Engine.get_main_loop() else null
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "ship",
+			"title": "Ship destroyed",
+			"description": message + " Core Rules p.59.",
+			"tags": ["ship"],
+			"auto_generated": true,
+		})
+	var notif: Node = Engine.get_main_loop().root.get_node_or_null(
+		"/root/NotificationManager") if Engine.get_main_loop() else null
+	if notif and notif.has_method("show_error"):
+		notif.show_error(message)
 
 func repair_hull(amount: int) -> void:
 	## Repair hull points (Core Rules p.59: 1 free/turn + paid)
@@ -510,15 +652,51 @@ func get_emergency_takeoff_damage() -> int:
 				break
 	return base_damage
 
+## Ship debt lived in TWO places that nothing reconciled:
+##   campaign.ship_debt      - what the RULES code reads/writes (Black Zone loan
+##                             payoff PaymentProcessor.gd:205-209, the Planetfall
+##                             independence prepayment, ShiplessSystem's interest
+##                             ladder and p.76 seizure roll)
+##   ship_data["debt"]       - what CREATION and every DISPLAY use (ShipPanel:921,
+##                             ShipManager:269/315, TradePhasePanel:780)
+##
+## The bridge meant to join them, CampaignFinalizationService.gd:347-351, called
+## set_ship_debt(ship_data.get("debt", 0)) — and set_ship_debt did
+## `c.ship_data["debt"] = amount`, i.e. it read the nested field and wrote the same
+## nested field back. A self-copy. campaign.ship_debt was never touched.
+##
+## Measured across all 15 real 5PFH saves on disk: ship_debt = 0 in every one while
+## ship.debt ranged 12-36. So the starting ship loan the player took at creation was
+## invisible to the rules, and — live today — the Black Zone victory decremented a
+## field that is always 0 while writing a journal milestone reading "Ship loan
+## reduced by 5" (PaymentProcessor.gd:222-225). The player is told it happened and
+## the displayed debt never moves.
+##
+## `campaign.ship_debt` is now the OWNER (it is what the rules code already uses).
+## `ship_data["debt"]` is kept in sync as a DISPLAY MIRROR so the existing ship and
+## trade screens keep working without rewiring them during release week — but it is
+## written only through this setter, so there is exactly one writer.
 func get_ship_debt() -> int:
 	var c = _get_campaign()
-	if c:
-		return c.ship_data.get("debt", 0)
+	if c == null:
+		return 0
+	var owner_value: int = int(c.ship_debt) if "ship_debt" in c else 0
+	if owner_value > 0:
+		return owner_value
+	# Self-heal: legacy saves, and the creation/ship screens that still write the
+	# nested field directly, leave the owner at 0. Fall back rather than reporting
+	# a debt-free ship.
+	if "ship_data" in c and c.ship_data is Dictionary:
+		return int(c.ship_data.get("debt", 0))
 	return 0
 
 func set_ship_debt(amount: int) -> void:
 	var c = _get_campaign()
-	if c:
+	if c == null:
+		return
+	if "ship_debt" in c:
+		c.ship_debt = amount
+	if "ship_data" in c and c.ship_data is Dictionary:
 		c.ship_data["debt"] = amount
 
 # --- World / Location delegation ---

@@ -171,7 +171,7 @@ func _setup_card_style() -> void:
 	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)  # rounded-2xl
+	style.set_corner_radius_all(4)  # rounded-2xl
 	style.set_content_margin_all(SPACING_LG)  # Use LG padding for glass cards
 	add_theme_stylebox_override("panel", style)
 
@@ -226,16 +226,23 @@ func _build_compact_layout() -> void:
 	
 	# Name label (larger font) with text clipping
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_info_container.add_child(_name_label)
 	
-	# Class/Background subtitle
+	# Class/Background subtitle.
+	# clip_text, like the name above it: an atomic Label reports its FULL text width
+	# as a minimum, and "De-converted / BASELINE" beside a 64px portrait was wider
+	# than a phone column -- which pushed the whole crew list into horizontal scroll
+	# and cut every name off mid-word.
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_subtitle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_subtitle_label.clip_text = true
+	_subtitle_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_info_container.add_child(_subtitle_label)
 
 func _build_standard_layout() -> void:
@@ -261,7 +268,7 @@ func _build_standard_layout() -> void:
 	header_row.add_theme_constant_override("separation", SPACING_SM)
 	
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_label.clip_text = true
@@ -275,10 +282,15 @@ func _build_standard_layout() -> void:
 	
 	vbox.add_child(header_row)
 	
-	# Subtitle (class + background)
+	# Subtitle (class + background). Same reasoning as the name label above: an
+	# atomic Label's minimum IS its full text width, so this one line was setting
+	# the card's minimum and forcing the crew list to scroll sideways.
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_subtitle_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_subtitle_label.clip_text = true
+	_subtitle_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	vbox.add_child(_subtitle_label)
 	
 	# 5-column stats grid (REA, SPD, CBT, TGH, SAV)
@@ -315,7 +327,7 @@ func _build_expanded_layout() -> void:
 	
 	# Name label with text clipping
 	_name_label = Label.new()
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -323,7 +335,7 @@ func _build_expanded_layout() -> void:
 	
 	# Subtitle
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_subtitle_label)
 	
@@ -369,8 +381,8 @@ func _create_portrait(size: int) -> TextureRect:
 
 ## Deterministic avatar background colors (Deep Space palette)
 const AVATAR_COLORS: Array[Color] = [
-	Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"), Color("#10b981"),
-	Color("#f59e0b"), Color("#ef4444"), Color("#ec4899"), Color("#14b8a6"),
+	UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN, UIColors.COLOR_EMERALD,
+	UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6"),
 ]
 
 func _update_portrait() -> void:
@@ -445,7 +457,7 @@ func _show_initials_fallback() -> void:
 		clip.add_child(initials_label)
 
 	initials_label.text = initial
-	initials_label.add_theme_font_size_override("font_size", int(_portrait.custom_minimum_size.x * 0.45))
+	initials_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(_portrait.custom_minimum_size.x * 0.45)))
 	initials_label.add_theme_color_override("font_color", Color.WHITE)
 	initials_label.custom_minimum_size = _portrait.custom_minimum_size
 	initials_label.size = _portrait.custom_minimum_size
@@ -487,7 +499,7 @@ func _create_stat_label(stat_name: String, value: int) -> Label:
 	## Create stat label with consistent styling
 	var label := Label.new()
 	label.text = "%s: %d" % [stat_name.substr(0, 3).to_upper(), value]  # "COM: 4"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return label
 
@@ -618,10 +630,16 @@ func _on_remove_pressed() -> void:
 
 # ============ MOCKUP-STYLE ENHANCEMENTS ============
 
-func _create_stats_grid_5col() -> GridContainer:
-	## Create 5-column stats grid: REA, SPD, CBT, TGH, SAV
-	var grid := GridContainer.new()
-	grid.columns = 5
+func _create_stats_grid_5col() -> FlowContainer:
+	## REA, SPD, CBT, TGH, SAV — five across when there is room, wrapping when not.
+	##
+	## This was a GridContainer pinned to columns = 5, and a GridContainer cannot
+	## wrap: its minimum width is always the sum of all five columns. Beside a 96px
+	## portrait that made a single crew card demand more width than a phone has, so
+	## the crew list scrolled sideways and every name was cut off mid-word. An
+	## HFlowContainer keeps the five-across look wherever it fits and folds to two
+	## rows where it does not, so its minimum is one stat box instead of five.
+	var grid := HFlowContainer.new()
 	grid.add_theme_constant_override("h_separation", 8)
 	grid.add_theme_constant_override("v_separation", 4)
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -630,11 +648,11 @@ func _create_stats_grid_5col() -> GridContainer:
 		return grid
 
 	var stats := [
-		{"label": "REA", "value": _get_reaction() if _get_reaction() else 1, "color": Color("#10b981")},
-		{"label": "SPD", "value": str(character_data.speed if character_data.speed else 4) + '"', "color": Color("#3b82f6")},
-		{"label": "CBT", "value": _format_modifier(character_data.combat if character_data.combat else 0), "color": Color("#f59e0b")},
-		{"label": "TGH", "value": character_data.toughness if character_data.toughness else 3, "color": Color("#ef4444")},
-		{"label": "SAV", "value": _format_modifier(character_data.savvy if character_data.savvy else 0), "color": Color("#8b5cf6")}
+		{"label": "REA", "value": _get_reaction() if _get_reaction() else 1, "color": UIColors.COLOR_EMERALD},
+		{"label": "SPD", "value": str(character_data.speed if character_data.speed else 4) + '"', "color": UIColors.COLOR_BLUE},
+		{"label": "CBT", "value": _format_modifier(character_data.combat if character_data.combat else 0), "color": UIColors.COLOR_AMBER},
+		{"label": "TGH", "value": character_data.toughness if character_data.toughness else 3, "color": UIColors.COLOR_RED},
+		{"label": "SAV", "value": _format_modifier(character_data.savvy if character_data.savvy else 0), "color": UIColors.COLOR_PURPLE}
 	]
 
 	for stat in stats:
@@ -651,11 +669,19 @@ const STAT_ICON_KEYS := {
 
 func _create_stat_box(label_text: String, value_text: String, accent_color: Color) -> PanelContainer:
 	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(48, 48)
+	# Height floor only. This was Vector2(48, 48), and the WIDTH half of it made the
+	# crew list unusable on a phone: five stat boxes at a 48px floor plus their
+	# separations is 272px, and with the 96px portrait beside them a single card
+	# demanded ~380px against a 290px column. The list absorbed that by scrolling
+	# sideways, which is why every crew name was cut off mid-word.
+	#
+	# A stat box is a read-only readout, not a tap target, so it has no reason to
+	# hold a 48dp width -- it shrinks to its text now. The height stays for rhythm.
+	panel.custom_minimum_size = Vector2(0, 48)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.122, 0.161, 0.216, 0.5)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -682,7 +708,7 @@ func _create_stat_box(label_text: String, value_text: String, accent_color: Colo
 	var label := Label.new()
 	label.text = label_text
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	label_row.add_child(label)
 
@@ -692,7 +718,7 @@ func _create_stat_box(label_text: String, value_text: String, accent_color: Colo
 	var value := Label.new()
 	value.text = value_text
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	value.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	value.add_theme_color_override("font_color", accent_color)
 	vbox.add_child(value)
 
@@ -732,8 +758,8 @@ func _create_equipment_badges() -> HBoxContainer:
 	if equipment_items.size() > 2:
 		var overflow := Label.new()
 		overflow.text = "+%d items" % (equipment_items.size() - 2)
-		overflow.add_theme_font_size_override("font_size", 11)
-		overflow.add_theme_color_override("font_color", Color("#6b7280"))
+		overflow.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
+		overflow.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		hbox.add_child(overflow)
 
 	return hbox
@@ -744,16 +770,16 @@ func _create_equipment_badge(item) -> PanelContainer:
 	var badge := PanelContainer.new()
 
 	# Determine color based on item type
-	var accent_color := Color("#ef4444")  # Default red for weapons
+	var accent_color := UIColors.COLOR_RED  # Default red for weapons
 	var item_name := "Unknown"
 
 	if item is Dictionary:
 		item_name = item.get("name", "Unknown")
 		var item_type = item.get("type", "weapon")
 		if item_type == "armor":
-			accent_color = Color("#6b7280")
+			accent_color = UIColors.COLOR_TEXT_MUTED
 		elif item_type == "gadget":
-			accent_color = Color("#8b5cf6")
+			accent_color = UIColors.COLOR_PURPLE
 	elif item is Resource and item.has_method("get_item_name"):
 		item_name = item.get_item_name()
 	elif item is String:
@@ -763,13 +789,13 @@ func _create_equipment_badge(item) -> PanelContainer:
 	style.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
 	style.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", style)
 
 	var label := Label.new()
 	label.text = item_name
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	label.add_theme_color_override("font_color", accent_color)
 	badge.add_child(label)
 
@@ -786,8 +812,8 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	var label := Label.new()
 	label.text = "XP to Upgrade"
-	label.add_theme_font_size_override("font_size", 11)
-	label.add_theme_color_override("font_color", Color("#6b7280"))
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
+	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	label_row.add_child(label)
 
 	var spacer := Control.new()
@@ -803,8 +829,8 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	var value := Label.new()
 	value.text = "%d/%d" % [current_xp, max_xp]
-	value.add_theme_font_size_override("font_size", 11)
-	value.add_theme_color_override("font_color", Color("#8b5cf6"))
+	value.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
+	value.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 	label_row.add_child(value)
 
 	container.add_child(label_row)
@@ -818,14 +844,14 @@ func _create_xp_progress_bar() -> VBoxContainer:
 
 	# Style background
 	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = Color("#374151")
-	bg_style.set_corner_radius_all(3)
+	bg_style.bg_color = UIColors.COLOR_BORDER
+	bg_style.set_corner_radius_all(4)
 	progress.add_theme_stylebox_override("background", bg_style)
 
 	# Style fill (purple gradient effect)
 	var fill_style := StyleBoxFlat.new()
-	fill_style.bg_color = Color("#8b5cf6")
-	fill_style.set_corner_radius_all(3)
+	fill_style.bg_color = UIColors.COLOR_PURPLE
+	fill_style.set_corner_radius_all(4)
 	progress.add_theme_stylebox_override("fill", fill_style)
 
 	container.add_child(progress)
@@ -840,17 +866,17 @@ func _create_status_badge(status: String) -> PanelContainer:
 	var color: Color
 	match status.to_lower():
 		"leader":
-			color = Color("#3b82f6")  # Blue
+			color = UIColors.COLOR_BLUE  # Blue
 		"ready":
-			color = Color("#10b981")  # Green
+			color = UIColors.COLOR_EMERALD  # Green
 		"injured":
-			color = Color("#ef4444")  # Red
+			color = UIColors.COLOR_RED  # Red
 		_:
-			color = Color("#6b7280")  # Gray
+			color = UIColors.COLOR_TEXT_MUTED  # Gray
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
-	style.set_corner_radius_all(10)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
@@ -858,7 +884,7 @@ func _create_status_badge(status: String) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = status
-	label.add_theme_font_size_override("font_size", 11)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	label.add_theme_color_override("font_color", color)
 	badge.add_child(label)
 

@@ -313,59 +313,112 @@
       "roll_min": 1,
       "roll_max": 10,
       "id": "info_source",
-      "instruction": "QUEST: Track down info source. Costs 1D6 credits. Until paid, cannot progress Quest. Once paid, receive 1 Quest Rumor."
+      "instruction": "QUEST: Track down info source. Costs 1D6 credits. Until paid, cannot progress Quest. Once paid, receive 1 Quest Rumor.",
+      "blocks_progress": true,
+      "completion": "pay_credits",
+      "cost_dice": "1D6"
     },
     {
       "roll_min": 11,
       "roll_max": 20,
       "id": "analyze_data",
-      "instruction": "QUEST: Analyze data. Generate research points = combined crew Savvy + 1D6. If total >= 20, receive 1 Quest Rumor. Otherwise, accumulate each turn until you reach 20. Cannot progress Quest until done."
+      "instruction": "QUEST: Analyze data. Generate research points = combined crew Savvy + 1D6. If total >= 20, receive 1 Quest Rumor. Otherwise, accumulate each turn until you reach 20. Cannot progress Quest until done.",
+      "blocks_progress": true,
+      "completion": "research_points",
+      "research_target": 20,
+      "research_die": "1D6",
+      "research_source": "crew_savvy_total",
+      "accumulates_per_campaign_turn": true
     },
     {
       "roll_min": 21,
       "roll_max": 28,
       "id": "tough_fight",
-      "instruction": "QUEST: Tough fight ahead. Random enemy, +2 numbers, -1 Panic range. Fight at any time but cannot progress Quest until done. If you Hold the Field, receive 1 Quest Rumor."
+      "instruction": "QUEST: Tough fight ahead. Random enemy, +2 numbers, -1 Panic range. Fight at any time but cannot progress Quest until done. If you Hold the Field, receive 1 Quest Rumor.",
+      "blocks_progress": true,
+      "completion": "hold_the_field",
+      "battle_enemy_bonus": 2,
+      "battle_panic_reduction": 1
     },
     {
       "roll_min": 29,
       "roll_max": 38,
       "id": "hard_work",
-      "instruction": "QUEST: Hard work required. New crew task: 'Work on the Quest'. Once 6 such tasks performed (over multiple turns), receive 1 Quest Rumor. Cannot progress until done."
+      "instruction": "QUEST: Hard work required. New crew task: 'Work on the Quest'. Once 6 such tasks performed (over multiple turns), receive 1 Quest Rumor. Cannot progress until done.",
+      "blocks_progress": true,
+      "completion": "crew_tasks",
+      "task_target": 6,
+      "task_id": "work_on_the_quest"
     },
     {
       "roll_min": 39,
       "roll_max": 53,
       "id": "data_cache_access",
-      "instruction": "QUEST: Find data cache. Set up normal Opportunity mission with Access objective. Enemy deployed within 3\" of objective, crew at least 12\" away. When completed, receive 1 Quest Rumor. Cannot progress until done."
+      "instruction": "QUEST: Find data cache. Set up normal Opportunity mission with Access objective. Enemy deployed within 3\" of objective, crew at least 12\" away. When completed, receive 1 Quest Rumor. Cannot progress until done.",
+      "blocks_progress": true,
+      "completion": "mission",
+      "mission_objective": "access",
+      "mission_source": "opportunity",
+      "enemy_deploy_within_inches": 3,
+      "crew_deploy_min_inches": 12
     },
     {
       "roll_min": 54,
       "roll_max": 65,
       "id": "data_cache_dangerous",
-      "instruction": "QUEST: Data cache in bad place. No-objective mission. Crew in center. Roving Threats foe. Each round, 1 basic enemy from center of each 4 edges. Roll D6/round (+1 for Engineer), track total. At 28+, end mission. +1 Quest Rumor. Cannot progress until done."
+      "instruction": "QUEST: Data cache in bad place. No-objective mission. Crew in center. Roving Threats foe. Each round, 1 basic enemy from center of each 4 edges. Roll D6/round (+1 for Engineer), track total. At 28+, end mission. +1 Quest Rumor. Cannot progress until done.",
+      "blocks_progress": true,
+      "completion": "mission",
+      "mission_objective": "none",
+      "survival_target": 28,
+      "crew_deploy": "center",
+      "enemy_table": "roving_threats",
+      "enemies_start_on_table": 0,
+      "arrivals_per_round": 4,
+      "arrival_edge": "center_of_each_battlefield_edge",
+      "survival_die": "1D6",
+      "engineer_bonus": 1,
+      "exempt_from_permanent_enemy_bonus": true
     },
     {
       "roll_min": 66,
       "roll_max": 80,
       "id": "business_contact",
-      "instruction": "QUEST: Business contact needs help. Set up Protect mission. Enemy AI changed to Aggressive. When completed, receive 1 Quest Rumor. Cannot progress until done."
+      "instruction": "QUEST: Business contact needs help. Set up Protect mission. Enemy AI changed to Aggressive. When completed, receive 1 Quest Rumor. Cannot progress until done.",
+      "blocks_progress": true,
+      "completion": "mission",
+      "mission_objective": "protect",
+      "enemy_ai": "aggressive"
     },
     {
       "roll_min": 81,
       "roll_max": 92,
       "id": "enemy_massing",
-      "instruction": "QUEST: Enemy is massing. All future Quest battles add +1 to enemy numbers (does not affect data cache missions). Add 1 Quest Rumor."
+      "instruction": "QUEST: Enemy is massing. All future Quest battles add +1 to enemy numbers (does not affect data cache missions). Add 1 Quest Rumor.",
+      "blocks_progress": false,
+      "immediate_rumor": true,
+      "permanent_enemy_bonus": 1
     },
     {
       "roll_min": 93,
       "roll_max": 100,
       "id": "enemy_determined",
-      "instruction": "QUEST: Enemy more determined. All future Quest battles reduce enemy Panic range by -1. Add 1 Quest Rumor."
+      "instruction": "QUEST: Enemy more determined. All future Quest battles reduce enemy Panic range by -1. Add 1 Quest Rumor.",
+      "blocks_progress": false,
+      "immediate_rumor": true,
+      "permanent_panic_reduction": 1
     }
   ],
   "quest_conclusion": {
-    "instruction": "QUEST CONCLUSION: Final battle is always a Straight Up Fight, no special conditions. +1 to enemy numbers (plus Quest Progression modifiers). Enemy always accompanied by Unique Individual. Enemies will NOT test Morale — fight to the death. Rewards: roll twice for Credits (pick highest, +1), 3 Loot rolls, +1 Story Point."
+    "instruction": "QUEST CONCLUSION: Final battle is always a Straight Up Fight, no special conditions. +1 to enemy numbers (plus Quest Progression modifiers). Enemy always accompanied by Unique Individual. Enemies will NOT test Morale — fight to the death. Rewards: roll twice for Credits (pick highest, +1), 3 Loot rolls, +1 Story Point.",
+    "enemy_count_bonus": 1,
+    "force_unique_individual": true,
+    "enemies_fearless": true,
+    "mission_type": "straight_up_fight",
+    "credit_rolls": 2,
+    "credit_bonus": 1,
+    "loot_rolls": 3,
+    "story_points": 1
   },
   "connection_main_table": [
     {
@@ -736,5 +789,12 @@
       "title": "Campaign Turn 5 (Full Rules)",
       "instruction": "INTRO TURN 5: ALL standard rules. Full pre-battle and post-battle sequences.\nNo more training wheels. Tutorial complete!\nIf using Story Track: set clock to 5 Ticks.\nCollect 2 Story Points for completing the introductory campaign."
     }
-  ]
+  ],
+  "quest_progression_gate": {
+    "source": "Compendium p.78",
+    "roll": "1D6",
+    "add_quest_rumors": true,
+    "conclusion_threshold": 7,
+    "note": "Roll 1D6, adding the number of Quest Rumors acquired so far. 6 or lower: roll on the Quest Progression table. 7 or higher: the Quest Conclusion is unlocked."
+  }
 }

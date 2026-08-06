@@ -102,7 +102,11 @@ static func build_round_end_prompts(condition_id: String) -> Array:
 ## verbatim-condensed) — shown on the Battle Card so the player knows what
 ## "winning" means before building the table.
 static func objective_win_text(objective: String) -> String:
-	match objective.to_lower().strip_edges():
+	# Accept the display name as well as the snake_case id: callers reach this
+	# from both a tracker id ("fight_off") and a human label ("Fight Off"), and
+	# an unmatched key silently returns "" — a Battle Card row with no win
+	# condition on it, which is exactly what a runtime walk found.
+	match objective.to_lower().strip_edges().replace(" ", "_"):
 		"access":
 			return "Reach the console at the exact center and access it: " \
 				+ "1D6+Savvy, 6+ (a Combat Action; up to two attempts per " \

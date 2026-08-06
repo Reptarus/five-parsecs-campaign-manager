@@ -95,10 +95,15 @@ func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 
 		progress["planet_results"].append(outcome)
 
-	# Delegate war track progression to GalacticWarManager autoload
-	if ctx.galactic_war_manager and ctx.galactic_war_manager.has_method("process_turn_war_progression"):
-		var war_events: Array = ctx.galactic_war_manager.process_turn_war_progression()
-		progress["war_track_events"] = war_events
+	# NO GalacticWarManager DELEGATION HERE. That autoload implements a "war
+	# track" system — D6 5+ advancement, dormant-track activation chance,
+	# data/galactic_war/war_progress_tracks.json — and the phrase "war track"
+	# appears in NEITHER the Core Rulebook NOR the Compendium (checked with
+	# PyPDF2 across both PDFs). It is fabricated content, so per the data
+	# integrity rules it must not be wired in. The book mechanic is the 2D6
+	# table above, verbatim from Core Rules p.126 step 14, and this file already
+	# implements it exactly. The old delegation was also unreachable: it sat
+	# BELOW the invaded_planets.is_empty() early return.
 
 	# Journal: log galactic war progress
 	if progress["planet_results"].size() > 0 and ctx.campaign_journal \

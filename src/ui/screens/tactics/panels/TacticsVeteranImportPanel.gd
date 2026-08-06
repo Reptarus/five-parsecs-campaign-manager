@@ -87,6 +87,9 @@ func _load_from_save_file(save_path: String) -> void:
 		if c is Dictionary:
 			var tagged: Dictionary = (c as Dictionary).duplicate(true)
 			tagged["_source_mode"] = src_mode
+			# Lets the dashboard remove the original after a successful commission
+			# — otherwise the pull direction leaves the veteran in both campaigns.
+			tagged["_source_path"] = save_path
 			_source_characters.append(tagged)
 
 
@@ -146,7 +149,7 @@ func _show_step_1() -> void:
 
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.custom_minimum_size = Vector2(0, 44)
 	cancel.pressed.connect(func() -> void:
 		import_cancelled.emit()
 		queue_free())
@@ -167,7 +170,7 @@ func _build_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
-	select_btn.custom_minimum_size = Vector2(200, 44)
+	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func() -> void: _show_step_2(captured))
 	card.add_child(select_btn)
@@ -180,6 +183,12 @@ func _show_step_2(source_char: Dictionary) -> void:
 	# Canonical 5PFH-standard form is the lossless snapshot; convert INTO Tactics.
 	var canonical: Dictionary = _transfer_service.export_to_canonical(source_char, sm)
 	var veteran: Dictionary = _transfer_service.convert_to_tactics(canonical, "5pfh")
+
+	# Stamp HERE — export_to_canonical() and convert_to_tactics() both rebuild
+	# the dict from known keys and would drop these.
+	veteran["_source_path"] = str(source_char.get("_source_path", ""))
+	veteran["_source_character_id"] = str(source_char.get("character_id",
+		source_char.get("id", "")))
 
 	var char_name: String = veteran.get("name", "Unknown")
 	var title := Label.new()
@@ -210,14 +219,14 @@ func _show_step_2(source_char: Dictionary) -> void:
 
 	var commission_btn := Button.new()
 	commission_btn.text = "Commission %s" % char_name
-	commission_btn.custom_minimum_size = Vector2(240, 52)
+	commission_btn.custom_minimum_size = Vector2(0, 52)
 	commission_btn.pressed.connect(func() -> void:
 		_finalize(veteran, canonical))
 	btn_row.add_child(commission_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
-	back_btn.custom_minimum_size = Vector2(140, 48)
+	back_btn.custom_minimum_size = Vector2(0, 48)
 	back_btn.pressed.connect(func() -> void: _show_step_1())
 	btn_row.add_child(back_btn)
 
@@ -266,7 +275,7 @@ func _create_glass_card(parent: Control) -> VBoxContainer:
 	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(20)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)

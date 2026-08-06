@@ -5,6 +5,11 @@
 
 const JournalEntryTypesClass := preload(
 	"res://src/core/campaign/JournalEntryTypes.gd")
+## Only for casualty_count() — `battle_result["casualties"]` is an Array of
+## dicts (BattleResultNormalizer step 8), not the int this file was written
+## against. Reading it as a number aborts the enclosing function.
+const BattleResultNormalizerClass := preload(
+	"res://src/core/battle/BattleResultNormalizer.gd")
 
 ## Bumped to 2 when JournalEntryTypes canonical taxonomy + filter helpers landed.
 ## Saves predating v2 still load (validation is warn-only).
@@ -42,9 +47,25 @@ func create_entry(data: Dictionary) -> String:
 	## Create new journal entry - returns entry ID
 	var entry_id: String = _generate_entry_id()
 
+	# Fill turn_number / location HERE rather than at 45 call sites.
+	#
+	# 23 of 45 create_entry() callers omitted turn_number, so those entries
+	# stamped turn 0 and sorted to the very front of the chronicle forever.
+	# 42 of 45 omitted location, so get_entries_by_location() — the whole basis
+	# of the Galaxy Log's per-world history — joined on "" and returned nothing.
+	# Both are derivable from authoritative state that this autoload can reach,
+	# so deriving them once at the chokepoint is the only version that cannot
+	# drift as new callers are added. Explicit values are ALWAYS respected.
+	var resolved_turn: int = int(data.get("turn_number", -1))
+	if resolved_turn < 0:
+		resolved_turn = _resolve_current_turn()
+	var resolved_location: String = str(data.get("location", ""))
+	if resolved_location.is_empty():
+		resolved_location = _resolve_current_location()
+
 	var entry: Dictionary = {
 		"id": entry_id,
-		"turn_number": data.get("turn_number", 0),
+		"turn_number": resolved_turn,
 		"timestamp": Time.get_unix_time_from_system(),
 		"type": data.get("type", "custom"),  # battle, story, purchase, injury, milestone, custom
 		"auto_generated": data.get("auto_generated", false),
@@ -57,7 +78,7 @@ func create_entry(data: Dictionary) -> String:
 		# Metadata
 		"tags": data.get("tags", []),
 		"characters_involved": data.get("characters_involved", []),
-		"location": data.get("location", ""),
+		"location": resolved_location,
 
 		# Media
 		"photos": data.get("photos", []),
@@ -71,13 +92,48 @@ func create_entry(data: Dictionary) -> String:
 
 	JournalEntryTypesClass.validate_entry(entry)
 
-	entries.append(entry)
+	# INSERT IN ORDER instead of re-sorting the whole array on every insert.
+	#
+	# _sort_entries_by_turn() ran on EVERY create_entry, making journal growth O(n^2 log n)
+	# across a campaign — and its comparator is not stable, so entries sharing a turn
+	# number could reorder on each insert and the timeline would visibly reshuffle.
+	# Entries almost always arrive in turn order, so the scan below hits the tail
+	# immediately and is O(1) in practice.
+	var turn: int = int(entry.get("turn_number", 0))
+	var pos: int = entries.size()
+	while pos > 0 and int(entries[pos - 1].get("turn_number", 0)) > turn:
+		pos -= 1
+	entries.insert(pos, entry)
 	entries_by_id[entry_id] = entry
-	_sort_entries_by_turn()
+	_prune_entries()
 
 	last_updated = Time.get_unix_time_from_system()
 	entry_created.emit(entry)
 	return entry_id
+
+func _resolve_current_turn() -> int:
+	## Authoritative turn for an entry that didn't supply one.
+	## SSOT is progress_data["turns_played"] (the data-ownership table).
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		var pd: Variant = gs.current_campaign.progress_data
+		if pd is Dictionary:
+			return int(pd.get("turns_played", 0))
+	return 0
+
+func _resolve_current_location() -> String:
+	## Authoritative world name for an entry that didn't supply one.
+	## Matches the write contract every other journal writer follows:
+	## location == PlanetDataManager.get_current_planet().name.
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not pdm.has_method("get_current_planet"):
+		return ""
+	var planet: Variant = pdm.get_current_planet()
+	if planet is Dictionary:
+		return str(planet.get("name", ""))
+	if planet != null and "name" in planet:
+		return str(planet.name)
+	return ""
 
 func update_entry(entry_id: String, data: Dictionary) -> bool:
 	## Update existing journal entry
@@ -157,10 +213,20 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 		description += " | Objective: %s (%s)" % [
 			obj_label, "achieved" if obj_done else "failed"]
 
-	# Build tags with zone tag
-	var tags: Array = [
-		"battle",
-		battle_result.get("enemy_type", "").to_lower()]
+	# Build tags with zone tag.
+	#
+	# The enemy type USED to be tagged here. That is a category error: TAGS is a
+	# controlled vocabulary of journal categories (battle / loot / rival / …),
+	# so an enemy name could never be canonical — "gangers" warns exactly as
+	# loudly as the "Unknown" fallback did, on every single battle. Worse, the
+	# filter chip row is built from get_tag_frequency() (the tags actually
+	# present), so enemy names became selectable chips rendered in the fallback
+	# colour, crowding real categories out of the top-N row.
+	#
+	# The enemy is DATA, so it moves to `stats` below alongside outcome,
+	# casualties, loot and XP — still recorded, still queryable, no longer
+	# masquerading as a category.
+	var tags: Array = ["battle"]
 	var zone_tag: String = battle_result.get("zone_tag", "")
 	if not zone_tag.is_empty():
 		tags.append(zone_tag)
@@ -168,10 +234,16 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 	# Build stats with zone info
 	var stats: Dictionary = {
 		"battle_result": battle_result.get("outcome", "unknown"),
-		"casualties": battle_result.get("casualties", 0),
+		"casualties": BattleResultNormalizerClass.casualty_count(battle_result),
 		"loot_earned": battle_result.get("loot", 0),
 		"xp_gained": battle_result.get("xp", 0),
 	}
+	# Relocated out of `tags` — see the note above. Only recorded when the battle
+	# actually knows the enemy; the "Unknown" fallback several producers use is
+	# not worth persisting.
+	var enemy_type: String = str(battle_result.get("enemy_type", ""))
+	if not enemy_type.is_empty() and enemy_type.to_lower() != "unknown":
+		stats["enemy_type"] = enemy_type
 	if not zone_type.is_empty():
 		stats["zone_type"] = zone_type
 
@@ -602,6 +674,34 @@ func _generate_entry_id() -> String:
 	next_entry_id += 1
 	return entry_id
 
+## Cap on ordinary journal entries. Milestones are NEVER pruned — they are the
+## campaign's narrative spine and there are only a handful per campaign.
+##
+## Sized from measurement: ~8 entries per turn, so 400 covers ~50 turns of full
+## history. Without a cap the journal only ever appended (entries, milestones and
+## per-character timelines all), and the whole corpus is deep-copied and
+## JSON-stringified into every save — which happens ~8 times per campaign turn. A
+## turn-100 campaign projected to ~650 KB of save, rewritten on every World Phase
+## "Next" tap on a phone.
+const MAX_ENTRIES: int = 400
+
+
+func _prune_entries() -> void:
+	## Drop the oldest non-milestone entries once over the cap.
+	if entries.size() <= MAX_ENTRIES:
+		return
+	var over: int = entries.size() - MAX_ENTRIES
+	var i: int = 0
+	while over > 0 and i < entries.size():
+		var e: Dictionary = entries[i]
+		if str(e.get("type", "")) == "milestone":
+			i += 1
+			continue
+		entries_by_id.erase(str(e.get("id", "")))
+		entries.remove_at(i)
+		over -= 1
+
+
 func _sort_entries_by_turn() -> void:
 	## Sort entries by turn number
 	entries.sort_custom(func(a: Dictionary, b: Dictionary):
@@ -613,7 +713,11 @@ func _generate_battle_description(
 ) -> String:
 	## Generate battle description from results
 	var outcome: String = battle_result.get("outcome", "unknown")
-	var casualties: int = battle_result.get("casualties", 0)
+	# Was `var casualties: int = battle_result.get("casualties", 0)`, which threw
+	# "Trying to assign value of type 'Array' to a variable of type 'int'" on the
+	# FIRST statement that touched it — so this function aborted and every battle
+	# journal entry shipped with an empty description.
+	var casualties: int = BattleResultNormalizerClass.casualty_count(battle_result)
 	var enemy_type: String = battle_result.get(
 		"enemy_type", "Unknown")
 
@@ -635,7 +739,9 @@ func _determine_battle_mood(
 ) -> String:
 	## Determine mood from battle result
 	var outcome = battle_result.get("outcome", "unknown")
-	var casualties = battle_result.get("casualties", 0)
+	# `casualties == 0` below is "Invalid operands 'Array' and 'int'" against the
+	# real shape, which aborted this function — every entry got an empty mood.
+	var casualties: int = BattleResultNormalizerClass.casualty_count(battle_result)
 
 	if outcome == "victory":
 		if casualties == 0:
@@ -906,9 +1012,18 @@ func load_from_save(save_data: Dictionary) -> void:
 	## Load journal from campaign save
 	var qol: Dictionary = save_data.get("qol_data", {})
 	var journal_data: Dictionary = qol.get("journal", {})
-	if journal_data.is_empty():
-		return
-
+	# NO is_empty() EARLY RETURN.
+	#
+	# This is a shared autoload, so returning early on empty data left the PREVIOUS
+	# campaign's journal live — and _build_qol_data() then snapshots the live journal
+	# into the new campaign's very next save, permanently grafting one campaign's
+	# history onto another. A brand-new campaign legitimately has an empty journal, so
+	# the guard fired on the most common case.
+	#
+	# Same defect fixed in six sibling autoloads (NPCTracker, WorldEconomyManager,
+	# DLCManager, PlanetDataManager, FactionSystem). This one was
+	# missed because callers pass {} deliberately to RESET — CampaignCreationUI and
+	# the creation-path autoload reset both do — and that reset silently did nothing.
 	entries.clear()
 	entries_by_id.clear()
 

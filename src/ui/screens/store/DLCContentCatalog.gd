@@ -5,6 +5,102 @@ extends RefCounted
 ## Publisher-reviewable: all player-facing text lives here.
 ## Used by StoreScreen, DLCPackCard, DLCUpsellBanner, and ExpansionFeatureSection.
 
+# ── Unimplemented features ────────────────────────────────────────
+#
+# Flags whose RULES are not wired yet. They are hidden from every feature list
+# so a player never flips a switch that changes nothing — a dead toggle inside a
+# purchased unlock reads as "this app is broken" rather than "that isn't in yet",
+# and a tester spends the session cataloguing our known gaps instead of finding
+# unknown ones.
+#
+# MEASURED, not assumed — and the measurement is a CONSUMER trace, not a flag
+# search. Whether the flag is read tells you nothing: six of the entries below
+# read their flag correctly, inside a gated getter that nobody calls. Gating is
+# not wiring. A flag earns a place here only when the chapter's API has no live
+# caller; the full walk is `docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`.
+#
+# Both spellings must be searched or the count comes out wrong in one direction
+# or the other. One pass searched only `ContentFlag.X` and concluded 19 of 33
+# flags were dead; the next searched `ContentFlag.get("` as a literal and found
+# 2 sites, missing the string form entirely — the lookup is
+# `ContentFlag.get(flag_name, -1)`, by variable:
+#
+#     dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS)   # enum form
+#     _is_flag_enabled("NEW_TRAINING")                    # string form
+#
+# Delete an entry the moment its rules land — this list shrinking is the
+# progress bar for Compendium completeness.
+const UNIMPLEMENTED_FLAGS: Array[String] = [
+	# DEPLOYMENT_VARIABLES was removed from this list on Aug 3 2026 — the missing
+	# loader is now src/data/compendium_deployment_variables.gd and the rule fires
+	# from TacticalBattleUI._on_initiative_calculated, which is the exact moment
+	# p.44 keys it to.
+	#
+	# ELITE_ENEMIES was removed from this list on Aug 3 2026. The loader is
+	# src/data/compendium_elite_enemies.gd and the p.48 substitution ("these
+	# tables take the place of the regular encounter tables") happens in
+	# EnemyGenerator._roll_enemy_in_category. The data file was two of five
+	# tables, both truncated, and was completed from the PDF first.
+	# compendium_missions_expanded.get_pvp_setup / get_pvp_rules /
+	# roll_pvp_battle_reason / roll_pvp_third_party — zero callers repo-wide.
+	"PVP_BATTLES",
+	# compendium_missions_expanded.get_coop_setup / get_coop_rules — zero callers.
+	"COOP_BATTLES",
+	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
+	# AI_VARIATION_TABLES getter — zero callers.
+	"AI_VARIATIONS",
+	#
+	# GRID_BASED_MOVEMENT was removed from this list on Aug 6 2026. It was listed
+	# as a pure wiring gap (`grid_movement_instructions` had zero producers) and
+	# that was true but not the whole defect: CheatSheetPanel WAS live and
+	# correctly gated, showing FABRICATED rules — a "1 square = 2 inches"
+	# conversion, a range-to-squares table, "1 square per activation" and
+	# "enter occupied square = automatic Brawl", none of which are in the
+	# Compendium. src/data/compendium_grid_movement.gd is now the single source;
+	# the setup panel generates its instructions and the p.91 flanking note fires
+	# from TacticalBattleUI._apply_enemy_deployment_variable, which is where the
+	# deployment type first exists. Pinned by tests/unit/test_grid_based_movement.gd.
+]
+
+## DIFFICULTY_TOGGLES was REMOVED from this list on Aug 3 2026. All 12 pp.32-34
+## option ids now reach a rule: the selection survives the coordinator whitelist
+## into campaign.progress_data["difficulty_toggles"], and
+## CompendiumDifficultyToggles.is_toggle_active() is the one call every rule site
+## reads. Pinned by tests/unit/test_compendium_difficulty_toggles.gd.
+## KNOWN PARTIAL: "Starting in the Gutter" applies three of its four clauses
+## (no free Military/Hi-Tech rolls, no 1cr per crew member, no starting ship).
+## "In a campaign with a standard crew size of 6, begin with only 3 crew" is NOT
+## applied — it needs the wizard to separate the campaign's STANDARD size (which
+## feeds the enemy-count dice and must stay 6) from the STARTING ROSTER, and
+## CrewPanel deliberately holds no second opinion on crew size.
+##
+## FRINGE_WORLD_STRIFE was REMOVED the same day. pp.148-151 now run on
+## src/core/world/FringeWorldStrife.gd: the arrival 1D6, the per-world
+## Instability score, the Invasion-step accumulator with its four modifiers, the
+## D100 at >= 10 and the "NA" stop-tracking rows.
+##
+## EXPANDED_QUESTS was REMOVED the same day. pp.78-80 run on
+## src/core/campaign/ExpandedQuestProgression.gd, which replaces the core p.120
+## mapping at Post-Battle Step 3 (RivalPatronResolver), persists the rolled step
+## as a standing obligation on campaign.progress_data["expanded_quest"], and
+## feeds its modifiers to EnemyGenerator and BattleSetupRules through the
+## mission stamp. Pinned by tests/unit/test_expanded_quest_progression.gd.
+##
+## EXPANDED_CONNECTIONS was REMOVED the same day. pp.80-86 run on
+## src/core/campaign/ExpandedConnections.gd: the p.80 1D6 check in the Mission
+## Prep step ("while establishing the objectives and parameters"), the D6 main
+## table into one of five subtables, the automatic first-game Connection, the
+## no-roll and variety-swap variations as real settings, the * decline, and the
+## one-turn expiry. Pinned by tests/unit/test_expanded_connections.gd.
+## (src/core/character/connections/CharacterConnections.gd is a DIFFERENT
+## system — creation-time starting contacts — and remains unreferenced.)
+
+
+## True if the flag is listed above — i.e. owning the pack would not change play.
+static func is_flag_unimplemented(flag_name: String) -> bool:
+	return flag_name in UNIMPLEMENTED_FLAGS
+
+
 # ── Pack Catalog ──────────────────────────────────────────────────
 
 const PACK_CATALOG: Dictionary = {

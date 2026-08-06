@@ -83,6 +83,16 @@ func _setup_screen() -> void:
 	_check_pending_transfers.call_deferred()
 	_setup_adaptive_panels()
 
+	# Short-screen scroll: app bar, resource strip, panes and action buttons need more
+	# than the ~338 design px a phone in landscape has. The app bar stays pinned so
+	# navigation is always reachable; everything below it scrolls on a short screen and
+	# lays out exactly as before on anything taller.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 
 ## Reparent the 3 info columns into an AdaptivePanelGroup: a 3-column glance GRID
 ## on desktop/landscape, a Crew/Ship/World TAB strip in portrait (one focused,
@@ -106,6 +116,12 @@ func _setup_adaptive_panels() -> void:
 		var inner: Node = col.get_node_or_null(pair[1]) if col else null
 		if inner is ScrollContainer:
 			(inner as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+			# Horizontal too. These panes hold player-authored text — crew names, ship
+			# names, world names — so their content width is not something the layout
+			# can bound. With horizontal scrolling DISABLED that width propagated all
+			# the way up and pushed the whole dashboard 16px off a 360dp phone; with it
+			# AUTO the pane absorbs it and an over-long row scrolls inside its own box.
+			(inner as ScrollContainer).horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	var group = AdaptivePanelGroupClass.new()
 	group.name = "DashboardPanes"
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
@@ -164,6 +180,7 @@ func _connect_signals() -> void:
 	if quit_button:
 		quit_button.pressed.connect(_on_quit_pressed)
 	_add_sheets_button()
+	_add_edit_button()
 	pass  # Hub cards added in _update_ship_and_equipment
 
 
@@ -195,6 +212,33 @@ func _on_sheets_pressed() -> void:
 	else:
 		push_warning("CampaignDashboard: SceneRouter unavailable for print_sheet")
 
+
+## Add an "Edit" button to the dashboard action row (Campaign Editor). Built
+## programmatically (like _add_sheets_button) so the .tscn stays clean; sibling-
+## inserted next to the Export button. Opens the CampaignEditorScreen over the
+## current campaign for corrections / mid-campaign adjustments.
+func _add_edit_button() -> void:
+	if export_button == null or not is_instance_valid(export_button):
+		return
+	var parent: Node = export_button.get_parent()
+	if parent == null:
+		return
+	var edit_btn := Button.new()
+	edit_btn.text = "Edit"
+	edit_btn.tooltip_text = "Edit campaign data (turn, credits, story points, crew)"
+	_style_button(edit_btn)
+	edit_btn.pressed.connect(_on_edit_campaign_pressed)
+	parent.add_child(edit_btn)
+	parent.move_child(edit_btn, export_button.get_index() + 1)
+
+
+func _on_edit_campaign_pressed() -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("campaign_editor")
+	else:
+		push_warning("CampaignDashboard: SceneRouter unavailable for campaign_editor")
+
 func _add_help_button() -> void:
 	if not header_panel:
 		return
@@ -206,7 +250,7 @@ func _add_help_button() -> void:
 	help_btn.text = "?"
 	help_btn.custom_minimum_size = Vector2(48, 48)  # TOUCH_TARGET_MIN (touch parity)
 	help_btn.flat = true
-	help_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	help_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	help_btn.add_theme_color_override("font_color", COLOR_CYAN)
 	help_btn.tooltip_text = "Show dashboard tutorial"
 	help_btn.pressed.connect(_on_help_pressed)
@@ -220,7 +264,10 @@ func _on_help_pressed() -> void:
 		return
 	var tui: Control = TutorialUIScript.new()
 	add_child(tui)
-	tui.start_tutorial("campaign_dashboard")
+	# force=true: the "?" button exists to REPLAY the tour. Without it,
+	# start_tutorial() early-returned on the completed flag and the button did
+	# nothing at all from the second campaign turn onward.
+	tui.start_tutorial("campaign_dashboard", true)
 
 func _check_dashboard_tutorial() -> void:
 	var TutorialUIScript: GDScript = load(
@@ -232,7 +279,17 @@ func _check_dashboard_tutorial() -> void:
 	if tui.is_tutorial_completed("campaign_dashboard"):
 		tui.queue_free()
 		return
+	# Same hazard as MainMenu._check_first_run_tutorial(): this runs from screen
+	# setup, and if the dashboard leaves the tree during the delay — the player
+	# taps through, or the screen is swapped — execution resumes on a detached
+	# node, get_tree() returns null, and the next line calls a method on it. A
+	# route sweep hit exactly that. Re-check on both sides of the await.
+	if not is_inside_tree():
+		tui.queue_free()
+		return
 	await get_tree().create_timer(0.5).timeout
+	if not is_inside_tree() or not is_instance_valid(tui):
+		return
 	tui.start_tutorial("campaign_dashboard")
 
 func _add_hub_cards() -> void:
@@ -257,6 +314,51 @@ func _add_hub_cards() -> void:
 		var router := get_node_or_null("/root/SceneRouter")
 		if router and router.has_method("navigate_to"):
 			router.navigate_to("compendium")
+	)
+
+	# The two campaign-record screens. Both were registered in SceneRouter and
+	# reachable from nothing, so a campaign's ship sheet and its patron/rival list
+	# could not be consulted at all outside the turn that happened to touch them.
+	#
+	# The dashboard is the right door for exactly these two and NOT for the other
+	# three registered "managers", because the book puts every one of these jobs
+	# inside the campaign turn (p.68: ship repairs = World step 1, patron/rival
+	# status = Post-Battle steps 1-2). What the turn does NOT give you is a place to
+	# LOOK at the record between turns, which is what these two are -- a reference
+	# view over state the turn already owns, which is the hub-and-spoke shape the
+	# rest of this screen already uses.
+	#
+	# Deliberately NOT added here:
+	#   AdvancementManager    -- CharacterDetailsScreen already spends XP, through
+	#                            CharacterAdvancementService and the book's p.123
+	#                            costs. A second door with different numbers is
+	#                            worse than no second door.
+	#   CampaignEventsManager -- Post-Battle steps 12-13 already roll these.
+	#   EquipmentManager      -- already reachable, as the campaign-creation
+	#                            "Manual Selection" popup; in-turn assignment is
+	#                            World step 4 (AssignEquipmentComponent).
+	var ship_card := HubFeatureCard.new()
+	center_vbox.add_child(ship_card)
+	ship_card.setup(
+		"\ud83d\ude80", "Ship",
+		"Hull, debt, upgrades, and travel readiness"
+	)
+	ship_card.card_pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("ship_manager")
+	)
+
+	var patron_card := HubFeatureCard.new()
+	center_vbox.add_child(patron_card)
+	patron_card.setup(
+		"\ud83e\udd1d", "Patrons & Rivals",
+		"Who is hiring you, and who is hunting you"
+	)
+	patron_card.card_pressed.connect(func():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("patron_rival_manager")
 	)
 
 	var battle_card := HubFeatureCard.new()
@@ -450,7 +552,7 @@ func _render_last_turn_recap(
 	var recap := Label.new()
 	recap.name = "__last_turn_recap"
 	recap.text = "Last turn: " + ", ".join(parts)
-	recap.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	recap.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	recap.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	recap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	parent_vbox.add_child(recap)
@@ -467,13 +569,13 @@ func _create_colored_badge(
 	badge.add_child(vb)
 	var val_lbl := Label.new()
 	val_lbl.text = value_text
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	val_lbl.add_theme_color_override("font_color", color)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(val_lbl)
 	var cat_lbl := Label.new()
 	cat_lbl.text = label_text
-	cat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	cat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	cat_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vb.add_child(cat_lbl)
@@ -639,8 +741,8 @@ func _build_crew_card(member) -> PanelContainer:
 	av.custom_minimum_size = Vector2(av_size, av_size)
 	av.clip_contents = true
 	var av_colors := [
-		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
-		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
+		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
 		Color("#ec4899"), Color("#14b8a6")]
 	var ci := char_name.hash() % av_colors.size()
 	if ci < 0:
@@ -691,12 +793,12 @@ func _build_crew_card(member) -> PanelContainer:
 	if is_captain:
 		var star := Label.new()
 		star.text = "★"
-		star.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		star.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		star.add_theme_color_override("font_color", COLOR_AMBER)
 		name_row.add_child(star)
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY
 	)
@@ -708,8 +810,8 @@ func _build_crew_card(member) -> PanelContainer:
 	pill_row.add_theme_constant_override("separation", SPACING_XS)
 	if is_captain:
 		pill_row.add_child(_create_pill("Captain", COLOR_AMBER))
-	pill_row.add_child(_create_pill(species, Color("#3b82f6")))
-	pill_row.add_child(_create_pill(char_class, Color("#8b5cf6")))
+	pill_row.add_child(_create_pill(species, UIColors.COLOR_BLUE))
+	pill_row.add_child(_create_pill(char_class, UIColors.COLOR_PURPLE))
 	vbox.add_child(pill_row)
 
 	# Status effect indicators (Core Rules pp.128-130)
@@ -728,15 +830,15 @@ func _build_crew_card(member) -> PanelContainer:
 			var eff_color: Color
 			match eff_type:
 				"departed":
-					eff_color = Color("#DC2626")  # Red
+					eff_color = UIColors.COLOR_RED  # Red
 				"unavailable", "skip_next_battle":
-					eff_color = Color("#D97706")  # Orange
+					eff_color = UIColors.COLOR_AMBER  # Orange
 				"skip_tasks", "no_xp", "item_damaged":
-					eff_color = Color("#D97706")
+					eff_color = UIColors.COLOR_AMBER
 				"extra_action", "ignore_next_injury":
-					eff_color = Color("#10B981")  # Green
+					eff_color = UIColors.COLOR_EMERALD  # Green
 				_:
-					eff_color = Color("#808080")
+					eff_color = UIColors.COLOR_TEXT_SECONDARY
 			var label_text: String = eff_name
 			if dur > 0:
 				label_text += " (%dt)" % dur
@@ -749,7 +851,7 @@ func _build_crew_card(member) -> PanelContainer:
 		stat_parts.append("%s:%d" % [key, stats[key]])
 	var stat_lbl := Label.new()
 	stat_lbl.text = "  ".join(stat_parts)
-	stat_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	stat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 	# Deferred "tooltips": the C/R/T/S/Sv/L abbreviations are undiscoverable —
 	# hovering the stat line now explains them (Core Rules character profile).
@@ -767,7 +869,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 2
@@ -775,7 +877,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	pill.add_theme_stylebox_override("panel", style)
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill
@@ -835,8 +937,7 @@ func _build_ship_section(campaign) -> void:
 		var hull_label := Label.new()
 		hull_label.text = "Hull: %d / %d" % [hull, hull_max]
 		hull_label.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM
-		)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		hull_label.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY
 		)
@@ -927,28 +1028,38 @@ func _build_equipment_section(campaign) -> void:
 		center_vbox.add_child(empty)
 		return
 
-	# If equipment is stored in unified "equipment" array (from creation),
-	# decompose into typed sub-arrays for display
-	if ed.has("equipment") and not ed.has("weapons"):
-		var all_items: Array = ed.get("equipment", [])
-		var _weapons: Array = []
-		var _armor: Array = []
-		var _gear: Array = []
-		for item in all_items:
+	# Decompose the unified "equipment" array into typed groups FOR DISPLAY ONLY.
+	#
+	# These MUST stay local. `ed` above is a live reference to
+	# campaign.equipment_data (GDScript Dictionaries are reference types and there
+	# is no duplicate() here), and FiveParsecsCampaignCore.get_all_equipment()
+	# UNIONS equipment + weapons + armor + gear. Writing the split back therefore
+	# makes every item appear twice, and to_dictionary() persists equipment_data
+	# wholesale so the next save carries the corruption to disk. That is exactly
+	# the bug fixed in 87c06567, and this code re-created it on every dashboard
+	# visit: measured live, get_all_equipment() went 8 -> 16 with 8 duplicate ids
+	# after one visit.
+	#
+	# Worse, the old guard was `not ed.has("weapons")`, so it only stayed dormant
+	# while a stale empty "weapons" key happened to exist. Collapsing the stash to
+	# its canonical shape removed that key and ARMED this path.
+	var weapons: Array = []
+	var armor: Array = []
+	var gear: Array = []
+	if ed.has("weapons") or ed.has("armor") or ed.has("gear"):
+		# Legacy split-format campaign still in memory: read the groups as-is.
+		weapons = ed.get("weapons", [])
+		armor = ed.get("armor", [])
+		gear = ed.get("gear", [])
+	else:
+		for item in ed.get("equipment", []):
 			if item is Dictionary:
-				var itype: String = item.get("type", "gear")
-				if itype == "weapon":
-					_weapons.append(item)
-				elif itype == "armor":
-					_armor.append(item)
-				else:
-					_gear.append(item)
-		ed["weapons"] = _weapons
-		ed["armor"] = _armor
-		ed["gear"] = _gear
+				match str(item.get("type", "gear")):
+					"weapon": weapons.append(item)
+					"armor": armor.append(item)
+					_: gear.append(item)
 
 	# Weapons list
-	var weapons: Array = ed.get("weapons", [])
 	if not weapons.is_empty():
 		center_vbox.add_child(
 			_create_info_row(
@@ -967,15 +1078,13 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = detail
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
 				center_vbox.add_child(item_lbl)
 
 	# Armor
-	var armor: Array = ed.get("armor", [])
 	if not armor.is_empty():
 		center_vbox.add_child(
 			_create_info_row(
@@ -989,15 +1098,13 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = "  %s" % a.get("name", "Unknown")
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
 				center_vbox.add_child(item_lbl)
 
 	# Gear
-	var gear: Array = ed.get("gear", [])
 	if not gear.is_empty():
 		center_vbox.add_child(
 			_create_info_row(
@@ -1011,8 +1118,7 @@ func _build_equipment_section(campaign) -> void:
 				var item_lbl := Label.new()
 				item_lbl.text = "  %s" % g.get("name", "Unknown")
 				item_lbl.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				item_lbl.add_theme_color_override(
 					"font_color", COLOR_TEXT_SECONDARY
 				)
@@ -1121,8 +1227,7 @@ func _build_world_section(campaign) -> void:
 				var loc_header := Label.new()
 				loc_header.text = "Locations:"
 				loc_header.add_theme_font_size_override(
-					"font_size", FONT_SIZE_SM
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				loc_header.add_theme_color_override(
 					"font_color", COLOR_TEXT_MUTED
 				)
@@ -1147,33 +1252,31 @@ func _build_world_section(campaign) -> void:
 					"Event", evt_desc, COLOR_AMBER
 				))
 
-	# ── Galactic War status ──
-	var gwm = get_node_or_null("/root/GalacticWarManager")
-	if gwm and gwm.active_track_ids.size() > 0:
+	# ── Galactic War status (Core Rules p.126 step 14) ──
+	# Was reading GalacticWarManager.active_track_ids — a fabricated "war track"
+	# system that no rulebook contains and that nothing could ever advance, so
+	# this block never rendered. Now shows the real tracked state: worlds that
+	# were Invaded and are still being rolled for each post-battle.
+	if campaign and "invaded_planets" in campaign \
+			and not campaign.invaded_planets.is_empty():
 		var war_sep := HSeparator.new()
 		war_sep.modulate = COLOR_BORDER
 		right_vbox.add_child(war_sep)
 		right_vbox.add_child(
 			_create_section_header("GALACTIC WAR")
 		)
-		for track_id in gwm.active_track_ids:
-			var track: Dictionary = gwm.war_tracks.get(
-				track_id, {}
-			)
-			var track_name: String = track.get(
-				"name", str(track_id)
-			)
-			var progress: int = track.get(
-				"current_progress", 0
-			)
-			var max_val: int = track.get("max_progress", 10)
-			var war_color: Color = COLOR_AMBER
-			if progress > max_val * 0.7:
-				war_color = COLOR_RED
+		for planet in campaign.invaded_planets:
+			if not (planet is Dictionary):
+				continue
+			var planet_name: String = str(planet.get("name", planet.get("id", "?")))
+			var war_mod: int = int(planet.get("war_modifier", 0))
+			var status_text: String = "Contested"
+			if war_mod > 0:
+				status_text = "Making Ground (+%d)" % war_mod
 			right_vbox.add_child(_create_info_row(
-				track_name,
-				"%d / %d" % [progress, max_val],
-				war_color
+				planet_name,
+				status_text,
+				COLOR_AMBER if war_mod <= 0 else COLOR_SUCCESS
 			))
 
 	# ── View World Log button ──
@@ -1182,17 +1285,10 @@ func _build_world_section(campaign) -> void:
 	world_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 	world_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	world_btn.pressed.connect(_on_view_world_log)
-	var wbtn_style := StyleBoxFlat.new()
-	wbtn_style.bg_color = COLOR_ACCENT
-	wbtn_style.set_corner_radius_all(8)
-	wbtn_style.set_content_margin_all(SPACING_SM)
-	world_btn.add_theme_stylebox_override("normal", wbtn_style)
-	var wbtn_hover := wbtn_style.duplicate()
-	wbtn_hover.bg_color = COLOR_ACCENT_HOVER
-	world_btn.add_theme_stylebox_override("hover", wbtn_hover)
-	world_btn.add_theme_color_override(
-		"font_color", COLOR_TEXT_PRIMARY
-	)
+	# Was a hand-rolled 8px box with only `normal` and `hover`, so pressing it
+	# snapped back to the theme's 4px box mid-click. The variation carries all five
+	# states.
+	DialogStyles.style_secondary_button(world_btn)
 	right_vbox.add_child(world_btn)
 
 func _build_patrons_section(campaign) -> void:
@@ -1244,8 +1340,7 @@ func _build_patrons_section(campaign) -> void:
 				var badge := Label.new()
 				badge.text = " LOCAL"
 				badge.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				badge.add_theme_color_override(
 					"font_color", COLOR_CYAN
 				)
@@ -1299,8 +1394,7 @@ func _build_rivals_section(campaign) -> void:
 				var badge := Label.new()
 				badge.text = " LOCAL"
 				badge.add_theme_font_size_override(
-					"font_size", FONT_SIZE_XS
-				)
+					"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				badge.add_theme_color_override(
 					"font_color", COLOR_CYAN
 				)
@@ -1351,8 +1445,10 @@ func _build_narrative_status(campaign) -> void:
 				_create_info_row(
 					"Status", "Complete!", COLOR_EMERALD))
 		elif intro_active:
-			var turn: int = intro_state.get(
-				"current_intro_turn", 0)
+			# get_status() returns "current_turn"; this read "current_intro_turn"
+			# (the internal field name), matched nothing, and rendered
+			# "Turn 0 / 5" with an empty bar for the whole tutorial.
+			var turn: int = intro_state.get("current_turn", 0)
 			right_vbox.add_child(
 				_create_info_row(
 					"Progress", "Turn %d / 5" % turn,
@@ -1419,7 +1515,7 @@ func _build_narrative_status(campaign) -> void:
 		var delay_remaining: int = st_data.get("delay_turns_remaining", 0)
 		var banner := Label.new()
 		banner.text = "Final Story Event ready!"
-		banner.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		banner.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		banner.add_theme_color_override("font_color", COLOR_AMBER)
 		right_vbox.add_child(banner)
 
@@ -1428,7 +1524,7 @@ func _build_narrative_status(campaign) -> void:
 			sub.text = "You may delay up to %d more turn(s)." % delay_remaining
 		else:
 			sub.text = "Last chance — fires at next turn rollover."
-		sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		sub.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		sub.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		right_vbox.add_child(sub)
 
@@ -1464,7 +1560,7 @@ func _build_narrative_status(campaign) -> void:
 		var alert := Label.new()
 		alert.text = "Story Event next turn!"
 		alert.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		alert.add_theme_color_override(
 			"font_color", COLOR_AMBER)
 		right_vbox.add_child(alert)
@@ -1484,7 +1580,7 @@ func _add_exploration_bar(progress: float) -> void:
 	var lbl := Label.new()
 	lbl.text = "Explored"
 	lbl.custom_minimum_size.x = 90
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	row.add_child(lbl)
 	var bar := ProgressBar.new()
@@ -1504,7 +1600,7 @@ func _add_exploration_bar(progress: float) -> void:
 	row.add_child(bar)
 	var pct := Label.new()
 	pct.text = "%d%%" % int(progress * 100)
-	pct.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	pct.add_theme_color_override("font_color", COLOR_EMERALD)
 	row.add_child(pct)
 	right_vbox.add_child(row)
@@ -1551,7 +1647,7 @@ func _build_world_log_panel() -> PanelContainer:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.97)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XL)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1571,7 +1667,7 @@ func _build_world_log_panel() -> PanelContainer:
 	title_row.add_theme_constant_override("separation", SPACING_SM)
 	var title := Label.new()
 	title.text = "WORLD LOG"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_CYAN)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
@@ -1680,14 +1776,14 @@ func _create_progress_stat(
 	hbox.add_theme_constant_override("separation", SPACING_XS)
 	var lbl := Label.new()
 	lbl.text = label + ":"
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY
 	)
 	hbox.add_child(lbl)
 	var val := Label.new()
 	val.text = value
-	val.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(val)
 	return hbox
@@ -1818,8 +1914,10 @@ func _on_manage_crew_pressed() -> void:
 	if router:
 		router.navigate_to("crew_management")
 	else:
+		# CrewManagementScreen.tscn — "CrewManagement.tscn" does not exist, so this
+		# router-absent fallback failed exactly when it was needed.
 		get_tree().change_scene_to_file(
-			"res://src/ui/screens/crew/CrewManagement.tscn"
+			"res://src/ui/screens/crew/CrewManagementScreen.tscn"
 		)
 
 func _on_save_pressed() -> void:
@@ -2320,9 +2418,19 @@ func _sync_sp_system() -> void:
 	var campaign = _get_campaign()
 	if not campaign:
 		return
+	# Flags from the mirror, BALANCE from the canonical owner. from_dict() would
+	# restore both from story_point_turn_state, and that mirror goes stale the
+	# moment anything awards a point through campaign.story_points (which is what
+	# GameStateManager.add_story_points and the post-battle A Bitter Day award both
+	# do). The old `elif` fallback only ran while the mirror was EMPTY — false from
+	# the first turn rollover onward — so in practice the popover showed the stale
+	# balance for the whole campaign. Same defect as CampaignPhaseManager's rollover.
 	if _sp_system and "story_point_turn_state" in campaign \
 			and not campaign.story_point_turn_state.is_empty():
-		_sp_system.from_dict(campaign.story_point_turn_state)
+		var turn_state: Dictionary = campaign.story_point_turn_state.duplicate(true)
+		if "story_points" in campaign:
+			turn_state["current_points"] = int(campaign.story_points)
+		_sp_system.from_dict(turn_state)
 	elif _sp_system and "story_points" in campaign:
 		# Fallback: sync balance directly from campaign
 		var diff: int = campaign.story_points \
@@ -2411,7 +2519,7 @@ func _build_phase_checklist() -> void:
 
 	var pct_label := Label.new()
 	pct_label.text = "%d / %d required actions complete" % [req_done, req_total]
-	pct_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	pct_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	pct_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	right_vbox.add_child(pct_label)
 
@@ -2422,7 +2530,7 @@ func _build_phase_checklist() -> void:
 			if checklist.has_method("get_action_description") else action_id
 		var item := Label.new()
 		item.text = "  - %s" % desc
-		item.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		item.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		item.add_theme_color_override("font_color", COLOR_AMBER)
 		right_vbox.add_child(item)
 
@@ -2538,12 +2646,15 @@ func _build_contacts_panel() -> PanelContainer:
 	vbox.add_child(header_hbox)
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(80, 36)
+	# Was Vector2(80, 36): 36 design px is ~42dp, under the 48dp touch floor, and
+	# the 80px WIDTH floor stopped it shrinking with the overlay. style_back_button
+	# applies the shared variation and floors the HEIGHT only.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_hide_history_overlay)
 	header_hbox.add_child(back_btn)
 	var title := Label.new()
 	title.text = "Contacts & Rivals"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title)
@@ -2625,7 +2736,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 	card.add_child(vbox)
 	var name_lbl := Label.new()
 	name_lbl.text = npc.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	var name_color: Color = COLOR_EMERALD if npc_type == "patron" else COLOR_RED
 	name_lbl.add_theme_color_override("font_color", name_color)
 	vbox.add_child(name_lbl)
@@ -2636,7 +2747,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			npc.get("jobs_completed", 0),
 			npc.get("jobs_failed", 0)
 		]
-		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)
 	else:
@@ -2646,7 +2757,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			npc.get("victories", 0),
 			npc.get("defeats", 0)
 		]
-		info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)
 	var history: Array = npc.get("history", [])
@@ -2656,7 +2767,7 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 			var turn_str: String = str(entry.get("turn", "?"))
 			var event_str: String = str(entry.get("event", entry.get("result", "")))
 			entry_lbl.text = "  Turn %s: %s" % [turn_str, event_str]
-			entry_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			entry_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			entry_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 			vbox.add_child(entry_lbl)
 	return card
@@ -2670,7 +2781,7 @@ func _create_location_contact_card(location: Dictionary) -> PanelContainer:
 	card.add_child(vbox)
 	var name_lbl := Label.new()
 	name_lbl.text = location.get("name", "Unknown Location")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_PURPLE)
 	vbox.add_child(name_lbl)
 	var info := Label.new()
@@ -2678,14 +2789,14 @@ func _create_location_contact_card(location: Dictionary) -> PanelContainer:
 		location.get("visits", 0),
 		location.get("reputation", 0)
 	]
-	info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 	var npcs_met: Array = location.get("npcs_met", [])
 	if not npcs_met.is_empty():
 		var npcs_lbl := Label.new()
 		npcs_lbl.text = "Contacts: " + ", ".join(npcs_met)
-		npcs_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		npcs_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		npcs_lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		vbox.add_child(npcs_lbl)
 	return card
@@ -2713,12 +2824,15 @@ func _build_hof_panel() -> PanelContainer:
 	vbox.add_child(header_hbox)
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(80, 36)
+	# Was Vector2(80, 36): 36 design px is ~42dp, under the 48dp touch floor, and
+	# the 80px WIDTH floor stopped it shrinking with the overlay. style_back_button
+	# applies the shared variation and floors the HEIGHT only.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_hide_history_overlay)
 	header_hbox.add_child(back_btn)
 	var title := Label.new()
 	title.text = "Hall of Fame"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(title)
@@ -2749,7 +2863,7 @@ func _build_hof_panel() -> PanelContainer:
 			card.add_child(card_vbox)
 			var name_lbl := Label.new()
 			name_lbl.text = archive.get("campaign_id", "Unknown Campaign")
-			name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			name_lbl.add_theme_color_override("font_color", COLOR_AMBER)
 			card_vbox.add_child(name_lbl)
 			var victory: bool = archive.get("victory", false)
@@ -2760,12 +2874,12 @@ func _build_hof_panel() -> PanelContainer:
 			else:
 				status_lbl.text = "Ended — Turn %d" % archive.get("turns_survived", 0)
 				status_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-			status_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			status_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			card_vbox.add_child(status_lbl)
 			var crew_count: int = archive.get("crew", []).size()
 			var crew_lbl := Label.new()
 			crew_lbl.text = "Crew: %d members" % crew_count
-			crew_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			crew_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			crew_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			card_vbox.add_child(crew_lbl)
 			vbox.add_child(card)

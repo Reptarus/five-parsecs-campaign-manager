@@ -13,6 +13,7 @@ extends RefCounted
 # Dependencies
 # GlobalEnums available as autoload singleton
 const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
@@ -42,6 +43,32 @@ var stat_max_values: Dictionary = {
 	"speed": 8,
 	"luck": 1 # Base humans, some species can go higher
 }
+
+
+## The XP cost to raise `stat_name` by +1.
+##
+## Compendium p.32 "Slower Progression" reprints the whole Core Rules p.123
+## Ability Increase Table with harsher numbers (Reactions 7->8, Combat 7->8,
+## Toughness 6->8). Read through here, never straight off the dictionary, so the
+## option cannot end up applied at some advancement sites and not others.
+##
+## Bot upgrades read this too, and that is correct: p.123 says a Bot pays
+## "credits equal to the XP cost", so a raised XP cost raises the credit price
+## by the book's own rule rather than by a second decision made here.
+func get_stat_cost(stat_name: String) -> int:
+	return CompendiumTogglesRef.progression_cost(
+		stat_name, int(stat_advancement_costs.get(stat_name, 0)))
+
+
+## The maximum value `stat_name` may reach.
+##
+## Slower Progression also lowers three maximums (Reactions 6->4, Combat +5->+3,
+## Toughness 6->5). Applied through progression_maximum(), which can only LOWER
+## the base — see the note there on why the Luck row must not raise a non-Human
+## cap from 1 to 3.
+func get_stat_max(stat_name: String, fallback: int = 5) -> int:
+	return CompendiumTogglesRef.progression_maximum(
+		stat_name, int(stat_max_values.get(stat_name, fallback)))
 
 var training_costs: Dictionary = {
 	# Core Rules p.125 — 7 Advanced Training courses
@@ -120,7 +147,7 @@ func _get_advancement_cost(advancement_type: String, target: String = "") -> int
 	## Get the XP cost for a specific advancement (Core Rules p.123-125)
 	match advancement_type:
 		"stat":
-			return stat_advancement_costs.get(target, 0)
+			return get_stat_cost(target)
 		"training":
 			return training_costs.get(target, 0)
 		_:
@@ -132,10 +159,10 @@ func advance_stat(character: Resource, stat_name: String) -> bool:
 	if not character:
 		return false
 
-	var cost = stat_advancement_costs.get(stat_name, 0)
+	var cost = get_stat_cost(stat_name)
 	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 	var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
-	var max_stat = stat_max_values.get(stat_name, 5)
+	var max_stat = get_stat_max(stat_name)
 
 	# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
 	var char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
@@ -280,8 +307,8 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 	# Stat advancements
 	for stat_name in stat_advancement_costs.keys():
 		var current_stat = Godot4Utils.safe_get_property(character, stat_name, 0)
-		var max_stat = stat_max_values.get(stat_name, 5)
-		var cost = stat_advancement_costs[stat_name]
+		var max_stat = get_stat_max(stat_name)
+		var cost = get_stat_cost(stat_name)
 
 		# Engineer restriction: Cannot raise Toughness above 4 (Core Rules p.124)
 		var adv_char_class: String = Godot4Utils.safe_get_property(character, "character_class", "")
@@ -318,54 +345,19 @@ func get_available_advancements(character: Resource) -> Array[Dictionary]:
 
 	return advancements
 
-## Calculate experience from battle results — Core Rules p.123 XP table
-## Characters that flee in the first 2 rounds receive 0 XP.
-func calculate_battle_experience(character: Resource, battle_result: Dictionary) -> int:
-	var char_name: String = Godot4Utils.safe_get_property(character, "character_name", "")
-
-	# Core Rules p.123: Characters that flee in first 2 rounds get nothing
-	var fled_early: Array = battle_result.get("fled_early", [])
-	if char_name in fled_early:
-		return 0
-
-	var xp_gained: int = 0
-	var is_casualty: bool = char_name in battle_result.get("crew_casualties", [])
-	var victory: bool = battle_result.get("victory", false)
-
-	# Core Rules p.123 XP table:
-	if is_casualty:
-		xp_gained += experience_sources["casualty"]  # +1
-	elif victory:
-		xp_gained += experience_sources["survived_and_won"]  # +3
-	else:
-		xp_gained += experience_sources["survived_no_win"]  # +2
-
-	# First character to inflict a casualty: +1
-	if char_name == battle_result.get("first_to_inflict_casualty", ""):
-		xp_gained += experience_sources["first_casualty"]
-
-	# Killed Unique Individual: +1
-	if char_name in battle_result.get("killed_unique_individual", []):
-		xp_gained += experience_sources["killed_unique_individual"]
-
-	# Easy mode bonus: +1 (campaign difficulty check)
-	if battle_result.get("easy_mode", false):
-		xp_gained += experience_sources["easy_mode"]
-
-	# Completed final stage of a Quest: +1
-	if battle_result.get("final_quest_stage", false):
-		xp_gained += experience_sources["final_quest_stage"]
-
-	return xp_gained
-
-## Award post-battle experience to all crew
-func award_post_battle_experience(crew_members: Array, battle_result: Dictionary) -> void:
-	## Award experience to all crew members after battle
-	for crew_member in crew_members:
-		var xp_amount = calculate_battle_experience(crew_member, battle_result)
-		if xp_amount > 0:
-			var source: String = "victory" if battle_result.get("victory", false) else "mission"
-			award_experience(crew_member, xp_amount, source)
+# calculate_battle_experience() and award_post_battle_experience() were
+# DELETED here. They were a second, divergent implementation of the Core
+# Rules p.123 XP table with ZERO callers — award_* was called by nothing and
+# calculate_* only by award_*. The live path is
+# ExperienceTrainingProcessor._calculate_crew_xp(), reached from
+# PostBattlePhase.
+#
+# Worse than merely dead: calculate_battle_experience() read `fled_early` as
+# an ARRAY of character names and `crew_casualties` likewise, while the live
+# battle-result contract carries fled_early as a BOOL and casualties as an
+# array of crew-id dicts. Wiring this up would not have failed loudly — the
+# `in` test against a bool errors and unwinds the function, so XP would have
+# silently stopped. Removing it removes the trap.
 
 ## Get character advancement statistics
 
@@ -421,9 +413,9 @@ func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
 		if stat_name in upgraded_stats:
 			continue  # Each stat can only be upgraded once
 
-		var cost: int = stat_advancement_costs[stat_name]
+		var cost: int = get_stat_cost(stat_name)
 		var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-		var max_val: int = stat_max_values.get(stat_name, 6)
+		var max_val: int = get_stat_max(stat_name, 6)
 
 		if current_val >= max_val:
 			continue
@@ -442,6 +434,8 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	## Check if bot can upgrade a stat (Core Rules p.123)
 	if not bot or not _is_bot(bot):
 		return false
+	if _is_soulless(bot):
+		return false
 
 	if not stat_advancement_costs.has(stat_name):
 		return false
@@ -450,7 +444,7 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = stat_advancement_costs[stat_name]
+	var cost: int = get_stat_cost(stat_name)
 	return campaign_credits >= cost
 
 func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resource) -> bool:
@@ -461,6 +455,9 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	if not _is_bot(bot):
 		return false
 
+	if _is_soulless(bot):
+		return false
+
 	if not stat_advancement_costs.has(stat_name):
 		return false
 
@@ -468,7 +465,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = stat_advancement_costs[stat_name]
+	var cost: int = get_stat_cost(stat_name)
 
 	# Core Rules p.125 Bot Tech training: "All Bot upgrades cost 1 credit less."
 	# Check if any crew member has bot_tech training (caller should pass this)
@@ -492,7 +489,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 
 	# Apply +1 to the stat
 	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-	var max_val: int = stat_max_values.get(stat_name, 6)
+	var max_val: int = get_stat_max(stat_name, 6)
 	var new_val: int = mini(current_val + 1, max_val)
 
 	if bot.has_method("set"):
@@ -507,18 +504,52 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	return true
 
 
+func _is_soulless(character: Resource) -> bool:
+	## Errata v1.06 corrects Core Rules p.17. The book reads "They may also have
+	## Bot Upgrades installed, but must pay 1.5 times the normal cost (rounded
+	## up)"; the errata replaces that outright with "Soulless characters CANNOT
+	## install Bot upgrades." The errata wins.
+	##
+	## Checked EXPLICITLY rather than relying on _is_bot() returning false. Bot
+	## and Soulless are separate flags today, so a Soulless already fell through —
+	## but only by accident, and data/character_species.json was still telling the
+	## player the 1.5x rule was available (now corrected). One flag change
+	## upstream would have silently re-enabled a mechanic the errata removed.
+	if not character:
+		return false
+	if Godot4Utils.safe_get_property(character, "is_soulless", false):
+		return true
+	var sid: String = str(Godot4Utils.safe_get_property(character, "species_id", ""))
+	return sid.to_lower() == "soulless"
+
 func _is_bot(character: Resource) -> bool:
-	## Check if character is a bot
+	## Check if character is a bot.
+	##
+	## THE BUG THIS FIXES: this checked has_method("is_bot") and then fell back to
+	## comparing `origin` against "BOT"/"Bot". Character has NO is_bot() method —
+	## `is_bot` is an @export PROPERTY (Character.gd:132) — and `origin` is a
+	## validated species string defaulting to "HUMAN". So the property that
+	## actually marks a Bot was never read, and _is_bot() returned false for every
+	## real Bot. Since it gates both can_install_bot_upgrade() and
+	## install_bot_upgrade(), Bot upgrades (Core Rules p.123) were unreachable for
+	## the entire crew.
 	if not character:
 		return false
 
-	# First try is_bot() method
+	# The authoritative marker.
+	if Godot4Utils.safe_get_property(character, "is_bot", false):
+		return true
+
+	# A method form, for any shape that exposes one instead.
 	if character.has_method("is_bot"):
 		return character.is_bot()
 
-	# Fallback: Check origin property
-	var origin = Godot4Utils.safe_get_property(character, "origin", "")
-	return origin == "BOT" or origin == "Bot"
+	# Legacy fallbacks: species_id, then the origin string, case-insensitively —
+	# the old comparison missed a lowercase "bot", which is how species ids are
+	# actually spelled.
+	if str(Godot4Utils.safe_get_property(character, "species_id", "")).to_lower() == "bot":
+		return true
+	return str(Godot4Utils.safe_get_property(character, "origin", "")).to_lower() == "bot"
 
 
 func _load_psionic_powers_json() -> Dictionary:

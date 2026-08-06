@@ -123,12 +123,31 @@ func test_job_objective_determination():
 # Job Acceptance Tests - 4 tests
 # ============================================================================
 
+
+## Core Rules p.84 turns three Conditions into REQUIREMENTS — Full Squad, Clean
+## and Reputation Required — and accept_selected_job() now refuses a job whose
+## requirement is unmet. That is correct, but it means "accepting a selected job
+## succeeds" is no longer an unconditional truth: whether the seeded roll lands
+## on a blocking Condition is luck.
+##
+## These tests are about the ACCEPTANCE MECHANISM, so they clear the requirement
+## first. The requirement itself is pinned by
+## test_a_blocking_condition_refuses_the_job below, which is the honest place
+## for it.
+func _clear_blocking_conditions(comp) -> void:
+	for job in comp.get("available_jobs"):
+		if job is Dictionary:
+			job["effects"] = []
+			job["conditions"] = []
+
+
 func test_accept_selected_job_succeeds():
 	"""Accepting selected job marks it as accepted"""
 	component.initialize_job_phase({"patron_name": "Test"}, "Location")
 
 	# Select first job
 	component.set("selected_job_index", 0)
+	_clear_blocking_conditions(component)
 
 	var result = component.accept_selected_job()
 
@@ -151,6 +170,7 @@ func test_job_accepted_flag_set():
 	"""Job accepted flag becomes true after acceptance"""
 	component.initialize_job_phase({"patron_name": "Test"}, "Location")
 	component.set("selected_job_index", 0)
+	_clear_blocking_conditions(component)
 
 	# Initially false
 	assert_that(component.get("job_accepted")).is_false()
@@ -164,6 +184,7 @@ func test_get_accepted_job_data():
 	"""Can retrieve accepted job details"""
 	component.initialize_job_phase({"patron_name": "Test Patron"}, "Test Location")
 	component.set("selected_job_index", 0)
+	_clear_blocking_conditions(component)
 
 	component.accept_selected_job()
 
@@ -220,6 +241,7 @@ func test_job_list_reenabled_after_turn_reset():
 	must be interactive again after reset."""
 	component.initialize_job_phase({"patron_name": "Test"}, "Location")
 	component.set("selected_job_index", 0)
+	_clear_blocking_conditions(component)
 	component.accept_selected_job()
 
 	var job_list = component.get("job_list")
@@ -270,3 +292,20 @@ func test_danger_pay_is_pure_component_not_total():
 		assert_that(dp).is_greater_equal(1)
 		assert_that(dp).is_less_equal(3)
 		assert_that(dp).is_less_equal(pay)
+
+
+## Core Rules p.84, "Reputation Required": the job is only available if you have
+## already completed a Patron job on this world. Before the Conditions were
+## wired these three rows were printed in the offer and enforced nowhere, so
+## every job was always acceptable.
+func test_a_blocking_condition_refuses_the_job():
+	component.initialize_job_phase({"patron_name": "Test"}, "Location")
+	component.set("selected_job_index", 0)
+
+	var jobs = component.get("available_jobs")
+	jobs[0]["effects"] = ["reputation_required"]
+
+	var result = component.accept_selected_job()
+
+	assert_that(result).is_false()
+	assert_that(component.get("job_accepted")).is_false()

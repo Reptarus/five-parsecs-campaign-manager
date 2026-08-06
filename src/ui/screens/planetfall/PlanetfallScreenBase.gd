@@ -68,7 +68,7 @@ func _navigate(route_key: String) -> void:
 func _create_action_button(text: String, is_primary: bool = false) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, TOUCH_TARGET_COMFORT)
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	_style_button(btn, is_primary)
 	return btn
 
@@ -80,7 +80,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 8
 	style.content_margin_right = 8
 	style.content_margin_top = 2
@@ -88,7 +88,7 @@ func _create_pill(text: String, color: Color) -> PanelContainer:
 	pill.add_theme_stylebox_override("panel", style)
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill
@@ -99,13 +99,13 @@ func _create_class_pill(character_class: String) -> PanelContainer:
 	var color: Color
 	match character_class.to_lower():
 		"scientist":
-			color = Color("#3b82f6")  # Blue
+			color = UIColors.COLOR_BLUE  # Blue
 		"scout":
-			color = Color("#10B981")  # Green
+			color = UIColors.COLOR_EMERALD  # Green
 		"trooper":
-			color = Color("#f59e0b")  # Amber
+			color = UIColors.COLOR_AMBER  # Amber
 		_:
-			color = Color("#808080")  # Gray
+			color = UIColors.COLOR_TEXT_SECONDARY  # Gray
 	return _create_pill(character_class.capitalize(), color)
 
 
@@ -114,11 +114,11 @@ func _create_loyalty_pill(loyalty: String) -> PanelContainer:
 	var color: Color
 	match loyalty.to_lower():
 		"loyal":
-			color = Color("#10B981")  # Green
+			color = UIColors.COLOR_EMERALD  # Green
 		"committed":
-			color = Color("#808080")  # Gray
+			color = UIColors.COLOR_TEXT_SECONDARY  # Gray
 		"disloyal":
-			color = Color("#DC2626")  # Red
+			color = UIColors.COLOR_RED  # Red
 		_:
-			color = Color("#808080")
+			color = UIColors.COLOR_TEXT_SECONDARY
 	return _create_pill(loyalty.capitalize(), color)

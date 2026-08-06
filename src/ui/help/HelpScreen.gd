@@ -30,7 +30,11 @@ const MarkdownToRichTextScript = preload("res://src/ui/help/MarkdownToRichText.g
 
 
 func _setup_screen() -> void:
-	push_warning("HelpScreen: _setup_screen starting")
+	# Two push_warning() calls ("_setup_screen starting" / "complete") were left
+	# here as debug tracing. push_warning is not a log channel — it prints a
+	# warning with a full GDScript backtrace on every open, which is noise in the
+	# console and in any bug report a player submits. Removed, not downgraded:
+	# a screen that opened successfully has nothing to report.
 	_content_loader = HelpContentLoaderScript.new()
 	_md_converter = MarkdownToRichTextScript.new()
 
@@ -39,7 +43,6 @@ func _setup_screen() -> void:
 		_populate_toc()
 	else:
 		push_error("HelpScreen: HelpContentLoader failed to initialize")
-	push_warning("HelpScreen: _setup_screen complete")
 
 	# Check if we should open a specific chapter from SceneRouter context
 	var router := get_node_or_null("/root/SceneRouter")
@@ -91,7 +94,7 @@ func _build_ui() -> void:
 	# Back button
 	_back_button = Button.new()
 	_back_button.text = "< Back"
-	_back_button.custom_minimum_size = Vector2(80, TOUCH_TARGET_MIN)
+	_back_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(_back_button)
 	_back_button.pressed.connect(_on_back_pressed)
 	_header_bar.add_child(_back_button)
@@ -99,7 +102,7 @@ func _build_ui() -> void:
 	# Mobile TOC button (hidden on desktop)
 	_mobile_toc_button = Button.new()
 	_mobile_toc_button.text = "Chapters"
-	_mobile_toc_button.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
+	_mobile_toc_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(_mobile_toc_button)
 	_mobile_toc_button.pressed.connect(_on_mobile_toc_pressed)
 	_mobile_toc_button.visible = false
@@ -108,15 +111,28 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = "USER GUIDE"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# This label is rewritten with UPPERCASED chapter titles (:243) and "SEARCH
+	# RESULTS" (:275/:294), so its content is far longer than the placeholder above.
+	# With autowrap OFF it demanded that full width as a minimum and pushed the whole
+	# header bar off a phone screen.
+	#
+	# ELLIPSIS, NOT AUTOWRAP. This label shares a single HBox row with a Back button,
+	# a Chapters button and a 200px-min search field, so on a phone it is squeezed to
+	# a few dozen px — and AUTOWRAP_WORD_SMART in a box narrower than one word falls
+	# back to breaking ANYWHERE, rendering "CHAPTER 1: GETTING START" one letter per
+	# line down the screen. A geometry sweep passes that happily (the minimum fits);
+	# only a screenshot shows it. Clipping keeps the row one line tall and readable.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_header_bar.add_child(_title_label)
 
 	# Search input
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search..."
-	_search_input.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_search_input.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_line_edit(_search_input)
 	_search_input.text_submitted.connect(_on_search_submitted)
 	_header_bar.add_child(_search_input)
@@ -170,7 +186,7 @@ func _build_ui() -> void:
 	_content_label.fit_content = true
 	_content_label.scroll_active = false  # Outer ScrollContainer handles scrolling
 	_content_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_content_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	_content_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_content_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_content_label.meta_clicked.connect(_on_meta_clicked)
 	_content_scroll.add_child(_content_label)
@@ -194,19 +210,25 @@ func _populate_toc() -> void:
 		btn.text = title
 		btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		btn.custom_minimum_size.y = 36
+		# Was a hardcoded 36 (= 41.8dp, under the 48dp floor). The mobile TOC popup
+		# built at :340 already uses TOUCH_TARGET_COMFORT — this sidebar copy was the
+		# one that drifted.
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 
 		var btn_style := StyleBoxFlat.new()
 		btn_style.bg_color = Color.TRANSPARENT
 		btn_style.set_content_margin_all(SPACING_SM)
-		btn_style.set_corner_radius_all(6)
+		btn_style.set_corner_radius_all(4)
 		btn.add_theme_stylebox_override("normal", btn_style)
 
 		var hover_style := btn_style.duplicate()
 		hover_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.15)
 		btn.add_theme_stylebox_override("hover", hover_style)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(btn)
 
-		btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 		btn.pressed.connect(_on_toc_button_pressed.bind(ch_id))
@@ -342,7 +364,11 @@ func _on_mobile_toc_pressed() -> void:
 # ── Responsive layout overrides ──────────────────────────────────────────────
 
 func _apply_mobile_layout() -> void:
-	_apply_sidebar_state(false, 0, 120)
+	# search_width 0: on a phone the header row (Back + Chapters + search) already
+	# exceeds ~339 design px, and a 120px floor on the search field is what pushed
+	# its tail underneath the floating SettingsOverlay buttons. It expands into
+	# whatever is left instead (see _apply_sidebar_state).
+	_apply_sidebar_state(false, 0, 0)
 
 func _apply_tablet_layout() -> void:
 	# Collapse the sidebar in portrait even at tablet+ width: a tall, narrow
@@ -370,3 +396,25 @@ func _apply_sidebar_state(show_sidebar: bool, sidebar_width: int, search_width: 
 		_mobile_toc_button.visible = not show_sidebar
 	if _search_input:
 		_search_input.custom_minimum_size.x = search_width
+	if _title_label:
+		# The header row is over-subscribed on a phone: Back + Chapters + title +
+		# search do not fit in ~339 design px, and the tail ran underneath the
+		# floating SettingsOverlay gear/bug buttons. The title is redundant there
+		# anyway — the chapter heading is already rendered at the top of the content
+		# (_content_label), so dropping it from the bar loses nothing and gives the
+		# search field room. Restored with the sidebar on wider layouts.
+		_title_label.visible = show_sidebar
+	if _search_input:
+		# Let the search field ABSORB leftover width rather than demand a fixed slice.
+		# Padding the header to clear the floating overlay was tried and REVERTED: a
+		# right content-margin raises the header's MINIMUM width, that minimum
+		# propagates up the VBox, and the screen's content then overflows to the right
+		# — visibly worse than the overlap it fixed.
+		_search_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Still hidden on a phone, and MEASURED rather than assumed. The three WIDTH
+		# floors this row used to carry (Back 80, Chapters 100, this field 200) are
+		# gone, so the original "~40px is left" reasoning no longer holds — but
+		# putting the field back failed the 310dp floor by 10.7px anyway: Back plus
+		# Chapters plus a usable field is 321px there. The Chapters popup remains the
+		# navigation path on a phone. Returns with the sidebar, where it has room.
+		_search_input.visible = show_sidebar

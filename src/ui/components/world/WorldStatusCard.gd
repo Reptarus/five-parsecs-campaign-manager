@@ -15,14 +15,14 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 
 # Color palette - Deep Space Theme
-const COLOR_SECONDARY := Color("#111827")
-const COLOR_TERTIARY := Color("#1f2937")
-const COLOR_BORDER := Color("#374151")
-const COLOR_EMERALD := Color("#10b981")
-const COLOR_AMBER := Color("#f59e0b")
-const COLOR_RED := Color("#ef4444")
-const COLOR_TEXT_PRIMARY := Color("#f3f4f6")
-const COLOR_TEXT_SECONDARY := Color("#9ca3af")
+const COLOR_SECONDARY := UIColors.COLOR_SECONDARY
+const COLOR_TERTIARY := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_EMERALD := UIColors.COLOR_EMERALD
+const COLOR_AMBER := UIColors.COLOR_AMBER
+const COLOR_RED := UIColors.COLOR_RED
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 # Signals
 signal world_details_requested()
@@ -64,13 +64,13 @@ func _setup_ui() -> void:
 
 	planet_icon = Label.new()
 	planet_icon.text = "🌍"
-	planet_icon.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	planet_icon.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	planet_icon.add_theme_color_override("font_color", COLOR_EMERALD)
 	header_hbox.add_child(planet_icon)
 
 	planet_name_label = Label.new()
 	planet_name_label.text = planet_name
-	planet_name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	planet_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	planet_name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	planet_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(planet_name_label)
@@ -78,7 +78,7 @@ func _setup_ui() -> void:
 	# Location Type
 	location_type_label = Label.new()
 	location_type_label.text = location_type
-	location_type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	location_type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	location_type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(location_type_label)
 
@@ -89,7 +89,7 @@ func _setup_ui() -> void:
 
 	threat_label = Label.new()
 	threat_label.text = "THREAT"
-	threat_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	threat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	threat_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	threat_container.add_child(threat_label)
 
@@ -101,7 +101,7 @@ func _setup_ui() -> void:
 	# Patrons Available
 	patrons_label = Label.new()
 	patrons_label.text = "0 patrons available"
-	patrons_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	patrons_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	patrons_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(patrons_label)
 
@@ -122,7 +122,7 @@ func _apply_glass_style() -> void:
 	style.set_border_width_all(1)
 
 	# Rounded corners
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_MD)

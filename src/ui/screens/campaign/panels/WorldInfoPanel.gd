@@ -217,7 +217,7 @@ func _setup_control_buttons() -> void:
 	# so only a re-roll action is needed (removes redundant "Re-generate World" button)
 	reroll_button = Button.new()
 	reroll_button.text = "Reroll World"
-	reroll_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+	reroll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	reroll_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reroll_button.disabled = true
 	reroll_button.pressed.connect(_on_reroll_button_pressed)
@@ -227,7 +227,7 @@ func _setup_control_buttons() -> void:
 	# Create Confirm button (initially disabled)
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm World"
-	confirm_button.custom_minimum_size = Vector2(150, TOUCH_TARGET_MIN)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	confirm_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	confirm_button.disabled = true
 	confirm_button.pressed.connect(_on_confirm_button_pressed)
@@ -521,7 +521,7 @@ func _display_world_data(world_data: Dictionary) -> void:
 	if world_name_label:
 		world_name_label.text = "Current World: " + safe_name
 		world_name_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_XL)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 		world_name_label.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_PRIMARY)
 
@@ -584,10 +584,11 @@ func _ensure_overview_card() -> void:
 	# Reparent labels into wrapper
 	var orig_parent = government_info.get_parent()
 	var idx = government_info.get_index()
-	orig_parent.remove_child(government_info)
-	orig_parent.remove_child(tech_level_display)
-	overview_vbox.add_child(government_info)
-	overview_vbox.add_child(tech_level_display)
+	# _reparent (BaseCampaignPanel) clears `owner` first. These labels come from
+	# the .tscn, so moving them into a runtime-built card without that left the
+	# scene ownership graph inconsistent and Godot warned on each one.
+	_reparent(government_info, orig_parent, overview_vbox)
+	_reparent(tech_level_display, orig_parent, overview_vbox)
 	# Wrap in card
 	_wrap_in_card_node(overview_vbox, "WORLD OVERVIEW")
 	# Insert card at original position
@@ -606,7 +607,7 @@ func _wrap_in_card_node(
 	var title_lbl := Label.new()
 	title_lbl.text = title
 	title_lbl.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	title_lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	card_inner.add_child(title_lbl)
@@ -626,7 +627,7 @@ func _wrap_in_card_node(
 		UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -678,7 +679,7 @@ func _wrap_in_card(
 	var title_lbl := Label.new()
 	title_lbl.text = title
 	title_lbl.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	title_lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	card_inner.add_child(title_lbl)
@@ -688,8 +689,7 @@ func _wrap_in_card(
 	# Reparent the container into the card
 	var orig_parent = container.get_parent()
 	var idx = container.get_index()
-	orig_parent.remove_child(container)
-	card_inner.add_child(container)
+	_reparent(container, orig_parent, card_inner)
 	# Wrap in PanelContainer
 	var panel := PanelContainer.new()
 	panel.name = "__card_%s" % title.to_lower().replace(
@@ -704,7 +704,7 @@ func _wrap_in_card(
 		UIColors.COLOR_BORDER.g,
 		UIColors.COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(UIColors.SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -891,7 +891,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 	else:
 		var no_market_label := Label.new()
 		no_market_label.text = "No market data available for this world"
-		no_market_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		no_market_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		no_market_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 		opportunities_container.add_child(no_market_label)
 
@@ -1056,14 +1056,28 @@ func _update_world_summary() -> void:
 	]
 
 func _get_campaign_turn_safe() -> int:
-	## Safely get campaign turn for world generation difficulty scaling
+	## Turn number for world generation. During CREATION this is 0: the starting
+	## world is where the crew begins, before turn 1 has been played.
+	##
+	## It defaulted to 1 — and the unified creation state has no "campaign_turn"
+	## key, so the default was always what got used. WorldGenerator stamps
+	## `discovered_on_turn: campaign_turn` into the world dict, and
+	## PlanetDataManager.upsert_current_world() only substitutes its own turn
+	## argument when the stamped value is <= 0. A 1 therefore beat the explicit 0
+	## that CampaignFinalizationService passes, and every save on disk records the
+	## STARTING world as discovered on turn 1 — including the ones whose docblocks
+	## promise 0. The Galaxy Log's starting-world anchor is min(discovered_on_turn),
+	## so it survived only by insertion order rather than by being correct.
+	##
+	## Danger level is unaffected: _calculate_danger_level uses
+	## floor(campaign_turn / 5), and floor(0/5) == floor(1/5) == 0.
 	var campaign_ui = owner if owner != null else get_parent().get_parent()
 	if campaign_ui and campaign_ui.has_method("get_coordinator"):
 		var coordinator = campaign_ui.get_coordinator()
 		if coordinator and coordinator.has_method("get_unified_campaign_state"):
 			var state = coordinator.get_unified_campaign_state()
-			return state.get("campaign_turn", 1)
-	return 1  # Default to turn 1
+			return int(state.get("campaign_turn", 0))
+	return 0  # Creation time: the campaign has not played a turn yet.
 
 ## Cached name table data from world_options.json
 static var _name_data: Dictionary = {}

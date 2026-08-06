@@ -5,6 +5,11 @@ class_name PostBattleSummarySheet
 ## Shows mission outcome, stats, crew changes, loot, and campaign impacts
 ## Integrates all post-battle results into comprehensive summary view
 
+## Only for casualty_count() — `casualties` arrives as an Array of dicts
+## (BattleResultNormalizer step 8), not the int this sheet assumed.
+const BattleResultNormalizerClass := preload(
+	"res://src/core/battle/BattleResultNormalizer.gd")
+
 # ============================================================================
 # SIGNALS
 # ============================================================================
@@ -227,7 +232,7 @@ func _setup_battlefield_recap() -> void:
 
 	var section_header := Label.new()
 	section_header.text = "Battlefield"
-	section_header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	section_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	section_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_battlefield_recap_section.add_child(section_header)
 
@@ -287,7 +292,9 @@ func _setup_stats() -> void:
 		enemies_defeated_label.text = "Enemies Defeated: %d" % defeated
 
 	if casualties_label:
-		var casualties: int = _summary_data.get("casualties", 0)
+		# Assigning the raw Array to this int aborted _update_*, so the casualty
+		# label AND every field below it stopped updating.
+		var casualties: int = BattleResultNormalizerClass.casualty_count(_summary_data)
 		casualties_label.text = "Casualties: %d" % casualties
 		# Color code based on severity
 		if casualties > 0:
@@ -318,7 +325,7 @@ func _setup_crew_changes() -> void:
 			var injury_type: String = injury.get("injury_type", "Unknown Injury")
 			var recovery: int = injury.get("recovery_time", 0)
 			injury_label.text = "  • %s: %s (%d turns recovery)" % [character_name, injury_type, recovery]
-			injury_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			injury_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			injury_label.add_theme_color_override("font_color", COLOR_WARNING)
 			injuries_container.add_child(injury_label)
 
@@ -334,7 +341,7 @@ func _setup_crew_changes() -> void:
 			var xp_gained: int = xp_gain.get("xp_gained", 0)
 			var new_total: int = xp_gain.get("new_total", 0)
 			xp_label.text = "  • %s: +%d XP (Total: %d)" % [character_name, xp_gained, new_total]
-			xp_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			xp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			xp_label.add_theme_color_override("font_color", COLOR_CYAN)
 			xp_gains_container.add_child(xp_label)
 
@@ -347,7 +354,7 @@ func _setup_crew_changes() -> void:
 		for character_name in deaths:
 			var death_label := Label.new()
 			death_label.text = "  • %s - Killed In Action" % character_name
-			death_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			death_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			death_label.add_theme_color_override("font_color", COLOR_DANGER)
 			deaths_container.add_child(death_label)
 
@@ -359,7 +366,7 @@ func _setup_loot() -> void:
 	if loot_items.size() == 0:
 		var no_loot := Label.new()
 		no_loot.text = "No loot collected"
-		no_loot.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_loot.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		no_loot.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		loot_container.add_child(no_loot)
 		return
@@ -378,7 +385,7 @@ func _setup_loot() -> void:
 		var item_type: String = item.get("type", "gear")
 		var icon := _get_item_icon(item_type)
 		item_label.text = "%s %s" % [icon, item_name]
-		item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -388,7 +395,7 @@ func _setup_loot() -> void:
 		var value_label := Label.new()
 		var value: int = item.get("value", 0)
 		value_label.text = "%d CR" % value
-		value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		value_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		loot_grid.add_child(value_label)
@@ -407,7 +414,7 @@ func _setup_consumed_items() -> void:
 
 	var header := Label.new()
 	header.text = "Equipment Consumed"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(header)
 
@@ -418,7 +425,7 @@ func _setup_consumed_items() -> void:
 		var item_name: String = str(item.get("weapon_name", "Unknown"))
 		var user_name: String = str(item.get("character_name", "Unknown"))
 		row.text = "%s  (used by %s)" % [item_name, user_name]
-		row.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		row.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		row.add_theme_color_override("font_color", COLOR_WARNING)
 		section.add_child(row)
 
@@ -487,47 +494,47 @@ func _apply_design_system_styling() -> void:
 	panel_style.bg_color = COLOR_PRIMARY
 	panel_style.set_border_width_all(2)
 	panel_style.border_color = COLOR_BORDER
-	panel_style.set_corner_radius_all(16)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 	_panel_style = panel_style  # cached so portrait padding-trim can mutate it
 
 	# Mission title
 	if mission_title:
-		mission_title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+		mission_title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 		mission_title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 	# Outcome label
 	if outcome_label:
-		outcome_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+		outcome_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 
 	# Section headers
 	for header in [crew_section_header, loot_section_header, campaign_section_header]:
 		if header:
-			header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
 	# Stats labels
 	for label in [rounds_label, enemies_defeated_label, casualties_label, credits_earned_label]:
 		if label:
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 	# Campaign change labels
 	for label in [rivals_label, patrons_label, quest_label]:
 		if label:
-			label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 	# Continue button
 	if continue_button:
 		continue_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
 		var btn_style := StyleBoxFlat.new()
 		btn_style.bg_color = COLOR_SUCCESS
-		btn_style.set_corner_radius_all(8)
+		btn_style.set_corner_radius_all(4)
 		btn_style.set_content_margin_all(SPACING_MD)
 		continue_button.add_theme_stylebox_override("normal", btn_style)
 		continue_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-		continue_button.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		continue_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 
 func _clear_container(container: Container) -> void:
 	## Clear all children from container
@@ -540,7 +547,7 @@ func _create_subsection_header(title: String, icon: String = "") -> Label:
 	## Create a subsection header label
 	var header := Label.new()
 	header.text = "%s %s" % [icon, title] if not icon.is_empty() else title
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return header
 

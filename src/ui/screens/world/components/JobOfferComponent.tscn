@@ -9,10 +9,10 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.216, 0.255, 0.318, 0.5)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 16.0
 content_margin_top = 12.0
 content_margin_right = 16.0
@@ -25,17 +25,17 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.216, 0.255, 0.318, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
 bg_color = Color(0.231, 0.51, 0.965, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -48,10 +48,10 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.216, 0.255, 0.318, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -86,22 +86,22 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Job Offers"
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="HelpButton" type="Button" parent="JobOfferContainer/HeaderPanel/HeaderContent/TitleRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 tooltip_text = "Search for Patrons and job contracts (Rules p.77)"
 text = "?"
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"ButtonSM"
 
 [node name="Description" type="Label" parent="JobOfferContainer/HeaderPanel/HeaderContent"]
 layout_mode = 2
 text = "Review available missions and job offers from Patrons."
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="HSeparator" type="HSeparator" parent="JobOfferContainer"]
@@ -121,7 +121,7 @@ theme_override_constants/separation = 8
 [node name="JobListLabel" type="Label" parent="JobOfferContainer/ContentContainer/JobListSection"]
 layout_mode = 2
 text = "AVAILABLE JOBS"
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="AvailableJobsList" type="ItemList" parent="JobOfferContainer/ContentContainer/JobListSection"]
@@ -142,7 +142,7 @@ theme_override_constants/separation = 8
 [node name="DetailsLabel" type="Label" parent="JobOfferContainer/ContentContainer/DetailsSection"]
 layout_mode = 2
 text = "JOB DETAILS"
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="JobDetailsPanel" type="PanelContainer" parent="JobOfferContainer/ContentContainer/DetailsSection"]
@@ -157,7 +157,7 @@ size_flags_vertical = 3
 text = "Select a job to view details"
 vertical_alignment = 1
 autowrap_mode = 3
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="HSeparator2" type="HSeparator" parent="JobOfferContainer"]

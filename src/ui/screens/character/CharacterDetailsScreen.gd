@@ -12,6 +12,19 @@ const CharacterEventTimelineClass = preload(
 const EquipmentTransferServiceRef = preload(
 	"res://src/core/equipment/EquipmentTransferService.gd")
 
+## The ONLY fields this screen edits, as `Character.to_dictionary()` names them.
+## _sync_character_to_source_dict() merges exactly these back into the live crew
+## dict — see the comment there for why a whitelist and not a blanket merge.
+## Adding an editor to this screen means adding its key HERE, or the edit will
+## not persist. Equipment is deliberately absent: it is moved through
+## EquipmentTransferService against the live campaign, never through this copy.
+const EDITABLE_KEYS: PackedStringArray = [
+	"player_notes",
+	"portrait_path",
+	"experience",
+	"acquired_training",
+]
+
 # ============ DESIGN SYSTEM CONSTANTS ============
 # Unified styling from BaseCampaignPanel
 
@@ -34,21 +47,21 @@ const FONT_SIZE_LG := 18  # Section headers
 const FONT_SIZE_XL := 24  # Panel titles
 
 ## Color Palette - Deep Space Theme
-const COLOR_BASE := Color("#1A1A2E")         # Panel background
-const COLOR_ELEVATED := Color("#252542")     # Card backgrounds
-const COLOR_INPUT := Color("#1E1E36")        # Form field backgrounds
-const COLOR_BORDER := Color("#3A3A5C")       # Card borders
-const COLOR_ACCENT := Color("#2D5A7B")       # Primary accent (Deep Space Blue)
-const COLOR_ACCENT_HOVER := Color("#3A7199") # Hover state
-const COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
+const COLOR_BASE := UIColors.COLOR_PRIMARY         # Panel background
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY     # Card backgrounds
+const COLOR_INPUT := UIColors.COLOR_TERTIARY        # Form field backgrounds
+const COLOR_BORDER := UIColors.COLOR_BORDER       # Card borders
+const COLOR_ACCENT := UIColors.COLOR_BLUE       # Primary accent (Deep Space Blue)
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER # Hover state
+const COLOR_FOCUS := UIColors.COLOR_CYAN        # Focus ring (cyan)
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")   # Main content
-const COLOR_TEXT_SECONDARY := Color("#808080") # Descriptions
-const COLOR_TEXT_DISABLED := Color("#404040")  # Inactive
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY   # Main content
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY # Descriptions
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED  # Inactive
 
-const COLOR_SUCCESS := Color("#10B981")  # Green
-const COLOR_WARNING := Color("#D97706")  # Orange
-const COLOR_DANGER := Color("#DC2626")   # Red
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD  # Green
+const COLOR_WARNING := UIColors.COLOR_AMBER  # Orange
+const COLOR_DANGER := UIColors.COLOR_RED   # Red
 
 # UI Node References - using %NodeName for maintainability
 @onready var hero_card: Control = %HeroCard
@@ -71,6 +84,8 @@ const COLOR_DANGER := Color("#DC2626")   # Red
 
 # State
 var current_character = null
+## The shared [< Back] [Title] row, built in _ready and pinned above the scroll.
+var _screen_header: Control = null
 var original_data: Dictionary = {}
 var _history_overlay: Control = null
 var _equipment_db_cache: Dictionary = {}
@@ -86,8 +101,56 @@ var _touch_start: Vector2 = Vector2.ZERO
 var _touch_start_time: float = 0.0
 var _page_dots_container: HBoxContainer = null
 
+## The way out.
+##
+## This screen had NO header and no back button. Its only exit was a Cancel button
+## at the very bottom of a long scrolling character sheet, and that button always
+## went to crew_management -- so arriving here from the Campaign Journal (which is
+## one of the two ways in) and then leaving put you somewhere you had never been.
+##
+## The header is a sibling of the ScrollContainer, not a child, so it stays put
+## while the sheet scrolls. Back uses history, so it returns you wherever you came
+## from.
+func _build_screen_header() -> void:
+	var column := get_node_or_null("MarginContainer/PageColumn")
+	if column == null or column.has_node(NodePath(ScreenChrome.HEADER_NAME)):
+		return
+	var header := ScreenChrome.build_header(
+		"Character", func(): ScreenChrome.navigate_back(self, "crew_management")
+	)
+	column.add_child(header)
+	column.move_child(header, 0)
+	_screen_header = header
+
+
+## Keep the header title in step with whoever is being displayed.
+func _sync_header_title() -> void:
+	if _screen_header == null or current_character == null:
+		return
+	var title := _screen_header.get_node_or_null(NodePath(ScreenChrome.TITLE_NAME))
+	if title is Label:
+		var who: String = str(current_character.character_name) \
+			if "character_name" in current_character else ""
+		(title as Label).text = who if not who.is_empty() else "Character"
+
+
 func _ready() -> void:
 	_apply_screen_background()
+
+	# Portrait de-clip: 32px margins on both sides is 64 of a phone's ~310 design px,
+	# and this screen's content needs ~280 on its own. PortraitChrome trims LEFT/RIGHT
+	# only (never the top, so it does not fight the SettingsOverlay band) and restores
+	# them in landscape.
+	var _pc_mc := get_node_or_null("MarginContainer")
+	if _pc_mc is MarginContainer:
+		var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(_pc)
+		_pc.setup(_pc_mc as MarginContainer)
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	_build_screen_header()
 
 	# Connect button signals
 	if save_button:
@@ -151,18 +214,21 @@ func _apply_ui_styling() -> void:
 	if save_button:
 		var s := StyleBoxFlat.new()
 		s.bg_color = COLOR_SUCCESS
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		save_button.add_theme_stylebox_override("normal", s)
 		var h := s.duplicate()
 		h.bg_color = COLOR_ACCENT_HOVER
 		save_button.add_theme_stylebox_override("hover", h)
+		# Derive pressed/disabled/focus from the box above so this button keeps
+		# its shape when it is clicked. See DialogStyles.complete_button_states.
+		DialogStyles.complete_button_states(save_button)
 
 	# -- Cancel button: subdued border (ConfirmationDialog cancel pattern)
 	if cancel_button:
 		var s := StyleBoxFlat.new()
 		s.bg_color = COLOR_BORDER
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		cancel_button.add_theme_stylebox_override("normal", s)
 
@@ -173,7 +239,7 @@ func _apply_ui_styling() -> void:
 			s.bg_color = COLOR_ELEVATED
 			s.border_color = COLOR_ACCENT
 			s.set_border_width_all(1)
-			s.set_corner_radius_all(6)
+			s.set_corner_radius_all(4)
 			s.set_content_margin_all(SPACING_SM)
 			btn.add_theme_stylebox_override("normal", s)
 			var h := s.duplicate()
@@ -190,7 +256,7 @@ func _apply_ui_styling() -> void:
 			s.bg_color = COLOR_ELEVATED
 			s.border_color = COLOR_BORDER
 			s.set_border_width_all(1)
-			s.set_corner_radius_all(8)
+			s.set_corner_radius_all(4)
 			s.set_content_margin_all(SPACING_MD)
 			panel.add_theme_stylebox_override("panel", s)
 
@@ -209,7 +275,7 @@ func _apply_ui_styling() -> void:
 		s.bg_color = COLOR_INPUT
 		s.border_color = COLOR_BORDER
 		s.set_border_width_all(1)
-		s.set_corner_radius_all(6)
+		s.set_corner_radius_all(4)
 		s.set_content_margin_all(SPACING_SM)
 		notes_edit.add_theme_stylebox_override("normal", s)
 		var f := s.duplicate()
@@ -234,7 +300,7 @@ func _style_stat_cells() -> void:
 	)
 	badge_style.border_color = COLOR_BORDER
 	badge_style.set_border_width_all(1)
-	badge_style.set_corner_radius_all(6)
+	badge_style.set_corner_radius_all(4)
 	badge_style.set_content_margin_all(SPACING_XS)
 	for child in stats_grid.get_children():
 		if child is VBoxContainer:
@@ -262,7 +328,12 @@ func load_character_data() -> void:
 		current_character = GameStateManager.get_temp_data(GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
 
 	if not current_character:
-		push_error("CharacterDetailsScreen: No character selected")
+		# Warning, not error. Reaching this screen with no character in temp_data
+		# is an ordinary outcome — the route can be opened without a selection —
+		# and the guard below handles it. push_error implies something went wrong
+		# and prints a full backtrace into the console and into player bug
+		# reports; a route sweep produced one per open.
+		push_warning("CharacterDetailsScreen: opened with no character selected")
 		return
 
 
@@ -290,6 +361,8 @@ func populate_ui() -> void:
 	## Fill UI elements with character data
 	if not current_character:
 		return
+
+	_sync_header_title()
 
 	# Hero Card (STANDARD variant)
 	if hero_card and hero_card.has_method("set_character"):
@@ -321,7 +394,7 @@ func populate_ui() -> void:
 
 		var creation_summary = Label.new()
 		creation_summary.text = "%s | %s / %s / %s" % [origin, background, motivation, char_class]
-		creation_summary.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		creation_summary.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		creation_summary.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
 		character_info_container.add_child(creation_summary)
 
@@ -334,7 +407,7 @@ func populate_ui() -> void:
 		if "injuries" in current_character and current_character.injuries.size() > 0:
 			var injury_header = Label.new()
 			injury_header.text = "INJURIES (%d active)" % current_character.injuries.size()
-			injury_header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			injury_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			injury_header.add_theme_color_override("font_color", COLOR_DANGER)  # Red for injuries
 			character_info_container.add_child(injury_header)
 
@@ -344,7 +417,7 @@ func populate_ui() -> void:
 				var injury_type = injury.get("type", "UNKNOWN")
 				var recovery_turns = injury.get("recovery_turns", 0)
 				injury_label.text = "  • %s: %d turns remaining" % [injury_type, recovery_turns]
-				injury_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				injury_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				injury_label.add_theme_color_override("font_color", COLOR_WARNING)  # Orange for injury details
 				character_info_container.add_child(injury_label)
 
@@ -369,13 +442,13 @@ func populate_ui() -> void:
 			var field_name = Label.new()
 			field_name.text = field_data[0] + ":"
 			field_name.custom_minimum_size = Vector2(120, 0)
-			field_name.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			field_name.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			field_name.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			info_row.add_child(field_name)
 
 			var field_value = Label.new()
 			field_value.text = str(field_data[1])
-			field_value.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			field_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			field_value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 			info_row.add_child(field_value)
 
@@ -579,9 +652,9 @@ func _update_species_rules_display() -> void:
 
 	var header := Label.new()
 	header.text = "Species Rules"
-	header.add_theme_font_size_override("font_size", 16)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	header.add_theme_color_override(
-		"font_color", Color("#D97706"))
+		"font_color", UIColors.COLOR_AMBER)
 	container.add_child(header)
 
 	var rules_label := RichTextLabel.new()
@@ -771,8 +844,8 @@ func _update_implants_display() -> void:
 	var header := Label.new()
 	header.name = "ImplantsLabel"
 	header.text = "INSTALLED IMPLANTS (%d/3)" % current_character.implants.size()
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	header.add_theme_color_override("font_color", Color("#8B5CF6"))  # Purple for implants
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	header.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)  # Purple for implants
 	character_info_container.add_child(header)
 
 	# List each implant with stat bonus
@@ -780,7 +853,7 @@ func _update_implants_display() -> void:
 		var implant_row := Label.new()
 		var formatted := EquipmentFormatter.format_implant(implant)
 		implant_row.text = "  • %s" % formatted
-		implant_row.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		implant_row.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		implant_row.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
 		character_info_container.add_child(implant_row)
 
@@ -882,7 +955,7 @@ func _populate_history_section() -> void:
 	journal_link.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	journal_link.flat = true
 	journal_link.add_theme_color_override("font_color", COLOR_FOCUS)
-	journal_link.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	journal_link.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	journal_link.pressed.connect(_on_view_full_journal_pressed.bind(char_id))
 	main_vbox.add_child(journal_link)
 	main_vbox.move_child(journal_link, mini(
@@ -923,15 +996,35 @@ func _sync_character_to_source_dict() -> void:
 	if source_dict.is_empty():
 		return
 
-	# Serialize current character state and merge back into the source dict.
-	# The source dict is a reference into campaign.crew_data["members"], so
-	# updating it in-place updates the campaign's live data.
+	# Merge back ONLY the fields this screen edits (see EDITABLE_KEYS).
+	#
+	# THE BUG THIS FIXES — a save-corrupting one. The merge used to copy EVERY key
+	# of to_dictionary() into the live crew dict. But `current_character` is a
+	# Character built by from_dictionary(), and that constructor NARROWS: equipment
+	# is declared `Array[String]` (Character.gd) and from_dictionary keeps only
+	# `item is String` entries. Ship-stash items are Dictionaries (the shape
+	# EquipmentTransferService produces and GameState.verify_consistency expects),
+	# so every card-shaped item a crew member owned was silently dropped on the
+	# way IN and then the blanket merge wrote that shortened list back OUT.
+	# Net effect: opening a crew member's detail screen and leaving DELETED their
+	# equipment from the campaign.
+	#
+	# A whitelist rather than an equipment-shaped blocklist on purpose: it is
+	# immune to the same trap in any OTHER field from_dictionary narrows now or
+	# later. Equipment is absent from the list because this screen never edits the
+	# local copy — add/remove both route through EquipmentTransferService against
+	# the LIVE campaign (see _on_add_equipment_pressed / _on_remove_equipment_pressed).
 	if current_character.has_method("to_dictionary"):
 		var updated: Dictionary = current_character.to_dictionary()
-		for key in updated:
-			source_dict[key] = updated[key]
+		for key in EDITABLE_KEYS:
+			if updated.has(key):
+				source_dict[key] = updated[key]
 
-	GameStateManager.clear_temp_data("source_crew_dict")
+	# NOTE: the temp handle is deliberately NOT cleared here. This runs more than
+	# once per visit (a training purchase persists immediately, and Save persists
+	# again on the way out); clearing it on the first call made every later sync
+	# early-return on the has_temp_data() guard above. The handle is released when
+	# the screen is actually left — see return_to_crew_management().
 
 func return_to_crew_management() -> void:
 	## Navigate back to crew management screen
@@ -939,9 +1032,66 @@ func return_to_crew_management() -> void:
 		GameStateManager.TEMP_KEY_SELECTED_CHARACTER):
 		GameStateManager.clear_temp_data(
 			GameStateManager.TEMP_KEY_SELECTED_CHARACTER)
+	# Release the live crew-dict handle here — the single exit point — so
+	# _sync_character_to_source_dict() can run as many times as this visit needs
+	# without disarming itself, and so the handle never leaks to the NEXT
+	# character opened.
+	if GameStateManager and GameStateManager.has_temp_data("source_crew_dict"):
+		GameStateManager.clear_temp_data("source_crew_dict")
 	GameStateManager.navigate_to_screen("crew_management")
 
 # ── Shared Helpers ──────────────────────────────────────────────
+
+func _has_live_crew_dict() -> bool:
+	## True when this screen was opened from a dict-based crew card, so the live
+	## campaign entry is reachable for in-place mutation.
+	return GameStateManager != null \
+		and GameStateManager.has_temp_data("source_crew_dict") \
+		and not (GameStateManager.get_temp_data("source_crew_dict") as Dictionary).is_empty()
+
+func _live_crew_equipment() -> Array:
+	## The equipment array ON THE LIVE crew dict (campaign.crew_data["members"]),
+	## created if absent. Mutating the returned Array mutates the campaign —
+	## unlike this screen's Character copy, whose equipment is a narrowed
+	## Array[String] excluded from the write-back whitelist.
+	if not _has_live_crew_dict():
+		return []
+	var src: Dictionary = GameStateManager.get_temp_data("source_crew_dict")
+	if not src.has("equipment") or not (src["equipment"] is Array):
+		src["equipment"] = []
+	return src["equipment"]
+
+func _remove_from_live_crew_equipment(item: Variant) -> void:
+	## Drop `item` from the LIVE crew dict's equipment, tolerating the mixed
+	## String/Dictionary shapes that array carries. Matches on id first, then on
+	## name, so a Dictionary on the live side can still be matched by the String
+	## the narrowed Character copy handed us.
+	var live_eq: Array = _live_crew_equipment()
+	if live_eq.is_empty():
+		return
+	var want_id: String = ""
+	var want_name: String = ""
+	if item is Dictionary:
+		var d: Dictionary = item
+		want_id = str(d.get("id", ""))
+		want_name = str(d.get("name", ""))
+	else:
+		want_name = str(item)
+		want_id = want_name
+	for i in range(live_eq.size() - 1, -1, -1):
+		var entry: Variant = live_eq[i]
+		var eid: String = ""
+		var ename: String = ""
+		if entry is Dictionary:
+			var ed: Dictionary = entry
+			eid = str(ed.get("id", ""))
+			ename = str(ed.get("name", ""))
+		else:
+			ename = str(entry)
+			eid = ename
+		if (want_id != "" and eid == want_id) or (want_name != "" and ename == want_name):
+			live_eq.remove_at(i)
+			return
 
 func _get_char_id() -> String:
 	## Extract character_id from current_character (dict or Resource)
@@ -984,7 +1134,7 @@ func _setup_portrait_upload() -> void:
 	btn.name = "__ChangePortraitBtn"
 	btn.text = "Change Portrait"
 	btn.custom_minimum_size = Vector2(120, 32)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
 		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
@@ -1015,7 +1165,7 @@ func _setup_print_sheet_button() -> void:
 	btn.tooltip_text = "Open printable sheets (Crew Log / Encounter Log / " \
 		+ "World Record)"
 	btn.custom_minimum_size = Vector2(120, 32)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
 		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.85)
@@ -1027,6 +1177,9 @@ func _setup_print_sheet_button() -> void:
 	var hover := style.duplicate()
 	hover.bg_color = COLOR_ACCENT
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.pressed.connect(_on_print_sheet_pressed)
 	_get_or_create_hero_overlay().add_child(btn)
 	# Mirror position of Change Portrait — bottom-right of the hero card.
@@ -1111,8 +1264,8 @@ func _build_psionic_info_section() -> void:
 
 	var header := Label.new()
 	header.text = "PSIONIC POWERS"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	header.add_theme_color_override("font_color", Color("#4FC3F7"))
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	header.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	character_info_container.add_child(header)
 
 	var enhanced: bool = current_character.psionic_power_enhanced if "psionic_power_enhanced" in current_character else false
@@ -1125,15 +1278,15 @@ func _build_psionic_info_section() -> void:
 		var power_label := Label.new()
 		var enhanced_tag: String = " [Enhanced +1D6]" if enhanced else ""
 		power_label.text = "  %s%s" % [pname, enhanced_tag]
-		power_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
-		power_label.add_theme_color_override("font_color", Color("#4FC3F7"))
+		power_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		power_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		character_info_container.add_child(power_label)
 
 		if not pdesc.is_empty():
 			var desc_label := Label.new()
 			desc_label.text = "    %s" % pdesc
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			character_info_container.add_child(desc_label)
 
@@ -1148,14 +1301,14 @@ func _build_psionic_info_section() -> void:
 		if not tags.is_empty():
 			var tag_label := Label.new()
 			tag_label.text = "    [%s]" % " | ".join(tags)
-			tag_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			tag_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			tag_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			character_info_container.add_child(tag_label)
 
 	# Weapon restriction note
 	var restriction := Label.new()
 	restriction.text = "  Weapon restriction: Pistol or Melee only"
-	restriction.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	restriction.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	restriction.add_theme_color_override("font_color", COLOR_WARNING)
 	character_info_container.add_child(restriction)
 
@@ -1243,7 +1396,7 @@ func _status_chip(
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", color)
 	chip.add_child(lbl)
 	return chip
@@ -1296,11 +1449,18 @@ func _on_add_equipment_pressed() -> void:
 				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
 				svc.transfer_to_character(item_id, char_id)
 			else:
-				# Fallback for items without ids (legacy data)
-				if current_character and "equipment" in current_character:
-					current_character.equipment.append(chosen) # lint:ignore
-				pool.remove_at(id)
-				gs.current_campaign.equipment_data["equipment"] = pool
+				# Fallback for items without ids (legacy data). Writes to the LIVE
+				# crew dict, not to this screen's Character copy: the copy's
+				# `equipment` is Array[String], so appending a Dictionary was a
+				# typed-array error, and since the write-back is now a whitelist
+				# that excludes equipment, the copy would not persist anyway.
+				var live_eq: Array = _live_crew_equipment()
+				if live_eq.is_empty() and not _has_live_crew_dict():
+					push_warning("CharacterDetails: no live crew dict — legacy item not moved")
+				else:
+					live_eq.append(chosen)
+					pool.remove_at(id)
+					gs.current_campaign.equipment_data["equipment"] = pool
 			_update_equipment_display()
 		popup.queue_free()
 	)
@@ -1341,8 +1501,13 @@ func _on_remove_equipment_pressed() -> void:
 				var svc = EquipmentTransferServiceRef.new(gs.current_campaign)
 				svc.transfer_to_stash(item_id, char_id)
 			else:
-				# Fallback for legacy data without ids
-				equipment.remove_at(id)
+				# Fallback for legacy data without ids. Mirror of the add-side
+				# fallback: the removal must land on the LIVE crew dict, because
+				# equipment is excluded from the write-back whitelist and so a
+				# mutation of this screen's Character copy would never persist —
+				# the item would reappear on the next load.
+				equipment.remove_at(id)  # local copy, so the display updates now
+				_remove_from_live_crew_equipment(removed)
 				if gs and gs.current_campaign and "equipment_data" in gs.current_campaign:
 					var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
 					stash.append(removed)
@@ -1398,7 +1563,7 @@ func _create_advancement_header(character_dict: Dictionary) -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "CHARACTER ADVANCEMENT"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(title)
 	
@@ -1408,13 +1573,13 @@ func _create_advancement_header(character_dict: Dictionary) -> VBoxContainer:
 	
 	var xp_label_text := Label.new()
 	xp_label_text.text = "Available XP:"
-	xp_label_text.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_label_text.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	xp_label_text.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	xp_display.add_child(xp_label_text)
 	
 	var xp_value := Label.new()
 	xp_value.text = str(character_dict.get("experience", 0))
-	xp_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	xp_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	xp_value.add_theme_color_override("font_color", COLOR_ACCENT)
 	xp_value.name = "AvailableXPValue"
 	xp_display.add_child(xp_value)
@@ -1431,7 +1596,7 @@ func _create_stat_advancement_section(character_dict: Dictionary) -> VBoxContain
 	# Section title
 	var title := Label.new()
 	title.text = "STAT ADVANCEMENT"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
@@ -1462,7 +1627,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	
@@ -1472,7 +1637,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	# Stat name
 	var stat_label := Label.new()
 	stat_label.text = stat_name.capitalize().replace("_", " ")
-	stat_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	stat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	stat_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(stat_label)
 	
@@ -1482,7 +1647,7 @@ func _create_stat_advancement_card(character_dict: Dictionary, stat_name: String
 	
 	var value_label := Label.new()
 	value_label.text = "%d / %d" % [current_value, max_value]
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	value_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(value_label)
 	
@@ -1515,17 +1680,13 @@ func _create_training_section(character_dict: Dictionary) -> VBoxContainer:
 	# Section title
 	var title := Label.new()
 	title.text = "TRAINING"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
-	# Training list (from AdvancementSystem)
-	var training_types := ["pilot", "medical", "mechanic", "broker", "security", "merchant", "bot_tech", "engineer"]
-	var training_costs := {
-		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
-		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
-	}
-	
+	var training_costs := _load_training_costs()
+	var training_types: Array = training_costs.keys()
+
 	var current_training: Array = character_dict.get("training", [])
 	var current_xp: int = character_dict.get("experience", 0)
 	
@@ -1548,22 +1709,16 @@ func _create_training_card(training_type: String, cost: int, current_training: A
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	
-	# Style the card
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_ELEVATED
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(SPACING_MD)
-	panel.add_theme_stylebox_override("panel", style)
-	
+	# Static content card — the shared 4px recipe, not a local 8px one.
+	ScreenChrome.apply_section_card(panel)
+
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
-	
-	# Training name
+
+	# Training name. capitalize() already turns bot_technician into "Bot Technician".
 	var name_label := Label.new()
-	name_label.text = training_type.capitalize().replace("_", " ")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.text = training_type.capitalize()
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_label)
 	
@@ -1618,38 +1773,84 @@ func _on_stat_advance_pressed(stat_name: String) -> void:
 	else:
 		pass
 
+## The seven Advanced Training courses and their XP costs, from the book.
+##
+## Core Rules p.124 lists exactly seven: Pilot 20, Mechanic 15, Medical school 20,
+## Merchant school 10, Security 10, Broker 15, Bot technician 10. This screen used
+## to hardcode that table twice -- once to draw the cards, once to charge for them --
+## and both copies carried an EIGHTH course, "engineer" at 15 XP, which appears in
+## neither rulebook. Engineer is a species, not a course. The copies also disagreed
+## with the data file on a key (`bot_tech` vs `bot_technician`), so the JSON's own
+## effect wiring could never match what this screen wrote onto a character.
+##
+## data/training_courses.json is the single source of truth (it cites pp.123-124);
+## reading it is what keeps a fabricated course from reappearing.
+func _load_training_costs() -> Dictionary:
+	var costs: Dictionary = {}
+	var file := FileAccess.open("res://data/training_courses.json", FileAccess.READ)
+	if file == null:
+		push_error("CharacterDetailsScreen: training_courses.json missing")
+		return costs
+	var json := JSON.new()
+	var ok: bool = json.parse(file.get_as_text()) == OK
+	file.close()
+	if not ok or not (json.data is Dictionary):
+		push_error("CharacterDetailsScreen: training_courses.json failed to parse")
+		return costs
+	var courses: Dictionary = (json.data as Dictionary).get("courses", {})
+	for key: String in courses:
+		costs[key] = int((courses[key] as Dictionary).get("cost", 0))
+	return costs
+
+
 func _on_training_pressed(training_type: String) -> void:
 	## Handle training purchase button press
 	if not current_character:
 		return
-	
-	
-	# Get training cost
-	var training_costs := {
-		"pilot": 20, "medical": 20, "mechanic": 15, "broker": 15,
-		"security": 10, "merchant": 10, "bot_tech": 10, "engineer": 15
-	}
-	
-	var cost: int = training_costs.get(training_type, 0)
+	var training_costs := _load_training_costs()
+	if not training_costs.has(training_type):
+		return
+	var cost: int = int(training_costs[training_type])
 	var current_xp: int = current_character.experience if "experience" in current_character else 0
-	var current_training: Array = current_character.training if "training" in current_character else []
-	
+	# `acquired_training`, NOT `training`.
+	#
+	# THE BUG THIS FIXES: `Character extends Resource` directly and declares
+	# `acquired_training: Array[String]` — it has NO `training` property at all
+	# (the int `training` lives on BaseCharacterResource, a class Character does
+	# not extend). So `current_character.training = ...` below assigned to a
+	# property that does not exist, which is a runtime error that ABORTS the
+	# function — taking the XP deduction, mark_campaign_modified() and
+	# populate_ui() on the following lines down with it.
+	#
+	# Buying Advanced Training therefore charged nothing, recorded nothing, and
+	# did not even refresh the screen: the button simply did nothing, forever.
+	var current_training: Array = []
+	if "acquired_training" in current_character:
+		current_training = current_character.acquired_training
+
 	# Validate
 	if training_type in current_training:
 		return
-	
+
 	if current_xp < cost:
 		return
-	
-	# Apply training
-	current_training.append(training_type)
-	current_character.training = current_training
+
+	# Apply training through the canonical mutator (Character.add_training,
+	# Compendium p.27), which owns the duplicate check.
+	if current_character.has_method("add_training"):
+		current_character.add_training(training_type)
+	elif "acquired_training" in current_character:
+		current_character.acquired_training.append(training_type)
 	current_character.experience = current_xp - cost
-	
+
+	# Persist to the live crew dict — `acquired_training` and `experience` are
+	# both on EDITABLE_KEYS, so this is what makes the purchase survive a save.
+	_sync_character_to_source_dict()
+
 	# Mark campaign as modified
 	if GameStateManager:
 		GameStateManager.mark_campaign_modified()
-	
+
 	# Refresh all UI
 	populate_ui()
 	
@@ -1666,9 +1867,11 @@ func _character_to_dict(character: Resource) -> Dictionary:
 	dict["toughness"] = character.toughness if "toughness" in character else 3
 	dict["luck"] = character.luck if "luck" in character else 0
 	
-	# Experience and training
+	# Experience and training. The field is `acquired_training` (Array[String]);
+	# `training` does not exist on Character, so this always produced the empty
+	# fallback and the training section rendered nothing as already-owned.
 	dict["experience"] = character.experience if "experience" in character else 0
-	dict["training"] = character.training if "training" in character else []
+	dict["training"] = character.acquired_training if "acquired_training" in character else []
 	
 	# Background and species for maximums
 	dict["background"] = character.background if "background" in character else ""
@@ -1696,9 +1899,12 @@ func _update_character_from_dict(character: Resource, dict: Dictionary) -> void:
 	if "experience" in dict:
 		character.experience = dict.experience
 	
-	# Update training
-	if "training" in dict:
-		character.training = dict.training
+	# Update training — same nonexistent-property abort as _on_training_pressed
+	# had. `acquired_training` is a typed Array[String], so assign() (which
+	# element-converts) rather than `=` on a possibly-untyped source array.
+	if dict.has("training") and "acquired_training" in character:
+		var incoming: Array = dict["training"]
+		character.acquired_training.assign(incoming)
 
 # ============ BOT UPGRADE SECTION ============
 
@@ -1741,7 +1947,7 @@ func _populate_bot_upgrade_section() -> void:
 	if available_upgrades.is_empty():
 		var no_upgrades := Label.new()
 		no_upgrades.text = "All upgrades installed!"
-		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		no_upgrades.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		no_upgrades.add_theme_color_override("font_color", COLOR_SUCCESS)
 		advancement_section.add_child(no_upgrades)
 	else:
@@ -1774,14 +1980,14 @@ func _create_bot_upgrade_header(campaign_credits: int) -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "BOT UPGRADES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(title)
 	
 	# Subtitle
 	var subtitle := Label.new()
 	subtitle.text = "Bots purchase upgrades with credits (no XP system)"
-	subtitle.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	header.add_child(subtitle)
 	
@@ -1791,13 +1997,13 @@ func _create_bot_upgrade_header(campaign_credits: int) -> VBoxContainer:
 	
 	var credits_label := Label.new()
 	credits_label.text = "Campaign Credits:"
-	credits_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	credits_display.add_child(credits_label)
 	
 	var credits_value := Label.new()
 	credits_value.text = str(campaign_credits)
-	credits_value.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	credits_value.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	credits_value.add_theme_color_override("font_color", COLOR_ACCENT)
 	credits_value.name = "CampaignCreditsValue"
 	credits_display.add_child(credits_value)
@@ -1816,7 +2022,7 @@ func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advanc
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 	
@@ -1826,14 +2032,14 @@ func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advanc
 	# Upgrade name
 	var name_label := Label.new()
 	name_label.text = upgrade.get("name", "Unknown Upgrade")
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(name_label)
 	
 	# Description
 	var desc_label := Label.new()
 	desc_label.text = upgrade.get("description", "")
-	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc_label)
 	
@@ -1867,7 +2073,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 	# Title
 	var title := Label.new()
 	title.text = "INSTALLED UPGRADES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
@@ -1877,7 +2083,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 	if installed_upgrades.is_empty():
 		var no_upgrades := Label.new()
 		no_upgrades.text = "No upgrades installed yet"
-		no_upgrades.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		no_upgrades.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		no_upgrades.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		section.add_child(no_upgrades)
 	else:
@@ -1890,7 +2096,7 @@ func _create_installed_upgrades_section() -> VBoxContainer:
 				
 				var upgrade_label := Label.new()
 				upgrade_label.text = "✓ %s: %s" % [upgrade_data.get("name", "Unknown"), upgrade_data.get("description", "")]
-				upgrade_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+				upgrade_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 				upgrade_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 				section.add_child(upgrade_label)
 	
@@ -2018,7 +2224,7 @@ func _build_page_dots() -> void:
 	for i in _crew_list.size():
 		var dot := Label.new()
 		dot.text = "\u25cf" if i == _current_index else "\u25cb"
-		dot.add_theme_font_size_override("font_size", 12)
+		dot.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		dot.add_theme_color_override("font_color",
 			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)
 		_page_dots_container.add_child(dot)

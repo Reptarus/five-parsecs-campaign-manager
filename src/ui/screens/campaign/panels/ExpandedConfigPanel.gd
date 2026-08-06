@@ -6,29 +6,64 @@ extends FiveParsecsCampaignPanel
 
 const STEP_NUMBER := 1  # Step 1 of 7 in campaign wizard (Configuration)
 
+## HFlowContainer card minimum widths.
+##
+## These are the widths that make the flow WRAP the way we want on a wide screen:
+## paired cards sit two-per-row at 500, and the two "own row" cards force a break
+## at 1000. Both used to be written straight onto custom_minimum_size, which is a
+## hard floor, not a preference — and FormContent is a ScrollContainer with
+## horizontal scrolling DISABLED, so a floor wider than the viewport cannot be
+## absorbed. It propagates up through FlowContent -> MainContent -> ContentMargin
+## -> the panel itself.
+##
+## On a 393dp phone the design space is only ~339 px wide (window_dp / the
+## effective UI scale), and the 500 floor made the whole config panel 662 px wide,
+## centred at x = -162: the step title, "IDENTITY" and "STYLE" headings all
+## rendered off the screen edges. Measured live via MCP.
+##
+## So they are treated as a CAP now — the desired width when there is room, capped
+## to what the viewport actually offers — and re-applied on resize/rotation.
+const CARD_MIN_PAIRED := 500.0
+const CARD_MIN_FULL_ROW := 1000.0
+## Floor so a card never collapses to unusable width on a very small screen.
+const CARD_MIN_FLOOR := 180.0
+## Room for ContentMargin + panel stylebox padding either side. Measured at 73.6
+## (a 661.4 card produced a 735 panel), so 80 keeps a small margin rather than
+## landing 1px over the edge.
+const CARD_CHROME_ALLOWANCE := 80.0
+const CARD_MIN_META := "card_min_base"
+
+var _flow_content: HFlowContainer = null
+
 # GlobalEnums available as autoload singleton
+## Core Rules p.64: "Only the Play 20 campaign turns and Win 20 tabletop battles
+## Victory Conditions can be completed in the Easy difficulty mode." These are
+## the two data keys from campaign_config.json, not category labels.
+const EASY_MODE_VICTORY_KEYS: PackedStringArray = ["turns_20", "battles_20"]
+
 const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescriptions.gd")
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
+const DLCContentCatalogRef = preload("res://src/ui/screens/store/DLCContentCatalog.gd")
 
 # Compendium Setup Sequence flags (pp.11-12) — promoted to dedicated card
 # Labels/descriptions sourced from DLCContentCatalog.gd + Compendium page refs
 const COMPENDIUM_SETUP_FLAGS: Array[Dictionary] = [
 	{"flag": "EXPANDED_LOANS", "label": "Loans: Who Do You Owe?",
-		"description": "Borrow credits with consequences — loan origin, interest, and enforcement (Compendium pp.152-158)"},
+		"description": "Borrow credits with consequences — loan origin, interest, and enforcement (Compendium pp.152-156)"},
 	{"flag": "EXPANDED_FACTIONS", "label": "Expanded Factions",
-		"description": "More factions with unique traits and relationships (Compendium pp.148-153)"},
+		"description": "More factions with unique traits and relationships (Compendium pp.110-115)"},
 	{"flag": "FRINGE_WORLD_STRIFE", "label": "Fringe World Strife",
-		"description": "Planetary instability tracking and strife events (Compendium pp.148-153)"},
+		"description": "Planetary instability tracking and strife events (Compendium pp.148-151)"},
 	{"flag": "DRAMATIC_COMBAT", "label": "Dramatic Combat",
-		"description": "Cinematic combat with narrative beats and dramatic moments (Compendium pp.89-95)"},
+		"description": "Adjusted Shooting, Duck Back and Lunge (Compendium pp.87-89)"},
 	{"flag": "CASUALTY_TABLES", "label": "Casualty Tables",
-		"description": "Detailed casualty outcomes after battle (Compendium pp.96-100)"},
+		"description": "Detailed casualty outcomes after battle (Compendium p.99)"},
 	{"flag": "DETAILED_INJURIES", "label": "Detailed Post-battle Injuries",
-		"description": "Expanded injury and recovery system (Compendium pp.101-104)"},
+		"description": "Expanded injury and recovery system (Compendium p.101)"},
 ]
 
 # GDScript 2.0: Typed signals
@@ -57,6 +92,7 @@ var local_campaign_config: Dictionary = {
 var campaign_name_input: LineEdit
 var _name_hint_label: Label  # Inline "name required to continue" hint (silent-gating fix)
 var campaign_type_option: OptionButton
+var house_rules_edit: TextEdit
 var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
 var story_track_checkbox: CheckBox
@@ -220,6 +256,13 @@ func _setup_panel_content() -> void:
 	pass
 
 func _initialize_components() -> void:
+	# Deferred from _ready(), so it runs a frame later — by which point this panel
+	# may have left the tree (a fast wizard step change, a screen swap). Absolute
+	# autoload lookups like get_node_or_null("/root/DLCManager") ERROR from a
+	# detached node rather than returning null, and the DLC-gated Introductory
+	# Campaign toggle would then silently never appear. Bail cleanly instead.
+	if not is_inside_tree():
+		return
 	## Initialize campaign config panel with card-based design system
 	# Get or create main container
 	var main_container = safe_get_node("ContentMargin/MainContent/FormContent/FormContainer", 
@@ -245,7 +288,15 @@ func _initialize_components() -> void:
 
 	# Build card-based UI sections into flow container
 	_build_campaign_identity_section(flow)
-	_build_campaign_type_section(flow)
+	# CAMPAIGN STYLE is not built. "Standard / Story-Focused / Combat-Focused /
+	# Exploration-Focused" is not a Five Parsecs concept — it appears nowhere in
+	# the Core Rules or the Compendium — and nothing read it: the value passed
+	# through the coordinator into data["config"]["campaign_type"] and stopped
+	# there, with no consumer anywhere and no field on the campaign resource.
+	# (Not to be confused with the campaign_type that identifies the GAMEMODE —
+	# "five_parsecs" / "bug_hunt" / "planetfall" / "tactics" — which is load-
+	# bearing for save routing and is untouched.) Offering a choice that changes
+	# nothing is worse than not offering it.
 	_build_crew_size_section(flow)
 	_build_difficulty_section(flow)
 	_build_victory_conditions_section(flow)
@@ -253,11 +304,24 @@ func _initialize_components() -> void:
 	_build_compendium_setup_section(flow)
 	_build_expansion_features_section(flow)
 	_build_progressive_difficulty_section(flow)
+	# Core Rules p.65 Campaign Preparation step 5 — the last thing the book asks
+	# you to decide, so it is the last card.
+	_build_house_rules_section(flow)
 
+	_flow_content = flow
 	# Set min widths for flow layout: narrow cards pair up, wide cards get own row
 	for child in flow.get_children():
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		child.custom_minimum_size.x = 500
+		if not child.has_meta(CARD_MIN_META):
+			_set_card_min_width(child, CARD_MIN_PAIRED)
+	_refresh_card_min_widths()
+	# ...and again next frame. During the build get_viewport() can still be null,
+	# in which case _capped_card_width() has nothing to cap against and returns the
+	# raw base — which is exactly the 500px floor that pushed the panel to 662px on
+	# a 339px-wide phone. Godot's own docs use the same "wait a frame after adding"
+	# idiom (ScrollContainer.ensure_control_visible: "this will not work on a node
+	# just added in the same frame"). Idempotent, so a second pass is harmless.
+	call_deferred("_refresh_card_min_widths")
 
 	# SPRINT 27 FIX: Setup options BEFORE connecting signals to prevent double-loading
 	# (selecting default values triggers signal handlers, causing duplicate _update_display calls)
@@ -266,6 +330,104 @@ func _initialize_components() -> void:
 	_update_display()
 	_update_all_descriptions()
 	call_deferred("emit_panel_ready")
+
+## Make card CONTENT able to shrink, so a card can honour its capped width.
+##
+## Capping the card's custom_minimum_size is necessary but NOT sufficient. Per
+## Control.get_combined_minimum_size(), a control's real floor is the MAXIMUM of
+## custom_minimum_size and its INTERNAL content minimum — so content that refuses
+## to shrink sets the floor no matter what the card asks for. Two offenders here,
+## both confirmed in the Godot 4.6 docs:
+##   * Label with autowrap OFF reports its entire single-line text width.
+##   * Button.clip_text defaults false, and then "the button will always be wide
+##     enough to hold the text" — an OptionButton reports its longest item.
+##
+## Measured live at 393dp (design space ~339 wide): the label "Guided tutorial
+## campaign for new players" alone demanded 291px and its row 508px, and the
+## campaign-type OptionButton 286px. That is what kept the panel at 662px wide
+## after the card cap was already applied.
+##
+## Desktop is unaffected: wrapping only wraps when the text does not fit, and
+## clip_text only clips when there is no room.
+func _make_card_content_shrinkable(node: Node) -> void:
+	for child in node.get_children():
+		if child is Label:
+			var lbl := child as Label
+			_wrap_or_clip(lbl)
+			lbl.custom_minimum_size.x = 0.0
+		elif child is OptionButton:
+			# A dropdown reads badly wrapped — clip instead, with an ellipsis.
+			var opt := child as OptionButton
+			opt.clip_text = true
+			opt.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+			opt.custom_minimum_size.x = 0.0
+		elif child is Button:
+			# CheckBox / CheckButton option rows carry sentence-length labels, so
+			# wrapping keeps them readable where clipping would hide the meaning.
+			var btn := child as Button
+			_wrap_or_clip(btn)
+			btn.custom_minimum_size.x = 0.0
+		_make_card_content_shrinkable(child)
+
+
+## Wrap where wrapping works, clip where it does not — decided by the PARENT.
+##
+## Turning autowrap on blindly is what this used to do, and in a HORIZONTAL row it
+## backfires completely: the container hands a wrapping child its minimum width, which
+## for wrapped text is its longest WORD, and the child then reports the height of the
+## whole string. Measured on the DLC feature rows here — a 273x18 description became a
+## 1x711 sliver, 36 of them across the panel, at every size including desktop. Nothing
+## overflowed, so no geometry check saw it; only tests/tools/verify_layout.gd's
+## autowrap-collapse check does.
+##
+## In a vertical container the default FILL flag already gives the child the full width,
+## so wrapping is safe there and nothing else is needed.
+func _wrap_or_clip(ctl: Control) -> void:
+	var parent := ctl.get_parent()
+	if parent is FlowContainer:
+		# A FlowContainer sizes children to their minimum on the main axis AND ignores
+		# main-axis expand, so there is no way to give a wrapping child room. Clip.
+		ctl.set("clip_text", true)
+		ctl.set("text_overrun_behavior", TextServer.OVERRUN_TRIM_ELLIPSIS)
+		return
+	if ctl.get("autowrap_mode") == TextServer.AUTOWRAP_OFF:
+		ctl.set("autowrap_mode", TextServer.AUTOWRAP_WORD_SMART)
+	if parent is BoxContainer and not (parent as BoxContainer).vertical:
+		# Horizontal row: the child has to claim width before wrapping means anything.
+		ctl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+## Remember a card's DESIRED width and apply the viewport-capped value now.
+func _set_card_min_width(card: Control, base: float) -> void:
+	card.set_meta(CARD_MIN_META, base)
+	card.custom_minimum_size.x = _capped_card_width(base)
+
+
+## The desired width, capped to what the viewport can actually show.
+func _capped_card_width(base: float) -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return base
+	var avail: float = vp.get_visible_rect().size.x - CARD_CHROME_ALLOWANCE
+	return minf(base, maxf(CARD_MIN_FLOOR, avail))
+
+
+## Re-cap every card. Cheap, idempotent, and safe to call on every resize.
+func _refresh_card_min_widths() -> void:
+	if _flow_content == null or not is_instance_valid(_flow_content):
+		return
+	_make_card_content_shrinkable(_flow_content)
+	for child in _flow_content.get_children():
+		if child is Control:
+			var base: float = float(child.get_meta(CARD_MIN_META, CARD_MIN_PAIRED))
+			(child as Control).custom_minimum_size.x = _capped_card_width(base)
+
+
+func _on_viewport_resized() -> void:
+	super()
+	# Rotation and window resize both change how wide a card may be.
+	_refresh_card_min_widths()
+
 
 func _build_campaign_identity_section(parent: Control) -> void:
 	## Build campaign name input section with card design
@@ -280,7 +442,7 @@ func _build_campaign_identity_section(parent: Control) -> void:
 	# player knows what's blocking them; hidden once a name is typed.
 	_name_hint_label = Label.new()
 	_name_hint_label.text = "Enter a campaign name to continue."
-	_name_hint_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	_name_hint_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_name_hint_label.add_theme_color_override("font_color", COLOR_WARNING)
 	_name_hint_label.visible = local_campaign_config.campaign_name.strip_edges().is_empty()
 
@@ -302,7 +464,7 @@ func _build_crew_size_section(parent: Control) -> void:
 	_style_option_button(crew_size_option)
 
 	crew_size_description = Label.new()
-	crew_size_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	crew_size_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	crew_size_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	crew_size_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -325,7 +487,7 @@ func _build_campaign_type_section(parent: Control) -> void:
 
 	# Create description label
 	campaign_type_description = Label.new()
-	campaign_type_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	campaign_type_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	campaign_type_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	campaign_type_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -341,6 +503,52 @@ func _build_campaign_type_section(parent: Control) -> void:
 	)
 	parent.add_child(card)
 
+func _build_house_rules_section(parent: Control) -> void:
+	## Core Rules p.65, Campaign Preparation step 5 "Establish House Rules":
+	## "Finally, evaluate whether you want to make any house rules. If this is
+	## your first time playing, I strongly encourage you to play the rules as
+	## written... In most cases, it is best to not add, remove, or change a house
+	## rule mid-campaign."
+	##
+	## The step had no surface anywhere in the wizard, while finalization already
+	## read config["house_rules"] and called campaign.set_house_rules() — a
+	## consumer waiting on a producer that was never written. Recording them at
+	## creation is also what makes the book's "do not change them mid-campaign"
+	## advice enforceable later.
+	house_rules_edit = TextEdit.new()
+	house_rules_edit.placeholder_text = "One house rule per line (optional)"
+	house_rules_edit.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN * 2)
+	house_rules_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
+	house_rules_edit.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	house_rules_edit.text_changed.connect(_on_house_rules_changed)
+
+	var hint := Label.new()
+	hint.text = ("Optional. If this is your first campaign, the book recommends "
+		+ "playing the rules as written — and not changing house rules "
+		+ "mid-campaign (Core Rules p.65).")
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(house_rules_edit)
+	content.add_child(hint)
+
+	parent.add_child(_create_section_card("HOUSE RULES", content, ""))
+
+func _on_house_rules_changed() -> void:
+	if not house_rules_edit:
+		return
+	var rules: Array = []
+	for line in house_rules_edit.text.split("\n"):
+		var trimmed: String = str(line).strip_edges()
+		if not trimmed.is_empty():
+			rules.append(trimmed)
+	local_campaign_config["house_rules"] = rules
+	campaign_config_data_changed.emit(local_campaign_config)
+
 func _build_difficulty_section(parent: Control) -> void:
 	## Build difficulty selector with card design and description
 	difficulty_option = OptionButton.new()
@@ -348,7 +556,7 @@ func _build_difficulty_section(parent: Control) -> void:
 
 	# Create description label for difficulty details
 	difficulty_description = Label.new()
-	difficulty_description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	difficulty_description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	difficulty_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	difficulty_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
@@ -378,7 +586,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 		# DLC not enabled — show locked indicator
 		var locked_label := Label.new()
 		locked_label.text = "Requires Compendium DLC to unlock combat toggles"
-		locked_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		locked_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		locked_label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
 		locked_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(locked_label)
@@ -395,7 +603,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 			# Category header
 			var cat_label := Label.new()
 			cat_label.text = CompendiumDifficultyTogglesRef.get_category_name(category)
-			cat_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			cat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
 			content.add_child(cat_label)
 
@@ -406,7 +614,7 @@ func _build_difficulty_toggles_section(parent: Control) -> void:
 				cb.text = toggle.get("name", toggle_id)
 				cb.tooltip_text = toggle.get("description", "")
 				cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-				cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+				cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 				cb.toggled.connect(_on_difficulty_toggle_changed.bind(toggle_id))
 				content.add_child(cb)
 				difficulty_toggle_checkboxes[toggle_id] = cb
@@ -447,7 +655,7 @@ func _build_victory_conditions_section(parent: Control) -> void:
 	victory_condition_description.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	victory_condition_description.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 	var content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_MD)
@@ -460,7 +668,7 @@ func _build_victory_conditions_section(parent: Control) -> void:
 		"Select one or more conditions - achieve ANY to win your campaign"
 	)
 	# Force full-width row in HFlowContainer (don't pair with other cards)
-	card.custom_minimum_size.x = 1000
+	_set_card_min_width(card, CARD_MIN_FULL_ROW)
 	parent.add_child(card)
 
 func _build_narrative_options_section(parent: Control) -> void:
@@ -473,7 +681,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 	story_track_checkbox.text = "Enable Story Track"
 	story_track_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	story_track_checkbox.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	story_track_checkbox.toggled.connect(_on_story_track_toggled)
 	content.add_child(story_track_checkbox)
 
@@ -482,7 +690,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		"7-event narrative arc overlaying your campaign "
 		+ "(Core Rules Appendix V). Recommended for experienced players.")
 	story_track_description.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	story_track_description.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	story_track_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -507,7 +715,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		intro_campaign_checkbox.custom_minimum_size = Vector2(
 			0, TOUCH_TARGET_MIN)
 		intro_campaign_checkbox.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		intro_campaign_checkbox.toggled.connect(
 			_on_intro_campaign_toggled)
 		content.add_child(intro_campaign_checkbox)
@@ -517,7 +725,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 			"6 guided encounters teaching core mechanics step by step "
 			+ "(Compendium pp.104-109). Recommended for first-time players.")
 		intro_campaign_description.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		intro_campaign_description.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		intro_campaign_description.autowrap_mode = \
@@ -532,7 +740,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		+ "automatically — providing a guided narrative journey from "
 		+ "beginner to story veteran.")
 	narrative_combo_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	narrative_combo_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT_HOVER)
 	narrative_combo_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -550,12 +758,12 @@ func _build_narrative_options_section(parent: Control) -> void:
 
 	var wrap_label := Label.new()
 	wrap_label.text = "Narrative Wrap Style"
-	wrap_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	wrap_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	wrap_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	wrap_row.add_child(wrap_label)
 
 	narrative_wrap_option = OptionButton.new()
-	narrative_wrap_option.custom_minimum_size = Vector2(260, TOUCH_TARGET_MIN)
+	narrative_wrap_option.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	narrative_wrap_option.add_item("Use Global Setting", 0)
 	narrative_wrap_option.add_item("Always Wrap (Cinematic)", 1)
 	narrative_wrap_option.add_item("Never Wrap (Classic)", 2)
@@ -571,7 +779,7 @@ func _build_narrative_options_section(parent: Control) -> void:
 		+ "'Never Wrap' forces the classic card UI even when the global "
 		+ "setting is on. Default 'Use Global' respects your Settings preference.")
 	narrative_wrap_description.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	narrative_wrap_description.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	narrative_wrap_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -633,10 +841,17 @@ func _build_compendium_setup_section(parent: Control) -> void:
 	if not dlc or not dlc.has_method("is_feature_available"):
 		return
 
-	# Filter to only flags whose DLC pack is owned
+	# Filter to flags whose DLC pack is owned AND whose rules are actually wired.
+	# This card is hand-built rather than an ExpansionFeatureSection, so it did
+	# NOT inherit that component's unimplemented-flag filter and would offer a
+	# switch that changes nothing (Fringe World Strife, from Aug 3 2026 — its
+	# p.148 Instability accumulator has no implementation at all).
 	var available_flags: Array[Dictionary] = []
 	for opt: Dictionary in COMPENDIUM_SETUP_FLAGS:
-		var flag_val: int = dlc.ContentFlag.get(opt["flag"], -1)
+		var flag_name: String = str(opt["flag"])
+		if DLCContentCatalogRef.is_flag_unimplemented(flag_name):
+			continue
+		var flag_val: int = dlc.ContentFlag.get(flag_name, -1)
 		if flag_val >= 0 and dlc.is_feature_available(flag_val):
 			available_flags.append(opt)
 
@@ -670,7 +885,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		var cb := CheckBox.new()
 		cb.text = opt["label"]
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-		cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		if flag_val >= 0:
 			cb.button_pressed = dlc.is_feature_enabled(flag_val)
 		cb.toggled.connect(_on_compendium_setup_toggled.bind(flag_name))
@@ -680,7 +895,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		# Description label
 		var desc := Label.new()
 		desc.text = opt["description"]
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(desc)
@@ -691,7 +906,7 @@ func _build_compendium_setup_section(parent: Control) -> void:
 		"Per-campaign optional rules from the Compendium (pp.11-12)"
 	)
 	# Force full-width row in HFlowContainer
-	card.custom_minimum_size.x = 1000
+	_set_card_min_width(card, CARD_MIN_FULL_ROW)
 	parent.add_child(card)
 
 func _on_compendium_setup_toggled(enabled: bool, flag_name: String) -> void:
@@ -740,7 +955,7 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 
 	var desc := Label.new()
 	desc.text = "Ramp up challenge as you play. Options can be combined."
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
@@ -749,7 +964,7 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 	progressive_basic_checkbox.text = "Option 1: Classic (Respawn + Strength)"
 	progressive_basic_checkbox.tooltip_text = "Enemies respawn and increase by campaign turn. Compendium p.30."
 	progressive_basic_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	progressive_basic_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_basic_checkbox.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	progressive_basic_checkbox.toggled.connect(_on_progressive_difficulty_changed)
 	content.add_child(progressive_basic_checkbox)
 
@@ -757,13 +972,13 @@ func _build_progressive_difficulty_section(parent: Control) -> void:
 	progressive_advanced_checkbox.text = "Option 2: Compendium (Toggle Escalation)"
 	progressive_advanced_checkbox.tooltip_text = "Progressively enables difficulty toggles and elite enemies. Compendium p.31."
 	progressive_advanced_checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	progressive_advanced_checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	progressive_advanced_checkbox.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	progressive_advanced_checkbox.toggled.connect(_on_progressive_difficulty_changed)
 	content.add_child(progressive_advanced_checkbox)
 
 	progressive_warning_label = Label.new()
 	progressive_warning_label.text = ""
-	progressive_warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	progressive_warning_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	progressive_warning_label.add_theme_color_override("font_color", COLOR_WARNING)
 	progressive_warning_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	progressive_warning_label.visible = false
@@ -1074,15 +1289,31 @@ func _update_victory_conditions_availability(difficulty: int) -> void:
 
 		var vc_key: String = child.get_meta("victory_key")
 		if is_restricted:
-			# Easy mode: only basic victory conditions (Core Rules p.64: "Play 20 turns" / "Win 20 battles")
-			# Map panel keys to basic conditions: "combat" (win battles) and "story" (complete missions)
-			var is_basic: bool = vc_key in ["combat", "story"]
+			# Core Rules p.64, verbatim: "Only the Play 20 campaign turns and Win
+			# 20 tabletop battles Victory Conditions can be completed in the Easy
+			# difficulty mode."
+			#
+			# This used to test `vc_key in ["combat", "story"]` — those are
+			# `category` VALUES from campaign_config.json, never keys, so the test
+			# was false for all seventeen conditions. Easy mode therefore dimmed
+			# EVERY option including the two the book allows, and silently erased
+			# whatever the player had already chosen. Combined with the review
+			# screen refusing to create a campaign without a victory condition,
+			# picking Easy could strand the player entirely.
+			var is_basic: bool = vc_key in EASY_MODE_VICTORY_KEYS
 			child.modulate.a = 1.0 if is_basic else 0.4
+			# Dimming alone was cosmetic: the cards keep MOUSE_FILTER_STOP and
+			# their gui_input, so a "disabled" condition stayed selectable.
+			child.mouse_filter = Control.MOUSE_FILTER_STOP if is_basic \
+				else Control.MOUSE_FILTER_IGNORE
 			# Deselect any restricted condition
 			if not is_basic and selected_victory_conditions.has(vc_key):
 				selected_victory_conditions.erase(vc_key)
+				_set_card_selected_state(child, false)
+				victory_conditions_changed.emit(selected_victory_conditions)
 		else:
 			child.modulate.a = 1.0
+			child.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _create_victory_condition_card(key: String, condition: Dictionary) -> PanelContainer:
@@ -1097,7 +1328,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 	
@@ -1111,7 +1342,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	
 	var title = Label.new()
 	title.text = condition.name
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(title)
@@ -1119,7 +1350,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	var checkmark = Label.new()
 	checkmark.text = "✓"
 	checkmark.name = "Checkmark"
-	checkmark.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	checkmark.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	checkmark.add_theme_color_override("font_color", COLOR_SUCCESS)
 	checkmark.visible = false  # Hidden until selected
 	title_row.add_child(checkmark)
@@ -1129,7 +1360,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	# Description (always visible inline)
 	var desc = Label.new()
 	desc.text = condition.description
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1138,7 +1369,7 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	# Target badge
 	var target = Label.new()
 	target.text = "Target: %d %s" % [int(condition.target), condition.type]
-	target.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	target.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	target.add_theme_color_override("font_color", COLOR_ACCENT)
 	vbox.add_child(target)
 	
@@ -1162,22 +1393,48 @@ func _create_victory_condition_card(key: String, condition: Dictionary) -> Panel
 	return card
 
 func _on_victory_card_clicked(event: InputEvent, key: String, card: PanelContainer) -> void:
-	## Handle click on victory condition card
+	## Handle click on victory condition card.
+	##
+	## SINGLE SELECT. Core Rules p.64: "If you select a Victory Condition, it
+	## cannot be changed, and you can only achieve that selected condition, even
+	## if you would qualify for others." The wizard used to allow any number and
+	## told the player "achieve ANY to win", which the book does not offer — and
+	## VictoryChecker only ever evaluated ONE of them anyway (the first key in an
+	## insertion-ordered Dictionary, i.e. whichever card was clicked first). A
+	## player who picked three conditions was silently playing for one of them.
+	##
+	## Clicking the selected card clears it, because selecting one at all is
+	## optional: "Campaigns may potentially go on indefinitely... If you like to
+	## have a distinct goal in sight, select a Victory Condition now."
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		# Toggle selection
-		var is_selected = selected_victory_conditions.has(key)
-		if is_selected:
-			selected_victory_conditions.erase(key)
-			_set_card_selected_state(card, false)
-		else:
+		var was_selected: bool = selected_victory_conditions.has(key)
+		# Clear every other card first — one condition, or none.
+		for other_key in selected_victory_conditions.keys():
+			var other_card := _find_victory_card(other_key)
+			if other_card:
+				_set_card_selected_state(other_card, false)
+		selected_victory_conditions.clear()
+
+		if not was_selected:
 			selected_victory_conditions[key] = victory_conditions[key].duplicate()
 			_set_card_selected_state(card, true)
-		
+		else:
+			_set_card_selected_state(card, false)
+
 		# Emit real-time update signals
 		victory_conditions_changed.emit(selected_victory_conditions)
 		_update_victory_condition_description()
 		_update_display()
 		_validate_and_complete()
+
+func _find_victory_card(key: String) -> PanelContainer:
+	if not victory_conditions_list:
+		return null
+	for child in victory_conditions_list.get_children():
+		if child is PanelContainer and child.has_meta("victory_key") \
+				and str(child.get_meta("victory_key")) == key:
+			return child
+	return null
 
 func _on_victory_card_hover(card: PanelContainer) -> void:
 	## Handle mouse hover on victory card

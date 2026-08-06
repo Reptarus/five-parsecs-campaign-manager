@@ -9,6 +9,7 @@ signal play_requested()
 const DLCContentCatalogRef = preload(
 	"res://src/ui/screens/store/DLCContentCatalog.gd")
 
+const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const FONT_SIZE_SM := UIColors.FONT_SIZE_SM
@@ -18,7 +19,7 @@ const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
 const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
 const COLOR_BORDER := UIColors.COLOR_BORDER
 const COLOR_ACCENT := UIColors.COLOR_BLUE
-const COLOR_ACCENT_HOVER := Color("#3A7199")
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_CYAN := UIColors.COLOR_CYAN
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
@@ -46,7 +47,7 @@ func _build_ui() -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -55,31 +56,44 @@ func _build_ui() -> void:
 	add_child(vbox)
 
 	# Header
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow: title beside tagline overflows a phone-width card, and an HBox cannot
+	# give that width back -- the minimum propagates to the store page.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 	vbox.add_child(header)
 
 	var title := Label.new()
 	title.text = info.get("name", "Bug Hunt")
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(title)
 
+	# The tagline goes in the COLUMN below the header, not in the flow row.
+	#
+	# A FlowContainer wraps BETWEEN its children; each child still demands its own
+	# full width as a minimum. The tagline is a whole sentence — 257px unwrapped —
+	# so sitting in the row it set the card's minimum width, and because the store's
+	# ScrollContainer has horizontal scrolling disabled that minimum propagated all
+	# the way out to the page and pushed it off a small phone. In a VBox column
+	# autowrap actually works.
 	var tagline := Label.new()
 	tagline.text = info.get("tagline", "")
+	tagline.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tagline.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tagline.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	tagline.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
-	header.add_child(tagline)
+	vbox.add_child(tagline)
 
 	# Description
 	var desc := Label.new()
 	desc.text = info.get("description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)
@@ -90,7 +104,7 @@ func _build_ui() -> void:
 	vbox.add_child(action_row)
 
 	_action_btn = Button.new()
-	_action_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_action_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	action_row.add_child(_action_btn)
 
 	if _is_owned:
@@ -106,7 +120,7 @@ func _style_buy_button() -> void:
 	_action_btn.text = "Buy %s" % price
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_action_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat
@@ -132,12 +146,15 @@ func _style_play_button() -> void:
 	_action_btn.text = "Play Bug Hunt"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_SUCCESS.darkened(0.2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_action_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat
 	hover.bg_color = COLOR_SUCCESS
 	_action_btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_action_btn)
 	_action_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_action_btn.disabled = false

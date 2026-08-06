@@ -67,7 +67,7 @@ func _ready() -> void:
 
 	_name_label = Label.new()
 	_name_label.text = planet_name
-	_name_label.add_theme_font_size_override("font_size", UIColorsClass.FONT_SIZE_XS)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColorsClass.FONT_SIZE_XS))
 	_name_label.add_theme_color_override("font_color", UIColorsClass.COLOR_TEXT_PRIMARY)
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

@@ -7,6 +7,10 @@ extends Node
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const Ship = preload("res://src/core/ships/Ship.gd")
 const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
+## Shared atomic writer + .bak-aware reader. _detect_campaign_type MUST read through
+## this so the type router and the campaign loaders agree on which file they are
+## looking at — see the note on _detect_campaign_type.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 
 ## Signals with proper type annotations
 signal state_changed
@@ -16,9 +20,12 @@ signal save_started
 signal save_completed(success: bool, message: String)
 signal load_started
 signal load_completed(success: bool, message: String)
-## Emitted after a 5PFH campaign loads when characters are waiting in
-## user://transfers/ to muster in. Observers may toast; the dashboard drives the UI.
-signal pending_character_transfers(count: int)
+# `pending_character_transfers` was declared and emitted here and had ZERO
+# listeners anywhere, tests included. Muster-in is driven by
+# CampaignScreenBase._check_pending_transfers(), which every dashboard calls
+# deferred from _setup_screen() — so a listener added here would double-surface
+# the dialog rather than fill a gap. Signal and emit both removed; see the note
+# at the old emit site in load_campaign().
 
 # Campaign state
 var current_campaign = null
@@ -103,6 +110,42 @@ func _init() -> void:
 	# Auto-load last campaign if available
 	_try_auto_load_last_campaign()
 
+## Load a save through the correct Core for its declared campaign_type.
+##
+## THE SINGLE ENTRY POINT for turning a save path into a campaign Resource. It
+## exists because the routing used to live inline in load_campaign() only, while
+## _try_auto_load_last_campaign() below hardcoded the 5PFH loader — a guard on one
+## of the two doors, and the unguarded one runs at every launch.
+##
+## The consequence was DATA DESTRUCTION, verified at runtime on a real save:
+## FiveParsecsCampaignCore.load_from_file() only returns null on a JSON PARSE
+## failure, and a Bug Hunt save is perfectly valid JSON. So it returned a populated
+## 5PFH object carrying the BUG HUNT campaign_id and name, with crew_members 0 and
+## credits 0 (the file has "squad"/"state", not "crew"/"progress"). has_active_campaign()
+## then reported true, MainMenu lit up Continue, and because campaign_id was the Bug
+## Hunt id the next autosave rewrote user://saves/<bughunt_id>.save through the 5PFH
+## serialiser — which emits no campaign_type at all, so the campaign also vanished
+## from the Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+## Every mode reaches this: save_campaign() sets last_campaign for all four, and
+## Bug Hunt / Planetfall / Tactics all call it.
+func load_campaign_typed(path: String) -> Resource:
+	var campaign_type := _detect_campaign_type(path)
+	if campaign_type == "bug_hunt":
+		var BugHuntCore = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+		if BugHuntCore:
+			return BugHuntCore.load_from_file(path)
+	elif campaign_type == "planetfall":
+		var PlanetfallCore = load("res://src/game/campaign/PlanetfallCampaignCore.gd")
+		if PlanetfallCore:
+			return PlanetfallCore.load_from_file(path)
+	elif campaign_type == "tactics":
+		var TacticsCore = load("res://src/game/campaign/TacticsCampaignCore.gd")
+		if TacticsCore:
+			return TacticsCore.load_from_file(path)
+	# Legacy saves predate the campaign_type field and are always 5PFH.
+	return FiveParsecsCampaignCore.load_from_file(path)
+
+
 func _try_auto_load_last_campaign() -> void:
 	var last_id: String = game_settings.get("last_campaign", "")
 	if last_id.is_empty():
@@ -110,7 +153,9 @@ func _try_auto_load_last_campaign() -> void:
 	var path = SAVE_DIRECTORY + last_id + ".save"
 	if not FileAccess.file_exists(path):
 		return
-	var loaded = FiveParsecsCampaignCore.load_from_file(path)
+	# Route by declared type — see load_campaign_typed(). Hardcoding the 5PFH
+	# loader here silently converted and then destroyed non-5PFH campaigns.
+	var loaded = load_campaign_typed(path)
 	if loaded:
 		set_current_campaign(loaded)
 		# BUG-035 FIX: Restore EquipmentManager state on auto-load too
@@ -373,10 +418,79 @@ func update_recent_campaigns(campaign_id: String) -> void:
 	game_settings.last_campaign = campaign_id
 	save_settings()
 
+## Forget a campaign that has been deleted from disk.
+##
+## Deleting the save file is not enough on its own: the loaded campaign lives on in
+## current_campaign, and `last_campaign` still names it. Without this, Continue
+## reopens the deleted campaign straight from memory and the next autosave writes
+## the file back to the same path — a delete that silently undoes itself. It also
+## drops the id from the recent list so it cannot be offered again.
+func forget_campaign(campaign_id: String) -> void:
+	if campaign_id.is_empty():
+		return
+
+	if current_campaign and "campaign_id" in current_campaign \
+			and str(current_campaign.campaign_id) == campaign_id:
+		current_campaign = null
+		state_changed.emit()
+
+	if str(game_settings.get("last_campaign", "")) == campaign_id:
+		game_settings["last_campaign"] = ""
+
+	var recent = game_settings.get("recently_used_campaigns", [])
+	if recent is Array and recent.has(campaign_id):
+		recent.erase(campaign_id)
+
+	save_settings()
+
 ## Save a campaign to disk
 ## @param campaign The campaign to save (uses current_campaign if null)
 ## @param path The path to save to (uses default if empty)
 ## @return Result dictionary with success status and message
+func _notification(what: int) -> void:
+	## Flush the campaign to disk when the OS is about to take the app away.
+	##
+	## THE GAP THIS CLOSES: there was NO app-lifecycle save anywhere in src/. A grep
+	## for NOTIFICATION_APPLICATION_PAUSED / _FOCUS_OUT / WM_CLOSE_REQUEST /
+	## WM_GO_BACK_REQUEST returned nothing outside addons. The two functions written
+	## for it — GameState.auto_save() and persist_game_state() — both had ZERO callers,
+	## and project.godot sets no auto_accept_quit override, so the Android Back button
+	## quit with no hook at all.
+	##
+	## Saves only happened at explicit points: phase completion, the dashboard Save
+	## button, a few panels. Everything mutated between two phase boundaries lived only
+	## in RAM. A tester taking a phone call, swiping the app away, or hitting Back
+	## mid-phase lost it — and Android killing a backgrounded app is routine.
+	##
+	## The worst window is post-battle: PostBattlePhase applies pay, loot, injuries, XP
+	## and training across 14 steps and none of it reaches disk until POST_MISSION
+	## completes, so a kill part-way through discarded an entire battle's rewards while
+	## the battle itself was already spent.
+	##
+	## PAUSED/FOCUS_OUT fire on Android when backgrounding; the WM_* ones cover desktop
+	## window close and the Android Back button. Writes are atomic (SaveFileWriter), so
+	## being killed during the flush leaves the previous generation intact.
+	match what:
+		NOTIFICATION_APPLICATION_PAUSED, NOTIFICATION_APPLICATION_FOCUS_OUT, \
+		NOTIFICATION_WM_CLOSE_REQUEST, NOTIFICATION_WM_GO_BACK_REQUEST:
+			_flush_on_lifecycle_event()
+
+
+func _flush_on_lifecycle_event() -> void:
+	## Best-effort save. Never throws and never blocks the shutdown path: if there is
+	## no campaign, or it has no id yet (mid-creation), there is nothing worth writing.
+	if current_campaign == null:
+		return
+	if not ("campaign_id" in current_campaign):
+		return
+	if str(current_campaign.campaign_id).is_empty():
+		return
+	var result: Dictionary = save_campaign(current_campaign)
+	if not result.get("success", false):
+		push_error("GameState: lifecycle flush failed — %s"
+			% str(result.get("message", "unknown")))
+
+
 func save_campaign(campaign = null, path: String = "") -> Dictionary:
 	save_started.emit()
 
@@ -409,10 +523,15 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 			return {"success": false, "message": error_msg}
 		path = SAVE_DIRECTORY + cid + ".save"
 
-	# Sync FactionSystem state into progress_data before saving
-	var faction_sys = get_node_or_null("/root/FactionSystem")
-	if faction_sys and faction_sys.has_method("get_data") and "progress_data" in campaign:
-		campaign.progress_data["faction_state"] = faction_sys.get_data()
+	# NO faction sync here. FactionSystem state has ONE owner on the save side:
+	# FiveParsecsCampaignCore._collect_qol_data() -> qol_data["faction_system"],
+	# restored by apply_pending_qol_data() alongside the journal, NPCTracker and
+	# economy. This function used to ALSO write progress_data["faction_state"],
+	# so every save carried the blob twice and the two restores raced: the
+	# progress_data one ran first, then the qol one unconditionally cleanup()ed
+	# and re-applied. That clear is deliberate and must stay — it is what stops a
+	# previous campaign's factions bleeding in through the shared autoload — so
+	# the duplicate is what goes.
 
 	# Delegate to campaign's own save method if available
 	if campaign.has_method("save_to_file"):
@@ -469,19 +588,43 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 
 	return {"success": true, "message": success_msg, "path": path}
 
-## Detect campaign type from save file JSON without fully loading it
+## Detect campaign type from save file JSON without fully loading it.
+##
+## MUST read through SaveFileWriter, exactly as the four campaign cores' load_from_file
+## do. This used to open `path` directly, which reopened the data-destruction bug
+## documented at the top of load_campaign_typed — on the RECOVERY path that exists to
+## prevent data loss:
+##
+##   truncated primary -> JSON.parse_string returns null here -> falls through to the
+##   legacy default "five_parsecs" -> load_campaign_typed routes to
+##   FiveParsecsCampaignCore.load_from_file, which DOES consult the .bak, recovers
+##   perfectly good Bug Hunt JSON, and hands it to the 5PFH deserialiser.
+##
+## The type router and the recovery reader were looking at two different files. The
+## result is a populated 5PFH object carrying the Bug Hunt id and name with 0 crew and
+## 0 credits; the next autosave then rewrites that save through the 5PFH serialiser,
+## which emits no campaign_type, so the campaign is destroyed AND vanishes from the
+## Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+##
+## The trigger is an interrupted write — the exact scenario SaveFileWriter was added
+## for — so before this fix, backup recovery could destroy the campaign it recovered.
 static func _detect_campaign_type(path: String) -> String:
-	if not FileAccess.file_exists(path):
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return "five_parsecs"
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return "five_parsecs"
-	var text := file.get_as_text()
-	file.close()
-	var data = JSON.parse_string(text)
-	if data is Dictionary:
-		# BugHuntCampaignCore writes "campaign_type": "bug_hunt" at root level
-		return data.get("campaign_type", "five_parsecs")
+	return campaign_type_from_data(data)
+
+static func campaign_type_from_data(data: Dictionary) -> String:
+	## Campaign type from ALREADY-PARSED save data. Shared by _detect_campaign_type()
+	## (which reads the file) and get_campaign_info() (which has already parsed it),
+	## so the two cannot drift on where the field lives.
+	# BugHuntCampaignCore writes "campaign_type" at root level; also accept it under
+	# meta so a future writer moving the field cannot silently mis-route a save.
+	if data.has("campaign_type"):
+		return str(data["campaign_type"])
+	var meta = data.get("meta", {})
+	if meta is Dictionary and (meta as Dictionary).has("campaign_type"):
+		return str((meta as Dictionary)["campaign_type"])
 	return "five_parsecs"
 
 ## Peek at required DLC packs without fully loading the campaign
@@ -515,27 +658,7 @@ func load_campaign(path: String) -> Dictionary:
 
 	# Detect campaign type and route to correct loader
 	var campaign_type := _detect_campaign_type(path)
-	var loaded: Resource = null
-	if campaign_type == "bug_hunt":
-		var BugHuntCore = load(
-			"res://src/game/campaign/BugHuntCampaignCore.gd"
-		)
-		if BugHuntCore:
-			loaded = BugHuntCore.load_from_file(path)
-	elif campaign_type == "planetfall":
-		var PlanetfallCore = load(
-			"res://src/game/campaign/PlanetfallCampaignCore.gd"
-		)
-		if PlanetfallCore:
-			loaded = PlanetfallCore.load_from_file(path)
-	elif campaign_type == "tactics":
-		var TacticsCore = load(
-			"res://src/game/campaign/TacticsCampaignCore.gd"
-		)
-		if TacticsCore:
-			loaded = TacticsCore.load_from_file(path)
-	else:
-		loaded = FiveParsecsCampaignCore.load_from_file(path)
+	var loaded: Resource = load_campaign_typed(path)
 	if not loaded:
 		var error_msg = "Failed to parse campaign save file"
 		_log_error(error_msg)
@@ -544,22 +667,23 @@ func load_campaign(path: String) -> Dictionary:
 
 	set_current_campaign(loaded)
 
-	# Notify listeners of any characters transferred toward a 5PFH campaign that
-	# are waiting to muster in (the dashboard surfaces the muster-in dialog).
-	if campaign_type == "five_parsecs":
-		var pend: Array = CharacterTransferService.load_pending_transfers("five_parsecs")
-		if not pend.is_empty():
-			pending_character_transfers.emit(pend.size())
+	# NO pending-transfer emit here. `pending_character_transfers` has ZERO
+	# listeners repo-wide (tests included), and the muster-in dialog is actually
+	# driven by CampaignScreenBase._check_pending_transfers(), which every
+	# dashboard calls deferred from _setup_screen(). This block re-read every
+	# pending transfer file off disk on each load purely to emit into the void —
+	# and a listener added here would double-surface the dialog. This is the one
+	# "wire the consumer" case where the consumer already exists elsewhere, so
+	# the producer is what goes.
 
 	# BUG-035 FIX: Restore EquipmentManager state from campaign data
 	_restore_equipment_from_campaign(loaded)
 
-	# Restore FactionSystem state from campaign progress_data
-	var faction_sys = get_node_or_null("/root/FactionSystem")
-	if faction_sys and faction_sys.has_method("update_data") and "progress_data" in loaded:
-		var faction_state: Dictionary = loaded.progress_data.get("faction_state", {})
-		if not faction_state.is_empty():
-			faction_sys.update_data(faction_state)
+	# FactionSystem is restored by apply_pending_qol_data() further down (the
+	# single owner — see the note at the save site). Restoring it here as well
+	# was redundant work that the qol restore then cleanup()ed and redid.
+	# Legacy saves that still carry progress_data["faction_state"] lose nothing:
+	# the same data was written to qol_data["faction_system"] in the same pass.
 
 	# Restore the active battlefield (mid-mission table layout) so a reload
 	# renders the exact map the player physically built. Positions persist
@@ -730,6 +854,30 @@ func verify_consistency() -> Array[String]:
 						"DUAL LOCATION: item '%s' in both stash and character '%s'" %
 						[eq_id, cid])
 
+	# CHECK 5: equipment_data must carry ONLY the canonical flat "equipment"
+	# stash, never the split-format sibling keys.
+	#
+	# get_all_equipment() UNIONS equipment + weapons + armor + gear, so any
+	# surviving category key makes every item in it appear twice to the restore
+	# loop, the Trade phase, Mission Prep and the save file. That was the bug in
+	# 87c06567 (finalization folded the categories in and never erased them), and
+	# CampaignDashboard._build_equipment_section then re-created it on every visit
+	# by writing its display split back onto the live campaign dict.
+	#
+	# A static lint cannot own this rule: the same key names legitimately appear on
+	# the equipment DATABASE dicts (DataManager.gd:344-346, TradingSystem), which
+	# are a different concept entirely. The distinction is what the dict IS, not
+	# what it is called, so the check belongs here at runtime where the receiver is
+	# known to be the campaign.
+	if "equipment_data" in current_campaign and current_campaign.equipment_data is Dictionary:
+		for category_key in ["weapons", "armor", "gear", "items"]:
+			if current_campaign.equipment_data.has(category_key):
+				violations.append(
+					("SPLIT STASH: equipment_data carries '%s' alongside 'equipment'. " +
+					"get_all_equipment() unions them, so every item in it is counted " +
+					"twice. Something wrote a display split back onto the campaign.") %
+					category_key)
+
 	for v in violations:
 		push_warning("GameState.verify_consistency: " + v)
 	return violations
@@ -771,6 +919,20 @@ func _restore_equipment_from_campaign(campaign) -> void:
 		return
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if not eq_mgr:
+		# Loud, not silent. _ready() clears _pending_equipment_restore BEFORE calling
+		# in here, so a miss here drops the restore with no retry — and the symptom is
+		# remote from the cause: the dashboard reads campaign.equipment_data directly
+		# so gear still DISPLAYS, while the ~30 call sites that read
+		# /root/EquipmentManager (ShipStashPanel, TradePhasePanel, WorldPhase,
+		# PostBattlePhase, TacticalBattleUI, CharacterDetailsScreen) see an empty
+		# stash. That reads as "my gear vanished in Trade but not on the dashboard".
+		#
+		# This is not believed reachable — autoloads are all attached before any
+		# _ready() runs, so registration order sets _ready() ORDER, not availability,
+		# and that was confirmed by running the app. Kept loud so the assumption
+		# announces itself if it is ever wrong on a different platform or Godot build.
+		push_error("GameState: EquipmentManager unavailable during equipment restore — "
+			+ "stash-backed screens will be empty this session")
 		return
 	# Clear transient storage to avoid duplicates on reload
 	if eq_mgr.has_method("clear_all_equipment"):
@@ -791,7 +953,31 @@ func _restore_equipment_from_campaign(campaign) -> void:
 		# already HAD ids, so an id-less item is always a unique original.
 		if "equipment_data" in campaign and campaign.equipment_data is Dictionary \
 				and campaign.equipment_data.get("equipment", null) is Array:
-			var raw_stash: Array = campaign.equipment_data["equipment"]
+			# Collapse to the canonical single stash. Two distinct corruptions land
+			# here and BOTH must be healed before the rehydrate loop below runs:
+			#
+			# 1. Duplicates WITHIN "equipment" (the original bug: an older
+			#    add_equipment() write-through re-appended every item per load,
+			#    growing the stash 8 -> 16 -> 24).
+			# 2. The SPLIT-FORMAT copies. CampaignFinalizationService folded
+			#    weapons/armor/gear into the flat list but did not erase the source
+			#    keys, so affected saves carry the same items under several keys at
+			#    once (observed: "equipment" and "gear" byte-identical, both with the
+			#    same persisted ids). get_all_equipment() unions equipment + weapons +
+			#    armor + gear, handing the rehydrate loop each item twice and
+			#    producing one "Equipment with ID already exists" per item on every
+			#    boot. Fixed at source, healed here for saves already written.
+			#
+			# "items" is deliberately NOT unioned: it is the id-less creation-format
+			# copy, and since id-less entries are preserved as unique originals (see
+			# below), folding it in would ADD a duplicate of every item rather than
+			# remove one. get_all_equipment() does not read it either. It is erased
+			# as dead weight.
+			var raw_stash: Array = []
+			for source_key in ["equipment", "weapons", "armor", "gear"]:
+				var source_list = campaign.equipment_data.get(source_key, [])
+				if source_list is Array:
+					raw_stash.append_array(source_list)
 			var seen_stash_ids: Dictionary = {}
 			var deduped_stash: Array = []
 			for stash_item in raw_stash:
@@ -800,6 +986,8 @@ func _restore_equipment_from_campaign(campaign) -> void:
 					continue
 				var sid: String = str(stash_item.get("id", ""))
 				if sid.is_empty():
+					# id-less items are always unique originals: the duplication bugs
+					# only ever copied items that already HAD ids.
 					deduped_stash.append(stash_item)
 					continue
 				if seen_stash_ids.has(sid):
@@ -810,6 +998,8 @@ func _restore_equipment_from_campaign(campaign) -> void:
 			if removed_dupes > 0:
 				push_warning("GameState: healed %d duplicate stash item(s) on load" % removed_dupes)
 			campaign.equipment_data["equipment"] = deduped_stash
+			for consumed_key in ["weapons", "armor", "gear", "items"]:
+				campaign.equipment_data.erase(consumed_key)
 
 		# Rehydrate EquipmentManager from the (now clean) stash. Items without an
 		# id (legacy saves) get a stable id auto-generated so they can participate
@@ -995,7 +1185,12 @@ func get_campaign_info(path: String) -> Dictionary:
 		"game_phase": meta.get("game_phase",
 			json_result.get("game_phase", "unknown")),
 		"difficulty": meta.get("difficulty",
-			json_result.get("difficulty", 0))
+			json_result.get("difficulty", 0)),
+		# Gamemode of this save. Absent before, so nothing enumerating saves could
+		# tell a 5PFH campaign from a Bug Hunt / Planetfall / Tactics one without
+		# re-reading and re-parsing the file itself. Resolved through the same
+		# helper _detect_campaign_type() uses so the two cannot disagree.
+		"campaign_type": campaign_type_from_data(json_result)
 	}
 
 	# Add save metadata if available
@@ -1483,6 +1678,29 @@ func get_quest_requires_travel() -> Dictionary:
 		if q is Dictionary and q.has("required"):
 			return q
 	return {"required": false, "requires_new_world": false}
+
+## Finish the current Quest and tally it (Core Rules p.64 "Complete 3/5/10
+## Quests" victory conditions). Called after the FINALE battle resolves, which
+## is the only point the book treats a Quest as over: p.120's 7+ result says
+## "you're at the conclusion of the Quest. Next time you pursue a Quest mission,
+## it will be the finale", so the finale battle itself ends it.
+##
+## The counter lives in progress_data because FiveParsecsCampaignCore is a
+## Resource — see the header note above. This is its ONLY writer; VictoryChecker
+## is its only reader.
+func complete_active_quest() -> int:
+	if not current_campaign or not "progress_data" in current_campaign:
+		return 0
+	var completed: int = int(current_campaign.progress_data.get("quests_completed", 0)) + 1
+	current_campaign.progress_data["quests_completed"] = completed
+	clear_active_quest()
+	return completed
+
+## How many Quests this crew has finished (Core Rules p.64 victory conditions).
+func get_quests_completed() -> int:
+	if current_campaign and "progress_data" in current_campaign:
+		return int(current_campaign.progress_data.get("quests_completed", 0))
+	return 0
 
 ## Gets the current reputation
 ## @return int: The current reputation

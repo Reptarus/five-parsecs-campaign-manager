@@ -29,24 +29,24 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 const FONT_SIZE_XL := 24
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_TEXT_DISABLED := Color("#404040")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
 
 # Severity colors
-const COLOR_MIRACULOUS := Color("#10B981")  # Green - best outcome
-const COLOR_MINOR := Color("#D97706")  # Orange - minor issues
-const COLOR_SERIOUS := Color("#DC2626")  # Red - serious
+const COLOR_MIRACULOUS := UIColors.COLOR_EMERALD  # Green - best outcome
+const COLOR_MINOR := UIColors.COLOR_AMBER  # Orange - minor issues
+const COLOR_SERIOUS := UIColors.COLOR_RED  # Red - serious
 const COLOR_CRIPPLING := Color("#991B1B")  # Dark red - severe
 
 # State
@@ -78,7 +78,7 @@ func _setup_panel_style() -> void:
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.set_corner_radius_all(8)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 
@@ -93,7 +93,7 @@ func _build_layout() -> void:
 	# Title
 	title_label = Label.new()
 	title_label.text = "Narrative Injury Selection"
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(title_label)
@@ -101,7 +101,7 @@ func _build_layout() -> void:
 	# Character name subtitle
 	description_label = Label.new()
 	description_label.text = "Choose an injury for %s" % character_name
-	description_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	description_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	description_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	description_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(description_label)
@@ -109,7 +109,7 @@ func _build_layout() -> void:
 	# House rule explanation
 	var house_rule_label := Label.new()
 	house_rule_label.text = "House Rule: Narrative Injuries - You decide the outcome!"
-	house_rule_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	house_rule_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	house_rule_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	house_rule_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	main_vbox.add_child(house_rule_label)

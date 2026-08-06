@@ -75,7 +75,7 @@ SceneRouter is the **single source of truth** for all scene navigation in the ap
 | `save_load` | res://src/ui/screens/utils/SaveLoadUI.tscn | Save/load campaign files dialog |
 | `game_over` | res://src/ui/screens/utils/GameOverScreen.tscn | Campaign end screen (victory/defeat) |
 | `logbook` | res://src/ui/screens/utils/logbook.tscn | Campaign journal & event log |
-| `settings` | res://src/ui/dialogs/SettingsDialog.tscn | Game settings & accessibility options |
+| `settings` | res://src/ui/screens/settings/SettingsScreen.tscn | Game settings & accessibility options |
 
 #### Tutorial System (2 scenes)
 | SceneRouter Key | File Path | Purpose |
@@ -440,7 +440,7 @@ RetirementPhasePanel.phase_completed(data)
 ## 6. SETTINGS & ACCESSIBILITY SYSTEM
 
 **Controller**: `SettingsScreen.gd` (58 lines, extends Control)
-**Scene**: res://src/ui/dialogs/SettingsDialog.tscn (alias: `settings` router key)
+**Scene**: res://src/ui/screens/settings/SettingsScreen.tscn (alias: `settings` router key)
 **Navigation**: Back button → `SceneRouter.navigate_back()` → previous screen
 
 ### 6.1 ThemeManager Autoload

@@ -1,0 +1,410 @@
+# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6
+
+> **UPDATE Aug 6 — see §9 at the bottom.** A battle-phase DELIVERY audit shipped
+> and it changes what is worth testing: four Compendium chapters that this
+> document would have had a tester exercising were **unreachable in campaign play
+> at the time it was written**. There is a fresh APK. Read §9 before handing
+> anything to a tester.
+>
+> **UPDATE Aug 3, same day — §4 has been worked. See §8 for what shipped,
+> what is blocked and why, and the two items that got WORSE-looking because a
+> dark test suite started reporting.**
+
+Everything here was measured on this branch today, not estimated. Commands to
+re-run each check are in §6. Where a number contradicts an older doc, this file
+is right and the older doc is stale.
+
+---
+
+## 1. Verdict
+
+**The build is tablet-testable now.** Nothing in the build, deploy, layout or
+runtime path blocks handing an APK to a tester.
+
+What blocks a **trustworthy** test — one where a tester's bug reports are worth
+reading — is smaller and more specific than the 73-row audit backlog implies:
+**five visible lies and one class of dead switch.** A tester who flips a toggle
+that does nothing, or reads "Roll for advancement" and watches nothing happen,
+spends the session cataloguing our known gaps instead of finding unknown ones.
+
+Estimated pre-tablet work: **2-3 sessions**, itemised in §4.
+
+---
+
+## 2. What was verified green
+
+| Check | Result |
+|---|---|
+| Script parse sweep | **608 scripts, 0 parse errors** |
+| Unit + integration tests | **~2,376 cases, 0 failures, 0 errors** |
+| Layout sweep, tablet sizes | **all tablet sizes pass** (162/168 overall; the 6 failures are phone-only, §5) |
+| Android APK builds | **68 MB, Jul 29**, arm64-v8a |
+| APK confidentiality | **clean** — no `CLAUDE.md`, no Modiphius docs, **0 test files packed** |
+| `lint_signal_wiring` | **CLEAN (0)** — was 67 in CLAUDE.md |
+| `lint_autoload_lookups` | **CLEAN (0)** — was 35 |
+
+The APK check was done by **unzipping the artifact**, not by reading the export
+config — the seven pattern hits are all legitimate (`eula.md`,
+`privacy_policy.md`, `credits.md`, `third_party_licenses.md` are meant to ship;
+`meeting.json` / `meeting.png` are narrative scene art). The confidentiality risk
+recorded in memory from the July build is closed.
+
+---
+
+## 3. Real defects found while verifying
+
+Four were fixed today. They were found by running the **full** suite rather than
+the suites I had touched — none of them appear in the 73-row audit.
+
+| Defect | Status |
+|---|---|
+| **Full Squad** (p.84) blocked when the roster couldn't be read — 0 available < required, so any failed lookup made every Full Squad job permanently unacceptable | fixed `2025226f7` |
+| **Reputation Required** (p.84) same shape — "no campaign" returned 0, indistinguishable from a real campaign with no history here | fixed `2025226f7` |
+| **Insanity enemy count** — I changed it to 0 off p.65 alone, then reverted: p.93 says "Hardcore **or Insanity**, add +1", and defines a Specialist as a re-arming not a body. Original data was right; the test pinning 0 was wrong | fixed `9f20724b7` |
+| Injury Table equipment/stat consequences, Equipment Malfunction target, Sick Bay reductions | fixed `bffe2c8d1`, `d945a3ecb`, `b14974c37` |
+
+Both p.84 gates were the audit's own defect family **inverted**: not a missing
+read skipping a rule, but a missing read silently *enforcing* one.
+
+---
+
+## 4. What actually blocks a trustworthy tablet test
+
+### 4a. Dead switches a tester will flip · ~½ session · **highest value on this page**
+
+Visible in Settings and the creation wizard, and they change nothing:
+Factions, Elite Enemies, ~~Stealth/Street Fight/Salvage~~, Terrain Generation, the
+12 Compendium difficulty toggles.
+
+> **Stealth / Street Fight / Salvage came off this list Aug 6** — they now
+> generate (4b) AND surface a reachable panel at every tier (§9). Grid-based
+> Movement also became a real per-battle choice rather than a campaign-wide flag.
+> The rest of the list stands.
+
+Hide or label them. Hours against weeks, and it converts "this app is broken"
+into "that isn't in yet."
+
+**But do the one-wire fix first (4b) — it moves three of those toggles out of
+this list entirely.**
+
+### 4b. Stealth / Street Fight / Salvage — one producer wire · ~1 session
+
+> **RESOLVED — but it was TWO failures in series, not one (Aug 6).** The producer
+> wire below is done: the live caller is now `JobOfferComponent.gd:217/225/232`,
+> not the dead `WorldPhase.gd`. That alone did **not** make the chapters playable,
+> because a second, independent blocker sat downstream — an early return in
+> `TacticalBattleUI.initialize_battle` meant the mission PANEL was never
+> constructed on the campaign path, so a correctly-generated stealth or salvage
+> mission still had no surface. Fixed `0f10cbfcd`; see §9.
+>
+> Worth keeping as a pattern: **fixing the producer proved nothing about the
+> feature.** Two dead links in the same chain look identical from the player's
+> seat, and closing one leaves the symptom exactly as it was.
+
+Traced by hand today. Data, loaders, generators, resolvers, panels and the
+`TacticalBattleUI` dispatch all exist and agree on the key — the generators stamp
+`"type": "stealth"` and the UI branches on exactly that. The **only** caller of
+all three generators is `src/core/campaign/phases/WorldPhase.gd:927/932/938`, a
+file with zero instantiations.
+
+Third time that same dead file has held live rules hostage — CLAUDE.md already
+records it holding the only callers of `record_invaded_planet()`, `repair_hull()`
+and the fuel consumer. Audit row **L61** is sized *medium, "and therefore the
+whole Stealth, Street Fight and Salvage chapters"*. It is one wire, and it
+unblocks **L69, L70, L71, L141** behind it.
+
+### 4c. Five visible lies · ~1 session
+
+Each is something a tester sees and reports, every session:
+
+| Row | What the player sees |
+|---|---|
+| **L143** | Post-battle step 9 says "Roll for advancement", prints `Rolled 5 - …`, and changes nothing. **Every battle.** |
+| **L47** | The Deployment Conditions panel renders blank for every battle; its buttons act on nothing. |
+| **L167** | Job details render `OVERVIEW: `, `SPECIFIC OBJECTIVE: `, `TIME CONSTRAINT: ` with nothing after the colon. |
+| **L158** | The app says a Person of Interest is 11" away and worth +1 story point; reaching them awards nothing. |
+| **L176** | A character whose last Sick Bay turn ticks off takes a full Crew Task the same turn. |
+
+### 4d. Test-harness reliability · ~½ session
+
+The full suite **cannot complete in one process**. It segfaults deterministically
+at suite 193 inside gdUnit4's GC stage, after **all tests have passed**, with
+leaked RIDs (32 CanvasItem, 31 Texture, 34 ShapedText).
+
+Cause is cumulative orphan nodes, concentrated in five suites:
+
+| Orphans | Suite |
+|---|---|
+| 1236 | `test_battle_tier_integration.gd` |
+| 187 | `test_campaign_wizard_flow.gd` |
+| 95 | `test_campaign_creation_data_flow.gd` |
+| 60 | `test_final_panel_ui_improvements.gd` |
+
+Per the gdUnit4 docs (checked via context7), the fix is `auto_free()` on every
+node those suites instantiate. **This is a harness defect, not a product one** —
+run in two batches and everything is green — but until it is fixed nobody can
+get a single green full-suite signal, which is exactly the signal you want
+before shipping a tester build.
+
+Also: **`test_campaign_wizard_flow.gd` fails its own setup** ("No coordinator
+available") on every case, so the campaign-creation wizard has an integration
+suite that exercises nothing.
+
+---
+
+## 5. Verified NOT to be tablet blockers
+
+- **The 6 layout failures are phone-only** (338×733, 310×551). Every tablet size
+  passes. All six share **one** root cause: the `"Ship debt: 25 cr (+1/turn)"`
+  Label in `UpkeepPhaseComponent`'s TravelPanel autowraps inside an
+  `HBoxContainer` and collapses to 1×480 — the autowrap-in-a-horizontal-container
+  trap already in memory. It cascades to 3 screens × 2 phone sizes. Fix it when
+  phones matter; it does not block a tablet session.
+- **40 of the 73 open audit rows are DLC or endgame content** a tester cannot
+  reach in an evening (factions, Elite enemies, Red/Black Zone at 10+ turns).
+- **`lint_handoff_contracts` reports 100 rule-silencing findings** — 35
+  orphan-reads, 64 uncalled rules, 1 dead producer. This is the best standing
+  instrument for the audit's defect family and it should replace hand-counted row
+  tallies, but most entries are Planetfall (out of scope) or Compendium chapters.
+  The 1 dead producer is `progress_data[fuel_credits]` in the dead `TravelPhase.gd`.
+- ~~**`lint_data_ownership`**: 2 findings, both direct `campaign.credits` /
+  `campaign.story_points` writes in `TravelEventResolver.gd`. Real, small, not
+  player-visible.~~
+  > **WRONG on both counts (Aug 6). There were THREE findings, and one WAS
+  > player-visible.** The count was under-reported because the lint's own output
+  > got truncated when it was read. And the `story_points` write was not cosmetic:
+  > it was the ONE award site in the codebase bypassing `GameStateManager`, which
+  > is where the **Core Rules p.65 Insanity gate** lives — so an Insanity campaign,
+  > which must never earn story points, earned them from every pp.70-72 travel
+  > event. The third finding (`CampaignEventEffects._grant_credits`) had its
+  > ownership order inverted so the manager's mirror and `credits_changed` signal
+  > never fired on a p.126 grant, leaving the dashboard badge stale.
+  >
+  > All fixed `dbc33c70a`; lint now CLEAN. **The lesson is the dismissal, not the
+  > bug**: "style violation, not player-visible" was an assumption, and checking
+  > what the sanctioned API actually *does* would have shown it enforces a rule.
+
+---
+
+## 6. Re-verify
+
+```powershell
+$G = "C:\Users\admin\Desktop\Godot_v4.6-stable_win64.exe\Godot_v4.6-stable_win64_console.exe"
+$R = "c:\Users\admin\SynologyDrive\Godot\five-parsecs-campaign-manager"
+
+# Parse sweep — grep for "Parse Error" SEPARATELY, the summary line is not the verdict
+& $G --headless --path $R --script tests/tools/verify_scripts_parse.gd
+
+# Tests — MUST be run in two batches until 4d is fixed, or it segfaults at ~193
+& $G --path $R --script addons/gdUnit4/bin/GdUnitCmdTool.gd -c -a tests/unit --quit-after 3000
+& $G --path $R --script addons/gdUnit4/bin/GdUnitCmdTool.gd -c -a tests/integration --quit-after 900
+# read the CASE COUNT, not the exit code — a parse error reports "No test cases found" and exits 0
+
+# Layout — NOT --headless; needs a real window
+& $G --path $R --script tests/tools/verify_layout.gd
+
+# Lints
+py scripts/lint_signal_wiring.py; py scripts/lint_autoload_lookups.py
+py scripts/lint_data_ownership.py; py scripts/lint_handoff_contracts.py
+
+# APK contents — unzip the artifact, never trust the export config
+py -c "import zipfile,re; z=zipfile.ZipFile('build/fpfh-0.9.7-sideload.apk'); print([n for n in z.namelist() if re.search(r'CLAUDE|MODIPHIUS|^docs/|/tests/',n,re.I)])"
+```
+
+---
+
+## 7. Order
+
+| # | Item | Effort |
+|---|---|---|
+| 1 | **4b** wire the 3 mission generators into the live World Phase | 1 session |
+| 2 | **4a** hide/label the remaining dead switches | ½ session |
+| 3 | **4c** the five visible lies | 1 session |
+| 4 | **4d** `auto_free` the 4 leaking suites + fix the wizard-flow fixture | ½ session |
+
+**Then ship a tester build.** Everything else on the 73-row backlog is either
+unreachable in one sitting or invisible without an expansion, and is better
+driven by what the tester actually reports.
+
+
+---
+
+## 8. Post-work state (Aug 3, after the §7 pass)
+
+### Shipped
+
+| Item | Commit |
+|---|---|
+| **Stealth / Street Fight / Salvage reach the table.** Complete feature severed at one dead-file call site; also needed `type` added to the campaign hand-off, which drops ~20 keys and had never carried it | `6c8e7b513` |
+| **Step 9 stopped selling a mechanic that does not exist.** The D6 "advancement roll" awarding "skill points" is deleted; the real p.123 XP spend replaces it | `56714e6c2` |
+| **Expanded Missions briefing** no longer prints `OVERVIEW: ` with nothing after it — the rows have no `name` key and never did | `56714e6c2` |
+| **Deployment Conditions panel** shows the condition the funnel already rolled, instead of rendering blank every battle | `bf3f797c3` |
+| **Notable Sights** reward logic + the "Reached the Notable Sight" producer on the results form | `bf3f797c3` (⚠ call site blocked, below) |
+| **Two verified-dead DLC switches hidden** behind `DLCContentCatalog.UNIMPLEMENTED_FLAGS` | `c73c0c90e` |
+| **Integration suite un-darkened** — all 33 suites now execute; worst orphan count 1236 → 100 | `c73c0c90e` |
+| Two p.84 acceptance gates that enforced themselves off a failed lookup | `2025226f7` |
+
+### Blocked — RESOLVED
+
+Two of the three were structural, not technical: their call sites sat in files
+held by the parallel Story Track branch, and `git add` takes whole files.
+
+**`git stash push -- <path>` is the way through.** It stashes one file's changes,
+leaves the branch's work fully recoverable, and its pop does a proper 3-way merge
+— both popped clean, with their hunks intact and merely renumbered. Verified by
+diffing the file after each pop. So the constraint was never "cannot", only
+"cannot with `git add`".
+
+| Item | Status |
+|---|---|
+| Notable Sight reward call site | **DONE** `7de930a2d` |
+| L176 Sick Bay exit (p.76) | **DONE** `5927ecbe3` |
+| L83 / L169 / L170 Character + Campaign Events | **DONE** — 11 of the 12 implemented (Hurt on Ship was already fixed). Writing them exposed two deeper faults: `ctx.injure_specific_crew` wrote NOTHING (a permanently-false has_method guard over an `is_wounded` set that aborts on a Dictionary), and story points / debt / credits all preferred the GameStateManager autoload, which answers for its OWN campaign — so a phase operating on any other campaign object had its writes absorbed silently. |
+
+The original note, for the record:
+
+| Item | File held | The one line |
+|---|---|---|
+| Notable Sight reward | `PostBattlePhase.gd` | `_completion.apply_notable_sight_reward(_ctx)` |
+| L176 Sick Bay exit (p.76 — recovered crew cannot take a task that turn) | `CampaignPhaseManager.gd` | a `recovered_this_turn` flag at the release block, read by `CrewTaskComponent` |
+| L83 / L169 / L170 Character + Campaign Events | `CharacterEventEffects.gd`, `CampaignEventEffects.gd` | three rows, two files, one pass |
+
+`apply_notable_sight_reward` says all of this in its own docstring rather than
+sitting quietly uncalled, because an uncalled rule is the exact defect this audit
+exists to remove.
+
+### Newly VISIBLE, not newly broken
+
+Fixing the wizard fixture had the effect good fixtures have: it started
+reporting.
+
+- **5 assertion failures in `test_campaign_wizard_flow`.** That suite failed its
+  own setup on every case (`has_method("get_coordinator")` — a method that exists
+  on `BaseCampaignPanel`, which `CampaignCreationUI` is not), so it had never
+  tested anything. These are pre-existing defects the suite could not previously
+  see.
+- **The full run still crashes at exit** on remaining orphans, though it now gets
+  through all 33 integration suites first. Keep running tests in two batches
+  (`-a tests/unit`, then `-a tests/integration`) until the rest are `auto_free`'d.
+
+### Final measured state
+
+| Check | Result |
+|---|---|
+| Parse sweep | **608 scripts, 0 parse errors** |
+| Unit batch | 114 suites, **1,389 cases, 0 errors, 0 failures** |
+| Integration batch | 33 suites, **346 cases, 0 errors, 0 failures** |
+| Layout, tablet sizes | **all pass** (162/168; the 6 are phone-only, §5) |
+
+**1,735 cases green.**
+
+The 5 wizard failures are fixed — all five were stale expectations in a suite
+that had never run, not product defects. Two were worth the trip: CONFIG
+correctly refuses Next without a campaign name (the test never set one), and
+crew.members correctly INCLUDES the captain at index 0 per the data-ownership
+rule (three tests predated it).
+
+### The exit crash is a harness limit, not a product fault
+
+Still present, and now understood. It is NOT orphan nodes — the unit batch leaks
+only 17 across 114 suites and still stops. It is leaked *rendering* RIDs
+(CanvasItem / Texture / ShapedText) accumulating across UI-instantiating suites
+until gdUnit4's GC stage segfaults at exit. `test_patron_system_core.gd`, where
+the unit batch stops, passes alone with exit 0 and zero orphans.
+
+The orphan work still mattered — integration went 1578 → 532 and all 33 suites
+now execute where the run previously died partway — but it does not remove the
+ceiling.
+
+**Keep running tests in the two batches in §6.** Everything passes that way.
+
+### Next
+
+1. Remaining rendering-RID sources, if a single-process green run is wanted.
+2. The three blocked one-liners, the moment the Story Track branch lands (§8
+   "Blocked").
+3. The phone-only layout fix — one autowrapping Label in an `HBoxContainer`.
+
+---
+
+## 9. Aug 6 re-verification — battle-phase delivery audit
+
+### Fresh artifact
+
+**`build/fpfh-0.9.7-aug06c.apk`** — 64.7 MB, 2,374 entries, built at HEAD
+`dbc33c70a`. The Aug 3 APK in §2 is superseded and should not be handed out.
+
+Verified by **unzipping**, not by reading the export config:
+
+| Check | Result |
+|---|---|
+| Leak (CLAUDE.md, docs/, tests/, Modiphius material) | **PASS** — none packed |
+| `.md` files | **PASS** — only the 4 legal docs |
+| Expected scripts present | **PASS** (7/7) |
+| Content matches HEAD | **PASS** — positive *and* negative |
+
+The negative half is what makes it proof of *this* build rather than "an APK
+exists": both files deleted in the final commit are confirmed **absent** from the
+archive, and two strings that did not exist in `TravelEventResolver` before that
+commit are **present**.
+
+> **Two probe traps, both of which faked a failure before the control test caught
+> them.** `.gdc` is **Zstd-compressed** (`GDSC` magic + `28 B5 2F FD`) — grep the
+> raw bytes and every string MISSes, including months-old ones. And a direct
+> static call to a global `class_name` does not retain the method name in the
+> constant pool; only string literals (the argument to `has_method()`) survive.
+> **Always probe with a control string known to be old.** If the control misses
+> too, the probe is broken, not the build.
+
+### What changed under the tester's feet
+
+Four Compendium chapters were **unreachable in campaign play** until this audit —
+No-Minis (pp.66-73), Stealth (pp.117-122), Street Fights (pp.123-136) and Salvage
+(pp.137-147). Each had a correct generator, resolver and panel; an early return in
+`initialize_battle` meant the panel was never constructed on the campaign path,
+and on the paths that did build it, it landed in a drawer with no opener at the
+default LOG_ONLY tier.
+
+This matters for test planning: **any Aug 3 test plan that had a tester exercising
+those chapters was asking them to find a screen that could not be opened.** They
+are reachable now, at every tier, via a dedicated `mission` drawer.
+
+Also newly live for a tester to hit:
+- **Mid-battle tier changes.** The badge was a `Label`; it is a Button now. Lower
+  tiers are greyed with a reason rather than silently no-opping.
+- **The p.137 salvage availability D6**, which had never rolled in any campaign —
+  so "no job this turn", the 2-credit acceptance fee and the illegal-job branch
+  are all reachable for the first time.
+- **Hold the Field no longer scores as a Win** in Rival/Invasion battles (p.91,
+  p.92), so XP is +2 not +3 and `battles_won` no longer inflates.
+
+### Green as of Aug 6
+
+| Check | Result |
+|---|---|
+| Script parse sweep (`--headless --import`) | **0 parse errors** project-wide |
+| `tests/unit` | **2254/2254**, 194 suites, 0 failures |
+| `verify_battle_ui` | **79/79** |
+| `verify_post_battle` | **46/46** — its first fully green run |
+| `lint_signal_wiring` / `lint_tscn_connections` / `lint_autoload_lookups` / `lint_data_ownership` | **all CLEAN (exit 0)** |
+| `lint_orphan_assets` | orphans **0** (41 test-only files remain, tracked) |
+
+> **§2's "Script parse sweep — 0 parse errors" was measured with the wrong tool.**
+> `--headless --quit` validates STARTUP scripts only. On Aug 6 it reported clean
+> while `PostBattleSequence.gd` failed to parse, which took the entire post-battle
+> wizard down. `--headless --import` loads every script and caught it. **Use
+> `--import` for this row from now on** — and note that 2254 passing unit cases
+> and a 46/46 backend harness both missed it too, because neither loads that UI
+> script.
+
+### Suggested first tablet session
+
+The fixes concentrate in one place, so start there rather than sweeping:
+
+1. **Campaign battle at the default Log Only tier** — the exact combination where
+   the four chapters were unreachable.
+2. Tap the **tier badge** mid-battle; confirm the chooser opens, Log Only is
+   greyed, and upgrading to Assisted actually adds the trackers.
+3. If a **salvage** job appears, play it through to the post-battle authorities
+   prompt (it is a mandatory 3-option choice, deliberately not dismissable).
+4. Anything in §4/§8 still marked open — those are unchanged by this audit.

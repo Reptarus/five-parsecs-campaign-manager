@@ -15,7 +15,7 @@ func _init() -> void:
 	custom_minimum_size = Vector2(
 		UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN
 	)
-	add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)

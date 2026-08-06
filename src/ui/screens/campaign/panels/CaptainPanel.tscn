@@ -24,7 +24,7 @@ theme_override_constants/separation = 20
 
 [node name="Title" type="Label" parent="Content"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "Captain Creation"
 horizontal_alignment = 1
 
@@ -45,18 +45,18 @@ theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="CreateButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Create Captain"
 
 [node name="EditButton" type="Button" parent="Content/Controls"]
 visible = false
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Edit Captain"
 
 [node name="RandomizeButton" type="Button" parent="Content/Controls"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Random Captain"
 

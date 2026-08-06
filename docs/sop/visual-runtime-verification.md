@@ -25,6 +25,28 @@ Trigger a visual MCP run before declaring "done" if your change touches:
 | Looping / ambient motion (drift, breathe, Ken Burns, parallax) | A still screenshot CANNOT show motion — needs a transform-probe over time (see below) |
 | Anything calling `get_portrait()`, `set_scene()`, or any renderer entry point | Cascading fallback chains need eyes-on |
 
+### Measuring is necessary but NOT sufficient (Jul 30 2026)
+
+`tests/tools/verify_layout.gd` now sweeps 34 screens × 6 window sizes and measures real
+rects, because **a desktop window pixel is a device dp** in this project (design space =
+`window_px / 1.16` on desktop and `dp / 1.16` on device — the 1.16 falls out of
+`SettingsManager._apply_ui_scale()` cancelling the square-1080 base stretch; derive it at
+runtime, never hardcode it). Run it **without `--headless`** or `window_set_size` is inert.
+
+That sweep does not replace this SOP — it feeds it. The MainMenu portrait fix measured
+completely clean and still had a stale-minimum bug that only a screenshot caught. **Screenshot
+every screen you fix**, even when the numbers say it is fine.
+
+Two traps this sweep taught, worth reusing in any measurement harness:
+
+- **Exclude backdrops and dedupe to the outermost cause.** The first run reported 180
+  failures, 50 of them on a screen already proven clean at 10 configs; the sole cause was a
+  full-screen background TextureRect "colliding" with the overlay band. 822 of 1129 findings
+  were that one artifact.
+- **A near-empty screen must SKIP, not pass.** In Godot 4.6 a `_ready()` that hits a runtime
+  error unwinds silently and the screen renders almost nothing — which trivially satisfies
+  every geometric check. Screens with <3 visible Controls are reported SKIP-with-reason.
+
 When verification is *not* mandatory:
 
 - Data-only changes (JSON edits, new entries to a loader, etc.) — script

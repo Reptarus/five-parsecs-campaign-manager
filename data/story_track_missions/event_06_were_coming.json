@@ -64,7 +64,13 @@
     "status": "tied up, left alone during battle",
     "rescue_method": "move into contact + non-Combat Action to free",
     "after_freed": "can move and act normally, becomes valid target",
-    "stats": {"reactions": 2, "speed_inches": 4, "combat_skill": 0, "toughness": 4, "savvy": 1},
+    "stats": {
+      "reactions": 2,
+      "speed_inches": 4,
+      "combat_skill": 0,
+      "toughness": 4,
+      "savvy": 1
+    },
     "equipment": "unarmed, can be given spare weapon from crew"
   },
   "objectives": {
@@ -86,5 +92,12 @@
     }
   },
   "next_clock_ticks": 2,
-  "page_reference": "pp.158-159"
+  "page_reference": "pp.158-159",
+  "presentation": {
+    "_note": "Presentation metadata for NarrativeScreen. NOT game data — no stat, cost, range or table boundary here. Role/mood are read off this event's own narrative text.",
+    "_rationale": "'It's time to have some diplomacy, Fringe-style!' — the event names its own tone.",
+    "advisor_role": "social",
+    "advisor_mood": "neutral",
+    "choice_label": "Go get them"
+  }
 }

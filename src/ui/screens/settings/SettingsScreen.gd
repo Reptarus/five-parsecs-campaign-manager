@@ -22,15 +22,15 @@ const AccessibilitySettingsPanelScript = preload("res://src/ui/screens/settings/
 const DifficultyTogglesPanelScript = preload("res://src/ui/screens/settings/DifficultyTogglesPanel.gd")
 
 # Deep Space theme colors
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_SUCCESS := Color("#10B981")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 
 # Base sizes — multiplied by ResponsiveManager at build time
 const BASE_SPACING_SM := 8
@@ -68,6 +68,8 @@ var _show_tooltips_check: CheckButton
 var _show_fps_check: CheckButton
 var _screen_shake_check: CheckButton
 var _narrative_events_check: CheckButton
+var _connections_no_roll_check: CheckButton
+var _connections_variety_check: CheckButton
 # Mobile-only
 var _haptic_check: CheckButton
 var _touch_sensitivity_slider: HSlider
@@ -185,30 +187,18 @@ func _build_ui() -> void:
 	root_vbox.add_theme_constant_override("separation", _spacing_md)
 	margin.add_child(root_vbox)
 
-	# Header
-	var header := HBoxContainer.new()
+	# Header — the shared [< Back] [Title] row.
+	#
+	# This screen was the only one that CENTRED its title, using two expanding
+	# spacers to push it away from the Back button. Every other screen reads
+	# left-to-right from the back affordance, so the eye had to go somewhere
+	# different here for no reason. build_header also uses an HFlowContainer, which
+	# wraps on a narrow phone instead of squeezing the title.
+	var header := ScreenChrome.build_header("Options", _on_back_pressed)
 	root_vbox.add_child(header)
-
-	var back_btn := Button.new()
-	back_btn.text = "< Back"
-	back_btn.custom_minimum_size.y = 48  # ISSUE-035: meet TOUCH_TARGET_MIN
-	back_btn.pressed.connect(_on_back_pressed)
-	back_btn.accessibility_name = "Back to Main Menu"
-	header.add_child(back_btn)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer)
-
-	var title := Label.new()
-	title.text = "OPTIONS"
-	title.add_theme_font_size_override("font_size", _font_xl)
-	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	header.add_child(title)
-
-	var spacer2 := Control.new()
-	spacer2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(spacer2)
+	var back_btn := header.get_node_or_null(NodePath(ScreenChrome.BACK_NAME))
+	if back_btn != null:
+		back_btn.accessibility_name = "Back to Main Menu"
 
 	# Scrollable content
 	var scroll := ScrollContainer.new()
@@ -228,6 +218,12 @@ func _build_ui() -> void:
 
 	if _is_mobile:
 		_build_mobile_section(content)
+
+	# Page chrome: portrait gutter + keep the header clear of the floating gear/bug
+	# buttons. This screen never wired either, so its content ran wider than every
+	# other page in portrait and its Back button sat under the overlay chrome. No
+	# ShortScreenScroll — the content already lives in its own ScrollContainer.
+	ScreenChrome.apply_page_chrome(self, margin)
 
 	# Accessibility panel (existing code-built component)
 	var acc_panel := AccessibilitySettingsPanelScript.new()
@@ -253,9 +249,12 @@ func _build_ui() -> void:
 	## SettingsManager live via its change signal. Persistence is debounced
 	## inside the manager. Reset stays since it's a one-shot action with no
 	## continuous control equivalent.
-	var footer := HBoxContainer.new()
-	footer.alignment = BoxContainer.ALIGNMENT_CENTER
-	footer.add_theme_constant_override("separation", _spacing_md)
+	# HFlow, not HBox: two full-width buttons side by side do not fit a phone, and
+	# an HBox has no way to give that width back.
+	var footer := HFlowContainer.new()
+	footer.alignment = FlowContainer.ALIGNMENT_CENTER
+	footer.add_theme_constant_override("h_separation", _spacing_md)
+	footer.add_theme_constant_override("v_separation", _spacing_sm)
 	root_vbox.add_child(footer)
 
 	var reset_btn := _create_button("Reset to Defaults")
@@ -266,18 +265,15 @@ func _build_ui() -> void:
 	# Debug button — bottom of settings, like Fallout companion app
 	var debug_btn := Button.new()
 	debug_btn.text = "DEBUG"
-	debug_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	debug_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var dbg_style := StyleBoxFlat.new()
-	dbg_style.bg_color = UIColors.COLOR_TERTIARY
-	dbg_style.border_color = UIColors.COLOR_BORDER
-	dbg_style.set_border_width_all(1)
-	dbg_style.set_corner_radius_all(4)
-	debug_btn.add_theme_stylebox_override("normal", dbg_style)
+	# Was a hand-rolled box with only `normal`, so it lost its outline the instant
+	# you hovered it. TEXT_SECONDARY rather than TEXT_MUTED: muted is about 3.7:1
+	# against this background, under the 4.5:1 that normal-size text needs.
+	DialogStyles.style_secondary_button(debug_btn)
 	debug_btn.add_theme_color_override(
-		"font_color", UIColors.COLOR_TEXT_MUTED
+		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
-	debug_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	debug_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	debug_btn.pressed.connect(_on_debug_pressed)
 	root_vbox.add_child(debug_btn)
 
@@ -336,7 +332,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 		var vsync_label := Label.new()
 		vsync_label.text = "VSync Mode"
 		vsync_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		vsync_label.add_theme_font_size_override("font_size", _font_md)
+		vsync_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		vsync_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		vsync_row.add_child(vsync_label)
 
@@ -351,7 +347,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 			if _vsync_option.get_item_id(i) == saved_vsync:
 				_vsync_option.select(i)
 				break
-		_vsync_option.custom_minimum_size = Vector2(200, _touch_target)
+		_vsync_option.custom_minimum_size = Vector2(0, _touch_target)
 		_vsync_option.accessibility_name = "Vertical sync mode selection"
 		if _sm:
 			_vsync_option.item_selected.connect(func(idx: int):
@@ -366,7 +362,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	var scale_label := Label.new()
 	scale_label.text = "UI Scale"
 	scale_label.custom_minimum_size.x = 180
-	scale_label.add_theme_font_size_override("font_size", _font_md)
+	scale_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	scale_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	scale_row.add_child(scale_label)
 
@@ -385,7 +381,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	_ui_scale_label.text = "%d%%" % int(_ui_scale_slider.value * 100)
 	_ui_scale_label.custom_minimum_size.x = 50
 	_ui_scale_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_ui_scale_label.add_theme_font_size_override("font_size", _font_md)
+	_ui_scale_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	_ui_scale_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	scale_row.add_child(_ui_scale_label)
 
@@ -394,7 +390,7 @@ func _build_display_section(parent: VBoxContainer) -> void:
 	# stays crisp via dynamic-font re-rasterization); raising it enlarges text.
 	var scale_hint := Label.new()
 	scale_hint.text = "Lower = more fits on screen; higher = larger text"
-	scale_hint.add_theme_font_size_override("font_size", _font_sm)
+	scale_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	scale_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	scale_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(scale_hint)
@@ -430,6 +426,21 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		"Show full-screen story moments with art and advisor reactions. When off, events use the classic card layout.")
 	_bind_toggle(_narrative_events_check, "gameplay", "use_narrative_events")
 
+	# Compendium p.81 Expanded Connections, the two variations the chapter leaves
+	# to the player by name. Both default OFF — the book's main line is the 1D6
+	# roll on every Opportunity mission, with repeats allowed.
+	_connections_no_roll_check = _add_toggle_row(card, "Connections: No-Roll Option",
+		_sm.use_connections_no_roll() if _sm else false,
+		"Toggle the Compendium no-roll Connections option",
+		"Compendium p.81: skip the 1D6 and give every other Opportunity mission a Connection.")
+	_bind_toggle(_connections_no_roll_check, "gameplay", "connections_no_roll")
+
+	_connections_variety_check = _add_toggle_row(card, "Connections: Prefer Variety",
+		_sm.use_connections_variety() if _sm else false,
+		"Toggle the Compendium Connections variety swap",
+		"Compendium p.81: swap a Connection you have already had this campaign for the first new result in the same subtable.")
+	_bind_toggle(_connections_variety_check, "gameplay", "connections_variety")
+
 	# My Table Size — the player's physical battle table (Core Rules p.108).
 	# Drives the battlefield map grid + Standard Terrain Set guidance (p.109).
 	# Item ids are ft x10 (OptionButton ids must be ints).
@@ -438,7 +449,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	var table_label := Label.new()
 	table_label.text = "My Table Size"
 	table_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	table_label.add_theme_font_size_override("font_size", _font_md)
+	table_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	table_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	table_row.add_child(table_label)
 	var table_option := OptionButton.new()
@@ -452,7 +463,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		if table_option.get_item_id(i) == saved_id:
 			table_option.select(i)
 			break
-	table_option.custom_minimum_size = Vector2(200, _touch_target)
+	table_option.custom_minimum_size = Vector2(0, _touch_target)
 	table_option.accessibility_name = "Physical table size selection"
 	if _sm:
 		table_option.item_selected.connect(func(idx: int):
@@ -461,7 +472,7 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	table_row.add_child(table_option)
 	var table_hint := Label.new()
 	table_hint.text = "Battle maps match your physical table (Core Rules p.108)"
-	table_hint.add_theme_font_size_override("font_size", _font_sm)
+	table_hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	table_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	table_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(table_hint)
@@ -499,7 +510,7 @@ func _build_expansions_section(
 	var summary := Label.new()
 	summary.text = "%d of 3 expansions owned" % owned_count
 	summary.add_theme_font_size_override(
-		"font_size", _font_md)
+		"font_size", ScreenChrome.font_size(_font_md))
 	summary.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	card_vbox.add_child(summary)
@@ -571,7 +582,7 @@ func _build_legal_section(parent: VBoxContainer) -> void:
 	# Data & Privacy subsection label
 	var data_label := Label.new()
 	data_label.text = "Data & Privacy"
-	data_label.add_theme_font_size_override("font_size", _font_md)
+	data_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	data_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	card_vbox.add_child(data_label)
 
@@ -633,14 +644,14 @@ func _build_about_section(parent: VBoxContainer) -> void:
 
 		var label := Label.new()
 		label.text = row_data[0]
-		label.add_theme_font_size_override("font_size", _font_sm)
+		label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		label.custom_minimum_size.x = 120
 		row.add_child(label)
 
 		var value := Label.new()
 		value.text = row_data[1]
-		value.add_theme_font_size_override("font_size", _font_md)
+		value.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		value.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		value.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Long values (e.g. the multi-word "Build" string) wrap instead of
@@ -655,11 +666,30 @@ func _build_about_section(parent: VBoxContainer) -> void:
 	card_vbox.add_child(hint_sep)
 
 	var hint := Label.new()
-	hint.text = "When filing a bug report, include the Version + Build values shown above."
-	hint.add_theme_font_size_override("font_size", _font_sm)
+	hint.text = ("The report form fills in Version and Build for you, "
+		+ "along with the screen, campaign phase and recent log.")
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card_vbox.add_child(hint)
+
+	# Second entry point for the bug reporter. The always-on button beside the
+	# settings gear (SettingsOverlay) is the fast path; this is the discoverable
+	# one, and it is the only route while the settings overlay itself is open.
+	var report_btn := Button.new()
+	report_btn.text = "Report a Bug"
+	report_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	report_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var report_style := StyleBoxFlat.new()
+	report_style.bg_color = UIColors.COLOR_TERTIARY
+	report_style.border_color = UIColors.COLOR_BORDER
+	report_style.set_border_width_all(1)
+	report_style.set_corner_radius_all(4)
+	report_btn.add_theme_stylebox_override("normal", report_style)
+	report_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	report_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
+	report_btn.pressed.connect(_on_report_bug_pressed)
+	card_vbox.add_child(report_btn)
 
 	# Telemetry diagnostic — debug-only smoke-test entry point.
 	# Fires a single CampaignAnalytics event through the consent gate
@@ -671,14 +701,14 @@ func _build_about_section(parent: VBoxContainer) -> void:
 
 		var diag_label := Label.new()
 		diag_label.text = "Telemetry diagnostics (debug build)"
-		diag_label.add_theme_font_size_override("font_size", _font_md)
+		diag_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 		diag_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		card_vbox.add_child(diag_label)
 
 		var status_label := Label.new()
 		status_label.name = "TelemetryStatusLabel"
 		status_label.text = _get_telemetry_status_text()
-		status_label.add_theme_font_size_override("font_size", _font_sm)
+		status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		status_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card_vbox.add_child(status_label)
@@ -792,7 +822,7 @@ func _create_section_card(title_text: String, parent: VBoxContainer) -> VBoxCont
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(_spacing_md)
 	card.add_theme_stylebox_override("panel", style)
 	parent.add_child(card)
@@ -803,7 +833,7 @@ func _create_section_card(title_text: String, parent: VBoxContainer) -> VBoxCont
 
 	var title := Label.new()
 	title.text = title_text
-	title.add_theme_font_size_override("font_size", _font_lg)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_lg))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(title)
 
@@ -826,14 +856,14 @@ func _add_toggle_row(parent: VBoxContainer, label_text: String, initial: bool, a
 
 	var label := Label.new()
 	label.text = label_text
-	label.add_theme_font_size_override("font_size", _font_md)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	text_col.add_child(label)
 
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", _font_sm)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_sm))
 		desc.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY
 		)
@@ -859,7 +889,7 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 	var label := Label.new()
 	label.text = label_text
 	label.custom_minimum_size.x = 180
-	label.add_theme_font_size_override("font_size", _font_md)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(label)
 
@@ -878,7 +908,7 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 	val_label.text = "%d%%" % int(initial * 100)
 	val_label.custom_minimum_size.x = 50
 	val_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	val_label.add_theme_font_size_override("font_size", _font_md)
+	val_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	val_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	row.add_child(val_label)
 
@@ -890,17 +920,20 @@ func _add_slider_row(parent: VBoxContainer, label_text: String,
 func _create_accent_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, _touch_target)
+	btn.custom_minimum_size = Vector2(0, _touch_target)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("normal", style)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT_HOVER
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	return btn
 
@@ -908,7 +941,7 @@ func _create_accent_button(text: String) -> Button:
 func _create_button(text: String) -> Button:
 	var btn := Button.new()
 	btn.text = text
-	btn.custom_minimum_size = Vector2(200, _touch_target)
+	btn.custom_minimum_size = Vector2(0, _touch_target)
 	return btn
 
 
@@ -978,6 +1011,19 @@ func _on_debug_pressed() -> void:
 		debug_screen.queue_free()
 	)
 	add_child(debug_screen)
+
+func _on_report_bug_pressed() -> void:
+	## Route through SettingsOverlay so both entry points share one instance
+	## guard. Falls back to opening it here if the autoload is unavailable
+	## (headless tests, or this screen used outside the normal app).
+	var overlay := get_node_or_null("/root/SettingsOverlay")
+	if overlay and overlay.has_method("open_bug_report"):
+		overlay.open_bug_report()
+		return
+	var DialogScript: GDScript = load(
+		"res://src/ui/components/common/BugReportDialog.gd"
+	)
+	DialogScript.show_report(self)
 
 func _on_back_pressed() -> void:
 	if overlay_mode:

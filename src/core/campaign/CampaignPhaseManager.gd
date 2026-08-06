@@ -4,6 +4,10 @@ extends Node
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
 const PostBattlePhaseClass = preload(
 	"res://src/core/campaign/phases/PostBattlePhase.gd")
@@ -15,6 +19,8 @@ const IntroCampaignClass = preload(
 	"res://src/core/campaign/IntroductoryCampaignManager.gd")
 const StoryPointSystemClass = preload(
 	"res://src/core/systems/StoryPointSystem.gd")
+const ShiplessSystemClass = preload(
+	"res://src/core/ship/ShiplessSystem.gd")
 
 # Import the enums directly for cleaner code
 const FiveParcsecsCampaignPhase = GameEnums.FiveParcsecsCampaignPhase
@@ -94,6 +100,62 @@ func setup(state: FiveParsecsGameState) -> void:
 	if game_state and game_state.current_campaign:
 		_connect_to_campaign(game_state.current_campaign)
 
+## Campaign identity this manager is currently bound to. Empty until first bind.
+var _bound_campaign_id: String = ""
+
+
+func bind_campaign(campaign: Resource) -> void:
+	## Rebind per-campaign turn state when the campaign IDENTITY changes.
+	##
+	## This manager is an AUTOLOAD, so turn_number, current_phase and the
+	## post-battle handler's campaign reference live for the whole app session. The
+	## only things that reset them were setup() — which CampaignTurnController guards
+	## behind `if not campaign_phase_manager.game_state`, true exactly ONCE per
+	## session — and set_campaign(), called only from new-campaign finalization.
+	## GameState.load_campaign() never touched this manager at all.
+	##
+	## So loading a SECOND campaign in one session carried the first one's turn
+	## number straight into it, and it was PERSISTED:
+	## CampaignTurnController._on_campaign_turn_started() writes
+	## progress_data["turns_played"] = max(current, turn_number - 1) and the phase
+	## completion handler autosaves. The max() was added to stop a stale value
+	## LOWERING the count, which means a stale HIGH value from the previous campaign
+	## silently RAISES this one. Play A to turn 20, load B at turn 1, and B is turn
+	## 19 on disk forever — moving Red Zone eligibility (10+ turns), story-point
+	## earning (every 3rd turn) and Galactic War progression.
+	##
+	## Binding on identity, not on first run, is the fix: the same campaign re-entering
+	## the turn controller keeps its in-flight turn and phase, a different one resets.
+	if campaign == null:
+		return
+	var cid: String = str(campaign.campaign_id) if "campaign_id" in campaign else ""
+	if not _bound_campaign_id.is_empty() and cid == _bound_campaign_id:
+		return  # same campaign — preserve in-flight turn/phase state
+	_bound_campaign_id = cid
+
+	turn_number = 0
+	reset_phase_tracking()
+
+	# The post-battle handler caches its own campaign reference, and
+	# PostBattleContext._get_current_campaign() PREFERS that cached value over
+	# GameState.current_campaign — so without this rebind, character-event effects
+	# (credits, XP, status effects, item loss) applied while playing B were written
+	# into A's in-memory Resource and discarded.
+	if post_battle_phase_handler and post_battle_phase_handler.has_method("set_campaign"):
+		post_battle_phase_handler.set_campaign(campaign)
+
+	# Story Track and Introductory Campaign are per-campaign too, and were built
+	# ONLY in setup() — which CampaignTurnController runs once per app session.
+	# So campaign B inherited campaign A's story_track object (or the `null` from
+	# A having the feature switched off), meaning a Story Track campaign loaded
+	# second simply never started. Same bug class this function was written to
+	# fix for turn_number; it just never covered these two.
+	_init_intro_campaign()
+	_init_story_track()
+
+	_connect_to_campaign(campaign)
+
+
 func get_current_phase() -> FiveParcsecsCampaignPhase:
 	return current_phase
 
@@ -123,9 +185,17 @@ func start_new_turn() -> void:
 	_current_story_event = null
 	if story_track and not (intro_campaign and intro_campaign.is_active):
 		_current_story_event = story_track.begin_campaign_turn()
+		_drain_story_completion_effects()
 
 	campaign_turn_started.emit(turn_number)
-	# Reset to first turn phase (UPKEEP)
+
+	# A Story Event turn opens on the STORY briefing, not on UPKEEP. The event
+	# "will replace or modify the normal events of the campaign" (Core Rules
+	# p.153) and its restrictions bind the whole turn, so the player has to see
+	# them before the world phase runs. Every other turn opens on UPKEEP as before.
+	if _current_story_event != null:
+		start_phase(FiveParcsecsCampaignPhase.STORY)
+		return
 	start_phase(FiveParcsecsCampaignPhase.UPKEEP)
 
 ## Process all Core Rules turn rollover mechanics before the new turn begins.
@@ -139,6 +209,34 @@ func _process_turn_rollover() -> void:
 	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
 	_clear_upkeep_lockouts(campaign)
 
+	# --- Clear last turn's Sick Bay releases (Core Rules p.76) ---
+	# Must run BEFORE the recovery countdown below, or a member released this
+	# turn would have their flag wiped in the same pass that set it and the
+	# "cannot perform a task this campaign turn" restriction would never apply.
+	_clear_recovered_flags(campaign)
+
+	# --- Free Hull Repair (Core Rules p.59) ---
+	_process_free_hull_repair(campaign)
+
+	# --- Ship Debt interest and seizure (Core Rules p.76) ---
+	_process_ship_debt(campaign)
+
+	# --- Expire single-turn Fringe World Strife effects (Compendium p.149) ---
+	# Hooligans is the only row with an explicit duration: "You cannot perform
+	# any Explore or Trade crew actions during the NEXT campaign turn." Everything
+	# else on pp.149-151 persists until the player clears it.
+	_expire_fringe_strife_effects(campaign)
+
+	# --- Expire a Connection nobody seized (Compendium p.81) ---
+	# "Seize any opportunity immediately next campaign turn, or the option
+	# disappears." An offer made on turn N is playable on N and N+1.
+	_expire_stale_connection(campaign)
+
+	# --- Expanded Quest research (Compendium p.79, row 11-20) ---
+	# "You may continue accumulating research points every campaign turn until
+	# you reach the total." The only step on the table that advances by itself.
+	_process_expanded_quest_research(campaign)
+
 	# --- Victory Condition Lock-In (Core Rules p.64) ---
 	# "Cannot add or change once the campaign starts."
 	# Lock on first turn so creation wizard can still set them.
@@ -146,12 +244,25 @@ func _process_turn_rollover() -> void:
 		if not campaign.are_victory_conditions_locked():
 			campaign.lock_victory_conditions()
 
-	# --- Luck Recovery (Core Rules p.91) ---
-	# "All Luck is regained automatically after each battle."
-	# Unless the character used the Luck death-save (fatal injury protection),
-	# in which case ALL Luck was already set to 0 by InjuryProcessor.
-	# Characters whose luck was zeroed by death-save keep luck=0 until earned.
-	_restore_crew_luck(campaign)
+	# --- Luck Recovery (Core Rules p.46 / p.121) — DELIBERATELY NOTHING HERE ---
+	# "All Luck is regained automatically after each battle" (p.46) needs no campaign
+	# write, because campaign Luck is never DEPLETED in the first place: both resolvers
+	# deep-copy the crew before the fight (BattleResolver.gd:177 `crew.duplicate(true)`)
+	# and the in-battle save decrements only that copy. Regain is therefore automatic.
+	#
+	# The one persistent Luck loss in the book is the p.121 post-battle death-save
+	# ("miraculously survive, but immediately lose ALL Luck points"), which is
+	# permanent — "They can earn additional points as normal in the future." It is
+	# applied at its source, PostBattleContext.apply_luck_death_save().
+	#
+	# A _restore_crew_luck() used to be called here. Do NOT re-add it. It set
+	# `luck = max_luck` (cap 1, or 3 Human — Ability Increase Table p.121), which is
+	# the CAP, not the character's rating: every human would have been inflated to 3
+	# Luck they never spent 10 XP to buy. It also could not run at all — it called the
+	# 2-arg `member.get("luck_death_save_used", false)` on a Resource, which is an
+	# invalid call that silently unwinds the function, and it had no Dictionary branch
+	# for the canonical crew shape — and it gated on a flag nothing in the codebase
+	# ever set.
 
 	# --- Sick Bay Recovery Countdown (Core Rules p.99) ---
 	# Each campaign turn, reduce recovery_turns by 1 for all injured crew.
@@ -171,10 +282,26 @@ func _process_turn_rollover() -> void:
 	# Route through StoryPointSystem so signals fire and Insanity mode is checked
 	if "story_points" in campaign:
 		var sp_sys := StoryPointSystemClass.new(campaign)
-		# Load persisted turn state (balance + per-turn flags)
+		# Load the per-turn FLAGS from story_point_turn_state, but take the BALANCE
+		# from campaign.story_points.
+		#
+		# story_point_turn_state is a MIRROR; campaign.story_points is the canonical
+		# owner (data-ownership table, CLAUDE.md). from_dict() restores BOTH from the
+		# mirror, and line ~190 below then writes that value back over the owner — so
+		# every point awarded since the previous rollover was silently rolled back.
+		# Awards do not go through this mirror: GameStateManager.add_story_points()
+		# reads c.story_points, and PostBattlePhase._check_bitter_day_story_point()
+		# does `campaign.story_points += 1` directly. Core Rules pp.66-67 currency
+		# earned from Character Events, Campaign Events, loot and A Bitter Day all
+		# vanished at the next turn boundary.
+		#
+		# Overriding the key rather than reconciling with add_points/remove_points
+		# keeps this free of spend signals and of the Insanity gate in _add_story_points.
 		if "story_point_turn_state" in campaign \
 				and not campaign.story_point_turn_state.is_empty():
-			sp_sys.from_dict(campaign.story_point_turn_state)
+			var turn_state: Dictionary = campaign.story_point_turn_state.duplicate(true)
+			turn_state["current_points"] = int(campaign.story_points)
+			sp_sys.from_dict(turn_state)
 		else:
 			# First turn or missing state — sync from campaign balance
 			sp_sys.add_points(campaign.story_points, "Campaign sync")
@@ -212,28 +339,6 @@ func _process_turn_rollover() -> void:
 			"progress": vc_result.get("progress", 0),
 			"required": vc_result.get("required", 0)
 		})
-
-func _restore_crew_luck(campaign: Resource) -> void:
-	## Core Rules p.91: "All Luck is regained automatically after each battle."
-	## Humans max 3, non-humans max 1 (BaseCharacterResource enforces caps via setter).
-	## Characters flagged with luck_death_save_used keep luck=0 (already handled by
-	## InjuryProcessor setting luck=0 on the character directly).
-	if not campaign.has_method("get_crew_members"):
-		return
-	var crew: Array = campaign.get_crew_members()
-	for member in crew:
-		if member is Resource and "luck" in member:
-			# Skip characters who used luck death-save this turn
-			# (InjuryProcessor already set their luck to 0 permanently until earned)
-			if member.get("luck_death_save_used", false):
-				# Clear the flag — they start fresh but at 0
-				member.set("luck_death_save_used", false)
-				continue
-			# Restore to species cap: humans=3, others=1
-			var max_luck: int = 1
-			if member.get("is_human", false):
-				max_luck = 3
-			member.luck = max_luck
 
 func _process_sick_bay_recovery(campaign: Resource) -> void:
 	## Core Rules p.99: Injuries have "Campaign Turns in Sick Bay" recovery.
@@ -292,9 +397,38 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 			for idx in healed:
 				if idx < injuries.size():
 					injuries.remove_at(idx)
-			# Update status if no more injuries
-			if injuries.is_empty() and member.get("status", "") == "RECOVERING":
-				member["status"] = "ACTIVE"
+			# Update status if no more injuries.
+			#
+			# Accept BOTH casings. The countdown only ever cleared "RECOVERING", but
+			# the writers use lowercase "injured" — CrewTaskComponent._apply_sick_bay
+			# and, since the Sick Bay fix, PostBattleContext.apply_crew_injury (which
+			# uses "injured" because CrewTaskComponent.gd:183 gates on exactly that).
+			# Clearing only one casing would let a healed crew member stay locked out
+			# forever, which is a worse bug than the one being fixed.
+			#
+			# in_sick_bay / recovery_turns must be cleared here too: they are what the
+			# task and upkeep gates actually read, so leaving them set would keep the
+			# member in Sick Bay after their injuries had all healed.
+			if injuries.is_empty():
+				var st: String = str(member.get("status", ""))
+				if st == "RECOVERING" or st == "injured":
+					member["status"] = "ACTIVE"
+					# Core Rules p.76: "If this was their last campaign turn in
+					# Sick Bay, they can rejoin the crew for battle, but cannot
+					# perform a task this campaign turn."
+					#
+					# Leaving Sick Bay is a TWO-step release and only the first
+					# step existed: the flags below cleared and the character
+					# walked straight into Crew Tasks the same turn, worth an
+					# extra Explore/Trade/Patron roll on every recovery. Set only
+					# when they were ACTUALLY recovering (the status check above),
+					# so an already-healthy member is never flagged. Read by
+					# CrewTaskComponent._task_block_reason, cleared at the top of
+					# the NEXT rollover so it lasts exactly one turn.
+					member["recovered_this_turn"] = true
+				member["in_sick_bay"] = false
+				member["recovery_turns"] = 0
+				member["injury_recovery_turns"] = 0
 
 	# Medical Bay: one crew member marks off 2 turns total (Core Rules p.61)
 	# Normal loop already decremented by 1, so apply 1 more to best candidate
@@ -580,6 +714,191 @@ func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> vo
 		"tags": ["unity_agent", "species_ability"],
 	})
 
+func _expire_fringe_strife_effects(campaign: Resource) -> void:
+	## Compendium p.149 Hooligans, the one strife row with a stated duration:
+	## "You cannot perform any Explore or Trade crew actions during the NEXT
+	## campaign turn." Expiry lives here, at rollover, so the readers
+	## (blocked_crew_tasks, payout_modifier) stay pure lookups — a reader that
+	## also computed expiry would need the turn threaded through every call site.
+	if campaign == null or not FringeWorldStrifeRef.is_enabled():
+		return
+	var turn: int = 0
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		turn = int(campaign.progress_data.get("turns_played", 0))
+	for planet_id in FringeWorldStrifeRef.all_states(campaign).keys():
+		FringeWorldStrifeRef.expire_effects(campaign, str(planet_id), turn)
+
+
+func _expire_stale_connection(campaign: Resource) -> void:
+	## Compendium p.81: "Seize any opportunity immediately next campaign turn, or
+	## the option disappears."
+	if campaign == null or not ExpandedConnectionsRef.is_enabled():
+		return
+	var turn: int = 0
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		turn = int(campaign.progress_data.get("turns_played", 0))
+	var lapsed: Dictionary = ExpandedConnectionsRef.expire_stale(campaign, turn)
+	if lapsed.is_empty():
+		return
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "A Connection lapsed",
+			"description": "The crew did not act on the opportunity in time, "
+				+ "and it is gone (Compendium p.81).",
+			"tags": ["connection", "compendium", "expanded_connections"],
+		})
+
+
+func _process_expanded_quest_research(campaign: Resource) -> void:
+	## Compendium p.79 row 11-20, verbatim: "You generate research points equal to
+	## the combined Savvy scores of your crew members, +1D6. If the total research
+	## points equals or exceeds 20, you have solved this step and receive 1 Quest
+	## Rumor. If not, you may continue accumulating research points every campaign
+	## turn until you reach the total."
+	##
+	## The first tranche is generated when the step is assigned (post-battle); this
+	## is every tranche after it. Returns immediately unless that specific row is
+	## the pending step, so it costs a dictionary lookup on every other turn.
+	if campaign == null or not ExpandedQuestRef.is_enabled():
+		return
+	var outcome: Dictionary = ExpandedQuestRef.add_research_points(
+		campaign, _crew_savvy_total(campaign))
+	var message: String = str(outcome.get("message", ""))
+	if message.is_empty():
+		return
+	if bool(outcome.get("rumor_awarded", false)) and game_state \
+			and game_state.has_method("add_quest_rumor"):
+		game_state.add_quest_rumor()
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"title": "Quest research",
+			"description": message,
+			"tags": ["quest", "compendium", "expanded_quests"],
+			"auto_generated": true,
+			"mood": "neutral",
+		})
+
+
+func _crew_savvy_total(campaign: Resource) -> int:
+	## Both crew shapes are live: a loaded campaign holds Dictionaries, a freshly
+	## created one can still hold Character Resources.
+	if campaign == null or not ("crew_data" in campaign):
+		return 0
+	var members: Array = campaign.crew_data.get("members", [])
+	var total: int = 0
+	for member: Variant in members:
+		if member is Dictionary:
+			total += int(member.get("savvy", 0))
+		elif member != null and "savvy" in member:
+			total += int(member.savvy)
+	return total
+
+
+func _process_free_hull_repair(campaign: Resource) -> void:
+	## Core Rules p.59, verbatim: "Damage is repaired at a rate of 1 Hull Point
+	## per campaign turn, but you can funnel credits into faster repairs."
+	##
+	## The free tick had exactly one implementation and it lived in
+	## src/core/campaign/phases/WorldPhase.gd — a file nothing instantiates — so
+	## a damaged ship stayed damaged forever unless the player paid for every
+	## point. Paid repair is the upkeep step's job; this is the automatic one.
+	##
+	## Compendium p.32 "Money is Tight" cancels it: "You do not receive 1 point
+	## of free Hull Point repair each turn. All repairs must be paid for unless
+	## granted by a random event or similar."
+	if campaign == null or not ("ship_data" in campaign):
+		return
+	if CompendiumTogglesRef.free_hull_repair_denied():
+		return
+	# A wrecked ship is "no longer usable" (p.59) — without this guard the free
+	# tick floats a destroyed hull back to 1 HP every turn.
+	if "has_ship" in campaign and not campaign.has_ship:
+		return
+	var ship: Dictionary = campaign.ship_data
+	if ship.is_empty():
+		return
+	var current: int = int(ship.get("hull_points", 0))
+	var max_hull: int = int(ship.get("max_hull", current))
+	if current >= max_hull or max_hull <= 0:
+		return
+	ship["hull_points"] = mini(max_hull, current + 1)
+
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Hull repairs",
+			"description": "The crew patched 1 Hull Point over the campaign turn (%d/%d). Core Rules p.59." % [
+				int(ship["hull_points"]), max_hull],
+			"tags": ["ship", "upkeep"],
+		})
+
+func _process_ship_debt(campaign: Resource) -> void:
+	## Core Rules p.76, verbatim: "Ship Debt — You can make payments on your ship,
+	## if you owe money. Having done so (or having declined to do so), if you still
+	## owe money on your ship, the amount is now increased by 1 credit (2 credits
+	## if you owe 31 credits or more). If this brings the total to 75 credits or
+	## more, roll 2D6. On a 2-6, your ship has been seized by the authorities or
+	## the shady people you owe the money to, and is lost permanently."
+	##
+	## ShiplessSystem.process_debt_interest() implements the whole ladder and the
+	## seizure roll correctly, and had ZERO callers. Real saves carry ship.debt
+	## values of 12-36 from campaign creation, and that number never moved: no
+	## interest, never crossing 75, no seizure ever possible. The debt was
+	## decoration on the ship screen.
+	##
+	## Order matches the book: the player's payment window is World Step 1 (the
+	## Upkeep component's Pay Ship Debt control), which happens DURING the turn;
+	## interest then accrues here at rollover — "having done so ... the amount is
+	## now increased".
+	if campaign == null or not ("ship_debt" in campaign):
+		return
+	if int(campaign.ship_debt) <= 0:
+		return
+	# A crew that has already lost its ship owes nothing further (p.76 zeroes the
+	# debt on seizure, but guard against a save that predates that).
+	if "has_ship" in campaign and not campaign.has_ship:
+		return
+
+	var result: Dictionary = ShiplessSystemClass.process_debt_interest(campaign)
+	if result.get("interest", 0) <= 0:
+		return
+
+	var seized: bool = bool(result.get("ship_seized", false))
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Ship seized" if seized else "Debt interest",
+			"description": str(result.get("description", "")) + " Core Rules p.76.",
+			"tags": ["ship", "debt", "upkeep"],
+		})
+
+	# Seizure is campaign-altering, so it must reach the player immediately
+	# rather than only appearing in the journal.
+	if seized:
+		phase_event_triggered.emit({
+			"type": "ship_debt",
+			"subtype": "ship_seized",
+			"message": "Your ship has been seized to settle the debt.",
+		})
+	elif bool(result.get("seizure_risk", false)):
+		phase_event_triggered.emit({
+			"type": "ship_debt",
+			"subtype": "seizure_risk",
+			"debt": int(result.get("new_debt", 0)),
+			"message": "Ship debt has reached %d credits — seizure is possible every turn now." % int(
+				result.get("new_debt", 0)),
+		})
+
+
 func _clear_upkeep_lockouts(campaign: Resource) -> void:
 	## Clear upkeep lockout flags from previous turn (Core Rules p.76).
 	## Lockouts last one campaign turn only.
@@ -593,6 +912,22 @@ func _clear_upkeep_lockouts(campaign: Resource) -> void:
 			member.remove_meta("locked_out_this_turn")
 		elif member is Dictionary and member.get("locked_out_this_turn", false):
 			member.erase("locked_out_this_turn")
+
+func _clear_recovered_flags(campaign: Resource) -> void:
+	## Clear the p.76 "left Sick Bay last turn" marker. Like the upkeep lockout
+	## above, the restriction lasts exactly one campaign turn — the character can
+	## take a task again from the turn after their release.
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	for member in crew:
+		if member is Resource and member.has_meta("recovered_this_turn"):
+			member.remove_meta("recovered_this_turn")
+		elif member is Dictionary and member.get("recovered_this_turn", false):
+			member.erase("recovered_this_turn")
+
 
 func start_new_campaign_turn() -> void:
 	start_new_turn()
@@ -860,7 +1195,18 @@ func _can_transition_to_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 		FiveParcsecsCampaignPhase.UPKEEP:
 			return current_phase in [FiveParcsecsCampaignPhase.SETUP, FiveParcsecsCampaignPhase.RETIREMENT, FiveParcsecsCampaignPhase.NONE]
 		FiveParcsecsCampaignPhase.STORY:
-			return current_phase == FiveParcsecsCampaignPhase.UPKEEP
+			# Widened 2026-08-01. The declared order is UPKEEP -> STORY, but the
+			# live flow never walked it: start_new_turn() opened on UPKEEP and
+			# CampaignTurnController._on_world_phase_completed() jumped straight
+			# to MISSION, so start_phase(STORY) had zero callers and the panel was
+			# unreachable. A Story Event briefing has to land BEFORE the world
+			# phase, because it declares that turn's restrictions (p.153) — hence
+			# entry from the turn boundary as well as from UPKEEP.
+			return current_phase in [
+				FiveParcsecsCampaignPhase.UPKEEP,
+				FiveParcsecsCampaignPhase.RETIREMENT,
+				FiveParcsecsCampaignPhase.SETUP,
+				FiveParcsecsCampaignPhase.NONE]
 		FiveParcsecsCampaignPhase.TRAVEL:
 			return current_phase == FiveParcsecsCampaignPhase.STORY
 		FiveParcsecsCampaignPhase.PRE_MISSION:
@@ -915,34 +1261,24 @@ func _can_transition_to_sub_phase(new_sub_phase: CampaignSubPhase) -> bool:
 			return false
 
 func _execute_phase_start() -> void:
-	# Execute phase-specific initialization
+	# Execute phase-specific initialization.
+	# NOTE: the live campaign driver (CampaignDashboard + CampaignTurnController)
+	# only ever calls start_phase() for SETUP, UPKEEP and POST_MISSION — every other
+	# campaign phase is driven directly by CampaignTurnController / WorldPhaseController
+	# and its dedicated phase panel, NOT through this backend executor. The former
+	# STORY/TRAVEL/MISSION/BATTLE_SETUP/BATTLE_RESOLUTION/ADVANCEMENT/TRADING/CHARACTER/
+	# RETIREMENT executor arms (and their empty stub generators) were dead scaffold and
+	# were removed 2026-07-11. PRE_MISSION is retained only because the (currently inert)
+	# sub-phase state machine still hangs off _execute_campaign_phase_start().
 	match current_phase:
 		FiveParcsecsCampaignPhase.SETUP:
 			_execute_setup_phase_start()
 		FiveParcsecsCampaignPhase.UPKEEP:
 			_execute_upkeep_phase_start()
-		FiveParcsecsCampaignPhase.STORY:
-			_execute_story_phase_start()
-		FiveParcsecsCampaignPhase.TRAVEL:
-			_execute_travel_phase_start()
 		FiveParcsecsCampaignPhase.PRE_MISSION:
 			_execute_campaign_phase_start()
-		FiveParcsecsCampaignPhase.MISSION:
-			_execute_mission_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_SETUP:
-			_execute_battle_setup_phase_start()
-		FiveParcsecsCampaignPhase.BATTLE_RESOLUTION:
-			_execute_battle_resolution_phase_start()
 		FiveParcsecsCampaignPhase.POST_MISSION:
 			_execute_post_mission_phase_start()
-		FiveParcsecsCampaignPhase.ADVANCEMENT:
-			_execute_advancement_phase_start()
-		FiveParcsecsCampaignPhase.TRADING:
-			_execute_trade_phase_start()
-		FiveParcsecsCampaignPhase.CHARACTER:
-			_execute_character_phase_start()
-		FiveParcsecsCampaignPhase.RETIREMENT:
-			_execute_end_phase_start()
 
 func _execute_sub_phase_start() -> void:
 	# Only relevant for Campaign Phase
@@ -1002,33 +1338,6 @@ func _execute_upkeep_phase_start() -> void:
 	})
 	phase_event_triggered.emit(phase_events[-1])
 
-func _execute_story_phase_start() -> void:
-	# Story Track event turn or normal clock status
-	if _current_story_event:
-		phase_events.append({
-			"type": "story_event_active",
-			"event_id": _current_story_event.event_id,
-			"event_title": _current_story_event.title,
-			"turn_mods": _current_story_event.campaign_turn_mods,
-		})
-	else:
-		var status: Dictionary = {}
-		if story_track:
-			status = story_track.get_status()
-		phase_events.append({
-			"type": "story_clock_status",
-			"story_status": status,
-		})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_travel_phase_start() -> void:
-	phase_events.append({"type": "travel_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_mission_phase_start() -> void:
-	phase_events.append({"type": "mission_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
 func _execute_post_mission_phase_start() -> void:
 	phase_events.append({"type": "post_mission_started"})
 	phase_event_triggered.emit(phase_events[-1])
@@ -1063,71 +1372,9 @@ func _on_post_battle_phase_completed() -> void:
 	phase_events.append({"type": "post_battle_backend_completed"})
 	phase_event_triggered.emit(phase_events[-1])
 
-func _execute_character_phase_start() -> void:
-	phase_events.append({"type": "character_phase_started"})
-	phase_event_triggered.emit(phase_events[-1])
-
 func _execute_campaign_phase_start() -> void:
 	# Start with Travel sub-phase
 	start_sub_phase(CampaignSubPhase.TRAVEL)
-
-func _execute_battle_setup_phase_start() -> void:
-	# Generate battlefield
-	var battlefield = generate_battlefield()
-	phase_events.append({
-		"type": "battlefield_generated",
-		"battlefield": battlefield
-	})
-	phase_event_triggered.emit(phase_events[-1])
-	
-	# Generate enemy forces
-	var enemy_forces = _generate_enemy_forces()
-	phase_events.append({
-		"type": "enemy_forces_generated",
-		"enemies": enemy_forces
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_battle_resolution_phase_start() -> void:
-	# Initialize battle state
-	phase_events.append({
-		"type": "battle_started",
-		"battle_data": _get_current_battle_data()
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_advancement_phase_start() -> void:
-	# Calculate experience earned
-	var experience_earned = _calculate_experience_earned()
-	phase_resources["experience_earned"] = experience_earned
-	phase_events.append({
-		"type": "experience_earned",
-		"experience": experience_earned
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_trade_phase_start() -> void:
-	# Generate trade options
-	var trade_options = _generate_trade_options()
-	phase_events.append({
-		"type": "trade_options",
-		"options": trade_options
-	})
-	phase_event_triggered.emit(phase_events[-1])
-
-func _execute_end_phase_start() -> void:
-	# Generate turn summary
-	var turn_summary = _generate_turn_summary()
-	phase_events.append({
-		"type": "turn_summary",
-		"summary": turn_summary
-	})
-	phase_event_triggered.emit(phase_events[-1])
-	
-	# Advance campaign turn (null-guarded: game_state is Nil on bare
-	# instances, and the unguarded call aborted RETIREMENT phase start)
-	if game_state and game_state.has_method("advance_turn"):
-		game_state.advance_turn()
 
 func _complete_current_sub_phase() -> void:
 	if current_phase != FiveParcsecsCampaignPhase.PRE_MISSION:
@@ -1319,23 +1566,107 @@ func _init_story_track() -> void:
 		if not (intro_campaign and intro_campaign.is_active):
 			story_track.start_story_track()
 
-	# Connect Story Track signals → journal/history logging
-	story_track.story_track_started.connect(
-		_on_story_track_started)
-	story_track.story_event_triggered.connect(
-		_on_story_event_triggered)
-	story_track.story_clock_advanced.connect(
-		_on_story_clock_advanced)
-	story_track.evidence_discovered.connect(
-		_on_story_evidence_discovered)
-	story_track.story_track_completed.connect(
-		_on_story_track_completed)
+	# Connect Story Track signals → journal/history logging.
+	# Guarded: this runs again on every campaign switch now (bind_campaign), and
+	# Object.connect() returns ERR_INVALID_PARAMETER *and pushes an error* if the
+	# same Callable is already attached. The engine's documented fix is to test
+	# is_connected() first.
+	_connect_once(story_track, "story_track_started", _on_story_track_started)
+	_connect_once(story_track, "story_event_triggered", _on_story_event_triggered)
+	_connect_once(story_track, "story_clock_advanced", _on_story_clock_advanced)
+	_connect_once(story_track, "evidence_discovered", _on_story_evidence_discovered)
+	_connect_once(story_track, "story_track_completed", _on_story_track_completed)
 
 	# Persist initial state so dashboard/other systems can read it
 	save_story_track_state()
 
 
 
+
+func _connect_once(
+	source: Object, signal_name: String, target: Callable
+) -> void:
+	## Connect only if not already connected.
+	##
+	## Godot 4.6 Object.connect(): "A signal can only be connected once to the
+	## same Callable. If the signal is already connected, this method returns
+	## ERR_INVALID_PARAMETER and generates an error [...] To prevent this, use
+	## is_connected() first." Both _init_* functions below now run on every
+	## campaign switch, not just once per session, so the check is required.
+	if source == null or not source.has_signal(signal_name):
+		return
+	if source.is_connected(signal_name, target):
+		return
+	source.connect(signal_name, target)
+
+# ── Story Track battle bridge ────────────────────────────────────
+#
+# ⚠ DO NOT DELETE AS "REDUNDANT ZERO-CALLER FORWARDERS."
+#
+# These three were removed once already, in c8fd7e07c (Jul 10 2026, "Wiring
+# cleanup Tier 5: delete 23 redundant zero-caller methods"). They genuinely had
+# no callers at that moment — but only because their one consumer,
+# phases/BattlePhase.gd, had been deleted six weeks earlier in 99fad30b2. The
+# audit read the symptom as the cause and removed the seam instead of restoring
+# it, which is why curated Story Event battles stayed broken for another month.
+#
+# Live consumer: CampaignTurnController._initiate_battle_sequence(), the single
+# chokepoint where mission_data is stamped before a battle. Pinned by
+# tests/unit/test_story_track_integration.gd.
+
+func is_story_event_turn() -> bool:
+	## True when THIS campaign turn is a Story Event turn (Core Rules p.153).
+	return story_track != null and story_track.is_story_event_turn
+
+func get_story_battle_config() -> Dictionary:
+	## Curated deployment / enemies / objectives for the current Story Event.
+	## Empty on any normal turn.
+	if story_track:
+		return story_track.get_battle_config()
+	return {}
+
+func get_story_turn_mods() -> Dictionary:
+	## Per-event campaign-turn restrictions (e.g. Event 1's "you cannot Track
+	## Rivals", Event 4's "you cannot be attacked by Rivals"). Empty on a normal
+	## turn. Consumed by the world-phase and rival-encounter gates.
+	if story_track:
+		return story_track.get_turn_modifications()
+	return {}
+
+func get_intro_battle_config() -> Dictionary:
+	## Introductory Campaign battle overrides for the current guided turn
+	## (Compendium pp.104-109) — no deployment conditions, no notable sights,
+	## no unique individuals, Seize the Initiative bonus, enemy Combat Skill cap.
+	## These were authored in full and read by nothing.
+	var restrictions: Dictionary = get_intro_turn_restrictions()
+	if restrictions.is_empty():
+		return {}
+	var cfg: Dictionary = restrictions.get("battle_config", {})
+	if cfg is Dictionary and not cfg.is_empty():
+		var out: Dictionary = cfg.duplicate()
+		out["is_training_battle"] = restrictions.get("is_training_battle", false)
+		return out
+	if bool(restrictions.get("is_training_battle", false)):
+		return {"is_training_battle": true}
+	return {}
+
+func _drain_story_completion_effects() -> void:
+	## Pay out a Story Track completion that happened at TURN START rather than
+	## after a battle. Only one path produces this: letting the Event 7 delay
+	## window lapse (Core Rules p.159, "the chance is missed"), which loses the
+	## story without a fight — so the post-battle pipeline never runs and nothing
+	## else would ever award the "Losing the Story" consequences.
+	if not story_track:
+		return
+	var effects: Dictionary = story_track.pending_completion_effects
+	if effects.is_empty():
+		return
+	story_track.pending_completion_effects = {}
+	if post_battle_phase_handler \
+			and post_battle_phase_handler.has_method(
+				"apply_story_completion_effects"):
+		post_battle_phase_handler.apply_story_completion_effects(effects, false)
+	save_story_track_state()
 
 ## Persist Story Track state to campaign progress_data
 func save_story_track_state() -> void:
@@ -1382,13 +1713,10 @@ func _init_intro_campaign() -> void:
 	elif not intro_campaign.completed:
 		intro_campaign.start_introductory_campaign()
 
-	# Connect signals
-	intro_campaign.intro_turn_started.connect(
-		_on_intro_turn_started)
-	intro_campaign.intro_completed.connect(
-		_on_intro_completed)
-	intro_campaign.intro_phase_unlocked.connect(
-		_on_intro_phase_unlocked)
+	# Connect signals (guarded — see _connect_once)
+	_connect_once(intro_campaign, "intro_turn_started", _on_intro_turn_started)
+	_connect_once(intro_campaign, "intro_completed", _on_intro_completed)
+	_connect_once(intro_campaign, "intro_phase_unlocked", _on_intro_phase_unlocked)
 
 	# Persist initial state so other systems can read it from progress_data
 	save_intro_campaign_state()
@@ -1536,11 +1864,13 @@ func _journal_story_event(event: StoryEvent) -> void:
 		"title": "Event %d: %s" % [
 			event.event_number, event.title],
 		"description": event.narrative_intro,
-		"mood": "dramatic",
-		"tags": [
-			"story_track",
-			"event_%d" % event.event_number,
-			event.event_id],
+		# Mood and tags MUST come from the canonical sets in JournalEntryTypes
+		# (MOOD_STRING_TO_ENUM / TAGS). "dramatic" is not a mood and neither
+		# "event_1" nor the raw event_id is a tag, so every Story Event logged
+		# three push_warning()s and rendered in the fallback colour. The event
+		# number and id are already in the title and description.
+		"mood": "exciting",
+		"tags": ["story_track", "milestone"],
 		"auto_generated": true,
 	})
 
@@ -1650,26 +1980,6 @@ func generate_battlefield(theme: String = "", world_traits: Array = [],
 
 	return gen.generate_terrain_suggestions(
 		theme, world_traits, deployment_condition, rng_seed, table_size_ft)
-
-func _generate_enemy_forces() -> Array:
-	# Stub: Generate enemy forces
-	return []
-
-func _get_current_battle_data() -> Dictionary:
-	# Stub: Get current battle data
-	return {}
-
-func _calculate_experience_earned() -> Dictionary:
-	# Stub: Calculate experience earned from battle
-	return {}
-
-func _generate_trade_options() -> Array:
-	# Stub: Generate trade options
-	return []
-
-func _generate_turn_summary() -> Dictionary:
-	# Stub: Generate turn summary
-	return {}
 
 
 # Method to set the game state for testing purposes

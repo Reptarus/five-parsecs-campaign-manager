@@ -5,12 +5,12 @@ extends PanelContainer
 ## unified, filterable reverse-chronological list.
 
 # ── Deep Space Theme Constants ──────────────────────────────────
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ACCENT := Color("#2D5A7B")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
 
 const SPACING_XS := 4
 const SPACING_SM := 8
@@ -25,16 +25,16 @@ const MAX_VISIBLE := 50
 
 # ── Event Type Colors ───────────────────────────────────────────
 const EVENT_COLORS: Dictionary = {
-	"battle": Color("#DC2626"),
-	"injury": Color("#D97706"),
-	"advancement": Color("#10B981"),
-	"story_event": Color("#8B5CF6"),
-	"story_complete": Color("#8B5CF6"),
-	"story": Color("#8B5CF6"),
-	"milestone": Color("#8B5CF6"),
-	"kill": Color("#EF4444"),
+	"battle": UIColors.COLOR_RED,
+	"injury": UIColors.COLOR_AMBER,
+	"advancement": UIColors.COLOR_EMERALD,
+	"story_event": UIColors.COLOR_PURPLE,
+	"story_complete": UIColors.COLOR_PURPLE,
+	"story": UIColors.COLOR_PURPLE,
+	"milestone": UIColors.COLOR_PURPLE,
+	"kill": UIColors.COLOR_RED,
 }
-const DEFAULT_COLOR := Color("#808080")
+const DEFAULT_COLOR := UIColors.COLOR_TEXT_SECONDARY
 
 const EVENT_LABELS: Dictionary = {
 	"battle": "Battle",
@@ -90,7 +90,7 @@ func _apply_panel_style() -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 	size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -106,7 +106,7 @@ func _build_ui() -> void:
 	var header := Label.new()
 	header.text = "EVENT LOG"
 	header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	root_vbox.add_child(header)
@@ -160,7 +160,7 @@ func _build_ui() -> void:
 	_empty_label = Label.new()
 	_empty_label.text = "No events recorded yet"
 	_empty_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_empty_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	_empty_label.horizontal_alignment = (
@@ -190,7 +190,7 @@ func _create_filter_button(
 	btn.toggle_mode = true
 	btn.custom_minimum_size = Vector2(60, 32)
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 
 	# Style: border-only when inactive, filled when active
 	var normal := StyleBoxFlat.new()
@@ -365,7 +365,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	turn_lbl.text = "T%d" % turn
 	turn_lbl.custom_minimum_size = Vector2(36, 0)
 	turn_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	turn_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	turn_lbl.horizontal_alignment = (
@@ -383,7 +383,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	badge.text = type_label
 	badge.custom_minimum_size = Vector2(52, 0)
 	badge.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	badge.add_theme_color_override("font_color", type_color)
 	row.add_child(badge)
 
@@ -392,7 +392,7 @@ func _create_event_row(event: Dictionary) -> HBoxContainer:
 	desc.text = event.get("text", "")
 	desc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	desc.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	desc.text_overrun_behavior = (

@@ -50,6 +50,12 @@ func _ready() -> void:
 
 
 func _initialize() -> void:
+	# Deferred from _ready(), so it lands a frame later and this controller may
+	# already have left the tree. The /root campaign lookups below ERROR from a
+	# detached node rather than returning null, and the turn would initialise
+	# against no campaign at all. Same guard as the other deferred entry points.
+	if not is_inside_tree():
+		return
 	_load_campaign()
 	if not campaign:
 		return  # _load_campaign already navigated to main_menu
@@ -186,7 +192,7 @@ func _build_layout() -> void:
 
 	_advance_button = Button.new()
 	_advance_button.text = "Complete Phase"
-	_advance_button.custom_minimum_size = Vector2(200, 48)
+	_advance_button.custom_minimum_size = Vector2(0, 48)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
 
@@ -220,10 +226,12 @@ func _apply_topbar_responsive() -> void:
 		_phase_label.visible = not portrait
 
 	if is_instance_valid(_save_button):
-		# Save is the only top-bar button; keep it tappable at >=48px in portrait,
-		# original 36px height in landscape.
-		var save_h := 48 if portrait else 36
-		_save_button.custom_minimum_size = Vector2(80, save_h)
+		# The touch target is DEVICE-keyed, not orientation-keyed: the thumb does not
+		# get smaller when the phone is turned sideways (SOP responsive-adaptive-ui
+		# gotcha 6). This used to drop to 36px in landscape, under the 48dp floor, on
+		# the only button in the bar. The 80px WIDTH floor goes with it — a width
+		# floor stops the button shrinking with its container and propagates upward.
+		_save_button.custom_minimum_size = Vector2(0, 48)
 
 	# The phase strip stays visible in both modes; its ScrollContainer already
 	# allows it to shrink/scroll horizontally when the bar is too narrow.

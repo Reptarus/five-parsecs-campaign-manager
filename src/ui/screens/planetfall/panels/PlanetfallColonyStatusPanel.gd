@@ -10,15 +10,15 @@ const PlanetfallResearchScript := preload(
 const PlanetfallBuildingScript := preload(
 	"res://src/core/systems/PlanetfallBuildingSystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -69,7 +69,7 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size = Vector2(160, 48)
+	_close_btn.custom_minimum_size = Vector2(0, 48)
 	_close_btn.pressed.connect(func(): hide())
 
 
@@ -80,7 +80,7 @@ func _build_content() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "COLONY STATUS"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
@@ -106,7 +106,7 @@ func _build_milestone_section() -> void:
 	var milestones: int = _campaign.milestones_completed if "milestones_completed" in _campaign else 0
 	var header := Label.new()
 	header.text = "MILESTONES: %d / 7" % milestones
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_CYAN)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(header)
@@ -127,7 +127,7 @@ func _build_milestone_section() -> void:
 func _build_stats_section() -> void:
 	var section := Label.new()
 	section.text = "COLONY STATISTICS"
-	section.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	section.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	section.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(section)
 
@@ -154,7 +154,7 @@ func _build_stats_section() -> void:
 		var val: int = stats[key]
 		var lbl := Label.new()
 		lbl.text = "%s: %d" % [key, val]
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		var color: Color = COLOR_DANGER if val < 0 else COLOR_TEXT_PRIMARY
 		lbl.add_theme_color_override("font_color", color)
 		grid.add_child(lbl)
@@ -163,7 +163,7 @@ func _build_stats_section() -> void:
 func _build_research_section() -> void:
 	var section := Label.new()
 	section.text = "RESEARCH PROGRESS"
-	section.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	section.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	section.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(section)
 
@@ -191,14 +191,14 @@ func _build_research_section() -> void:
 		else:
 			lbl.text = "  [LOCKED] %s" % tname
 			lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		_content.add_child(lbl)
 
 
 func _build_buildings_section() -> void:
 	var section := Label.new()
 	section.text = "BUILDINGS"
-	section.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	section.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	section.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(section)
 
@@ -208,7 +208,7 @@ func _build_buildings_section() -> void:
 	if constructed.is_empty() and in_progress.is_empty():
 		var empty := Label.new()
 		empty.text = "  No buildings constructed yet."
-		empty.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		_content.add_child(empty)
 		return
@@ -219,7 +219,7 @@ func _build_buildings_section() -> void:
 		var remaining: int = in_progress[bid]
 		var lbl := Label.new()
 		lbl.text = "  [BUILDING] %s (%d BP remaining)" % [bname, remaining]
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		_content.add_child(lbl)
 
@@ -230,7 +230,7 @@ func _build_buildings_section() -> void:
 		var prefix: String = "[M] " if is_milestone else ""
 		var lbl := Label.new()
 		lbl.text = "  %s%s" % [prefix, bname]
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		_content.add_child(lbl)
 

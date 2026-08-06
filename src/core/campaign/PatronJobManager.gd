@@ -4,7 +4,6 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 
 ## Signals
 signal patrons_updated
-signal job_added(patron_id: String, job_data: Dictionary)
 signal job_completed(patron_id: String, job_id: String, success: bool)
 signal patron_relationship_changed(patron_id: String, new_relationship: int)
 

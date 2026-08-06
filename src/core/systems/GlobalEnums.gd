@@ -381,7 +381,23 @@ enum FiveParsecsCampaignVictoryType {
 	WEALTH_GOAL,
 	REPUTATION_GOAL,
 	FACTION_DOMINANCE,
-	MISSION_COUNT
+	MISSION_COUNT,
+	# The last eight of the seventeen Victory Conditions on Core Rules p.64. The
+	# wizard has always OFFERED all seventeen (data/campaign_config.json matches
+	# the book exactly), but these eight had no enum member, so VictoryChecker's
+	# key->enum map fell through to NONE and the campaign could never be won.
+	# Worse, Godot Dictionaries keep insertion order and the checker read the
+	# first key, so picking one of these FIRST also nullified any achievable
+	# condition picked afterwards.
+	# APPENDED, never inserted — these ordinals are persisted in save files.
+	UNIQUE_KILLS_10,
+	UNIQUE_KILLS_25,
+	UPGRADE_1X10,
+	UPGRADE_3X10,
+	UPGRADE_5X10,
+	CHALLENGING_50,
+	HARDCORE_50,
+	INSANITY_50
 }
 
 ## Market System
@@ -838,19 +854,17 @@ enum CampaignPhase {
 	END
 }
 
-## Combat Modifiers
-enum CombatModifier {
-	NONE,
-	COVER_LIGHT,
-	COVER_MEDIUM,
-	COVER_HEAVY,
-	FLANKING,
-	ELEVATION,
-	SUPPRESSED,
-	PINNED,
-	STEALTH,
-	OVERWATCH
-}
+# CombatModifier deleted 2026-08-02. Every member was fabricated and the enum
+# had zero users. Core Rules p.44 resolves shooting as 1D6 + Combat Skill
+# against a target number, and cover is BINARY — it changes which of three rows
+# applies (3+ within 6" in the open, 5+ within range in the open or within 6" in
+# Cover, 6+ within range in Cover) rather than contributing a modifier. There
+# are no light/medium/heavy cover tiers, and no flanking, elevation, suppression,
+# pinned or overwatch anywhere in either book (Pinned and Overwatch: zero
+# occurrences in each). The only real to-hit modifiers are the Heavy trait (-1
+# if the firer moved), Snap shot (+1 within 6") and the Bipod mod (+1 over 8").
+# Mirrored in GameEnums.gd; pinned by
+# test_enum_ordinal_sync.test_dead_combat_enums_stay_deleted().
 
 ## Combat Phases
 enum CombatPhase {
@@ -917,28 +931,10 @@ enum UnitAction {
 	SPECIAL_ABILITY
 }
 
-enum CombatAdvantage {
-	NONE,
-	MINOR,
-	MAJOR,
-	OVERWHELMING
-}
-
-enum CombatStatus {
-	NONE,
-	PINNED,
-	FLANKED,
-	SURROUNDED,
-	SUPPRESSED
-}
-
-enum CombatTactic {
-	NONE,
-	AGGRESSIVE,
-	DEFENSIVE,
-	BALANCED,
-	EVASIVE
-}
+# CombatAdvantage / CombatStatus / CombatTactic deleted 2026-08-02 (see the
+# CombatModifier note above). All three were fabricated and had zero users.
+# Mirrored in GameEnums.gd; pinned by
+# test_enum_ordinal_sync.test_dead_combat_enums_stay_deleted().
 
 enum CombatResult {
 	NONE,

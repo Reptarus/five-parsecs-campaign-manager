@@ -24,8 +24,27 @@ const STAT_PROPERTY_MAP := {
 	"SAVVY": "savvy",
 	"LUCK": "luck",
 	"SPEED": "speed",
-	# CREDITS removed — not a character stat. WEALTH motivation credits
-	# applied at campaign level in CampaignFinalizationService
+	# CREDITS removed — not a character stat. Motivation/background/class credit
+	# dice (incl. WEALTH's 1D6) are rolled ONCE into
+	# creation_bonuses.bonus_credits by _roll_and_store_creation_bonuses(), and
+	# the Equipment step sums them into the crew's starting credits. Do NOT add a
+	# second grant at campaign level — finalization used to, and the crew arrived
+	# with roughly double the credits the review screen had promised.
+}
+
+# The other spelling of the same six stats. character_species.json writes its
+# stat_modifiers in lowercase property-ish names while
+# character_creation_bonuses.json uses the SCREAMING_CASE enum names above; both
+# have to resolve. See _resolve_stat_property().
+const STAT_KEY_ALIASES := {
+	"COMBAT": "COMBAT_SKILL",
+	"COMBAT_SKILL": "COMBAT_SKILL",
+	"REACTION": "REACTIONS",
+	"REACTIONS": "REACTIONS",
+	"TOUGHNESS": "TOUGHNESS",
+	"SAVVY": "SAVVY",
+	"LUCK": "LUCK",
+	"SPEED": "SPEED",
 }
 
 # Rulebook-order dropdown items: [display_name, enum_value]
@@ -389,13 +408,103 @@ func _set_base_stats() -> void:
 func _setup_captain_bonuses() -> void:
 	if not current_character:
 		return
-	# Captain gets +1 combat and +1 luck (Five Parsecs core rules)
-	current_character.combat += 1
-	current_character.luck += 1
+	# Core Rules p.24 "Leaders", verbatim: "Once you have created all of your
+	# characters, pick one to be the Leader. This character receives 1 Luck point
+	# and will never leave the crew through random events, though they can
+	# certainly be slain. While you are free to select a Bot as your Leader, they
+	# do not receive Luck if you do."
+	#
+	# There is NO Combat bonus on that page or anywhere else — the +1 Combat Skill
+	# every captain used to get was invented, and it is the single most valuable
+	# stat in the game.
+	if _is_bot_character(current_character):
+		return
+	_grant_luck(1)
+
+func _is_bot_character(character) -> bool:
+	## Bots and Assault Bots, by either the flag or the species/origin id.
+	if character == null:
+		return false
+	if "is_bot" in character and bool(character.is_bot):
+		return true
+	var sid: String = str(_get_character_property(character, "species_id", ""))
+	if sid.to_lower() in ["bot", "assault_bot"]:
+		return true
+	var origin_val = _get_character_property(character, "origin", 0)
+	if origin_val is int:
+		return origin_val == GlobalEnums.Origin.BOT
+	return str(origin_val).to_lower() == "bot"
+
+func _is_human_character(character) -> bool:
+	## Core Rules p.15: Humans "are the only character type that can exceed 1
+	## point of Luck". Anything that is not a Human is capped at 1.
+	if character == null:
+		return false
+	var sid: String = str(_get_character_property(character, "species_id", ""))
+	if not sid.is_empty():
+		return sid.to_lower() == "human"
+	var origin_val = _get_character_property(character, "origin", 0)
+	if origin_val is int:
+		return origin_val == GlobalEnums.Origin.HUMAN
+	return str(origin_val).to_lower() == "human"
+
+func _grant_luck(amount: int) -> void:
+	## ADD Luck to the character being edited, then enforce the p.15 ceiling.
+	_grant_luck_to(current_character, amount)
+
+func _grant_luck_to(character, amount: int) -> void:
+	## Every Luck grant during creation goes through here so the p.15 ceiling is
+	## applied uniformly, whichever character is being built.
+	if character == null or amount == 0:
+		return
+	var next_luck: int = maxi(
+		int(_get_character_property(character, "luck", 0)) + amount, 0)
+	_set_character_property(character, "luck", next_luck)
+	_enforce_luck_ceiling_on(character)
+
+func _enforce_luck_ceiling() -> void:
+	_enforce_luck_ceiling_on(current_character)
+
+func _enforce_luck_ceiling_on(character) -> void:
+	## Core Rules p.15, on Humans: "They have a single advantage: they are the
+	## only character type that can exceed 1 point of Luck."
+	##
+	## Nothing enforced this, so a non-Human Leader who also rolled a Luck result
+	## (Working Class grants +1, p.27) finished creation on 2 Luck — a Human-only
+	## privilege, on the stat that cancels lethal hits.
+	if character == null:
+		return
+	if _is_human_character(character):
+		return
+	if int(_get_character_property(character, "luck", 0)) > 1:
+		_set_character_property(character, "luck", 1)
+
+func _resolve_stat_property(stat_key: String) -> String:
+	## Resolve EITHER spelling of a stat key to the character's property name.
+	##
+	## Two data files feed this and they disagree.
+	## character_creation_bonuses.json uses the SCREAMING_CASE enum spellings that
+	## STAT_PROPERTY_MAP is keyed by; character_species.json uses lowercase
+	## property-ish names ("combat", "reactions") in every one of its 28
+	## stat_modifiers blocks. The lookup only knew the first, so
+	## _apply_strange_character_stats fed it "combat"/"toughness"/"speed"/
+	## "savvy"/"reactions", got "" back for all five, and returned early —
+	## EVERY Strange Character's stat modifiers were silently discarded and a
+	## Hulker, a Genetic Uplift and a Traveler all came out as baseline Humans.
+	##
+	## Note this is not a pure case fix: "combat" maps to COMBAT_SKILL and
+	## "reactions" (plural) to REACTIONS, whose property is `reaction`.
+	var direct: String = STAT_PROPERTY_MAP.get(stat_key, "")
+	if not direct.is_empty():
+		return direct
+	var alias: String = STAT_KEY_ALIASES.get(stat_key.to_upper(), "")
+	if alias.is_empty():
+		return ""
+	return STAT_PROPERTY_MAP.get(alias, "")
 
 func _apply_stat_bonus(stat_key: String, bonus: int) -> void:
 	## Apply a stat bonus using the STAT_PROPERTY_MAP key name
-	var prop_name: String = STAT_PROPERTY_MAP.get(stat_key, "")
+	var prop_name: String = _resolve_stat_property(stat_key)
 	if prop_name.is_empty() or not current_character:
 		return
 	var raw_val = current_character.get(prop_name)
@@ -404,6 +513,11 @@ func _apply_stat_bonus(stat_key: String, bonus: int) -> void:
 		return
 	var current_val: int = raw_val
 	current_character.set(prop_name, current_val + bonus)
+	# The p.15 Luck ceiling is enforced as a final pass, NOT clamped here: these
+	# bonuses are added and REMOVED as dropdowns change, and a value clamped on
+	# the way in cannot be un-clamped on the way out without drifting.
+	if prop_name == "luck":
+		_enforce_luck_ceiling()
 
 func _remove_bonuses(bonus_dict: Dictionary) -> void:
 	for stat_key in bonus_dict:
@@ -459,24 +573,45 @@ func _enforce_species_constraints(species_id: String) -> void:
 	if species_id.is_empty():
 		return
 
-	# Assault Bot: no creation tables (Core Rules p.21)
+	# Bots and Assault Bots make no creation rolls (Core Rules p.15: "Bots do not
+	# make any rolls on the character creation tables. All Bots simply begin with
+	# the base profile listed above."; Assault Bot p.21).
+	#
+	# Disabling the dropdowns was not enough. start_creation() seeds them at index
+	# 0 and applies that row's bonuses BEFORE a species is chosen, so a Bot kept
+	# whatever stat bonuses the default Background / Class / Motivation happened to
+	# grant — it did not begin with the base profile at all. Take them back off.
 	if not SpeciesDataService.can_roll_creation_tables(species_id):
 		background_options.disabled = true
 		class_options.disabled = true
 		motivation_options.disabled = true
+		_strip_creation_table_bonuses()
 		return
 
 	# Forced motivation (De-converted→Revenge, Unity Agent→Order, etc.)
+	#
+	# Hakshan is NOT one of these. Core Rules p.20: "In addition to the usual
+	# rolls on the Background, Motivation, and Class Tables, you automatically
+	# have the Truth motivation" — additive, so the roll still happens and the
+	# dropdown stays live. Contrast Traveler, p.23: "Motivation is always Truth."
+	# Both carried the same forced_motivation field, so Hakshan was losing the
+	# motivation the book says they roll. Truth's own bonuses are added in
+	# _roll_and_store_creation_bonuses().
 	var forced_mot: String = SpeciesDataService.get_forced_motivation(
 		species_id)
+	if SpeciesDataService.is_motivation_additional(species_id):
+		forced_mot = ""
 	if not forced_mot.is_empty():
 		var mot_idx := _find_item_index_by_name(
 			MOTIVATION_ITEMS, forced_mot.capitalize())
 		if mot_idx >= 0:
-			_set_character_property(
-				current_character, "motivation",
-				MOTIVATION_ITEMS[mot_idx][1])
-			_apply_motivation_bonuses(MOTIVATION_ITEMS[mot_idx][1])
+			# Canonical STRING, not the enum int — see _on_background_changed.
+			var forced_mot_id: int = MOTIVATION_ITEMS[mot_idx][1]
+			var forced_mot_key: String = GlobalEnums.to_string_value(
+				"motivation", forced_mot_id)
+			_set_character_property(current_character, "motivation",
+				forced_mot_key if forced_mot_key != "UNKNOWN" else forced_mot_id)
+			_apply_motivation_bonuses(forced_mot_id)
 			for i in range(motivation_options.item_count):
 				if motivation_options.get_item_id(i) == MOTIVATION_ITEMS[mot_idx][1]:
 					motivation_options.select(i)
@@ -493,15 +628,32 @@ func _enforce_species_constraints(species_id: String) -> void:
 		var bg_idx := _find_item_index_by_name(
 			BACKGROUND_ITEMS, bg_display)
 		if bg_idx >= 0:
-			_set_character_property(
-				current_character, "background",
-				BACKGROUND_ITEMS[bg_idx][1])
-			_apply_background_bonuses(BACKGROUND_ITEMS[bg_idx][1])
+			# Canonical STRING, not the enum int — see _on_background_changed.
+			var forced_bg_id: int = BACKGROUND_ITEMS[bg_idx][1]
+			var forced_bg_key: String = GlobalEnums.to_string_value(
+				"background", forced_bg_id)
+			_set_character_property(current_character, "background",
+				forced_bg_key if forced_bg_key != "UNKNOWN" else forced_bg_id)
+			_apply_background_bonuses(forced_bg_id)
 			for i in range(background_options.item_count):
 				if background_options.get_item_id(i) == BACKGROUND_ITEMS[bg_idx][1]:
 					background_options.select(i)
 					break
 			background_options.disabled = true
+
+func _strip_creation_table_bonuses() -> void:
+	## Undo every Background / Class / Motivation stat bonus currently applied, for
+	## the species the book says make no creation rolls at all (Bots, p.15;
+	## Assault Bots, p.21). Origin bonuses are NOT touched — those are the species
+	## profile itself, which is exactly what such a character keeps.
+	if not current_character:
+		return
+	for table_key in ["background", "class", "motivation"]:
+		var applied: Dictionary = current_bonuses.get(table_key, {})
+		if applied.is_empty():
+			continue
+		_remove_bonuses(applied)
+		applied.clear()
 
 func _grant_random_psionic_power() -> void:
 	## Grant a random psionic power to the current character (Precursor origin, Core Rules p.17)
@@ -568,6 +720,63 @@ func _load_json_file(path: String) -> Dictionary:
 # Cached gear_database.json for creation bonus lookups
 var _gear_db_for_bonuses: Dictionary = {}
 
+func _apply_gear_entry_bonuses(
+		bonuses: Dictionary, table_key: String, entry_id: String) -> void:
+	## Apply ONE gear_database.json creation-table row's resource grants into the
+	## running bonus ledger. Extracted so the species that roll a table TWICE
+	## (Mysterious Past p.20, Feeler p.22) and the one that gets an extra
+	## motivation outright (Hakshan p.20) go through exactly the same path as the
+	## normal roll instead of a parallel copy of this arithmetic.
+	var table: Array = _gear_db_for_bonuses.get(table_key, [])
+	for entry in table:
+		if not entry is Dictionary:
+			continue
+		if entry.get("id", "") != entry_id:
+			continue
+		var res: Dictionary = entry.get("resources", {})
+		bonuses.patrons += res.get("patron", 0)
+		bonuses.rivals += res.get("rival", 0)
+		bonuses.quest_rumors += res.get("quest_rumors", 0)
+		bonuses.story_points += res.get("story_points", 0)
+		# XP lives under stat_bonuses in gear_database.json, NOT resources — all
+		# five granting rows (Revenge/Power/Freedom p.26, Explorer/Punk p.27)
+		# store it there. Reading only `resources` made bonuses.xp permanently 0,
+		# and the stat path ignores it too because STAT_PROPERTY_MAP has no "xp"
+		# key, so the book's +2 XP reached the character by neither route.
+		bonuses.xp += res.get("xp", 0)
+		bonuses.xp += entry.get("stat_bonuses", {}).get("xp", 0)
+		bonuses.starting_rolls.append_array(entry.get("starting_rolls", []))
+		var dice_str: String = res.get("credits_dice", "")
+		if not dice_str.is_empty():
+			var rolled: int = 0
+			var d := dice_str.to_lower()
+			if d == "2d6":
+				rolled = randi_range(1, 6) + randi_range(1, 6)
+			elif d in ["1d6", "d6"]:
+				rolled = randi_range(1, 6)
+			bonuses.bonus_credits += rolled
+			bonuses.credits_dice_sources.append({
+				"source": table_key.trim_suffix("s"),
+				"dice": dice_str,
+				"rolled": rolled,
+			})
+		return
+
+func _roll_gear_table_entry_id(table_key: String) -> String:
+	## Roll D100 against a gear_database.json creation table and return the id of
+	## the row that was hit. Used for the book's "roll twice" species.
+	var table: Array = _gear_db_for_bonuses.get(table_key, [])
+	if table.is_empty():
+		return ""
+	var roll: int = randi_range(1, 100)
+	for entry in table:
+		if not entry is Dictionary:
+			continue
+		var r: Array = entry.get("roll_range", [])
+		if r.size() == 2 and roll >= int(r[0]) and roll <= int(r[1]):
+			return str(entry.get("id", ""))
+	return ""
+
 func _roll_and_store_creation_bonuses(character) -> void:
 	## Roll creation bonuses from gear_database.json using character's actual
 	## background/motivation/class. Stores concrete rolled results on
@@ -594,6 +803,18 @@ func _roll_and_store_creation_bonuses(character) -> void:
 		_set_character_property(character, "creation_bonuses", bonuses)
 		return
 
+	# "Bots do not make ANY rolls on the character creation tables" (p.15;
+	# Assault Bot p.21) — that covers the resource columns too, not just stats,
+	# so a Bot contributes no credits, patrons, rivals, story points, rumors or
+	# starting equipment rolls. Store the empty ledger and stop.
+	var creator_species: String = str(
+		_get_character_property(character, "species_id", ""))
+	if not creator_species.is_empty() \
+			and not SpeciesDataService.can_roll_creation_tables(creator_species):
+		_set_character_property(character, "creation_bonuses", bonuses)
+		return
+
+	var sid_for_rolls: String = creator_species.to_lower()
 	var lookups := {
 		"backgrounds": _get_character_property(
 			character, "background", 0),
@@ -622,39 +843,31 @@ func _roll_and_store_creation_bonuses(character) -> void:
 					break
 		if enum_name.is_empty() or enum_name == "none":
 			continue
-		var table: Array = _gear_db_for_bonuses.get(
-			table_key, [])
-		for entry in table:
-			if not entry is Dictionary:
-				continue
-			if entry.get("id", "") != enum_name:
-				continue
-			var res: Dictionary = entry.get("resources", {})
-			bonuses.patrons += res.get("patron", 0)
-			bonuses.rivals += res.get("rival", 0)
-			bonuses.quest_rumors += res.get(
-				"quest_rumors", 0)
-			bonuses.story_points += res.get(
-				"story_points", 0)
-			bonuses.xp += res.get("xp", 0)
-			bonuses.starting_rolls.append_array(
-				entry.get("starting_rolls", []))
-			var dice_str: String = res.get(
-				"credits_dice", "")
-			if not dice_str.is_empty():
-				var rolled: int = 0
-				var d := dice_str.to_lower()
-				if d == "2d6":
-					rolled = randi_range(1, 6) + randi_range(1, 6)
-				elif d in ["1d6", "d6"]:
-					rolled = randi_range(1, 6)
-				bonuses.bonus_credits += rolled
-				bonuses.credits_dice_sources.append({
-					"source": table_key.trim_suffix("s"),
-					"dice": dice_str,
-					"rolled": rolled,
-				})
-			break
+		_apply_gear_entry_bonuses(bonuses, table_key, enum_name)
+
+	# THE EXTRA ROLLS THE BOOK GRANTS SOME SPECIES. All three accessors existed
+	# and had zero call sites, so none of these rules had ever run.
+	if not sid_for_rolls.is_empty():
+		# Mysterious Past (p.20): "roll twice on the Background Table and apply
+		# BOTH results."
+		if SpeciesDataService.has_double_background(sid_for_rolls):
+			var extra_bg: String = _roll_gear_table_entry_id("backgrounds")
+			if not extra_bg.is_empty():
+				_apply_gear_entry_bonuses(bonuses, "backgrounds", extra_bg)
+		# Feeler (p.22): "Roll twice on the Motivation Table and receive the
+		# benefits of BOTH rolls."
+		if SpeciesDataService.has_double_motivation(sid_for_rolls):
+			var extra_mot: String = _roll_gear_table_entry_id("motivations")
+			if not extra_mot.is_empty():
+				_apply_gear_entry_bonuses(bonuses, "motivations", extra_mot)
+		# Hakshan (p.20): Truth "in addition to the usual rolls", so Truth's own
+		# benefits stack on top of the motivation they rolled.
+		if SpeciesDataService.is_motivation_additional(sid_for_rolls):
+			var extra_forced: String = SpeciesDataService.get_forced_motivation(
+				sid_for_rolls)
+			if not extra_forced.is_empty():
+				_apply_gear_entry_bonuses(bonuses, "motivations", extra_forced.to_lower())
+
 	# Roll actual item names from D100 tables for display
 	if not bonuses.starting_rolls.is_empty():
 		var wt: Dictionary = _gear_db_for_bonuses.get(
@@ -688,10 +901,29 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				# Bonus story points from tables are ignored (p.20)
 				bonuses.story_points = 0
 			"genetic_uplift":
-				# Background bonus credits ignored, +1 rival (p.21)
-				bonuses.bonus_credits = 0
-				bonuses.credits_dice_sources.clear()
+				# Core Rules p.21, verbatim: "All BACKGROUND rolls that would
+				# result in additional credits are ignored. The crew receives 1
+				# additional Rival."
+				#
+				# Only the Background roll. This used to zero bonus_credits
+				# outright and wipe every source, which also silently ate the
+				# Motivation and Class credits the book leaves alone — a WEALTH
+				# Genetic Uplift lost their 1D6 for no reason in the rules.
+				var uplift_kept: Array = []
+				for src_entry in bonuses.credits_dice_sources:
+					if str(src_entry.get("source", "")) == "background":
+						bonuses.bonus_credits = maxi(
+							bonuses.bonus_credits - int(src_entry.get("rolled", 0)), 0)
+					else:
+						uplift_kept.append(src_entry)
+				bonuses.credits_dice_sources = uplift_kept
 				bonuses.rivals += 1
+			"bio_upgrade":
+				# Core Rules p.23, verbatim: "If Background, Motivation, or Class
+				# rolls produce bonus credits, receive 2 credits less." Had no
+				# case at all, so the penalty never applied.
+				if bonuses.bonus_credits > 0:
+					bonuses.bonus_credits = maxi(bonuses.bonus_credits - 2, 0)
 			"minor_alien":
 				# Bonus credits/story points reduced by 1 (p.22)
 				bonuses.bonus_credits = maxi(
@@ -715,8 +947,12 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				bonuses.story_points += 2
 				bonuses.quest_rumors += 2
 			"hopeful_rookie":
-				# Begin with 1 Luck (p.21)
-				_set_character_property(character, "luck", 1)
+				# Core Rules p.21: "Begin with 1 Luck." Baseline Human Luck is 0,
+				# so this is +1 — and it must ADD, not assign. Assigning ran after
+				# the class bonuses and overwrote them, so a Hopeful Rookie who
+				# rolled Working Class (+1 Luck, p.27) finished on 1 instead of 2,
+				# losing a bonus a Human is entitled to stack.
+				_grant_luck_to(character, 1)
 			"krag":
 				# Compendium p.15: If creation gives 1+ Patrons, add one Rival
 				if bonuses.patrons > 0:
@@ -734,6 +970,14 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				# Compendium p.17: Ignore first Rival rolled
 				if bonuses.rivals > 0:
 					bonuses.rivals = maxi(bonuses.rivals - 1, 0)
+
+	# GRANT the rolled XP. bonuses.xp had zero consumers repo-wide, so even once
+	# it is read correctly it would sit unspent on the record — the five table
+	# results that read "+2 XP" (Core Rules pp.26-27) have to reach the
+	# character's experience or the grant is decorative.
+	if int(bonuses.xp) > 0:
+		_set_character_property(character, "experience",
+			int(_get_character_property(character, "experience", 0)) + int(bonuses.xp))
 
 	_set_character_property(character, "creation_bonuses", bonuses)
 
@@ -878,10 +1122,14 @@ func _on_randomize_pressed() -> void:
 		origin_options.get_item_id(origin_idx)
 		if origin_idx < origin_options.item_count else 1)
 
-	# Set origin — enum int for primary, display name for Strange
+	# Set origin — canonical enum STRING for primary, display name for Strange.
+	# Character.origin is a validated String property; the raw int fell through to
+	# the setter default ("HUMAN"), so a randomised crew's species was recorded
+	# wrong on every standard-species member. See _on_background_changed.
 	if origin_enum > 0:
-		_set_character_property(
-			current_character, "origin", origin_enum)
+		var rnd_origin_key: String = GlobalEnums.to_string_value("origin", origin_enum)
+		_set_character_property(current_character, "origin",
+			rnd_origin_key if rnd_origin_key != "UNKNOWN" else origin_enum)
 	else:
 		_set_character_property(
 			current_character, "origin",
@@ -1108,8 +1356,14 @@ func _on_origin_changed(index: int) -> void:
 
 	# Standard species (positive enum ID) vs Strange Character (negative)
 	if enum_value > 0:
-		_set_character_property(
-			current_character, "origin", enum_value)
+		# See _on_background_changed: Character.origin is a validated STRING
+		# property, so convert here. Passing the int left every standard-species
+		# character on the setter default, "HUMAN" — which among other things
+		# meant a Prison Planet character was never recognised as one, and the
+		# whole Compendium p.138 boxout could not fire.
+		var origin_key: String = GlobalEnums.to_string_value("origin", enum_value)
+		_set_character_property(current_character, "origin",
+			origin_key if origin_key != "UNKNOWN" else enum_value)
 		_apply_origin_bonuses(enum_value)
 	else:
 		# Strange Character — store display name as origin string
@@ -1157,7 +1411,14 @@ func _on_class_changed(index: int) -> void:
 
 func _on_motivation_changed(index: int) -> void:
 	var enum_value: int = motivation_options.get_item_id(index)
-	_set_character_property(current_character, "motivation", enum_value)
+	# See _on_background_changed: Character.motivation is a validated STRING
+	# property, so the enum id must become its canonical key HERE. Passing the int
+	# left every hand-picked crew member on the setter default, "SURVIVAL" — which
+	# also meant the WEALTH and FAME campaign bonuses could never see their own
+	# motivation on a crew the player built by hand rather than randomising.
+	var enum_key: String = GlobalEnums.to_string_value("motivation", enum_value)
+	_set_character_property(current_character, "motivation",
+		enum_key if enum_key != "UNKNOWN" else enum_value)
 	_apply_motivation_bonuses(enum_value)
 	_update_preview()
 

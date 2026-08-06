@@ -39,18 +39,18 @@ enum EventType {
 }
 
 # ── Deep Space Theme ──────────────────────────────────────────────────
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_TEXT_GOLD := Color("#FFD700")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_DEFERRED := Color("#4FC3F7")
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_DEFERRED := UIColors.COLOR_CYAN
 const TOUCH_TARGET_MIN := 48
 
 # ── State ─────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ func _build_ui() -> void:
 	# Event title
 	var title_label := Label.new()
 	title_label.text = str(_event_data.get("event_name", "Event"))
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title_label)
@@ -157,7 +157,7 @@ func _build_ui() -> void:
 		if not task_type.is_empty():
 			sub_text += " • %s" % task_type.capitalize()
 		subtitle.text = sub_text
-		subtitle.add_theme_font_size_override("font_size", 14)
+		subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(subtitle)
@@ -172,7 +172,7 @@ func _build_ui() -> void:
 	if not effect_text.is_empty():
 		var effect_label := Label.new()
 		effect_label.text = effect_text
-		effect_label.add_theme_font_size_override("font_size", 14)
+		effect_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		effect_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		effect_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(effect_label)
@@ -333,14 +333,14 @@ func _build_accept_decline_buttons() -> void:
 
 	var accept_btn := Button.new()
 	accept_btn.text = "Accept"
-	accept_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	accept_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(accept_btn, COLOR_ACCENT)
 	accept_btn.pressed.connect(_on_accept_risk)
 	hbox.add_child(accept_btn)
 
 	var decline_btn := Button.new()
 	decline_btn.text = "Decline"
-	decline_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	decline_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(decline_btn, COLOR_ELEVATED)
 	decline_btn.pressed.connect(_on_decline_risk)
 	hbox.add_child(decline_btn)
@@ -354,7 +354,7 @@ func _build_purchase_buttons() -> void:
 
 	var buy_btn := Button.new()
 	buy_btn.text = "Pay %d Credits" % cost
-	buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(buy_btn, COLOR_ACCENT)
 	buy_btn.pressed.connect(_on_purchase_accepted)
 	hbox.add_child(buy_btn)
@@ -382,7 +382,7 @@ func _build_grenade_picker() -> void:
 	_dazzle_count = 0
 	var desc := Label.new()
 	desc.text = "Choose your combination (total = 3)"
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_interactive_area.add_child(desc)
@@ -422,7 +422,7 @@ func _build_discard_list() -> void:
 
 	var desc := Label.new()
 	desc.text = "Choose an item to discard:"
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
@@ -450,14 +450,14 @@ func _build_sell_list() -> void:
 
 	var desc := Label.new()
 	desc.text = "Select weapons to sell (%d credits each):" % _sell_credits_per
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
 	for item_name in equipment:
 		var cb := CheckBox.new()
 		cb.text = str(item_name)
-		cb.add_theme_font_size_override("font_size", 14)
+		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		cb.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		cb.toggled.connect(_on_sell_checkbox_toggled)
@@ -467,7 +467,7 @@ func _build_sell_list() -> void:
 	# Total display
 	_sell_total_label = Label.new()
 	_sell_total_label.text = "Total: 0 credits"
-	_sell_total_label.add_theme_font_size_override("font_size", 16)
+	_sell_total_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	_sell_total_label.add_theme_color_override("font_color", COLOR_TEXT_GOLD)
 	_sell_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_interactive_area.add_child(_sell_total_label)
@@ -479,7 +479,7 @@ func _build_sell_list() -> void:
 
 	var sell_btn := Button.new()
 	sell_btn.text = "Sell Selected"
-	sell_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	sell_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(sell_btn, COLOR_ACCENT)
 	sell_btn.pressed.connect(_on_sell_confirmed)
 	hbox.add_child(sell_btn)
@@ -498,7 +498,7 @@ func _build_quantity_picker() -> void:
 
 	var desc := Label.new()
 	desc.text = "%d credits each (max %d)" % [_buy_cost_each, _buy_max]
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_interactive_area.add_child(desc)
@@ -511,7 +511,7 @@ func _build_quantity_picker() -> void:
 
 	_buy_total_label = Label.new()
 	_buy_total_label.text = "Cost: 0 credits"
-	_buy_total_label.add_theme_font_size_override("font_size", 16)
+	_buy_total_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	_buy_total_label.add_theme_color_override("font_color", COLOR_TEXT_GOLD)
 	_buy_total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_interactive_area.add_child(_buy_total_label)
@@ -523,7 +523,7 @@ func _build_quantity_picker() -> void:
 
 	var buy_btn := Button.new()
 	buy_btn.text = "Purchase"
-	buy_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(buy_btn, COLOR_ACCENT)
 	buy_btn.pressed.connect(_on_buy_confirmed)
 	hbox.add_child(buy_btn)
@@ -544,7 +544,7 @@ func _build_trade_buttons() -> void:
 
 	var trade_btn := Button.new()
 	trade_btn.text = "Trade a %s" % trade_type.capitalize()
-	trade_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	trade_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_style_button(trade_btn, COLOR_ACCENT)
 	trade_btn.pressed.connect(_on_trade_accepted)
 	hbox.add_child(trade_btn)
@@ -947,7 +947,7 @@ func _on_trade_accepted() -> void:
 		return
 	var desc := Label.new()
 	desc.text = "Choose a %s to trade:" % trade_type
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 	for item_name in equipment:
@@ -1053,7 +1053,7 @@ func _show_outcome(text: String, color: Color) -> void:
 	_outcome_container.add_child(sep)
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1067,7 +1067,7 @@ func _add_outcome_line(text: String, color: Color) -> void:
 	_outcome_container.visible = true
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", 14)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	label.add_theme_color_override("font_color", color)
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_outcome_container.add_child(label)
@@ -1085,7 +1085,7 @@ func _build_badge(text: String, color: Color) -> PanelContainer:
 	badge_panel.add_theme_stylebox_override("panel", badge_style)
 	var badge_label := Label.new()
 	badge_label.text = text
-	badge_label.add_theme_font_size_override("font_size", 14)
+	badge_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	badge_label.add_theme_color_override("font_color", color)
 	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge_panel.add_child(badge_label)
@@ -1098,7 +1098,7 @@ func _build_counter_row(label_text: String, initial: int) -> HBoxContainer:
 
 	var name_label := Label.new()
 	name_label.text = label_text
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
@@ -1111,7 +1111,7 @@ func _build_counter_row(label_text: String, initial: int) -> HBoxContainer:
 
 	var count_label := Label.new()
 	count_label.text = str(initial)
-	count_label.add_theme_font_size_override("font_size", 18)
+	count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	count_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_label.custom_minimum_size = Vector2(40, 0)
@@ -1131,13 +1131,13 @@ func _build_counter_row(label_text: String, initial: int) -> HBoxContainer:
 func _style_button(btn: Button, bg_color: Color) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = bg_color
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("normal", normal)
 
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = bg_color.lightened(0.15)
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.set_content_margin_all(8)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(2)
@@ -1145,36 +1145,36 @@ func _style_button(btn: Button, bg_color: Color) -> void:
 
 	var pressed := StyleBoxFlat.new()
 	pressed.bg_color = bg_color.darkened(0.1)
-	pressed.set_corner_radius_all(6)
+	pressed.set_corner_radius_all(4)
 	pressed.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("pressed", pressed)
 
 	var disabled := StyleBoxFlat.new()
 	disabled.bg_color = bg_color.darkened(0.4)
-	disabled.set_corner_radius_all(6)
+	disabled.set_corner_radius_all(4)
 	disabled.set_content_margin_all(8)
 	btn.add_theme_stylebox_override("disabled", disabled)
 
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	btn.add_theme_color_override("font_hover_color", Color.WHITE)
 	btn.add_theme_color_override("font_disabled_color", COLOR_TEXT_SECONDARY)
-	btn.add_theme_font_size_override("font_size", 16)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 
 func _style_counter_button(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = COLOR_ELEVATED
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
 	btn.add_theme_stylebox_override("normal", normal)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 
 func _resize_dialog(event_type: int) -> void:
 	# Estimate height based on event type complexity

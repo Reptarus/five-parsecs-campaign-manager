@@ -83,14 +83,14 @@ func _build_ui() -> void:
 
 	_play_again_btn = Button.new()
 	_play_again_btn.text = "Play Again"
-	_play_again_btn.custom_minimum_size = Vector2(180, TOUCH_TARGET)
+	_play_again_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_play_again_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	_play_again_btn.pressed.connect(func(): play_again_pressed.emit())
 	btn_row.add_child(_play_again_btn)
 
 	_menu_btn = Button.new()
 	_menu_btn.text = "Main Menu"
-	_menu_btn.custom_minimum_size = Vector2(180, TOUCH_TARGET)
+	_menu_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	_menu_btn.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	_menu_btn.pressed.connect(func(): main_menu_pressed.emit())
 	btn_row.add_child(_menu_btn)

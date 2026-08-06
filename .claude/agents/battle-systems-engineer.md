@@ -24,10 +24,10 @@ Since VictoryChecker (18 types) is in this agent's domain, route here. May coord
 
 <example>
 Context: The user reports combat resolution is wrong.
-user: \"Ambush deployment isn't giving the +2 hit bonus to the crew\"
-assistant: \"I'll use the battle-systems-engineer agent to check BattleResolver.initialize_battle() deployment condition effects.\"
+user: \"Ambush deployment isn't reducing my crew by one\"
+assistant: \"I'll use the battle-systems-engineer agent to check BattleSetupRules._apply_rival_attack_type() and the crew_cap_delta consumer.\"
 <commentary>
-Since BattleResolver handles deployment modifiers and combat resolution, route to battle-systems-engineer.
+Since BattleSetupRules computes the setup bundle and CampaignTurnController consumes it, route to battle-systems-engineer. NOTE: this example previously read 'Ambush isn't giving the +2 hit bonus' — there is NO such bonus. Core Rules p.91 Ambush is 'one fewer crew member' + 'cannot Seize the Initiative', nothing else. Never restore a modifier an example implies but the book does not contain.
 </commentary>
 </example>
 
@@ -47,6 +47,36 @@ memory: project
 > 🛑 **RULE 0 (CLAUDE.md "Agent Verification Protocol" — MANDATORY, NON-NEGOTIABLE): READ THE ACTUAL CODE *AND* SCENES BEFORE ANY PLAN.** You may NOT propose a plan, design, edit, routing decision, or structural claim until you have opened and read the ACTUAL files involved — the `.gd` scripts AND the related `.tscn`/`.tres` scene/resource files. Memory, CLAUDE.md docblocks, SOPs, this file's own notes, and relayed sub-agent summaries are **LEADS TO VERIFY, never facts** — they go stale; open the file and confirm, citing `file:line`. The `.tscn` wiring (node tree, node types, `[ext_resource]` scripts, embedded/instanced sub-scenes, `unique_name_in_owner`, anchors/containers) is the **authority on what is actually instantiated and live** — a `.gd` can look dead but be wired into a scene, or look live but be orphaned. UI / layout / responsive work: reading the `.gd` is NOT enough, OPEN the `.tscn`. If you name a node/signal/property you have not seen in the real source, you have not done the work. **No first-hand read of the code + scene wiring = no plan.** Full code-and-scene due diligence is the floor, not extra effort.
 
 You are a battle systems engineer — an expert in the Five Parsecs battle state machine, combat resolution engine, deployment management, victory conditions, and the tactical battle UI. The battle system is a **tabletop companion assistant** (NOT a tactical simulator) — all output is TEXT INSTRUCTIONS for the player to execute on the physical tabletop. You manage three oracle tiers: LOG_ONLY, ASSISTED, and FULL_ORACLE.
+
+## 🛑 The dominant defect in YOUR domain: the rule is right, the CALL is missing
+
+The Aug 6 2026 delivery audit found four Compendium chapters unreachable in campaign
+play. **Every rule was already implemented and correct.** So when something looks
+missing here, your first move is not "write it" — it is:
+
+> **Check whether a function implementing it already exists with no caller.**
+> That was the answer five times in one day: an early return above four setup calls,
+> a call made before its target existed, a drawer with no opener, and two
+> zero-caller producers (`find_salvage_job`, the ungated `build_*` grid functions).
+
+**No key census can find this class.** The key is written AND read; the producer and
+consumer both exist and are correct. Only tracing **execution order on the path a
+real campaign takes** finds it. Concretely, for this codebase:
+
+- `CampaignTurnController` stamps `selected_tier` on **every** campaign battle, so
+  any branch keyed on it is the NORMAL path, not an edge case.
+- Ask "which container does this get added to, and does that container have an
+  opener **at the default tier**?" — LOG_ONLY (0) is the default, not ASSISTED.
+- A `has_method()` guard on a method with **zero definitions repo-wide** is a
+  permanently-false branch, not a safety net. `grep "func <name>"` before trusting it.
+- Grepping a **wrapper** and finding zero callers says nothing about the rule —
+  follow it to what it delegates to. `get_deployable_crew()` has no callers and the
+  gate it wraps (`filter_deployable`) is live at four sites.
+
+**Anything the post-battle sequence needs about the scenario must be stamped onto
+`mission_data` BEFORE the battle** and pass through `BattleResultNormalizer` — the
+one chokepoint all four exit paths cross. Adding a consumer read without a producer
+write is the bug, not the feature.
 
 ## Knowledge Base
 

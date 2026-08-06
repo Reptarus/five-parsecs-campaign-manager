@@ -9,12 +9,12 @@ extends PanelContainer
 
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 
-const COLOR_OUTLAWED := Color("#DC2626")
-const COLOR_UNUSUAL := Color("#D97706")
-const COLOR_SAFE := Color("#10B981")
-const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_BG_BASE := Color("#252542")
-const COLOR_BORDER_BASE := Color("#3A3A5C")
+const COLOR_OUTLAWED := UIColors.COLOR_RED
+const COLOR_UNUSUAL := UIColors.COLOR_AMBER
+const COLOR_SAFE := UIColors.COLOR_EMERALD
+const COLOR_TEXT := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_BG_BASE := UIColors.COLOR_SECONDARY
+const COLOR_BORDER_BASE := UIColors.COLOR_BORDER
 
 var _icon_label: Label
 var _status_label: Label
@@ -29,7 +29,7 @@ func _ready() -> void:
 func _setup_style() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_BG_BASE
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_border_width_all(1)
 	style.border_color = COLOR_BORDER_BASE
 	style.set_content_margin_all(8)
@@ -42,7 +42,7 @@ func _build_ui() -> void:
 	add_child(hbox)
 
 	_icon_label = Label.new()
-	_icon_label.add_theme_font_size_override("font_size", 16)
+	_icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	hbox.add_child(_icon_label)
 
 	var vbox := VBoxContainer.new()
@@ -51,13 +51,13 @@ func _build_ui() -> void:
 	hbox.add_child(vbox)
 
 	_status_label = Label.new()
-	_status_label.add_theme_font_size_override("font_size", 14)
+	_status_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	_status_label.add_theme_color_override("font_color", COLOR_TEXT)
 	vbox.add_child(_status_label)
 
 	_detail_label = Label.new()
-	_detail_label.add_theme_font_size_override("font_size", 11)
-	_detail_label.add_theme_color_override("font_color", Color("#808080"))
+	_detail_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
+	_detail_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_detail_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_detail_label)
 

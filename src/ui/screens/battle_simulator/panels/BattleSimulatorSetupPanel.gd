@@ -18,6 +18,11 @@ const COLOR_TEXT := Color("#E0E0E0")
 const COLOR_TEXT_SEC := Color("#808080")
 const COLOR_SUCCESS := Color("#10B981")
 
+# SPACING_XS was USED (twice) but never declared, and this panel extends Control
+# rather than a Deep Space base class that could supply it — so the script failed
+# to PARSE and the Battle Simulator button on the main menu hard-broke into the
+# debugger. Value per the Deep Space 8px grid.
+const SPACING_XS := 4
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
@@ -71,8 +76,9 @@ func _build_ui() -> void:
 	var crew_card := _create_card("YOUR CREW", vbox)
 	var crew_content := crew_card.get_meta("content") as VBoxContainer
 
-	var crew_row := HBoxContainer.new()
-	crew_row.add_theme_constant_override("separation", SPACING_MD)
+	var crew_row := HFlowContainer.new()
+	crew_row.add_theme_constant_override("h_separation", SPACING_MD)
+	crew_row.add_theme_constant_override("v_separation", SPACING_XS)
 	crew_content.add_child(crew_row)
 
 	var crew_label := Label.new()
@@ -92,7 +98,7 @@ func _build_ui() -> void:
 
 	var reroll_btn := Button.new()
 	reroll_btn.text = "Reroll Names"
-	reroll_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET)
+	reroll_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	reroll_btn.pressed.connect(_on_reroll_pressed)
 	crew_row.add_child(reroll_btn)
 
@@ -108,8 +114,9 @@ func _build_ui() -> void:
 	var enemy_card := _create_card("OPPOSITION", vbox)
 	var enemy_content := enemy_card.get_meta("content") as VBoxContainer
 
-	var cat_row := HBoxContainer.new()
-	cat_row.add_theme_constant_override("separation", SPACING_MD)
+	var cat_row := HFlowContainer.new()
+	cat_row.add_theme_constant_override("h_separation", SPACING_MD)
+	cat_row.add_theme_constant_override("v_separation", SPACING_XS)
 	enemy_content.add_child(cat_row)
 
 	var cat_label := Label.new()
@@ -119,15 +126,19 @@ func _build_ui() -> void:
 	cat_row.add_child(cat_label)
 
 	_category_dropdown = OptionButton.new()
-	_category_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_category_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
+	_category_dropdown.clip_text = true
+	_category_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_category_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_category_dropdown.add_item("Random", 0)
 	for i in range(_categories.size()):
 		_category_dropdown.add_item(_categories[i].get("name", ""), i + 1)
 	_category_dropdown.item_selected.connect(_on_category_selected)
 	cat_row.add_child(_category_dropdown)
 
-	var type_row := HBoxContainer.new()
-	type_row.add_theme_constant_override("separation", SPACING_MD)
+	var type_row := HFlowContainer.new()
+	type_row.add_theme_constant_override("h_separation", SPACING_MD)
+	type_row.add_theme_constant_override("v_separation", SPACING_XS)
 	enemy_content.add_child(type_row)
 
 	var type_label := Label.new()
@@ -137,7 +148,10 @@ func _build_ui() -> void:
 	type_row.add_child(type_label)
 
 	_enemy_dropdown = OptionButton.new()
-	_enemy_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_enemy_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
+	_enemy_dropdown.clip_text = true
+	_enemy_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_enemy_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_enemy_dropdown.item_selected.connect(_on_enemy_selected)
 	type_row.add_child(_enemy_dropdown)
 
@@ -153,8 +167,9 @@ func _build_ui() -> void:
 	var mission_card := _create_card("MISSION", vbox)
 	var mission_content := mission_card.get_meta("content") as VBoxContainer
 
-	var mission_row := HBoxContainer.new()
-	mission_row.add_theme_constant_override("separation", SPACING_MD)
+	var mission_row := HFlowContainer.new()
+	mission_row.add_theme_constant_override("h_separation", SPACING_MD)
+	mission_row.add_theme_constant_override("v_separation", SPACING_XS)
 	mission_content.add_child(mission_row)
 
 	var mission_label := Label.new()
@@ -164,7 +179,10 @@ func _build_ui() -> void:
 	mission_row.add_child(mission_label)
 
 	_mission_dropdown = OptionButton.new()
-	_mission_dropdown.custom_minimum_size = Vector2(220, TOUCH_TARGET)
+	_mission_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
+	_mission_dropdown.clip_text = true
+	_mission_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_mission_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_mission_dropdown.add_item("Random", 0)
 	var mission_types: Array = _setup.get_mission_types()
 	for i in range(mission_types.size()):
@@ -176,8 +194,9 @@ func _build_ui() -> void:
 	var diff_card := _create_card("DIFFICULTY", vbox)
 	var diff_content := diff_card.get_meta("content") as VBoxContainer
 
-	var diff_row := HBoxContainer.new()
-	diff_row.add_theme_constant_override("separation", SPACING_MD)
+	var diff_row := HFlowContainer.new()
+	diff_row.add_theme_constant_override("h_separation", SPACING_MD)
+	diff_row.add_theme_constant_override("v_separation", SPACING_XS)
 	diff_content.add_child(diff_row)
 
 	var diff_label := Label.new()
@@ -187,7 +206,10 @@ func _build_ui() -> void:
 	diff_row.add_child(diff_label)
 
 	_difficulty_dropdown = OptionButton.new()
-	_difficulty_dropdown.custom_minimum_size = Vector2(280, TOUCH_TARGET)
+	_difficulty_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
+	_difficulty_dropdown.clip_text = true
+	_difficulty_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	_difficulty_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_difficulty_dropdown.add_item("1 - Easy (fewer enemies)", 0)
 	_difficulty_dropdown.add_item("2 - Normal", 1)
 	_difficulty_dropdown.add_item("3 - Challenging", 2)
@@ -198,13 +220,16 @@ func _build_ui() -> void:
 	diff_row.add_child(_difficulty_dropdown)
 
 	# --- Launch Button ---
-	var launch_container := HBoxContainer.new()
-	launch_container.alignment = BoxContainer.ALIGNMENT_CENTER
+	var launch_container := HFlowContainer.new()
+	# FlowContainer.AlignmentMode, NOT BoxContainer's — Godot 4.6 treats them as
+	# distinct types and the mismatched assignment is a hard PARSE error, which
+	# is the second of the two breaks that made this screen unopenable.
+	launch_container.alignment = FlowContainer.ALIGNMENT_CENTER
 	vbox.add_child(launch_container)
 
 	_launch_button = Button.new()
 	_launch_button.text = "LAUNCH BATTLE"
-	_launch_button.custom_minimum_size = Vector2(280, 56)
+	_launch_button.custom_minimum_size = Vector2(0, 56)
 	_launch_button.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	_launch_button.pressed.connect(_on_launch_pressed)
 	launch_container.add_child(_launch_button)

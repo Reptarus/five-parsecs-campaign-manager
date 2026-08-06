@@ -1,6 +1,16 @@
 extends Control
 class_name FiveParsecsCampaignPanel
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Minimal Base Campaign Panel - Framework Bible Compliant
 ## Simple interface for campaign creation panels - NO Enhanced bloat
 ## Focuses on Five Parsecs functionality, not enterprise complexity
@@ -43,6 +53,14 @@ func _ready() -> void:
 
 	# Setup responsive layout system
 	_setup_responsive_layout()
+
+	# Keep content out from under the floating SettingsOverlay gear/bug buttons.
+	# Panels reached as full screens (GalaxyLogScreen, CompendiumCategoryView, ...)
+	# otherwise draw their header underneath them. No-ops for a panel with no root
+	# MarginContainer, and for one nested inside a screen that already reserved.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 	# Deferred: fix touch scrolling by setting MOUSE_FILTER_PASS on all non-interactive containers
 	call_deferred("_fix_touch_scroll_filters")
@@ -213,6 +231,28 @@ func _setup_panel_content() -> void:
 
 # ============ RESPONSIVE LAYOUT SYSTEM (MOBILE-FIRST) ============
 # Sprint 3: Mobile-first responsive design with breakpoint detection
+
+func _reparent(node: Node, from_parent: Node, to_parent: Node) -> void:
+	## Move a node that came from the .tscn into a container built at runtime.
+	##
+	## Clearing `owner` first is the whole point. A node loaded from a scene keeps
+	## `owner` pointing at that scene's root; re-adding it under a code-built
+	## parent that is not in the owner's branch leaves the ownership graph
+	## inconsistent, and Godot warns on EVERY one:
+	##   "Adding 'X' as child to 'Y' will make owner 'Z' inconsistent.
+	##    Consider unsetting the owner beforehand."
+	## A route sweep produced nine of these in a single pass across ShipPanel and
+	## WorldInfoPanel, both of which reshuffle .tscn sections into card layouts.
+	## Rendering survives, but a scene saved or duplicated in that state drops the
+	## reparented nodes — and the warning spam buries real errors in the console.
+	if node == null or to_parent == null:
+		return
+	if from_parent != null and node.get_parent() == from_parent:
+		from_parent.remove_child(node)
+	elif node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	node.owner = null
+	to_parent.add_child(node)
 
 func _setup_responsive_layout() -> void:
 	## Initialize responsive layout system on panel load
@@ -758,7 +798,7 @@ const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_DISABLED
 ## as a secondary explanation label.
 func _create_callout_card(title: String, content: Control,
 		description: String = "",
-		border_color: Color = Color("#D97706")) -> Control:
+		border_color: Color = UIColors.COLOR_AMBER) -> Control:
 	var CalloutCardScript := preload("res://src/ui/components/common/CalloutCard.gd")
 	var callout: PanelContainer = CalloutCardScript.new()
 	callout.title_text = title
@@ -770,7 +810,7 @@ func _create_callout_card(title: String, content: Control,
 		vbox.add_child(content)
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -801,13 +841,13 @@ func _create_section_card(title: String, content: Control, description: String =
 		
 		var icon_label := Label.new()
 		icon_label.text = icon
-		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		icon_label.add_theme_color_override("font_color", COLOR_ACCENT)
 		header_hbox.add_child(icon_label)
 		
 		var title_label := Label.new()
 		title_label.text = title.to_upper()
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		header_hbox.add_child(title_label)
 		
@@ -816,7 +856,7 @@ func _create_section_card(title: String, content: Control, description: String =
 		# Original code path (no icon)
 		var title_label := Label.new()
 		title_label.text = title.to_upper()
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(title_label)
 
@@ -833,7 +873,7 @@ func _create_section_card(title: String, content: Control, description: String =
 	if description != "":
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -860,35 +900,28 @@ func _apply_pass_filter_recursive(node: Node) -> void:
 		_apply_pass_filter_recursive(child)
 
 
-func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
-	## Create glass morphism card style with adjustable transparency
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
-	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
-	style.set_content_margin_all(SPACING_LG)
-	return style
+## The app's card look. Named "glass" for history — the 16px, part-transparent,
+## 24px-padded card it used to build is gone; cards are the SectionCard recipe now.
+##
+## Kept as a delegating alias, along with its three siblings, because this file and
+## CampaignScreenBase carried near-identical copies of each and the panels call
+## them by name from about fifteen screens.
+func _create_glass_card_style(_alpha: float = 0.8) -> StyleBoxFlat:
+	return ScreenChrome.panel_style()
 
 
 func _create_glass_card_elevated() -> StyleBoxFlat:
-	## Create elevated glass card (higher opacity for prominence)
-	return _create_glass_card_style(0.9)
+	return ScreenChrome.panel_style()
 
 
 func _create_glass_card_subtle() -> StyleBoxFlat:
-	## Create subtle glass card (lower opacity for backgrounds)
-	return _create_glass_card_style(0.6)
+	return ScreenChrome.panel_style()
 
 
 func _create_elevated_card_style() -> StyleBoxFlat:
-	## Create elevated card style (solid background, for inner elements)
-	var style := StyleBoxFlat.new()
+	## A card sitting INSIDE another card — one step lighter so it separates.
+	var style := ScreenChrome.panel_style()
 	style.bg_color = COLOR_TERTIARY
-	style.border_color = COLOR_BORDER
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
-	style.set_content_margin_all(SPACING_MD)
 	return style
 
 
@@ -901,7 +934,7 @@ func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
 	if label_text != "":
 		var label := Label.new()
 		label.text = label_text
-		label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(label)
 
@@ -919,7 +952,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_INPUT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -929,7 +962,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 	# Stat name
 	var name_label := Label.new()
 	name_label.text = stat_name.to_upper()
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(name_label)
@@ -937,7 +970,7 @@ func _create_stat_display(stat_name: String, value: Variant) -> PanelContainer:
 	# Value
 	var value_label := Label.new()
 	value_label.text = str(value)
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	value_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(value_label)
@@ -990,7 +1023,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1003,8 +1036,8 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 	portrait_container.custom_minimum_size = Vector2(portrait_size, portrait_size)
 	portrait_container.clip_contents = true
 
-	var avatar_colors := [Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
-		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"), Color("#ec4899"), Color("#14b8a6")]
+	var avatar_colors := [UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
+		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6")]
 	var color_idx := char_name.hash() % avatar_colors.size()
 	if color_idx < 0:
 		color_idx += avatar_colors.size()
@@ -1037,7 +1070,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 		initial_label.text = char_name.substr(0, 1).to_upper() if not char_name.is_empty() else "?"
 		initial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		initial_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		initial_label.add_theme_font_size_override("font_size", int(portrait_size * 0.45))
+		initial_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(portrait_size * 0.45)))
 		initial_label.add_theme_color_override("font_color", Color.WHITE)
 		initial_label.custom_minimum_size = Vector2(portrait_size, portrait_size)
 		portrait_container.add_child(initial_label)
@@ -1050,13 +1083,13 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 
 	var name_label := Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	info.add_child(name_label)
 
 	var sub_label := Label.new()
 	sub_label.text = subtitle
-	sub_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sub_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sub_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.add_child(sub_label)
 
@@ -1069,7 +1102,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 			stats_text += "%s: %s" % [key, stats[key]]
 		var stats_label := Label.new()
 		stats_label.text = stats_text
-		stats_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		stats_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		stats_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		info.add_child(stats_label)
 
@@ -1089,7 +1122,7 @@ func _create_add_button(text: String) -> Button:
 	style.bg_color = Color.TRANSPARENT
 	style.border_color = COLOR_TEXT_SECONDARY
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	btn.add_theme_stylebox_override("normal", style)
 
@@ -1108,7 +1141,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	style.bg_color = Color(COLOR_INPUT, 0.6)  # Semi-transparent background
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XS)
 	panel.add_theme_stylebox_override("panel", style)
 	
@@ -1120,7 +1153,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	# Stat name (small, secondary color)
 	var name_label := Label.new()
 	name_label.text = stat_name.to_upper()
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(name_label)
 	
@@ -1128,7 +1161,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	var value_label := Label.new()
 	var value_text := str(value) if not show_plus else ("+" + str(value) if value >= 0 else str(value))
 	value_label.text = value_text
-	value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	value_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	hbox.add_child(value_label)
 	
@@ -1144,7 +1177,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 
@@ -1162,70 +1195,26 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
 
+## Style a button. `is_primary` marks the one action the screen is pushing.
+##
+## Delegates to DialogStyles, which names a theme variation. This used to build
+## four styleboxes at an 8px radius while DialogStyles built three at 4px, so two
+## buttons doing the same job looked different depending on which helper the
+## screen happened to reach for.
 func _style_button(button: Button, is_primary: bool = false) -> void:
-	## Apply consistent button styling. Use is_primary=true for action buttons.
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_BLUE if is_primary else COLOR_TERTIARY
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-
-	# Hover state
-	var hover_style := style.duplicate()
-	hover_style.bg_color = COLOR_ACCENT_HOVER if is_primary else Color(COLOR_TERTIARY.r + 0.1, COLOR_TERTIARY.g + 0.1, COLOR_TERTIARY.b + 0.1)
-	button.add_theme_stylebox_override("hover", hover_style)
-
-	# Pressed state
-	var pressed_style := style.duplicate()
-	pressed_style.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
-	button.add_theme_stylebox_override("pressed", pressed_style)
-
-	# Disabled state — clearly distinguishable from enabled
-	var disabled_style := style.duplicate()
-	disabled_style.bg_color = Color(style.bg_color.r, style.bg_color.g, style.bg_color.b, 0.2)
-	disabled_style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.25)
-	disabled_style.set_border_width_all(1)
-	button.add_theme_stylebox_override("disabled", disabled_style)
-	button.add_theme_color_override("font_disabled_color", Color("#4b5563"))
+	if is_primary:
+		DialogStyles.style_primary_button(button)
+	else:
+		DialogStyles.style_secondary_button(button)
 
 
 func _style_danger_button(button: Button) -> void:
-	## Apply danger/destructive button styling (red).
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_RED
-	style.corner_radius_top_left = 8
-	style.corner_radius_top_right = 8
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-
-	# Hover state (lighter red)
-	var hover_style := style.duplicate()
-	hover_style.bg_color = Color(COLOR_RED.r + 0.1, COLOR_RED.g, COLOR_RED.b)
-	button.add_theme_stylebox_override("hover", hover_style)
+	DialogStyles.style_danger_button(button)
 
 
 # ============ GLASS MORPHISM STYLING ============
@@ -1242,7 +1231,7 @@ func _create_glass_panel_style() -> StyleBoxFlat:
 	style.set_border_width_all(1)
 
 	# Rounded corners (16px = rounded-2xl in Tailwind)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_LG)
@@ -1254,28 +1243,20 @@ func _create_glass_panel_style_compact() -> StyleBoxFlat:
 	## Compact glass panel with smaller padding (for cards within sections)
 	var style := _create_glass_panel_style()
 	style.set_content_margin_all(SPACING_MD)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	return style
 
 
+## A card that carries a semantic colour (amber for the current step, cyan for
+## world actions, red for danger).
+##
+## The accent is a solid 3px LEFT edge — the same mark the Library's tappable
+## cards use — instead of the old 10%-tint background with a 20%-alpha border.
+## Two reasons: a 20%-alpha border on a dark page is under the 3:1 contrast a
+## non-text UI element needs to be seen at all, and one accent language is easier
+## to read than two.
 func _create_accent_card_style(accent_color: Color) -> StyleBoxFlat:
-	## Create accent-tinted card (e.g., amber for current step, pink for quests)
-	var style := StyleBoxFlat.new()
-
-	# Tinted background (10% opacity of accent)
-	style.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
-
-	# Accent border (20% opacity)
-	style.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
-	style.set_border_width_all(1)
-
-	# Rounded corners
-	style.set_corner_radius_all(12)
-
-	# Padding
-	style.set_content_margin_all(SPACING_MD)
-
-	return style
+	return ScreenChrome.card_style(accent_color)
 
 
 func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
@@ -1290,21 +1271,21 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 
 		var icon_style := StyleBoxFlat.new()
 		icon_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.2)
-		icon_style.set_corner_radius_all(8)
+		icon_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", icon_style)
 
 		var icon_label := Label.new()
 		icon_label.text = icon
 		icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		icon_panel.add_child(icon_label)
 		hbox.add_child(icon_panel)
 
 	# Title
 	var title_label := Label.new()
 	title_label.text = title
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(title_label)
 
@@ -1373,19 +1354,19 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 			# Completed step
 			style.bg_color = COLOR_SUCCESS
 			label.text = "✓"
-			label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		elif i == current_step - 1:
 			# Current step
 			style.bg_color = COLOR_FOCUS
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		else:
 			# Upcoming step
 			style.bg_color = COLOR_BORDER
 			label.text = str(i + 1)
-			label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+			label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 			label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		
 		style.set_corner_radius_all(16)  # Circular
@@ -1400,7 +1381,7 @@ func _create_progress_indicator(current_step: int, total_steps: int, step_title:
 		var title_label := Label.new()
 		title_label.text = step_title
 		title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		container.add_child(title_label)
 	

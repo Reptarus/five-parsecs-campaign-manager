@@ -7,14 +7,14 @@ extends Window
 signal grenades_chosen(frakk_count: int, dazzle_count: int)
 
 # Deep Space theme constants
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
 const TOUCH_TARGET_MIN := 48
 const TOTAL_GRENADES := 3
 
@@ -57,14 +57,14 @@ func show_grenade_picker() -> void:
 	# Title
 	var title_label := Label.new()
 	title_label.text = "Choose Grenade Combination"
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title_label)
 
 	var subtitle := Label.new()
 	subtitle.text = "Pick %d grenades total (Frakk and/or Dazzle)" % TOTAL_GRENADES
-	subtitle.add_theme_font_size_override("font_size", 14)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(subtitle)
@@ -93,18 +93,21 @@ func show_grenade_picker() -> void:
 	confirm_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_ACCENT
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(8)
 	confirm_btn.add_theme_stylebox_override("normal", btn_style)
 	var btn_hover := StyleBoxFlat.new()
 	btn_hover.bg_color = COLOR_ACCENT_HOVER
-	btn_hover.set_corner_radius_all(6)
+	btn_hover.set_corner_radius_all(4)
 	btn_hover.set_content_margin_all(8)
 	btn_hover.border_color = COLOR_FOCUS
 	btn_hover.set_border_width_all(2)
 	confirm_btn.add_theme_stylebox_override("hover", btn_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(confirm_btn)
 	confirm_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	confirm_btn.add_theme_font_size_override("font_size", 16)
+	confirm_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	confirm_btn.pressed.connect(_on_confirm)
 	vbox.add_child(confirm_btn)
 
@@ -117,7 +120,7 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 
 	var name_label := Label.new()
 	name_label.text = label_text
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(name_label)
@@ -130,7 +133,7 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 
 	var count_label := Label.new()
 	count_label.text = str(initial_count)
-	count_label.add_theme_font_size_override("font_size", 18)
+	count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	count_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_label.custom_minimum_size = Vector2(40, 0)
@@ -150,18 +153,21 @@ func _create_counter_row(label_text: String, initial_count: int) -> HBoxContaine
 func _style_counter_button(btn: Button) -> void:
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = COLOR_ELEVATED
-	normal.set_corner_radius_all(6)
+	normal.set_corner_radius_all(4)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
 	btn.add_theme_stylebox_override("normal", normal)
 	var hover := StyleBoxFlat.new()
 	hover.bg_color = COLOR_ACCENT
-	hover.set_corner_radius_all(6)
+	hover.set_corner_radius_all(4)
 	hover.border_color = COLOR_FOCUS
 	hover.set_border_width_all(1)
 	btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	btn.add_theme_font_size_override("font_size", 18)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 
 func _adjust_frakk(delta: int) -> void:
 	var new_val: int = clampi(_frakk_count + delta, 0, TOTAL_GRENADES)

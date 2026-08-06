@@ -8,6 +8,7 @@ signal bundle_buy_requested()
 const DLCContentCatalogRef = preload(
 	"res://src/ui/screens/store/DLCContentCatalog.gd")
 
+const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const FONT_SIZE_XS := UIColors.FONT_SIZE_XS
@@ -53,7 +54,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_AMBER.darkened(0.3)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -62,14 +63,17 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	add_child(vbox)
 
 	# Header
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# HFlow: the bundle name beside the savings badge does not fit a phone card, and
+	# an HBox has no way to give that width back -- it propagates to the store page.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
+	header.add_theme_constant_override("v_separation", SPACING_XS)
 	vbox.add_child(header)
 
 	var title := Label.new()
 	title.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"name", "Compendium Bundle")
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -78,7 +82,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	_savings_label = Label.new()
 	_savings_label.text = DLCContentCatalogRef.get_bundle_savings_text()
 	_savings_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_MD)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_savings_label.add_theme_color_override(
 		"font_color", COLOR_AMBER)
 	header.add_child(_savings_label)
@@ -88,7 +92,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	desc.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"description", "")
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)
@@ -109,7 +113,7 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	individual_price.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"individual_total", "$17.97")
 	individual_price.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	individual_price.add_theme_color_override(
 		"font_color", COLOR_TEXT_MUTED)
 	# Strikethrough via BBCode would need RichTextLabel;
@@ -121,21 +125,24 @@ func _build_ui(bundle_info: Dictionary) -> void:
 	bundle_price.text = DLCContentCatalogRef.BUNDLE_INFO.get(
 		"price_default", "$14.99")
 	bundle_price.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	bundle_price.add_theme_color_override("font_color", COLOR_CYAN)
 	price_row.add_child(bundle_price)
 
 	_buy_btn = Button.new()
 	_buy_btn.text = "Buy Bundle"
-	_buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_AMBER.darkened(0.2)
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", btn_style)
 	var hover := btn_style.duplicate() as StyleBoxFlat
 	hover.bg_color = COLOR_AMBER
 	_buy_btn.add_theme_stylebox_override("hover", hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_buy_btn)
 	_buy_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_buy_btn.pressed.connect(
@@ -169,7 +176,7 @@ func _update_checklist(bundle_info: Dictionary) -> void:
 		var check := Label.new()
 		check.text = "[x]" if owned else "[ ]"
 		check.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		check.add_theme_color_override("font_color",
 			COLOR_EMERALD if owned else COLOR_TEXT_MUTED)
 		row.add_child(check)
@@ -177,7 +184,7 @@ func _update_checklist(bundle_info: Dictionary) -> void:
 		var name_lbl := Label.new()
 		name_lbl.text = DLCContentCatalogRef.get_pack_name(pack_id)
 		name_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		name_lbl.add_theme_color_override("font_color",
 			COLOR_TEXT_PRIMARY if owned else COLOR_TEXT_SECONDARY)
 		row.add_child(name_lbl)

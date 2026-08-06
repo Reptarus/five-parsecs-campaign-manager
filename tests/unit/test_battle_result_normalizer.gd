@@ -54,3 +54,48 @@ func test_empty_mission_degrades_gracefully() -> void:
 	assert_bool(r.has("danger_pay")).is_false()
 	assert_that(r["casualties"]).is_equal([])
 	assert_that(r["injuries_sustained"]).is_equal([])
+
+# ---------------------------------------------------------------------------
+# casualty_count — the shape contract every numeric read must go through.
+#
+# normalize() step 8 makes `casualties` an Array of dicts. Five consumers were
+# written against an int, and in Godot 4.6 EVERY numeric use of an Array is a
+# runtime error that aborts the enclosing function (verified: `int(Array)`,
+# `Array == 0`, `Array > 0`, typed-int assignment, `"%d" % Array`). That cost
+# the battle journal its description AND mood, the post-battle narrative screen,
+# and the tail of the summary sheet — silently, because an abort unwinds only
+# the callee. These pin the helper and the shapes it must tolerate.
+# ---------------------------------------------------------------------------
+
+func test_casualty_count_counts_the_normalized_array() -> void:
+	var r := Normalizer.normalize(_producer_dict(), {}, 1)
+	assert_bool(r["casualties"] is Array).is_true()
+	assert_int(Normalizer.casualty_count(r)).is_equal(1)
+
+func test_casualty_count_scales_with_the_array() -> void:
+	var producer := _producer_dict()
+	producer["crew_casualties_data"] = [
+		{"character_id": "c1"}, {"character_id": "c2"}, {"character_id": "c3"}]
+	assert_int(Normalizer.casualty_count(Normalizer.normalize(producer, {}, 1))).is_equal(3)
+
+func test_casualty_count_tolerates_an_int() -> void:
+	# Bug Hunt / Planetfall / pre-normalizer saves can still carry a plain int.
+	assert_int(Normalizer.casualty_count({"casualties": 2})).is_equal(2)
+
+func test_casualty_count_defaults_to_zero() -> void:
+	assert_int(Normalizer.casualty_count({})).is_equal(0)
+	assert_int(Normalizer.casualty_count({"casualties": null})).is_equal(0)
+	assert_int(Normalizer.casualty_count({"casualties": []})).is_equal(0)
+
+func test_black_zone_failure_pays_per_casualty() -> void:
+	# THE JOIN, not the link. BlackZoneSystem read "casualties_count" — a key no
+	# producer writes — so the Appendix III failure payout ("1cr per casualty
+	# from Unity") always resolved to zero credits.
+	var producer := _producer_dict()
+	producer["success"] = false
+	producer["crew_casualties_data"] = [{"character_id": "c1"}, {"character_id": "c2"}]
+	var normalized := Normalizer.normalize(producer, {}, 1)
+	var rewards: Dictionary = BlackZoneSystem.calculate_rewards(normalized)
+	assert_bool(rewards["is_victory"]).is_false()
+	# 1cr per casualty x 2 casualties. Float because the rate comes from JSON.
+	assert_float(float(rewards["unity_casualty_pay"])).is_equal(2.0)

@@ -148,12 +148,12 @@ func _setup_ui() -> void:
 	
 	var star_icon = Label.new()
 	star_icon.text = "⭐"
-	star_icon.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	star_icon.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_header_hbox.add_child(star_icon)
 	
 	var title_label = Label.new()
 	title_label.text = "STARS OF THE STORY"
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_header_hbox.add_child(title_label)
@@ -161,7 +161,7 @@ func _setup_ui() -> void:
 	# Info label
 	_info_label = Label.new()
 	_info_label.text = "Emergency abilities - use wisely!"
-	_info_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_info_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_info_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_info_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_main_vbox.add_child(_info_label)
@@ -221,7 +221,7 @@ func _create_ability_card(ability: int) -> void:
 	
 	var name_label = Label.new()
 	name_label.text = _stars_system.get_ability_name(ability) if _stars_system else _get_default_ability_name(ability)
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -229,14 +229,14 @@ func _create_ability_card(ability: int) -> void:
 	
 	var uses_label = Label.new()
 	uses_label.text = "1/1"
-	uses_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	uses_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	uses_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 	header_row.add_child(uses_label)
 	
 	# Description
 	var desc_label = Label.new()
 	desc_label.text = _stars_system.get_ability_description(ability) if _stars_system else ""
-	desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -306,12 +306,15 @@ func _style_button(button: Button) -> void:
 	style_disabled.corner_radius_bottom_left = 4
 	style_disabled.corner_radius_bottom_right = 4
 	button.add_theme_stylebox_override("disabled", style_disabled)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(button)
 	
 	# Font color
 	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	button.add_theme_color_override("font_hover_color", COLOR_TEXT_PRIMARY)
 	button.add_theme_color_override("font_disabled_color", COLOR_TEXT_DISABLED)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 
 
 ## Get default ability name (fallback if system not initialized)

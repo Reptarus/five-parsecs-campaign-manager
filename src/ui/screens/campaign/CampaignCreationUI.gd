@@ -25,6 +25,12 @@ var current_panel: Control
 var _final_panel_valid: bool = true
 
 func _ready() -> void:
+	# Clear the two campaign-scoped autoloads that the wizard itself WRITES INTO as
+	# the player works, before any panel runs. They cannot be cleared at finalization
+	# (step 7) the way the others are, because by then they hold this campaign's own
+	# data — see the note in CampaignFinalizationService.
+	_reset_campaign_scoped_autoloads()
+
 	coordinator = CampaignCreationCoordinatorScript.new()
 	add_child(coordinator)
 
@@ -42,6 +48,7 @@ func _ready() -> void:
 	# Initial navigation state — back button always visible (Cancel on Step 1)
 	back_button.visible = true
 	back_button.text = "Cancel"
+
 	finish_button.visible = false
 	next_button.visible = true
 	next_button.disabled = false
@@ -52,15 +59,99 @@ func _ready() -> void:
 	# QA-FIX: Connect StepPanels resize to keep panels bounded
 	$MarginContainer/VBoxContainer/StepPanels.resized.connect(_on_step_panels_resized)
 
+	_clear_settings_overlay_band()
+	var vp := get_viewport()
+	if vp and not vp.size_changed.is_connected(_clear_settings_overlay_band):
+		vp.size_changed.connect(_clear_settings_overlay_band)
+
+
+## Keep the wizard header out from under the floating SettingsOverlay buttons.
+##
+## SettingsOverlay is an autoload CanvasLayer drawn above every screen, so it does
+## not participate in this scene's layout and nothing here reserves room for it.
+## At 393dp the bug-report button (x 219-273, y 12-60) sat directly on top of
+## "Create New Campaign" and "Step 1 of 7", which read as the title being clipped.
+## The band's CONTENTS vary per screen (the gear hides on MainMenu/SettingsScreen,
+## the bug button only on SettingsScreen), so it is measured at layout time rather
+## than hardcoded.
+func _clear_settings_overlay_band() -> void:
+	var mc := get_node_or_null("MarginContainer")
+	if mc == null:
+		return
+	var top := 20.0  # the scene's design margin
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("get_reserved_bottom"):
+		top = maxf(top, so.get_reserved_bottom() + 8.0)
+	mc.add_theme_constant_override("margin_top", int(top))
+
+
+## Cleanup for BOTH concerns that need to run however the wizard is left —
+## finished, cancelled, or navigated away from.
+##
+## There were briefly TWO _exit_tree() definitions in this file (one added by
+## ed405ae6 for the write-through restore, one pre-existing for the coordinator
+## disconnect). GDScript rejects a duplicate function name outright, so the whole
+## script failed to PARSE and campaign creation could not open at all. Neither the
+## headless compile nor the test suite caught it, because this script is only
+## parsed when its scene is loaded. Keep this as the single definition.
+##
+## _exit_tree() (not tree_exited) because absolute autoload paths still resolve
+## while the node is in the tree.
 func _exit_tree() -> void:
-	# Disconnect coordinator signals (defensive cleanup)
+	# Restore the equipment write-through. Leaving it off would silently stop the
+	# live campaign's ship stash from persisting for the rest of the session.
+	var root := get_tree().root if get_tree() else null
+	if root != null:
+		var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
+		if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
+			eq_mgr.set_campaign_write_through(true)
+
+	# Disconnect coordinator signals (defensive cleanup). Note: lambda
+	# panel-to-coordinator connections clean up automatically because both panels
+	# and coordinator are children of this Control.
 	if coordinator and is_instance_valid(coordinator):
 		if coordinator.navigation_updated.is_connected(_on_navigation_updated):
 			coordinator.navigation_updated.disconnect(_on_navigation_updated)
 		if coordinator.step_changed.is_connected(_on_step_changed):
 			coordinator.step_changed.disconnect(_on_step_changed)
-	# Note: Lambda panel-to-coordinator connections are cleaned up automatically
-	# because both panels and coordinator are children of this Control.
+
+
+func _reset_campaign_scoped_autoloads() -> void:
+	## Wipe per-campaign autoload state that survives from a previously played or
+	## loaded campaign, so a new campaign starts from a clean slate.
+	##
+	## GameState._init() auto-loads the last campaign at every launch, so by the time
+	## the player taps "New Campaign" the previous campaign's state is already live in
+	## these singletons. Neither is covered by the finalization reset:
+	##
+	##   EquipmentManager  — EquipmentPanel loads the new crew's gear into it at step 4.
+	##                       Its registry is the ship stash for five consumers, incl.
+	##                       the Core Rules p.76 sell-for-upkeep dialog, so a leaked
+	##                       item from the last campaign was sellable for real credits.
+	##   DLCManager        — ExpandedConfigPanel toggles it directly as the player picks
+	##                       expansions, then reads it back as this campaign's config.
+	var root := get_tree().root if get_tree() else null
+	if root == null:
+		return
+	var eq_mgr := root.get_node_or_null("/root/EquipmentManager")
+	if eq_mgr and eq_mgr.has_method("clear_all_equipment"):
+		eq_mgr.clear_all_equipment()
+	# Stop add_equipment() writing through while the wizard is open: GameState still
+	# holds the PREVIOUS campaign until finalization, so step 4's starting loadout
+	# would be appended to that campaign's ship stash. Re-enabled in _exit_tree(),
+	# which covers finishing AND cancelling.
+	if eq_mgr and eq_mgr.has_method("set_campaign_write_through"):
+		eq_mgr.set_campaign_write_through(false)
+	var dlc_mgr := root.get_node_or_null("/root/DLCManager")
+	if dlc_mgr and dlc_mgr.has_method("reset_campaign_flags"):
+		dlc_mgr.reset_campaign_flags()
+	# NOTE: nothing else belongs in this function. It was written directly in front
+	# of the TAIL of _ready() (ed405ae6), which captured that tail — the
+	# finish/next button state, _style_navigation_buttons() and the StepPanels
+	# resize connect — into this function. Two consequences: that setup ran FIRST
+	# instead of last (this is called at the top of _ready), and the `root == null`
+	# early return above could skip it entirely. Moved back into _ready().
+
 
 func _connect_coordinator_signals() -> void:
 	coordinator.navigation_updated.connect(_on_navigation_updated)
@@ -227,6 +318,7 @@ func _show_panel(step: int) -> void:
 		current_panel.hide()
 	if step >= 0 and step < panels.size():
 		current_panel = panels[step]
+		_push_campaign_crew_size(current_panel)
 		current_panel.modulate.a = 0.0
 		current_panel.show()
 		# ISSUE-057: Smooth panel transition
@@ -240,6 +332,23 @@ func _show_panel(step: int) -> void:
 		# overflow StepPanels and push Navigation off-screen. Anchors (0,0,1,1)
 		# constrain the panel; call_deferred lets layout resolve first.
 		call_deferred("_fit_panel_to_step_bounds")
+
+func _push_campaign_crew_size(panel: Node) -> void:
+	## Hand the crew step the size the player chose at CONFIG, every time it is
+	## shown. Core Rules p.63 crew size has ONE owner —
+	## campaign_config.campaign_crew_size — because that is the value the rules
+	## engine reads (enemy-count dice, deployment cap, recruit gate). The crew
+	## panel used to keep its own selector, defaulting to 6 with no way to learn
+	## the config value, so picking 4 at step 1 still asked for 6 here.
+	if panel == null or not panel.has_method("apply_campaign_crew_size"):
+		return
+	if coordinator == null or not coordinator.has_method("get_unified_campaign_state"):
+		return
+	var state: Dictionary = coordinator.get_unified_campaign_state()
+	var cfg: Dictionary = state.get("campaign_config", {})
+	var configured: int = int(cfg.get("campaign_crew_size", 0))
+	if configured >= 4 and configured <= 6:
+		panel.apply_campaign_crew_size(configured)
 
 func _fit_panel_to_step_bounds() -> void:
 	if current_panel:
@@ -305,17 +414,29 @@ func _on_campaign_finalized(data: Dictionary) -> void:
 		gs.set_current_campaign(campaign)
 
 	var router = get_node_or_null("/root/SceneRouter")
-	if router:
-		router.navigate_to_with_loading(
-			"campaign_turn_controller",
-			PackedStringArray([
-				"Initializing Campaign",
-				"Loading Crew Roster",
-				"Loading World State",
-				"Preparing First Turn",
-			]))
-	else:
+	if router == null:
 		push_error("CampaignCreationUI: SceneRouter not found")
+		return
+
+	# Onboarding branch: if the Main-Menu "Onboard Existing Game" flow set the flag,
+	# the wizard just built the crew/ship/world STRUCTURE; hand off to the Campaign
+	# Editor so the player can set the accumulated mid-campaign state (turn #, credits,
+	# story points, per-character real stats). The editor reads + consumes the flag.
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var onboarding: bool = gsm != null and gsm.has_method("get_temp_data") \
+		and bool(gsm.get_temp_data("onboarding_mode", false))
+	if onboarding:
+		router.navigate_to("campaign_editor")
+		return
+
+	router.navigate_to_with_loading(
+		"campaign_turn_controller",
+		PackedStringArray([
+			"Initializing Campaign",
+			"Loading Crew Roster",
+			"Loading World State",
+			"Preparing First Turn",
+		]))
 
 func _force_navigation_refresh() -> void:
 	# Bypass debounce — directly recalculate and emit navigation state
@@ -327,70 +448,16 @@ func _force_navigation_refresh() -> void:
 func get_current_panel() -> Control:
 	return current_panel
 
-## UX-060/UX-070 FIX: Apply consistent Deep Space theme styling to nav buttons
+## Give the three wizard nav buttons their shared roles.
+##
+## This was 66 lines building four StyleBoxFlats per button by hand, and it had a
+## bug the theme cannot have: Finish overrode only `normal` with the green box,
+## so its hover, pressed and disabled states still came from the BLUE ones the
+## loop had just installed -- the commit button of campaign creation turned blue
+## the moment you moused over it.
+##
+## Roles: Back leaves the step, Next carries the wizard forward, Finish commits.
 func _style_navigation_buttons() -> void:
-	for btn in [back_button, next_button, finish_button]:
-		if not btn:
-			continue
-		btn.custom_minimum_size.y = 48  # TOUCH_TARGET_MIN
-
-		var normal := StyleBoxFlat.new()
-		normal.bg_color = Color("#2D5A7B")  # COLOR_ACCENT
-		normal.border_color = Color("#3A7199")
-		normal.set_border_width_all(1)
-		normal.set_corner_radius_all(4)
-		normal.content_margin_left = 20
-		normal.content_margin_right = 20
-		normal.content_margin_top = 10
-		normal.content_margin_bottom = 10
-		btn.add_theme_stylebox_override("normal", normal)
-
-		var hover := StyleBoxFlat.new()
-		hover.bg_color = Color("#3A7199")  # COLOR_ACCENT_HOVER
-		hover.border_color = Color("#4FC3F7")  # COLOR_FOCUS
-		hover.set_border_width_all(1)
-		hover.set_corner_radius_all(4)
-		hover.content_margin_left = 20
-		hover.content_margin_right = 20
-		hover.content_margin_top = 10
-		hover.content_margin_bottom = 10
-		btn.add_theme_stylebox_override("hover", hover)
-
-		var pressed := StyleBoxFlat.new()
-		pressed.bg_color = Color("#1E4A66")
-		pressed.border_color = Color("#4FC3F7")
-		pressed.set_border_width_all(2)
-		pressed.set_corner_radius_all(4)
-		pressed.content_margin_left = 20
-		pressed.content_margin_right = 20
-		pressed.content_margin_top = 10
-		pressed.content_margin_bottom = 10
-		btn.add_theme_stylebox_override("pressed", pressed)
-
-		var disabled := StyleBoxFlat.new()
-		disabled.bg_color = Color("#1A1A2E")  # COLOR_BASE
-		disabled.border_color = Color("#3A3A5C")  # COLOR_BORDER
-		disabled.set_border_width_all(1)
-		disabled.set_corner_radius_all(4)
-		disabled.content_margin_left = 20
-		disabled.content_margin_right = 20
-		disabled.content_margin_top = 10
-		disabled.content_margin_bottom = 10
-		btn.add_theme_stylebox_override("disabled", disabled)
-
-		btn.add_theme_color_override("font_color", Color("#E0E0E0"))
-		btn.add_theme_color_override("font_hover_color", Color.WHITE)
-		btn.add_theme_color_override("font_disabled_color", Color("#404040"))
-
-	# Make Finish button more prominent (accent highlight)
-	if finish_button:
-		var finish_normal := StyleBoxFlat.new()
-		finish_normal.bg_color = Color("#10B981")  # COLOR_SUCCESS
-		finish_normal.border_color = Color("#34D399")
-		finish_normal.set_border_width_all(1)
-		finish_normal.set_corner_radius_all(4)
-		finish_normal.content_margin_left = 24
-		finish_normal.content_margin_right = 24
-		finish_normal.content_margin_top = 12
-		finish_normal.content_margin_bottom = 12
-		finish_button.add_theme_stylebox_override("normal", finish_normal)
+	DialogStyles.style_back_button(back_button)
+	DialogStyles.style_primary_button(next_button)
+	DialogStyles.style_confirm_button(finish_button)

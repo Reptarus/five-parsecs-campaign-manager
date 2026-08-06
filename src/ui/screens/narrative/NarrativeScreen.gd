@@ -25,6 +25,24 @@ extends CanvasLayer
 
 const OVERLAY_LAYER := 95
 
+## Scene illustrations are OFF for the alpha (2026-08-01).
+##
+## Exactly one scene is finished — story_event_01 (4 layers: bg + 3 actor
+## plates), built as a proof of concept. Every other manifest in data/scenes/
+## still says `"_tier1_status": "STUB - bg_00.png pending fill"`, so shipping
+## the art as-is means one illustrated Story Event and six gradients. A tester
+## who sees the good one reasonably concludes the rest are coming, and sets
+## expectations against a feature that is not in scope.
+##
+## Both the baked scene AND the composited crew figures are gated together —
+## crew figures over a bare gradient look like a half-finished illustration
+## rather than a deliberate text presentation.
+##
+## NOTHING IS DELETED. The manifests, the layer art and the whole SceneStage
+## pipeline are intact and proven to work end to end; flip this to `true` to
+## bring it all back once the remaining six scenes exist.
+const SCENE_ART_ENABLED := false
+
 const NarrativeTextGenerator = preload(
 	"res://src/ui/screens/narrative/NarrativeTextGenerator.gd")
 const AdvisorSystem = preload(
@@ -38,14 +56,14 @@ const SceneAtmosphereLayerScript = preload(
 
 # Deep Space theme constants (mirroring BaseCampaignPanel — local copies so
 # this component has no inheritance dependency).
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_SUCCESS := Color("#10B981")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const SPACING_XS := 4
 const SPACING_SM := 8
 const SPACING_MD := 16
@@ -176,7 +194,7 @@ func _build_ui() -> void:
 	margin.add_child(vbox)
 
 	_event_title = Label.new()
-	_event_title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_event_title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_event_title.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(_event_title)
 
@@ -185,7 +203,7 @@ func _build_ui() -> void:
 	_narrative_text.fit_content = true
 	_narrative_text.scroll_active = false
 	_narrative_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_narrative_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(_narrative_text)
@@ -209,7 +227,7 @@ func _build_ui() -> void:
 	_advisor_portrait_fallback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_advisor_portrait_fallback.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_advisor_portrait_fallback.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XL)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_advisor_portrait_fallback.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_advisor_portrait_fallback.visible = false
@@ -222,7 +240,7 @@ func _build_ui() -> void:
 	_advisor_row.add_child(advisor_vbox)
 
 	_advisor_name_lbl = Label.new()
-	_advisor_name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_advisor_name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_advisor_name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	advisor_vbox.add_child(_advisor_name_lbl)
@@ -232,7 +250,7 @@ func _build_ui() -> void:
 	_advisor_quote_lbl.fit_content = true
 	_advisor_quote_lbl.scroll_active = false
 	_advisor_quote_lbl.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_advisor_quote_lbl.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	advisor_vbox.add_child(_advisor_quote_lbl)
@@ -240,7 +258,7 @@ func _build_ui() -> void:
 	# Briefing section (optional)
 	_briefing_header = Label.new()
 	_briefing_header.text = "THE BRIEFING"
-	_briefing_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_briefing_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_briefing_header.add_theme_color_override("font_color", COLOR_WARNING)
 	_briefing_header.visible = false
 	vbox.add_child(_briefing_header)
@@ -250,7 +268,7 @@ func _build_ui() -> void:
 	_briefing_text.fit_content = true
 	_briefing_text.scroll_active = false
 	_briefing_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_briefing_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	_briefing_text.visible = false
@@ -262,7 +280,7 @@ func _build_ui() -> void:
 	_restrictions_text.fit_content = true
 	_restrictions_text.scroll_active = false
 	_restrictions_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_restrictions_text.visible = false
 	vbox.add_child(_restrictions_text)
 
@@ -277,7 +295,7 @@ func _build_ui() -> void:
 	_bonus_text.fit_content = true
 	_bonus_text.scroll_active = false
 	_bonus_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_bonus_text.add_theme_color_override("default_color", COLOR_SUCCESS)
 	_bonus_panel.add_child(_bonus_text)
 
@@ -297,7 +315,7 @@ func _build_ui() -> void:
 	_outcome_text.fit_content = true
 	_outcome_text.scroll_active = false
 	_outcome_text.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_MD)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_outcome_panel.add_child(_outcome_text)
 
 	_continue_button = Button.new()
@@ -313,7 +331,7 @@ func _build_ui() -> void:
 	# text — invisible against the dim background at small sizes.
 	_skip_button = Button.new()
 	_skip_button.text = "Skip ✕"
-	_skip_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_skip_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_skip_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var sb_skip := StyleBoxFlat.new()
 	sb_skip.bg_color = COLOR_ELEVATED
@@ -326,6 +344,9 @@ func _build_ui() -> void:
 	sb_skip_hover.border_color = COLOR_FOCUS
 	sb_skip_hover.set_border_width_all(2)
 	_skip_button.add_theme_stylebox_override("hover", sb_skip_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_skip_button)
 	_skip_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	_skip_button.offset_left = -120
 	_skip_button.offset_top = 12
@@ -396,6 +417,10 @@ func _populate_illustration() -> void:
 	_apply_atmosphere(art_tag)
 	if scene_id.is_empty():
 		return
+	# Alpha: no baked scene art — see SCENE_ART_ENABLED. The gradient fallback
+	# and the atmosphere layer above still run, so the screen keeps its mood.
+	if not SCENE_ART_ENABLED:
+		return
 	# Try SceneStage with the scene_id. If it doesn't resolve to a
 	# manifest, SceneStage logs a push_warning and renders nothing —
 	# the gradient_fallback ColorRect underneath remains visible.
@@ -417,6 +442,10 @@ func _apply_atmosphere(art_tag: String) -> void:
 ## crew via AdvisorSystem's role logic, deduped, with roster-order fallback.
 ## No-op when the scene declares no slots or there is no crew in context.
 func _populate_character_slots() -> void:
+	# Gated with the baked art (SCENE_ART_ENABLED). Crew figures standing on an
+	# empty gradient read as a broken illustration, not a text presentation.
+	if not SCENE_ART_ENABLED:
+		return
 	if not _scene_stage or not _scene_stage.has_method("get_character_slots"):
 		return
 	var slots: Array = _scene_stage.get_character_slots()

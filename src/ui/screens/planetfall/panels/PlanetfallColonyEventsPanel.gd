@@ -12,14 +12,14 @@ signal phase_completed(result_data: Dictionary)
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -105,7 +105,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 5: COLONY EVENTS"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -129,13 +129,13 @@ func _build_ui() -> void:
 
 	_roll_btn = Button.new()
 	_roll_btn.text = "Roll Colony Event (D100)"
-	_roll_btn.custom_minimum_size = Vector2(240, 48)
+	_roll_btn.custom_minimum_size = Vector2(0, 48)
 	_roll_btn.pressed.connect(_on_roll_pressed)
 	btn_box.add_child(_roll_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = false
 	btn_box.add_child(_continue_btn)
@@ -276,7 +276,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	choice_label.bbcode_enabled = true
 	choice_label.fit_content = true
 	choice_label.scroll_active = false
-	choice_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	choice_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	choice_label.add_theme_color_override("default_color", COLOR_WARNING)
 
 	match event_id:
@@ -302,7 +302,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	# For most choice events, provide simple accept/decline buttons
 	var accept_btn := Button.new()
 	accept_btn.text = "Accept Event"
-	accept_btn.custom_minimum_size = Vector2(200, 48)
+	accept_btn.custom_minimum_size = Vector2(0, 48)
 	accept_btn.pressed.connect(func():
 		_apply_choice_accept(event_id, effect)
 		accept_btn.disabled = true
@@ -314,7 +314,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	if penalty != 0:
 		var decline_btn := Button.new()
 		decline_btn.text = "Decline (%+d Morale)" % penalty
-		decline_btn.custom_minimum_size = Vector2(200, 48)
+		decline_btn.custom_minimum_size = Vector2(0, 48)
 		decline_btn.pressed.connect(func():
 			if _campaign and _campaign.has_method("adjust_morale"):
 				_campaign.adjust_morale(penalty)
@@ -441,7 +441,7 @@ func _add_info_text(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -452,7 +452,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

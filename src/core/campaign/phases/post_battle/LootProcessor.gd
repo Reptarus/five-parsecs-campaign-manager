@@ -21,8 +21,21 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	var roll_count: int = 1
 	if ctx.battle_result.get("is_invasion", false):
 		roll_count = 0  # Core Rules p.120: "If you just played an Invasion Battle, you receive no Loot."
+	elif ctx.battle_result.get("story_no_loot", false):
+		# Story Track Event 5 (p.157) "obtain no Loot"; Event 1 (p.153) grants a
+		# Loot roll only "provided you killed at least one opponent". Both are
+		# resolved into this one flag by StoryTrackProcessor before step 4.
+		roll_count = 0
 	elif ctx.battle_result.get("is_quest_finale", ctx.battle_result.get("quest_final_stage", ctx.battle_result.get("is_quest_final", false))):
 		roll_count = 3  # Core Rules p.120: final stage of a Quest -> roll three times, claim all.
+	elif int(ctx.battle_result.get("story_loot_rolls", 0)) > 0:
+		# Story Track Event 7 win (p.160): "3 rolls on the Loot Table".
+		roll_count = int(ctx.battle_result.get("story_loot_rolls", 0))
+
+	# Story Track Event 3 win (p.155): "you may claim an additional Loot roll
+	# from snooping around the site" — additive, unlike the absolute counts above.
+	if roll_count > 0:
+		roll_count += int(ctx.battle_result.get("story_bonus_loot_rolls", 0))
 
 	for _i in range(roll_count):
 		gathered_loot.append_array(_roll_loot_table())
@@ -78,12 +91,22 @@ func _add_loot_to_inventory(ctx: PostBattleContextClass, loot_item: Dictionary) 
 	if not equipment_data.has("location"):
 		equipment_data["location"] = "ship_stash"
 
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("add_to_ship_inventory"):
-		ctx.game_state_manager.add_to_ship_inventory(equipment_data)
+	# Write through EquipmentManager, the only real ship-stash API.
+	#
+	# THE BUG THIS FIXES: this tried add_to_ship_inventory() then add_inventory_item().
+	# NEITHER EXISTS — a repo-wide `grep "func add_to_ship_inventory\|func
+	# add_inventory_item"` returns ZERO definitions. The only add_inventory_item in the
+	# tree is a TEST DOUBLE (tests/unit/test_loot_processor_step7.gd:61), which is
+	# exactly why the suite stayed green while production discarded every roll.
+	#
+	# So the entire Gather the Loot step (Core Rules p.120) was thrown away: the roll
+	# happened, the wizard printed the item, and nothing reached the ship stash.
+	# ctx.equipment_manager is already injected by PostBattlePhase.gd:105.
+	if ctx.equipment_manager and ctx.equipment_manager.has_method("add_to_ship_stash"):
+		ctx.equipment_manager.add_to_ship_stash(equipment_data)
 		return
-
-	if ctx.game_state and ctx.game_state.has_method("add_inventory_item"):
-		ctx.game_state.add_inventory_item(equipment_data)
+	push_error("LootProcessor: no equipment manager — loot '%s' was discarded"
+		% str(equipment_data.get("name", "?")))
 
 func _apply_loot_reward(ctx: PostBattleContextClass, reward: Dictionary) -> void:
 	## Apply a Rewards-Subtable result (Core Rules p.133): credits / rumors / story points.

@@ -33,10 +33,10 @@ const FONT_SIZE_XS := 11
 const FONT_SIZE_SM := 14
 
 # Default colors (fallback if ThemeManager not available)
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 # ============ PUBLIC PROPERTIES ============
 
@@ -110,7 +110,7 @@ func _setup_ui() -> void:
 	style.bg_color = Color(COLOR_INPUT, 0.5)  # Semi-transparent background
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)  # Rounded corners
+	style.set_corner_radius_all(4)  # Rounded corners
 	style.set_content_margin_all(SPACING_SM)  # 8px padding
 	add_theme_stylebox_override("panel", style)
 	
@@ -126,7 +126,7 @@ func _setup_ui() -> void:
 	_name_label = Label.new()
 	_name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	_name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_name_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_name_label)
 	
@@ -134,7 +134,7 @@ func _setup_ui() -> void:
 	_value_label = Label.new()
 	_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_value_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_value_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_value_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	vbox.add_child(_value_label)
 

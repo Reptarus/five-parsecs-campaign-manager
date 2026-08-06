@@ -319,8 +319,9 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 	## - Paid: 1 credit per hull point (text instruction for player)
 	## - Warning: No travel while damaged, emergency takeoff = 3D6 hull damage
 	##
-	# DLC: Check for Fringe World Strife events on arrival (Compendium pp.148-152)
-	_check_dlc_world_strife(world_data)
+	# Fringe World Strife (Compendium pp.148-151) is no longer checked here — see
+	# the deleted _check_dlc_world_strife below. The live arrival roll is in
+	# WorldPhaseController; the accumulator is PostBattlePhase step 6.
 	# DLC: Roll psionic legality for this world (Core Rules pp.96-101)
 	_check_dlc_psionic_legality()
 
@@ -348,31 +349,20 @@ func start_world_phase(world_data: Dictionary = {}) -> void:
 	elif actual_free > 0:
 		pass
 
-## DLC: Check for Fringe World Strife events on world arrival (Compendium pp.148-152)
-func _check_dlc_world_strife(world_data: Dictionary = {}) -> void:
-	var is_fringe: bool = world_data.get(
-		"is_fringe", _current_world_data.get("is_fringe", false))
-	if CompendiumWorldOptionsRef.should_check_strife(is_fringe):
-		var strife_event: Dictionary = CompendiumWorldOptionsRef.roll_strife_event()
-		if not strife_event.is_empty():
-			print_verbose("WorldPhase DLC: Strife event — %s" % strife_event.get("name", "Unknown"))
-			_current_world_data["strife_event"] = strife_event
-			var instability: int = _current_world_data.get("instability", 0)
-			instability += strife_event.get("instability_mod", 0)
-
-			# DLC: Apply instability delta based on active rivals/patron jobs (Compendium)
-			var active_rivals: int = _current_world_data.get("active_rivals", 0)
-			var has_patron_job: bool = _current_world_data.get("has_patron_job", false)
-			var held_field: bool = _current_world_data.get("held_field_roving", false)
-			var delta: int = CompendiumWorldOptionsRef.roll_instability_delta(
-				active_rivals, has_patron_job, held_field
-			)
-			instability += delta
-			_current_world_data["instability"] = clampi(instability, 0, 10)
-			# Persist to GameState for UI access
-			var gs = get_node_or_null("/root/GameState")
-			if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
-				gs.current_campaign.progress_data["strife_event"] = strife_event
+## DELETED (Aug 3 2026): `_check_dlc_world_strife`.
+##
+## This file has zero instantiations, and this function was a second copy of the
+## same broken Fringe World Strife mechanism that lived in WorldPhaseController:
+## a permanently-false `is_fringe` gate, the arrival die re-rolled every turn,
+## the D100 fired immediately instead of at the book's threshold of 10, and
+## `instability_mod` read against rows that carry `instability_reduction`.
+##
+## It also did `clampi(instability, 0, 10)` — pinning the score AT the threshold
+## it was supposed to cross, so even a repaired version could not have worked.
+##
+## pp.148-151 now live in `src/core/world/FringeWorldStrife.gd`, with the arrival
+## roll in WorldPhaseController and the accumulator in PostBattlePhase step 6
+## (Compendium p.148: "During the Invasion step of every campaign turn").
 
 
 ## DLC: Roll psionic legality for the current world (Core Rules pp.96-101)
@@ -600,9 +590,23 @@ func _resolve_train_task(crew_id: String) -> Dictionary:
 	var description = training_outcome.get("narrative", "Character completes training and gains experience")
 	var advancement_check = training_outcome.get("advancement_check", true)
 	
-	# Award XP to crew member
-	if game_state_manager and game_state_manager.has_method("add_crew_experience"):
-		game_state_manager.add_crew_experience(crew_id, xp_gained)
+	# Award XP to crew member.
+	#
+	# THE BUG THIS FIXES: this was gated on add_crew_experience(), which exists on
+	# NEITHER GameState nor GameStateManager — a repo-wide grep finds only call sites,
+	# never a definition. So the guard was permanently false and the World Phase Train
+	# task (Core Rules p.124) reported "gains experience" while writing nothing.
+	# Mutate the crew member directly, matching PostBattleContext.add_character_xp.
+	var gs_node := get_node_or_null("/root/GameState")
+	if gs_node and gs_node.get("current_campaign"):
+		var camp = gs_node.current_campaign
+		if camp.has_method("get_crew_member_by_id"):
+			var member = camp.get_crew_member_by_id(crew_id)
+			if member != null:
+				if member is Dictionary:
+					member["experience"] = int(member.get("experience", 0)) + xp_gained
+				elif member is Object and "experience" in member:
+					member.experience += xp_gained
 
 	return {
 		"crew_id": crew_id,

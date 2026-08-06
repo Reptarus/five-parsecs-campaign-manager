@@ -117,13 +117,13 @@ func _create_action_button(action: Dictionary) -> Control:
 
 	var icon_style := StyleBoxFlat.new()
 	icon_style.bg_color = action["color"]
-	icon_style.set_corner_radius_all(12)
+	icon_style.set_corner_radius_all(4)
 	icon_panel.add_theme_stylebox_override("panel", icon_style)
 
 	# Icon label
 	var icon_label := Label.new()
 	icon_label.text = action["icon"]
-	icon_label.add_theme_font_size_override("font_size", 24)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(24))
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	icon_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -136,7 +136,7 @@ func _create_action_button(action: Dictionary) -> Control:
 	# Action name label
 	var name_label := Label.new()
 	name_label.text = action["name"]
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.mouse_filter = Control.MOUSE_FILTER_PASS  # Pass clicks to parent
@@ -164,7 +164,7 @@ func _apply_footer_style() -> void:
 	style.set_border_width_all(1)
 
 	# Subtle rounded corners
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 
 	# Comfortable padding
 	style.set_content_margin_all(SPACING_MD)
@@ -220,7 +220,7 @@ func _on_action_hover_enter(container: Control, base_color: Color) -> void:
 		# Brighten the icon background
 		var hover_style := StyleBoxFlat.new()
 		hover_style.bg_color = base_color.lightened(0.2)
-		hover_style.set_corner_radius_all(12)
+		hover_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", hover_style)
 		
 		# Center the pivot for scaling
@@ -237,7 +237,7 @@ func _on_action_hover_exit(container: Control, base_color: Color) -> void:
 		# Restore original color
 		var normal_style := StyleBoxFlat.new()
 		normal_style.bg_color = base_color
-		normal_style.set_corner_radius_all(12)
+		normal_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", normal_style)
 
 

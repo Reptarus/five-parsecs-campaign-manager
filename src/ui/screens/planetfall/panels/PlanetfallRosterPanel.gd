@@ -10,8 +10,8 @@ signal roster_updated(characters: Array)
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
 const ImportPanelClass = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 var _coordinator = null
 var _roster: Array = []
@@ -38,13 +38,13 @@ func _build_placeholder() -> void:
 
 	var header := Label.new()
 	header.text = "CHARACTER ROSTER"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "Choose 8 characters: Scientists, Scouts, and Troopers (min 1 of each).\nYou also get 12 Grunts and 1 Colony Bot automatically."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
@@ -52,14 +52,14 @@ func _build_placeholder() -> void:
 	# Quick-generate button for testing
 	var gen_btn := Button.new()
 	gen_btn.text = "Auto-Generate Default Roster (2S / 2Sc / 4T)"
-	gen_btn.custom_minimum_size = Vector2(300, 56)
+	gen_btn.custom_minimum_size = Vector2(0, 56)
 	gen_btn.pressed.connect(_on_auto_generate)
 	content.add_child(gen_btn)
 
 	# Import veterans from a 5PFH / Bug Hunt save (Planetfall pp.26-29)
 	var import_btn := Button.new()
 	import_btn.text = "Import Characters from 5PFH / Bug Hunt"
-	import_btn.custom_minimum_size = Vector2(300, 48)
+	import_btn.custom_minimum_size = Vector2(0, 48)
 	import_btn.pressed.connect(_on_import_pressed)
 	content.add_child(import_btn)
 

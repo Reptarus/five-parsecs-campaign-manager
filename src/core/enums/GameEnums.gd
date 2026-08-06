@@ -563,19 +563,16 @@ enum CampaignPhase {
 	END # Campaign conclusion
 }
 
-## Combat Modifiers
-enum CombatModifier {
-	NONE, # No modifier
-	COVER_LIGHT, # Light cover
-	COVER_MEDIUM, # Medium cover
-	COVER_HEAVY, # Heavy cover
-	FLANKING, # Flanking position
-	ELEVATION, # Height advantage
-	SUPPRESSED, # Under suppression
-	PINNED, # Pinned down
-	STEALTH, # Stealth advantage
-	OVERWATCH # Overwatch position
-}
+# CombatModifier deleted 2026-08-02. Every member was fabricated and the enum
+# had zero users. Core Rules p.44 resolves shooting as 1D6 + Combat Skill
+# against a target number, and cover is BINARY — it changes which of three rows
+# applies (3+ within 6" in the open, 5+ within range in the open or within 6" in
+# Cover, 6+ within range in Cover) rather than contributing a modifier. There
+# are no light/medium/heavy cover tiers, and no flanking, elevation, suppression,
+# pinned or overwatch anywhere in either book (Pinned and Overwatch: zero
+# occurrences in each). The only real to-hit modifiers are the Heavy trait (-1
+# if the firer moved), Snap shot (+1 within 6") and the Bipod mod (+1 over 8").
+# Pinned by test_enum_ordinal_sync.test_dead_combat_enums_stay_deleted().
 
 ## Terrain Modifiers
 enum TerrainModifier {
@@ -1349,31 +1346,9 @@ enum StrangeCharacterType {
 	FERAL # Wild character
 }
 
-## Combat Advantage Levels
-enum CombatAdvantage {
-	NONE, # No advantage
-	MINOR, # Slight advantage
-	MAJOR, # Significant advantage
-	OVERWHELMING # Dominating advantage
-}
-
-## Combat Status Effects
-enum CombatStatus {
-	NONE, # No status effect
-	PINNED, # Movement restricted
-	FLANKED, # Attacked from side
-	SURROUNDED, # Attacked from multiple sides
-	SUPPRESSED # Under heavy fire
-}
-
-## Combat Tactics
-enum CombatTactic {
-	NONE, # No specific tactic
-	AGGRESSIVE, # Offensive focus
-	DEFENSIVE, # Defensive focus
-	BALANCED, # Balanced approach
-	EVASIVE # Evasion priority
-}
+# CombatAdvantage / CombatStatus / CombatTactic deleted 2026-08-02 (see the
+# CombatModifier note above). All three were fabricated and had zero users.
+# Pinned by test_enum_ordinal_sync.test_dead_combat_enums_stay_deleted().
 
 ## Battle States
 enum BattleState {

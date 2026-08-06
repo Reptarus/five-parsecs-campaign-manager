@@ -2,6 +2,12 @@ extends WorldPhaseComponent
 class_name AssignEquipmentComponent
 
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
+## The ONLY sanctioned mover of equipment (data-ownership table). This component
+## works on deep COPIES of the crew and stash, so every transfer here has to be
+## replayed against the live campaign through this service or it is discarded
+## the moment the player leaves the step.
+const EquipmentTransferServiceRef = preload(
+	"res://src/core/equipment/EquipmentTransferService.gd")
 
 ## Assign Equipment Component - Equipment Management System
 ## Implements Core Rules p.85 - Transfer items between crew members and stash
@@ -196,6 +202,51 @@ func _resolve_item_display_name(item, id_to_name: Dictionary) -> String:
 	var s: String = str(item)
 	return str(id_to_name.get(s, s))
 
+# ============================================================================
+# LIVE-CAMPAIGN PERSISTENCE
+#
+# This component deep-COPIES the crew and stash in initialize_equipment_phase()
+# (`crew.duplicate(true)` / `stash.duplicate(true)`), so its own arrays are
+# detached from the campaign. Every transfer therefore has to be replayed
+# against the live campaign through EquipmentTransferService — the sanctioned
+# chokepoint that enforces the "one item, one home" tabletop invariant — or the
+# player's reassignments are discarded when the step ends.
+# ============================================================================
+
+func _transfer_service():
+	## A service bound to the live campaign, or null when there is no campaign
+	## (creation preview, tests). Instantiated per operation, per its contract.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return null
+	return EquipmentTransferServiceRef.new(gs.current_campaign)
+
+func _persist_to_stash(character_id: String, equipment_id: String) -> bool:
+	if character_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_to_stash(equipment_id, character_id)
+
+func _persist_to_character(character_id: String, equipment_id: String) -> bool:
+	if character_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_to_character(equipment_id, character_id)
+
+func _persist_between_characters(
+	source_id: String, target_id: String, equipment_id: String
+) -> bool:
+	if source_id.is_empty() or target_id.is_empty() or equipment_id.is_empty():
+		return false
+	var svc = _transfer_service()
+	if svc == null:
+		return false
+	return svc.transfer_between_characters(equipment_id, source_id, target_id)
+
 func _get_member_equipment(member) -> Array:
 	## Get equipment array from crew member
 	if not member:
@@ -259,24 +310,18 @@ func _on_transfer_to_stash_pressed() -> void:
 		var character_id: String = member.character_id if "character_id" in member else ""
 		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 		
-		# Try EquipmentManager first for proper state management
-		var equipment_manager = get_node_or_null("/root/EquipmentManager")
-		if equipment_manager and equipment_manager.has_method("transfer_to_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
-			if equipment_manager.transfer_to_ship_stash(character_id, equipment_id):
-				# Update local state to match EquipmentManager
-				equipment.remove_at(item_index)
-				_set_member_equipment(member, equipment)
-				stash_items.append(item)
-				pass # Transferred to ship stash via EquipmentManager
-			else:
-				push_warning("AssignEquipmentComponent: EquipmentManager transfer failed - stash may be full")
-				return
-		else:
-			# Fallback to local state update only
-			equipment.remove_at(item_index)
-			_set_member_equipment(member, equipment)
-			stash_items.append(item)
-			pass # Transferred to stash (local only)
+		# Persist to the LIVE campaign, then mirror into the local copies so the
+		# lists redraw. The old code asked EquipmentManager for
+		# `transfer_to_ship_stash`, a method with ZERO definitions repo-wide, so
+		# the guard was permanently false and every transfer took the "local only"
+		# fallback below — mutating deep copies that were thrown away when the
+		# player left the step. Reassigning gear in the World Phase therefore
+		# changed nothing: the crew went into battle with their old loadout.
+		if not _persist_to_stash(character_id, equipment_id):
+			push_warning("AssignEquipmentComponent: stash transfer not persisted (%s)" % equipment_id)
+		equipment.remove_at(item_index)
+		_set_member_equipment(member, equipment)
+		stash_items.append(item)
 
 		_selected_equipment_index = -1
 		_populate_crew_equipment()
@@ -313,24 +358,14 @@ func _do_transfer_to_crew(member, item, item_index: int) -> void:
 	var character_id: String = member.character_id if "character_id" in member else ""
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
-	# Try EquipmentManager first for proper state management
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
-	if equipment_manager and equipment_manager.has_method("transfer_from_ship_stash") and not character_id.is_empty() and not equipment_id.is_empty():
-		if equipment_manager.transfer_from_ship_stash(equipment_id, character_id):
-			# Update local state to match EquipmentManager
-			stash_items.remove_at(item_index)
-			var equipment = _get_member_equipment(member)
-			equipment.append(item)
-			_set_member_equipment(member, equipment)
-		else:
-			push_warning("AssignEquipmentComponent: EquipmentManager transfer from stash failed")
-			return
-	else:
-		# Fallback to local state update only
-		stash_items.remove_at(item_index)
-		var equipment = _get_member_equipment(member)
-		equipment.append(item)
-		_set_member_equipment(member, equipment)
+	# Persist to the LIVE campaign first (see _on_transfer_to_stash_pressed for
+	# why the old EquipmentManager guard could never fire), then mirror locally.
+	if not _persist_to_character(character_id, equipment_id):
+		push_warning("AssignEquipmentComponent: crew transfer not persisted (%s)" % equipment_id)
+	stash_items.remove_at(item_index)
+	var equipment = _get_member_equipment(member)
+	equipment.append(item)
+	_set_member_equipment(member, equipment)
 
 	_selected_stash_index = -1
 	_populate_crew_equipment()
@@ -414,7 +449,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1A1A2E")
+	style.bg_color = UIColors.COLOR_PRIMARY
 	panel.add_theme_stylebox_override("panel", style)
 	popup.add_child(panel)
 
@@ -434,7 +469,7 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 	var header := Label.new()
 	header.text = "Select crew member to receive item:"
 	header.add_theme_font_size_override("font_size", _scaled_font(14))
-	header.add_theme_color_override("font_color", Color("#E0E0E0"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(header)
 
 	# Crew list
@@ -471,10 +506,10 @@ func _create_crew_selection_popup(crew_options: Array) -> Window:
 
 	# Style transfer button
 	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color("#2D5A7B")
-	btn_style.set_corner_radius_all(6)
+	btn_style.bg_color = UIColors.COLOR_BLUE
+	btn_style.set_corner_radius_all(4)
 	transfer_btn.add_theme_stylebox_override("normal", btn_style)
-	transfer_btn.add_theme_color_override("font_color", Color("#E0E0E0"))
+	transfer_btn.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 
 	# Enable transfer button when selection made
 	crew_list.item_selected.connect(func(_idx): transfer_btn.disabled = false)
@@ -524,30 +559,21 @@ func _execute_crew_to_crew_transfer(target_crew_index: int) -> void:
 	var target_name: String = target_member.character_name if "character_name" in target_member else "Crew %d" % (target_crew_index + 1)
 	var item_name: String = item.get("name", "Unknown") if item is Dictionary else str(item)
 
-	# Try EquipmentManager first for proper state management
-	var equipment_manager = get_node_or_null("/root/EquipmentManager")
 	var source_id: String = source_member.character_id if "character_id" in source_member else ""
 	var target_id: String = target_member.character_id if "character_id" in target_member else ""
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
-	if equipment_manager and equipment_manager.has_method("transfer_equipment") and not source_id.is_empty() and not target_id.is_empty() and not equipment_id.is_empty():
-		if equipment_manager.transfer_equipment(source_id, target_id, equipment_id):
-			# Update local state to match
-			source_equipment.remove_at(item_index)
-			_set_member_equipment(source_member, source_equipment)
-			var target_equipment = _get_member_equipment(target_member)
-			target_equipment.append(item)
-			_set_member_equipment(target_member, target_equipment)
-		else:
-			_show_notification("Transfer failed")
-			return
-	else:
-		# Fallback to local state update only
-		source_equipment.remove_at(item_index)
-		_set_member_equipment(source_member, source_equipment)
-		var target_equipment = _get_member_equipment(target_member)
-		target_equipment.append(item)
-		_set_member_equipment(target_member, target_equipment)
+	# Persist to the LIVE campaign (same dead-guard story as the other two
+	# handlers — `transfer_equipment` has zero definitions repo-wide), then
+	# mirror into the local copies so the lists redraw.
+	if not _persist_between_characters(source_id, target_id, equipment_id):
+		push_warning("AssignEquipmentComponent: crew-to-crew transfer not persisted (%s)"
+			% equipment_id)
+	source_equipment.remove_at(item_index)
+	_set_member_equipment(source_member, source_equipment)
+	var target_equipment = _get_member_equipment(target_member)
+	target_equipment.append(item)
+	_set_member_equipment(target_member, target_equipment)
 
 	# Refresh displays
 	_populate_crew_equipment()
@@ -846,7 +872,7 @@ func _apply_glass_style(panel: PanelContainer) -> void:
 		COLOR_BORDER.r, COLOR_BORDER.g,
 		COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_SM))
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -913,7 +939,7 @@ func _build_crew_stats_content(member) -> VBoxContainer:
 
 	var header := Label.new()
 	header.text = "CREW STATS"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	header.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	vbox.add_child(header)
 
@@ -938,17 +964,17 @@ func _build_crew_stats_content(member) -> VBoxContainer:
 
 	var stats := [
 		{"label": "REA", "value": str(rea),
-			"color": Color("#10b981")},
+			"color": UIColors.COLOR_EMERALD},
 		{"label": "SPD", "value": str(spd) + '"',
-			"color": Color("#3b82f6")},
+			"color": UIColors.COLOR_BLUE},
 		{"label": "CBT", "value": _fmt_mod(cbt),
-			"color": Color("#f59e0b")},
+			"color": UIColors.COLOR_AMBER},
 		{"label": "TGH", "value": str(tgh),
-			"color": Color("#ef4444")},
+			"color": UIColors.COLOR_RED},
 		{"label": "SAV", "value": _fmt_mod(sav),
-			"color": Color("#8b5cf6")},
+			"color": UIColors.COLOR_PURPLE},
 		{"label": "LCK", "value": str(lck),
-			"color": Color("#06b6d4")},
+			"color": UIColors.COLOR_CYAN},
 	]
 
 	for stat: Dictionary in stats:
@@ -967,7 +993,7 @@ func _create_stat_box(
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.122, 0.161, 0.216, 0.5)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_XS))
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -977,14 +1003,14 @@ func _create_stat_box(
 	var lbl := Label.new()
 	lbl.text = label_text
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 	vbox.add_child(lbl)
 
 	var val := Label.new()
 	val.text = value_text
 	val.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	val.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	val.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	val.add_theme_color_override("font_color", accent_color)
 	vbox.add_child(val)
 
@@ -1021,7 +1047,7 @@ func _build_weapon_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1069,7 +1095,7 @@ func _build_armor_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1103,7 +1129,7 @@ func _build_armor_stats(
 			parts.append(text)
 		bonus_lbl.text = ", ".join(parts)
 		bonus_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bonus_lbl.add_theme_color_override(
 			"font_color", COLOR_SUCCESS)
 		container.add_child(bonus_lbl)
@@ -1124,7 +1150,7 @@ func _build_armor_stats(
 			val, stat_name,
 			condition.replace("_", " ")]
 		cond_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		cond_lbl.add_theme_color_override(
 			"font_color", COLOR_WARNING)
 		container.add_child(cond_lbl)
@@ -1136,7 +1162,7 @@ func _build_armor_stats(
 		desc_lbl.text = desc
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		desc_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_MUTED)
 		container.add_child(desc_lbl)
@@ -1149,7 +1175,7 @@ func _build_gear_stats(
 
 	var name_lbl := Label.new()
 	name_lbl.text = item.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	row.add_child(name_lbl)
@@ -1161,7 +1187,7 @@ func _build_gear_stats(
 		var warn := Label.new()
 		warn.text = "SINGLE USE"
 		warn.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		warn.add_theme_color_override(
 			"font_color", COLOR_WARNING)
 		row.add_child(warn)
@@ -1174,7 +1200,7 @@ func _build_gear_stats(
 		desc_lbl.text = desc
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(desc_lbl)
@@ -1183,7 +1209,7 @@ func _stat_label(text: String) -> Label:
 	## Create a compact stat label for weapon rows
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return lbl
 
@@ -1202,7 +1228,7 @@ func _create_type_badge(type_name: String) -> PanelContainer:
 
 	var lbl := Label.new()
 	lbl.text = type_name
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	panel.add_child(lbl)
 	return panel
@@ -1229,7 +1255,7 @@ func _create_trait_badge(trait_name: String) -> PanelContainer:
 
 	var lbl := Label.new()
 	lbl.text = trait_name
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	panel.add_child(lbl)
 	return panel
@@ -1355,7 +1381,7 @@ func _build_synergy_hints(
 		var lbl := Label.new()
 		lbl.text = "\u25b8 " + hints[i]
 		lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_XS)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		lbl.add_theme_color_override(
 			"font_color", hint_colors[i])
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

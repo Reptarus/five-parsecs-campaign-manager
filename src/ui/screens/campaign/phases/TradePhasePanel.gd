@@ -823,6 +823,35 @@ func _save_current_loan() -> void:
 	else:
 		campaign.progress_data["active_loan"] = current_loan.duplicate()
 
+## Core Rules p.31 Ship Table: every hull's DEBT is "1D6 + <base>", with the base
+## running 10-35 by ship type. data/ships.json carries that as `debt_base` and
+## ShipPanel already builds a new ship's debt the same way.
+##
+## "The ship in question" (Compendium p.152) is the crew's current ship where they
+## have one. A shipless crew — the case the chapter is written for — has no type to
+## price, so we fall back to the Worn Freighter band (20), the widest entry on the
+## p.31 table at rolls 1-12 and the same fallback ShipPanel uses.
+func _ship_cost_from_core_rules_p31() -> int:
+	var base: int = 20
+	var campaign = _get_campaign_safe()
+	var ship_name: String = ""
+	if campaign and "ship_data" in campaign and campaign.ship_data is Dictionary:
+		ship_name = str(campaign.ship_data.get("type", "")).strip_edges().to_lower()
+	if not ship_name.is_empty():
+		var file := FileAccess.open("res://data/ships.json", FileAccess.READ)
+		if file:
+			var json := JSON.new()
+			var ok: bool = json.parse(file.get_as_text()) == OK
+			file.close()
+			if ok and json.data is Dictionary:
+				for entry in json.data.get("ship_types", []):
+					if entry is Dictionary \
+							and str(entry.get("name", "")).to_lower() == ship_name:
+						base = int(entry.get("debt_base", base))
+						break
+	return base + randi_range(1, 6)
+
+
 func _on_take_loan_pressed() -> void:
 	## Roll loan terms using Compendium tables and offer to player
 	var origin: Dictionary = CompendiumWorldOptions.roll_loan_origin()
@@ -831,12 +860,38 @@ func _on_take_loan_pressed() -> void:
 	var rate: Dictionary = CompendiumWorldOptions.roll_interest_rate()
 	var enforcement: Dictionary = CompendiumWorldOptions.roll_enforcement_threshold()
 
-	# Loan amount: flat 20cr (Compendium standard starting loan)
-	var loan_amount: int = 20
+	# Compendium p.152 Step 2, "The Loan Amount":
+	#
+	#   "The base value of the loan will be the cost of the ship in question, as
+	#    indicated on p.31 of the core rules. [...]
+	#    - Unity Program loans must add +5 Credits due to fees and paperwork.
+	#    - Free Trader or Suspicious Character loans must add +1D6 Credits due to
+	#      personal whims."
+	#
+	# This was `var loan_amount: int = 20`, a flat constant with a comment calling
+	# it the "Compendium standard starting loan" — no such rule exists. Steps 1, 3
+	# and 4 all rolled correctly and fed a loan whose PRINCIPAL was fixed, so the
+	# two origin-conditional modifiers (the only place the chapter's five origins
+	# differ in cost rather than flavour) had no implementation and a Unity loan
+	# was financially identical to a Suspicious Character loan.
+	#
+	# `fee_adjustment` has been sitting in world_options.json describing exactly
+	# these two adjustments since the file was written, read by nothing.
+	var base_cost: int = _ship_cost_from_core_rules_p31()
+	var origin_id: String = str(origin.get("id", ""))
+	var surcharge: int = CompendiumWorldOptions.loan_origin_surcharge(origin_id)
+	var loan_amount: int = base_cost + surcharge
+	var fee_note: String = ""
+	if surcharge > 0:
+		fee_note = ("+%dcr fees and paperwork" % surcharge) \
+			if origin_id == "unity_program" \
+			else ("+%dcr personal whims (1D6)" % surcharge)
 
 	current_loan = {
 		"debt": loan_amount,
-		"origin_id": origin.get("id", ""),
+		"base_cost": base_cost,
+		"fee_note": fee_note,
+		"origin_id": origin_id,
 		"origin_name": origin.get("name", "Unknown"),
 		"rate_id": rate.get("id", ""),
 		"rate_name": rate.get("name", "Standard"),
@@ -856,6 +911,13 @@ func _on_take_loan_pressed() -> void:
 	if item_details:
 		var desc: String = "[color=#10B981]Loan Taken: +%dcr[/color]\n" % loan_amount
 		desc += "Origin: %s\n" % origin.get("name", "Unknown")
+		# Show the p.152 Step 2 arithmetic. The origin surcharge is the only thing
+		# that distinguishes these five lenders on price, so hiding it would make
+		# the roll look cosmetic again.
+		if fee_note.is_empty():
+			desc += "Ship cost: %dcr (Core Rules p.31)\n" % base_cost
+		else:
+			desc += "Ship cost %dcr %s = %dcr\n" % [base_cost, fee_note, loan_amount]
 		desc += "Rate: %s\n" % rate.get("name", "Standard")
 		desc += origin.get("instruction", "")
 		_set_keyword_text(item_details, desc)

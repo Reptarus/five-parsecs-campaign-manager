@@ -5,12 +5,12 @@ extends VBoxContainer
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # Design system colors
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_WARNING := Color("#D97706")
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_WARNING := UIColors.COLOR_AMBER
 
 var toggle_states: Dictionary = {}
 
@@ -76,7 +76,7 @@ func _build_ui() -> void:
 		card_style.bg_color = COLOR_ELEVATED
 		card_style.border_color = COLOR_BORDER
 		card_style.set_border_width_all(1)
-		card_style.set_corner_radius_all(6)
+		card_style.set_corner_radius_all(4)
 		card_style.set_content_margin_all(12)
 		card.add_theme_stylebox_override("panel", card_style)
 		add_child(card)
@@ -110,7 +110,7 @@ func _build_ui() -> void:
 	save_btn.pressed.connect(_save_toggle_states)
 	var btn_style := StyleBoxFlat.new()
 	btn_style.bg_color = COLOR_ACCENT
-	btn_style.set_corner_radius_all(6)
+	btn_style.set_corner_radius_all(4)
 	btn_style.set_content_margin_all(8)
 	save_btn.add_theme_stylebox_override("normal", btn_style)
 	save_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)

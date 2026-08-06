@@ -104,7 +104,7 @@ func _generate_crew_events() -> void:
 			var _portrait: bool = _rm != null and _rm.has_method("should_collapse_to_single_column") \
 				and _rm.should_collapse_to_single_column()
 			name_label.custom_minimum_size = Vector2(0 if _portrait else 150, 0)
-			name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+			name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 			name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 			hbox.add_child(name_label)
 

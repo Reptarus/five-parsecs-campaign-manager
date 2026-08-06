@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3 uid="uid://c8vx1lawp7fqj"]
+[gd_scene load_steps=10 format=3 uid="uid://c8vx1lawp7fqj"]
 
 [ext_resource type="Script" uid="uid://nbyp2k0dvldt" path="res://src/ui/screens/world/WorldPhaseController.gd" id="1_controller"]
 [ext_resource type="PackedScene" uid="uid://bkw8n7qx3m5jr" path="res://src/ui/screens/world/components/UpkeepPhaseComponent.tscn" id="2_upkeep"]
@@ -16,64 +16,16 @@ corner_radius_bottom_right = 4
 corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_content_panel"]
-bg_color = Color(0.145, 0.145, 0.259, 0.85)
+bg_color = Color(0.0666667, 0.0941176, 0.152941, 0.85)
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
-border_color = Color(0.227, 0.227, 0.361, 1)
-corner_radius_top_left = 16
-corner_radius_top_right = 16
-corner_radius_bottom_right = 16
-corner_radius_bottom_left = 16
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
-bg_color = Color(0.176, 0.353, 0.482, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.227, 0.227, 0.361, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
-bg_color = Color(0.227, 0.443, 0.6, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.31, 0.78, 0.97, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_battle_button_normal"]
-bg_color = Color(0.065, 0.725, 0.506, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.227, 0.227, 0.361, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_battle_button_hover"]
-bg_color = Color(0.08, 0.85, 0.6, 1)
-border_width_left = 1
-border_width_top = 1
-border_width_right = 1
-border_width_bottom = 1
-border_color = Color(0.065, 0.725, 0.506, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+border_color = Color(0.216, 0.255, 0.318, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [node name="WorldPhaseController" type="Control"]
 layout_mode = 3
@@ -91,7 +43,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.102, 0.102, 0.18, 1)
+color = Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -115,8 +67,8 @@ layout_mode = 2
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
-theme_override_font_sizes/font_size = 24
-text = "World Phase - Campaign Turn Management"
+theme_type_variation = &"TextXL"
+text = "World Phase"
 horizontal_alignment = 1
 autowrap_mode = 3
 
@@ -124,7 +76,7 @@ autowrap_mode = 3
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 text = "Step 1 of 6: Upkeep"
 horizontal_alignment = 1
 
@@ -199,7 +151,7 @@ size_flags_horizontal = 3
 [node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="AutomationContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
+[node name="AutomationContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/Controls"]
 layout_mode = 2
 alignment = 1
 
@@ -209,6 +161,7 @@ text = "Automation:"
 
 [node name="AutomationToggle" type="CheckBox" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Enable Auto-Processing"
 
@@ -221,12 +174,9 @@ theme_override_constants/v_separation = 8
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_type_variation = &"BackButton"
 text = "← Back"
 
 [node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
@@ -235,31 +185,25 @@ size_flags_horizontal = 3
 
 [node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Controls/StepNavigation"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(120, 56)
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
-theme_override_colors/font_pressed_color = Color(0.31, 0.78, 0.97, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_type_variation = &"PrimaryButton"
 text = "Next →"
 
 [node name="HSeparator2" type="HSeparator" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="Footer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="Footer" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="BackToDashboardButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(200, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_type_variation = &"BackButton"
 text = "← Back to Dashboard"
 
 [node name="FooterSpacer" type="Control" parent="MarginContainer/VBoxContainer/Footer"]
@@ -268,11 +212,7 @@ size_flags_horizontal = 3
 
 [node name="ProceedToBattleButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(220, 48)
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_battle_button_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_battle_button_hover")
+theme_type_variation = &"ConfirmButton"
 text = "⚔ Proceed to Battle"

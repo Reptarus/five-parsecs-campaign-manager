@@ -15,16 +15,14 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 # Resource class imports removed - unused database schemas deleted in Phase 2B
 
-# Resource paths - native Godot resources
-const CHARACTER_DATA_PATH: String = "res://data/character_data.tres"
-const COMBAT_DATA_PATH: String = "res://data/combat_data.tres"
-const CAMPAIGN_DATA_PATH: String = "res://data/campaign_data.tres"
-
-# Converted Resource paths - Framework Bible compliant
-const ARMOR_DATABASE_PATH: String = "res://data/resources/equipment/armor.tres"
-const WEAPON_DATABASE_PATH: String = "res://data/resources/equipment/weapons.tres"
-const ENEMY_DATABASE_PATH: String = "res://data/resources/enemies/enemy_types.tres"
-const CREW_TASK_MODIFIERS_PATH: String = "res://data/resources/world/crew_task_modifiers.tres"
+# NOTE (2026-07-30): eight .tres/.json path constants were removed from here —
+# character_data, combat_data, campaign_data, resources/equipment/{armor,weapons},
+# resources/enemies/enemy_types, resources/world/crew_task_modifiers and
+# character_creation_data. NONE of those files exist in the repo, and the only
+# consumer was _validate_data_paths(), which had zero callers and did nothing but
+# push_warning about the absence. Canonical data lives in the JSON paths below and
+# in data/character_creation_tables/ + character_species.json (via
+# SpeciesDataService). Do not reintroduce them without the files.
 
 # Legacy JSON paths - to be phased out
 const GEAR_DATA_PATH: String = "res://data/gear_database.json"
@@ -33,7 +31,6 @@ const INJURY_TABLES_PATH: String = "res://data/injury_table.json"
 const LOCATION_TYPES_PATH: String = "res://data/location_types.json"
 const MISSION_TEMPLATES_PATH: String = "res://data/mission_templates.json"
 const LOOT_TABLES_PATH: String = "res://data/loot_tables.json"
-const CHARACTER_CREATION_PATH: String = "res://data/character_creation_data.json"
 const STATUS_EFFECTS_PATH: String = "res://data/status_effects.json"
 const EQUIPMENT_DATABASE_PATH: String = "res://data/equipment_database.json"
 const PSIONIC_POWERS_DATA_PATH: String = "res://data/psionic_powers.json"
@@ -301,28 +298,6 @@ func _load_full_data_background() -> void:
 	# Load crew task system
 	await _load_crew_task_system_async()
 	
-
-## Stage 1: Enhanced Type Safety and Validation
-func _validate_data_paths() -> void:
-	## Validate resource file paths - Framework Bible compliant
-	
-	# Only validate the core resource paths
-	var resource_paths: Array[String] = [
-		CHARACTER_DATA_PATH,
-		COMBAT_DATA_PATH,
-		CAMPAIGN_DATA_PATH
-	]
-	
-	var missing_count = 0
-	for path in resource_paths:
-		if not ResourceLoader.exists(path):
-			push_warning("DataManager: Resource file not found (will be created): " + path)
-			missing_count += 1
-	
-	if missing_count > 0:
-		pass
-	else:
-		pass
 
 ## Character System Data Loading
 func _load_character_system() -> bool:

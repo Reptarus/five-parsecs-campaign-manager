@@ -1,4 +1,6 @@
 extends AcceptDialog
+
+const DLCContentCatalogRef = preload("res://src/ui/screens/store/DLCContentCatalog.gd")
 ## DLC Management Dialog - Manage expansion pack ownership and feature toggles
 ##
 ## Accessible from Settings menu. Shows three DLC packs with owned/unowned status.
@@ -126,7 +128,7 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 	var card := PanelContainer.new()
 	var card_style := StyleBoxFlat.new()
 	card_style.bg_color = COLOR_ELEVATED
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.border_width_left = 2
 	card_style.border_width_right = 2
 	card_style.border_width_top = 2
@@ -146,7 +148,7 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 
 	var pack_label := Label.new()
 	pack_label.text = pack_info.name
-	pack_label.add_theme_font_size_override("font_size", 18)
+	pack_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	pack_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	pack_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(pack_label)
@@ -169,7 +171,7 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 	# Description
 	var desc_label := Label.new()
 	desc_label.text = pack_info.description
-	desc_label.add_theme_font_size_override("font_size", 13)
+	desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(13))
 	desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc_label)
@@ -203,10 +205,15 @@ func _build_pack_card(pack_info: Dictionary) -> PanelContainer:
 
 	var flags: Array = pack_info.flags
 	for flag_info in flags:
+		# Same rule as the campaign-creation feature list: never show a switch
+		# whose rules are not wired. DLCContentCatalog.UNIMPLEMENTED_FLAGS is the
+		# single list, so a feature landing un-hides it in both places at once.
+		if DLCContentCatalogRef.is_flag_unimplemented(str(flag_info.flag)):
+			continue
 		var cb := CheckBox.new()
 		cb.text = flag_info.label
 		cb.custom_minimum_size = Vector2(0, 32)
-		cb.add_theme_font_size_override("font_size", 14)
+		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		cb.toggled.connect(_on_flag_toggled.bind(flag_info.flag))
 		flags_container.add_child(cb)
 		_flag_checkboxes[flag_info.flag] = cb

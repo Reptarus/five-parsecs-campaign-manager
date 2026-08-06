@@ -23,18 +23,18 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 const FONT_SIZE_XL := 24
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_DANGER_HOVER := Color("#EF4444")
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_DANGER_HOVER := UIColors.COLOR_RED
 
 # UI References
 var message_label: Label
@@ -99,7 +99,7 @@ func _create_message_container() -> VBoxContainer:
 	# Message label
 	message_label = Label.new()
 	message_label.text = "Are you sure you want to proceed?"
-	message_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	message_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	message_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -122,19 +122,19 @@ func _create_action_buttons() -> HBoxContainer:
 
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_button.add_theme_stylebox_override("normal", cancel_style)
 	cancel_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	cancel_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	cancel_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	container.add_child(cancel_button)
 
 	# Confirm button (styled based on destructive flag)
 	confirm_button = Button.new()
 	confirm_button.text = "Confirm"
-	confirm_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_COMFORT)
-	confirm_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	confirm_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	container.add_child(confirm_button)
 
@@ -159,13 +159,16 @@ func _update_confirm_button_style() -> void:
 
 	var confirm_style := StyleBoxFlat.new()
 	confirm_style.bg_color = bg_color
-	confirm_style.set_corner_radius_all(6)
+	confirm_style.set_corner_radius_all(4)
 	confirm_style.set_content_margin_all(SPACING_SM)
 	confirm_button.add_theme_stylebox_override("normal", confirm_style)
 
 	var confirm_hover := confirm_style.duplicate()
 	confirm_hover.bg_color = hover_color
 	confirm_button.add_theme_stylebox_override("hover", confirm_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(confirm_button)
 
 	confirm_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 

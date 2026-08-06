@@ -17,7 +17,7 @@ func _init() -> void:
 	custom_minimum_size = Vector2(
 		UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN
 	)
-	add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
@@ -93,8 +93,7 @@ func _rebuild_popup_content() -> void:
 		lbl.text = item["label"]
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_SM
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		lbl.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_PRIMARY
 		)
@@ -108,8 +107,7 @@ func _rebuild_popup_content() -> void:
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		badge.custom_minimum_size = Vector2(28, 0)
 		badge.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_SM
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		var badge_color: Color = UIColors.COLOR_AMBER if count > 0 else UIColors.COLOR_TEXT_MUTED
 		badge.add_theme_color_override("font_color", badge_color)
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE

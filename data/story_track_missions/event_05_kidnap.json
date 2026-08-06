@@ -35,18 +35,46 @@
   "enemies": {
     "source_table": "marker_spawned",
     "marker_table": [
-      {"roll": 1, "result": "evidence", "description": "Signs of the attackers. Record the Evidence."},
-      {"roll": [2, 3], "result": "nothing", "description": "Nothing here."},
-      {"roll": 4, "result": "body", "description": "Corpse of someone who worked here. Move into contact, roll 1D6: on 5-6 uncover Evidence."},
-      {"roll": [5, 6], "result": "war_bot", "description": "A concealed War Bot!"}
+      {
+        "roll": 1,
+        "result": "evidence",
+        "description": "Signs of the attackers. Record the Evidence."
+      },
+      {
+        "roll": [
+          2,
+          3
+        ],
+        "result": "nothing",
+        "description": "Nothing here."
+      },
+      {
+        "roll": 4,
+        "result": "body",
+        "description": "Corpse of someone who worked here. Move into contact, roll 1D6: on 5-6 uncover Evidence."
+      },
+      {
+        "roll": [
+          5,
+          6
+        ],
+        "result": "war_bot",
+        "description": "A concealed War Bot!"
+      }
     ],
     "war_bot_stats": {
       "type": "war_bot",
-      "stats": {"speed_inches": 3, "combat_skill": 0, "toughness": 5},
+      "stats": {
+        "speed_inches": 3,
+        "combat_skill": 0,
+        "toughness": 5
+      },
       "ai": "defensive",
       "armor_save": "6+",
       "morale": "none",
-      "weapons": ["Hand Laser"]
+      "weapons": [
+        "Hand Laser"
+      ]
     },
     "marker_removal": {
       "start_round": 3,
@@ -75,7 +103,11 @@
   },
   "evidence_mechanic": {
     "enabled": true,
-    "sources": ["marker_roll_1", "body_roll_56", "removed_marker_roll_6"],
+    "sources": [
+      "marker_roll_1",
+      "body_roll_56",
+      "removed_marker_roll_6"
+    ],
     "post_event_check": {
       "trigger": "start of each subsequent campaign turn",
       "method": "Roll 1D6 + evidence pieces found",
@@ -86,5 +118,12 @@
   },
   "next_clock_ticks": null,
   "next_clock_method": "evidence_gated",
-  "page_reference": "pp.157-158"
+  "page_reference": "pp.157-158",
+  "presentation": {
+    "_note": "Presentation metadata for NarrativeScreen. NOT game data — no stat, cost, range or table boundary here. Role/mood are read off this event's own narrative text.",
+    "_rationale": "Six markers searched for Evidence, bodies examined — an investigation under threat.",
+    "advisor_role": "scout",
+    "advisor_mood": "warning",
+    "choice_label": "Search the site"
+  }
 }

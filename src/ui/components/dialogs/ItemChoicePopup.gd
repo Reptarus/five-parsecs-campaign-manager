@@ -8,14 +8,14 @@ extends Window
 signal item_chosen(item_name: String)
 
 # Deep Space theme constants (matching BaseCampaignPanel)
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_BORDER := Color("#3A3A5C")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
 const TOUCH_TARGET_MIN := 48
 
 func _init() -> void:
@@ -26,7 +26,14 @@ func _init() -> void:
 	unresizable = true
 	close_requested.connect(_on_close_requested)
 
-func show_choices(result_name: String, options: Array) -> void:
+func show_choices(result_name: String, options: Array,
+		heading: String = "Choose Your Reward") -> void:
+	## `heading` defaults to the original reward wording so the six existing
+	## callers are unaffected. It exists because this popup is also the right
+	## component for a mandatory PENALTY choice (Compendium p.137 illegal salvage:
+	## pay credits / hand over salvage / gain an Enforcer Rival), where calling it
+	## a reward would be actively misleading. Set `.title` on the Window before
+	## calling if the titlebar should change too.
 	## Build the popup UI and display it
 	# Calculate height: header(~60) + description(~30) + separator(~10) + buttons(56 each) + padding(32)
 	var estimated_height: int = 130 + (options.size() * 64)
@@ -57,8 +64,8 @@ func show_choices(result_name: String, options: Array) -> void:
 
 	# Title
 	var title_label := Label.new()
-	title_label.text = "Choose Your Reward"
-	title_label.add_theme_font_size_override("font_size", 18)
+	title_label.text = heading
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(title_label)
@@ -67,7 +74,7 @@ func show_choices(result_name: String, options: Array) -> void:
 	if not result_name.is_empty():
 		var subtitle := Label.new()
 		subtitle.text = result_name
-		subtitle.add_theme_font_size_override("font_size", 14)
+		subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(subtitle)
@@ -91,14 +98,14 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Normal style
 		var btn_normal := StyleBoxFlat.new()
 		btn_normal.bg_color = COLOR_ACCENT
-		btn_normal.set_corner_radius_all(6)
+		btn_normal.set_corner_radius_all(4)
 		btn_normal.set_content_margin_all(8)
 		btn.add_theme_stylebox_override("normal", btn_normal)
 
 		# Hover style
 		var btn_hover := StyleBoxFlat.new()
 		btn_hover.bg_color = COLOR_ACCENT_HOVER
-		btn_hover.set_corner_radius_all(6)
+		btn_hover.set_corner_radius_all(4)
 		btn_hover.set_content_margin_all(8)
 		btn_hover.border_color = COLOR_FOCUS
 		btn_hover.set_border_width_all(2)
@@ -107,7 +114,7 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Pressed style
 		var btn_pressed := StyleBoxFlat.new()
 		btn_pressed.bg_color = COLOR_ELEVATED
-		btn_pressed.set_corner_radius_all(6)
+		btn_pressed.set_corner_radius_all(4)
 		btn_pressed.set_content_margin_all(8)
 		btn_pressed.border_color = COLOR_FOCUS
 		btn_pressed.set_border_width_all(2)
@@ -116,7 +123,7 @@ func show_choices(result_name: String, options: Array) -> void:
 		# Text color
 		btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		btn.add_theme_color_override("font_hover_color", Color.WHITE)
-		btn.add_theme_font_size_override("font_size", 16)
+		btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 
 		btn.pressed.connect(_on_option_selected.bind(str(option_name)))
 		button_container.add_child(btn)

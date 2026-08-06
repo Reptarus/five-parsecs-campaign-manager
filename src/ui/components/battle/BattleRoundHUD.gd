@@ -428,13 +428,28 @@ func _on_phase_button_pressed(phase_idx: int) -> void:
 # PHASE REMINDERS & TIER-AWARE FEATURES
 # =====================================================
 
-## Five Parsecs Core Rules phase instructions (p.118)
+## Five Parsecs Core Rules phase instructions (pp.113-115, reference p.118).
+##
+## Three of these were WRONG against the book and have been corrected:
+##  - [1] said "Move+Shoot OR Double Move". p.113: "a figure may make a Movement
+##    Action and then perform a Combat Action. A figure may opt to forego either
+##    option, but cannot perform them in reverse order." The extra movement is not
+##    a "double move" — p.118: "Move +2", if not firing."
+##  - [2] omitted activation ORDER, which the player has to get right on the table.
+##    p.113: "enemy figures begin with those closest to the player's battlefield
+##    edge, then progress away ... If two figures are equally close, start on their
+##    left side." Behaviour comes from the AI type, not "move toward closest".
+##  - [4] said morale triggers "if 3+ enemies down". p.114: "the enemy will test
+##    Morale if they lost ANY figures during the round just played ... Roll a
+##    number of dice equal to the number of figures that were removed due to
+##    combat this round." A 3-casualty threshold exists nowhere in the book, and it
+##    told players to skip the check that resolves most battles.
 const PHASE_REMINDERS: Dictionary = {
-	0: "Roll 1D6 per crew member. Results <= Reactions = Quick Actions.",
-	1: "Crew who passed reactions act now. Move+Shoot OR Double Move each.",
-	2: "All enemies act. Move toward closest crew, shoot if in range.",
-	3: "Remaining crew act now. Same options as Quick Actions.",
-	4: "Morale check (if 3+ enemies down). Battle events (R2, R4). Victory check.",
+	0: "Roll 1D6 per crew figure and assign them. A die <= that figure's Reactions acts in Quick Actions; the rest act in Slow Actions.",
+	1: "Crew assigned to Quick act now: Move, then a Combat Action (either may be skipped, never reversed). +2\" move if not firing.",
+	2: "Enemies act, starting with the figure closest to YOUR battlefield edge and working away. Ties: start on their left. Behaviour follows their AI type.",
+	3: "Your remaining crew act now. Same Move-then-Combat-Action options as Quick.",
+	4: "If the enemy lost ANY figures this round, roll 1D6 per figure lost for Morale. Then any end-of-round condition rolls, Battle Event on R2/R4, and check the objective.",
 }
 
 func _update_reminder_text() -> void:
@@ -488,17 +503,24 @@ func _update_auto_prompt() -> void:
 			prompt_text = "Remaining crew act now."
 		4:  # END_PHASE
 			if _casualties_this_round > 0:
-				prompt_text = "Morale check needed - %d casualt%s this round." % [
+				# Core Rules p.114: one die PER figure the enemy lost this round.
+				prompt_text = "Morale: roll %dD6 (enemy lost %d figure%s). Each die in the Bail range removes one enemy, closest to their edge first." % [
 					_casualties_this_round,
-					"y" if _casualties_this_round == 1 else "ies"]
+					_casualties_this_round,
+					"" if _casualties_this_round == 1 else "s"]
 			if _current_round == 2 or _current_round == 4:
 				if not prompt_text.is_empty():
 					prompt_text += " "
 				prompt_text += "Roll d100 for Battle Event (Core Rules p.116)."
-			if _current_round > 4:
-				if not prompt_text.is_empty():
-					prompt_text += " "
-				prompt_text += "Roll d6 for escalation: 1-2 battle ends, 6 escalation event."
+			# REMOVED: a "_current_round > 4 -> roll d6 for escalation, 1-2 battle
+			# ends, 6 escalation event" prompt. That mechanic is in NEITHER book.
+			# The real option is Escalating Battles (Compendium p.46): an Escalation
+			# check at the end of a round in which an enemy figure was removed, a
+			# crew member reached an objective, or (end of Round 1) the enemy is
+			# outnumbered by 3+; rolled as D100 against a per-AI-type table, no more
+			# than 3 times per battle. It is opt-in and already implemented in
+			# TacticalBattleUI._check_escalating_battles via EscalatingBattlesManager,
+			# so this prompt was both fabricated and a duplicate of a correct system.
 
 	if prompt_text.is_empty():
 		_auto_prompt_label.visible = false
@@ -553,9 +575,18 @@ func _get_contextual_reminder() -> String:
 				return base + "\nReroll visibility: 1D6+8\" max range this round."
 			if cond_id == "DELAYED" and _current_round > 1:
 				return base + "\nDelayed crew: 1D6, on %d- they arrive." % _current_round
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Maximum visibility 9\"."
 		1: # QUICK_ACTIONS
 			if cond_id == "SLIPPERY_GROUND":
 				return base + "\nSLIPPERY: All ground movement -1 Speed."
+			# p.88 Gloomy, BOTH clauses. The second one inverts normal targeting,
+			# so it has to land in a shooting phase, not just pre-battle. Gloomy had
+			# NO in-battle reminder anywhere before the Aug 6 audit — the player saw
+			# it once on the setup screen and then never again.
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Max visibility 9\". A figure that FIRES " \
+					+ "can be shot at ANY range."
 		2: # ENEMY_ACTIONS
 			if cond_id == "SURPRISE_ENCOUNTER" and _current_round == 1:
 				return base + "\nSURPRISE: Enemies skip this round!"
@@ -567,7 +598,26 @@ func _get_contextual_reminder() -> String:
 				if not ai_brief.is_empty():
 					return base + "\n%s (%s)" % [
 						enemy_name, ai_brief]
+		3: # SLOW_ACTIONS — the other phase in which crew shoot.
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Max visibility 9\". A figure that FIRES " \
+					+ "can be shot at ANY range."
 		4: # END_PHASE
+			# Core Rules p.92 (Invasion): "Any figure that leaves the table before
+			# Round 6 becomes a casualty." `early_leave_is_casualty` was computed by
+			# BattleSetupRules and had ZERO readers — the note appeared once on the
+			# pre-battle screen and never again, least of all here, at the point
+			# between rounds where the player actually decides whether to run.
+			# Takes precedence over the check-count line: losing a figure outright
+			# outranks "there are 2 checks to do".
+			var rules: Dictionary = _battle_context.get("setup_rules", {})
+			var hold_rounds: int = int(rules.get("hold_rounds", 0))
+			if bool(rules.get("early_leave_is_casualty", false)) \
+					and hold_rounds > 0 and _current_round < hold_rounds:
+				return base + "\nINVASION: leaving the table before Round %d makes " \
+					% hold_rounds + "that figure a CASUALTY. %d round%s to hold." % [
+						hold_rounds - _current_round,
+						"" if hold_rounds - _current_round == 1 else "s"]
 			var check_count: int = 1 # Morale always
 			if cond_id in [
 				"BRIEF_ENGAGEMENT", "DELAYED",

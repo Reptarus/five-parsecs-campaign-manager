@@ -8,14 +8,14 @@ extends Control
 const PlanetfallArmoryScript := preload(
 	"res://src/core/systems/PlanetfallArmorySystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -23,7 +23,7 @@ const FONT_SIZE_XS := 11
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
-const COLOR_DANGER := Color("#DC2626")
+const COLOR_DANGER := UIColors.COLOR_RED
 
 var _campaign: Resource
 var _armory: PlanetfallArmoryScript
@@ -69,14 +69,14 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "COLONY ARMORY"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
 
 	var info := Label.new()
 	info.text = "Weapons are assigned per mission from the colony pool — not individually owned."
-	info.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -101,7 +101,7 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size = Vector2(160, 48)
+	_close_btn.custom_minimum_size = Vector2(0, 48)
 	_close_btn.pressed.connect(func(): hide())
 	_content.add_child(_close_btn)
 	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -153,21 +153,21 @@ func _build_weapon_list() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = wname
-		name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY if is_available else COLOR_TEXT_SECONDARY)
 		name_vbox.add_child(name_lbl)
 
 		var tier_lbl := Label.new()
 		tier_lbl.text = tier.replace("_", " ").capitalize()
-		tier_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		tier_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		tier_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		name_vbox.add_child(tier_lbl)
 
 		if not is_available:
 			var lock := Label.new()
 			lock.text = "LOCKED"
-			lock.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			lock.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lock.add_theme_color_override("font_color", COLOR_DANGER)
 			name_vbox.add_child(lock)
 
@@ -177,7 +177,7 @@ func _build_weapon_list() -> void:
 		var shots_val: Variant = weapon.get("shots", 0)
 		var dmg: int = weapon.get("damage", 0)
 		stats_lbl.text = "R:%s  S:%s  D:%+d" % [str(range_val), str(shots_val), dmg]
-		stats_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		stats_lbl.add_theme_color_override("font_color", COLOR_CYAN)
 		hbox.add_child(stats_lbl)
 
@@ -186,7 +186,7 @@ func _build_weapon_list() -> void:
 		if not traits.is_empty():
 			var traits_lbl := Label.new()
 			traits_lbl.text = ", ".join(traits)
-			traits_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			traits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			traits_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			hbox.add_child(traits_lbl)

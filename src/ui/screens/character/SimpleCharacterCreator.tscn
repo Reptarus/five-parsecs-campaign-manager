@@ -18,7 +18,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.0784314, 0.0784314, 0.0784314, 0.95)
+color = Color(0.0392157, 0.0509804, 0.0784314, 0.95)
 
 [node name="Dialog" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -40,8 +40,10 @@ theme_override_constants/separation = 15
 
 [node name="TitleLabel" type="Label" parent="Dialog/VBoxContainer"]
 layout_mode = 2
+theme_type_variation = &"TextXL"
 text = "Create Your Captain"
 horizontal_alignment = 1
+autowrap_mode = 3
 
 [node name="HSeparator" type="HSeparator" parent="Dialog/VBoxContainer"]
 layout_mode = 2
@@ -144,11 +146,13 @@ theme_override_constants/separation = 2
 
 [node name="CombatUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="CombatDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/CombatButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
@@ -167,11 +171,13 @@ theme_override_constants/separation = 2
 
 [node name="ReactionsUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="ReactionsDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ReactionsButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
@@ -190,11 +196,13 @@ theme_override_constants/separation = 2
 
 [node name="ToughnessUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="ToughnessDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/ToughnessButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
@@ -213,34 +221,13 @@ theme_override_constants/separation = 2
 
 [node name="SavvyUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="SavvyDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SavvyButtons"]
 layout_mode = 2
-text = "▼"
-flat = true
-
-[node name="TechLabel" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
-layout_mode = 2
-text = "Tech:"
-
-[node name="TechValue" type="Label" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "1"
-
-[node name="TechButtons" type="HBoxContainer" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay"]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="TechUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons"]
-layout_mode = 2
-text = "▲"
-flat = true
-
-[node name="TechDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/TechButtons"]
-layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
@@ -259,11 +246,13 @@ theme_override_constants/separation = 2
 
 [node name="SpeedUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="SpeedDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/SpeedButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
@@ -282,20 +271,23 @@ theme_override_constants/separation = 2
 
 [node name="LuckUp" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▲"
 flat = true
 
 [node name="LuckDown" type="Button" parent="Dialog/VBoxContainer/StatsContainer/StatsDisplay/LuckButtons"]
 layout_mode = 2
+custom_minimum_size = Vector2(40, 40)
 text = "▼"
 flat = true
 
 [node name="HSeparator6" type="HSeparator" parent="Dialog/VBoxContainer"]
 layout_mode = 2
 
-[node name="ButtonContainer" type="HBoxContainer" parent="Dialog/VBoxContainer"]
+[node name="ButtonContainer" type="HFlowContainer" parent="Dialog/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/h_separation = 10
+theme_override_constants/v_separation = 8
 
 [node name="RandomizeButton" type="Button" parent="Dialog/VBoxContainer/ButtonContainer"]
 unique_name_in_owner = true
@@ -347,6 +339,5 @@ text = "[color=lime]Name:[/color] Unnamed
 [color=yellow]Combat:[/color] 1
 [color=yellow]Toughness:[/color] 1
 [color=yellow]Savvy:[/color] 1
-[color=yellow]Tech:[/color] 1
 [color=yellow]Speed:[/color] 1
-[color=yellow]Luck:[/color] 1" 
+[color=yellow]Luck:[/color] 1"

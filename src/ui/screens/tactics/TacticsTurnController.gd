@@ -63,6 +63,12 @@ func _ready() -> void:
 
 
 func _initialize() -> void:
+	# Deferred from _ready(), so it lands a frame later and this controller may
+	# already have left the tree. The /root campaign lookups below ERROR from a
+	# detached node rather than returning null, and the turn would initialise
+	# against no campaign at all. Same guard as the other deferred entry points.
+	if not is_inside_tree():
+		return
 	_load_campaign()
 	if not campaign:
 		return
@@ -353,7 +359,7 @@ func _create_battle_indicator() -> VBoxContainer:
 
 	var win_btn := Button.new()
 	win_btn.text = "Victory"
-	win_btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_COMFORT)
+	win_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	win_btn.pressed.connect(func():
 		phase_manager.complete_current_phase(
 			{"battle_result": {"won": true}}))
@@ -361,7 +367,7 @@ func _create_battle_indicator() -> VBoxContainer:
 
 	var lose_btn := Button.new()
 	lose_btn.text = "Defeat"
-	lose_btn.custom_minimum_size = Vector2(150, TOUCH_TARGET_COMFORT)
+	lose_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	lose_btn.pressed.connect(func():
 		phase_manager.complete_current_phase(
 			{"battle_result": {"won": false}}))
@@ -370,7 +376,7 @@ func _create_battle_indicator() -> VBoxContainer:
 	# Play another battle option
 	var another_btn := Button.new()
 	another_btn.text = "Play Another Battle"
-	another_btn.custom_minimum_size = Vector2(200, 44)
+	another_btn.custom_minimum_size = Vector2(0, 44)
 	another_btn.visible = false  # Shown after first battle
 	btn_box.add_child(another_btn)
 

@@ -30,12 +30,60 @@ var _blank_toggle: CheckBox = null
 var _debug_toggle: CheckBox = null
 var _status_label: Label = null
 var _active_dialogs: Array[Node] = []
+var _center_row: BoxContainer = null
 
 
 func _ready() -> void:
 	_apply_background()
 	_build_layout()
 	_render_active_sheet()
+	_apply_responsive_layout()
+	# Push the header below the floating gear/bug buttons. Must run after
+	# _build_layout(): the MarginContainer it targets is created there.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	# Short-screen scroll. This is also the "scrollable rail" fix: the preview and the
+	# 240px action rail stack in portrait, and on a short screen the stack is taller
+	# than the viewport, so Save PNG / Save PDF sat below the fold with no way to
+	# reach them. The top bar stays pinned.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column == null:
+		for _child in get_children():
+			if _child is MarginContainer:
+				for _inner in _child.get_children():
+					if _inner is BoxContainer:
+						_sss_column = _inner
+						break
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	# layout_class_changed, not breakpoint_changed: rotating a device keeps the
+	# width bucket but flips portrait/landscape, and this screen only cares about
+	# the latter (docs/sop/responsive-adaptive-ui.md).
+	if rm and rm.has_signal("layout_class_changed"):
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		rm.layout_class_changed.connect(_on_layout_class_changed)
+
+
+## The preview and the 240px action rail do not fit side by side in ~339 design px,
+## so the rail was pushed off the right edge with Save PNG/PDF unreachable. Stack
+## them instead. BoxContainer.vertical is the documented toggle for this — the same
+## HBoxContainer becomes a column without rebuilding the tree.
+func _apply_responsive_layout() -> void:
+	if _center_row == null or not is_instance_valid(_center_row):
+		return
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	var stack := false
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		stack = rm.should_collapse_to_single_column()
+	_center_row.vertical = stack
 
 
 func _apply_background() -> void:
@@ -58,40 +106,66 @@ func _build_layout() -> void:
 	margin.add_theme_constant_override("margin_top", UIColors.SPACING_MD)
 	margin.add_theme_constant_override("margin_bottom", UIColors.SPACING_MD)
 	add_child(margin)
+	# One page-gutter rule for the whole app: 16dp in portrait, this screen's own
+	# value restored in landscape. PortraitChrome reads the scene's current margin
+	# as the landscape value, so the 24px here is preserved on wide layouts.
+	ScreenChrome.apply_page_chrome(self, margin)
 
 	var root_vbox := VBoxContainer.new()
 	root_vbox.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	margin.add_child(root_vbox)
 
 	# ── Top bar: back + tabs ───────────────────────────────────────
-	var top_bar := HBoxContainer.new()
-	top_bar.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# HFlow: Back + title + the sheet tabs need 324px side by side, more than a 310px
+	# phone, and an HBox has no way to give that back. They wrap onto a second line.
+	var top_bar := HFlowContainer.new()
+	top_bar.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	top_bar.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
 	root_vbox.add_child(top_bar)
 
 	var back_btn := Button.new()
 	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(120, UIColors.TOUCH_TARGET_MIN)
+	# Was left unstyled, so it rendered as a project-theme button next to a header
+	# that otherwise matched the Library's exactly.
+	DialogStyles.style_back_button(back_btn)
 	back_btn.pressed.connect(_on_back_pressed)
 	top_bar.add_child(back_btn)
 
 	var title := Label.new()
 	title.text = "Print Sheet"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	# A Label with neither autowrap nor clipping demands its full unwrapped width as a
+	# MINIMUM, and that minimum propagates to the top of the tree. In an HBox header the
+	# fix is clip + ellipsis (autowrap here would make the row taller instead).
+	title.clip_text = true
+	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_bar.add_child(title)
 
 	_tabs = TabBar.new()
 	_tabs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Without this a TabBar's minimum width is the SUM of every tab label, which on this
+	# screen is ~505px in a 339px space — the single largest driver of the whole screen
+	# hanging off both edges. clip_tabs scrolls them instead.
+	_tabs.clip_tabs = true
 	for sheet in SHEETS:
 		_tabs.add_tab(str(sheet.label))
 	_tabs.tab_changed.connect(_on_tab_changed)
 	top_bar.add_child(_tabs)
 
 	# ── Center row: renderer + right rail ──────────────────────────
-	var center := HBoxContainer.new()
+	# BoxContainer, NOT HBoxContainer. The H/V subclasses hard-set their orientation,
+	# so assigning `vertical` on an HBoxContainer silently does nothing — verified
+	# here by reading the property straight back off the running scene after the
+	# assignment. The base class is the one whose `vertical` is actually togglable.
+	# (Same rule as SplitContainer vs HSplitContainer, already in project memory.)
+	var center := BoxContainer.new()
+	center.vertical = false
 	center.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	root_vbox.add_child(center)
+	_center_row = center
 
 	_renderer = SheetRenderer.new()
 	_renderer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -138,6 +212,11 @@ func _build_right_rail() -> Control:
 	_blank_toggle = CheckBox.new()
 	_blank_toggle.text = "Print blank"
 	_blank_toggle.tooltip_text = "Hide data overlay — for filling by hand on paper"
+	# A themed CheckBox comes out 40 design px = 41.8dp, under the 48dp floor, and
+	# unlike Button/LineEdit its height is driven by the check icon rather than the
+	# stylebox — adding content margins to checkbox_normal measurably did nothing.
+	# Pin it explicitly.
+	_blank_toggle.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	_blank_toggle.toggled.connect(_on_blank_toggled)
 	vbox.add_child(_blank_toggle)
 
@@ -147,6 +226,7 @@ func _build_right_rail() -> Control:
 		_debug_toggle.text = "Debug overlay"
 		_debug_toggle.tooltip_text = "Show field bounding rects (red) " \
 			+ "for calibration"
+		_debug_toggle.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 		_debug_toggle.toggled.connect(_on_debug_toggled)
 		vbox.add_child(_debug_toggle)
 
@@ -156,7 +236,7 @@ func _build_right_rail() -> Control:
 	_status_label.text = ""
 	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_status_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(_status_label)
@@ -314,3 +394,7 @@ func _default_filename(ext: String) -> String:
 func _set_status(text: String) -> void:
 	if _status_label:
 		_status_label.text = text
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_responsive_layout()

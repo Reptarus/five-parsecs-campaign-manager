@@ -1,6 +1,10 @@
 class_name TacticsCampaignCore
 extends Resource
 
+## Atomic save writer. All four cores share ONE implementation so the write path
+## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
 ## TacticsCampaignCore - Tactics Campaign Core Resource
 ## Stores complete Tactics campaign data for save/load operations.
 ## Follows the same to_dictionary/from_dictionary/save_to_file/load_from_file
@@ -460,34 +464,31 @@ func save_to_file(path: String) -> Error:
 	_update_modified_time()
 	var data := to_dictionary()
 
-	var json_string := JSON.stringify(data, "\t")
-	var file := FileAccess.open(path, FileAccess.WRITE)
-	if not file:
-		var error := FileAccess.get_open_error()
-		push_error("TacticsCampaignCore: Failed to save: %s (error: %d)" % [path, error])
-		return error
-
-	file.store_string(json_string)
-	file.close()
-	return OK
+	# Compact, not pretty-printed. Tab indentation cost a MEASURED 24-27% on the
+	# real save files, and save_campaign() runs ~8x per campaign turn, so that is
+	# a quarter of every write on a phone spent on whitespace. Nothing parses the
+	# indentation; to read a save by hand: py -m json.tool <file>
+	var json_string := JSON.stringify(data)
+	# ATOMIC write — see src/core/state/SaveFileWriter.gd. Opening the live path with
+	# FileAccess.WRITE truncates it to 0 bytes immediately, so a kill mid-write
+	# destroyed the campaign. Shared with the other three cores so the four write
+	# paths cannot drift apart again.
+	var write_err: Error = SaveFileWriterRef.write_text_atomic(path, json_string)
+	if write_err != OK:
+		push_error("TacticsCampaignCore: Failed to save: %s (error: %d)" % [path, write_err])
+	return write_err
 
 
 static func load_from_file(path: String) -> TacticsCampaignCore:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return null
-
-	var json_string := file.get_as_text()
-	file.close()
-
-	var json := JSON.new()
-	var parse_result := json.parse(json_string)
-	if parse_result != OK:
+	## Reads through SaveFileWriter so the .bak generation written by save_to_file()
+	## is actually consulted when the primary is truncated or unparseable.
+	var data := SaveFileWriterRef.read_json_with_fallback(path)
+	if data.is_empty():
 		return null
 
 	var _Self = load("res://src/game/campaign/TacticsCampaignCore.gd")
 	var campaign = _Self.new()
-	campaign.from_dictionary(json.data)
+	campaign.from_dictionary(data)
 	return campaign
 
 

@@ -16,9 +16,9 @@ const HOUSE_RULES: Array[Dictionary] = [
 	{
 		"id": "varied_armaments",
 		"name": "Varied Armaments",
-		"description": "Enemy forces use split weapon types instead of uniform loadouts. Roll separately for each enemy's weapon.",
+		"description": "Split the non-Specialist opponents into two groups and roll a weapon for each group. More varied battles, at the cost of tracking which enemy carries what.",
 		"category": "combat",
-		"source": "Core Rules p.65",
+		"source": "Core Rules p.104",
 		"effects": [
 			{"type": "enemy_generation", "modifier": "varied_weapons"}
 		]

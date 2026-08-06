@@ -185,6 +185,16 @@ static var INJURY_PROPERTIES: Dictionary:
 			var equip_lost: bool = false
 			var all_equip: bool = false
 			var bonus_xp: int = entry.get("xp_bonus", 0)
+			# p.122 roll 16 "Miraculous escape" carries luck_bonus: 1 in
+			# data/injury_results.json. It was never surfaced here, so the row's
+			# whole upside was unreachable.
+			var luck_bonus: int = entry.get("luck_bonus", 0)
+			# DAMAGED and PERMANENTLY LOST are different outcomes and were
+			# conflated: both Gruesome fate and Miraculous escape set
+			# equipment_lost + all_equipment, but p.122 says "all carried
+			# equipment is DAMAGED" for 1-5 (repairable via p.78) and "all items
+			# carried are PERMANENTLY LOST" for 16 (gone). Split them.
+			var permanently_lost: bool = false
 			# Derive equipment flags from effects text and injury type
 			match injury_type:
 				InjuryType.GRUESOME_FATE:
@@ -194,12 +204,27 @@ static var INJURY_PROPERTIES: Dictionary:
 					equip_lost = true
 				InjuryType.CRIPPLING_WOUND:
 					has_surgery = true
+				InjuryType.MIRACULOUS_ESCAPE:
+					# "...but all items carried are permanently lost" (p.122).
+					equip_lost = true
+					all_equip = true
+					permanently_lost = true
+			# p.122 roll 31-45 carries surgery_cost_roll AND a stat_reduction
+			# block ({stats: [speed, toughness], pick: highest, amount: -1}) in
+			# data/injury_results.json. Neither had an accessor, so neither half
+			# of "1D6 credits of surgery OR -1 permanent" could ever be read.
+			var surgery_roll: String = str(entry.get("surgery_cost_roll", ""))
+			var stat_reduction: Dictionary = entry.get("stat_reduction", {})
 			result[injury_type] = {
 				"is_fatal": is_fatal,
 				"requires_surgery": has_surgery,
 				"equipment_lost": equip_lost,
 				"all_equipment": all_equip,
+				"equipment_permanently_lost": permanently_lost,
 				"bonus_xp": bonus_xp,
+				"luck_bonus": luck_bonus,
+				"surgery_cost_roll": surgery_roll,
+				"stat_reduction": stat_reduction,
 			}
 		return result
 
@@ -351,9 +376,62 @@ static func causes_equipment_loss(injury_type: InjuryType) -> bool:
 	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
 	return properties.get("equipment_lost", false)
 
+static func causes_all_equipment_damage(injury_type: InjuryType) -> bool:
+	## p.122 roll 1-5 Gruesome fate: "all carried equipment is damaged."
+	## Damaged, therefore repairable (p.78) — see equipment_is_permanently_lost()
+	## for the roll-16 case, which is a different and harsher outcome.
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	return properties.get("all_equipment", false) \
+		and not properties.get("equipment_permanently_lost", false)
+
+static func equipment_is_permanently_lost(injury_type: InjuryType) -> bool:
+	## p.122 roll 16 Miraculous escape: "all items carried are permanently lost."
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	return properties.get("equipment_permanently_lost", false)
+
+static func get_stat_reduction(injury_type: InjuryType) -> Dictionary:
+	## p.122 roll 31-45 Crippling wound: "-1 permanent reduction to highest of
+	## Speed or Toughness." The block lives in data/injury_results.json and had
+	## no accessor, so the penalty half of the row was unreachable.
+	##
+	## Godot's JSON parser returns every number as a FLOAT, so `amount` is
+	## normalised to int here rather than at each call site.
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	var spec: Dictionary = properties.get("stat_reduction", {})
+	if spec.is_empty():
+		return {}
+	var stats: Array = []
+	for s in spec.get("stats", []):
+		stats.append(str(s))
+	return {
+		"stats": stats,
+		"pick": str(spec.get("pick", "highest")),
+		"amount": int(spec.get("amount", -1)),
+	}
+
+static func roll_surgery_cost_for(injury_type: InjuryType) -> int:
+	## p.122 roll 31-45: "Require 1D6 credits of surgery immediately."
+	## Returns 0 when the row has no surgery clause.
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	var expr: String = str(properties.get("surgery_cost_roll", ""))
+	if expr.is_empty():
+		return 0
+	# Only 1d6 appears on this table; anything else is data drift, not a silent 0.
+	if expr.to_lower() == "1d6":
+		return randi_range(1, 6)
+	push_warning(
+		"InjurySystemConstants: unknown surgery_cost_roll '%s'" % expr)
+	return 0
+
 static func get_bonus_xp(injury_type: InjuryType) -> int:
 	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
 	return properties.get("bonus_xp", 0)
+
+static func get_luck_bonus(injury_type: InjuryType) -> int:
+	## p.122 roll 16 "Miraculous escape ... receives +1 Luck". The value lives in
+	## data/injury_results.json and had no accessor, so nothing could read it.
+	var properties: Dictionary = INJURY_PROPERTIES.get(injury_type, {})
+	return properties.get("luck_bonus", 0)
 
 static func get_base_recovery_turns(injury_type: InjuryType) -> int:
 	var recovery_info: Dictionary = get_recovery_time(injury_type)
@@ -414,3 +492,9 @@ static func is_bot_fatal_injury(injury_type: BotInjuryType) -> bool:
 static func bot_causes_equipment_loss(injury_type: BotInjuryType) -> bool:
 	var properties: Dictionary = BOT_INJURY_PROPERTIES.get(injury_type, {})
 	return properties.get("equipment_damaged", false)
+
+static func bot_causes_all_equipment_damage(injury_type: BotInjuryType) -> bool:
+	## p.122 Bot table roll 1-5 Obliterated: "Destroyed, and all carried
+	## equipment is damaged." The Bot table has no permanent-loss row.
+	var properties: Dictionary = BOT_INJURY_PROPERTIES.get(injury_type, {})
+	return properties.get("all_equipment", false)

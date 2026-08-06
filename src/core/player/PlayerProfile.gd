@@ -1,6 +1,13 @@
 class_name PlayerProfile
 extends Resource
 
+## Shared atomic writer + .bak-aware reader.
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
+## Latched when the profile on disk could not be read. While true, save_to_disk()
+## refuses to write, so one unreadable boot cannot erase real Elite Ranks.
+var _load_failed: bool = false
+
 ## Cross-Campaign Player Achievement System
 ##
 ## Manages Elite Ranks earned by completing campaigns with Victory Conditions.
@@ -230,23 +237,17 @@ func load_from_disk() -> void:
 		profile_loaded.emit()
 		return
 	
-	var file := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	
-	if file == null:
-		push_error("PlayerProfile: Failed to load - %s" % FileAccess.get_open_error())
+	## Reads through SaveFileWriter so the .bak generation is consulted when the
+	## primary is truncated or unparseable.
+	var data: Dictionary = SaveFileWriterRef.read_json_with_fallback(SAVE_PATH)
+	if data.is_empty():
+		# Neither the primary nor its backup was usable. Latch the failure so
+		# save_to_disk() cannot overwrite a real profile with defaults.
+		_load_failed = true
+		push_error("PlayerProfile: %s unreadable and no usable backup — profile "
+			% SAVE_PATH + "left at defaults; saving is disabled this session")
 		return
-	
-	var json_string := file.get_as_text()
-	file.close()
-	
-	var json := JSON.new()
-	var parse_result := json.parse(json_string)
-	
-	if parse_result != OK:
-		push_error("PlayerProfile: JSON parse error at line %d: %s" % [json.get_error_line(), json.get_error_message()])
-		return
-	
-	var data: Dictionary = json.data
+	_load_failed = false
 	
 	# Validate schema version
 	if not data.has("schema_version") or data.schema_version != SCHEMA_VERSION:

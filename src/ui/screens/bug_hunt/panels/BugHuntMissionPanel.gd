@@ -96,7 +96,7 @@ func _build_ui() -> void:
 	# Generate Mission button
 	var gen_btn := Button.new()
 	gen_btn.text = "Generate Mission"
-	gen_btn.custom_minimum_size = Vector2(200, 48)
+	gen_btn.custom_minimum_size = Vector2(0, 48)
 	gen_btn.pressed.connect(_generate_mission)
 	vbox.add_child(gen_btn)
 
@@ -118,7 +118,7 @@ func _build_ui() -> void:
 	# Launch button
 	_launch_button = Button.new()
 	_launch_button.text = "Launch Mission"
-	_launch_button.custom_minimum_size = Vector2(200, 48)
+	_launch_button.custom_minimum_size = Vector2(0, 48)
 	_launch_button.pressed.connect(_launch_mission)
 	_launch_button.visible = false
 	vbox.add_child(_launch_button)
@@ -505,7 +505,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 16
 	style.content_margin_right = 16
 	style.content_margin_top = 12

@@ -8,8 +8,8 @@ extends Control
 signal map_updated(data: Dictionary)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 var _coordinator = null
 
@@ -35,13 +35,13 @@ func _build_placeholder() -> void:
 
 	var header := Label.new()
 	header.text = "MAP GENERATION"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "Choose your colony map size. 10 Investigation Sites will be placed randomly."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
@@ -55,7 +55,7 @@ func _build_placeholder() -> void:
 	for size_opt in sizes:
 		var btn := Button.new()
 		btn.text = size_opt.label
-		btn.custom_minimum_size = Vector2(300, 48)
+		btn.custom_minimum_size = Vector2(0, 48)
 		var r: int = size_opt.rows
 		var c: int = size_opt.cols
 		btn.pressed.connect(func(): _on_size_selected(r, c))

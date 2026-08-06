@@ -10,15 +10,15 @@ signal phase_completed(result_data: Dictionary)
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -109,7 +109,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 3: SCOUT REPORTS"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -125,7 +125,7 @@ func _build_ui() -> void:
 
 	var scout_lbl := Label.new()
 	scout_lbl.text = "Assign Scout (optional):"
-	scout_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	scout_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	scout_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	scout_row.add_child(scout_lbl)
 
@@ -149,19 +149,19 @@ func _build_ui() -> void:
 
 	_explore_btn = Button.new()
 	_explore_btn.text = "Scout Explore"
-	_explore_btn.custom_minimum_size = Vector2(180, 48)
+	_explore_btn.custom_minimum_size = Vector2(0, 48)
 	_explore_btn.pressed.connect(_on_explore_pressed)
 	action_row.add_child(_explore_btn)
 
 	_discovery_btn = Button.new()
 	_discovery_btn.text = "Scout Discovery (D100)"
-	_discovery_btn.custom_minimum_size = Vector2(220, 48)
+	_discovery_btn.custom_minimum_size = Vector2(0, 48)
 	_discovery_btn.pressed.connect(_on_discovery_pressed)
 	action_row.add_child(_discovery_btn)
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Continue to Next Step"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	_continue_btn.visible = false
 	btn_box.add_child(_continue_btn)
@@ -349,7 +349,7 @@ func _add_info_text(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -360,7 +360,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

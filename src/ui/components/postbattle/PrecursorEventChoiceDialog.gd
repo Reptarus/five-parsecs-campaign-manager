@@ -23,19 +23,19 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 const FONT_SIZE_XL := 24
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_TEXT_DISABLED := Color("#404040")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
 
 # State
 var event1: Dictionary = {}
@@ -64,7 +64,7 @@ func _setup_ui() -> void:
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.set_corner_radius_all(8)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 
@@ -79,7 +79,7 @@ func _setup_ui() -> void:
 	title_label = Label.new()
 	title_label.text = "PRECURSOR VISION"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	vbox.add_child(title_label)
 
@@ -88,7 +88,7 @@ func _setup_ui() -> void:
 	description_label.bbcode_enabled = true
 	description_label.fit_content = true
 	description_label.text = "[center]Your Precursor heritage grants you a glimpse into possible futures.\nChoose which path to walk.[/center]"
-	description_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	description_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	description_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(description_label)
 
@@ -129,7 +129,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	card_style.border_width_top = 1
 	card_style.border_width_right = 1
 	card_style.border_width_bottom = 1
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", card_style)
 
@@ -142,7 +142,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	var header := Label.new()
 	header.text = "Event %d" % event_num
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override("font_color", COLOR_ACCENT_HOVER)
 	vbox.add_child(header)
 
@@ -151,7 +151,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	name_label.name = "EventName"
 	name_label.text = "---"
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(name_label)
@@ -162,7 +162,7 @@ func _create_event_card(event_num: int) -> PanelContainer:
 	desc_label.bbcode_enabled = true
 	desc_label.fit_content = true
 	desc_label.text = "[center]No event data[/center]"
-	desc_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(desc_label)

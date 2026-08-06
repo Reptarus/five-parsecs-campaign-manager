@@ -39,7 +39,7 @@ The UI Manager coordinates all UI components and screens, handling:
 
 Key files:
 - `screens/UIManager.gd`: Main UI coordination
-- `dialogs/SettingsDialog.gd`: Settings dialog for theme and accessibility options
+- `screens/settings/SettingsScreen.gd`: Settings screen (theme, accessibility, legal, about). Opened as an inline overlay by the `SettingsOverlay` autoload, or via the `settings` router key
 
 ### Responsive Components
 

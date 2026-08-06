@@ -12,15 +12,15 @@ signal augmentation_purchased(augmentation: Dictionary)
 const PlanetfallAugmentationScript := preload(
 	"res://src/core/systems/PlanetfallAugmentationSystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -99,7 +99,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "GENETIC AUGMENTATION"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -109,7 +109,7 @@ func _build_ui() -> void:
 	info.fit_content = true
 	info.scroll_active = false
 	info.text = "Purchase augmentations to enhance all current and future characters. Cost increases with each purchase. Max 1 per campaign turn. Bots and Soulless imports are excluded."
-	info.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 
@@ -121,13 +121,13 @@ func _build_ui() -> void:
 
 	_ap_label = Label.new()
 	_ap_label.text = "Augmentation Points: 0"
-	_ap_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_ap_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_ap_label.add_theme_color_override("font_color", COLOR_CYAN)
 	stat_row.add_child(_ap_label)
 
 	_cost_label = Label.new()
 	_cost_label.text = "Next Cost: 1 AP"
-	_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_cost_label.add_theme_color_override("font_color", COLOR_WARNING)
 	stat_row.add_child(_cost_label)
 
@@ -141,7 +141,7 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Continue"
-	_close_btn.custom_minimum_size = Vector2(200, 48)
+	_close_btn.custom_minimum_size = Vector2(0, 48)
 	_close_btn.pressed.connect(_on_close_pressed)
 	vbox.add_child(_close_btn)
 	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -192,7 +192,7 @@ func _build_augmentation_list() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = aname
-		name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		name_row.add_child(name_lbl)
@@ -200,7 +200,7 @@ func _build_augmentation_list() -> void:
 		if not is_available:
 			var owned_lbl := Label.new()
 			owned_lbl.text = "OWNED"
-			owned_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			owned_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			owned_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 			name_row.add_child(owned_lbl)
 		elif is_available and not purchased_this_turn:
@@ -213,7 +213,7 @@ func _build_augmentation_list() -> void:
 
 		var desc_lbl := Label.new()
 		desc_lbl.text = desc
-		desc_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card_vbox.add_child(desc_lbl)
@@ -268,7 +268,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -101,7 +101,7 @@ func _build_ui() -> void:
 	_balance_label = Label.new()
 	_balance_label.text = "STORY POINTS: 0"
 	_balance_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_balance_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_balance_label.horizontal_alignment = (
@@ -117,7 +117,7 @@ func _build_ui() -> void:
 	var spend_header := Label.new()
 	spend_header.text = "SPEND OPTIONS"
 	spend_header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	spend_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(spend_header)
@@ -152,7 +152,7 @@ func _build_ui() -> void:
 	var stars_header := Label.new()
 	stars_header.text = "EMERGENCY (once/campaign)"
 	stars_header.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	stars_header.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(stars_header)
@@ -202,7 +202,7 @@ func _create_spend_button(
 	var cost_lbl := Label.new()
 	cost_lbl.text = cost_text
 	cost_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	cost_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	cost_lbl.custom_minimum_size.x = 70
@@ -226,7 +226,7 @@ func _create_star_row(
 	var name_lbl := Label.new()
 	name_lbl.text = label_text
 	name_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	name_lbl.size_flags_horizontal = (
@@ -236,7 +236,7 @@ func _create_star_row(
 	var uses_lbl := Label.new()
 	uses_lbl.text = "1/1"
 	uses_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	uses_lbl.add_theme_color_override(
 		"font_color", COLOR_SUCCESS)
 	uses_lbl.custom_minimum_size.x = 30
@@ -368,7 +368,7 @@ func _apply_panel_style() -> void:
 		COLOR_BASE.r, COLOR_BASE.g, COLOR_BASE.b, 0.97)
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	add_theme_stylebox_override("panel", style)
 
 
@@ -390,7 +390,7 @@ func _style_spend_button(btn: Button) -> void:
 	btn.add_theme_stylebox_override("disabled", disabled)
 
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	btn.add_theme_color_override(
@@ -411,9 +411,12 @@ func _style_star_button(btn: Button) -> void:
 	var disabled := normal.duplicate()
 	disabled.bg_color = COLOR_TEXT_DISABLED
 	btn.add_theme_stylebox_override("disabled", disabled)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(btn)
 
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	btn.add_theme_color_override(

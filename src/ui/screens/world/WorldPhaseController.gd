@@ -13,15 +13,21 @@ signal proceed_to_battle
 
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
+## Core Rules p.85 "Check for Rivals" — used here only for its crew-task readers
+## (decoy count / tracked Rivals). Path preload: no class_name on that script.
+const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 var event_bus: CampaignTurnEventBus = null
+## Event-bus subscriptions made by THIS controller, so _exit_tree() can undo them.
+## The bus is parented to /root and outlives every scene change.
+var _event_subscriptions: Array[Dictionary] = []
 
 # Component dependencies
 const UpkeepPhaseComponent = preload("res://src/ui/screens/world/components/UpkeepPhaseComponent.gd")
 const CrewTaskComponent = preload("res://src/ui/screens/world/components/CrewTaskComponent.gd")
 const JobOfferComponent = preload("res://src/ui/screens/world/components/JobOfferComponent.gd")
 const MissionPrepComponent = preload("res://src/ui/screens/world/components/MissionPrepComponent.gd")
-const MissionSelectionUI = preload("res://src/ui/screens/world/MissionSelectionUI.gd")
 const CompendiumWorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const AssignEquipmentComponent = preload("res://src/ui/screens/world/components/AssignEquipmentComponent.gd")
 const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/ResolveRumorsComponent.gd")
 # Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
@@ -81,7 +87,6 @@ var _blocker_label: Label = null # readout shown when "Next Step" is disabled
 @onready var resolve_rumors_component = %ResolveRumorsContainer/ResolveRumorsComponent
 @onready var mission_prep_component = %MissionPrepContainer/MissionPrepComponent
 # Note: Post-battle component refs removed - now in PostBattleSequence
-var mission_selection_ui: MissionSelectionUI = null
 var _psionic_badge: PsionicLegalityBadgeClass = null
 
 # Campaign data
@@ -98,11 +103,18 @@ var _checkpoint_data: Dictionary = {}
 # Sprint C: Step completion indicators
 var step_indicators: Array = []
 
+# Below this much DESIGN height the fixed chrome has to give space back — a phone in
+# landscape has ~338 (see _apply_vertical_compaction), a 360x640 phone in portrait 551.
+const SHORT_VIEWPORT_DESIGN_PX := 620.0
+
+# Name of the code-inserted scroll that holds everything below the Header.
+const CONTENT_SCROLL_NAME := "ContentScroll"
+
 # Design System Constants (matching BaseCampaignPanel)
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_ACCENT := Color("#4FC3F7")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_ACCENT := UIColors.COLOR_CYAN
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -118,6 +130,139 @@ func _ready() -> void:
 	_connect_ui_signals()
 	_setup_initial_state()
 	_setup_world_briefing()
+
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons, which
+	# are drawn on their own CanvasLayer ABOVE this screen. Pushes content DOWN --
+	# a right-side margin would raise the container's minimum WIDTH and propagate
+	# an overflow up the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	# Portrait de-clip. The root margins are what push this screen past a phone's
+	# ~339 design px: the content itself needs ~341 and the 20+20 margins take it to
+	# 381. PortraitChrome trims LEFT/RIGHT only (never the top, so it does not fight
+	# the SettingsOverlay band reservation above) and restores them in landscape.
+	var _pc_mc := get_node_or_null("MarginContainer")
+	if _pc_mc is MarginContainer:
+		var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+		add_child(_pc)
+		_pc.setup(_pc_mc as MarginContainer)
+
+	_ensure_content_scroll()
+	_apply_vertical_compaction()
+	var _rm := get_node_or_null("/root/ResponsiveManager")
+	if _rm and _rm.has_signal("layout_class_changed"):
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		_rm.layout_class_changed.connect(_on_layout_class_changed)
+	get_viewport().size_changed.connect(_apply_vertical_compaction)
+
+
+## Wrap everything below the Header in one scroll view, so a short screen can reach
+## the parts of the chrome that do not fit.
+##
+## Measured at 733x338 (a phone on its side): the fixed chrome alone — header 66,
+## two separators, the 131px controls block, the 48px footer — needs 295px, the band
+## reservation takes 68 more, and there are 338 to spend. Nothing was reachable past
+## the fold and the step content area was squeezed to TWO pixels.
+##
+## Only the Header stays pinned. The scroll is created once and always present, so
+## the two layouts differ by a single flag rather than by a re-parent:
+## _apply_vertical_compaction() turns its vertical scrolling ON for short screens and
+## OFF everywhere else, and a disabled ScrollContainer propagates its child's minimum
+## exactly like the plain container this used to be — so tall screens lay out as they
+## always did.
+func _ensure_content_scroll() -> void:
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if not (vbox is VBoxContainer) or vbox.get_node_or_null(CONTENT_SCROLL_NAME):
+		return
+	var header := vbox.get_node_or_null("Header")
+	var movable: Array[Node] = []
+	for child in vbox.get_children():
+		if child != header and child is Control:
+			movable.append(child)
+	if movable.is_empty():
+		return
+
+	var scroll := ScrollContainer.new()
+	scroll.name = CONTENT_SCROLL_NAME
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+
+	var column := VBoxContainer.new()
+	column.name = "ContentColumn"
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", vbox.get_theme_constant("separation"))
+
+	vbox.add_child(scroll)
+	scroll.add_child(column)
+	for child in movable:
+		vbox.remove_child(child)
+		column.add_child(child)
+
+
+## Reclaim vertical space on short viewports so the screen stops overflowing.
+##
+## A phone on its side has ~338 design px of HEIGHT. This screen's fixed chrome —
+## header, two separators, the step navigation row and the footer — is laid out with
+## 24px between six children (120px of pure gap) plus 32px margins top and bottom,
+## and that alone pushed the whole MarginContainer 68px off the bottom. Because the
+## root grows both ways, that overflow re-centres the screen to a NEGATIVE y, which
+## is what put the title back underneath the SettingsOverlay band the reservation had
+## just cleared it from: fixing the overflow is what fixes the collision.
+##
+## Gaps and the bottom margin only. margin_top belongs to the band reservation and
+## left/right to PortraitChrome — writing those here would fight them.
+##
+## Height comes from get_visible_rect(), which is the DESIGN space. That is correct
+## here and is NOT the orientation-detection trap from
+## docs/sop/responsive-adaptive-ui.md: the design-space height IS the layout budget
+## being spent, whereas deciding "is this device portrait" needs physical pixels.
+func _apply_vertical_compaction() -> void:
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var tight: bool = vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if vbox is VBoxContainer:
+		(vbox as VBoxContainer).add_theme_constant_override("separation", 8 if tight else 24)
+	var mc := get_node_or_null("MarginContainer")
+	if mc is MarginContainer:
+		(mc as MarginContainer).add_theme_constant_override("margin_bottom", 8 if tight else 32)
+
+	# The screen title repeats what the step label underneath it already says
+	# ("Step 2 of 6: Crew Tasks"), so it is the first thing to go when 35px matters.
+	var title := get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
+	if title is Control:
+		(title as Control).visible = not tight
+
+	# Exactly ONE scrollbar, always. On a short screen the outer scroll owns the
+	# gesture and the step area stops scrolling independently (nested vertical
+	# scrolling is unusable on touch); everywhere else the outer one is inert and the
+	# step area scrolls as it always has.
+	var scroll := get_node_or_null("MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
+	if scroll is ScrollContainer:
+		(scroll as ScrollContainer).vertical_scroll_mode = \
+			ScrollContainer.SCROLL_MODE_AUTO if tight else ScrollContainer.SCROLL_MODE_DISABLED
+		var column := scroll.get_node_or_null("ContentColumn")
+		if column is VBoxContainer:
+			(column as VBoxContainer).add_theme_constant_override(
+				"separation", 8 if tight else 24)
+	# Resolve through the cached node, NOT "%PhaseContainer/PhaseScroll": a %-unique
+	# name only resolves as the FIRST element of a path, so that lookup returned null
+	# and the step area silently stayed scrollable — which is exactly the two-pixel
+	# content strip the first landscape screenshot showed.
+	var phase_scroll: Node = null
+	if phase_container and is_instance_valid(phase_container):
+		phase_scroll = phase_container.get_node_or_null("PhaseScroll")
+	if phase_scroll is ScrollContainer:
+		(phase_scroll as ScrollContainer).vertical_scroll_mode = \
+			ScrollContainer.SCROLL_MODE_DISABLED if tight else ScrollContainer.SCROLL_MODE_AUTO
 
 
 ## Fill the World-Phase empty space with a persistent "World Briefing" of the
@@ -149,10 +294,10 @@ func _setup_world_briefing() -> void:
 	card.name = "WorldBriefingCard"
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1E1E36")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_TERTIARY
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(16)
 	card.add_theme_stylebox_override("panel", style)
 	_world_briefing_vbox = VBoxContainer.new()
@@ -165,6 +310,11 @@ func _setup_world_briefing() -> void:
 ## Repopulate the briefing from the current planet. Safe to call anytime.
 func _refresh_world_briefing() -> void:
 	if not is_instance_valid(_world_briefing_vbox):
+		return
+	# Reached via call_deferred(), so it can land a frame after this screen left
+	# the tree. The /root/PlanetDataManager lookup below ERRORS from a detached
+	# node instead of returning null, and the briefing then silently stays empty.
+	if not is_inside_tree():
 		return
 	for child in _world_briefing_vbox.get_children():
 		child.queue_free()
@@ -190,14 +340,37 @@ func _initialize_event_bus() -> void:
 	# Enable debug mode for development
 	event_bus.enable_debug_mode(true)
 	
-	# Subscribe to component events - centralized event handling
-	# Use existing event types from CampaignTurnEventBus enum
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, _on_crew_task_resolved)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.CREW_TASK_ASSIGNED, _on_crew_task_assigned)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, _on_mission_prepared)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED, _on_phase_transition_requested)
-	event_bus.subscribe_to_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, _on_phase_completed)
+	# Subscribe to component events - centralized event handling.
+	# Tracked so _exit_tree() can unsubscribe: the bus is parented to /root above, so
+	# it OUTLIVES this scene. SceneRouter frees the controller on every navigation
+	# (2-3x per campaign turn), and without cleanup each freed controller left 6 dead
+	# Callables registered forever — ~300 by turn 100.
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.CREW_TASK_RESOLVED, _on_crew_task_resolved)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.CREW_TASK_ASSIGNED, _on_crew_task_assigned)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, _on_job_accepted)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.MISSION_PREPARED, _on_mission_prepared)
+	_subscribe_tracked(
+		CampaignTurnEventBus.TurnEvent.PHASE_TRANSITION_REQUESTED,
+		_on_phase_transition_requested)
+	_subscribe_tracked(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, _on_phase_completed)
+
+
+func _subscribe_tracked(event_type, handler: Callable) -> void:
+	## Subscribe and remember it, mirroring WorldPhaseComponent's pattern
+	## (WorldPhaseComponent.gd:53-55). The controller was the one subscriber that
+	## never adopted it.
+	if not event_bus:
+		return
+	event_bus.subscribe_to_event(event_type, handler)
+	_event_subscriptions.append({"event": event_type, "handler": handler})
+
+
+func _exit_tree() -> void:
+	## Auto-cleanup event bus subscriptions — the bus lives on /root and outlives us.
+	if event_bus and is_instance_valid(event_bus):
+		for sub in _event_subscriptions:
+			event_bus.unsubscribe_from_event(sub.event, sub.handler)
+	_event_subscriptions.clear()
 
 
 func _initialize_components() -> void:
@@ -216,7 +389,6 @@ func _initialize_components() -> void:
 				component._subscribe_to_events()
 
 	# Initialize mission selection UI for Job Offers/Mission Prep phases
-	_initialize_mission_selection()
 
 
 func _connect_ui_signals() -> void:
@@ -300,6 +472,8 @@ func _setup_initial_state() -> void:
 		return
 
 	current_step = WorldPhaseStep.UPKEEP
+	# A new world phase can complete again (see _complete_world_phase).
+	_world_phase_completed = false
 	step_completed = {
 		WorldPhaseStep.UPKEEP: false,
 		WorldPhaseStep.CREW_TASKS: false,
@@ -393,6 +567,14 @@ func _fetch_campaign_data() -> void:
 	else:
 		pass
 
+	# The active Quest (Core Rules p.85 step 5). This key was declared above and
+	# never written, so ResolveRumorsComponent always believed no Quest was
+	# running — and the book's "If you are not currently on a Quest" gate could
+	# not hold. A crew already on a Quest could roll again and silently replace
+	# it. Quest state is Resource-unsafe on the campaign, so GameState owns it.
+	if game_state_node.has_method("get_active_quest"):
+		world_phase_data["quest"] = game_state_node.get_active_quest()
+
 	# Track location visit in NPCTracker
 	var npc_tracker = get_node_or_null("/root/NPCTracker")
 	if npc_tracker and npc_tracker.has_method("visit_location"):
@@ -420,7 +602,7 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	# Generate world event for current planet
 	_generate_turn_world_event()
 
-	# DLC: Check Fringe World Strife (Compendium pp.110-114)
+	# DLC: Check Fringe World Strife (Compendium pp.148-151)
 	_check_compendium_world_strife()
 
 	# Publish phase started event
@@ -461,21 +643,54 @@ func _generate_turn_world_event() -> void:
 		pass
 
 func _check_compendium_world_strife() -> void:
-	## DLC: Check Fringe World Strife at world arrival (Compendium pp.110-114)
-	var is_fringe: bool = world_phase_data.get("is_fringe_world", false)
-	if not CompendiumWorldOptionsRef.should_check_strife(is_fringe):
+	## Compendium p.148 arrival roll: "when arriving on a new world, roll 1D6.
+	## A roll of 4+ indicates the world is Unstable."
+	##
+	## WHAT THIS REPLACED, because all four faults were independent and each one
+	## alone was fatal:
+	##   1. it gated on `world_phase_data["is_fringe_world"]` — a key NO producer
+	##      anywhere in the repo writes, so the guard was permanently false;
+	##   2. `should_check_strife()` re-rolled the ARRIVAL die every campaign turn,
+	##      and the book rolls it once, on arrival;
+	##   3. it fired the D100 immediately, and the book fires it only when
+	##      Instability reaches or exceeds 10 — the score did not exist;
+	##   4. it read `strife_event["instability_mod"]`; the rows carry
+	##      `instability_reduction`, and the local was never used regardless.
+	##   ...and then logged through `journal.add_entry()`, which has zero
+	##   definitions on CampaignJournal — another permanently-false has_method
+	##   guard.
+	##
+	## The accumulator itself runs in the Invasion step (Compendium p.148,
+	## "During the Invasion step of every campaign turn"), which lives in
+	## PostBattlePhase step 6 — NOT here.
+	if not FringeWorldStrifeRef.is_enabled():
 		return
-	var strife_event: Dictionary = CompendiumWorldOptionsRef.roll_strife_event()
-	if strife_event.is_empty():
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var gs = get_node_or_null("/root/GameState")
+	if pdm == null or gs == null:
 		return
-	var instruction: String = strife_event.get("instruction", "")
-	var instability_mod: int = strife_event.get("instability_mod", 0)
-	# Store strife event in world phase data for UI display
-	world_phase_data["strife_event"] = strife_event
-	# Log to campaign journal
-	var journal = get_node_or_null("/root/CampaignJournal")
-	if journal and journal.has_method("add_entry"):
-		journal.add_entry(instruction)
+	var planet_id: String = str(pdm.current_planet_id)
+	var campaign = gs.get_current_campaign() if gs.has_method("get_current_campaign") else null
+	if planet_id.is_empty() or campaign == null:
+		return
+
+	# "You may opt to use a 5+ roll if you prefer a less chaotic environment."
+	# Stored in progress_data, which is where this codebase keeps per-campaign
+	# option state (progressive_difficulty_options sets the precedent) — there is
+	# no `campaign_config` dictionary on FiveParsecsCampaignCore.
+	var calmer: bool = false
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		calmer = bool(campaign.progress_data.get("fringe_strife_calmer", false))
+
+	# Idempotent per world: a world already rolled for keeps its verdict, so
+	# re-entering the World Phase or reloading a save cannot re-roll a quiet
+	# world into an unstable one.
+	var state: Dictionary = FringeWorldStrifeRef.roll_arrival(campaign, planet_id, calmer)
+	if state.is_empty():
+		return
+	world_phase_data["fringe_strife"] = state
+	world_phase_data["world_unstable"] = bool(state.get("unstable", false))
+	world_phase_data["world_instability"] = int(state.get("instability", 0))
 
 func _initialize_components_with_data() -> void:
 	## Initialize all components with campaign data
@@ -906,7 +1121,7 @@ func _ensure_blocker_label() -> void:
 	_blocker_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_blocker_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_blocker_label.add_theme_color_override("font_color", Color(0.851, 0.467, 0.024, 1))
-	_blocker_label.add_theme_font_size_override("font_size", 15)
+	_blocker_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(15))
 	_blocker_label.visible = false
 	controls.add_child(_blocker_label)
 	controls.move_child(_blocker_label, 0)
@@ -1087,8 +1302,27 @@ func _on_phase_completed(data: Dictionary) -> void:
 		_on_next_button_pressed()
 
 ## World Phase Completion
+##
+## Guards re-entry. With auto-processing enabled on the final step, every
+## component that finishes publishes a completion which _on_phase_completed
+## turns into another _on_next_button_pressed() — and at MISSION_PREP that is
+## another _complete_world_phase(). A desktop run of one turn produced TWENTY
+## calls, each re-gathering results, re-emitting world_phase_completed and
+## asking CampaignTurnController to enter MISSION again.
+##
+## Nothing broke only because CampaignPhaseManager refuses the duplicate
+## transition — the "Failed to transition to MISSION" warning WAS the guard.
+## That is accidental protection: it sits one behaviour change away from
+## re-running _initiate_battle_sequence, which would re-roll the enemies, the
+## deployment condition and the battlefield after the player had already seen
+## them in PreBattleUI. The world phase completes once.
+var _world_phase_completed: bool = false
+
 func _complete_world_phase() -> void:
 	## Complete the entire world phase and transition to battle
+	if _world_phase_completed:
+		return
+	_world_phase_completed = true
 
 	# Clear checkpoint — world phase is done, next turn should start fresh
 	clear_checkpoint()
@@ -1106,9 +1340,14 @@ func _complete_world_phase() -> void:
 	if job_offer_component and job_offer_component.has_method("get_accepted_job"):
 		job_results = job_offer_component.get_accepted_job()
 
+	# `get_step_results()` is the real method — `get_equipment_assignments()` has
+	# ZERO definitions repo-wide, so this guard was permanently false and
+	# equipment_results was always {}. (The assignments themselves now persist
+	# immediately through EquipmentTransferService inside the component; this dict
+	# is the step's summary, not the mechanism.)
 	var equipment_results = {}
-	if assign_equipment_component and assign_equipment_component.has_method("get_equipment_assignments"):
-		equipment_results = assign_equipment_component.get_equipment_assignments()
+	if assign_equipment_component and assign_equipment_component.has_method("get_step_results"):
+		equipment_results = assign_equipment_component.get_step_results()
 
 	var rumors_results = {}
 	if resolve_rumors_component and resolve_rumors_component.has_method("get_step_results"):
@@ -1150,12 +1389,36 @@ func _complete_world_phase() -> void:
 					# Get Paid, where it is added on top of the 1D6 base for a Patron
 					# job (p.120). Merged into battle_results by _on_battle_completed.
 					"danger_pay": job_results.get("danger_pay", 0),
+					# Danger Pay 10+ (Core Rules p.83): "roll twice, picking the
+					# higher die when rolling for mission pay after the battle".
+					# The job has always carried this flag and the offer summary
+					# advertised it; it stopped here, so the promise was never kept.
+					"double_roll_bonus": job_results.get("double_roll_bonus", false),
 					"danger_level": job_results.get("danger_level", 1),
 					"time_frame": job_results.get("time_frame", ""),
-					"deployment_condition": job_results.get("deployment_condition", ""),
-					"notable_sights": job_results.get("notable_sights", ""),
+					# Patron Conditions (Core Rules pp.79-80). The job rolls these
+					# and TacticalBattleUI renders a "PATRON CONDITIONS" section
+					# from them — but this hand-off copied `benefits` and `hazards`
+					# and simply omitted `conditions`, so that section was always
+					# empty and half of the Benefits/Hazards/Conditions rule never
+					# reached the table.
+					"conditions": job_results.get("conditions", []),
+					# NOTE: `deployment_condition` and `notable_sights` are NOT read
+					# from the job. Nothing writes them job-side, and both are rolled
+					# later by the battle funnel (CampaignTurnController rolls the
+					# p.88 deployment condition and the p.89 Notable Sight itself).
+					# The reads that used to sit here were permanently "" — copying a
+					# value the job never had, which would have shadowed the real
+					# roll if a job ever did start supplying one.
 					"patron": job_results.get("patron_name", job_results.get("patron", "")),
 					"patron_type": job_results.get("patron_type", ""),
+					# The Patron's IDENTITY, not just their display name. Post-battle
+					# Step 2 (Core Rules p.119) adds them as a contact on success and
+					# — per errata v1.06 — drops them from your known Patrons on a
+					# failed accepted job. Both branches are gated on this key, so
+					# without it the entire step was inert in both directions.
+					"patron_id": str(job_results.get("patron_id",
+						job_results.get("patron_name", ""))),
 					"benefits": job_results.get("benefits", []),
 					"hazards": job_results.get("hazards", []),
 					"location": job_results.get("location", ""),
@@ -1168,6 +1431,29 @@ func _complete_world_phase() -> void:
 					"battle_type": _get_battle_type_for_objective(job_results.get("objective", "patrol")),
 				}
 
+				# Fixer's Guidebook mission types (Stealth / Street Fight /
+				# Salvage). TWO keys, and both are load-bearing:
+				#
+				# `type` is the exact string TacticalBattleUI branches on to open
+				# the matching battle panel. The literal above copies ~20 named
+				# keys off the job and `type` was not one of them, so even once
+				# JobOfferComponent started offering these missions the dispatch
+				# would never have matched — the same omission this hand-off
+				# already made for `conditions`.
+				#
+				# `compendium_mission` carries the generator's payload verbatim.
+				# It cannot be merged into mission_dict: the panels read
+				# `objective` as a DICTIONARY (roll range, instruction text,
+				# has_individual) while the flattened literal sets it to a plain
+				# String, so a merge would either break the panels or break
+				# everything downstream that expects the String. Keeping both
+				# shapes side by side is the only lossless option.
+				var compendium_type: String = str(job_results.get("type", ""))
+				if compendium_type in ["stealth", "street_fight", "salvage"]:
+					mission_dict["type"] = compendium_type
+					mission_dict["compendium_mission"] = job_results.duplicate(true)
+					mission_dict["title"] = str(job_results.get("name", "Mission"))
+
 				# Inject Red/Black Zone flags (Core Rules Appendix III)
 				var selected_zone: int = 0
 				if upkeep_component and upkeep_component.has_method("get_selected_zone"):
@@ -1179,6 +1465,49 @@ func _complete_world_phase() -> void:
 
 				campaign.progress_data["current_mission"] = mission_dict
 
+			# A FAILED Flee Invasion roll OVERRIDES whatever job was accepted.
+			# Core Rules p.69: on a failed roll "there's no time during your World
+			# step to do anything except Assign Equipment (p.85) before proceeding
+			# to the 'Battle' section of the rules, where you MUST fight an
+			# Invasion Battle (p.92)". Deliberately written after the job block so
+			# the invasion wins. The battle funnel needs no special case — it keys
+			# off mission_source, which BattleSetupRules.is_invasion() already
+			# reads and the p.120/121 payment/finds/loot gates all follow.
+			if upkeep_component and upkeep_component.has_method("get_forced_invasion_mission"):
+				var forced_invasion: Dictionary = upkeep_component.get_forced_invasion_mission()
+				if not forced_invasion.is_empty():
+					campaign.progress_data["current_mission"] = forced_invasion
+
+			# Raided (Core Rules p.70): the travel-event pirate boarding, set when
+			# the intimidation roll fails. Written BEFORE the invasion block would
+			# be wrong — an invasion outranks a raid — so it goes after, but only
+			# when no invasion claimed the slot. The book calls this an "out of
+			# sequence" encounter that "does not count as the main Battle stage",
+			# which the flag on the mission carries forward.
+			if upkeep_component and upkeep_component.has_method("get_forced_travel_battle"):
+				var raid: Dictionary = upkeep_component.get_forced_travel_battle()
+				if not raid.is_empty() \
+						and campaign.progress_data.get("current_mission", {}).is_empty():
+					campaign.progress_data["current_mission"] = raid
+
+			# Crew-task outcomes that the RIVAL check reads (Core Rules p.85).
+			# Both were pure flavour text before this: the Decoy task printed
+			# "Crew unavailable for battle" and the roll it was supposed to modify
+			# never ran at all, because CampaignTurnController keyed the check off
+			# progress_data["rival_count"] — a key nothing has ever written.
+			# data/crew_tasks.json, decoy (p.78): "+1 to the roll when checking if
+			# Rivals track you down, per crew sent as Decoy".
+			campaign.progress_data["decoy_crew_count"] = \
+				RivalEncounterCheckClass.decoy_count_from_tasks(crew_task_results)
+			# p.119 removal modifier: "+1 if you Tracked them down during Assign and
+			# Resolve Crew Tasks". Populated from Track results that name a Rival;
+			# see the Track task note in docs/sop/README.md — the task resolves but
+			# does not yet let the player pick WHICH Rival ("a Rival of your
+			# choice", p.78), so this stays empty until that picker exists rather
+			# than guessing a choice the book gives to the player.
+			campaign.progress_data["tracked_rivals"] = \
+				RivalEncounterCheckClass.tracked_rival_ids_from_tasks(crew_task_results)
+
 			# Increment Red Zone turn counter (both RZ and BZ turns count)
 			var zone_sel: int = 0
 			if upkeep_component and upkeep_component.has_method("get_selected_zone"):
@@ -1186,12 +1515,20 @@ func _complete_world_phase() -> void:
 			if zone_sel >= 1 and "red_zone_turns_completed" in campaign:
 				campaign.red_zone_turns_completed += 1
 
-			# Save equipment assignments
-			if not equipment_results.is_empty():
-				campaign.progress_data["equipment_assignments"] = equipment_results
+			# NO progress_data["equipment_assignments"] mirror. Per-character gear
+			# is owned by Character.equipment and the ship stash by
+			# equipment_data["equipment"] (data-ownership table); a third copy in
+			# progress_data was a second home for the same items — the exact thing
+			# the "one item, one home" invariant forbids — and nothing ever read
+			# it back. The assignments reach the campaign through
+			# EquipmentTransferService as the player makes them.
 
-			# Store full world phase results for summary display
-			campaign.progress_data["world_phase_results"] = world_phase_results
+			# NO progress_data["world_phase_results"] copy. It was labelled "for
+			# summary display" and had zero readers repo-wide, so it only ever
+			# grew the save file. The turn's world step is now summarised into the
+			# campaign journal by CampaignTurnController._journal_world_phase(),
+			# which receives the same dict through the phase_completed signal —
+			# the journal being the campaign's actual record.
 
 	# Publish completion event
 	if event_bus:
@@ -1207,6 +1544,24 @@ func _complete_world_phase() -> void:
 	# do NOT also navigate via SceneRouter (dual-navigation causes scene reload
 	# which resets to UPKEEP).
 	phase_completed.emit(world_phase_results)
+
+func _progress_data_of(campaign: Variant) -> Dictionary:
+	## The campaign's progress_data, for BOTH campaign shapes.
+	##
+	## Returned BY REFERENCE, deliberately: callers mutate it in place (consuming
+	## a deferred event, for instance) and expect that to reach the campaign.
+	## Returns an empty throwaway when there is no progress_data to speak of, so
+	## callers can `.get()` safely — check `.is_empty()` before writing.
+	if campaign == null:
+		return {}
+	if campaign is Dictionary:
+		var d: Dictionary = campaign
+		if not d.has("progress_data") or not (d["progress_data"] is Dictionary):
+			d["progress_data"] = {}
+		return d["progress_data"]
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		return campaign.progress_data
+	return {}
 
 func _refresh_upkeep() -> void:
 	## Re-pull crew on (re-)entry so an outdated crew (e.g. a recruit added in a later
@@ -1404,6 +1759,8 @@ func get_world_phase_results() -> Dictionary:
 func reset_world_phase() -> void:
 	## Reset world phase for new turn
 	current_step = WorldPhaseStep.UPKEEP
+	# A new world phase can complete again (see _complete_world_phase).
+	_world_phase_completed = false
 	step_completed = {
 		WorldPhaseStep.UPKEEP: false,
 		WorldPhaseStep.CREW_TASKS: false,
@@ -1418,8 +1775,13 @@ func reset_world_phase() -> void:
 		upkeep_component.reset_upkeep_phase()
 	if crew_task_component and crew_task_component.has_method("reset_crew_tasks"):
 		crew_task_component.reset_crew_tasks()
-	if job_offer_component and job_offer_component.has_method("reset_job_offers"):
-		job_offer_component.reset_job_offers()
+	# `reset_job_phase` is the real name — `reset_job_offers` has zero definitions,
+	# so this guard was permanently false and the component was NEVER reset at
+	# turn rollover: `job_accepted` stayed true and last turn's offers stayed on
+	# the list. (The integration test calls reset_job_phase() directly on the
+	# component, which is why it passed while production never invoked it.)
+	if job_offer_component and job_offer_component.has_method("reset_job_phase"):
+		job_offer_component.reset_job_phase()
 	if assign_equipment_component and assign_equipment_component.has_method("reset_equipment_phase"):
 		assign_equipment_component.reset_equipment_phase()
 	if resolve_rumors_component and resolve_rumors_component.has_method("reset_rumors_phase"):
@@ -1470,22 +1832,26 @@ func check_deferred_events(trigger_type: String) -> void:
 	if not campaign:
 		return
 
-	# Get pending events array
-	var all_pending: Array = []
-	if campaign is Resource and "pending_events" in campaign:
-		all_pending = campaign.pending_events
-	elif campaign is Dictionary and campaign.has("pending_events"):
-		all_pending = campaign.get("pending_events", [])
+	# Deferred events live in progress_data["pending_events"] — that is where the
+	# producer puts them (CrewTaskComponent, when a crew task defers an effect).
+	# This read looked for a top-level `pending_events` PROPERTY, which
+	# FiveParsecsCampaignCore does not declare, so `"pending_events" in campaign`
+	# was permanently false and the Dictionary branch never applied to a Resource
+	# campaign. Deferred events therefore accumulated in the save forever and no
+	# trigger ever fired one.
+	var all_pending: Array = _progress_data_of(campaign).get("pending_events", [])
 
 	if all_pending.is_empty():
 		return
 
 	# Filter events by trigger type
 	pending_deferred_events = []
+	# `campaign_turn` is likewise not a property on the core; turns_played is the
+	# SSOT (see the data-ownership table).
+	var current_turn: int = int(_progress_data_of(campaign).get("turns_played", 0))
 	for event in all_pending:
 		if event.get("trigger_type", "") == trigger_type and not event.get("consumed", false):
 			# Check expiration
-			var current_turn = campaign.campaign_turn if campaign is Resource else campaign.get("campaign_turn", 0)
 			var expires = event.get("expires_turn", null)
 			if expires == null or current_turn <= expires:
 				pending_deferred_events.append(event)
@@ -1667,55 +2033,24 @@ func _remove_consumed_event(event: Dictionary) -> void:
 	if event_id == "":
 		return
 
-	if campaign is Resource and "pending_events" in campaign:
-		campaign.pending_events = campaign.pending_events.filter(func(e): return e.get("id", "") != event_id)
-	elif campaign is Dictionary and campaign.has("pending_events"):
-		campaign["pending_events"] = campaign.get("pending_events", []).filter(func(e): return e.get("id", "") != event_id)
+	# Same wrong location as the reader above: the list lives in
+	# progress_data["pending_events"], so consuming an event has to remove it
+	# from THERE or the event would fire again on the next matching trigger.
+	var pd: Dictionary = _progress_data_of(campaign)
+	if pd.is_empty():
+		return
+	var remaining: Array = (pd.get("pending_events", []) as Array).filter(
+		func(e): return e.get("id", "") != event_id)
+	pd["pending_events"] = remaining
 
 
-## Mission Selection Integration per Five Parsecs Rules
-func _initialize_mission_selection() -> void:
-	## Mission selection handled by JobOfferComponent - no separate UI needed
-	# JobOfferComponent already provides full job selection capabilities
-	# MissionSelectionUI is deprecated to avoid duplicate UI
-	pass
-
-func _on_mission_selected(mission: Resource) -> void:
-	## Handle mission selection from MissionSelectionUI
-
-	# Sprint 28 BUG-1 Fix: Persist mission to GameStateManager for Battle Phase
-	if mission and GameStateManager:
-		var mission_dict: Dictionary = {}
-		if mission.has_method("to_dictionary"):
-			mission_dict = mission.to_dictionary()
-		else:
-			# Extract mission data from Resource metadata
-			mission_dict = {
-				"name": mission.get_meta("name", "Unknown Mission"),
-				"type": mission.get_meta("mission_type", "Standard"),
-				"difficulty": mission.get_meta("difficulty", 1),
-				"reward": mission.get_meta("reward", 0),
-				"description": mission.get_meta("description", ""),
-				"enemy_count": mission.get_meta("enemy_count", 0),
-				"patron": mission.get_meta("patron", ""),
-				"special_conditions": mission.get_meta("special_conditions", [])
-			}
-		GameStateManager.set_current_mission(mission_dict)
-
-	# Mark mission step as completed
-	step_completed[WorldPhaseStep.JOB_OFFERS] = true
-	step_completed[WorldPhaseStep.MISSION_PREP] = true
-
-	# Auto-advance to next step or complete phase
-	if current_step == WorldPhaseStep.JOB_OFFERS:
-		_advance_to_next_step()
-	elif current_step == WorldPhaseStep.MISSION_PREP:
-		_complete_world_phase()
-
-func _on_mission_selection_cancelled() -> void:
-	## Handle mission selection cancellation
-	# User can stay in current step to try again
-	pass
+# The MissionSelectionUI integration was DELETED here. All of it was dead:
+# _initialize_mission_selection() was a `pass` documented as deprecated in
+# favour of JobOfferComponent, `mission_selection_ui` was declared and NEVER
+# assigned, and _on_mission_selected() / _on_mission_selection_cancelled()
+# were therefore connected to nothing and unreachable. The screen itself and
+# its "mission_selection" SceneRouter route went with it — the route had ZERO
+# navigate_to callers.
 
 func _advance_to_next_step() -> void:
 	## Advance to the next step in the world phase workflow
@@ -1838,6 +2173,34 @@ func restore_from_checkpoint() -> void:
 	world_phase_data = _checkpoint_data.get("world_phase_data", {}).duplicate()
 	automation_enabled = _checkpoint_data.get("automation_enabled", false)
 
+	# RE-DERIVE the stash instead of trusting the checkpoint's copy.
+	#
+	# world_phase_data["stash"] is populated from campaign.get_all_equipment()
+	# (:378, :1287) and then PERSISTED inside progress_data.world_phase_checkpoint.
+	# That makes it a second, independently-stale copy of the ship stash, and it is
+	# what every World Phase surface reads (:496, :508, :1292).
+	#
+	# It is already known to diverge: a real save inspected on 2026-07-27 carried 16
+	# checkpoint items against 8 canonical ones — every item doubled, because the
+	# checkpoint was taken while get_all_equipment() was still unioning the
+	# split-format keys (fixed in 87c06567). The load-time heal in GameState repairs
+	# equipment_data but does NOT reach inside this checkpoint, so a pre-fix
+	# checkpoint would restore the doubled list straight back into the UI.
+	#
+	# Re-deriving on restore fixes existing saves without a migration and removes the
+	# divergence permanently: the stash is derivable, so it should never have been a
+	# persisted copy in the first place.
+	var gs_for_stash = get_node_or_null("/root/GameState")
+	var live_campaign = gs_for_stash.current_campaign if gs_for_stash else null
+	if live_campaign != null:
+		if live_campaign is Dictionary:
+			if live_campaign.has("stash"):
+				world_phase_data["stash"] = live_campaign.get("stash", [])
+		elif live_campaign.has_method("get_all_equipment"):
+			world_phase_data["stash"] = live_campaign.get_all_equipment()
+		elif "equipment_data" in live_campaign:
+			world_phase_data["stash"] = live_campaign.equipment_data.get("equipment", [])
+
 	# Ensure all step keys exist with defaults (guards against incomplete checkpoint data)
 	for step_key in [WorldPhaseStep.UPKEEP, WorldPhaseStep.CREW_TASKS,
 			WorldPhaseStep.JOB_OFFERS, WorldPhaseStep.ASSIGN_EQUIPMENT,
@@ -1916,6 +2279,23 @@ func _show_battle_scene_missing_error() -> void:
 
 ## BUG-035 FIX: Enrich crew member dicts with equipment from EquipmentManager
 func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
+	## Attach the EquipmentManager view of each member's kit WITHOUT clobbering the
+	## canonical one.
+	##
+	## `Character.equipment` is an Array[String] of item NAMES (Character.gd:129).
+	## `EquipmentManager.get_character_equipment()` returns stash item IDs. This used
+	## to assign the IDs straight over `typed_crew[i]["equipment"]`, and typed_crew
+	## holds the LIVE campaign member dictionaries — WorldPhaseController.gd:417 and
+	## CrewTaskComponent.gd:123 only SHALLOW-duplicate the array, so the elements are
+	## shared references into campaign.crew_data["members"]. One Mission Prep visit
+	## therefore rewrote every crew member's canonical equipment as internal ids like
+	## "rattle_gun_5168_92512", and the next save persisted that. GameState.gd:880-927
+	## is a legacy heal that converts exactly those id-strings back to names, i.e.
+	## this has bitten before.
+	##
+	## The ids ARE wanted downstream (MissionPrepComponent's assignment map), so they
+	## are exposed under a SEPARATE key. MissionPrepComponent.gd:87-95 already accepts
+	## either shape, and `equipment` keeps meaning names for every card and DB lookup.
 	var eq_mgr = get_node_or_null("/root/EquipmentManager")
 	if not eq_mgr or not eq_mgr.has_method("get_character_equipment"):
 		return
@@ -1925,8 +2305,20 @@ func _enrich_crew_equipment(typed_crew: Array[Dictionary]) -> void:
 		if member_id.is_empty():
 			continue
 		var member_equip: Array = eq_mgr.get_character_equipment(member_id)
-		if not member_equip.is_empty():
-			typed_crew[i]["equipment"] = member_equip
+		if member_equip.is_empty():
+			continue
+		typed_crew[i]["equipment_ids"] = member_equip
+		# Only fill `equipment` when the member has none — never overwrite names.
+		var existing = typed_crew[i].get("equipment", [])
+		if existing is Array and existing.is_empty() and eq_mgr.has_method("get_equipment"):
+			var resolved: Array = []
+			for eq_id in member_equip:
+				var item = eq_mgr.get_equipment(str(eq_id))
+				var item_name: String = ""
+				if item is Dictionary:
+					item_name = str(item.get("name", ""))
+				resolved.append(item_name if not item_name.is_empty() else str(eq_id))
+			typed_crew[i]["equipment"] = resolved
 
 
 func _setup_psionic_legality_badge() -> void:
@@ -1951,3 +2343,7 @@ func _setup_psionic_legality_badge() -> void:
 	_psionic_badge.set_legality(legality)
 	if upkeep_container:
 		upkeep_container.add_child(_psionic_badge)
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_vertical_compaction()

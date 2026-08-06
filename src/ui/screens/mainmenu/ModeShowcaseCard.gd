@@ -15,18 +15,23 @@ const ModeInfoCatalog = preload("res://src/ui/screens/mainmenu/ModeInfoCatalog.g
 
 # Deep Space theme constants (mirror BaseCampaignPanel — duplicated to avoid
 # extending it for what's essentially a marketing surface)
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
 
 const COVER_MAX_HEIGHT := 260
+## Floors for the shrink-to-fit pass in _fit_to_available_height(). Below these the
+## cover stops reading as art and the description stops showing a useful first line.
+const COVER_MIN_HEIGHT := 120.0
+const DESCRIPTION_MAX_HEIGHT := 140.0
+const DESCRIPTION_MIN_HEIGHT := 60.0
 
 signal cta_pressed(mode_id: String, is_unlocked: bool)
 
@@ -44,6 +49,75 @@ var _cta_button: Button
 
 func _ready() -> void:
 	_build_layout()
+	resized.connect(_fit_to_available_height)
+	_fit_to_available_height()
+
+
+## Shrink the cover art and the description to whatever height this card is given.
+##
+## The card's parts add up to a 706px minimum: a 260px cover, a 140px description, the
+## title, tagline, feature list and CTA. A tablet in landscape only offers about 429px
+## for it, so the card hung 197px off the bottom of the main menu. Both parts have a
+## sensible smaller size -- the cover is decorative and the description already
+## scrolls -- so they give ground first and the CTA button stays reachable.
+func _fit_to_available_height() -> void:
+	if _cover == null or _description == null:
+		return
+	# Budget from the slot the ANCHORS allocate, not from size.y and not from the
+	# viewport bottom.
+	#
+	# size.y is wrong because a control is never smaller than its minimum, so it
+	# already includes the overflow being fixed — keyed off it the card measures itself
+	# as fitting while it hangs off the bottom.
+	#
+	# The viewport bottom is wrong too, and that is what put the CTA button on top of
+	# the social footer: this card is anchored top-to-bottom with an 80px bottom offset
+	# reserving that footer, and grow_vertical = GROW_DIRECTION_END, so exceeding the
+	# slot pushes it DOWNWARD over whatever the offset was reserving. Measuring to the
+	# viewport bottom hands back those 80px and the card spends them.
+	if size.y <= 0.0:
+		return
+	var parent_h: float = get_parent_area_size().y
+	if parent_h <= 0.0:
+		return
+	var available: float = maxf(
+		160.0, parent_h * (anchor_bottom - anchor_top) - offset_top + offset_bottom)
+	# Everything the card needs BESIDES the three flexible parts, measured rather than
+	# assumed. Hidden children contribute nothing to a container's minimum, so each
+	# term is dropped while its part is hidden -- `fixed` then reads the same in every
+	# state and the show/hide decisions below cannot oscillate between frames.
+	var fixed: float = get_combined_minimum_size().y - _description.custom_minimum_size.y
+	if _cover.visible:
+		fixed -= _cover.custom_minimum_size.y
+	if _features_box and _features_box.visible:
+		fixed -= _features_box.get_combined_minimum_size().y
+	var spare: float = available - fixed
+
+	# Give ground in order of how little it costs the reader: the cover is decoration,
+	# the feature bullets repeat what the description says, and the CTA button is the
+	# reason the card exists — it never gives ground.
+	var want_cover: bool = spare >= COVER_MIN_HEIGHT + DESCRIPTION_MIN_HEIGHT
+	var features_min: float = _features_box.get_combined_minimum_size().y if _features_box else 0.0
+	var want_features: bool = spare - (COVER_MIN_HEIGHT if want_cover else 0.0) \
+		- DESCRIPTION_MIN_HEIGHT >= features_min
+	if _features_box:
+		_features_box.visible = want_features
+	if want_features:
+		spare -= features_min
+	if not want_cover:
+		_cover.visible = false
+		_cover.custom_minimum_size.y = 0.0
+		_description.custom_minimum_size.y = clampf(
+			spare, DESCRIPTION_MIN_HEIGHT, DESCRIPTION_MAX_HEIGHT)
+		return
+	_cover.visible = true
+	# Split what is left in the same proportion as their natural sizes.
+	var cover_share: float = spare * (
+		float(COVER_MAX_HEIGHT) / float(COVER_MAX_HEIGHT + DESCRIPTION_MAX_HEIGHT))
+	_cover.custom_minimum_size.y = clampf(
+		cover_share, COVER_MIN_HEIGHT, COVER_MAX_HEIGHT)
+	_description.custom_minimum_size.y = clampf(
+		spare - _cover.custom_minimum_size.y, DESCRIPTION_MIN_HEIGHT, DESCRIPTION_MAX_HEIGHT)
 
 
 func _build_layout() -> void:
@@ -53,7 +127,7 @@ func _build_layout() -> void:
 	style.bg_color.a = 0.85
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(16)
 	add_theme_stylebox_override("panel", style)
 
@@ -77,13 +151,13 @@ func _build_layout() -> void:
 	root.add_child(title_row)
 
 	_title_label = Label.new()
-	_title_label.add_theme_font_size_override("font_size", 24)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(24))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_row.add_child(_title_label)
 
 	_dlc_badge = Label.new()
-	_dlc_badge.add_theme_font_size_override("font_size", 12)
+	_dlc_badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	_dlc_badge.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var badge_style := StyleBoxFlat.new()
 	badge_style.bg_color = COLOR_ELEVATED
@@ -96,7 +170,7 @@ func _build_layout() -> void:
 
 	# Tagline (italic, dim)
 	_tagline_label = Label.new()
-	_tagline_label.add_theme_font_size_override("font_size", 14)
+	_tagline_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	_tagline_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	_tagline_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	root.add_child(_tagline_label)
@@ -110,11 +184,11 @@ func _build_layout() -> void:
 	_description.fit_content = false
 	_description.scroll_active = true
 	_description.scroll_following = false
-	_description.add_theme_font_size_override("normal_font_size", 13)
+	_description.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(13))
 	_description.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_description.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_description.custom_minimum_size = Vector2(0, 140)
+	_description.custom_minimum_size = Vector2(0, DESCRIPTION_MAX_HEIGHT)
 	root.add_child(_description)
 
 	# Features list
@@ -126,7 +200,7 @@ func _build_layout() -> void:
 	_cta_button = Button.new()
 	_cta_button.custom_minimum_size = Vector2(0, 48)
 	_cta_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_cta_button.add_theme_font_size_override("font_size", 16)
+	_cta_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 	_apply_cta_style(true)
 	_cta_button.pressed.connect(_on_cta_pressed)
 	root.add_child(_cta_button)
@@ -137,12 +211,15 @@ func _apply_cta_style(unlocked: bool) -> void:
 	s.bg_color = COLOR_ACCENT if unlocked else COLOR_WARNING
 	s.set_border_width_all(1)
 	s.border_color = COLOR_FOCUS if unlocked else COLOR_WARNING
-	s.set_corner_radius_all(6)
+	s.set_corner_radius_all(4)
 	s.set_content_margin_all(10)
 	_cta_button.add_theme_stylebox_override("normal", s)
 	var h := s.duplicate()
 	h.bg_color = COLOR_ACCENT_HOVER if unlocked else Color("#E69035")
 	_cta_button.add_theme_stylebox_override("hover", h)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_cta_button)
 	_cta_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 
@@ -210,7 +287,7 @@ func _populate(mode_id: String) -> void:
 	for feat in features:
 		var lbl := Label.new()
 		lbl.text = "  •  %s" % str(feat)
-		lbl.add_theme_font_size_override("font_size", 12)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_features_box.add_child(lbl)

@@ -9,10 +9,10 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.216, 0.255, 0.318, 0.5)
-corner_radius_top_left = 12
-corner_radius_top_right = 12
-corner_radius_bottom_right = 12
-corner_radius_bottom_left = 12
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 16.0
 content_margin_top = 12.0
 content_margin_right = 16.0
@@ -25,17 +25,17 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.216, 0.255, 0.318, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_primary"]
 bg_color = Color(0.545, 0.361, 0.965, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 16.0
 content_margin_top = 8.0
 content_margin_right = 16.0
@@ -48,10 +48,10 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.545, 0.361, 0.965, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
 content_margin_left = 12.0
 content_margin_top = 12.0
 content_margin_right = 12.0
@@ -84,22 +84,21 @@ layout_mode = 2
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Resolve Rumors"
-theme_override_font_sizes/font_size = 22
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="HelpButton" type="Button" parent="VBoxContainer/HeaderPanel/HeaderContent/TitleRow"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(32, 32)
+custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 tooltip_text = "Rumors may lead to Quests with greater rewards (Rules p.86)"
 text = "?"
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"ButtonSM"
 
 [node name="RumorsCountLabel" type="Label" parent="VBoxContainer/HeaderPanel/HeaderContent"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Current Rumors: 0"
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.961, 0.62, 0.043, 1)
 
 [node name="QuestStatusPanel" type="PanelContainer" parent="VBoxContainer"]
@@ -111,7 +110,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "No Active Quest"
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.545, 0.361, 0.965, 1)
 
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
@@ -131,7 +129,7 @@ theme_override_constants/separation = 8
 [node name="RumorsLabel" type="Label" parent="VBoxContainer/MainContainer/RumorsPanel"]
 layout_mode = 2
 text = "QUEST RUMORS"
-theme_override_font_sizes/font_size = 12
+theme_type_variation = &"TextXS"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="RumorsList" type="ItemList" parent="VBoxContainer/MainContainer/RumorsPanel"]
@@ -152,7 +150,7 @@ theme_override_constants/separation = 12
 layout_mode = 2
 text = "Roll D6 - if result ≤ rumor count, a Quest is generated!"
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)
 
 [node name="RollButton" type="Button" parent="VBoxContainer/MainContainer/RollPanel"]
@@ -169,7 +167,7 @@ unique_name_in_owner = true
 layout_mode = 2
 text = ""
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 18
+theme_type_variation = &"TextLG"
 theme_override_colors/font_color = Color(0.953, 0.957, 0.965, 1)
 
 [node name="QuestDescriptionLabel" type="Label" parent="VBoxContainer/MainContainer/RollPanel"]
@@ -177,5 +175,5 @@ unique_name_in_owner = true
 layout_mode = 2
 text = ""
 autowrap_mode = 2
-theme_override_font_sizes/font_size = 14
+theme_type_variation = &"TextSM"
 theme_override_colors/font_color = Color(0.624, 0.639, 0.686, 1)

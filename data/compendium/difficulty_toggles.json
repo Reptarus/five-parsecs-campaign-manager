@@ -21,7 +21,7 @@
       "name": "Slower Progression",
       "category": "economy",
       "dlc_flag": "DIFFICULTY_TOGGLES",
-      "description": "Increased XP costs and unchanged max levels: Reactions 8 XP (max 4), Combat Skill 8 XP (max +3), Speed 5 XP (max 8\"), Savvy 5 XP (max +5), Toughness 8 XP (max 5), Luck 10 XP (max 3).",
+      "description": "Increased XP costs AND lowered maximums (Reactions 6->4, Combat +5->+3, Toughness 6->5): Reactions 8 XP (max 4), Combat Skill 8 XP (max +3), Speed 5 XP (max 8\"), Savvy 5 XP (max +5), Toughness 8 XP (max 5), Luck 10 XP (max 3).",
       "instruction": "PROGRESSION: XP costs — Reactions 8 (max 4), Combat 8 (max +3), Speed 5 (max 8\"), Savvy 5 (max +5), Toughness 8 (max 5), Luck 10 (max 3)."
     },
     {

@@ -516,9 +516,9 @@ The codebase has **11+ utility/safety/monitoring classes** that form a 4-tier en
 **Tier 2 -- Error Handling (3 files, ~1,861 lines total)**
 | File | Lines | Role | Needed? |
 |------|-------|------|---------|
-| `src/core/error/ProductionErrorHandler.gd` | 731 | Error capture (5 severity, 7 recovery strategies) | YES -- core |
-| `src/core/error/UniversalErrorBoundary.gd` | 482 | safe_call/safe_get/safe_set wrapper | EVALUATE -- may overlap |
-| `src/core/error/SystemErrorIntegrator.gd` | 648 | Auto-injects error boundaries into systems | EVALUATE -- may be overkill |
+| ~~`src/core/error/ProductionErrorHandler.gd`~~ | 731 | Error capture | DELETED Jul 2026 -- never instantiated, only referenced by UniversalErrorBoundary |
+| ~~`src/core/error/UniversalErrorBoundary.gd`~~ | 482 | safe_call/safe_get/safe_set wrapper | DELETED Jul 2026 -- zero referencing files |
+| ~~`src/core/error/SystemErrorIntegrator.gd`~~ | 648 | Auto-injects error boundaries into systems | DELETED Jul 2026 fixit sprint |
 
 **Tier 3 -- Health Monitoring (4 files, ~1,829 lines total)**
 | File | Lines | Role | Needed? |
@@ -535,7 +535,7 @@ The codebase has **11+ utility/safety/monitoring classes** that form a 4-tier en
 
 **Evaluate for merging (MEDIUM confidence):**
 - IntegrationHealthMonitor + StateConsistencyMonitor -> both monitor system health, could share alert aggregation
-- ProductionPerformanceMonitor + ProductionErrorHandler -> both track health scores and generate recommendations
+- ProductionPerformanceMonitor + ProductionErrorHandler -> both tracked health scores; ProductionErrorHandler was deleted Jul 2026 as a closed orphan
 - All 4 monitoring files -> could become a single `ProductionMonitor.gd` (~800 lines) with subsystem modules
 
 **Question for implementation**: Is the monitoring tier actually used in production, or was it scaffolded speculatively? If monitoring methods are never called from game code, the entire tier may be dead code.

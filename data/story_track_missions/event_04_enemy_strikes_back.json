@@ -69,5 +69,12 @@
     }
   },
   "next_clock_ticks": 3,
-  "page_reference": "pp.156-157"
+  "page_reference": "pp.156-157",
+  "presentation": {
+    "_note": "Presentation metadata for NarrativeScreen. NOT game data — no stat, cost, range or table boundary here. Role/mood are read off this event's own narrative text.",
+    "_rationale": "'A direct attack on your ship... now you have to fight for your life!'",
+    "advisor_role": "fighter",
+    "advisor_mood": "warning",
+    "choice_label": "Defend the ship"
+  }
 }

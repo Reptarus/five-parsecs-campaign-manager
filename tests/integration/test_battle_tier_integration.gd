@@ -21,33 +21,42 @@ var left_tabs: TabContainer
 var center_tabs: TabContainer
 var tier_badge: Label
 
+## Every node here is auto_free()'d rather than torn down by hand.
+##
+## THE LEAK THIS FIXES: after_test used to remove_child() + queue_free() each
+## node. queue_free() defers to the NEXT frame, and gdUnit4 counts orphans before
+## that frame arrives — so this one suite reported 1236 orphans. Across a full
+## run those accumulate until the engine segfaults in gdUnit4's GC stage at exit,
+## which is why the whole suite could never complete in one process even though
+## every test passed. auto_free() releases at end of scope, which is what the
+## gdUnit4 docs prescribe for exactly this.
 func before_test() -> void:
 	seed(12345)
-	controller = BattleTierControllerClass.new()
+	controller = auto_free(BattleTierControllerClass.new())
 
-	checklist = PreBattleChecklistClass.new()
+	checklist = auto_free(PreBattleChecklistClass.new())
 	add_child(checklist)
 
 	# Create mock tab containers matching TacticalBattleUI structure
-	left_tabs = TabContainer.new()
+	left_tabs = auto_free(TabContainer.new())
 	left_tabs.name = "LeftTabs"
 	add_child(left_tabs)
 	# Add 3 tabs: Crew (0), Units (1), Enemies (2)
 	for tab_name in ["Crew", "Units", "Enemies"]:
-		var panel := PanelContainer.new()
+		var panel := auto_free(PanelContainer.new())
 		panel.name = tab_name
 		left_tabs.add_child(panel)
 
-	center_tabs = TabContainer.new()
+	center_tabs = auto_free(TabContainer.new())
 	center_tabs.name = "CenterTabs"
 	add_child(center_tabs)
 	# Add 3 tabs: BattleLog (0), Tracking (1), Events (2)
 	for tab_name in ["BattleLog", "Tracking", "Events"]:
-		var panel := PanelContainer.new()
+		var panel := auto_free(PanelContainer.new())
 		panel.name = tab_name
 		center_tabs.add_child(panel)
 
-	tier_badge = Label.new()
+	tier_badge = auto_free(Label.new())
 	tier_badge.name = "TierBadge"
 	add_child(tier_badge)
 
@@ -56,22 +65,11 @@ func before_test() -> void:
 		await get_tree().process_frame
 
 func after_test() -> void:
+	# auto_free() owns the teardown; only the references are dropped here.
 	controller = null
-	if is_instance_valid(checklist):
-		remove_child(checklist)
-		checklist.queue_free()
 	checklist = null
-	if is_instance_valid(left_tabs):
-		remove_child(left_tabs)
-		left_tabs.queue_free()
 	left_tabs = null
-	if is_instance_valid(center_tabs):
-		remove_child(center_tabs)
-		center_tabs.queue_free()
 	center_tabs = null
-	if is_instance_valid(tier_badge):
-		remove_child(tier_badge)
-		tier_badge.queue_free()
 	tier_badge = null
 
 ## Helper: apply tier visibility (mirrors TacticalBattleUI._apply_tier_visibility)

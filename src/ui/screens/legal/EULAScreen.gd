@@ -16,6 +16,37 @@ func _ready() -> void:
 	_build_ui()
 
 
+## Widest the consent card may DEMAND. Capped against the live viewport so the
+## minimum can never exceed the space it has to fit in — an over-large minimum
+## propagates up the tree and pushes the whole screen off the edge, which is
+## exactly what the old fixed 360 did on a phone in portrait (~339 design px).
+func _card_min_width() -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return 360.0
+	var avail: float = vp.get_visible_rect().size.x - float(UIColors.SPACING_XL) * 2.0
+	return minf(360.0, maxf(240.0, avail))
+
+
+## Minimum height for the EULA scroll. Kept to a fraction of the viewport so a
+## phone in LANDSCAPE (~338 design px tall, shared with a title, a subtitle, a
+## checkbox, a link and two buttons) is not asked for 250 of them.
+func _scroll_min_height() -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return 250.0
+	return minf(250.0, maxf(120.0, vp.get_visible_rect().size.y * 0.35))
+
+
+## True when vertical space is tight enough that decorative padding costs the user
+## reachable controls — a phone in landscape is ~338 design px tall in total.
+func _is_short_viewport() -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return false
+	return vp.get_visible_rect().size.y < 520.0
+
+
 func _build_ui() -> void:
 	# Full-screen dark background
 	var bg := ColorRect.new()
@@ -30,26 +61,48 @@ func _build_ui() -> void:
 	outer.add_theme_constant_override("separation", 0)
 	add_child(outer)
 
-	# Top spacer for vertical centering effect
+	# Top spacer for vertical centering effect. Purely decorative, so it yields all
+	# of its share on a short viewport (a phone in landscape) where every pixel is
+	# needed for the consent controls the user has to reach.
+	var spacer_ratio: float = 0.2 if not _is_short_viewport() else 0.0
 	var top_spacer := Control.new()
 	top_spacer.size_flags_vertical = SIZE_EXPAND_FILL
-	top_spacer.size_flags_stretch_ratio = 0.2
+	top_spacer.size_flags_stretch_ratio = spacer_ratio
 	outer.add_child(top_spacer)
+
+	# The card carries a title, a subtitle, the EULA scroll, a consent checkbox, a
+	# policy link and two buttons. On a phone in LANDSCAPE (~338 design px tall)
+	# those cannot all fit however tightly the minimums are tuned — and this screen
+	# is the gate in front of the entire app, so an unreachable ACCEPT button is a
+	# hard block, not a cosmetic one. An outer scroll makes it degrade instead:
+	# roomy screens are unchanged (nothing to scroll), short ones stay usable.
+	var outer_scroll := ScrollContainer.new()
+	outer_scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	outer_scroll.size_flags_horizontal = SIZE_EXPAND_FILL
+	outer_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	outer.add_child(outer_scroll)
 
 	# Card container (max width)
 	var card_wrapper := CenterContainer.new()
 	card_wrapper.size_flags_vertical = SIZE_EXPAND_FILL
 	card_wrapper.size_flags_horizontal = SIZE_EXPAND_FILL
-	outer.add_child(card_wrapper)
+	outer_scroll.add_child(card_wrapper)
 
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(360, 400)
+	# A FIXED 360x400 minimum was bigger than the viewport it had to fit inside: 360
+	# exceeds the ~339 design px of a phone in portrait, and 400 exceeds the ~338 of
+	# one in landscape — so this screen, the FIRST thing a new user sees and the gate
+	# in front of the whole app, hung 154-202px off the edge.
+	#
+	# A minimum only has to be big enough to look deliberate; the content below sets
+	# the real size. Cap the width against the live viewport and let height come from
+	# the content, with the EULA ScrollContainer absorbing the slack.
+	card.custom_minimum_size = Vector2(_card_min_width(), 0)
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
-	var card_style := StyleBoxFlat.new()
-	card_style.bg_color = UIColors.COLOR_SECONDARY
-	card_style.border_color = UIColors.COLOR_BORDER
-	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(8)
+	# The house card recipe, then widened: this is a full-page consent card rather
+	# than a list row, so it keeps its generous padding. The 8px radius it used to
+	# hardcode was the only remaining place the app drew a card at the old size.
+	var card_style := ScreenChrome.panel_style()
 	card_style.content_margin_left = UIColors.SPACING_XL
 	card_style.content_margin_right = UIColors.SPACING_XL
 	card_style.content_margin_top = UIColors.SPACING_LG
@@ -64,14 +117,18 @@ func _build_ui() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "End User License Agreement"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Without this the Label demands its full unwrapped width as a MINIMUM and drags
+	# the whole column past the screen edge on a phone — the MainMenu title bug. This
+	# is the first screen a new user ever sees, and it gates the app behind a button.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "Please read and accept the following terms to continue."
-	subtitle.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	subtitle.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -80,14 +137,18 @@ func _build_ui() -> void:
 	# Scrollable EULA text
 	_scroll = ScrollContainer.new()
 	_scroll.size_flags_vertical = SIZE_EXPAND_FILL
-	_scroll.custom_minimum_size.y = 250
+	# 250 is taller than a phone in LANDSCAPE has to spare (~338 design px total,
+	# minus title, subtitle, checkbox, link and two buttons). Scale it to what is
+	# actually available; SIZE_EXPAND_FILL still hands it every spare pixel on a
+	# roomy screen, so the desktop reading experience is unchanged.
+	_scroll.custom_minimum_size.y = _scroll_min_height()
 	content.add_child(_scroll)
 
 	_eula_text = RichTextLabel.new()
 	_eula_text.bbcode_enabled = true
 	_eula_text.fit_content = true
 	_eula_text.size_flags_horizontal = SIZE_EXPAND_FILL
-	_eula_text.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	_eula_text.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_eula_text.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	_scroll.add_child(_eula_text)
 
@@ -97,7 +158,14 @@ func _build_ui() -> void:
 	_privacy_check = CheckButton.new()
 	_privacy_check.text = "I have also read and accept the Privacy Policy"
 	_privacy_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
-	_privacy_check.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	# THE WIDEST THING IN THE CARD. A CheckButton is a Button, so with autowrap off
+	# this 46-character label demanded ~350px as a MINIMUM — more than a phone's ~339
+	# design px once the card padding is added. Capping the card width did nothing,
+	# because get_combined_minimum_size() takes the MAX of the custom minimum and the
+	# content's own, and the content won. Safe to wrap here: it sits in a plain
+	# VBoxContainer, not an HFlowContainer (where autowrap explodes the height).
+	_privacy_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_privacy_check.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	_privacy_check.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_privacy_check.toggled.connect(_on_checkbox_toggled)
 	content.add_child(_privacy_check)
@@ -105,7 +173,7 @@ func _build_ui() -> void:
 	# Privacy policy link
 	var privacy_link := LinkButton.new()
 	privacy_link.text = "Read the Privacy Policy"
-	privacy_link.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	privacy_link.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	privacy_link.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	privacy_link.pressed.connect(_on_privacy_link_pressed)
 	content.add_child(privacy_link)
@@ -134,7 +202,7 @@ func _build_ui() -> void:
 	# Bottom spacer
 	var bottom_spacer := Control.new()
 	bottom_spacer.size_flags_vertical = SIZE_EXPAND_FILL
-	bottom_spacer.size_flags_stretch_ratio = 0.2
+	bottom_spacer.size_flags_stretch_ratio = spacer_ratio
 	outer.add_child(bottom_spacer)
 
 	# Apply max width to card
@@ -254,7 +322,7 @@ func _on_privacy_link_pressed() -> void:
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.size_flags_horizontal = SIZE_EXPAND_FILL
-	rtl.add_theme_font_size_override("normal_font_size", UIColors.FONT_SIZE_SM)
+	rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 
 	var file := FileAccess.open("res://data/legal/privacy_policy.md", FileAccess.READ)
 	if file:

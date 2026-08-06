@@ -70,8 +70,7 @@ func _populate() -> void:
 	var title_label := Label.new()
 	title_label.text = _pending_title
 	title_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -91,8 +90,7 @@ func _populate() -> void:
 		body.scroll_active = true
 		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		body.add_theme_font_size_override(
-			"normal_font_size", UIColors.FONT_SIZE_SM
-		)
+			"normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		body.add_theme_color_override(
 			"default_color", UIColors.COLOR_TEXT_SECONDARY
 		)
@@ -107,8 +105,7 @@ func _populate() -> void:
 		var req_title := Label.new()
 		req_title.text = "Requirements"
 		req_title.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_SM
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		req_title.add_theme_color_override(
 			"font_color", UIColors.COLOR_TEXT_MUTED
 		)
@@ -118,8 +115,7 @@ func _populate() -> void:
 			var bullet := Label.new()
 			bullet.text = "  • %s" % req
 			bullet.add_theme_font_size_override(
-				"font_size", UIColors.FONT_SIZE_SM
-			)
+				"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 			bullet.add_theme_color_override(
 				"font_color", UIColors.COLOR_TEXT_PRIMARY
 			)

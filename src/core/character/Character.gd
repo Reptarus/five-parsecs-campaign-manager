@@ -162,6 +162,11 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 # Power IDs are keys in psionic_powers.json (e.g., "barrier", "grab", "predict")
 @export var psionic_powers: Array[String] = []  # All known power IDs
 @export var psionic_power_enhanced: bool = false  # True if power enhanced via 6 XP training (Compendium p.22)
+## Compendium p.18: "Psionics lose their abilities permanently if they are given
+## any type of implant, EVEN IF IT IS LATER REMOVED." Clearing the powers array
+## was not enough — nothing stopped the character being designated Psionic again
+## afterwards, so the permanence half of the rule did not exist.
+@export var psionics_lost_to_implant: bool = false
 # Backwards compatibility — legacy single-power field (migrated to psionic_powers in from_dictionary)
 @export var psionic_power: String = "":
 	get:
@@ -291,6 +296,16 @@ func spend_xp_on_stat(stat_name: String) -> bool:
 	if stat_name.to_lower() == "savvy" and not can_improve_savvy():
 		push_warning(
 			"%s: Savvy can never be improved (Core Rules p.19/p.21)"
+			% character_name)
+		return false
+	# Compendium p.18: "once the character is part of the campaign, they are
+	# unable to increase Combat Skill any further through Experience Points."
+	# Nothing enforced it — the Psionic's defining trade-off (powers in exchange
+	# for being a poor soldier) simply did not exist, and a Psionic could be
+	# advanced into the crew's best shooter while keeping every power.
+	if stat_name.to_lower() == "combat" and is_psionic():
+		push_warning(
+			"%s is a Psionic and cannot raise Combat Skill with XP (Compendium p.18)"
 			% character_name)
 		return false
 
@@ -615,6 +630,29 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 
 ## Strange Character helper methods (Core Rules pp.19-22)
 
+func is_psionic() -> bool:
+	## A character with at least one psionic power (Compendium pp.17-22).
+	return not psionic_powers.is_empty()
+
+func can_become_psionic() -> bool:
+	## Compendium p.17: "Soulless and any type of Bot can never be a Psionic.
+	## De-converted, Hulkers, Genetic Uplifts, and Bio-upgrades can never be a
+	## Psionic." Plus p.18's permanent loss: "Psionics lose their abilities
+	## permanently if they are given any type of implant, EVEN IF IT IS LATER
+	## REMOVED" — so a character who has been implanted can never be designated
+	## again, which nothing enforced before psionics_lost_to_implant existed.
+	if psionics_lost_to_implant:
+		return false
+	if is_bot or is_soulless:
+		return false
+	var sid := species_id.to_lower() if not species_id.is_empty() \
+		else origin.to_lower()
+	return sid not in [
+		"soulless", "bot", "assault_bot", "assault bot",
+		"de_converted", "de-converted", "hulker", "genetic_uplift",
+		"genetic uplift", "bio_upgrade", "bio-upgrade",
+	]
+
 func can_improve_savvy() -> bool:
 	## De-converted (Core Rules p.19) and Assault Bots (p.21) can never
 	## improve Savvy. Uses species_id when set (always String), else origin.
@@ -690,6 +728,39 @@ func _apply_injury_penalties(modifiers: Dictionary) -> void:
 					"name": "Concussion",
 					"stat": "reactions/savvy",
 					"value": -severity
+				})
+			"injured_leg":
+				# Compendium p.102: "Reduce the character's Speed by 1"."
+				# Exact value, exact channel — 3 Credits of medical treatment
+				# removes the injury entry and with it this penalty.
+				modifiers["speed"] -= 1
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": "Injured Leg (Compendium p.102)",
+					"stat": "speed",
+					"value": -1
+				})
+			"injured_arm", "injured_torso":
+				# DELIBERATELY NOT APPLIED AS A FLAT NUMBER. Both are conditional
+				# rules this unconditional modifier channel cannot express, and
+				# applying them here would be HARSHER than the book:
+				#   Injured arm  — CS 1 lower "when firing a non-Pistol weapon or
+				#                  when Brawling", so a pistol shot is exempt.
+				#   Injured torso — not a stat at all: "knocked out after two Stun
+				#                  markers, instead of the customary three".
+				# They are surfaced to the player as sources so the character
+				# sheet states the rule (this is a tabletop companion — the text
+				# IS the delivery), and both need a per-attack / stun-threshold
+				# hook before they can be applied automatically.
+				modifiers["sources"].append({
+					"type": "injury",
+					"name": ("Injured Arm (Compendium p.102)" if injury_type.to_lower() == "injured_arm"
+						else "Injured Torso (Compendium p.102)"),
+					"stat": "combat_skill" if injury_type.to_lower() == "injured_arm" else "stun_threshold",
+					"value": 0,
+					"manual_rule": ("-1 Combat Skill when firing a non-Pistol weapon or Brawling"
+						if injury_type.to_lower() == "injured_arm"
+						else "Knocked out after 2 Stun markers instead of 3")
 				})
 
 ## Get effective combat skill including all modifiers
@@ -1223,12 +1294,14 @@ func add_implant(implant: Dictionary) -> bool:
 		if existing.get("type", "") == new_type:
 			return false
 	implants.append(implant)
-	# Compendium p.20: Psionics lose abilities permanently if given any implant
+	# Compendium p.18: Psionics lose abilities PERMANENTLY if given any implant,
+	# "even if it is later removed" — hence the sticky flag, not just a clear.
 	if not psionic_powers.is_empty():
 		push_warning("Character %s: Implant removes psionic powers %s" % [
 			character_name, str(psionic_powers)])
 		psionic_powers.clear()
 		psionic_power_enhanced = false
+	psionics_lost_to_implant = true
 	return true
 
 func remove_implant(index: int) -> void:
@@ -1296,7 +1369,14 @@ func to_dictionary() -> Dictionary:
 		"character_class": character_class,
 		# Stats (flat)
 		"combat": combat,
+		# DUAL KEY, same convention as id/character_id and name/character_name.
+		# Consumers are genuinely split: battle reads "reactions"
+		# (NoMinisResolver:204, BattlefieldTypes:167, BattleServiceStub:210) while
+		# the crew UI reads "reaction" (CampaignDashboard:621,
+		# CrewManagementScreen:146). Emitting only the plural meant EVERY crew card
+		# on the dashboard displayed R: 0, because .get("reaction", 0) missed.
 		"reactions": reactions,
+		"reaction": reactions,
 		"toughness": toughness,
 		"savvy": savvy,
 		"tech": tech,
@@ -1319,6 +1399,7 @@ func to_dictionary() -> Dictionary:
 		"psionic_powers": psionic_powers.duplicate(),
 		"psionic_power": psionic_power,  # Backwards compat alias (first power)
 		"psionic_power_enhanced": psionic_power_enhanced,
+		"psionics_lost_to_implant": psionics_lost_to_implant,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
 		"acquired_training": acquired_training.duplicate(),
@@ -1452,6 +1533,9 @@ func from_dictionary(data: Dictionary) -> void:
 		# Legacy migration: single power → array
 		psionic_powers.append(data.get("psionic_power", ""))
 	psionic_power_enhanced = data.get("psionic_power_enhanced", false)
+	# Permanent (Compendium p.18) — must survive the save or the character
+	# could be re-designated Psionic after an implant on the next load.
+	psionics_lost_to_implant = bool(data.get("psionics_lost_to_implant", false))
 
 	# Implants
 	var implants_data = data.get("implants", [])

@@ -6,11 +6,17 @@ class_name UpkeepPhaseComponent
 ## Implements Core Rules p.76 - Ship maintenance and crew upkeep calculations
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const UpkeepSystemClass = preload("res://src/core/systems/UpkeepSystem.gd")
+const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd")
+const TravelEventResolverClass = preload("res://src/core/world/TravelEventResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
+const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -39,9 +45,29 @@ var costs_calculated: bool = false  # Gate: Pay requires Calculate first
 # Travel state (folded into Step 1 — Core Rules p.69)
 var travel_decision_made: bool = false
 var chose_to_travel: bool = false
+## Set when the Core Rules p.69 flee roll FAILS — WorldPhaseController reads it
+## via get_forced_invasion_mission() and makes it the turn's mission, overriding
+## any accepted job ("you MUST fight an Invasion Battle").
+var _forced_invasion_mission: Dictionary = {}
+
+## Travel-event resolution state (Core Rules pp.70-72). Choices are keyed by
+## event title so a re-entry after a button press resolves with the answer.
+var _travel_choices: Dictionary = {}
+var _travel_event_depth: int = 0
+## p.70 Raided: set when the intimidation roll fails. Consumed like the invasion
+## mission, but it is an "out of sequence" encounter and does not replace the
+## turn's Battle stage.
+var _forced_travel_battle: Dictionary = {}
+## p.60 Emergency Take-off — only present while the hull is damaged.
+var _emergency_button: Button = null
+## Starship fuel (p.79) spent against the most recent trip, for the status line.
+var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
 const SHIP_TRAVEL_COST := 5
 const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
+## Core Rules p.62, verbatim: "You can have up to 4 crew members Suspended at
+## any one time."
+const MAX_SUSPENDED_CREW := 4
 
 # Travel UI references (built in code)
 var _travel_panel: PanelContainer
@@ -190,14 +216,27 @@ func calculate_upkeep_costs() -> Dictionary:
 				effective_crew_size, before_lq],
 		})
 
-	# Apply "high_cost" world trait modifier (Core Rules p.87-89)
-	# "Your crew size counts as being 2 higher for the purpose of Upkeep costs"
+	# "High cost — Your crew size counts as being 2 higher for the purpose of
+	# Upkeep costs" (Core Rules p.75 World Trait; the old citation "p.87-89" here
+	# was wrong). Routed through WorldTraitEffects so the +2 lives in
+	# data/world_traits.json with the other 30 campaign-side trait values rather
+	# than as a second hardcoded copy.
 	var world_traits: Array = _get_current_world_traits()
-	if "high_cost" in world_traits:
-		effective_crew_size += 2
+	effective_crew_size = WorldTraitEffectsClass.upkeep_crew_size(
+		effective_crew_size, world_traits)
 
-	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6
-	if effective_crew_size >= CREW_UPKEEP_THRESHOLD:
+	# Core Rules p.76: 1 credit for 4-6 crew, +1 per crew member past 6.
+	#
+	# Compendium p.32 "Money is Tight" REPLACES that scale outright: "Upkeep
+	# costs change to 0 credits for a single crew, 1 credit for a crew of 2-4
+	# figures, and +1 credit for each crew member past 4."
+	if CompendiumTogglesRef.is_toggle_active("slaves_to_stargrind_money"):
+		if effective_crew_size <= 1:
+			results.crew_upkeep = 0
+		else:
+			results.crew_upkeep = 1 + max(0, effective_crew_size - 4)
+		results["money_is_tight"] = true
+	elif effective_crew_size >= CREW_UPKEEP_THRESHOLD:
 		results.crew_upkeep = 1 + max(0, effective_crew_size - CREW_UPKEEP_CAP)
 	else:
 		results.crew_upkeep = 0
@@ -354,7 +393,7 @@ func _show_sell_for_upkeep_dialog(
 	_sell_deficit_label = Label.new()
 	_sell_deficit_label.text = "Still need: %d credit(s)" % deficit
 	_sell_deficit_label.add_theme_color_override(
-		"font_color", Color("#D97706"))
+		"font_color", UIColors.COLOR_AMBER)
 	vbox.add_child(_sell_deficit_label)
 
 	# Scrollable item list
@@ -419,7 +458,7 @@ func _on_sell_item_pressed(
 			if _pending_deficit <= 0:
 				_sell_deficit_label.text = "Upkeep fully covered!"
 				_sell_deficit_label.add_theme_color_override(
-					"font_color", Color("#10B981"))
+					"font_color", UIColors.COLOR_EMERALD)
 			else:
 				_sell_deficit_label.text = (
 					"Still need: %d credit(s)" % _pending_deficit)
@@ -663,7 +702,7 @@ func _build_travel_section() -> void:
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	style.border_color = Color(0.216, 0.255, 0.318, 0.5)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 20.0
 	style.content_margin_top = 20.0
 	style.content_margin_right = 20.0
@@ -703,13 +742,37 @@ func _build_travel_section() -> void:
 	# roll-based, not map-navigated), so this opens the read-only Galaxy Log.
 	var map_btn := Button.new()
 	map_btn.text = "🗺  View Galaxy Map"
-	map_btn.custom_minimum_size = Vector2(0, 40)
+	# 40 was under the 48dp touch floor (40 design px = 41.8dp). `flat` removes the
+	# themed stylebox, so this button gets no padding from the theme and its height
+	# is whatever is set here — TOUCH_TARGET_MIN, like every other tappable control.
+	map_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	map_btn.flat = true
 	map_btn.add_theme_color_override(
 		"font_color", Color(0.31, 0.765, 0.969, 1))
 	map_btn.add_theme_font_size_override("font_size", _scaled_font(14))
 	map_btn.pressed.connect(_on_view_galaxy_map_pressed)
 	vbox.add_child(map_btn)
+
+	# Hull repair (Core Rules p.59). Shown only while the ship is damaged — it is
+	# also the release valve for the travel prohibition on the same page.
+	_build_hull_repair_prompt(vbox)
+
+	# Expanded Quest Progression (Compendium p.79). The pending step is a standing
+	# obligation with no other home in the UI: six of the nine rows are discharged
+	# outside a battle, and one of those is a purchase. Rendered in the first World
+	# Phase step so the player is told what the Quest wants before deciding whether
+	# to travel, spend, or assign crew.
+	_build_quest_step_prompt(vbox)
+
+	# Crew management: Suspension Pod (p.62) and Dismiss Crew (p.76). Both are
+	# Upkeep-step actions and neither had any way in — the Suspension Pod was
+	# purchasable and inert, and show_dismiss_crew_dialog() had ZERO callers.
+	_build_crew_management_entry(vbox)
+
+	# World Step 1 payments the book puts here and the app never built
+	# (Core Rules p.76).
+	_build_ship_debt_entry(vbox)
+	_build_medical_care_entry(vbox)
 
 	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
 	# world). Encourages (never forces) travel; "Quests will wait for you".
@@ -722,9 +785,9 @@ func _build_travel_section() -> void:
 			var inv_banner := PanelContainer.new()
 			var inv_style := StyleBoxFlat.new()
 			inv_style.bg_color = Color(0.55, 0.1, 0.1, 0.8)
-			inv_style.border_color = Color("#DC2626")
+			inv_style.border_color = UIColors.COLOR_RED
 			inv_style.set_border_width_all(2)
-			inv_style.set_corner_radius_all(8)
+			inv_style.set_corner_radius_all(4)
 			inv_style.content_margin_left = 12
 			inv_style.content_margin_right = 12
 			inv_style.content_margin_top = 8
@@ -744,16 +807,32 @@ func _build_travel_section() -> void:
 			inv_banner.add_child(inv_lbl)
 			vbox.add_child(inv_banner)
 
-	# Button row — HFlow so Stay + Travel (2x220px) wrap to two rows in portrait.
-	var btn_row := HFlowContainer.new()
-	btn_row.add_theme_constant_override("h_separation", 16)
-	btn_row.add_theme_constant_override("v_separation", 8)
-	btn_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	# Button row — a BoxContainer that goes VERTICAL in portrait via
+	# _register_responsive_box(), NOT an HFlowContainer, and its buttons EXPAND.
+	#
+	# The expand flag is not cosmetic: a horizontal BoxContainer hands each child only
+	# its MINIMUM width, which for an autowrapping button is its longest word — so
+	# without it the same two buttons rendered as thin vertical slabs in landscape even
+	# after the container was fixed. Expanding, they share the row and wrap inside it.
+	#
+	# These buttons autowrap (their labels are long), and autowrap inside an HFlow is a
+	# trap: HFlow asks an autowrapping child for its height at its NARROWEST width — its
+	# longest word — and gets back the line count for the whole string, so each button
+	# rendered as a ~40px-wide, 300px-tall slab with no readable text. In a vertical
+	# BoxContainer each button gets the full column width and wraps to at most two lines,
+	# which is what a full-width mobile button should look like. Landscape and desktop
+	# keep them side by side, sized to their text.
+	var btn_row := BoxContainer.new()
+	btn_row.add_theme_constant_override("separation", 16)
+	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_register_responsive_box(btn_row)
 
-	# Stay button
+	# Stay button (may be disabled below — see _apply_story_forced_travel)
 	_stay_button = Button.new()
 	_stay_button.text = "Stay in Current Location"
-	_stay_button.custom_minimum_size = Vector2(220, 48)
+	_stay_button.custom_minimum_size = Vector2(0, 48)
+	_stay_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_stay_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var stay_style := StyleBoxFlat.new()
 	stay_style.bg_color = Color(0.122, 0.137, 0.216, 0.8)
 	stay_style.border_width_left = 1
@@ -761,7 +840,7 @@ func _build_travel_section() -> void:
 	stay_style.border_width_right = 1
 	stay_style.border_width_bottom = 1
 	stay_style.border_color = Color(0.216, 0.255, 0.318, 1)
-	stay_style.set_corner_radius_all(8)
+	stay_style.set_corner_radius_all(4)
 	stay_style.content_margin_left = 16.0
 	stay_style.content_margin_top = 8.0
 	stay_style.content_margin_right = 16.0
@@ -778,10 +857,12 @@ func _build_travel_section() -> void:
 	var credits := GameStateManager.get_credits()
 	var crew_size := _get_crew_size_for_travel()
 	_update_travel_button_text(credits, crew_size)
-	_travel_button.custom_minimum_size = Vector2(260, 48)
+	_travel_button.custom_minimum_size = Vector2(0, 48)
+	_travel_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_travel_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var travel_style := StyleBoxFlat.new()
 	travel_style.bg_color = Color(0.231, 0.51, 0.965, 1)
-	travel_style.set_corner_radius_all(8)
+	travel_style.set_corner_radius_all(4)
 	travel_style.content_margin_left = 16.0
 	travel_style.content_margin_top = 8.0
 	travel_style.content_margin_right = 16.0
@@ -817,6 +898,14 @@ func _build_travel_section() -> void:
 	_travel_status_label.visible = false
 	vbox.add_child(_travel_status_label)
 
+	# Story Event forced travel (Core Rules Appendix V). Event 5 p.157: "You will
+	# have to Travel immediately." Event 7 p.159: "you must Travel, following the
+	# normal rules." Both were parsed into campaign_turn_mods, printed by
+	# StoryPhasePanel, and enforced nowhere — so the player could simply Stay on
+	# a turn the book gives them no choice about. Called HERE, after
+	# _travel_status_label exists, so the explanation can actually be shown.
+	_apply_story_forced_travel()
+
 	# Travel event container (populated after travel choice)
 	_travel_event_container = VBoxContainer.new()
 	_travel_event_container.add_theme_constant_override("separation", 8)
@@ -838,6 +927,29 @@ func _update_travel_button_text(
 	## Update travel button text/state based on affordability
 	if not _travel_button:
 		return
+
+	# Core Rules p.59, verbatim: "If a ship has Hull Point damage, it cannot
+	# safely leave for another planet, prohibiting you from traveling during the
+	# campaign turn. Even trivial drive damage can be catastrophic."
+	#
+	# Not a soft-lock: the same panel offers paid repair right below (p.59
+	# "1 credit pays off 1 Hull Point"), and the free 1-point-per-turn repair
+	# runs at rollover, so a damaged crew always has a way forward.
+	# The book does NOT forbid it outright — p.60 Emergency Take-off: "If you
+	# insist on traveling while your ship is damaged, your ship suffers 3D6 Hull
+	# Points of damage as the drive vents super-heated plasma throughout the
+	# vessel." Disabling the button removed that choice entirely, and
+	# get_emergency_takeoff_damage() was called only from the dead TravelPhase.gd.
+	# The normal Travel button stays disabled; the risk is opt-in and separate.
+	if has_ship:
+		var damage: int = _hull_damage()
+		if damage > 0:
+			_travel_button.text = "Cannot Travel — Hull Damaged (%d)" % damage
+			_travel_button.disabled = true
+			_ensure_emergency_takeoff_button()
+			return
+		_remove_emergency_takeoff_button()
+
 	if has_ship:
 		if credits >= SHIP_TRAVEL_COST:
 			_travel_button.text = (
@@ -858,6 +970,30 @@ func _update_travel_button_text(
 				"Passage (Need %d cr)" % cost)
 			_travel_button.disabled = true
 
+func _apply_story_forced_travel() -> void:
+	## Disable "Stay" when the current Story Event compels travel.
+	## Core Rules Appendix V — Event 5 p.157 "You will have to Travel
+	## immediately"; Event 7 p.159 "you must Travel, following the normal rules".
+	if _stay_button == null:
+		return
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return
+	var mods: Dictionary = cpm.get_story_turn_mods()
+	if mods.is_empty():
+		return
+	if not (bool(mods.get("must_travel_immediately", false))
+			or bool(mods.get("must_travel", false))):
+		return
+
+	_stay_button.disabled = true
+	_stay_button.tooltip_text = (
+		"This Story Event requires you to travel (Core Rules Appendix V).")
+	if _travel_status_label:
+		_travel_status_label.visible = true
+		_travel_status_label.text = \
+			"Story Event: you must travel this campaign turn."
+
 func _on_stay_pressed() -> void:
 	## Handle stay in current location
 	selected_zone = 0
@@ -870,9 +1006,105 @@ func _on_stay_pressed() -> void:
 	_travel_status_label.visible = true
 	_update_gating_state()
 
+func _ensure_emergency_takeoff_button() -> void:
+	## Core Rules p.60. Offered only while the hull is damaged, and destructive
+	## enough that it is styled as a danger action and never the default.
+	if _emergency_button and is_instance_valid(_emergency_button):
+		_emergency_button.visible = true
+		return
+	if _travel_button == null or _travel_button.get_parent() == null:
+		return
+	_emergency_button = Button.new()
+	_emergency_button.text = "Emergency Take-off (3D6 Hull damage)"
+	_emergency_button.accessibility_name = (
+		"Take off anyway, suffering 3D6 Hull Point damage")
+	_emergency_button.tooltip_text = (
+		"Core Rules p.60: \"If you insist on traveling while your ship is"
+		+ " damaged, your ship suffers 3D6 Hull Points of damage as the drive"
+		+ " vents super-heated plasma throughout the vessel.\"")
+	_emergency_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_emergency_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_emergency_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_emergency_button.add_theme_color_override("font_color", UIColors.COLOR_RED)
+	_emergency_button.pressed.connect(_on_emergency_takeoff_pressed)
+	_travel_button.get_parent().add_child(_emergency_button)
+
+
+func _remove_emergency_takeoff_button() -> void:
+	if _emergency_button and is_instance_valid(_emergency_button):
+		_emergency_button.queue_free()
+	_emergency_button = null
+
+
+func _on_emergency_takeoff_pressed() -> void:
+	## p.60: the damage is taken FIRST, so a hull that cannot survive the vent is
+	## wrecked in transit — which is exactly the "being without a ship" outcome
+	## (p.59) rather than the grounded scrap payout.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var damage: int = 3 * 6
+	if gsm.has_method("get_emergency_takeoff_damage"):
+		damage = int(gsm.get_emergency_takeoff_damage())
+	var dealt: int = damage
+	if gsm.has_method("apply_ship_damage"):
+		dealt = int(gsm.apply_ship_damage(damage, true))
+
+	_journal_invasion(
+		"Emergency take-off",
+		"The drive vented plasma through the vessel on lift-off: %d Hull Points"
+		% dealt + " of damage (Core Rules p.60).")
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning("Emergency take-off — %d Hull Point damage." % dealt)
+
+	# The ship may not have survived the vent; if it did not, travel is over.
+	var campaign: Resource = _get_campaign_resource()
+	if campaign != null and "has_ship" in campaign and not campaign.has_ship:
+		_remove_emergency_takeoff_button()
+		_refresh_after_upkeep_payment()
+		return
+
+	_remove_emergency_takeoff_button()
+	_on_travel_pressed()
+
+
 func _on_travel_pressed() -> void:
 	## Handle travel to new world (normal zone) — deduct cost and generate event
 	selected_zone = 0
+	_fuel_offset_last_trip = 0
+
+	# Flee Invasion (Core Rules p.69) — resolved BEFORE anything is paid for or
+	# generated, because a failed roll means the crew does not leave at all.
+	if _invasion_pending() and not _attempt_invasion_escape():
+		return
+
+	# "Bureaucratic mess — When attempting to leave, you must roll 2D6. On a 2-4,
+	# you are delayed and cannot leave this campaign turn without a bribe equal
+	# to the roll in credits. You may try again next campaign turn."
+	# (Core Rules p.73 World Trait.) The trait was flavour text: departure was
+	# never checked. The bribe is offered rather than forced — the book makes it
+	# the player's choice to pay or to wait.
+	var _departure_traits: Array = _get_current_world_traits()
+	if WorldTraitEffectsClass.departure_check_required(_departure_traits):
+		var bureaucracy_roll: int = randi_range(1, 6) + randi_range(1, 6)
+		if WorldTraitEffectsClass.departure_is_blocked(
+				bureaucracy_roll, _departure_traits):
+			var bribe: int = bureaucracy_roll
+			if GameStateManager.get_credits() >= bribe:
+				GameStateManager.modify_credits(-bribe)
+				_travel_status_label.text = (
+					"Bureaucratic mess: rolled %d — delayed. Paid a %d-credit bribe "
+					% [bureaucracy_roll, bribe] + "to leave anyway (p.73).")
+			else:
+				_travel_status_label.text = (
+					"Bureaucratic mess: rolled %d — delayed and cannot afford the "
+					% bureaucracy_roll
+					+ "%d-credit bribe. Try again next campaign turn (p.73)." % bribe)
+				_travel_status_label.add_theme_color_override(
+					"font_color", UIColors.COLOR_AMBER)
+				return
+
 	var travel_cost: int
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
@@ -880,19 +1112,57 @@ func _on_travel_pressed() -> void:
 		travel_cost = (
 			_get_crew_size_for_travel() * COMMERCIAL_TRAVEL_COST_PER_CREW)
 
+	# Starship fuel bought by a crew task offsets the cost (Core Rules p.79:
+	# "credits worth of starship fuel, which can be used to offset travel
+	# costs"). CrewTaskComponent has always banked these into
+	# progress_data["fuel_credits"] and the only consumer lived in TravelPhase,
+	# a file nothing instantiates — so the fuel was unspendable.
+	# World Traits that change what leaving costs (Core Rules pp.74-75):
+	#   "Fuel refinery — Traveling from this world costs only 3 credits."
+	#   "Fuel shortage — The cost to travel from this world is raised by 1D3
+	#    credits."
+	# Both were flavour text: the world you picked to launch from made no
+	# difference to the bill. The refinery OVERRIDES the base cost ("costs only
+	# 3"); the shortage ADDS to whatever it then is. The 1D3 is rolled here so
+	# the die can be shown to the player rather than buried in a helper.
+	var _traits: Array = _get_current_world_traits()
+	var _surcharge: int = 0
+	if WorldTraitEffectsClass.travel_surcharge_dice(_traits) != "":
+		_surcharge = randi_range(1, 3)
+	var _base_travel_cost: int = travel_cost
+	travel_cost = WorldTraitEffectsClass.travel_cost(
+		travel_cost, _traits, _surcharge)
+	var _trait_note: String = ""
+	if travel_cost != _base_travel_cost:
+		_trait_note = "  [world trait: %d cr → %d cr%s]" % [
+			_base_travel_cost, travel_cost,
+			(", 1D3 surcharge %d" % _surcharge) if _surcharge > 0 else ""]
+
+	travel_cost = _apply_fuel_credits(travel_cost)
+
 	GameStateManager.modify_credits(-travel_cost)
 
 	travel_decision_made = true
 	chose_to_travel = true
 	_update_travel_ui_after_decision()
 	_travel_status_label.text = (
-		"✓ Traveling to new world (-%d cr)" % travel_cost)
+		"✓ Traveling to new world (-%d cr)" % travel_cost
+		+ _trait_note
+		+ ("  [%d cr covered by fuel]" % _fuel_offset_last_trip
+			if _fuel_offset_last_trip > 0 else ""))
 	_travel_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_AMBER)
 	_travel_status_label.visible = true
 
-	# Generate D100 travel event (Core Rules pp.70-71)
-	_generate_travel_event()
+	# Generate D100 travel event (Core Rules pp.70-71).
+	#
+	# p.69 is explicit for commercial passage: "When traveling commercially, do
+	# not roll for Starship Travel Events." This branched on has_ship only to pick
+	# the COST, then rolled unconditionally — so a shipless crew riding a liner
+	# was shown "Asteroids: your ship takes Hull damage" and "Drive trouble: your
+	# ship is grounded" about a ship they do not own.
+	if has_ship:
+		_generate_travel_event()
 
 	# New World Arrival (Core Rules p.69): generate the world we travel TO and
 	# route it through the campaign's single world_data writer, which fires
@@ -903,6 +1173,832 @@ func _on_travel_pressed() -> void:
 	current_upkeep_data = calculate_upkeep_costs()
 	_update_ui_display()
 	_update_gating_state()
+
+# ============================================================================
+# FLEE INVASION (Core Rules p.69) + starship fuel (p.79)
+#
+# All of this existed only in src/core/campaign/phases/TravelPhase.gd, a file
+# with ZERO instantiations anywhere in src/. Travel actually happens here, in
+# the World Phase upkeep step. The consequences of that dead file were not
+# cosmetic: record_invaded_planet() had exactly one caller (in it), so
+# `invaded_planets` was never populated, so GalacticWarProcessor returned at its
+# own is_empty() guard every turn and the Core Rules p.126 step 14 Galactic War
+# table has never once rolled in a real campaign. This screen even rendered an
+# "INVASION IMMINENT — You must flee (2D6, 8+) or fight when departing" banner
+# above a button that did neither.
+# ============================================================================
+
+func _campaign_progress_data() -> Dictionary:
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return {}
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
+		return {}
+	return campaign.progress_data
+
+func _build_crew_management_entry(vbox: VBoxContainer) -> void:
+	## One row of Upkeep-step crew actions. Dismiss is always available (p.76);
+	## Suspend/Revive only with the ship component installed (p.62).
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var dismiss_btn := Button.new()
+	dismiss_btn.text = "Dismiss Crew"
+	dismiss_btn.accessibility_name = "Dismiss a crew member"
+	dismiss_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	dismiss_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	dismiss_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	dismiss_btn.pressed.connect(show_dismiss_crew_dialog)
+	row.add_child(dismiss_btn)
+
+	if ShipComponentQuery.has_component("suspension_pod"):
+		var susp_btn := Button.new()
+		var n: int = _suspended_ids().size()
+		susp_btn.text = "Suspension Pod (%d/%d)" % [n, MAX_SUSPENDED_CREW]
+		susp_btn.accessibility_name = "Suspend or revive crew, %d of %d pods used" % [
+			n, MAX_SUSPENDED_CREW]
+		susp_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		susp_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		susp_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		susp_btn.pressed.connect(show_suspension_pod_dialog)
+		row.add_child(susp_btn)
+
+	vbox.add_child(row)
+
+const MEDICAL_CARE_COST := 4  # Core Rules p.76
+
+
+func _refresh_after_upkeep_payment() -> void:
+	## Same refresh the suspension-pod flow uses: the payment changed credits, so
+	## the upkeep affordability line and the gating both have to be recomputed.
+	current_upkeep_data = calculate_upkeep_costs()
+	_build_travel_section()
+	_update_ui_display()
+	_update_gating_state()
+
+
+func _build_ship_debt_entry(vbox: VBoxContainer) -> void:
+	## Core Rules p.76, verbatim: "Ship Debt — You can make payments on your ship,
+	## if you owe money."
+	##
+	## There was no way to pay. ShiplessSystem's interest ladder had zero callers
+	## and the Upkeep step contained no debt UI at all, so a loan financed at
+	## creation (real saves carry 12-36 credits) sat frozen for the whole campaign.
+	## Interest now accrues at rollover; this is the payment window that precedes
+	## it, which is the order the book states.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_ship_debt"):
+		return
+	var debt: int = int(gsm.get_ship_debt())
+	if debt <= 0:
+		return
+
+	var credits: int = 0
+	if gsm.has_method("get_credits"):
+		credits = int(gsm.get_credits())
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+
+	var label := Label.new()
+	# p.76 interest ladder, shown so the player can weigh paying down below 31.
+	var interest: int = 2 if debt >= 31 else 1
+	label.text = "Ship debt: %d cr (+%d/turn)" % [debt, interest]
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if debt >= 60:
+		label.add_theme_color_override("font_color", UIColors.COLOR_RED)
+	row.add_child(label)
+
+	for amount: int in [1, 5, 10]:
+		if credits < amount or debt < amount:
+			continue
+		var btn := Button.new()
+		btn.text = "Pay %d" % amount
+		btn.accessibility_name = "Pay %d credits toward the ship debt" % amount
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.pressed.connect(_on_pay_ship_debt.bind(amount))
+		row.add_child(btn)
+
+	var payoff: int = mini(debt, credits)
+	if payoff > 0 and payoff not in [1, 5, 10]:
+		var all_btn := Button.new()
+		all_btn.text = "Pay %d" % payoff
+		all_btn.accessibility_name = "Pay %d credits toward the ship debt" % payoff
+		all_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		all_btn.pressed.connect(_on_pay_ship_debt.bind(payoff))
+		row.add_child(all_btn)
+
+	vbox.add_child(row)
+
+
+func _on_pay_ship_debt(amount: int) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_ship_debt"):
+		return
+	var debt: int = int(gsm.get_ship_debt())
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+	var pay: int = mini(amount, mini(debt, credits))
+	if pay <= 0:
+		return
+
+	if gsm.has_method("modify_credits"):
+		gsm.modify_credits(-pay)
+	if gsm.has_method("set_ship_debt"):
+		gsm.set_ship_debt(debt - pay)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("Paid %d credits — ship debt now %d." % [pay, debt - pay])
+	_refresh_after_upkeep_payment()
+
+
+func _build_medical_care_entry(vbox: VBoxContainer) -> void:
+	## Core Rules p.76, verbatim: "Pay for Medical Care — If you have crew in Sick
+	## Bay, you may now pay 4 credits to remove 1 campaign turn from a single
+	## character's recovery time. This can be done as often as you can afford it
+	## ... Repair times for Bot characters can be sped up through the same
+	## process, and at the same cost."
+	##
+	## This step did not exist anywhere in the app. UpkeepSystem defined the
+	## 4-credit cost and had zero callers, and InjurySystemService's comment
+	## pointed at "handled in UpkeepPhaseComponent" — which contained no medical
+	## code at all. An injured crew member always sat out the full recovery and
+	## the player's credits could not help.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return
+	var injured: Array = _crew_in_sick_bay(campaign)
+	if injured.is_empty():
+		return
+
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+
+	var header := Label.new()
+	header.text = "Medical Care — %d cr removes 1 turn of recovery (p.76)" % MEDICAL_CARE_COST
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	for entry: Dictionary in injured:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+
+		var label := Label.new()
+		var turns: int = int(entry.get("turns", 0))
+		label.text = "%s — %d turn%s" % [
+			str(entry.get("name", "Crew")), turns, "" if turns == 1 else "s"]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+
+		var btn := Button.new()
+		btn.text = "Treat (%d cr)" % MEDICAL_CARE_COST
+		btn.accessibility_name = "Pay %d credits to speed %s's recovery by one turn" % [
+			MEDICAL_CARE_COST, str(entry.get("name", "this crew member"))]
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.disabled = credits < MEDICAL_CARE_COST
+		btn.pressed.connect(_on_pay_medical_care.bind(str(entry.get("id", ""))))
+		row.add_child(btn)
+
+		vbox.add_child(row)
+
+
+func _crew_in_sick_bay(campaign: Resource) -> Array:
+	## Members with recovery time left, in either shape the roster uses.
+	var out: Array = []
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	for member: Variant in crew:
+		var turns: int = _recovery_turns_of(member)
+		if turns <= 0:
+			continue
+		var name: String = "Crew"
+		var id: String = _member_id_of(member)
+		if member is Dictionary:
+			name = str(member.get("character_name", member.get("name", "Crew")))
+		elif member != null and "character_name" in member:
+			name = str(member.character_name)
+		out.append({"id": id, "name": name, "turns": turns})
+	return out
+
+
+func _recovery_turns_of(member: Variant) -> int:
+	## Recovery lives on the member OR inside its injuries list, depending on the
+	## path that wrote it (see the sick-bay countdown in CampaignPhaseManager).
+	var direct: int = 0
+	if member is Dictionary:
+		direct = int(member.get("recovery_turns", 0))
+	elif member != null and "recovery_turns" in member:
+		direct = int(member.recovery_turns)
+	if direct > 0:
+		return direct
+
+	var injuries: Array = []
+	if member is Dictionary:
+		var raw: Variant = member.get("injuries", [])
+		injuries = raw if raw is Array else []
+	elif member != null and "injuries" in member and member.injuries is Array:
+		injuries = member.injuries
+	var most: int = 0
+	for inj: Variant in injuries:
+		if inj is Dictionary:
+			most = maxi(most, int(inj.get("recovery_turns", 0)))
+	return most
+
+
+func _on_pay_medical_care(member_id: String) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	var campaign: Resource = _get_campaign_resource()
+	if gsm == null or campaign == null or member_id.is_empty():
+		return
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+	if credits < MEDICAL_CARE_COST:
+		return
+
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+
+	var treated: bool = false
+	var treated_name: String = "Crew"
+	for member: Variant in crew:
+		if _member_id_of(member) != member_id:
+			continue
+		treated_name = _entity_display_name(member, "Crew")
+		treated = _decrement_recovery(member)
+		break
+
+	if not treated:
+		return
+	if gsm.has_method("modify_credits"):
+		gsm.modify_credits(-MEDICAL_CARE_COST)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("Paid %d cr — %s recovers one turn sooner." % [
+			MEDICAL_CARE_COST, treated_name])
+	_refresh_after_upkeep_payment()
+
+
+func _decrement_recovery(member: Variant) -> bool:
+	## Mirror of the sick-bay countdown: reduce whichever field is carrying the
+	## remaining time. Returns false when there was nothing left to reduce, so the
+	## caller never charges the player for a no-op.
+	var changed: bool = false
+	if member is Dictionary:
+		if int(member.get("recovery_turns", 0)) > 0:
+			member["recovery_turns"] = int(member["recovery_turns"]) - 1
+			changed = true
+		var raw: Variant = member.get("injuries", [])
+		if not changed and raw is Array:
+			for inj: Variant in raw:
+				if inj is Dictionary and int(inj.get("recovery_turns", 0)) > 0:
+					inj["recovery_turns"] = int(inj["recovery_turns"]) - 1
+					changed = true
+					break
+		if changed and int(member.get("recovery_turns", 0)) <= 0:
+			if _recovery_turns_of(member) <= 0:
+				member["in_sick_bay"] = false
+		return changed
+
+	if member != null and "recovery_turns" in member and int(member.recovery_turns) > 0:
+		member.recovery_turns = int(member.recovery_turns) - 1
+		changed = true
+	if changed and "in_sick_bay" in member and _recovery_turns_of(member) <= 0:
+		member.in_sick_bay = false
+	return changed
+
+
+func _suspended_ids() -> Array:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return []
+	var ids: Variant = pd.get("suspended_crew", [])
+	return ids if ids is Array else []
+
+func _member_id_of(member) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+var _suspend_dialog: Window
+
+func show_suspension_pod_dialog() -> void:
+	## Suspension Pod (Core Rules p.62). THE PRODUCER THAT DID NOT EXIST:
+	## progress_data["suspended_crew"] had four readers — the upkeep cost
+	## exclusion, the recovery-skip at turn rollover, UpkeepSystem, and this
+	## component — and NOTHING ever wrote to it, so a purchased Suspension Pod
+	## did precisely nothing.
+	if _suspend_dialog:
+		_suspend_dialog.queue_free()
+
+	_suspend_dialog = Window.new()
+	_suspend_dialog.title = "Suspension Pod"
+	_suspend_dialog.size = Vector2i(440, 420)
+	_suspend_dialog.exclusive = true
+	_suspend_dialog.close_requested.connect(
+		func(): _suspend_dialog.queue_free(); _suspend_dialog = null)
+
+	var margin := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 16)
+	_suspend_dialog.add_child(margin)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	margin.add_child(vbox)
+
+	var suspended: Array = _suspended_ids()
+	var header := Label.new()
+	header.text = ("Suspended crew take no part in events, tasks or missions, do "
+		+ "not recover from Injuries, and cost no Upkeep. Up to %d at a time. "
+		+ "(Core Rules p.62)  —  %d/%d in use.") % [
+			MAX_SUSPENDED_CREW, suspended.size(), MAX_SUSPENDED_CREW]
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(0, 250)
+	vbox.add_child(scroll)
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 4)
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(list)
+
+	for member in crew_data:
+		var mid: String = _member_id_of(member)
+		if mid.is_empty():
+			continue
+		var mname: String = str(member.get("character_name", member.get("name", "Unknown"))) \
+			if member is Dictionary else "Unknown"
+		# The captain runs the ship; suspending them is not a meaningful option.
+		if member is Dictionary and bool(member.get("is_captain", false)):
+			continue
+
+		var is_susp: bool = mid in suspended
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", 8)
+		list.add_child(r)
+
+		var lbl := Label.new()
+		lbl.text = mname + ("  [SUSPENDED]" if is_susp else "")
+		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		r.add_child(lbl)
+
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(96, TOUCH_TARGET_MIN)
+		if is_susp:
+			btn.text = "Revive"
+			btn.accessibility_name = "Revive " + mname
+			btn.pressed.connect(_on_revive_crew.bind(mid))
+		else:
+			btn.text = "Suspend"
+			btn.accessibility_name = "Suspend " + mname
+			btn.disabled = suspended.size() >= MAX_SUSPENDED_CREW
+			btn.pressed.connect(_on_suspend_crew.bind(mid, mname))
+		r.add_child(btn)
+
+	add_child(_suspend_dialog)
+	_suspend_dialog.popup_centered()
+
+func _on_suspend_crew(character_id: String, character_name: String) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return
+	var ids: Array = _suspended_ids()
+	if character_id in ids or ids.size() >= MAX_SUSPENDED_CREW:
+		return
+	ids.append(character_id)
+	pd["suspended_crew"] = ids
+	_journal_crew_suspension("Crew suspended",
+		"%s entered a Suspension Pod — no Upkeep, tasks, missions or Injury recovery while suspended (Core Rules p.62)." % character_name)
+	_refresh_after_suspension_change()
+
+func _on_revive_crew(character_id: String) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return
+	var ids: Array = _suspended_ids()
+	if character_id not in ids:
+		return
+	ids.erase(character_id)
+	pd["suspended_crew"] = ids
+	# p.62: "They must be counted as part of your crew during the Upkeep step of
+	# that campaign turn" — recalculating costs below is what makes that true.
+	_journal_crew_suspension("Crew revived",
+		"Revived from suspension; counts toward Upkeep from this step onward (Core Rules p.62).")
+	_refresh_after_suspension_change()
+
+func _refresh_after_suspension_change() -> void:
+	if _suspend_dialog:
+		_suspend_dialog.queue_free()
+		_suspend_dialog = null
+	current_upkeep_data = calculate_upkeep_costs()
+	_build_travel_section()
+	_update_ui_display()
+	_update_gating_state()
+
+func _journal_crew_suspension(title: String, description: String) -> void:
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": title,
+			"description": description,
+			"tags": ["ship", "upkeep"],
+		})
+
+func _build_hull_repair_prompt(vbox: VBoxContainer) -> void:
+	## Paid hull repair (Core Rules p.59). Only rendered while damaged.
+	var damage: int = _hull_damage()
+	if damage <= 0 or not has_ship:
+		return
+
+	var pd: Dictionary = _campaign_progress_data()
+	var parts: int = int(pd.get("repair_part_credits", 0)) if not pd.is_empty() else 0
+	var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+	var affordable: int = mini(damage, parts + credits)
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.35, 0.22, 0.05, 0.75)
+	style.border_color = UIColors.COLOR_AMBER
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+
+	var lbl := Label.new()
+	lbl.text = "HULL DAMAGE: %d point(s) — the ship cannot leave orbit until repaired" % damage
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(15))
+	box.add_child(lbl)
+
+	var detail := Label.new()
+	detail.text = "1 credit repairs 1 Hull Point. Repair parts on hand: %d." % parts
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	detail.add_theme_font_size_override("font_size", _scaled_font(13))
+	box.add_child(detail)
+
+	var btn := Button.new()
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if affordable > 0:
+		btn.text = "Repair %d Hull Point(s)" % affordable
+		btn.accessibility_name = "Repair %d hull points" % affordable
+		btn.pressed.connect(_on_repair_hull_pressed.bind(affordable))
+	else:
+		btn.text = "Repair (no credits or parts)"
+		btn.disabled = true
+	box.add_child(btn)
+
+	panel.add_child(box)
+	vbox.add_child(panel)
+
+func _build_quest_step_prompt(vbox: VBoxContainer) -> void:
+	## Render the Quest's standing obligation (Compendium p.79), and the one
+	## control it needs: "It costs 1D6 Credits. Until this has been paid, you
+	## cannot progress the Quest." Nothing is rendered when no step is pending.
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var step: Dictionary = ExpandedQuestRef.get_pending_step(campaign)
+	if step.is_empty():
+		return
+
+	var panel := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.18, 0.12, 0.28, 0.75)
+	style.border_color = UIColors.COLOR_PURPLE
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 12
+	style.content_margin_right = 12
+	style.content_margin_top = 8
+	style.content_margin_bottom = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 6)
+
+	var title := Label.new()
+	title.text = "QUEST STEP — the Quest cannot progress until this is done"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
+	title.add_theme_font_size_override("font_size", _scaled_font(15))
+	box.add_child(title)
+
+	var detail := Label.new()
+	detail.text = str(step.get("instruction", ""))
+	detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	detail.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	detail.add_theme_font_size_override("font_size", _scaled_font(13))
+	box.add_child(detail)
+
+	var progress: String = _quest_step_progress_line(step)
+	if not progress.is_empty():
+		var prog_label := Label.new()
+		prog_label.text = progress
+		prog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		prog_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+		prog_label.add_theme_font_size_override("font_size", _scaled_font(13))
+		box.add_child(prog_label)
+
+	if str(step.get("completion", "")) == "pay_credits":
+		var cost: int = int(step.get("cost", 0))
+		var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+		var btn := Button.new()
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if credits >= cost:
+			btn.text = "Pay %d credits for the information" % cost
+			btn.accessibility_name = "Pay %d credits for the Quest information" % cost
+			btn.pressed.connect(_on_pay_quest_step_pressed)
+		else:
+			btn.text = "Pay %d credits (you have %d)" % [cost, credits]
+			btn.disabled = true
+		box.add_child(btn)
+
+	panel.add_child(box)
+	vbox.add_child(panel)
+
+
+func _quest_step_progress_line(step: Dictionary) -> String:
+	match str(step.get("completion", "")):
+		"research_points":
+			return "Research points: %d / %d" % [
+				int(step.get("progress", 0)), int(step.get("research_target", 20))]
+		"crew_tasks":
+			return "Work on the Quest: %d / %d tasks" % [
+				int(step.get("progress", 0)), int(step.get("task_target", 6))]
+		_:
+			return ""
+
+
+func _on_pay_quest_step_pressed() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var credits: int = int(GameStateManager.get_credits()) if GameStateManager else 0
+	var outcome: Dictionary = ExpandedQuestRef.pay_step_cost(campaign, credits)
+	if not bool(outcome.get("completed", false)):
+		return
+	# Credits have one canonical owner; the engine reports the price and this site
+	# does the spending (see the Data Ownership table in CLAUDE.md).
+	if GameStateManager:
+		GameStateManager.set_credits(credits - int(outcome.get("paid", 0)))
+	if gs and gs.has_method("add_quest_rumor"):
+		gs.add_quest_rumor()
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "Bought Quest information",
+			"description": str(outcome.get("message", "")),
+			"tags": ["quest", "compendium", "expanded_quests"],
+		})
+	_build_travel_section()
+
+
+func _on_repair_hull_pressed(points: int) -> void:
+	var repaired: int = repair_hull_points(points)
+	if repaired > 0:
+		var journal = get_node_or_null("/root/CampaignJournal")
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "event",
+				"auto_generated": true,
+				"title": "Paid hull repairs",
+				"description": "Repaired %d Hull Point(s) (Core Rules p.59)." % repaired,
+				"tags": ["ship", "upkeep"],
+			})
+	# Rebuild so the banner, the repair button and the travel gate all re-read
+	# the new hull state together.
+	_build_travel_section()
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+	_update_gating_state()
+
+func _hull_damage() -> int:
+	## Outstanding Hull Point damage on the ship, 0 if undamaged/shipless.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return 0
+	var campaign = gs.current_campaign
+	if not ("ship_data" in campaign) or not (campaign.ship_data is Dictionary):
+		return 0
+	var ship: Dictionary = campaign.ship_data
+	if ship.is_empty():
+		return 0
+	var current: int = int(ship.get("hull_points", 0))
+	var max_hull: int = int(ship.get("max_hull", current))
+	return maxi(0, max_hull - current)
+
+func repair_hull_points(points: int) -> int:
+	## Paid repair (Core Rules p.59): "1 credit pays off 1 Hull Point of damage,
+	## and any amount can be repaired this way during a campaign turn."
+	##
+	## Banked repair parts are spent FIRST. Crew tasks have always written
+	## progress_data["repair_part_credits"] (p.79, "credits worth of Hull Point
+	## repair parts") and NOTHING read the key back, so those credits were
+	## unspendable — the exact mirror of the fuel-credits gap next door.
+	## Returns the number of points actually repaired.
+	if points <= 0:
+		return 0
+	var outstanding: int = _hull_damage()
+	if outstanding <= 0:
+		return 0
+	var want: int = mini(points, outstanding)
+
+	var pd: Dictionary = _campaign_progress_data()
+	var parts: int = int(pd.get("repair_part_credits", 0)) if not pd.is_empty() else 0
+	var from_parts: int = mini(parts, want)
+	if from_parts > 0 and not pd.is_empty():
+		pd["repair_part_credits"] = parts - from_parts
+
+	var from_credits: int = want - from_parts
+	if from_credits > 0:
+		var available: int = int(GameStateManager.get_credits())
+		from_credits = mini(from_credits, available)
+		if from_credits > 0:
+			GameStateManager.modify_credits(-from_credits)
+
+	var repaired: int = from_parts + from_credits
+	if repaired > 0 and GameStateManager.has_method("repair_hull"):
+		GameStateManager.repair_hull(repaired)
+	return repaired
+
+func _apply_fuel_credits(travel_cost: int) -> int:
+	## Spend banked starship fuel against this trip (Core Rules p.79).
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty() or travel_cost <= 0:
+		return travel_cost
+	var fuel: int = int(pd.get("fuel_credits", 0))
+	if fuel <= 0:
+		return travel_cost
+	var offset: int = mini(fuel, travel_cost)
+	pd["fuel_credits"] = fuel - offset
+	_fuel_offset_last_trip = offset
+	return travel_cost - offset
+
+func _invasion_pending() -> bool:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("has_pending_invasion"):
+		return bool(gsm.has_pending_invasion())
+	return false
+
+func _attempt_invasion_escape() -> bool:
+	## Core Rules p.69, verbatim: "you must attempt to flee. Roll 2D6. A score of
+	## 8+ is required to get safely off-world."
+	##
+	## Modifiers come from ship components and are quoted verbatim in
+	## data/ship_components.json (both re-verified against the PDF):
+	##   shuttle      p.61 "If a planet is Invaded, you may add +2 to the roll to
+	##                      get off-world."
+	##   auto_turrets p.62 "If you have to flee from a world that is being
+	##                      Invaded, you may add +1 to the roll."
+	##
+	## Returns true when the crew gets away. On a failure the world is still
+	## recorded as Invaded and a forced Invasion Battle is armed for the mission
+	## hand-off (p.69: "you MUST fight an Invasion Battle").
+	var dice = get_node_or_null("/root/DiceManager")
+	var roll: int = 0
+	if dice and dice.has_method("roll_2d6"):
+		roll = int(dice.roll_2d6("Flee Invasion (Core Rules p.69)"))
+	elif dice and dice.has_method("roll_d6"):
+		roll = int(dice.roll_d6()) + int(dice.roll_d6())
+	else:
+		roll = randi_range(1, 6) + randi_range(1, 6)
+
+	var modifier: int = 0
+	var sources: Array[String] = []
+	if ShipComponentQuery.has_component("shuttle"):
+		modifier += 2
+		sources.append("shuttle +2")
+	if ShipComponentQuery.has_component("auto_turrets"):
+		modifier += 1
+		sources.append("auto-turrets +1")
+	var total: int = roll + modifier
+
+	# The world is Invaded either way — that is what the Galactic War table
+	# tracks (p.126 step 14), not whether you personally escaped it.
+	_record_invaded_world()
+
+	var detail: String = "2D6 %d%s = %d vs 8+" % [
+		roll,
+		(" (%s)" % ", ".join(sources)) if not sources.is_empty() else "",
+		total,
+	]
+
+	if total >= 8:
+		_clear_pending_invasion()
+		_forced_invasion_mission = {}
+		_journal_invasion("Fled the invasion", "Escaped off-world — %s (Core Rules p.69)." % detail)
+		return true
+
+	# Failed: the crew is pinned here and must fight.
+	_clear_pending_invasion()
+	_forced_invasion_mission = _build_invasion_mission()
+	_journal_invasion("Trapped by the invasion",
+		"Failed to get off-world — %s. An Invasion Battle is unavoidable (Core Rules p.69)." % detail)
+	travel_decision_made = true
+	chose_to_travel = false
+	_update_travel_ui_after_decision()
+	if _travel_status_label:
+		_travel_status_label.text = "✗ Could not escape (%s) — Invasion Battle" % detail
+		_travel_status_label.add_theme_color_override("font_color", UIColors.COLOR_RED)
+		_travel_status_label.visible = true
+	_update_gating_state()
+	return false
+
+func _record_invaded_world() -> void:
+	## The single call that un-dead-ends Core Rules p.126 step 14.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	if not campaign.has_method("record_invaded_planet"):
+		return
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var planet_id: String = ""
+	var planet_name: String = ""
+	if pdm:
+		planet_id = str(pdm.current_planet_id) if "current_planet_id" in pdm else ""
+		if pdm.has_method("get_current_planet"):
+			var cur = pdm.get_current_planet()
+			if cur is Dictionary:
+				planet_name = str((cur as Dictionary).get("name", ""))
+	if planet_id.is_empty():
+		return
+	campaign.record_invaded_planet(planet_id, planet_name)
+
+func _clear_pending_invasion() -> void:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_invasion_pending"):
+		gsm.set_invasion_pending(false)
+
+func _build_invasion_mission() -> Dictionary:
+	## Shaped like WorldPhaseController's mission_dict so the battle funnel needs
+	## no special case: `mission_source == "invasion"` is what
+	## BattleSetupRules.is_invasion() and the post-battle gates all key off.
+	return {
+		"objective": "survive",
+		"objective_description": "Hold out against the invasion force (Core Rules p.92).",
+		"enemy_type": "Invasion Force",
+		"pay": 0,
+		"danger_pay": 0,
+		"danger_level": 3,
+		"time_frame": "",
+		"conditions": [],
+		"benefits": [],
+		"hazards": [],
+		"location": "",
+		"source": "invasion",
+		"mission_source": "invasion",
+		"is_invasion": true,
+		"title": "Invasion Battle",
+		"description": "You failed to escape the invasion and must fight (Core Rules p.69).",
+	}
+
+func get_forced_invasion_mission() -> Dictionary:
+	## Non-empty when the p.69 flee roll failed this turn. WorldPhaseController
+	## writes this as current_mission instead of any accepted job.
+	return _forced_invasion_mission
+
+func _journal_invasion(title: String, description: String) -> void:
+	var journal = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"title": title,
+			"description": description,
+			"tags": ["invasion", "travel"],
+			"auto_generated": true,
+		})
 
 func _update_travel_ui_after_decision() -> void:
 	## Disable travel buttons after a decision is made
@@ -933,10 +2029,16 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	if turns_played < 10:
 		return
 
-	var zone_row := HBoxContainer.new()
+	# Same treatment as the Stay/Travel row above, for the same two reasons. Side by side
+	# "Travel to Red Zone" and "Accept Black Zone Mission" demand 456px — more than a
+	# phone's entire design space, which clipped the whole World Phase on both edges once
+	# a campaign reached turn 10 — and their labels autowrap, which an HFlow would turn
+	# into tall thin slabs. A BoxContainer that goes vertical in portrait solves both.
+	var zone_row := BoxContainer.new()
 	zone_row.name = "ZoneButtonRow"
 	zone_row.add_theme_constant_override("separation", 16)
 	zone_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_register_responsive_box(zone_row)
 
 	# Red Zone button
 	_red_zone_button = Button.new()
@@ -945,7 +2047,9 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		"Red Zone: Dangerous endgame missions with "
 		+ "increased opposition and improved rewards "
 		+ "(Core Rules Appendix III)")
-	_red_zone_button.custom_minimum_size = Vector2(220, 48)
+	_red_zone_button.custom_minimum_size = Vector2(0, 48)
+	_red_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_red_zone_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var rz_style := StyleBoxFlat.new()
 	rz_style.bg_color = Color(0.55, 0.08, 0.08, 0.9)
 	rz_style.border_width_left = 1
@@ -953,7 +2057,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	rz_style.border_width_right = 1
 	rz_style.border_width_bottom = 1
 	rz_style.border_color = Color(0.86, 0.15, 0.15, 1)
-	rz_style.set_corner_radius_all(8)
+	rz_style.set_corner_radius_all(4)
 	rz_style.content_margin_left = 16.0
 	rz_style.content_margin_top = 8.0
 	rz_style.content_margin_right = 16.0
@@ -973,7 +2077,9 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 		"Black Zone: Near-suicide Unity missions. "
 		+ "No upkeep, 3 free weapons, massive rewards "
 		+ "(Core Rules Appendix III)")
-	_black_zone_button.custom_minimum_size = Vector2(260, 48)
+	_black_zone_button.custom_minimum_size = Vector2(0, 48)
+	_black_zone_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_black_zone_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var bz_style := StyleBoxFlat.new()
 	bz_style.bg_color = Color(0.15, 0.05, 0.25, 0.9)
 	bz_style.border_width_left = 1
@@ -981,7 +2087,7 @@ func _build_zone_buttons(parent: VBoxContainer) -> void:
 	bz_style.border_width_right = 1
 	bz_style.border_width_bottom = 1
 	bz_style.border_color = Color(0.4, 0.1, 0.6, 1)
-	bz_style.set_corner_radius_all(8)
+	bz_style.set_corner_radius_all(4)
 	bz_style.content_margin_left = 16.0
 	bz_style.content_margin_top = 8.0
 	bz_style.content_margin_right = 16.0
@@ -1035,12 +2141,12 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		krag_btn.tooltip_text = (
 			"Krag colonies always have Busy Markets + Vendetta System traits. "
 			+ "Costs 1 Story Point to discover (Compendium p.15)")
-		krag_btn.custom_minimum_size = Vector2(240, 48)
+		krag_btn.custom_minimum_size = Vector2(0, 48)
 		var krag_style := StyleBoxFlat.new()
 		krag_style.bg_color = Color(0.35, 0.25, 0.1, 0.9)
 		krag_style.border_color = Color(0.6, 0.45, 0.15, 1)
 		krag_style.set_border_width_all(1)
-		krag_style.set_corner_radius_all(8)
+		krag_style.set_corner_radius_all(4)
 		krag_style.set_content_margin_all(12)
 		krag_btn.add_theme_stylebox_override("normal", krag_style)
 		krag_btn.add_theme_color_override(
@@ -1063,12 +2169,12 @@ func _build_colony_world_buttons(parent: VBoxContainer) -> void:
 		skulker_btn.tooltip_text = (
 			"Skulker colonies always have Adventurous trait + one random trait. "
 			+ "'Alien species restricted' = no result (Compendium p.17)")
-		skulker_btn.custom_minimum_size = Vector2(240, 48)
+		skulker_btn.custom_minimum_size = Vector2(0, 48)
 		var skulker_style := StyleBoxFlat.new()
 		skulker_style.bg_color = Color(0.15, 0.3, 0.2, 0.9)
 		skulker_style.border_color = Color(0.2, 0.5, 0.35, 1)
 		skulker_style.set_border_width_all(1)
-		skulker_style.set_corner_radius_all(8)
+		skulker_style.set_corner_radius_all(4)
 		skulker_style.set_content_margin_all(12)
 		skulker_btn.add_theme_stylebox_override("normal", skulker_style)
 		skulker_btn.add_theme_color_override(
@@ -1315,6 +2421,121 @@ func _generate_travel_event() -> void:
 
 	var event := _process_travel_event_roll(roll)
 	_display_travel_event(event, roll)
+	_apply_travel_event(event)
+
+
+func _apply_travel_event(event: Dictionary) -> void:
+	## The table used to be text-only: TravelEventTable.gd states at line 10 that
+	## its effect tags are "hint tags for the resolving UI (not mechanically
+	## applied here)", and no resolving UI ever existed. Travel therefore carried
+	## neither risk nor reward for the entire campaign.
+	_travel_choices.clear()
+	_travel_event_depth = 0
+	_resolve_travel_event(event)
+
+
+func _resolve_travel_event(event: Dictionary) -> void:
+	## Events that ask the player something come back with a pending_choice; the
+	## buttons below answer it and re-enter here. p.70's "then roll again on this
+	## table" is followed for real, bounded so a chain cannot hang the turn.
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return
+	_travel_event_depth += 1
+	if _travel_event_depth > 6:
+		_add_travel_event_note("Event chain stopped after 6 rolls.")
+		return
+
+	var report: Dictionary = TravelEventResolverClass.apply(
+		campaign, event, _travel_choices)
+
+	var choice: Dictionary = report.get("pending_choice", {})
+	if not choice.is_empty():
+		_build_travel_choice(event, choice)
+		return
+
+	_consume_travel_report(report)
+
+	if bool(report.get("reroll", false)):
+		var next_roll: int = randi_range(1, 100)
+		var next_event: Dictionary = _process_travel_event_roll(next_roll)
+		_display_travel_event(next_event, next_roll)
+		_resolve_travel_event(next_event)
+
+
+func _build_travel_choice(event: Dictionary, choice: Dictionary) -> void:
+	## Inline buttons rather than a modal Window: this panel is already a
+	## scrolling column and a popup would fight the portrait layout.
+	_add_travel_event_note(str(choice.get("prompt", "Choose:")))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for option: Dictionary in choice.get("options", []):
+		var btn := Button.new()
+		btn.text = str(option.get("label", "Choose"))
+		btn.accessibility_name = btn.text
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.pressed.connect(_on_travel_choice_made.bind(
+			event, choice, str(option.get("id", "")), row))
+		row.add_child(btn)
+	if _travel_event_container:
+		_travel_event_container.add_child(row)
+
+
+func _on_travel_choice_made(event: Dictionary, choice: Dictionary,
+		option_id: String, row: Node) -> void:
+	var key: String = str(choice.get("id", ""))
+	# The three-world pick needs the generated worlds carried with the answer, or
+	# the resolver would roll three DIFFERENT worlds when it re-runs.
+	if choice.has("worlds"):
+		_travel_choices[key] = {"id": option_id, "worlds": choice["worlds"]}
+	else:
+		_travel_choices[key] = option_id
+	if is_instance_valid(row):
+		row.queue_free()
+	_resolve_travel_event(event)
+
+
+func _consume_travel_report(report: Dictionary) -> void:
+	for line: String in report.get("applied", []):
+		_add_travel_event_note(line)
+
+	# Hull damage goes through GameStateManager so ship traits (Armored,
+	# Improved Shielding, Dodgy Drive) and the p.59 wreck check both apply.
+	# in_space is TRUE here: these events happen in transit, which selects the
+	# "being without a ship" outcome rather than the grounded scrap payout.
+	var hull: int = int(report.get("hull_damage", 0))
+	if hull > 0:
+		var gsm: Node = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("apply_ship_damage"):
+			var dealt: int = int(gsm.apply_ship_damage(hull, true))
+			_add_travel_event_note("Ship took %d Hull Point damage" % dealt)
+
+	var battle: Dictionary = report.get("forced_battle", {})
+	if not battle.is_empty():
+		_forced_travel_battle = battle
+		_add_travel_event_note(
+			"Pirates board — an out-of-sequence battle awaits (it does not"
+			+ " consume this turn's Battle stage).")
+
+
+func get_forced_travel_battle() -> Dictionary:
+	## Non-empty when the p.70 Raided event failed its intimidation roll.
+	## Mirrors get_forced_invasion_mission() so WorldPhaseController can consume
+	## it the same way.
+	return _forced_travel_battle
+
+
+func _add_travel_event_note(text: String) -> void:
+	if _travel_event_container == null:
+		return
+	var label := Label.new()
+	label.text = "• " + text
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+	_travel_event_container.add_child(label)
 
 func _arrive_at_new_world() -> Dictionary:
 	## New World Arrival (Core Rules p.69). Generate a fresh world and write it
@@ -1339,8 +2560,19 @@ func _arrive_at_new_world() -> Dictionary:
 	if new_world.is_empty():
 		return {}
 
+	# New World Arrival steps 1-2 (Core Rules p.72) — who comes with you, not
+	# where you land. Deliberately AFTER generation (so a failed generation
+	# cannot strip Rivals for a journey that never happened) and BEFORE
+	# initialize_world, so the departure is journalled against the world being
+	# LEFT rather than the one being arrived at.
+	var departures: Dictionary = NewWorldArrivalClass.apply(campaign)
+	_report_arrival_departures(departures)
+
 	# The single chokepoint: fires world_changed → PDM sync + world-arrival event.
 	campaign.initialize_world(new_world)
+
+	_roll_psionic_legality_for_world(campaign, new_world)
+	_check_personal_trinkets(campaign)
 
 	# Mission-required travel (Core Rules p.119): traveling to a NEW world
 	# satisfies a Quest's "next step is on another world" requirement — clear it.
@@ -1359,6 +2591,146 @@ func _arrive_at_new_world() -> Dictionary:
 		_travel_status_label.text = "✓ Arrived: %s" % world_name
 
 	return new_world
+
+
+func _entity_display_name(entity: Variant, fallback: String) -> String:
+	return NewWorldArrivalClass.display_name(entity, fallback)
+
+
+func _report_arrival_departures(departures: Dictionary) -> void:
+	## Tell the player who stayed behind. Without this the p.72 steps would be
+	## invisible bookkeeping and would read as a bug ("where did my Patron go?").
+	var rivals_left: Array = departures.get("rivals_left", [])
+	var patrons_left: Array = departures.get("patrons_left", [])
+	if rivals_left.is_empty() and patrons_left.is_empty():
+		return
+
+	var parts: Array[String] = []
+	if not rivals_left.is_empty():
+		parts.append("%d Rival%s stayed behind" % [
+			rivals_left.size(), "" if rivals_left.size() == 1 else "s"])
+	if not patrons_left.is_empty():
+		parts.append("%d Patron%s did not follow" % [
+			patrons_left.size(), "" if patrons_left.size() == 1 else "s"])
+	var summary: String = " · ".join(parts)
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_info"):
+		notif.show_info(summary)
+
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		var detail: Array[String] = []
+		if not rivals_left.is_empty():
+			detail.append("Remained behind (Rivals): %s"
+				% ", ".join(rivals_left))
+		if not patrons_left.is_empty():
+			detail.append("Patrons dismissed on departure: %s"
+				% ", ".join(patrons_left))
+		journal.create_entry({
+			"type": "travel",
+			"title": "Departure",
+			"description": "\n".join(detail),
+		})
+
+func _check_personal_trinkets(campaign: Resource) -> void:
+	## Core Rules p.121, Battlefield Finds 46-60, verbatim: "Personal trinket — On
+	## each planet you visit in the future, roll 2D6. On a 9+ you find the owner
+	## and receive a Loot roll (p.131) as payment."
+	##
+	## NO PER-PLANET CHECK EXISTED ANYWHERE. The find's own branch said "Resolved
+	## per-planet later" and set amount 0, and a repo-wide search for a trinket /
+	## 9+ resolver returned nothing outside a descriptive UI string. So the one
+	## table entry whose whole value is a RECURRING payoff paid out exactly never.
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var trinkets: int = int(campaign.progress_data.get("personal_trinkets", 0))
+	if trinkets <= 0:
+		return
+
+	var found: int = 0
+	var remaining: int = trinkets
+	for _i in range(trinkets):
+		if randi_range(1, 6) + randi_range(1, 6) >= 9:
+			found += 1
+			remaining -= 1
+	if found <= 0:
+		return
+
+	# The owner is found once per trinket; that trinket is then spent.
+	campaign.progress_data["personal_trinkets"] = remaining
+	var owed: int = int(campaign.progress_data.get("pending_loot_rolls", 0))
+	campaign.progress_data["pending_loot_rolls"] = owed + found
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success(
+			"Found the owner of a personal trinket — %d Loot roll(s) owed (p.121)."
+			% found)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Personal trinket returned",
+			"description": ("Tracked down the owner of %d battlefield trinket(s)"
+				% found) + " — %d Loot Table roll(s) as payment (Core Rules p.121)." % found,
+			"tags": ["loot"],
+		})
+
+
+func _roll_psionic_legality_for_world(campaign: Resource, world: Dictionary) -> void:
+	## The Legality of Psionics (Compendium p.20), verbatim: "When using Psionic
+	## characters in a campaign, World Generation Steps gain an ADDITIONAL STEP
+	## after Travel Step 4: New World Arrival" — D100, 01-25 Outlawed, 26-55
+	## Highly unusual, 56-100 Who cares?
+	##
+	## THE ENTIRE RULE WAS ALREADY BUILT AND HAS NEVER RUN ONCE. The D100 bands
+	## (PsionicSystem.roll_psionic_legality), the p.21 detection roll on post-game
+	## step 1 (check_outlawed_detection: caught on a 1 after one use, 1-2 after
+	## several), the D6 Psi-hunter table and its Seize-the-Initiative -2 / extra
+	## Specialist / +1-to-hit adjustments, the badge on the world screen and the
+	## journal entry — all correct, all waiting on this one number.
+	##
+	## The only writer lived in src/core/campaign/phases/WorldPhase.gd, a file
+	## with zero instantiations. Travel actually happens here. So every consumer
+	## read `psionic_legality` as -1, the OUTLAWED branch could never be taken,
+	## and a Psionic could burn powers on a world that outlaws them with no
+	## possibility of consequence.
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var dlc: Node = get_node_or_null("/root/DLCManager")
+	if dlc == null or not dlc.is_feature_enabled(dlc.ContentFlag.PSIONICS):
+		return
+
+	var legality: int = PsionicSystemRef.roll_psionic_legality()
+	campaign.progress_data["psionic_legality"] = legality
+	# Also on the world itself, so the world screen's badge and the Galaxy Log
+	# describe the world they belong to rather than "the last roll".
+	if not world.is_empty():
+		world["psionic_legality"] = legality
+		if campaign.has_method("initialize_world"):
+			pass  # already written through; do not re-fire world_changed
+
+	# A new world's status is news — the player has to know before deciding
+	# whether to use a power, since that is the only thing that risks detection.
+	var legality_name: String = PsionicSystemRef.get_legality_name(legality)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Psionic legality: %s" % legality_name,
+			"description": "%s — %s (Compendium p.20)" % [
+				str(world.get("name", "This world")),
+				PsionicSystemRef.get_legality_description(legality)],
+			"tags": ["psionics", "world"],
+		})
+	if legality == PsionicSystemRef.PsionicLegality.OUTLAWED:
+		var notif: Node = get_node_or_null("/root/NotificationManager")
+		if notif and notif.has_method("show_warning"):
+			notif.show_warning(
+				"Psionics are OUTLAWED here — using a power in battle risks Psi-hunters")
 
 func _process_travel_event_roll(roll: int) -> Dictionary:
 	## Starship Travel Events Table (Core Rules pp.70-71).
@@ -1399,7 +2771,7 @@ func _display_travel_event(
 			card_style.border_color = Color(0.31, 0.765, 0.969, 1)
 		_:
 			card_style.border_color = Color(0.216, 0.255, 0.318, 1)
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.content_margin_left = 16.0
 	card_style.content_margin_top = 12.0
 	card_style.content_margin_right = 16.0
@@ -1465,7 +2837,7 @@ func _build_quest_travel_prompt(parent: VBoxContainer) -> void:
 	style.bg_color = Color(0.16, 0.12, 0.28, 0.85)
 	style.border_color = Color(0.55, 0.35, 0.85, 1)
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 12
 	style.content_margin_right = 12
 	style.content_margin_top = 8
@@ -1528,6 +2900,8 @@ func reset_upkeep_phase() -> void:
 	costs_calculated = false
 	travel_decision_made = false
 	chose_to_travel = false
+	_forced_invasion_mission = {}
+	_fuel_offset_last_trip = 0
 	selected_zone = 0
 	current_upkeep_data.clear()
 	ship_data.clear()
@@ -1709,21 +3083,23 @@ func _execute_crew_dismissal(
 	# Remove crew member from campaign
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign:
-		var members: Array = []
-		if "crew_data" in gs.current_campaign:
-			members = gs.current_campaign.crew_data.get("members", [])
 		var member_id: String = member.get(
 			"id", member.get("character_id", ""))
-		for i in range(members.size()):
-			var m = members[i]
-			var mid: String = ""
-			if m is Dictionary:
-				mid = m.get("id", m.get("character_id", ""))
-			elif m is Resource and "id" in m:
-				mid = str(m.id)
-			if mid == member_id and not mid.is_empty():
-				members.remove_at(i)
-				break
+		# Route through the campaign's own mutator (Core Rules p.76 dismissal).
+		#
+		# This used to grab the live members Array (Arrays are reference types, so
+		# that IS the owner) and call members.remove_at(i) directly. That bypassed
+		# remove_crew_member(), which is the chokepoint that also rebuilds
+		# _crew_id_index — so every member positioned AFTER the dismissed one was left
+		# indexed one slot too high, and the dismissed member's own id stayed in the
+		# index pointing at whoever moved into their place.
+		#
+		# get_crew_member_by_id() then resolved those stale entries as cache HITS (it
+		# only range-checked), so World Phase crew-task XP was credited to the wrong
+		# character sheet — silently, in the same turn, since Upkeep is where dismissal
+		# is offered and crew tasks resolve later in that same World Phase.
+		if not member_id.is_empty() and gs.current_campaign.has_method("remove_crew_member"):
+			gs.current_campaign.remove_crew_member(member_id)
 
 	# Remove from local crew_data too
 	crew_data.erase(member)

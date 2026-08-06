@@ -58,7 +58,6 @@ var _crew_list: VBoxContainer
 var _crew_scroll: ScrollContainer
 var _roll_type_option: OptionButton
 var _cover_check: CheckBox
-var _elevated_check: CheckBox
 var _range_spin: SpinBox
 var _roll_button: Button
 var _result_display: RichTextLabel
@@ -238,11 +237,15 @@ func _build_hit_inputs(parent: VBoxContainer) -> void:
 	_cover_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	hit_section.add_child(_cover_check)
 
-	_elevated_check = CheckBox.new()
-	_elevated_check.text = "Attacker Elevated"
-	_elevated_check.custom_minimum_size.y = TOUCH_TARGET_MIN
-	_elevated_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	hit_section.add_child(_elevated_check)
+	# NO "Attacker Elevated" CHECKBOX. Removed Aug 6 2026: it was read, printed in
+	# the breakdown as "Elevated"/"Ground", and changed no number — the parameter
+	# it fed is deliberately unused (BattleCalculations.calculate_hit_threshold).
+	# There is no elevation rule to wire it to: the p.44 to-hit table has three
+	# rows and none mentions height, the word "elevated" appears exactly once in
+	# the whole Core Rulebook (p.109, terrain-set shopping advice — "at least 1
+	# feature that ... offers elevated firing positions") and zero times in the
+	# Compendium. In a QUICK ROLL calculator a control that moves no number is
+	# worse than absent: it reads as an input the math is accounting for.
 
 	var range_row := HBoxContainer.new()
 	range_row.add_theme_constant_override("separation", SPACING_SM)
@@ -571,21 +574,27 @@ func _execute_hit_roll() -> void:
 
 	var target_in_cover: bool = _cover_check.button_pressed
 	var range_inches: float = _range_spin.value
-	var attacker_elevated: bool = _elevated_check.button_pressed
 
 	# Determine weapon range from character equipment (fallback to rifle)
 	var weapon_range: int = _selected_character.get("weapon_range",
 		BattleCalculations.RIFLE_RANGE)
 
-	# Calculate hit threshold via BattleCalculations
-	var modifiers := {
-		"is_stunned": stuns > 0,
-		"is_suppressed": false,
-		"has_aim_bonus": is_aiming,
-	}
+	# Core Rules p.44 is "roll 1D6, adding the Combat Skill of the firer" against
+	# a target number. Pass combat_skill as 0 here so the threshold stays the
+	# PURE book target number (3+/5+/6+), and add Combat Skill to the roll below
+	# — which is what the book actually describes.
+	#
+	# Before 2026-08-02 this passed combat_skill into the threshold (which
+	# subtracts it) AND added it to the roll on the comparison line, so Combat
+	# Skill was applied TWICE: a character with Combat Skill +2 was shooting at
+	# an effective +4. Likewise "has_aim_bonus" granted a fabricated flat +1 on
+	# top of the correct p.46 reroll-1s already implemented below.
+	var modifiers := {}
 
+	# Both elevation args are false: the parameters exist only to keep the four
+	# call sites uniform and are deliberately unused — no elevation rule exists.
 	var threshold: int = BattleCalculations.calculate_hit_threshold(
-		combat_skill, target_in_cover, attacker_elevated, false,
+		0, target_in_cover, false, false,
 		range_inches, weapon_range, modifiers
 	)
 
@@ -627,10 +636,9 @@ func _execute_hit_roll() -> void:
 	bbcode += "Total: [b]%d[/b] vs threshold [b]%d+[/b]\n" % [effective_roll, threshold]
 
 	# Target info
-	bbcode += "  (Range: %d\", %s, %s)\n" % [
+	bbcode += "  (Range: %d\", %s)\n" % [
 		int(range_inches),
-		"Cover" if target_in_cover else "Open",
-		"Elevated" if attacker_elevated else "Ground"
+		"Cover" if target_in_cover else "Open"
 	]
 
 	if hit:

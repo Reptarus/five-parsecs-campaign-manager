@@ -8,6 +8,7 @@ const STEP_NUMBER := 4  # Step 4 of 7 in campaign wizard (Core Rules: Equipment 
 
 const StartingEquipmentGenerator = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const CharacterClass = preload("res://src/core/character/Character.gd")
+const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # GlobalEnums available as autoload singleton
 
@@ -260,12 +261,16 @@ func _on_coordinator_set() -> void:
 		pass
 
 func _initialize_components() -> void:
+	# Deferred from _ready(), so it runs a frame later and this panel may already
+	# have left the tree. has_node("/root/DiceManager") ERRORS from a detached
+	# node instead of returning false, which then dropped this panel onto the
+	# FallbackDiceManager even though the real autoload was present.
+	if not is_inside_tree():
+		return
 	## Initialize equipment panel by connecting to actual scene nodes
 	
 	# Use unique name access (marked with unique_name_in_owner = true) with fallback paths
-	equipment_list = get_node_or_null("%Container")
-	if not equipment_list:
-		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
+	_resolve_equipment_list()
 
 	generate_button = get_node_or_null("%GenerateButton")
 	if not generate_button:
@@ -522,8 +527,16 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	_ensure_gear_db()
 
 	# ── CREDITS: Core Rules p.28 ──────────────────────────────────────
-	# Base: 1 credit per crew member
-	starting_credits = crew_members.size()
+	# Base: 1 credit per crew member.
+	#
+	# Compendium p.34 "Starting in the Gutter" denies exactly that base and
+	# nothing else: "do not receive the normal 1 credit per crew member." The
+	# creation-table bonuses below still arrive — the same bullet says "You
+	# receive any items gained from the character creation tables as normal."
+	if CompendiumDifficultyTogglesRef.is_toggle_active("starting_gutter"):
+		starting_credits = 0
+	else:
+		starting_credits = crew_members.size()
 	# Add bonus credits from creation_bonuses (rolled at character creation)
 	for cm in crew_members:
 		var bonuses: Dictionary = {}
@@ -538,19 +551,21 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(
 		dice_manager)
 	for item in base_pool:
+		# `source_table` must carry the TABLE the item was rolled on
+		# (military_weapon / low_tech_weapon / gear / gadget), which
+		# StartingEquipmentGenerator already supplies alongside `source`. Copying
+		# `source` instead stamped every item "crew_base", and the p.28 Savvy
+		# substitution gate tests `source_table == "military_weapon"` — so the
+		# swap the book offers ("For each crew member who rolled at least one
+		# Savvy increase, you may take one of these rolls on the High-tech Weapon
+		# Table instead, if desired") could never be taken by anybody.
 		var equip_item: Dictionary = {
 			"name": item.get("name", "Unknown"),
 			"type": item.get("type", "Gear"),
 			"source": "shared_pool",
-			"source_table": item.get("source", ""),
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
+			"source_table": item.get("source_table", item.get("source", "")),
+			"owner": "Unassigned"
 		}
-		if dice_manager:
-			var cond_roll: int = dice_manager.roll_d6("Condition")
-			equip_item.condition = _determine_condition_from_roll(cond_roll)
-			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 		generated_equipment.append(equip_item)
 
 	# ── PART 2: Per-character bonus rolls ─────────────────────────────
@@ -583,19 +598,15 @@ func _generate_equipment_for_actual_crew(crew_members: Array) -> void:
 		var bonus_items: Array = StartingEquipmentGenerator.generate_bonus_equipment(
 			member_starting_rolls, dice_manager)
 		for item in bonus_items:
+			# No condition roll — see the note on the crew base pool above.
 			var equip_item: Dictionary = {
 				"name": item.get("name", "Unknown"),
 				"type": item.get("type", "Gear"),
 				"source": "bonus",
 				"source_character": char_name,
-				"owner": char_name,
-				"condition": "standard",
-				"quality_modifier": 0
+				"source_table": item.get("source_table", item.get("source", "")),
+				"owner": char_name
 			}
-			if dice_manager:
-				var cond_roll: int = dice_manager.roll_d6("Condition")
-				equip_item.condition = _determine_condition_from_roll(cond_roll)
-				equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 			generated_equipment.append(equip_item)
 
 	# ── SAVVY SUBSTITUTION: Count eligible crew ──────────────────
@@ -949,10 +960,34 @@ func is_setup_complete() -> bool:
 	## Check if equipment setup is complete
 	return generated_equipment.size() > 0
 
+func _resolve_equipment_list() -> bool:
+	## Resolve the equipment list container, by unique name with a path fallback.
+	## Returns true once it is available.
+	##
+	## Split out and made LAZY because of an ordering bug: this node is resolved
+	## in _initialize_components(), which is call_deferred() from _ready(), while
+	## _on_coordinator_set() can arrive FIRST and drive
+	## _handle_campaign_state_update() -> _update_display() ->
+	## _update_equipment_display(). That found equipment_list still null, pushed
+	## an error and returned — and since _initialize_components() never re-runs
+	## the display afterwards, THAT UPDATE WAS SIMPLY LOST. The panel then sat
+	## empty until some unrelated event happened to refresh it.
+	if equipment_list and is_instance_valid(equipment_list):
+		return true
+	if not is_inside_tree():
+		return false
+	equipment_list = get_node_or_null("%Container")
+	if not equipment_list:
+		equipment_list = get_node_or_null("ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentScroll/Container")
+	return equipment_list != null
+
 func _update_equipment_display() -> void:
 	## Update the equipment list display with click-to-expand assignment + stats
-	if not equipment_list:
-		push_error("EquipmentPanel: No equipment_list container found!")
+	if not _resolve_equipment_list():
+		# Genuinely not in the tree yet — the deferred _initialize_components()
+		# will resolve it and a later refresh will paint. No error: arriving
+		# early is ordinary, and push_error here buried the console (and player
+		# bug reports) in a message nobody could act on.
 		return
 
 	# Clear existing children
@@ -996,7 +1031,7 @@ func _update_equipment_display() -> void:
 		name_label.text = item_name
 		name_label.custom_minimum_size.x = 120
 		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		name_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		header_row.add_child(name_label)
 
@@ -1009,7 +1044,7 @@ func _update_equipment_display() -> void:
 		var current_owner: String = str(item.get("owner", "Unassigned"))
 		var owner_btn: Button = Button.new()
 		owner_btn.custom_minimum_size = Vector2(130, 32)
-		owner_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		owner_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		if current_owner == "Unassigned" or current_owner.is_empty():
 			owner_btn.text = "Assign..."
 			owner_btn.add_theme_color_override("font_color", COLOR_WARNING)
@@ -1039,7 +1074,7 @@ func _update_equipment_display() -> void:
 				source_label.text = "Bonus - %s" % src_char if not src_char.is_empty() else "Bonus Roll"
 			else:
 				source_label.text = source.capitalize()
-			source_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			source_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			source_label.add_theme_color_override("font_color", Color(COLOR_TEXT_SECONDARY, 0.7))
 			card_vbox.add_child(source_label)
 
@@ -1089,7 +1124,7 @@ func _create_condition_badge(condition: String) -> PanelContainer:
 	badge.add_theme_stylebox_override("panel", cond_style)
 	var condition_label: Label = Label.new()
 	condition_label.text = condition.capitalize()
-	condition_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	condition_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	condition_label.add_theme_color_override("font_color", _get_condition_color(condition))
 	condition_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	badge.add_child(condition_label)
@@ -1122,8 +1157,8 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 			for t in traits:
 				trait_strings.append(str(t))
 			traits_label.text = " / ".join(trait_strings)
-			traits_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
-			traits_label.add_theme_color_override("font_color", Color("#8b5cf6"))
+			traits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+			traits_label.add_theme_color_override("font_color", UIColors.COLOR_PURPLE)
 			traits_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			stats_row.add_child(traits_label)
 
@@ -1135,7 +1170,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 		if not desc.is_empty():
 			var desc_label: Label = Label.new()
 			desc_label.text = desc
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1146,7 +1181,7 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 		if not desc.is_empty():
 			var desc_label: Label = Label.new()
 			desc_label.text = desc
-			desc_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			desc_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1201,7 +1236,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	# Label
 	var assign_label: Label = Label.new()
 	assign_label.text = "Assign to:"
-	assign_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	assign_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	assign_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	panel.add_child(assign_label)
 
@@ -1214,7 +1249,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	var unassign_btn: Button = Button.new()
 	unassign_btn.text = "Unassigned"
 	unassign_btn.custom_minimum_size = Vector2(100, 36)
-	unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	unassign_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	unassign_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Unassigned"))
 	buttons_flow.add_child(unassign_btn)
 
@@ -1222,7 +1257,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 	var stash_btn: Button = Button.new()
 	stash_btn.text = "Ship Stash"
 	stash_btn.custom_minimum_size = Vector2(100, 36)
-	stash_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	stash_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	stash_btn.pressed.connect(_on_assign_via_button.bind(equipment_index, "Ship Stash"))
 	buttons_flow.add_child(stash_btn)
 
@@ -1237,8 +1272,8 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 		var toughness_val: int = _get_member_stat(member, "toughness")
 
 		var crew_btn: Button = Button.new()
-		crew_btn.custom_minimum_size = Vector2(160, 40)
-		crew_btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		crew_btn.custom_minimum_size = Vector2(0, 40)
+		crew_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 		# Show name + compact stats
 		var stats_text: String = ""
@@ -1255,7 +1290,7 @@ func _populate_expand_panel(panel: VBoxContainer, equipment_index: int, crew_opt
 			btn_style.bg_color = Color(COLOR_SUCCESS, 0.3)
 			btn_style.border_color = COLOR_SUCCESS
 			btn_style.set_border_width_all(1)
-			btn_style.set_corner_radius_all(6)
+			btn_style.set_corner_radius_all(4)
 			btn_style.set_content_margin_all(SPACING_XS)
 			crew_btn.add_theme_stylebox_override("normal", btn_style)
 
@@ -1329,7 +1364,7 @@ func _create_equipment_type_badge(item_type: String) -> PanelContainer:
 	badge_style.bg_color = Color(type_color.r, type_color.g, type_color.b, 0.2)
 	badge_style.border_color = type_color
 	badge_style.set_border_width_all(1)
-	badge_style.set_corner_radius_all(6)
+	badge_style.set_corner_radius_all(4)
 	badge_style.set_content_margin_all(SPACING_XS)
 	badge.add_theme_stylebox_override("panel", badge_style)
 	
@@ -1349,7 +1384,7 @@ func _create_equipment_type_badge(item_type: String) -> PanelContainer:
 		_:
 			icon_label.text = "📦"  # Box icon
 	
-	icon_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	icon_label.add_theme_color_override("font_color", type_color)
 	icon_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	icon_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1371,15 +1406,15 @@ func _get_condition_color(condition: String) -> Color:
 		_:
 			return Color(0.8, 0.8, 0.8)
 
-func _determine_condition_from_roll(roll: int) -> String:
-	## Core Rules p.28: d6 condition roll
-	match roll:
-		1:
-			return "damaged"
-		6:
-			return "superior"
-		_:
-			return "standard"
+func _determine_condition_from_roll(_roll: int) -> String:
+	## NOT A BOOK RULE. There is no equipment condition/quality mechanic on Core
+	## Rules pp.28-29 — the words "damaged", "superior", "condition" and "quality"
+	## do not appear on either page; the citation this used to carry was false.
+	## Starting gear is now generated without a condition roll, so every item is
+	## "standard"; this is kept only so saves written before that still render.
+	## Do not reintroduce the roll (see the fabricated-mechanics rule in
+	## CLAUDE.md: if the book does not have it, the code should not either).
+	return "standard"
 
 func _get_quality_mod(condition: String) -> int:
 	match condition:
@@ -1470,7 +1505,7 @@ func _build_generation_summary() -> void:
 		"military_weapon": COLOR_BLUE,
 		"low_tech_weapon": COLOR_CYAN,
 		"gear": COLOR_AMBER,
-		"gadget": Color("#8b5cf6")
+		"gadget": UIColors.COLOR_PURPLE
 	}
 	# If source_table isn't set, count by type from shared pool
 	if table_counts.is_empty():
@@ -1504,7 +1539,7 @@ func _build_generation_summary() -> void:
 		var savvy_label: Label = Label.new()
 		var remaining: int = _savvy_subs_available - _savvy_subs_used
 		savvy_label.text = "Savvy Substitution: Swap Military \u2192 High-Tech (%d available)" % remaining
-		savvy_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		savvy_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		savvy_label.add_theme_color_override("font_color", COLOR_FOCUS)
 		savvy_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		savvy_row.add_child(savvy_label)
@@ -1518,7 +1553,7 @@ func _build_generation_summary() -> void:
 					var swap_btn: Button = Button.new()
 					swap_btn.text = "Swap: %s" % item.get("name", "")
 					swap_btn.custom_minimum_size.y = 32
-					swap_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+					swap_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 					swap_btn.pressed.connect(_on_savvy_swap_pressed.bind(idx))
 					savvy_row.add_child(swap_btn)
 
@@ -1529,13 +1564,13 @@ func _build_generation_summary() -> void:
 	credits_row.add_theme_constant_override("separation", SPACING_SM)
 	var credits_lbl: Label = Label.new()
 	credits_lbl.text = "Starting Credits: %d" % starting_credits
-	credits_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	credits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	credits_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	credits_row.add_child(credits_lbl)
 
 	var credits_detail: Label = Label.new()
 	credits_detail.text = "(%d base + bonus rolls from backgrounds/motivations/classes)" % crew_members.size()
-	credits_detail.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	credits_detail.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	credits_detail.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	credits_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	credits_row.add_child(credits_detail)
@@ -1595,7 +1630,7 @@ func _create_prov_tag(text: String, color: Color) -> PanelContainer:
 	style.bg_color = Color(color.r, color.g, color.b, 0.2)
 	style.border_color = color
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = SPACING_SM
 	style.content_margin_right = SPACING_SM
 	style.content_margin_top = SPACING_XS
@@ -1604,7 +1639,7 @@ func _create_prov_tag(text: String, color: Color) -> PanelContainer:
 
 	var lbl: Label = Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	lbl.add_theme_color_override("font_color", color)
 	pill.add_child(lbl)
 	return pill
@@ -1660,19 +1695,21 @@ func _on_reroll_shared_pool() -> void:
 	# Regenerate shared pool
 	var base_pool: Array = StartingEquipmentGenerator.generate_crew_base_pool(dice_manager)
 	for item in base_pool:
+		# `source_table` must carry the TABLE the item was rolled on
+		# (military_weapon / low_tech_weapon / gear / gadget), which
+		# StartingEquipmentGenerator already supplies alongside `source`. Copying
+		# `source` instead stamped every item "crew_base", and the p.28 Savvy
+		# substitution gate tests `source_table == "military_weapon"` — so the
+		# swap the book offers ("For each crew member who rolled at least one
+		# Savvy increase, you may take one of these rolls on the High-tech Weapon
+		# Table instead, if desired") could never be taken by anybody.
 		var equip_item: Dictionary = {
 			"name": item.get("name", "Unknown"),
 			"type": item.get("type", "Gear"),
 			"source": "shared_pool",
-			"source_table": item.get("source", ""),
-			"owner": "Unassigned",
-			"condition": "standard",
-			"quality_modifier": 0
+			"source_table": item.get("source_table", item.get("source", "")),
+			"owner": "Unassigned"
 		}
-		if dice_manager:
-			var cond_roll: int = dice_manager.roll_d6("Condition")
-			equip_item.condition = _determine_condition_from_roll(cond_roll)
-			equip_item.quality_modifier = _get_quality_mod(equip_item.condition)
 		generated_equipment.append(equip_item)
 
 	# Re-add bonus items
@@ -1833,13 +1870,13 @@ func _create_inline_stat(stat_name: String, value: String, color: Color) -> Pane
 
 	var name_lbl: Label = Label.new()
 	name_lbl.text = stat_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", Color(color, 0.7))
 	hbox.add_child(name_lbl)
 
 	var val_lbl: Label = Label.new()
 	val_lbl.text = value
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", color)
 	hbox.add_child(val_lbl)
 
@@ -2008,14 +2045,14 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 
 	var name_label = Label.new()
 	name_label.text = char_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	header.add_child(name_label)
 
 	if not background.is_empty():
 		var bg_label = Label.new()
 		bg_label.text = "(%s)" % background.capitalize()
-		bg_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		bg_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		bg_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header.add_child(bg_label)
@@ -2049,7 +2086,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 	if equipment.size() == 0:
 		var empty_label = Label.new()
 		empty_label.text = "No equipment assigned"
-		empty_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		empty_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty_label.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
 		vbox.add_child(empty_label)
 	else:
@@ -2071,7 +2108,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 			var item_label = Label.new()
 			var item_name: String = item.get("name", "Unknown")
 			item_label.text = item_name
-			item_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+			item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			item_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 			item_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			item_hbox.add_child(item_label)
@@ -2081,7 +2118,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 				var unassign_btn: Button = Button.new()
 				unassign_btn.text = "x"
 				unassign_btn.custom_minimum_size = Vector2(28, 28)
-				unassign_btn.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+				unassign_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 				unassign_btn.tooltip_text = "Unassign %s" % item_name
 				# Find the equipment index in generated_equipment
 				var eq_idx: int = _find_equipment_index(item)
@@ -2095,7 +2132,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 	if char_name != "Ship Stash" and not has_weapon and member != null:
 		var warning_label: Label = Label.new()
 		warning_label.text = "No weapon!"
-		warning_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		warning_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		warning_label.add_theme_color_override("font_color", COLOR_DANGER)
 		vbox.add_child(warning_label)
 
@@ -2438,10 +2475,15 @@ func restore_panel_data(data: Dictionary) -> void:
 	if data.has("equipment"):
 		generated_equipment = data.equipment.duplicate() if data.equipment is Array else []
 	
-	# Restore credits
+	# Restore credits. get_panel_data() exports this under "credits" (:2369) and
+	# the campaign payload uses "starting_credits" elsewhere, so accept EITHER —
+	# reading only the spelling this panel never writes meant a round-trip through
+	# get_panel_data()/set_panel_data() silently reset the crew's credits to 0.
 	if data.has("starting_credits"):
-		starting_credits = data.starting_credits
-	
+		starting_credits = int(data.starting_credits)
+	elif data.has("credits"):
+		starting_credits = int(data.credits)
+
 	# Restore crew size
 	if data.has("crew_size"):
 		crew_size = data.crew_size

@@ -47,6 +47,28 @@ func _ready() -> void:
 	_initialize_dependencies()
 	_setup_adaptive_panels()
 
+	# Push content below the floating gear/bug buttons. Belt-and-braces: this scene is
+	# also instantiated as a step inside campaign creation, where it never becomes
+	# current_scene and so is never reached by the autoload's scene_changed net.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	# Page gutter. This screen pads with anchor OFFSETS on its MarginContainer
+	# rather than margin constants, so it needs the offsets variant — the constant
+	# variant would set margins the layout never reads and the content would keep
+	# sitting a flat 20px from the edge at every size.
+	var _mc := get_node_or_null("MarginContainer") as Control
+	if _mc != null:
+		ScreenChrome.apply_page_chrome_offsets(self, _mc)
+
+	# Shared button idiom. Back is the only one that leaves the screen; Generate is
+	# the primary action here, since this screen exists to produce a loadout.
+	var _btns := "MarginContainer/VBoxContainer/ButtonSection/"
+	DialogStyles.style_back_button(get_node_or_null(_btns + "BackButton") as Button)
+	DialogStyles.style_primary_button(get_node_or_null(_btns + "GenerateButton") as Button)
+	DialogStyles.style_confirm_button(get_node_or_null(_btns + "FinishButton") as Button)
+
 	# Setup campaign integration
 	call_deferred("setup_for_campaign_creation")
 

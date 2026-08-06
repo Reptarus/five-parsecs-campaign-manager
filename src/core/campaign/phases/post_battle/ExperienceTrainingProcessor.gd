@@ -8,6 +8,10 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
+const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
+## Path-preloaded (BattleResultNormalizer declares no class_name — see its header).
+## Reused for _to_crew_entry(), the character-object -> crew_id resolver.
+const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 
 # XP awards loaded from data/injury_results.json (Core Rules p.123)
 static var _xp_data: Dictionary = {}
@@ -65,6 +69,23 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 		elif participant is Dictionary:
 			crew_id = participant.get("id", participant.get("character_id", ""))
 			is_bot = participant.get("is_bot", false) or ctx.is_crew_member_bot(crew_id)
+		elif participant != null:
+			# CHARACTER RESOURCE. All three live producers fill crew_participants with
+			# character OBJECTS (TacticalBattleUI.gd:4265-4268 and :4524-4526 pass
+			# unit.original_character; BattleResultsInputForm.gd), and on a FRESH campaign
+			# crew_data["members"] holds Character Resources — so this is the real shape
+			# until the first save/load round-trips them to Dictionaries.
+			#
+			# Without this branch crew_id stayed "" and the loop `continue`d for every
+			# participant: nobody gained XP on a new campaign, on either battle path.
+			# The identical fix already landed on the two sibling consumers
+			# (PostBattleContext.get_participating_crew:312-324 and
+			# PostBattleCompletion._resolve_participant_ids:63-94, which uses this exact
+			# resolver at :90) and never reached the XP processor.
+			crew_id = str(BattleResultNormalizerClass._to_crew_entry(participant).get("crew_id", ""))
+			is_bot = ctx.is_crew_member_bot(crew_id)
+			if not is_bot and "is_bot" in participant:
+				is_bot = bool(participant.is_bot)
 
 		if crew_id.is_empty():
 			continue
@@ -118,8 +139,42 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 
 		if xp_earned > 0:
 			xp_awards.append({"crew_id": crew_id, "xp": xp_earned})
-			if ctx.game_state and ctx.game_state.has_method("add_crew_experience"):
-				ctx.game_state.add_crew_experience(crew_id, xp_earned)
+			# Write through the context, which HAS a working mutator.
+			#
+			# THE BUG THIS FIXES: this was the only XP write, and it was gated on
+			# ctx.game_state.has_method("add_crew_experience") — a method that DOES
+			# NOT EXIST anywhere in the repo. A grep finds only call sites (here,
+			# :226 and WorldPhase.gd:604) and never a `func add_crew_experience`.
+			# Character.gd:263 even carries a comment saying it is "called by
+			# GameState.add_crew_experience", a function that was never written.
+			#
+			# So the guard was permanently false and NO crew member ever gained XP
+			# from a battle, on either the played-out or auto-resolved path. The
+			# post-battle wizard printed "Kaya gained 3 XP" (PostBattleSequence:472
+			# is log-only) while the character sheet never moved — nobody advanced,
+			# bought a stat, or reached an Advanced Training threshold. Campaign
+			# progression was completely flat.
+			ctx.add_character_xp(ctx.get_crew_member(crew_id), xp_earned)
+
+	# "Tough fight: A random survivor gains +1 XP" (Core Rules p.97 Roid-gangers,
+	# p.102 Haywire Robots). Zero consumers anywhere — the trait was printed in
+	# the pre-battle briefing and paid nobody. Drawn from the crew who actually
+	# earned XP above, which is exactly the set of surviving non-Bot participants
+	# the rule means by "a random survivor".
+	if EnemyTraitRules.bonus_survivor_xp(
+			str(ctx.battle_result.get("enemy_type", ""))) > 0 \
+			and not xp_awards.is_empty():
+		var lucky: Dictionary = xp_awards[randi() % xp_awards.size()]
+		lucky["xp"] = int(lucky.get("xp", 0)) + 1
+		ctx.add_character_xp(ctx.get_crew_member(str(lucky.get("crew_id", ""))), 1)
+		if ctx.campaign_journal and ctx.campaign_journal.has_method(
+				"auto_create_character_event"):
+			ctx.campaign_journal.auto_create_character_event(
+				str(lucky.get("crew_id", "")), "bonus_xp", {
+					"turn": ctx.battle_result.get("turn", 0),
+					"description": "Tough fight: +1 XP for coming through it "
+						+ "(Core Rules p.97)",
+				})
 
 	# Journal: log XP awards
 	if xp_awards.size() > 0 and ctx.campaign_journal \
@@ -174,8 +229,10 @@ func process_purchases(ctx: PostBattleContextClass) -> Array[Dictionary]:
 					if ctx.game_state_manager.has_method("remove_credits"):
 						ctx.game_state_manager.remove_credits(cost)
 						credits -= cost
-					if ctx.game_state_manager.has_method("add_to_ship_inventory"):
-						ctx.game_state_manager.add_to_ship_inventory(item)
+					# add_to_ship_inventory does not exist (zero definitions repo-wide);
+					# the real ship-stash API is EquipmentManager.add_to_ship_stash.
+					if ctx.equipment_manager 							and ctx.equipment_manager.has_method("add_to_ship_stash"):
+						ctx.equipment_manager.add_to_ship_stash(item)
 					purchases_made.append(item)
 
 			if gs and "purchase_queue" in gs:
@@ -223,8 +280,10 @@ func attempt_training_enrollment(ctx: PostBattleContextClass, crew_id: String, c
 	available_credits -= course_cost
 
 	var xp_awarded: int = 1
-	if ctx.game_state_manager and ctx.game_state_manager.has_method("add_crew_experience"):
-		ctx.game_state_manager.add_crew_experience(crew_id, xp_awarded)
+	# Same dead guard as the battle-XP site above — add_crew_experience exists on
+	# neither GameState nor GameStateManager, so paid Advanced Training (Core Rules
+	# p.124) charged the credits and awarded nothing.
+	ctx.add_character_xp(ctx.get_crew_member(crew_id), xp_awarded)
 
 	if ctx.game_state and ctx.game_state.has_method("set_crew_training"):
 		ctx.game_state.set_crew_training(crew_id, course)
@@ -244,6 +303,22 @@ func _calculate_crew_xp(ctx: PostBattleContextClass, crew_id: String) -> int:
 	## Core Rules p.123 XP calculation. Values loaded from data/injury_results.json.
 	var xp: int = 0
 
+	# p.123: "Any character that flees the battlefield in the first 2 rounds of
+	# the battle receives no XP."
+	#
+	# battle_result["fled_early"] is produced as `(not held_field) and
+	# rounds_fought <= 2` (TacticalBattleUI:5534), i.e. THE WHOLE CREW withdrew in
+	# the first two rounds — so zeroing every member is right for that case, not a
+	# bug. `fled_early_crew` is the per-character form: an individual who bails on
+	# round 1 while the rest fight on.
+	#
+	# KNOWN GAP, recorded not silently skipped: nothing produces fled_early_crew
+	# yet. The app tracks bail-outs for ENEMIES only (morale), so a crew member who
+	# leaves early still collects full XP. The read side is correct the moment a
+	# producer lands; inventing one here would fabricate battle data.
+	var fled_crew: Array = ctx.battle_result.get("fled_early_crew", [])
+	if fled_crew is Array and crew_id in fled_crew:
+		return 0
 	if ctx.battle_result.get("fled_early", false):
 		return 0
 

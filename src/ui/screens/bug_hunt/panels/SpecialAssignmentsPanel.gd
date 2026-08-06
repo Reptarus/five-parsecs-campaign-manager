@@ -104,14 +104,14 @@ func _build_ui() -> void:
 	# Roll All button
 	var roll_btn := Button.new()
 	roll_btn.text = "Roll All Assignments"
-	roll_btn.custom_minimum_size = Vector2(200, 44)
+	roll_btn.custom_minimum_size = Vector2(0, 44)
 	roll_btn.pressed.connect(_on_roll_all)
 	vbox.add_child(roll_btn)
 
 	# Skip button
 	var skip_btn := Button.new()
 	skip_btn.text = "Skip Assignments"
-	skip_btn.custom_minimum_size = Vector2(200, 44)
+	skip_btn.custom_minimum_size = Vector2(0, 44)
 	skip_btn.pressed.connect(func(): complete())
 	vbox.add_child(skip_btn)
 
@@ -387,7 +387,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = 16
 	style.content_margin_right = 16
 	style.content_margin_top = 12

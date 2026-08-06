@@ -15,13 +15,13 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 
 # Color palette - Deep Space Theme
-const COLOR_SECONDARY := Color("#111827")
-const COLOR_TERTIARY := Color("#1f2937")
-const COLOR_BORDER := Color("#374151")
-const COLOR_BLUE := Color("#3b82f6")
-const COLOR_TEXT_PRIMARY := Color("#f3f4f6")
-const COLOR_TEXT_SECONDARY := Color("#9ca3af")
-const COLOR_AMBER := Color("#f59e0b")
+const COLOR_SECONDARY := UIColors.COLOR_SECONDARY
+const COLOR_TERTIARY := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_BLUE := UIColors.COLOR_BLUE
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_AMBER := UIColors.COLOR_AMBER
 
 # Signals
 signal mission_details_requested()
@@ -63,13 +63,13 @@ func _setup_ui() -> void:
 
 	icon_label = Label.new()
 	icon_label.text = "🎯"
-	icon_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	icon_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	icon_label.add_theme_color_override("font_color", COLOR_BLUE)
 	header_hbox.add_child(icon_label)
 
 	name_label = Label.new()
 	name_label.text = mission_name
-	name_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_hbox.add_child(name_label)
@@ -77,7 +77,7 @@ func _setup_ui() -> void:
 	# Mission Type
 	type_label = Label.new()
 	type_label.text = mission_type
-	type_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	type_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	type_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(type_label)
 
@@ -92,7 +92,7 @@ func _setup_ui() -> void:
 	# Progress Label
 	progress_label = Label.new()
 	progress_label.text = "0 of 0 objectives"
-	progress_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	progress_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	progress_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	main_vbox.add_child(progress_label)
 
@@ -117,7 +117,7 @@ func _apply_glass_style() -> void:
 	style.set_border_width_all(1)
 
 	# Rounded corners
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 
 	# Padding
 	style.set_content_margin_all(SPACING_MD)
@@ -149,7 +149,7 @@ func _create_difficulty_badge() -> PanelContainer:
 	style.bg_color = Color(COLOR_TERTIARY, 0.6)
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XS)
 	badge.add_theme_stylebox_override("panel", style)
 
@@ -160,14 +160,14 @@ func _create_difficulty_badge() -> PanelContainer:
 	# Difficulty label
 	var diff_label := Label.new()
 	diff_label.text = "DIFFICULTY"
-	diff_label.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	diff_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	diff_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(diff_label)
 
 	# Stars display (visual rating)
 	var stars_label := Label.new()
 	stars_label.text = _get_difficulty_stars(difficulty_level)
-	stars_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	stars_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	stars_label.add_theme_color_override("font_color", COLOR_AMBER)
 	hbox.add_child(stars_label)
 

@@ -326,7 +326,7 @@ func _build_ui() -> void:
 
 	_roll_btn = Button.new()
 	_roll_btn.text = "Roll Morale Check"
-	_roll_btn.custom_minimum_size = Vector2(160, UIColors.TOUCH_TARGET_MIN)
+	_roll_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	_roll_btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
 	var roll_style := StyleBoxFlat.new()
 	roll_style.bg_color = Color(UIColors.COLOR_RED, 0.7)

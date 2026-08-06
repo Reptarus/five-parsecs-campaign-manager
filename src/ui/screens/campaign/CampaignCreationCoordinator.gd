@@ -11,6 +11,7 @@ extends Node
 const CampaignCreationStateManager := preload("res://src/core/campaign/creation/CampaignCreationStateManager.gd")
 const AutoloadManager := preload("res://src/core/systems/AutoloadManager.gd")
 const CharacterGeneration := preload("res://src/core/character/CharacterGeneration.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 # GDScript 2.0: Typed signals
 signal navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish: bool)
@@ -406,9 +407,20 @@ func update_crew_state(crew_data: Dictionary) -> void:
 			unified_campaign_state.crew.duplicate()
 		)
 
-	# Set phase completion: crew is complete when is_complete flag is set
-	if crew_data.get("is_complete", false):
-		phase_completion_status[CampaignCreationStateManager.Phase.CREW_SETUP] = true
+	# Set phase completion from the CURRENT state, in both directions.
+	#
+	# This used to be `if is_complete: status = true` with no else, and nothing
+	# anywhere ever wrote false — so completion was monotonic. A player could
+	# satisfy the crew step, advance, come back, delete a member or shrink the
+	# crew size, and still Next straight past an illegal roster, because the
+	# stale `true` was the only thing the navigation gate consults.
+	#
+	# CrewPanel.is_valid() is an exact size match, so this also re-blocks an
+	# OVER-size roster — which is how the Elite Rank extra candidates (p.65) are
+	# meant to work: roll extra, then cut down to your crew size.
+	if crew_data.has("is_complete"):
+		phase_completion_status[CampaignCreationStateManager.Phase.CREW_SETUP] = \
+			bool(crew_data.get("is_complete", false))
 		_update_navigation_state()
 
 	# Update overall completion status
@@ -646,10 +658,38 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	# Update campaign config data
 	if campaign_config_data.has("campaign_name"):
 		unified_campaign_state.campaign_config.campaign_name = campaign_config_data.campaign_name
-	if campaign_config_data.has("campaign_type"):
-		unified_campaign_state.campaign_config.campaign_type = campaign_config_data.campaign_type
 	if campaign_config_data.has("campaign_crew_size"):
 		unified_campaign_state.campaign_config.campaign_crew_size = campaign_config_data.campaign_crew_size
+	# THIS IS A WHITELIST, and that is deliberate — it is what makes campaign
+	# state ownership auditable. But a key the panel collects and this list does
+	# not name is silently dropped, which is how Progressive Difficulty and the
+	# per-campaign narrative override became decorative: the controls worked, the
+	# values were stored locally, and nothing ever left the panel.
+	if campaign_config_data.has("progressive_difficulty_options"):
+		unified_campaign_state.campaign_config.progressive_difficulty_options = \
+			campaign_config_data.progressive_difficulty_options
+	if campaign_config_data.has("narrative_wrap_override"):
+		unified_campaign_state.campaign_config.narrative_wrap_override = \
+			campaign_config_data.narrative_wrap_override
+	# Difficulty Toggles (Compendium pp.32-34). Exactly the same story as
+	# Progressive Difficulty above: ExpandedConfigPanel has collected the 12
+	# toggle ids since it was written, this whitelist did not name the key, and
+	# so the selection was dropped here and nothing downstream ever saw a toggle.
+	if campaign_config_data.has("difficulty_toggles"):
+		unified_campaign_state.campaign_config.difficulty_toggles = \
+			campaign_config_data.difficulty_toggles
+		# "Starting in the Gutter" (Compendium p.34) applies DURING creation,
+		# before the campaign exists — and GameState may still be holding the
+		# PREVIOUS campaign, so a plain campaign read at that point would apply
+		# the last campaign's options to this one. Publish the live selection for
+		# the wizard to read; finalization clears it.
+		CompendiumTogglesRef.set_creation_toggles(
+			campaign_config_data.difficulty_toggles)
+	# Core Rules p.65 step 5. Finalization has always read config["house_rules"]
+	# and called campaign.set_house_rules(); nothing ever wrote it.
+	if campaign_config_data.has("house_rules"):
+		unified_campaign_state.campaign_config.house_rules = \
+			campaign_config_data.house_rules
 	if campaign_config_data.has("victory_conditions"):
 		unified_campaign_state.campaign_config.victory_conditions = campaign_config_data.victory_conditions
 	# Narrative options (bool toggles)
@@ -785,6 +825,38 @@ func _merge_captain_into_crew() -> void:
 func _character_to_dict(character) -> Dictionary:
 	if character == null:
 		return {}
+
+	# CANONICAL PATH: a Character Resource knows how to serialise itself — use it.
+	#
+	# THE BUG THIS FIXES. Everything below hand-built a NEW dict from ~17 properties
+	# and discarded the rest, while Character.to_dictionary() emits 53. CrewPanel
+	# appends Character RESOURCES (CrewPanel.gd:143/153), so every non-captain crew
+	# member went through the narrow path and lost ~38 fields on the way to disk.
+	# The captain escaped it: update_crew_state wraps the captain as
+	# {name, character_name, "character": <Resource>}, which is a DICTIONARY, and the
+	# dictionary branch below already merges to_dictionary() back in.
+	#
+	# MEASURED across all 30 save files on disk: 0 of 73 non-captain crew members
+	# carry species_id; the median non-captain has 18 keys against the captain's 27.
+	# Absent from every one of them: species_id, is_bot, is_soulless, special_rules,
+	# psionic_powers, status_effects, implants, acquired_training, health/max_health,
+	# character_id, portrait_path and the lifetime_* counters.
+	#
+	# So for 5 of 6 crew, every rule keyed on those fields was silently inert for the
+	# whole campaign: the 16 Strange Character species rules (CampaignPhaseManager:576
+	# Unity Agent favor, EquipmentManager:604 Krag armor gate, LuckSystem:300
+	# can_receive_luck, CharacterEventEffects, ExperienceTrainingProcessor:100),
+	# the Bot no-XP rule (Core Rules p.98), rolled psionic powers, and Character
+	# Events status_effects persistence. It reads as "species rules work" in any spot
+	# check, because the captain is the one member that is fine.
+	#
+	# character_object is the one key to_dictionary() does not emit, so it is
+	# re-attached here rather than lost in the swap.
+	if not (character is Dictionary) and character is Resource \
+			and character.has_method("to_dictionary"):
+		var canonical: Dictionary = character.to_dictionary()
+		canonical["character_object"] = character
+		return canonical
 
 	# SPRINT 27 FIX: Relax validation - accept Dictionaries with either "character_name" OR "name"
 	# Previous code required BOTH "character_name" AND "background", which was too strict
@@ -1317,10 +1389,17 @@ func _validate_campaign_completion() -> Dictionary:
 		if not phase_completion_status.get(phase, false):
 			errors.append("Required phase not complete: %s" % get_phase_name(phase))
 	
-	# Check overall completion percentage
+	# Check overall completion. get_overall_completion_percentage() returns a
+	# FRACTION (0.0-1.0), not a percentage — despite the name — so comparing it
+	# against 75.0 was true for every campaign that has ever existed. This
+	# function therefore always failed, finalize_campaign() always returned
+	# success:false, and FinalPanel always silently fell back to its own copy of
+	# the state. Everything downstream of the early return (the equipment
+	# distribution, the legacy story-point bonus) was unreachable code.
 	var completion_pct = get_overall_completion_percentage()
-	if completion_pct < 75.0: # Require at least 75% completion
-		errors.append("Campaign is only %.1f%% complete. Need at least 75%% for finalization." % completion_pct)
+	if completion_pct < 0.75: # Require at least 75% completion
+		errors.append("Campaign is only %.0f%% complete. Need at least 75%% for finalization."
+			% (completion_pct * 100.0))
 	
 	# Validate state manager has data
 	if not state_manager:
@@ -1363,41 +1442,27 @@ func _aggregate_all_phase_data() -> Dictionary:
 		campaign_data["victory_conditions"] = victory_conditions
 		campaign_data["story_track_enabled"] = config_data.get("story_track_enabled", false)
 
-	# BUG-035 FIX: Distribute equipment to crew members based on "owner" field.
-	# EquipmentPanel stores a flat array with owner assignments; translate that
-	# into per-crew-member equipment lists so Mission Prep and gameplay see them.
-	var equip_items: Array = campaign_data.get("equipment", {}).get("equipment", [])
-	if equip_items.is_empty():
-		equip_items = campaign_data.get("equipment", {}).get("items", [])
-	var crew_dict: Dictionary = campaign_data.get("crew", {})
-	var members: Array = crew_dict.get("members", [])
-	if not equip_items.is_empty() and not members.is_empty():
-		# Initialize equipment arrays on crew members
-		for member in members:
-			if not member.has("equipment"):
-				member["equipment"] = []
-		# Ship stash: items that are unassigned
-		var ship_stash: Array = []
-		for item in equip_items:
-			var owner_name: String = item.get("owner", "Unassigned")
-			if owner_name == "Unassigned" or owner_name.is_empty():
-				ship_stash.append(item)
-				continue
-			# Find matching crew member by name
-			var assigned = false
-			for member in members:
-				var member_name: String = member.get("name", member.get("character_name", ""))
-				if member_name == owner_name:
-					member["equipment"].append(item)
-					assigned = true
-					break
-			if not assigned:
-				ship_stash.append(item)
-		# Update equipment_data with ship stash only (assigned items are on crew)
-		# Preserve credits key — destructive overwrite would lose it (Bug fix)
-		var preserved_credits: int = campaign_data.get("equipment", {}).get("credits", 0)
-		campaign_data["equipment"] = {"equipment": ship_stash, "credits": preserved_credits}
-		campaign_data["crew"]["members"] = members
+	# EQUIPMENT DISTRIBUTION DELIBERATELY DOES NOT HAPPEN HERE.
+	#
+	# There used to be a second owner->crew distribution at this point, and it
+	# destroyed the items it touched. `member["equipment"]` comes from
+	# Character.to_dictionary(), so it is an Array[STRING]; the block appended the
+	# full item DICTIONARY to it. Godot rejects that ("Attempted to push_back a
+	# variable of type 'Dictionary' into a TypedArray of type 'String'"), the
+	# array stays empty — and because the loop still set `assigned = true` and
+	# broke, the item was not returned to the ship stash either. Every
+	# owner-assigned item was annihilated between the review screen and the save.
+	#
+	# It only ever failed silently because it was UNREACHABLE: the completion
+	# check above compared a 0.0-1.0 fraction against 75.0, so finalize_campaign()
+	# always returned early. Fixing that comparison is what made this dangerous,
+	# which is why the two changes belong in the same commit.
+	#
+	# CampaignFinalizationService already does this correctly and is the single
+	# site: it builds owner -> Array[String] of item NAMES and assigns each
+	# member's equipment in one shot, before initialize_crew() deep-copies the
+	# crew. Adding a second distribution here would also violate the
+	# data-ownership rule that Character.equipment has exactly one writer.
 
 	return campaign_data
 

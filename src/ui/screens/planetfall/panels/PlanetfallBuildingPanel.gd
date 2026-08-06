@@ -12,14 +12,14 @@ const PlanetfallBuildingScript := preload(
 const PlanetfallResearchScript := preload(
 	"res://src/core/systems/PlanetfallResearchSystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -103,7 +103,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 15: BUILDING"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -116,13 +116,13 @@ func _build_ui() -> void:
 
 	_bp_label = Label.new()
 	_bp_label.text = "Build Points: 0"
-	_bp_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_bp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_bp_label.add_theme_color_override("font_color", COLOR_CYAN)
 	res_row.add_child(_bp_label)
 
 	_rm_label = Label.new()
 	_rm_label.text = "Raw Materials: 0"
-	_rm_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_rm_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_rm_label.add_theme_color_override("font_color", COLOR_WARNING)
 	res_row.add_child(_rm_label)
 
@@ -134,7 +134,7 @@ func _build_ui() -> void:
 
 	var conv_lbl := Label.new()
 	conv_lbl.text = "Convert RM → BP (max 3):"
-	conv_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	conv_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	conv_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	convert_row.add_child(conv_lbl)
 
@@ -177,7 +177,7 @@ func _build_ui() -> void:
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Done Building"
-	_continue_btn.custom_minimum_size = Vector2(200, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	vbox.add_child(_continue_btn)
 	_continue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -197,7 +197,7 @@ func _build_building_list() -> void:
 	if not in_progress.is_empty():
 		var ip_header := Label.new()
 		ip_header.text = "IN PROGRESS"
-		ip_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		ip_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		ip_header.add_theme_color_override("font_color", COLOR_WARNING)
 		_building_list.add_child(ip_header)
 
@@ -215,7 +215,7 @@ func _build_building_list() -> void:
 	# Available section
 	var avail_header := Label.new()
 	avail_header.text = "AVAILABLE (%d)" % available.size()
-	avail_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	avail_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	avail_header.add_theme_color_override("font_color", COLOR_SUCCESS)
 	_building_list.add_child(avail_header)
 
@@ -241,7 +241,7 @@ func _build_building_list() -> void:
 	if not constructed.is_empty():
 		var con_header := Label.new()
 		con_header.text = "CONSTRUCTED (%d)" % constructed.size()
-		con_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		con_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		con_header.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		_building_list.add_child(con_header)
 
@@ -250,7 +250,7 @@ func _build_building_list() -> void:
 			var bname: String = building.get("name", str(bid))
 			var lbl := Label.new()
 			lbl.text = "  %s" % bname
-			lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			_building_list.add_child(lbl)
 
@@ -276,20 +276,20 @@ func _show_building_detail(building_id: String) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = bname + (" [MILESTONE]" if is_milestone else "")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_detail_container.add_child(name_lbl)
 
 	var cost_lbl := Label.new()
 	cost_lbl.text = "BP Cost: %d" % bp_cost
-	cost_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	cost_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	cost_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	_detail_container.add_child(cost_lbl)
 
 	if prereq != null and prereq is String and not prereq.is_empty():
 		var prereq_lbl := Label.new()
 		prereq_lbl.text = "Requires: %s" % str(prereq).replace("_", " ").capitalize()
-		prereq_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		prereq_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		prereq_lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		_detail_container.add_child(prereq_lbl)
 
@@ -298,7 +298,7 @@ func _show_building_detail(building_id: String) -> void:
 	desc_rtl.fit_content = true
 	desc_rtl.scroll_active = false
 	desc_rtl.text = desc
-	desc_rtl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_rtl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc_rtl)
 
@@ -315,7 +315,7 @@ func _show_building_detail(building_id: String) -> void:
 	else:
 		var status_lbl := Label.new()
 		status_lbl.text = "CONSTRUCTED"
-		status_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		status_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		status_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		_detail_container.add_child(status_lbl)
 
@@ -407,7 +407,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -32,10 +32,20 @@ extends Node
 ## ## Registration
 ##
 ## Registered as autoload AFTER `LegalConsentManager` and `CampaignAnalytics`
-## (the adapter depends on both). Talo's own `Talo` autoload is registered by
-## the Talo plugin's `EditorPlugin._enter_tree()` and parses before manual
-## autoloads, so by the time TaloAnalyticsAdapter._ready() runs, /root/Talo
-## either exists (plugin enabled) or doesn't (plugin not yet installed).
+## (the adapter depends on both). `Talo` is registered LAST, at project.godot:64,
+## i.e. AFTER this adapter, not before as an earlier version of this note claimed.
+## `/root/Talo` still resolves from `_ready()` here, but for a different reason:
+## Godot instantiates and attaches every autoload before running `_ready()` on
+## them, so a later-registered autoload is already reachable by absolute path from
+## an earlier one's `_ready()`. Registration order constrains `_ready()` ORDER, not
+## node AVAILABILITY. (Assuming otherwise caused a real misdiagnosis: the equipment
+## restore in GameState was blamed on autoload #7 not seeing autoload #20, which
+## running the app disproved. See commit 87c06567.)
+##
+## What that ordering DOES mean here: this adapter's `_ready()` runs before
+## `Talo._ready()`, so it cannot undo anything Talo does at boot. Talo's boot-time
+## network behaviour is therefore controlled by config, not by this adapter, and
+## `scripts/lint_talo_config.py` guards it. See `addons/talo/settings.example.cfg`.
 ##
 ## See `docs/testing/phase-1-prep/TALO_ADAPTER_DESIGN.md` for the design notes.
 

@@ -14,6 +14,32 @@ const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.g
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const DiceManager = preload("res://src/core/managers/DiceManager.gd")
+## The pp.28-29 creation tables (Low-Tech Weapon / Gear / Gadget), which several
+## Trade Table entries cite by page. One roller, shared with campaign creation.
+const StartingEquipmentGeneratorClass = preload(
+	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+
+## Compendium p.79 row 29-38: "A special Work on the Quest crew task becomes
+## available. This has no effect other than to help complete this step." It is
+## NOT a standing option and so is deliberately absent from crew_tasks.json —
+## it exists only while that row is the Quest's pending step, and disappears the
+## moment the sixth task is performed.
+const QUEST_WORK_TASK := {
+	"id": "work_on_the_quest",
+	"name": "Work on the Quest",
+	"description": "Compendium p.79: grind away at the current Quest step. "
+		+ "No other effect. Six of these complete the step and earn 1 Quest Rumor.",
+	"dice_target": 0,
+	"max_crew": 6,
+	"credit_bonus": 0,
+	"success_reward": "Progress toward the current Quest step",
+	"failure_penalty": "None",
+	"resolution_type": "automatic",
+}
 
 # Design system constants
 
@@ -76,6 +102,11 @@ func _load_crew_tasks() -> void:
 # Track crew per task for multi-assignment
 var task_assignments: Dictionary = {} # task_id -> Array of crew_ids
 var credits_spent_on_tasks: Dictionary = {} # task_id -> credits spent
+## p.78 dice branch: "A score of 6 or higher allows A new recruit to be added" —
+## one recruit for the whole attempt, not one per crew member sent.
+var _group_recruit_resolved: bool = false
+## p.77/p.78 credit-spend control, rebuilt with the task list.
+var _credit_spend_row: HBoxContainer = null
 
 
 func _ready() -> void:
@@ -150,18 +181,13 @@ func _populate_crew_list() -> void:
 		var crew_member = crew_data[i]
 		var crew_name = _member_get(crew_member, "character_name", "Crew Member %d" % (i + 1))
 
-		# Check if in Sick Bay (Core Rules - injured crew can't perform tasks)
-		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) or _member_get(crew_member, "status", "") == "injured"
-
-		# Time to Burn: extra action even in Sick Bay (Core Rules p.130)
-		var has_extra_action := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			if str(eff.get("type", "")) == "extra_action":
-				has_extra_action = true
-				break
-
-		if is_in_sick_bay and not has_extra_action:
-			crew_member_list.add_item("%s [SICK BAY]" % crew_name)
+		# Sick Bay, p.76 upkeep lockout, and the pp.128-130 Character Event blocks.
+		# This list previously checked Sick Bay ONLY, so crew who had refused to
+		# work for lack of upkeep — and characters who had outright left — showed
+		# up enabled and assignable.
+		var block_reason: String = _task_block_reason(crew_member)
+		if not block_reason.is_empty():
+			crew_member_list.add_item("%s [%s]" % [crew_name, block_reason])
 			crew_member_list.set_item_disabled(crew_member_list.item_count - 1, true)
 			continue
 
@@ -174,34 +200,70 @@ func _populate_crew_list() -> void:
 
 		crew_member_list.add_item(crew_name + task_status)
 
+func _task_block_reason(crew_member) -> String:
+	## Why this crew member cannot take a task this turn, or "" if they can.
+	##
+	## THIS LOGIC USED TO BE UNREACHABLE. It lived in _get_eligible_crew(), which
+	## had ZERO callers repo-wide, while the two LIVE paths — _populate_crew_list()
+	## and _on_assign_task_pressed() — checked only Sick Bay. Two book rules were
+	## therefore inert:
+	##
+	##   p.76 "For each credit you are short, one crew member will refuse to do
+	##   any jobs for you this campaign turn." The player was shown a dialog
+	##   naming the crew who refuse, and then those exact characters appeared
+	##   enabled and could be assigned with full effect.
+	##
+	##   pp.128-130 Character Events writing skip_tasks / unavailable / departed —
+	##   a character who has left the crew could still be sent to Trade.
+	##
+	## Returning a REASON rather than a bool so the list can tell the player why a
+	## name is greyed out; a silent disable reads as a bug.
+	var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) \
+		or _member_get(crew_member, "status", "") == "injured"
+	# Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
+	var has_extra_action := false
+	for eff in _member_get(crew_member, "status_effects", []):
+		if str(eff.get("type", "")) == "extra_action":
+			has_extra_action = true
+			break
+	if is_in_sick_bay and not has_extra_action:
+		return "SICK BAY"
+	# Core Rules p.76, verbatim: "If this was their last campaign turn in Sick
+	# Bay, they can rejoin the crew for battle, but CANNOT PERFORM A TASK this
+	# campaign turn."
+	#
+	# So leaving Sick Bay is a two-step release, and only the first step had ever
+	# been implemented: the countdown cleared in_sick_bay and the character walked
+	# straight into Crew Tasks the same turn, worth one extra Explore/Trade/Patron
+	# roll on every single recovery. `recovered_this_turn` is stamped by the turn
+	# rollover when the last injury clears, and cleared at the START of the next
+	# rollover so it lasts exactly one turn.
+	#
+	# Deliberately checked AFTER extra_action: p.130 "Time to Burn" lets a
+	# character act even in Sick Bay, so it certainly covers one who has just left.
+	if _member_get(crew_member, "recovered_this_turn", false) and not has_extra_action:
+		return "JUST RECOVERED"
+	# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
+	if _member_get(crew_member, "locked_out_this_turn", false):
+		return "REFUSING WORK"
+	# Character Event restrictions (Core Rules pp.128-130)
+	for eff in _member_get(crew_member, "status_effects", []):
+		match str(eff.get("type", "")):
+			"skip_tasks":
+				return "UNAVAILABLE"
+			"unavailable":
+				return "UNAVAILABLE"
+			"departed":
+				return "DEPARTED"
+	return ""
+
+
 func _get_eligible_crew() -> Array:
-	## Get crew members not in Sick Bay and not blocked by Character Events.
-	## Time to Burn (Core Rules p.130): extra_action allows tasks even in Sick Bay.
+	## Crew who may be assigned a task this turn.
 	var eligible: Array = []
 	for crew_member in crew_data:
-		var is_in_sick_bay = _member_get(crew_member, "in_sick_bay", false) \
-			or _member_get(crew_member, "status", "") == "injured"
-		# Time to Burn overrides Sick Bay restriction
-		var has_extra_action := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			if str(eff.get("type", "")) == "extra_action":
-				has_extra_action = true
-				break
-		if is_in_sick_bay and not has_extra_action:
-			continue
-		# Upkeep lockout: crew refuses jobs if upkeep not fully paid (Core Rules p.76)
-		if _member_get(crew_member, "locked_out_this_turn", false):
-			continue
-		# Character Event restrictions (Core Rules pp.128-130)
-		var has_task_block := false
-		for eff in _member_get(crew_member, "status_effects", []):
-			var eff_type: String = str(eff.get("type", ""))
-			if eff_type == "skip_tasks" or eff_type == "unavailable" or eff_type == "departed":
-				has_task_block = true
-				break
-		if has_task_block:
-			continue
-		eligible.append(crew_member)
+		if _task_block_reason(crew_member).is_empty():
+			eligible.append(crew_member)
 	return eligible
 
 func _member_get(member, key: String, default = null):
@@ -218,11 +280,48 @@ func _member_get(member, key: String, default = null):
 		return default
 	return default
 
+func _strife_blocked_tasks() -> Array:
+	## Crew-task ids closed by an active Fringe World Strife effect on this world
+	## (Compendium pp.149-150). Returns [] when the option is off, the world is
+	## stable, or nothing is currently in force.
+	var pdm = get_node_or_null("/root/PlanetDataManager")
+	var gs = get_node_or_null("/root/GameState")
+	if pdm == null or gs == null:
+		return []
+	var campaign = gs.get_current_campaign() if gs.has_method("get_current_campaign") else null
+	if campaign == null:
+		return []
+	return FringeWorldStrifeRef.blocked_crew_tasks(campaign, str(pdm.current_planet_id))
+
+
+## Add or remove the Compendium p.79 "Work on the Quest" task to match the
+## Quest's current state. Re-evaluated on every repopulate rather than loaded
+## once, because the row that creates it is rolled mid-campaign and the task must
+## vanish the turn the sixth one is performed.
+func _sync_quest_work_task() -> void:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	var wanted: bool = ExpandedQuestRef.quest_task_available(campaign)
+	var index: int = -1
+	for i in range(available_crew_tasks.size()):
+		if str(available_crew_tasks[i].get("id", "")) == QUEST_WORK_TASK["id"]:
+			index = i
+			break
+	if wanted and index < 0:
+		available_crew_tasks.append(QUEST_WORK_TASK.duplicate(true))
+	elif not wanted and index >= 0:
+		available_crew_tasks.remove_at(index)
+		task_assignments.erase(QUEST_WORK_TASK["id"])
+
+
 func _populate_available_tasks() -> void:
 	## Populate available tasks list UI with Core Rules info
 	if not available_tasks_list:
 		return
 
+	_sync_quest_work_task()
+	var strife_blocked: Array = _strife_blocked_tasks()
 	available_tasks_list.clear()
 	for task in available_crew_tasks:
 		var task_text = task.name
@@ -246,10 +345,78 @@ func _populate_available_tasks() -> void:
 		elif assigned_count > 0:
 			task_text += " [%d/%d crew]" % [assigned_count, task.max_crew]
 
+		# Credits already committed to this task (Core Rules p.77/p.78).
+		var spent: int = int(credits_spent_on_tasks.get(task_id, 0))
+		if spent > 0:
+			task_text += " [+%d cr]" % spent
+
+		if task_id in strife_blocked:
+			task_text += "  [CLOSED — Strife]"
+
 		available_tasks_list.add_item(task_text)
 
 		# Tooltip with description
 		available_tasks_list.set_item_tooltip(available_tasks_list.item_count - 1, task.description)
+		if task_id in strife_blocked:
+			available_tasks_list.set_item_disabled(available_tasks_list.item_count - 1, true)
+
+	_build_credit_spend_row()
+
+
+func _build_credit_spend_row() -> void:
+	## p.77 Find a Patron: "After rolling, you may opt to spend credits. Each
+	## credit earns a +1 bonus." p.78 says the same for Track and Repair Your Kit.
+	##
+	## THERE WAS NO WAY TO SPEND. spend_credits_on_task() had zero callers — no
+	## control existed anywhere — so the book's main World Phase credit sink did
+	## not exist and credits simply accumulated. (It would also have refused every
+	## call and, if it had not, applied a -1 penalty; both fixed alongside this.)
+	if available_tasks_list == null:
+		return
+	var parent: Node = available_tasks_list.get_parent()
+	if parent == null:
+		return
+
+	if _credit_spend_row and is_instance_valid(_credit_spend_row):
+		_credit_spend_row.queue_free()
+	_credit_spend_row = HBoxContainer.new()
+	_credit_spend_row.add_theme_constant_override("separation", 8)
+
+	var label := Label.new()
+	label.text = "Spend credits for +1 each on the selected task:"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_credit_spend_row.add_child(label)
+
+	var btn := Button.new()
+	btn.text = "+1 cr"
+	btn.accessibility_name = "Spend 1 credit for a +1 bonus on the selected task"
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	btn.pressed.connect(_on_spend_credit_pressed)
+	_credit_spend_row.add_child(btn)
+
+	parent.add_child(_credit_spend_row)
+	parent.move_child(_credit_spend_row,
+		mini(available_tasks_list.get_index() + 1, parent.get_child_count() - 1))
+
+
+func _on_spend_credit_pressed() -> void:
+	var selected: PackedInt32Array = available_tasks_list.get_selected_items()
+	if selected.is_empty():
+		return
+	var index: int = selected[0]
+	if index >= available_crew_tasks.size():
+		return
+	var task_id: String = str(available_crew_tasks[index].get("id", ""))
+	if task_id.is_empty():
+		return
+	if spend_credits_on_task(task_id, 1):
+		_populate_available_tasks()
+	else:
+		var notif: Node = get_node_or_null("/root/NotificationManager")
+		if notif and notif.has_method("show_warning"):
+			notif.show_warning(
+				"Cannot spend credits on that task (Core Rules pp.77-78).")
 
 ## Task Assignment
 func _on_assign_task_pressed() -> void:
@@ -271,10 +438,24 @@ func _on_assign_task_pressed() -> void:
 	var crew_id = crew_member.get("character_id", "crew_%d" % crew_index)
 	var task_id = task.get("id", "task_%d" % task_index)
 
-	# Check if crew is in Sick Bay
-	var is_in_sick_bay = crew_member.get("in_sick_bay", false) or crew_member.get("status", "") == "injured"
-	if is_in_sick_bay:
-		push_warning("CrewTaskComponent: %s is in Sick Bay and cannot be assigned" % crew_member.get("character_name", "Crew"))
+	# Sick Bay (p.76), the upkeep lockout (p.76) and the Character Event blocks
+	# (pp.128-130). Previously only Sick Bay was checked here, so a locked-out or
+	# departed character could still be assigned by selecting them directly.
+	var assign_block: String = _task_block_reason(crew_member)
+	if not assign_block.is_empty():
+		push_warning("CrewTaskComponent: %s cannot be assigned (%s)" % [
+			crew_member.get("character_name", "Crew"), assign_block])
+		return
+
+	# Compendium pp.149-150 Fringe World Strife, the two rows that close crew
+	# actions on this world:
+	#   Hooligans: "You cannot perform any Explore or Trade crew actions during
+	#               the next campaign turn."
+	#   Economic Collapse: "For now, you cannot take Trade actions."
+	if task_id in _strife_blocked_tasks():
+		push_warning(
+			"CrewTaskComponent: %s is unavailable — Fringe World Strife"
+			% task.get("name", task_id))
 		return
 
 	# Mutant: cannot Recruit or Find a Patron (Core Rules p.21)
@@ -301,9 +482,19 @@ func _on_assign_task_pressed() -> void:
 	if not task_id in task_assignments:
 		task_assignments[task_id] = []
 
-	if task_assignments[task_id].size() >= task.max_crew:
+	# "Travel restricted — No more than one crew member may take the Explore
+	# option each campaign turn" (Core Rules p.74 World Trait). A per-world cap
+	# that overrides the task's own max_crew, and was flavour text.
+	var effective_max: int = int(task.max_crew)
+	if task_id == "explore":
+		var explore_cap: int = WorldTraitEffectsClass.explore_task_cap(
+			_current_world_traits())
+		if explore_cap >= 0:
+			effective_max = mini(effective_max, explore_cap)
+
+	if task_assignments[task_id].size() >= effective_max:
 		var task_name: String = task.get("name", task_id)
-		push_warning("CrewTaskComponent: %s is full (%d/%d crew)" % [task_name, task_assignments[task_id].size(), task.max_crew])
+		push_warning("CrewTaskComponent: %s is full (%d/%d crew)" % [task_name, task_assignments[task_id].size(), effective_max])
 		# Refresh task list to show updated capacity indicators
 		_populate_available_tasks()
 		return
@@ -342,16 +533,35 @@ func _on_resolve_all_pressed() -> void:
 	## Resolve all assigned crew tasks using Five Parsecs rules
 	if assigned_tasks.is_empty():
 		return
+
+	# p.78's dice branch grants ONE recruit however many crew were sent, but the
+	# loop below resolves once per crew member — so the grant is guarded per pass.
+	_group_recruit_resolved = false
 	
 	pass # Resolving crew tasks
 	
 	var resolution_results: Array = []
 	
+	# Compendium p.32 "Money is Tight": "Taking Find a Patron or Repair Your Kit
+	# actions costs 1 credit." Charged once per crew member sent, at resolution,
+	# so a task the player assigns and then unassigns costs nothing.
+	var task_surcharge: int = 0
+	for crew_id in assigned_tasks:
+		var task_data = assigned_tasks[crew_id]
+		if task_data.resolved:
+			continue
+		task_surcharge += CompendiumTogglesRef.crew_task_surcharge(
+			str(task_data.get("task_id", "")))
+	if task_surcharge > 0:
+		var gsm_surcharge: Node = get_node_or_null("/root/GameStateManager")
+		if gsm_surcharge and gsm_surcharge.has_method("modify_credits"):
+			gsm_surcharge.modify_credits(-task_surcharge)
+
 	for crew_id in assigned_tasks:
 		var task_data = assigned_tasks[crew_id]
 		if task_data.resolved:
 			continue # Skip already resolved tasks
-		
+
 		var result = _resolve_single_task(crew_id, task_data)
 		resolution_results.append(result)
 		
@@ -359,6 +569,18 @@ func _on_resolve_all_pressed() -> void:
 		task_data.resolved = true
 		task_data.result = result
 	
+	# Trade Table rolls the crew did not have to spend a task on. Two rules grant
+	# them, and both routed nowhere before this:
+	#   "Company Store — Roll on the Trade Table (p.79)" (Core Rules p.84, the
+	#   Benefits Subtable, paid out on a successful Patron job)
+	#   "Free trade zone — You receive one free Trade roll each campaign turn"
+	#   (p.74 World Trait)
+	# They resolve through THIS pipeline rather than a second copy of it, so the
+	# 100-row table, its runtime sub-rolls and the event-queue payout stay in one
+	# place — the awards were rewritten once already and must not fork.
+	for free_result in _resolve_free_trade_rolls():
+		resolution_results.append(free_result)
+
 	# Update completion state
 	all_tasks_resolved = _check_all_tasks_resolved()
 	completed_tasks = resolution_results
@@ -429,8 +651,27 @@ func _resolve_automatic_task(result: Dictionary, task: Dictionary, crew_member: 
 			_apply_xp_to_character(crew_member, 1, "train_task")
 		"decoy":
 			result.details = "Crew unavailable for battle, -1 enemy deployment"
+		"work_on_the_quest":
+			# Compendium p.79: "This has no effect other than to help complete
+			# this step. Once a total of 6 such tasks have been performed by your
+			# crew, receive 1 Quest Rumor." No roll, no reward but the counter.
+			result.details = _record_quest_work()
 
 	return result
+
+
+## Tick the p.79 "Work on the Quest" counter and pay the Rumor on the sixth.
+## Returns the line shown in the task result.
+func _record_quest_work() -> String:
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.get_current_campaign() if gs and gs.has_method(
+		"get_current_campaign") else null
+	if campaign == null:
+		return "No active campaign."
+	var outcome: Dictionary = ExpandedQuestRef.record_quest_task(campaign)
+	if bool(outcome.get("rumor_awarded", false)) and gs.has_method("add_quest_rumor"):
+		gs.add_quest_rumor()
+	return str(outcome.get("message", "Work on the Quest."))
 
 func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, crew_member: Dictionary) -> Dictionary:
 	## Resolve dice roll tasks (Find Patron, Recruit, Track)
@@ -443,10 +684,19 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		modified_roll += crew_on_task
 		result.details = "+%d for %d crew" % [crew_on_task, crew_on_task]
 
-	# Apply credit bonus
+	# Credits spent for a bonus (Core Rules p.77 Find a Patron: "After rolling,
+	# you may opt to spend credits. Each credit earns a +1 bonus." p.78 Track and
+	# Repair say the same before the roll.)
+	#
+	# credit_bonus_max = -1 in data/crew_tasks.json is the documented NO-CAP
+	# sentinel — its sibling credit_bonus_note reads "Each credit spent = +1 (no
+	# cap stated)". This line read it as a maximum and computed
+	# mini(credits_spent, -1) = -1, so spending credits would have applied a
+	# PENALTY. It never fired only because the spender was unreachable.
 	var credits_spent = credits_spent_on_tasks.get(task_id, 0)
 	if credits_spent > 0:
-		var bonus = mini(credits_spent, task.credit_bonus)
+		var cap: int = int(task.get("credit_bonus", 0))
+		var bonus: int = credits_spent if cap < 0 else mini(credits_spent, cap)
 		modified_roll += bonus
 		result.details += ", +%d for %d credits" % [bonus, credits_spent]
 
@@ -466,6 +716,39 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 
 	# --- Task-specific rules (Core Rules pp.77-78) ---
 
+	# Story Event override (Core Rules Appendix V). Event 1 p.153: "One character
+	# must be sent to look for a Patron this campaign turn. Do not roll for
+	# success." Events 3 and 6: "cannot seek Patron" / "There is no point seeking
+	# out a Patron this campaign turn." All three were displayed by
+	# StoryPhasePanel and enforced nowhere, so the search resolved normally and
+	# could hand the player a Patron the book says they do not get.
+	#
+	# Track is barred the same way by Events 1, 2 and 3 ("you cannot Track
+	# Rivals"). p.78: a 6+ "located a Rival of your choice, allowing you to fight
+	# a battle against them this campaign turn" — exactly the thing those events
+	# forbid, so the roll must not happen at all.
+	if task.id == "track":
+		if bool(_story_turn_mods().get("cannot_track_rivals", false)):
+			result.roll = roll
+			result.modified_roll = 0
+			result.success = false
+			result.reward = ""
+			result.details = "Story Event: you cannot Track Rivals this " \
+				+ "campaign turn (Core Rules Appendix V)."
+			return result
+
+	if task.id == "find_patron":
+		var story_mods: Dictionary = _story_turn_mods()
+		if bool(story_mods.get("patron_auto_fail", false)) \
+				or bool(story_mods.get("cannot_seek_patron", false)):
+			result.roll = roll
+			result.modified_roll = 0
+			result.success = false
+			result.reward = ""
+			result.details = "Story Event: the search turns up nothing " \
+				+ "(Core Rules Appendix V)."
+			return result
+
 	# Find Patron: +1 per existing Patron contact, 6+ = two patrons
 	if task.id == "find_patron":
 		var gsm = get_node_or_null("/root/GameStateManager")
@@ -475,20 +758,62 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 				modified_roll += patrons.size()
 				result.details += ", +%d patron(s)" % patrons.size()
 
-	# Recruit: auto-recruit when crew < 6 (Core Rules p.78)
+	# Recruit (Core Rules p.78), verbatim: "If your crew has fewer than 6 members
+	# currently, you can automatically recruit a new character for each crew member
+	# sent Recruiting (until you are back to 6 members). If you have 6 or more crew
+	# members, roll a D6, adding the number of crew members sent to recruit. A
+	# score of 6 or higher allows a new recruit to be added."
+	#
+	# BOTH BRANCHES USED TO ADD NOBODY. The task printed "Automatic recruit (crew
+	# below 6)" or the dice line and returned — _apply_recruit() is reached only
+	# from the event-queue RECRUIT case, which is built solely from `table_result`
+	# rewards (Trade / Exploration), and a dice result never carries one. So a crew
+	# reduced to 3 by casualties could never rebuild; the only way to gain a
+	# character was a lucky table roll.
+	#
+	# The two branches are NOT symmetrical and the resolution loop runs once per
+	# crew member: the automatic branch is "for each crew member sent", which the
+	# per-member loop gives naturally, but the dice branch is ONE roll for the
+	# group granting ONE recruit, so it is guarded to fire only once per turn.
 	if task.id == "recruit":
 		var gsm = get_node_or_null("/root/GameStateManager")
 		if gsm and gsm.get_crew_size() < 6:
 			result.roll = roll
 			result.modified_roll = 0
 			result.success = true
+			# "until you are back to 6 members" — re-checked per member, so a
+			# crew of 5 sending three recruiters still stops at 6.
+			_apply_recruit()
 			result.reward = "Automatic recruit (crew below 6)"
 			result.details = "Crew size < 6: auto-recruit"
 			return result
 
 	result.roll = roll
+	# World Trait roll bonuses (Core Rules pp.73-74). Applied here, after every
+	# other modifier and before the success comparison, so they show up in the
+	# same detail string the player reads.
+	var _wt: Array = _current_world_traits()
+	if task.id == "recruit":
+		var recruit_bonus: int = WorldTraitEffectsClass.recruit_roll_bonus(_wt)
+		if recruit_bonus != 0:
+			modified_roll += recruit_bonus
+			result.details += ", +%d world (Easy recruiting)" % recruit_bonus
+	elif task.id == "find_patron":
+		var patron_bonus: int = WorldTraitEffectsClass.patron_search_bonus(_wt)
+		if patron_bonus != 0:
+			modified_roll += patron_bonus
+			result.details += ", +%d world trait" % patron_bonus
+
 	result.modified_roll = modified_roll
 	result.success = modified_roll >= task.dice_target
+
+	if task.id == "recruit" and result.success:
+		if _group_recruit_resolved:
+			result.reward = "No further recruits (one per attempt, p.78)"
+		else:
+			_group_recruit_resolved = true
+			_apply_recruit()
+			result.reward = "New recruit joins the crew"
 
 	# Find Patron: 6+ means TWO patrons (Core Rules p.77)
 	if task.id == "find_patron":
@@ -501,6 +826,16 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 			result.reward = "Found 1 Patron"
 			_generate_and_add_patron(1)
 
+	# Track: "6+ locates a Rival of your choice, allowing you to fight a battle
+	# against them this campaign turn" (Core Rules p.78). WHICH Rival is the
+	# player's decision, so a successful roll opens a picker rather than the app
+	# choosing. Until this existed the task resolved, printed a success line and
+	# recorded nothing — so progress_data["tracked_rivals"] stayed empty and the
+	# p.119 "+1 if you Tracked them down" Rival-removal modifier could never
+	# apply, no matter how the player played the World Phase.
+	if task.id == "track" and result.success:
+		call_deferred("_prompt_track_rival_choice", result)
+
 	if result.success:
 		if result.reward == "None" or result.reward == "":
 			result.reward = task.success_reward
@@ -510,6 +845,63 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		result.details = "Roll %d → %d vs %d. %s" % [roll, modified_roll, task.dice_target, result.details]
 
 	return result
+
+func _prompt_track_rival_choice(result: Dictionary) -> void:
+	## Core Rules p.78 Track: the player picks WHICH Rival was located.
+	## Writes straight to progress_data["tracked_rivals"] at pick time rather than
+	## relying on the task result being read later — the result is also stamped so
+	## RivalEncounterCheck.tracked_rival_ids_from_tasks() sees it either way.
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	var rivals: Array = []
+	if "rivals" in campaign and campaign.rivals is Array:
+		rivals = campaign.rivals
+	if rivals.is_empty():
+		return
+
+	var RivalCheck = load("res://src/core/campaign/RivalEncounterCheck.gd")
+	var popup := PopupMenu.new()
+	popup.name = "TrackRivalPopup"
+	add_child(popup)
+	for i in range(rivals.size()):
+		popup.add_item(RivalCheck.rival_name_of(rivals[i]), i)
+	popup.id_pressed.connect(func(id: int) -> void:
+		if id >= 0 and id < rivals.size():
+			var rid: String = RivalCheck.rival_id_of(rivals[id])
+			var rname: String = RivalCheck.rival_name_of(rivals[id])
+			result["rival_id"] = rid
+			result["details"] = str(result.get("details", "")) + " Located %s." % rname
+			if "progress_data" in campaign:
+				var tracked: Array = campaign.progress_data.get("tracked_rivals", [])
+				if not (tracked is Array):
+					tracked = []
+				if rid not in tracked:
+					tracked.append(rid)
+				campaign.progress_data["tracked_rivals"] = tracked
+			var journal = get_node_or_null("/root/CampaignJournal")
+			if journal and journal.has_method("create_entry"):
+				journal.create_entry({
+					"type": "event",
+					"auto_generated": true,
+					"title": "Rival located",
+					"description": "Tracked down %s. You may fight them this campaign turn, and gain +1 to chase them off after the battle (Core Rules pp.78, 119)." % rname,
+					"tags": ["rival", "upkeep"],
+				})
+		popup.queue_free()
+	)
+	popup.popup_centered()
+
+func _story_turn_mods() -> Dictionary:
+	## Campaign-turn restrictions for the current Story Event, or {} on a normal
+	## turn. Core Rules Appendix V — each event lists its own under "The Campaign
+	## Turn". They are parsed into StoryEvent.campaign_turn_mods and, until now,
+	## only ever rendered as text by StoryPhasePanel.
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	if cpm == null or not cpm.has_method("get_story_turn_mods"):
+		return {}
+	return cpm.get_story_turn_mods()
 
 func _generate_and_add_patron(count: int) -> void:
 	## Generate patron(s) using PatronJobManager and add to campaign
@@ -535,6 +927,49 @@ func _generate_and_add_patron(count: int) -> void:
 			if campaign and "patrons" in campaign:
 				campaign.patrons.append(fallback)
 	pjm.free()
+
+## Free Trade Table rolls owed to the crew this turn, resolved as ordinary Trade
+## results so the event queue pays them out exactly like a crew-assigned Trade.
+##
+## Sources: the p.84 "Company Store" Benefit banks one per successful Patron job
+## into progress_data["pending_free_trade_rolls"]; the p.74 "Free trade zone"
+## World Trait grants one every turn on that world. The banked count is consumed
+## here — the trait's is not, because it recurs.
+func _resolve_free_trade_rolls() -> Array:
+	var out: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	var campaign = gs.current_campaign if gs else null
+	if campaign == null or not "progress_data" in campaign:
+		return out
+
+	var banked: int = int(campaign.progress_data.get("pending_free_trade_rolls", 0))
+	var from_trait: int = WorldTraitEffectsClass.free_trade_rolls_per_turn(
+		_current_world_traits())
+	var total: int = banked + from_trait
+	if total <= 0:
+		return out
+
+	for i in range(total):
+		var source: String = "Company Store (p.84)" if i < banked else "Free trade zone (p.74)"
+		var result: Dictionary = {
+			"crew_id": "",
+			"crew_name": source,
+			"task_name": "Free Trade Roll",
+			"task_id": "trade",
+			"roll": 0,
+			"modified_roll": 0,
+			"success": true,
+			"details": "",
+			"reward": "",
+		}
+		_resolve_table_task(result, {"id": "trade", "name": "Trade"}, {})
+		out.append(result)
+
+	# Only the BANKED rolls are spent. Leaving them would pay the same Company
+	# Store benefit again every turn for the rest of the campaign.
+	campaign.progress_data["pending_free_trade_rolls"] = 0
+	return out
+
 
 func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve table roll tasks (Trade, Explore)
@@ -568,6 +1003,17 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 
 	return result
 
+## Trait ids for the world the crew is working on (Core Rules pp.73-75). Three
+## traits modify crew-task rolls and were flavour text: "Easy recruiting — Add
+## +1 to the roll when Recruiting", "Opportunities — Add +1 to the roll when
+## searching for Patrons" (and "Corporate state — +2 when rolling to find a
+## Patron"), and "Technical knowledge — Add +1 to all Repair attempts".
+func _current_world_traits() -> Array:
+	var gs = get_node_or_null("/root/GameState")
+	if not gs:
+		return []
+	return WorldTraitEffectsClass.traits_for_current_world(gs.current_campaign)
+
 func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve repair tasks (Core Rules p.78)
 	## Roll 1D6 + Savvy. Engineer +1. Spare parts (credits) +1 each. 6+ = repaired. Natural 1 = unfixable.
@@ -581,9 +1027,27 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 		modified_roll += savvy
 		detail_parts.append("+%d Savvy" % savvy)
 
-	# +1 if Engineer class (Core Rules p.78)
-	var char_class: String = str(crew_member.get("character_class", ""))
-	if char_class.to_lower() == "engineer":
+	# "Technical knowledge — Add +1 to all Repair attempts" (Core Rules p.73).
+	var tech_bonus: int = WorldTraitEffectsClass.repair_roll_bonus(
+		_current_world_traits())
+	if tech_bonus != 0:
+		modified_roll += tech_bonus
+		detail_parts.append("+%d world (Technical knowledge)" % tech_bonus)
+
+	# "Add +1 if the character is an Engineer" (Core Rules p.78).
+	#
+	# Engineer is a SPECIES (data/character_species.json primary_aliens id
+	# "engineer"), stored in species_id — not a CharacterClass. Reading
+	# character_class here meant the one crew type the book singles out for this
+	# job never got the bonus, so their repair chance was identical to a baseline
+	# human's. The sibling Empath check in _resolve_dice_task reads species_id
+	# correctly; this one did not.
+	#
+	# str() guard: legacy saves store "origin" as a numeric enum (e.g. 7.0) and
+	# carry no species_id, so the raw value can be a float and .to_lower() aborts.
+	var crew_species: String = str(crew_member.get(
+		"species_id", crew_member.get("origin", ""))).to_lower()
+	if crew_species == "engineer":
 		modified_roll += 1
 		detail_parts.append("+1 Engineer")
 
@@ -606,21 +1070,169 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 	if modifier_text != "":
 		roll_text += " %s" % modifier_text
 
-	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78)
-	if roll == 1:
+	# THE ITEM ITSELF WAS NEVER TOUCHED. Every branch below set a reward STRING and
+	# nothing else — no damaged-item picker, no write of any condition — so a
+	# broken weapon stayed broken forever while the panel reported "Item repaired"
+	# every single time. The only application code lived in the dead
+	# src/core/campaign/phases/WorldPhase.gd.
+	var target: Dictionary = _first_damaged_target(crew_member)
+	var damaged: String = str(target.get("name", ""))
+
+	# "If you have had items destroyed, you can attempt to Repair them" (p.78) —
+	# with nothing damaged there is nothing to fix, and claiming otherwise is the
+	# bug this replaces.
+	if damaged.is_empty():
 		result.success = false
-		result.reward = "CRITICAL FAIL - Item is beyond repair!"
+		result.reward = "Nothing damaged to repair"
+		result.details = "%s — no damaged items on this character or in the stash" % roll_text
+		return result
+
+	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78:
+	# "A natural 1 always fails and means the item is beyond fixing.")
+	if roll == 1:
+		_resolve_damaged_target(crew_member, target, false)
+		result.success = false
+		result.reward = "CRITICAL FAIL — %s is beyond repair" % damaged
 		result.details = "%s = %d vs 6. Natural 1: UNFIXABLE" % [roll_text, modified_roll]
 	elif modified_roll >= 6:
+		_resolve_damaged_target(crew_member, target, true)
 		result.success = true
-		result.reward = "Item repaired"
+		result.reward = "%s repaired" % damaged
 		result.details = "%s = %d vs 6. Repaired!" % [roll_text, modified_roll]
 	else:
 		result.success = false
-		result.reward = "Repair failed - try again next turn"
+		result.reward = "Repair failed — try again next turn"
 		result.details = "%s = %d vs 6. Failed" % [roll_text, modified_roll]
 
 	return result
+
+
+func _stash_items() -> Array:
+	## The ship stash: campaign.equipment_data["equipment"] per the data-ownership
+	## table. Returns the LIVE array so a repair writes through to the campaign.
+	##
+	## is_inside_tree() guard: an absolute get_node() from a detached node ERRORS
+	## and unwinds the CALLER, so without this a `.new()`-constructed component
+	## (tests, probes) would abort inside _first_damaged_target and silently
+	## report "nothing damaged" for gear the character is visibly carrying.
+	if not is_inside_tree():
+		return []
+	var gs = get_node_or_null("/root/GameState")
+	if not gs or gs.current_campaign == null:
+		return []
+	var campaign = gs.current_campaign
+	var data: Variant = null
+	if campaign is Dictionary:
+		data = campaign.get("equipment_data", null)
+	elif "equipment_data" in campaign:
+		data = campaign.equipment_data
+	if not (data is Dictionary):
+		return []
+	var items: Variant = data.get("equipment", null)
+	return items if items is Array else []
+
+
+func _first_damaged_target(crew_member) -> Dictionary:
+	## p.78 Repair Your Kit: "If you have had items destroyed, you can attempt to
+	## Repair them." The book draws no line between gear a character carries and
+	## gear in the Stash, and BOTH can now be damaged, so both are searched.
+	##
+	## Damage has two representations because the two containers are different
+	## shapes, and each was chosen to match readers that already existed:
+	##   carried — a status_effects entry {type: "item_damaged", damaged_item:
+	##             <name>} on the owner. Written by Character Events (p.129
+	##             "Don't Make Them Like They Used To"), travel events (p.71
+	##             Accident) and, since the p.122 fix, the Injury Table.
+	##   stash   — `damaged: true` on the item dict. Written by Campaign Event
+	##             45-48 (p.127) and already read by the "[DAMAGED]" suffix in
+	##             Assign Equipment and the sell-list exclusion in Purchase Items.
+	##
+	## Carried gear is checked first: the acting character's own broken weapon is
+	## the more urgent fix, and it is what the p.78 wording most directly evokes.
+	for eff in _member_get(crew_member, "status_effects", []):
+		if str(eff.get("type", "")) != "item_damaged":
+			continue
+		var item_name: String = str(eff.get("damaged_item", "")).strip_edges()
+		if not item_name.is_empty():
+			return {"name": item_name, "source": "character"}
+
+	return _first_damaged_in_stash(_stash_items())
+
+
+static func _first_damaged_in_stash(stash: Array) -> Dictionary:
+	for i in range(stash.size()):
+		var entry: Variant = stash[i]
+		if entry is Dictionary and bool(entry.get("damaged", false)):
+			var stash_name: String = str(entry.get("name", "")).strip_edges()
+			if not stash_name.is_empty():
+				return {"name": stash_name, "source": "stash", "index": i}
+	return {}
+
+
+func _resolve_damaged_target(crew_member, target: Dictionary, repaired: bool) -> void:
+	## Clear the damage. On a natural 1 the item is "beyond fixing" (p.78), so it
+	## leaves the game entirely rather than sitting in the list forever.
+	if str(target.get("source", "")) == "stash":
+		_resolve_damaged_stash_item(_stash_items(), target, repaired)
+		return
+	_resolve_damaged_item(crew_member, str(target.get("name", "")), repaired)
+
+
+static func _resolve_damaged_stash_item(
+		stash: Array, target: Dictionary, repaired: bool) -> void:
+	var idx: int = int(target.get("index", -1))
+	var item_name: String = str(target.get("name", ""))
+	# The index was captured before the roll; re-verify rather than trust it, since
+	# a stash mutation in between would repair or delete the wrong item.
+	if idx < 0 or idx >= stash.size() \
+			or not (stash[idx] is Dictionary) \
+			or str(stash[idx].get("name", "")) != item_name:
+		idx = -1
+		for i in range(stash.size()):
+			if stash[i] is Dictionary and str(stash[i].get("name", "")) == item_name \
+					and bool(stash[i].get("damaged", false)):
+				idx = i
+				break
+	if idx < 0:
+		return
+	if repaired:
+		stash[idx]["damaged"] = false
+		stash[idx].erase("damage_source")
+	else:
+		stash.remove_at(idx)
+
+
+func _resolve_damaged_item(crew_member, item_name: String, repaired: bool) -> void:
+	## Clear the item_damaged marker. On a natural 1 the item is "beyond fixing",
+	## so it also leaves the character's kit.
+	##
+	## crew_data holds the SAME Dictionary references as campaign
+	## crew_data["members"] (GameState.get_active_crew() returns the live array and
+	## initialize_crew_tasks() takes a SHALLOW duplicate), so mutating the member
+	## here writes through to the campaign.
+	var effects = _member_get(crew_member, "status_effects", [])
+	if effects is Array:
+		for i in range(effects.size() - 1, -1, -1):
+			var eff = effects[i]
+			if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+					and str(eff.get("damaged_item", "")) == item_name:
+				effects.remove_at(i)
+				break
+
+	if repaired:
+		return
+
+	# Beyond fixing: remove it from the character's equipment. Character.equipment
+	# is Array[String] of item names, so match on the name.
+	var equipment = _member_get(crew_member, "equipment", [])
+	if equipment is Array:
+		for i in range(equipment.size() - 1, -1, -1):
+			var entry = equipment[i]
+			var entry_name: String = str(entry.get("name", "")) \
+				if entry is Dictionary else str(entry)
+			if entry_name == item_name:
+				equipment.remove_at(i)
+				break
 
 func _get_trade_table_result(roll: int) -> Dictionary:
 	## Get result from Trade Table (Core Rules p.79) — loaded from JSON via DataManager
@@ -685,6 +1297,41 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 	## Apply runtime dice rolls for Trade Table entries that have dynamic outcomes
 	## These entries have requires_roll=true and need actual dice resolution
 	var entry_name: String = result.get("name", "")
+
+	# ── Entries that send you to ANOTHER table (Core Rules pp.79-80) ──────────
+	#
+	# Six entries — rolls 1-3, 7-9, 45-48, 79-81, 82-86 and 87-91, so 23 results
+	# in 100 — awarded literally nothing. Their JSON rows carry `requires_roll`
+	# and no `items`, and none of them had a case in this match, so the dialog
+	# printed "Roll once on the Loot Table (p.131)" as flavour text and the crew
+	# came home empty-handed. Roughly one Trade action in four was a visible
+	# no-op, which is the single most common thing a crew does in the World step.
+	#
+	# The "(random...)" strings are the established convention consumed by
+	# _resolve_random_loot() -> _add_item_to_stash(); "damaged" in the string is
+	# what flags an item as needing Repair. Nothing new is invented here — the
+	# resolution machinery already existed, these entries just never reached it.
+	match entry_name:
+		"A personal weapon":
+			# p.79 roll 1-3: "Roll once on the Low Tech Weapon Table (p.28)."
+			result.items = ["Low Tech Weapon (random)"]
+		"Find something useful":
+			# p.79 roll 7-9: "Roll once on the Gear Table (p.29)."
+			result.items = ["Gear Table (random)"]
+		"Something interesting":
+			# p.79 roll 45-48: "Roll once on the Loot Table (p.131)."
+			result.items = ["Loot (random)"]
+		"A lot of blinking lights":
+			# p.80 roll 79-81: "Roll once on the Gear subsection of the Loot
+			# Table (p.132)." A DIFFERENT table from the p.29 Gear Table above.
+			result.items = ["Gear Loot (random)"]
+		"Gently used":
+			# p.80 roll 82-86: same Gear subsection, "The item is damaged and
+			# needs Repair."
+			result.items = ["Gear Loot (random, damaged)"]
+		"Pre-owned":
+			# p.80 roll 87-91: Loot Table, "The item is damaged and needs Repair."
+			result.items = ["Loot (random, damaged)"]
 
 	match entry_name:
 		"Worthless trinket", "Useless trinket":
@@ -1219,17 +1866,36 @@ func _resolve_random_loot(item_string: String) -> Array:
 			return [gadget_items[randi() % gadget_items.size()]]
 		return [item_string]
 	elif item_string.begins_with("Low Tech Weapon"):
-		# Low Tech weapons are melee from weapon subtable
-		var wpn_sub: Array = all_tables.get("weapon_subtable", [])
-		for entry in wpn_sub:
-			if entry is Dictionary and entry.get("category") == "melee_weapons":
-				var items: Array = entry.get("items", [])
-				if items.size() > 0:
-					return [items[randi() % items.size()]]
-		return [item_string]
+		# Core Rules p.28 has its OWN Low-Tech Weapon Table, and the Trade Table
+		# (p.79, roll 1-3) points at that one by page number. This used to pull a
+		# melee weapon out of the LOOT table's melee_weapons subtable instead, so
+		# "A personal weapon" handed over a Power Claw, Suppression Maul, Glare
+		# Sword or Ripper Sword — the wrong table entirely, and a far better item
+		# than the book's Handgun / Scrap Pistol / Colony Rifle / Shotgun / Blade.
+		return _roll_creation_table("low_tech_weapon", item_string)
+	elif item_string.begins_with("Gear Table"):
+		# p.29 Gear Table — also its own table, distinct from the p.132 Gear
+		# subsection of the Loot Table that "Gear Loot" above resolves.
+		return _roll_creation_table("gear", item_string)
 	else:
 		# Full loot table: roll D100 on main, then roll on subtable
 		return _roll_main_loot_table(all_tables)
+
+## Roll once on one of the CHARACTER-CREATION D100 tables in gear_database.json
+## (Core Rules pp.28-29: Low-Tech Weapon, Military Weapon, High-Tech Weapon,
+## Gear, Gadget). These are a different set of tables from the post-battle Loot
+## Table in loot_tables.json, and several Trade Table entries cite them by page.
+## Reuses StartingEquipmentGenerator so there is one roller per table, not two.
+func _roll_creation_table(table_name: String, fallback: String) -> Array:
+	var dice_manager: Node = get_node_or_null("/root/DiceManager")
+	var rolled: Array = StartingEquipmentGeneratorClass.generate_bonus_equipment(
+		[table_name], dice_manager)
+	var names: Array = []
+	for item in rolled:
+		var item_name: String = str(item.get("name", "")) if item is Dictionary else str(item)
+		if not item_name.is_empty():
+			names.append(item_name)
+	return names if not names.is_empty() else [fallback]
 
 func _roll_main_loot_table(all_tables: Dictionary) -> Array:
 	## Roll on the main loot table and resolve to actual items
@@ -1381,6 +2047,28 @@ func complete_crew_task_phase() -> void:
 		})
 
 
+static func credit_spend_allowed(cap: int, already_spent: int, amount: int) -> bool:
+	## Whether `amount` more credits may be committed to a task.
+	##
+	## data/crew_tasks.json uses credit_bonus_max = -1 as a NO-CAP sentinel — its
+	## sibling credit_bonus_note reads "Each credit spent = +1 (no cap stated)",
+	## matching p.77's "Each credit earns a +1 bonus" with no ceiling given. The
+	## caller used to test `if max_bonus <= 0: return false`, which caught the
+	## sentinel and refused EVERY spend, so the book's main World Phase credit
+	## sink did not exist. 0 still means the task takes no credits at all.
+	##
+	## Static and pure so it can be tested without the component in the tree —
+	## spend_credits_on_task() resolves /root/GameStateManager, and an absolute
+	## path lookup from a detached node errors and aborts the whole function.
+	if amount <= 0:
+		return false
+	if cap == 0:
+		return false
+	if cap < 0:
+		return true
+	return already_spent + amount <= cap
+
+
 func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	## Spend credits on a task for bonus modifier
 	# Get task info
@@ -1393,14 +2081,11 @@ func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	if task.is_empty():
 		return false
 
-	var max_bonus = task.get("credit_bonus", 0)
-	if max_bonus <= 0:
-		return false
-
+	var max_bonus: int = int(task.get("credit_bonus", 0))
 	var current_spent = credits_spent_on_tasks.get(task_id, 0)
 	var total = current_spent + amount
 
-	if total > max_bonus:
+	if not credit_spend_allowed(max_bonus, current_spent, amount):
 		return false
 
 	# Check GameStateManager has enough credits and deduct
@@ -2276,18 +2961,49 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 			crew_member.equipment.erase(item_name)
 
 func _apply_sick_bay(crew_member, turns: int) -> void:
-	## Place crew member in sick bay
-	if crew_member == null:
+	## Place crew member in sick bay for `turns` campaign turns.
+	##
+	## THE DURATION WAS BEING THROWN AWAY. This wrote a bespoke
+	## `sick_bay_turns_remaining` key that NOTHING reads, and added no entry to
+	## `injuries` — but the recovery countdown
+	## (CampaignPhaseManager._process_sick_bay_recovery) works by decrementing
+	## each injury's `recovery_turns` and clears sick bay the moment `injuries`
+	## is empty. With no injury entry that condition was true immediately, so a
+	## crew member sent to Sick Bay for three turns walked out after one,
+	## whatever the task rolled.
+	##
+	## The fix is to speak the countdown's language: an injuries entry carrying
+	## the recovery turns. Both crew shapes, because a fresh campaign holds
+	## Character Resources and a loaded save holds Dictionaries.
+	if crew_member == null or turns <= 0:
 		return
+
+	var injury: Dictionary = {
+		"type": "crew_task",
+		"name": "Injured during crew tasks",
+		"recovery_turns": turns,
+	}
+
 	if crew_member is Dictionary:
 		crew_member["in_sick_bay"] = true
-		crew_member["sick_bay_turns_remaining"] = turns
+		crew_member["recovery_turns"] = turns
 		crew_member["status"] = "injured"
-	elif crew_member is Object:
+		var injuries: Array = crew_member.get("injuries", [])
+		if not (injuries is Array):
+			injuries = []
+		injuries.append(injury)
+		crew_member["injuries"] = injuries
+		return
+
+	if crew_member is Object:
 		if "status" in crew_member:
 			crew_member.status = "injured"
 		if "in_sick_bay" in crew_member:
 			crew_member.in_sick_bay = true
+		if "recovery_turns" in crew_member:
+			crew_member.recovery_turns = turns
+		if "injuries" in crew_member and crew_member.injuries is Array:
+			crew_member.injuries.append(injury)
 
 func _apply_rival(event_data: Dictionary) -> void:
 	## Add a rival to the campaign via NPCTracker
@@ -2348,7 +3064,11 @@ func _apply_rumor(event_data: Dictionary, outcome: Dictionary) -> void:
 		campaign.rumors.append(new_rumor)
 
 func _apply_recruit() -> void:
-	## Recruit a new crew member
+	## Add one recruit to the crew (Core Rules p.78), verbatim: "Each recruit rolls
+	## using the random method in the character creation process (see p.14).
+	## Recruits have the basic profile for their type, and come armed with a
+	## Handgun. They do not roll on any of the random background tables in the
+	## 'Character Creation' chapter."
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.current_campaign:
 		push_warning("CrewTaskComponent: Cannot recruit — no campaign")
@@ -2367,11 +3087,53 @@ func _apply_recruit() -> void:
 	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
 	if CharGen and CharGen.has_method("create_character"):
 		var new_char = CharGen.create_character({})
-		if new_char and campaign.has_method("add_crew_member"):
+		if new_char == null:
+			return
+		_strip_to_recruit_loadout(new_char)
+		if campaign.has_method("add_crew_member"):
 			if new_char.has_method("to_dictionary"):
 				campaign.add_crew_member(new_char.to_dictionary())
 			else:
 				campaign.add_crew_member(new_char)
+			_notify_recruit_joined(new_char)
+
+
+func _strip_to_recruit_loadout(new_char) -> void:
+	## p.78: a recruit is the BASIC profile plus a Hand Gun, with no background
+	## rolls. create_character() runs the full generator, which hands out a whole
+	## starting loadout, so the gear is replaced rather than added to.
+	##
+	## Character.equipment is Array[String]; assigning an untyped array to a typed
+	## property is rejected outright and the write is LOST, so .assign() is the
+	## only safe route. "Hand Gun" is the canonical name in
+	## data/equipment_database.json — "Handgun" resolves to nothing.
+	if not ("equipment" in new_char):
+		return
+	var loadout: Array[String] = []
+	loadout.assign(["Hand Gun"])
+	new_char.equipment = loadout
+	# Background-table rewards (credits, Patrons, Rivals, story points) belong to
+	# character creation only; a recruit must not carry them into the campaign.
+	if "creation_bonuses" in new_char and new_char.creation_bonuses is Dictionary:
+		new_char.creation_bonuses = {}
+
+
+func _notify_recruit_joined(new_char) -> void:
+	var recruit_name: String = "A new recruit"
+	if new_char != null and "character_name" in new_char:
+		recruit_name = str(new_char.character_name)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("%s joined the crew." % recruit_name)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "New recruit",
+			"description": "%s signed on, armed with a Hand Gun (Core Rules p.78)." % recruit_name,
+			"tags": ["crew", "recruit"],
+		})
 
 func _remove_crew_member(crew_member, crew_id: String) -> void:
 	## Remove a crew member from the campaign (for pay_or_lose penalty)

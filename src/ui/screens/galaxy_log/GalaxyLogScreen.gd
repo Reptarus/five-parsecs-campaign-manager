@@ -34,6 +34,14 @@ func _ready() -> void:
 	_load_user_preferences()
 	_refresh_from_planet_data_manager()
 
+	# Base _ready() is deliberately skipped above, so the SettingsOverlay band
+	# reservation it normally performs is invoked manually here -- same as
+	# _ensure_base_background() / _setup_responsive_layout(). Without it this
+	# screen's header draws underneath the floating gear/bug buttons.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
 
 func _build_ui() -> void:
 	var outer := VBoxContainer.new()
@@ -41,13 +49,19 @@ func _build_ui() -> void:
 	outer.add_theme_constant_override("separation", UIColors.SPACING_MD)
 	outer.offset_left = UIColors.SPACING_XL
 	outer.offset_right = -UIColors.SPACING_XL
+	# 32px per side is a fifth of a 360dp phone. PortraitChrome trims it to the
+	# 16dp page margin in portrait and restores this value in landscape.
+	ScreenChrome.apply_page_chrome_offsets(self, outer)
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
 
-	# Header row.
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# Header row. HFlow, not HBox: Back + "Galaxy Log" + "25 worlds - turn 100" side by
+	# side demand 611px, and an HBox has no way to give that back, so the whole screen
+	# was dragged 304px off a 339px phone. They wrap onto a second line instead.
+	var header := HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	header.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
 	outer.add_child(header)
 
 	var back_btn := Button.new()
@@ -59,27 +73,34 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "Galaxy Log"
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	# The campaign name is appended to this title at runtime ("Galaxy Log - <name>"),
+	# so its unwrapped width is player-controlled and unbounded — 294px for the test
+	# save alone. Clipping collapses a Label's minimum width to 1px (measured, see
+	# tests/tools/probe_label_min.gd), which is what stops it carrying the screen.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(_title_label)
 
 	_count_label = Label.new()
 	_count_label.text = "0 worlds"
-	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	# No fixed min width — the title (expand-fill) absorbs slack. Forcing 220px
 	# here pushed the count under the gear on a 375px portrait header; let it
 	# size to its content ("25 worlds · turn 100") instead.
 	_count_label.custom_minimum_size.x = 0
+	# "25 worlds - turn 100" is 294px unwrapped, which is most of a 310px phone. Clip
+	# it: the header already wraps, and a truncated count is better than a clipped map.
+	_count_label.clip_text = true
+	_count_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	header.add_child(_count_label)
-	# Reserve space for the global SettingsOverlay gear (top-right, ~56px wide
-	# on a CanvasLayer above this screen). Without this spacer the count label
-	# extends under the gear and gets visually clipped on the right.
-	var gear_reserve := Control.new()
-	gear_reserve.custom_minimum_size = Vector2(64, 0)
-	header.add_child(gear_reserve)
+	# No horizontal gear spacer any more. reserve_band_on() in _ready() pushes this
+	# screen's content DOWN past the gear/bug buttons, so a 64px spacer here would
+	# only be 64px of a 339px phone spent twice on the same problem.
 
 	# Hex map — fills remaining vertical space.
 	_hex_map = HexStarMapScript.new()
@@ -128,7 +149,7 @@ func _make_legend_chip(label_text: String, swatch_color: Color) -> HBoxContainer
 
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	row.add_child(lbl)
 

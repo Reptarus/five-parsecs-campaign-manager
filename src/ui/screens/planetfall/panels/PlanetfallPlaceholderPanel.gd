@@ -8,11 +8,11 @@ extends Control
 
 signal phase_completed(result_data: Dictionary)
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -82,7 +82,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = _phase_name.to_upper()
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
@@ -90,7 +90,7 @@ func _build_ui() -> void:
 	# Description
 	_desc_label = Label.new()
 	_desc_label.text = "This phase will be implemented in a future sprint.\nClick below to proceed to the next step."
-	_desc_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_desc_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_desc_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_desc_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -100,7 +100,7 @@ func _build_ui() -> void:
 	if _phase_index >= 0:
 		var badge := Label.new()
 		badge.text = "Step %d of 18" % (_phase_index + 1)
-		badge.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		badge.add_theme_color_override("font_color", COLOR_ACCENT)
 		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		vbox.add_child(badge)

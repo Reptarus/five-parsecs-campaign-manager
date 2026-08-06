@@ -8,8 +8,8 @@ extends Control
 signal backgrounds_updated(data: Dictionary)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 var _coordinator = null
 var _background_results: Dictionary = {}
@@ -36,20 +36,20 @@ func _build_placeholder() -> void:
 
 	var header := Label.new()
 	header.text = "CHARACTER BACKGROUNDS"
-	header.add_theme_font_size_override("font_size", 18)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
 
 	var desc := Label.new()
 	desc.text = "All characters roll Motivation. The first 4 are experienced and also roll Prior Experience and Notable Event."
-	desc.add_theme_font_size_override("font_size", 14)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(desc)
 
 	var roll_btn := Button.new()
 	roll_btn.text = "Auto-Roll All Backgrounds"
-	roll_btn.custom_minimum_size = Vector2(280, 56)
+	roll_btn.custom_minimum_size = Vector2(0, 56)
 	roll_btn.pressed.connect(_on_auto_roll)
 	content.add_child(roll_btn)
 

@@ -1,6 +1,239 @@
 # QA Status Dashboard
 
-**Last Updated**: 2026-07-06 (Battle-Phase Companion sprint → Phase 4 on-device played walk surfaced + fixed 2 more bugs: **F9** drawer touch-scroll blocked the last enemy's controls, **F10** a played LOG_ONLY battle had no reachable end/objective control → added the objective-aware **Record Result** button (choice B). The on-device re-verification of F10 then surfaced FOUR device-/played-flow-only follow-ups the unit tests + `--headless` + desktop MCP all passed (**F10-b** form collapsed the hug-to-content drawer, **F10-c** missing objective section for a real campaign mission, **F10-d** Submit off-screen in the non-touch-scroll drawer, **F10-e** results drawer lingered over PostBattle) — all fixed + re-verified on-device (Test16). 5 genuine bugs fixed total (F5/F6/F8/F9/F10), 3 gaps dismissed (F1/F2/F3), 66 cases green. Prior 2026-07-02: Post-Fable fixit sprint → 129/129 suites green)
+---
+
+## § Battle-Phase DELIVERY Audit (Aug 6 2026) — branch `campaign-editor-and-fixits`
+
+Commits `740db7e36`, `0f10cbfcd`, `e32445c9b`, `dbc33c70a`. Solo, no agent fan-out.
+
+**The framing that produced everything below.** Prior audits asked *"is this rule
+implemented correctly?"* and the answer was almost always yes — every table checked
+was byte-exact against the PDF. This one asked *"does the player ever reach it?"*
+and found four Compendium chapters that could not be opened in a real campaign.
+
+> **The generalization, which held five separate times in one day:**
+> when a rule appears missing, check whether a function implementing it already
+> exists **with no caller**. Early return above the call · called before its target
+> existed · container with no opener · zero-caller producer ×2.
+
+### Defects found and fixed
+
+| Finding | Severity | Detail |
+|---|---|---|
+| **Four Compendium chapters unreachable in campaign play** | **P0** | No-Minis (pp.66-73), Stealth (pp.117-122), Street Fights (pp.123-136), Salvage (pp.137-147). `initialize_battle` early-returned whenever `selected_tier` was stamped, and `CampaignTurnController` stamps it on EVERY campaign battle — so the four `_setup_*_panel` calls at the tail never ran. The file **warned about this exact hazard 7 lines above the return**; four later additions landed below it anyway. Worst case is No-Minis: the mode whose entire premise is that the app hosts the fight. |
+| **Populated panels in a drawer with no opener** | **P0** | On paths that DID build them, they landed in `phase_content` = the `tracking` drawer body, whose button is ASSISTED+ while the default tier is LOG_ONLY. All three routes (landscape bar, portrait `≡` menu, auto-open) were closed simultaneously, which is why it never surfaced. New dedicated `mission` drawer, offered at EVERY tier whenever a panel was actually placed there. |
+| **Hold the Field scored as a WIN in Rival/Invasion battles** | **HIGH** | p.91 and p.92 both say "there is no Win condition". `no_win_condition` was computed for both and read by nothing, so seeing a Rival off paid the p.123 "Survived and Won +3" instead of "+2" and inflated `battles_won` against the p.64 victory conditions. Applied at **all four** `success` producers — two more than the sweep initially listed, including the LOG_ONLY form where the PLAYER declares the outcome and could declare a Win in a battle the book says cannot be won. |
+| **Insanity campaigns earned story points** | **HIGH** | Core Rules p.65 disables them entirely. `TravelEventResolver` was the ONE award site in the codebase writing `campaign.story_points` directly instead of going through `GameStateManager`, which is where the gate lives — so pp.70-72 travel events paid out where nothing else did. Reported for weeks by `lint_data_ownership` and dismissed in `TABLET_TEST_READINESS.md` §5 as "real, small, not player-visible". |
+| **Compendium p.137 salvage availability D6 had never rolled** | **HIGH** | `find_salvage_job()` held the roll and had ZERO callers repo-wide. Three rules inert at once: a job was offered EVERY campaign turn instead of five in six, the 2-credit acceptance fee was never charged, and `is_illegal` had no producer, making the "authorities on your trail" consequence unreachable. Now a real mandatory 3-option prompt at the book's position (after the post-game Rivals roll). |
+| **Tracking tier locked for the whole battle** | MED | `set_tier()` had exactly one caller, passing `force = true`; `tier_badge` was a `Label`. The controller's own "cannot downgrade mid-battle" guard proves a non-forced caller was designed for and never written. Badge is now a Button; lower tiers greyed **with a reason** rather than silently no-opping into a `push_warning`. |
+| **Grid movement was campaign-wide, contra p.90** | MED | "The movement system used can be changed as often as you want, with different battles using different movement systems." Every consumer gated on the DLC flag. The three ungated `build_*` functions written for the per-battle choice had zero callers. |
+| **Gloomy / Invasion early-departure never recurred** | MED | Correct rules, stated once pre-battle and never at the decision point — the player deciding whether to run at round 3 was never told that leaving before round 6 makes that figure a casualty. |
+| **`PostBattleSequence.gd` failed to PARSE** | **P0 (self-inflicted, caught pre-tablet)** | A new function referenced `post_battle_phase` — a local from a *different* function; the member has an underscore. GDScript treats that as a parse error, taking the whole script down, i.e. the entire post-battle wizard. **Missed by `--headless --quit`, by 2254 passing unit cases, and by `verify_post_battle` 46/46** (that harness drives the backend orchestrator and never loads the wizard UI). Only `--headless --import` found it. |
+| **Toolbar rebuild duplicated itself** | LOW | `queue_free()` DEFERS to end-of-frame, so a rebuild added new buttons while old ones were still parented — 14 instead of 7. Found only by an MCP runtime probe; **invisible to all 79 harness checks because they assert the button is PRESENT, and a duplicate set still contains it.** |
+| **2 orphan files deleted** | LOW | `BattlefieldManager.gd` (431 lines, density-float terrain across desert/urban/forest/space_station — contradicting the live four-book-theme generator) and `Enemy.gd` (366 lines, `extends CharacterBody2D`, sole reference a preload of itself). |
+
+### Two harness defects — the code was right both times
+
+Both `verify_post_battle` rows had been red for weeks and were reported as live
+defects. Neither was.
+
+- **Danger pay** — the trial built its mission as `mission_source: "opportunity"`
+  and asserted Danger Pay reached credits, so it had been failing **on the fix**.
+  p.120 Step 4 is verbatim *"If you did a **Patron** job, add the Pay bonus to the
+  Danger Pay"*, and p.83 puts the table under *"If you received a job offer from a
+  Patron."* Now uses a patron job, plus a new `danger_pay_is_patron_only` row.
+- **"1 in 40 injuries costs nothing"** — instrumented rather than reasoned about:
+  seed 16 rolled `MINOR_INJURY(rec=1)` correctly, then p.129 Character Event 24-26
+  *"reduce your recovery time by one turn"* took 1 → 0. A legitimate heal the row's
+  four fields could not express.
+
+> **Widen the observation; never relax the assertion** — then prove the widened
+> version can still fail. Forcing `apply_crew_injury` to no-op yields 35/40 caught
+> with `healed_by_event=0`, so the new "this is fine" bucket does not absorb a real
+> drop.
+
+### State at close
+
+| Check | Result |
+|---|---|
+| `tests/unit` | **2254/2254**, 194 suites, 0 failures |
+| `verify_battle_ui` | **79/79** (grown 49 → 79 checks) |
+| `verify_post_battle` | **46/46** — first fully green run |
+| Parse sweep (`--headless --import`) | **0 errors** project-wide |
+| `signal_wiring` / `tscn_connections` / `autoload_lookups` / `data_ownership` | **all CLEAN** |
+| `lint_orphan_assets` | orphans **0** (41 test-only files remain, tracked) |
+| APK | `build/fpfh-0.9.7-aug06c.apk`, verified by unzip + decompressed-bytecode content match |
+
+Every fix was reverted once to confirm exactly its own tests fail, then restored —
+breaks kept isolated, since a combined break cannot prove independence.
+
+---
+
+## § Pre-Tablet QA Sprint (Jul 29-30 2026) — branch `campaign-editor-and-fixits`
+
+Scope: **A1 alpha surface only** (Bug Hunt / Planetfall / Tactics are hidden behind
+`MainMenu.gd:14 A1_BUILD`). Depth on the core loop first, breadth sweep second.
+
+**The finding that reframed the sprint.** Layout / DPI / rotation were assumed to be
+blocked on the tablet arriving Aug 2. They are not — a desktop window pixel **is** a
+device dp here (design space = `window_px / 1.16` on desktop and `dp / 1.16` on device;
+the 1.16 falls out of `SettingsManager._apply_ui_scale()` cancelling the square-1080 base
+stretch). Measured: a 393×851 window → design `338.79 × 733.42`, and `338.79 × 1.16 =
+392.99998`. That unlocked the whole layout surface three days early. SOPs updated;
+`docs/testing/TABLET_CHECKLIST_2026-08-02.md` now holds only genuinely device-bound items.
+
+### Defects found and fixed
+
+| Finding | Severity | Detail |
+|---|---|---|
+| **Campaign creation could not open** | **P0** | `CampaignCreationUI.gd` declared `_exit_tree()` TWICE (drifted in across `ed405ae6` + `f0905a09`). GDScript rejects a duplicate func, so the whole script failed to parse. Second, invisible victim: `test_campaign_wizard_flow` (17 cases) `preload`s it, so gdUnit4 **silently dropped the suite and still exited 0**. Case count went 1897→1914 after the fix — while 236 files were being deleted. *Check the case count, never the exit code.* |
+| **`R: 0` on every crew card of every pre-existing save** | **HIGH** | `Character.to_dictionary()` already emitted both `reaction` and `reactions`, but nothing normalised saves written before that. Measured on a live save: 6/6 members had the plural, 0/6 the singular; `CampaignDashboard.gd:621` reads the singular. Fixed at the load chokepoint (`FiveParsecsCampaignCore._normalize_crew_stat_keys()`), not per-consumer. It survived because it looked *plausible* — the other five stats were the correct Core Rules p.14 baseline human. |
+| **Core Rules p.121 Luck death-save never implemented** | **HIGH** | "If a character with Luck would be slain through a roll on this table, they miraculously survive, but immediately lose ALL Luck points." `InjuryProcessor`'s fatal branch went straight to `apply_crew_death()` with no Luck check — permanent character loss the book explicitly prevents. A working implementation existed but was stranded off the live path (`PostBattleProcessor.gd:186-202`, reachable only from a comment). Fixed at `PostBattleContext.apply_luck_death_save()`. |
+| **`_restore_crew_luck()` — a fabricated rule, deleted** | MED | It set `luck = max_luck` (the CAP, not the character's rating), inflating every human to 3 Luck they never spent 30 XP to buy. It also could not run at all (2-arg `.get()` on a Resource silently unwinds; no Dictionary branch for the canonical crew shape) and gated on a flag nothing ever set. **Broken in a way that masked a worse bug** — naively repairing it would have introduced the violation. Deleted with a block comment at the call site. |
+| **Sub-48dp touch targets — 181 → 0** | MED | Four distinct causes, each found by measuring rather than assuming. (1) `CampaignJournalScreen._make_chip()` used `TOUCH_TARGET_MIN - 12` (= 36 design px = 41.8dp) and `HelpScreen` hardcoded 36 — 129 of the 181. (2) The theme's `optionbutton_*` and `lineedit_*` styleboxes were still at 8.0 vertical padding while `button_*` had been raised to 12.0. (3) Hardcoded 40s in `ShipInventory.tscn`, `WorldPhaseController.tscn` and `UpkeepPhaseComponent`'s map button (`flat = true` removes the themed stylebox, so such a button gets *no* padding from the theme). (4) CheckBox height is icon-driven, not stylebox-driven — adding `content_margin` to `checkbox_normal` measurably did nothing, so it was reverted rather than shipped as a no-op, and the two `PrintSheetScreen` boxes were pinned explicitly. All 181 fired at **every** window size including desktop, so none was a compression artifact. |
+| **Content drawn under the floating overlay buttons — 157 → 55** | MED | `SettingsOverlay` is a CanvasLayer above every screen, so full-width headers ran beneath the gear/bug buttons — obscured and untappable. Fixed with `SettingsOverlay.reserve_band_on(screen)`, which pushes content **down** using the live button geometry. It lives on the overlay because the screens needing it have three different ancestors (`CampaignScreenBase`, `FiveParsecsCampaignPanel`, plain `Control`/`Node`) — there is no single base to put it in. Two strategies: raise a wrapping `MarginContainer`'s top margin, else insert a named spacer as the first child of a vertical root container. `GalaxyLogScreen` and `CompendiumCategoryView` deliberately skip `super._ready()`, so they call it manually alongside the other base setup they already replicate. |
+| **`Header` demanded 900px of height** | MED | Self-inflicted, caught by screenshot: adding `autowrap_mode` to the AdvancementManager title — a Label inside an **HFlowContainer** — made the header 900px tall, because HFlow asks an autowrapping Label for its height at its narrowest width (its longest word) and gets back the line count for the whole string. The screen overflowed at all six sizes including desktop. Replaced with `clip_text` + ellipsis + `size_flags_horizontal = 3`. This is a documented trap in project memory (`feedback_autowrap_in_hflow_trap`) that was walked into twice in one day. |
+| **Unwrapped labels overflowing the design space** | MED | EULAScreen title, HelpScreen title, AdvancementManager title, DLC pack taglines. Same shape as the MainMenu title bug. 14 → 3 remaining. |
+| **236 orphan files deleted** | LOW | New reachability lint `scripts/lint_orphan_assets.py`. Grep passes had said 89 — the gap was `MainCampaignScene.tscn`, referenced by nothing, keeping its script alive. *Dead scenes keep scripts alive; liveness needs a graph, not a grep.* |
+
+### Tooling added, both proven to detect
+
+- **`tests/tools/verify_layout.gd`** — 34 screens × 6 sizes, measuring real rects
+  (off-screen, overlay-band collision, 48dp floor, unwrapped-Label minimums). Run
+  **WITHOUT `--headless`**. *Detection proof*: reverting `7590c67b` reproduces the
+  hand-measured MainMenu numbers exactly — `Title off-screen by 67.1 px`, `Title needs
+  473px unwrapped in a 339px space`, `Title collides with the SettingsOverlay band`.
+- **`verify_post_battle.gd` → 45 rows** (was 37): Luck death-save, turn rollover, save/load
+  round-trip. The Luck row carries a **luck=0 control** that must still kill — without it,
+  "nobody died" would pass just as happily if the injury step rolled nothing. With fix:
+  `luck=1 dead=0 saved=4 | control dead=4`. Without: `luck=1 dead=4 saved=0 | control dead=4`.
+
+### Two false-positive classes removed from the sweep (by measurement, not assumption)
+
+1. **Backdrops.** First run reported 180 failures, 50 on a screen already proven clean at
+   10 configs — sole cause was a full-screen background TextureRect "colliding" with the
+   overlay band. 822 of 1129 findings were that artifact.
+2. **Label boxes vs drawn text.** A full-width header Label with left-aligned text has a
+   rect spanning the overlay corner while its glyphs are nowhere near it. Narrowing the
+   check to the drawn text (interactive controls keep the full-rect test, since their whole
+   rect is hit area) dropped 39 findings **with detection re-proven** on the reverted MainMenu.
+
+### Layout close-out (Jul 30, second pass) — sweep now GREEN
+
+**198 passed / 0 failed / 0 skipped**, with a real campaign loaded. Every screen on the
+A1 surface fits at all six sizes, including the two hardest (phone landscape 733×338
+design px and a 360dp phone at 310×551).
+
+| Category | First clean run | Mid-sprint | Final |
+|---|---|---|---|
+| Sub-48dp controls | 181 | 0 | **0** |
+| Overlay-band collisions | 157 | 42 | **0** |
+| Off-screen overflow | 60 | 39 | **0** |
+| Unwrapped labels | 14 | 3 | **0** |
+| Sweep skips | 12 | 12 | **0** |
+
+Two harness corrections came first, because the mid-sprint numbers were partly measuring
+the harness rather than the app:
+
+1. **The sweep now applies the same overlay net the app does.** In the app, SceneRouter
+   emits `scene_changed` and `SettingsOverlay` reserves the band on the incoming scene; a
+   sweep that `add_child()`es a screen never fires that signal, so every screen was being
+   measured without a reservation the user always gets. Reproduction, not suppression —
+   `reserve_band_on()` only acts where a screen's structure allows it, so a screen it
+   cannot reach still collides and still fails.
+2. **`SimpleCharacterCreator` was being skipped as "needs campaign state".** It sets
+   `visible = false` in `_ready()` because its caller shows it. The skip message was a
+   misdiagnosis that quietly took six configs out of the sweep; shown, it surfaced nine
+   real findings including a dialog pinned at 800×600 that hung off the edge at **every**
+   size measured, 1080p included. `MissionSelectionUI` was dropped from scope with its
+   reason (all its controls live under a PopupPanel — a Window, which lays out against
+   its own rect, so measuring it compared two coordinate spaces).
+
+**Campaign state is now an explicit input**: `-- campaign=user://saves/x.save`. It used to
+be whatever the machine happened to have, and that mattered more than expected — a
+campaign left loaded by an earlier session made `CampaignDashboard`'s landscape overflow
+read 154.8px instead of 30.6px, and revealed that the World Phase clipped on **both**
+edges from turn 10 (the Red/Black Zone buttons appear then and needed 456px in a 339px
+space). A NO-CAMPAIGN run is a floor, not a clean bill of health.
+
+**The systemic cause, and the user who spotted it.** Mid-sprint feedback — *"your buttons
+don't seem to be correctly resizing with the layouts"* — matched what the measurements
+were converging on: **161 hardcoded width floors on buttons and dropdowns** across
+`src/ui`. A button's height floor is the 48dp touch target and is real; its width floor
+stops it shrinking and propagates to the top of the tree, so one `Vector2(260, 48)` made
+every ancestor at least 260 wide. All 161 (≥140px) are gone.
+
+Beyond that, the fixes reduced to four repeated shapes, now in the SOP:
+
+- **A row that cannot wrap** — `HBoxContainer` → `HFlowContainer` (World Phase automation
+  and zone rows, Galaxy Log header, store card headers, print top bar, creator buttons,
+  equipment buttons, character-details equipment, PreBattle footer, six battle-simulator
+  rows).
+- **A label that cannot shrink** — `clip_text` + ellipsis in an HBox header, `autowrap` in
+  a VBox column. Settled by measurement (`tests/tools/probe_label_min.gd`): clip takes a
+  Label's minimum from 233px to 1px.
+- **Content taller than the screen** — the new `ShortScreenScroll` helper, applied to
+  seven screens, scrolling only while the viewport is short.
+- **Too many columns for the width** — `AdaptivePanelGroup` now drops columns that do not
+  fit, independent of the device breakpoint. A phone in landscape is 733 design px wide
+  and lands in a wide bucket; three dashboard columns need ~900.
+
+**Portrait gutter 4px → 8px** so content is not flush against the screen edge (12px was
+tried first and left two screens 3px over; the constant carries that note).
+
+Screens taken to zero: **all of them.** Previously listed as unresolved and now closed —
+CampaignJournalScreen (collapsible "Filters (N active)" disclosure, the UX decision that
+was deliberately not shipped blind mid-sprint), TacticalBattleUI (tier-panel labels
+autowrap; the modal overlay scrolls), and ShipInventory (content column wrapped in a
+scroll inside the .tscn, since its script is a pure factory with no `_ready()` — the
+earlier "no script attached" note was wrong: it binds `ShipCreation.gd`).
+
+### Two gate screens that were genuinely blocking
+
+- **EULAScreen** — the consent card carried a fixed `360×400` minimum, wider than a
+  phone in portrait (~339 design px) and taller than one in landscape (~338), so it hung
+  154–202px off the edge with **ACCEPT unreachable**. This is the gate in front of the
+  entire app. Capping the card width did nothing on its own, because
+  `get_combined_minimum_size()` takes the MAX of the custom minimum and the content's own
+  — and the content won: the 46-character consent checkbox label demanded ~350px
+  unwrapped. Fixed by wrapping that label, deriving both minimums from the live viewport,
+  dropping the decorative spacers on short viewports, and adding an outer scroll so the
+  card degrades instead of clipping. Verified on-screen in both orientations.
+- **PrintSheetScreen** — `EXPAND_FIT_WIDTH_PROPORTIONAL` on a tall portrait sheet PNG gave
+  the preview a minimum height of width × aspect, pushing it 640–844px off the bottom; and
+  the 240px action rail sat beside it in one row, so **Save PNG / Save PDF were off the
+  right edge** on a phone. `EXPAND_IGNORE_SIZE` also removed a latent mismatch with the
+  CV-calibrated field overlays, which already fit the page by the limiting axis.
+
+### A third false-positive class removed: measuring before the screen settled
+
+The sweep waited a fixed 3 frames after `add_child`. Panels populate from
+`call_deferred`, ScrollContainers re-sort once their content arrives, and
+`AdaptivePanelGroup` re-parents whole panes — so an early read catches transient rects.
+CampaignCreationUI was reported as `StepLabel off-screen by 86.7 px` at desktop while
+the **running app measured zero overflow there**. It now waits for the geometry
+signature (the summed rects of every visible Control) to hold steady for three
+consecutive frames, capped at 30 so a screen that never settles is still measured
+rather than hanging the sweep. That removed 4 phantom findings, and detection was
+re-proven afterwards on the reverted `7590c67b`.
+
+Deciding whether a finding was real meant checking it against the **running app**, not
+just the harness — that is what separated the AdvancementManager 900px header (real,
+and self-inflicted) from the CampaignCreationUI overflow (harness artifact).
+
+One data residual: the oldest save has a crew member with **neither** reaction key, so that
+card still shows `R: 0`. Backfilling would mean inventing a stat value.
+
+**Lesson worth keeping**: measuring is necessary but not sufficient. An autowrap "fix" to the
+HelpScreen title measured clean and rendered the chapter name one letter per line down the
+screen — only a screenshot showed it. A second attempt (padding the header to clear the
+overlay) measured fine and pushed all page content off the right edge, because a content
+margin raises the container's *minimum* width and that minimum propagates. Both caught by
+screenshot, both reverted, final state verified visually.
+
+---
+
+**Last Updated**: 2026-07-30 (Pre-tablet QA sprint, layout close-out: geometry sweep **198/198 green with a campaign loaded**, up from 136/56/12. 161 hardcoded button width floors removed after user feedback that controls were not resizing; new `ShortScreenScroll` helper across 7 screens; `AdaptivePanelGroup` now drops columns that do not fit the width; portrait gutter 4→8px; sweep gained per-finding driver hints and an explicit `campaign=` input. Gates: gdUnit4 180 suites / 1919 cases / 0 failures, campaign-state harness 45/45, four lints clean + orphans=0. Prior 2026-07-06: Battle-Phase Companion sprint → Phase 4 on-device played walk surfaced + fixed 2 more bugs: **F9** drawer touch-scroll blocked the last enemy's controls, **F10** a played LOG_ONLY battle had no reachable end/objective control → added the objective-aware **Record Result** button (choice B). The on-device re-verification of F10 then surfaced FOUR device-/played-flow-only follow-ups the unit tests + `--headless` + desktop MCP all passed (**F10-b** form collapsed the hug-to-content drawer, **F10-c** missing objective section for a real campaign mission, **F10-d** Submit off-screen in the non-touch-scroll drawer, **F10-e** results drawer lingered over PostBattle) — all fixed + re-verified on-device (Test16). 5 genuine bugs fixed total (F5/F6/F8/F9/F10), 3 gaps dismissed (F1/F2/F3), 66 cases green. Prior 2026-07-02: Post-Fable fixit sprint → 129/129 suites green)
 
 ---
 

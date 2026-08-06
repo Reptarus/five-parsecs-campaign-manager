@@ -9,6 +9,7 @@ var _provider: CompendiumDataProvider
 var _search_input: LineEdit
 var _results_label: Label
 var _category_container: HFlowContainer
+var _content_scroll: ScrollContainer
 var _search_results_container: VBoxContainer
 var _search_timer: Timer
 var _is_searching := false
@@ -23,6 +24,11 @@ func _ready() -> void:
 	_setup_responsive_layout()
 	_build_ui()
 	_show_categories()
+	# super._ready() is skipped above, so the band reservation it normally performs is
+	# invoked by hand — same as _ensure_base_background() / _setup_responsive_layout().
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _build_ui() -> void:
@@ -34,60 +40,27 @@ func _build_ui() -> void:
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
+	# Portrait de-clip. 32px per side is a fifth of a 360dp phone's 310 design px, and
+	# it was going straight into the category cards' width — they measured 246 wide.
+	ScreenChrome.apply_page_chrome_offsets(self, outer)
 
-	# Header — HFlow so Back / title / item-count wrap onto a second line on a
-	# narrow (~384px) portrait header instead of clipping. FlowContainer ignores
-	# main-axis expand, so the title is NOT expand-filled here (an expanding
-	# child would force the count to wrap even on desktop).
-	var header := HFlowContainer.new()
-	header.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
-	header.add_theme_constant_override("v_separation", UIColors.SPACING_XS)
+	# This screen is the app's visual reference, so it builds its header, search
+	# field and cards from the SHARED helpers rather than its own copies — if the
+	# Library and the shared chrome ever disagree, the shared chrome is wrong.
+	var header := ScreenChrome.build_header(
+		"Library", _on_back_pressed, "%d items" % _provider.get_total_item_count()
+	)
 	outer.add_child(header)
 
-	var back_btn := Button.new()
-	back_btn.text = "< Back"
-	back_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-	DialogStyles.style_secondary_button(back_btn)
-	back_btn.pressed.connect(_on_back_pressed)
-	header.add_child(back_btn)
-
-	var title := Label.new()
-	title.text = "Library"
-	title.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
-	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	title.size_flags_vertical = SIZE_SHRINK_CENTER
-	header.add_child(title)
-
-	var count_label := Label.new()
-	count_label.text = "%d items" % _provider.get_total_item_count()
-	count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
-	count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-	count_label.custom_minimum_size.x = 120
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	header.add_child(count_label)
-
-	# Search bar
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search weapons, enemies, species..."
-	_search_input.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
-	_search_input.clear_button_enabled = true
-	var search_style := StyleBoxFlat.new()
-	search_style.bg_color = UIColors.COLOR_TERTIARY
-	search_style.border_color = UIColors.COLOR_BORDER
-	search_style.set_border_width_all(1)
-	search_style.set_corner_radius_all(4)
-	search_style.content_margin_left = UIColors.SPACING_MD
-	search_style.content_margin_right = UIColors.SPACING_MD
-	_search_input.add_theme_stylebox_override("normal", search_style)
-	_search_input.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	_search_input.add_theme_color_override("font_placeholder_color", UIColors.COLOR_TEXT_MUTED)
-	_search_input.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	ScreenChrome.style_search_field(_search_input)
 	_search_input.text_changed.connect(_on_search_text_changed)
 	outer.add_child(_search_input)
 
 	# Search results label (hidden until searching)
 	_results_label = Label.new()
-	_results_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_results_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_results_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_results_label.visible = false
 	outer.add_child(_results_label)
@@ -96,6 +69,10 @@ func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	outer.add_child(scroll)
+	_content_scroll = scroll
+	# Re-fit the cards whenever the viewport width changes (rotation, window resize,
+	# or the vertical scrollbar appearing and taking 16px away).
+	scroll.resized.connect(_update_card_sizes)
 
 	var content_vbox := VBoxContainer.new()
 	content_vbox.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -119,7 +96,7 @@ func _build_ui() -> void:
 	# Source footer
 	var footer := Label.new()
 	footer.text = "Source: Five Parsecs From Home Core Rules & Compendium"
-	footer.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	footer.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	footer.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	footer.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	# Wrap the long source line on a ~384px portrait column instead of clipping.
@@ -202,18 +179,45 @@ func _update_card_sizes() -> void:
 	if should_use_single_column():
 		# Portrait (or mobile): full-width cards. Keyed off orientation so a
 		# WIDE-by-width portrait tablet doesn't render oversized 400px cards.
-		card_min_width = 0
+		#
+		# "Full width" has to be an actual NUMBER. A FlowContainer ignores main-axis
+		# expand (see the header comment in _build_ui), so leaving this at 0 let every
+		# card size to its own title — a ragged list where "Weapons" was 188px wide and
+		# "Gear & Consumables" 290. Measure the scroll's usable width instead, minus the
+		# vertical scrollbar when it is showing, and give every card the same floor.
+		card_min_width = _available_card_width()
 	else:
-		match current_layout_mode:
-			LayoutMode.TABLET:
-				card_min_width = 340
-			LayoutMode.DESKTOP, LayoutMode.WIDE:
-				card_min_width = 400
-			_:
-				card_min_width = 0
+		# Multi-column: divide the row rather than pinning a fixed card width. A flat
+		# 400px left ~270px of dead space at 1103 design px — two cards and a gap —
+		# because the leftover was never enough for a third. Work out how many cards of
+		# roughly the preferred size fit, then give each an equal share of what is
+		# actually there, so the grid always reaches both edges.
+		var preferred: float = 340.0 if current_layout_mode == LayoutMode.TABLET else 400.0
+		var avail: float = _available_card_width()
+		var sep: float = float(_category_container.get_theme_constant("h_separation"))
+		if avail <= 0.0:
+			card_min_width = preferred
+		else:
+			var cols: int = maxi(1, int((avail + sep) / (preferred + sep)))
+			card_min_width = (avail - sep * (cols - 1)) / float(cols)
 	for child: Node in _category_container.get_children():
 		if child is Control:
 			(child as Control).custom_minimum_size.x = card_min_width
+
+
+## Usable width inside the category scroll, or 0 before it has been laid out.
+##
+## Subtracting the visible vertical scrollbar matters: without it every card is
+## exactly scrollbar-width too wide, which is enough to raise a HORIZONTAL scrollbar
+## on a list that should only ever scroll vertically.
+func _available_card_width() -> float:
+	if _content_scroll == null or not is_instance_valid(_content_scroll):
+		return 0.0
+	var avail: float = _content_scroll.size.x
+	var vbar := _content_scroll.get_v_scroll_bar()
+	if vbar and vbar.visible:
+		avail -= vbar.size.x
+	return maxf(0.0, avail)
 
 
 func _update_layout_for_mode() -> void:
@@ -299,7 +303,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	# Line 1: Item name
 	var name_label := Label.new()
 	name_label.text = str(item.get("name", item.get("term", "Unknown")))
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	text_vbox.add_child(name_label)
@@ -312,7 +316,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	if not stat_text.is_empty():
 		var stat_label := Label.new()
 		stat_label.text = stat_text
-		stat_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+		stat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 		stat_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		stat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_vbox.add_child(stat_label)
@@ -320,7 +324,7 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	# Category badge
 	var badge := Label.new()
 	badge.text = str(item.get("_category_title", ""))
-	badge.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	badge.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(badge)
@@ -412,8 +416,8 @@ func _on_category_pressed(category_id: String) -> void:
 
 
 func _on_back_pressed() -> void:
-	var router := get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("go_back"):
-		router.go_back()
-	elif router and router.has_method("navigate_to"):
-		router.navigate_to("main_menu")
+	# Returns the player where they came FROM. This used to call a
+	# SceneRouter.go_back() that did not exist, behind a has_method() guard, so it
+	# always fell through to a hardcoded "main_menu" — opening the Library from a
+	# campaign and pressing Back dumped you out to the title screen.
+	ScreenChrome.navigate_back(self)

@@ -172,6 +172,69 @@ func set_enemy_modifier(value: int, enemy_name: String = "Enemy Type") -> void:
 	initiative_system.set_enemy_modifier(value, enemy_name)
 	_update_probability()
 
+## Pre-apply the modifiers the campaign already knows (Core Rules p.112).
+##
+## THE BUG THIS FIXES: CampaignTurnController computes an `initiative_context`
+## with the difficulty penalty (Hardcore -2 / Insanity -3), the outnumbered +1 and
+## the enemy's own modifier — and it was read by exactly ONE place, PreBattleUI,
+## to draw a probability. It never reached this calculator, which sourced every
+## modifier from checkboxes the player had to tick by hand. So the app displayed
+## "you need 9+ on 2D6" before the battle and then rolled against a different,
+## unmodified target, and the Hired Muscle -1 (p.112) never applied at all.
+##
+## The controls stay live: this seeds them, the player can still correct any of it.
+func apply_initiative_context(ctx: Dictionary) -> void:
+	if ctx.is_empty():
+		return
+	# This panel is instantiated and held for an overlay popup, so _ready() has
+	# not run yet the first time the battle configures it. Same self-heal as
+	# set_crew() — without it every line below dereferences null and the whole
+	# method aborts silently.
+	if not initiative_system:
+		initiative_system = SeizeInitiativeSystem.new()
+	if ctx.has("highest_savvy"):
+		set_savvy(int(ctx["highest_savvy"]))
+	if ctx.has("outnumbered"):
+		var out: bool = bool(ctx["outnumbered"])
+		initiative_system.set_outnumbered(out)
+		if outnumbered_check:
+			outnumbered_check.set_pressed_no_signal(out)
+	if ctx.has("hired_muscle"):
+		var hm: bool = bool(ctx["hired_muscle"])
+		initiative_system.set_hired_muscle(hm)
+		if hired_muscle_check:
+			hired_muscle_check.set_pressed_no_signal(hm)
+	if ctx.has("difficulty_index"):
+		var idx: int = clampi(int(ctx["difficulty_index"]), 0, 3)
+		if difficulty_option:
+			difficulty_option.select(idx)
+		_on_difficulty_changed(idx)
+	if ctx.has("enemy_modifier") and int(ctx["enemy_modifier"]) != 0:
+		set_enemy_modifier(int(ctx["enemy_modifier"]),
+			str(ctx.get("enemy_name", "Enemy Type")))
+	# Core Rules p.91: a Rival Ambush means you "cannot roll to Seize the
+	# Initiative" at all. Disable the roll rather than letting the player make a
+	# roll the scenario forbids.
+	if ctx.has("can_seize") and not bool(ctx["can_seize"]):
+		_set_seize_forbidden(str(ctx.get("cannot_seize_reason",
+			"This scenario does not allow a Seize the Initiative roll.")))
+	_update_probability()
+
+func _set_seize_forbidden(reason: String) -> void:
+	if roll_button:
+		roll_button.disabled = true
+		roll_button.text = "Cannot Seize the Initiative"
+		roll_button.tooltip_text = reason
+		# Godot 4.6 AccessKit reports nothing useful for a code-changed control
+		# unless it is named, and a disabled button with no explanation is the
+		# exact case a screen reader user cannot resolve visually.
+		roll_button.accessibility_name = reason
+	if result_panel:
+		result_panel.show()
+	if result_label:
+		result_label.bbcode_enabled = true
+		result_label.text = "[center]%s[/center]" % reason
+
 ## Get last roll result
 func get_last_result() -> SeizeInitiativeSystem.InitiativeResult:
 	return last_result

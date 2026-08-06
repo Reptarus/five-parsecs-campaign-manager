@@ -4,8 +4,8 @@ extends Control
 ## Shows summary of all creation choices before launching the campaign.
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 var _coordinator = null
 var _content: VBoxContainer
@@ -57,7 +57,7 @@ func _build_summary() -> void:
 	# Header
 	var header := Label.new()
 	header.text = "COLONY REVIEW"
-	header.add_theme_font_size_override("font_size", 20)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(20))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(header)
@@ -101,8 +101,8 @@ func _build_summary() -> void:
 	# Ready message
 	var ready_lbl := Label.new()
 	ready_lbl.text = "\nPress 'Establish Colony' to begin your Planetfall campaign!"
-	ready_lbl.add_theme_font_size_override("font_size", 16)
-	ready_lbl.add_theme_color_override("font_color", Color("#10B981"))
+	ready_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
+	ready_lbl.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
 	ready_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ready_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(ready_lbl)
@@ -114,14 +114,14 @@ func _add_info_row(label_text: String, value_text: String) -> void:
 
 	var lbl := Label.new()
 	lbl.text = label_text + ":"
-	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(15))
 	lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_SECONDARY)
 	lbl.custom_minimum_size = Vector2(120, 0)
 	hbox.add_child(lbl)
 
 	var val := Label.new()
 	val.text = value_text
-	val.add_theme_font_size_override("font_size", 15)
+	val.add_theme_font_size_override("font_size", ScreenChrome.font_size(15))
 	val.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -107,6 +107,12 @@ func _exit_tree() -> void:
 
 
 func _initialize() -> void:
+	# Deferred from _ready(), so it lands a frame later and this controller may
+	# already have left the tree. The /root campaign lookups below ERROR from a
+	# detached node rather than returning null, and the turn would initialise
+	# against no campaign at all. Same guard as the other deferred entry points.
+	if not is_inside_tree():
+		return
 	_load_campaign()
 	if not campaign:
 		return
@@ -252,7 +258,7 @@ func _build_layout() -> void:
 
 	_advance_button = Button.new()
 	_advance_button.text = "Complete Phase"
-	_advance_button.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_advance_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
 

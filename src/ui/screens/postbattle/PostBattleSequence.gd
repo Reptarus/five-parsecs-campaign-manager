@@ -7,15 +7,24 @@ const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.g
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
 const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
-const WarPanel = preload("res://src/ui/components/postbattle/GalacticWarPanel.tscn")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+## Core Rules p.123 Ability Increase Table — the XP SPEND, which is what the
+## book actually has. Replaces the fabricated D6 "advancement roll".
+const AdvancementServiceClass = preload("res://src/core/services/CharacterAdvancementService.gd")
 const NarrativeInjuryDialog = preload(
 	"res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
 const PurchaseItemsComponent = preload(
 	"res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 const StarsSystemClass = preload(
 	"res://src/core/systems/StarsOfTheStorySystem.gd")
+## Compendium p.137 illegal salvage — the authorities check. The popup is the
+## same proven Deep Space chooser the crew-task rewards use, re-headed for a
+## penalty (see ItemChoicePopup.show_choices).
+const ItemChoicePopupScript = preload(
+	"res://src/ui/components/dialogs/ItemChoicePopup.gd")
+const SalvageJobGeneratorRef = preload(
+	"res://src/core/mission/SalvageJobGenerator.gd")
 
 # Design system (UIColors canonical source)
 const SPACING_XS := UIColors.SPACING_XS
@@ -34,6 +43,44 @@ const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
 var _advancement_system: RefCounted = null
 # Cached for _exit_tree() signal cleanup
 var _post_battle_phase: Node = null
+
+## Steps the BACKEND orchestrator (PostBattlePhase) has already resolved AND
+## APPLIED, keyed by wizard step index.
+##
+## THE BUG THIS EXISTS TO FIX. For Battlefield Finds, Injuries and Character
+## Events the wizard rolled its OWN dice on top of the backend's, so the number
+## the player was shown was not the number written to the campaign — a player
+## could roll "88 - KNOCKED_OUT" for a casualty who was actually dead. Worse,
+## two of the three then applied a SECOND result: two Battlefield Finds per
+## battle, and a six-person crew resolving seven Character Events per turn
+## instead of the one the book allows.
+##
+## Recorded rather than acted on immediately because the orchestrator's signals
+## can arrive before the step's UI exists; the step builders consult this, so
+## the fix holds whichever order they happen in.
+var _backend_resolved: Dictionary = {}
+
+## Wizard step indices, from the _register_inline_rolls() calls.
+const STEP_RIVAL_STATUS := 0
+const STEP_BATTLEFIELD_FINDS := 4
+const STEP_INJURIES := 7
+const STEP_CAMPAIGN_EVENT := 11
+const STEP_CHARACTER_EVENT := 12
+
+## Accumulated across the per-rival loop in _on_backend_rival_status().
+var _backend_rival_lines: Array = []
+
+## The raw injury dicts the backend applied, kept so the injury step can offer
+## the p.122 Crippling wound surgery buy-out against the right crew member.
+var _backend_injuries: Array = []
+
+
+func _record_backend_step(step_index: int, lines: Array) -> void:
+	## Store what the backend applied, and refresh the step if the player is
+	## already looking at it.
+	_backend_resolved[step_index] = lines
+	if current_step == step_index:
+		_show_current_step()
 
 signal post_battle_completed(results: Dictionary)
 signal step_completed(step_index: int, results: Dictionary)
@@ -57,7 +104,6 @@ var _inline_rolls_completed: Dictionary = {}  # step_index -> {total: int, done:
 var _rm: Node = null  # ResponsiveManager (rotation handler)
 var _portrait_chrome: Node = null  # PortraitChrome margin-trim helper
 var _steps_panel: PanelContainer = null  # StepsList nav panel (hidden in portrait)
-var _title_label: Label = null  # "Post-Battle Sequence" header (font shrinks in portrait)
 # Portrait IA: a MobileAppBar replaces the Header (title + "Step N/14" subtitle)
 # and hosts a "Log" button that opens the Results log as a BOTTOM drawer, so the
 # active step gets the full column. All self-hide/restore by orientation.
@@ -140,6 +186,22 @@ func _ready() -> void:
 	_style_step_content_panel()
 	_style_side_panels()
 	_setup_portrait_chrome()
+	# Push content below the floating gear/bug buttons — the MobileAppBar's log button
+	# sits exactly under them otherwise. Belt-and-braces: post-battle is also
+	# instantiated as a child by CampaignTurnController, where it never becomes
+	# current_scene and so is never reached by the autoload's scene_changed net.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	# The step list, the current step and the results panel do not fit 338px of
+	# landscape height between them; the current step ended up 236px off the screen.
+	# Scroll on a short screen, unchanged on anything taller.
+	var _column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_column as BoxContainer, 0)
 
 
 ## First PanelContainer ancestor of `node` (robust to scene-tree depth changes).
@@ -158,7 +220,6 @@ func _find_panel_ancestor(node: Node) -> PanelContainer:
 func _setup_portrait_chrome() -> void:
 	_steps_panel = _find_panel_ancestor(steps_container)
 	_results_panel = _find_panel_ancestor(results_container)
-	_title_label = get_node_or_null("MarginContainer/VBoxContainer/Header/Title")
 	_header = get_node_or_null("MarginContainer/VBoxContainer/Header")
 	var mc := get_node_or_null("MarginContainer")
 	if mc:
@@ -271,10 +332,12 @@ func _apply_portrait_ia() -> void:
 	if not portrait and _results_drawer and _results_drawer.has_method("is_open") \
 			and _results_drawer.is_open():
 		_results_drawer.close()
-	# Title font-scale is moot when the Header is hidden in portrait, but harmless
-	# (restores the 32px header for landscape).
-	if _title_label:
-		_title_label.add_theme_font_size_override("font_size", 20 if portrait else 32)
+	# The title no longer needs per-orientation font gating. The scene puts it on the
+	# TextXL rung and ResponsiveManager rescales that rung per breakpoint (20 on a
+	# phone, 24 desktop, 28 wide) -- which is the 20-in-portrait this used to compute
+	# by hand. Worse, the override OUTRANKED the variation, so TextXL was dead on this
+	# one label and the two mechanisms disagreed. See docs/sop/responsive-adaptive-ui.md,
+	# "The type scale".
 
 
 func _initialize_advancement_system() -> void:
@@ -302,10 +365,20 @@ func _load_battle_results() -> void:
 			battle_results = stored
 			return
 
-	# Fallback for testing when no battle was run
+	# NO battle data. Do NOT fabricate a victory.
+	#
+	# This used to fall back to {"victory": true, "mission_type": "Opportunist", ...}.
+	# Combined with _load_battle_results() only ever running from _ready() — before
+	# any battle existed — that stub WAS the wizard's data on every run: the displayed
+	# outcome, the step gating and the manual Get Paid victory bonus all came from it.
+	#
+	# An empty result is now honest and inert: victory false, nothing earned. The
+	# authoritative backend (PostBattlePhase) still drives real state either way; this
+	# only governs what the wizard shows.
 	battle_results = {
-		"victory": true,
-		"mission_type": "Opportunist",
+		"victory": false,
+		"no_battle_data": true,
+		"mission_type": "",
 		"enemy_defeated": 0,
 		"crew_casualties": 0,
 		"crew_injuries": 0,
@@ -314,6 +387,24 @@ func _load_battle_results() -> void:
 		"story_points_earned": 0,
 		"loot_found": []
 	}
+
+
+func refresh_from_battle_results() -> void:
+	## Re-read the stored battle result and rebuild the wizard.
+	##
+	## Public entry point for CampaignTurnController._show_phase_ui's POST_MISSION arm.
+	## The panel is a permanent instanced child, so _ready() fires once at scene load —
+	## far too early — and without this the wizard kept whatever it read then.
+	_load_battle_results()
+	_initialize_steps()
+	current_step = 0
+	_refresh_steps_list()
+	_show_current_step()
+	# The backend handler is created by CampaignPhaseManager.setup(); on the FIRST
+	# load of a session that happens AFTER this panel's _ready(), so the original
+	# connect attempt bailed and NO backend signal was ever wired. Retrying here —
+	# when the phase actually starts — closes that first-load gap.
+	_connect_backend_signals()
 
 ## Sprint 20.1: Connect backend signals from PostBattlePhase
 ## This wires UI to all backend signals for real-time updates
@@ -337,61 +428,88 @@ func _connect_backend_signals() -> void:
 
 	# Connect all backend signals to UI handlers
 	if post_battle_phase.has_signal("payment_received"):
-		post_battle_phase.payment_received.connect(_on_backend_payment_received)
+		if not post_battle_phase.payment_received.is_connected(_on_backend_payment_received):
+			post_battle_phase.payment_received.connect(_on_backend_payment_received)
 
 	if post_battle_phase.has_signal("quest_progress_updated"):
-		post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
+		if not post_battle_phase.quest_progress_updated.is_connected(_on_backend_quest_progress):
+			post_battle_phase.quest_progress_updated.connect(_on_backend_quest_progress)
+
+	if post_battle_phase.has_signal("quest_step_assigned"):
+		if not post_battle_phase.quest_step_assigned.is_connected(_on_backend_quest_step):
+			post_battle_phase.quest_step_assigned.connect(_on_backend_quest_step)
 
 	if post_battle_phase.has_signal("invasion_checked"):
-		post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
+		if not post_battle_phase.invasion_checked.is_connected(_on_backend_invasion_checked):
+			post_battle_phase.invasion_checked.connect(_on_backend_invasion_checked)
 
 	if post_battle_phase.has_signal("experience_awarded"):
-		post_battle_phase.experience_awarded.connect(_on_backend_experience_awarded)
+		if not post_battle_phase.experience_awarded.is_connected(_on_backend_experience_awarded):
+			post_battle_phase.experience_awarded.connect(_on_backend_experience_awarded)
 
 	if post_battle_phase.has_signal("campaign_event_occurred"):
-		post_battle_phase.campaign_event_occurred.connect(_on_backend_campaign_event)
+		if not post_battle_phase.campaign_event_occurred.is_connected(_on_backend_campaign_event):
+			post_battle_phase.campaign_event_occurred.connect(_on_backend_campaign_event)
 
 	if post_battle_phase.has_signal("character_event_occurred"):
-		post_battle_phase.character_event_occurred.connect(_on_backend_character_event)
+		if not post_battle_phase.character_event_occurred.is_connected(_on_backend_character_event):
+			post_battle_phase.character_event_occurred.connect(_on_backend_character_event)
 
 	if post_battle_phase.has_signal("galactic_war_updated"):
-		post_battle_phase.galactic_war_updated.connect(_on_backend_galactic_war_updated)
+		if not post_battle_phase.galactic_war_updated.is_connected(_on_backend_galactic_war_updated):
+			post_battle_phase.galactic_war_updated.connect(_on_backend_galactic_war_updated)
 
 	if post_battle_phase.has_signal("training_completed"):
-		post_battle_phase.training_completed.connect(_on_backend_training_result)
+		if not post_battle_phase.training_completed.is_connected(_on_backend_training_result):
+			post_battle_phase.training_completed.connect(_on_backend_training_result)
 
 	if post_battle_phase.has_signal("precursor_event_choice_available"):
-		post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
+		if not post_battle_phase.precursor_event_choice_available.is_connected(_on_backend_precursor_event_choice):
+			post_battle_phase.precursor_event_choice_available.connect(_on_backend_precursor_event_choice)
+
+	if post_battle_phase.has_signal("illegal_salvage_checked"):
+		if not post_battle_phase.illegal_salvage_checked.is_connected(_on_backend_illegal_salvage):
+			post_battle_phase.illegal_salvage_checked.connect(_on_backend_illegal_salvage)
 
 	if post_battle_phase.has_signal("traveler_event_occurred"):
-		post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
+		if not post_battle_phase.traveler_event_occurred.is_connected(_on_backend_traveler_event):
+			post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
 
 	if post_battle_phase.has_signal("manipulator_bonus_earned"):
-		post_battle_phase.manipulator_bonus_earned.connect(_on_backend_manipulator_bonus)
+		if not post_battle_phase.manipulator_bonus_earned.is_connected(_on_backend_manipulator_bonus):
+			post_battle_phase.manipulator_bonus_earned.connect(_on_backend_manipulator_bonus)
 
 	if post_battle_phase.has_signal("loot_gathered"):
-		post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
+		if not post_battle_phase.loot_gathered.is_connected(_on_backend_loot_generated):
+			post_battle_phase.loot_gathered.connect(_on_backend_loot_generated)
 
 	if post_battle_phase.has_signal("items_consumed_in_battle"):
-		post_battle_phase.items_consumed_in_battle.connect(_on_backend_items_consumed)
+		if not post_battle_phase.items_consumed_in_battle.is_connected(_on_backend_items_consumed):
+			post_battle_phase.items_consumed_in_battle.connect(_on_backend_items_consumed)
 
 	if post_battle_phase.has_signal("injuries_resolved"):
-		post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
+		if not post_battle_phase.injuries_resolved.is_connected(_on_backend_injury_result):
+			post_battle_phase.injuries_resolved.connect(_on_backend_injury_result)
 
 	if post_battle_phase.has_signal("battlefield_finds_completed"):
-		post_battle_phase.battlefield_finds_completed.connect(_on_backend_battlefield_finds)
+		if not post_battle_phase.battlefield_finds_completed.is_connected(_on_backend_battlefield_finds):
+			post_battle_phase.battlefield_finds_completed.connect(_on_backend_battlefield_finds)
 
 	if post_battle_phase.has_signal("rival_status_resolved"):
-		post_battle_phase.rival_status_resolved.connect(_on_backend_rival_status)
+		if not post_battle_phase.rival_status_resolved.is_connected(_on_backend_rival_status):
+			post_battle_phase.rival_status_resolved.connect(_on_backend_rival_status)
 
 	if post_battle_phase.has_signal("patron_status_resolved"):
-		post_battle_phase.patron_status_resolved.connect(_on_backend_patron_status)
+		if not post_battle_phase.patron_status_resolved.is_connected(_on_backend_patron_status):
+			post_battle_phase.patron_status_resolved.connect(_on_backend_patron_status)
 
 	if post_battle_phase.has_signal("purchases_made"):
-		post_battle_phase.purchases_made.connect(_on_backend_purchases_made)
+		if not post_battle_phase.purchases_made.is_connected(_on_backend_purchases_made):
+			post_battle_phase.purchases_made.connect(_on_backend_purchases_made)
 
 	if post_battle_phase.has_signal("post_battle_substep_changed"):
-		post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
+		if not post_battle_phase.post_battle_substep_changed.is_connected(_on_backend_substep_changed):
+			post_battle_phase.post_battle_substep_changed.connect(_on_backend_substep_changed)
 
 func _exit_tree() -> void:
 	# Disconnect the ResponsiveManager rotation signal (autoload persists across scenes).
@@ -406,6 +524,8 @@ func _exit_tree() -> void:
 			_pbp.payment_received.disconnect(_on_backend_payment_received)
 		if _pbp.has_signal("quest_progress_updated") and _pbp.quest_progress_updated.is_connected(_on_backend_quest_progress):
 			_pbp.quest_progress_updated.disconnect(_on_backend_quest_progress)
+		if _pbp.has_signal("quest_step_assigned") and _pbp.quest_step_assigned.is_connected(_on_backend_quest_step):
+			_pbp.quest_step_assigned.disconnect(_on_backend_quest_step)
 		if _pbp.has_signal("invasion_checked") and _pbp.invasion_checked.is_connected(_on_backend_invasion_checked):
 			_pbp.invasion_checked.disconnect(_on_backend_invasion_checked)
 		if _pbp.has_signal("experience_awarded") and _pbp.experience_awarded.is_connected(_on_backend_experience_awarded):
@@ -452,15 +572,37 @@ func _on_backend_payment_received(amount: int) -> void:
 	_add_result_to_log("Payment received: %d credits" % amount)
 
 func _on_backend_quest_progress(progress: int) -> void:
-	## Handle quest progress update from backend
+	## Handle quest progress update from backend (Core Rules p.120 Step 3).
+	## -1 means the step did not apply — no Quest, or this battle was not part of
+	## one. Saying nothing is correct there; the old `<= 0` branch reported a
+	## "Quest Dead End" after every battle in every campaign, Quest or not.
+	if progress < 0:
+		return
 	var outcome_text: String
-	if progress <= 0:
-		outcome_text = "Quest Dead End - No progress this mission"
-	elif progress == 1:
-		outcome_text = "Quest Progress - +1 Rumor gained!"
-	else:
-		outcome_text = "Quest Finale Available! Prepare for final confrontation."
+	match progress:
+		0:
+			outcome_text = "Quest Dead End - this place was a dead end, the Quest continues"
+		1:
+			outcome_text = "Quest Progress - a step closer! +1 Quest Rumor"
+		2:
+			outcome_text = "Quest Finale Available! Prepare for final confrontation."
+		3:
+			outcome_text = "Quest Complete - the crew fought the final battle of their Quest."
+		_:
+			# 4: Expanded Quest Progression (Compendium p.79). The instruction
+			# itself arrives on quest_step_assigned; this line only frames it.
+			outcome_text = "Quest: the trail leads somewhere specific."
 	_add_result_to_log(outcome_text)
+
+## The Compendium p.79 step text (Expanded Quest Progression). This is the whole
+## point of the chapter for a companion app — the player needs the instruction,
+## not a verdict — so it goes in the log verbatim rather than being summarised.
+func _on_backend_quest_step(step: Dictionary) -> void:
+	var message: String = str(step.get("message", ""))
+	if message.is_empty():
+		return
+	var colour: String = "#D97706" if bool(step.get("pending", false)) else "#10B981"
+	_add_result_to_log("[color=%s]%s[/color]" % [colour, message])
 
 func _on_backend_invasion_checked(invasion_pending: bool) -> void:
 	## Handle invasion check result from backend
@@ -487,6 +629,16 @@ func _on_backend_campaign_event(event: Dictionary) -> void:
 	var event_desc = event.get("description", "")
 	_add_result_to_log("Campaign Event: %s - %s" % [event_name, event_desc])
 
+	# The wizard used to roll its OWN D100 and print one of five INVENTED
+	# results ("Minor positive event" and friends, bucketed at 90/70/30/10).
+	# No such table is in the book; the real 28-entry table (pp.126-128) is what
+	# the backend rolls and applies. The player was made to perform a
+	# meaningless gated roll while the actual event went by as a log line.
+	var line: String = str(event_name)
+	if not str(event_desc).is_empty():
+		line += " — " + str(event_desc)
+	_record_backend_step(STEP_CAMPAIGN_EVENT, [line])
+
 func _on_backend_character_event(event: Dictionary) -> void:
 	## PRESENT a backend-applied character event. The backend orchestrator applies
 	## the effect (finalize_event) BEFORE emitting character_event_occurred, so this
@@ -498,6 +650,16 @@ func _on_backend_character_event(event: Dictionary) -> void:
 	var event_name = event.get("name", "Unknown Event")
 	_add_result_to_log("%s: %s" % [char_name, event_name])
 
+	# p.126 allows exactly ONE event for ONE randomly selected character. The
+	# wizard used to build a roll button PER crew member on top of this one, so a
+	# six-person crew resolved SEVEN events a turn and XP, story points, rumors,
+	# Rivals, Patrons and Luck all accrued at roughly seven times the book rate.
+	var line: String = "%s: %s" % [char_name, event_name]
+	var description: String = str(event.get("description", ""))
+	if not description.is_empty():
+		line += " — " + description
+	_record_backend_step(STEP_CHARACTER_EVENT, [line])
+
 func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 	## Handle Galactic War update from backend
 	var planet_results = progress.get("planet_results", [])
@@ -506,10 +668,8 @@ func _on_backend_galactic_war_updated(progress: Dictionary) -> void:
 		var outcome = result.get("result", "unknown")
 		_add_result_to_log("Galactic War - %s: %s" % [planet_name, outcome])
 
-	# Update GalacticWarPanel if visible
-	var war_panel = step_content.find_child("GalacticWarPanel") if step_content else null
-	if war_panel and war_panel.has_method("update_war_status"):
-		war_panel.update_war_status(progress)
+	if planet_results.is_empty():
+		_add_result_to_log("Galactic War: no Invaded worlds tracked.")
 
 func _on_backend_training_result(training: Array) -> void:
 	## Handle training enrollment result from backend
@@ -528,6 +688,90 @@ func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) 
 	## Handle Precursor event choice available - auto-select first event for now
 	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
 	_handle_precursor_choice(1, event1, event2)
+
+func _on_backend_illegal_salvage(check: Dictionary) -> void:
+	## Compendium p.137 illegal salvage — the authorities check.
+	##
+	## The backend has already rolled the D6 (a roll is not a decision). This
+	## reports the outcome and, when caught, presents the MANDATORY choice the
+	## book gives: pay the roll value in credits, hand over all salvage, or take
+	## an Enforcer Rival. Before the Aug 6 audit this whole rule existed only as
+	## a line of instruction text on the salvage panel — and `is_illegal` had no
+	## producer, so even that text never appeared.
+	_add_result_to_log(SalvageJobGeneratorRef.describe_authorities_result(check))
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	var roll: int = int(check.get("roll", 0))
+
+	if not bool(check.get("caught", false)):
+		if nm and nm.has_method("show_success"):
+			nm.show_success("Illegal job: rolled %d — you got away with it." % roll)
+		return
+
+	if nm and nm.has_method("show_warning"):
+		nm.show_warning("Authorities on your trail — you must answer for the job.")
+	_show_illegal_salvage_choice(check)
+
+
+func _show_illegal_salvage_choice(check: Dictionary) -> void:
+	## Reuses ItemChoicePopup: exclusive, and its _on_close_requested deliberately
+	## refuses to close without a selection — exactly right for a consequence the
+	## player does not get to walk away from.
+	var labels: Array = []
+	var id_by_label: Dictionary = {}
+	for opt_v in check.get("options", []):
+		var opt: Dictionary = opt_v
+		var label: String = str(opt.get("label", ""))
+		if label.is_empty():
+			continue
+		labels.append(label)
+		id_by_label[label] = str(opt.get("id", ""))
+	if labels.is_empty():
+		return
+
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "Authorities On Your Trail"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			_apply_illegal_salvage_choice(str(id_by_label.get(chosen_label, ""))))
+	popup.show_choices(
+		"Rolled %d — the authorities are on your trail (Compendium p.137)."
+			% int(check.get("roll", 0)),
+		labels,
+		"Answer For The Job")
+
+
+func _apply_illegal_salvage_choice(option_id: String) -> void:
+	# `_post_battle_phase` (member, underscore) NOT `post_battle_phase` — the
+	# latter is a LOCAL inside _connect_backend_signals() and referencing it here
+	# is a parse error that takes the WHOLE script down, i.e. the entire
+	# post-battle wizard fails to load. `--headless --quit` does not catch this;
+	# it only validates startup scripts. `--headless --import` does.
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp):
+		var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("get_phase_handler"):
+			pbp = phase_manager.get_phase_handler("post_battle")
+	if pbp == null or not pbp.has_method("resolve_illegal_salvage_choice"):
+		return
+	var result: Dictionary = pbp.resolve_illegal_salvage_choice(option_id)
+	var detail: String = str(result.get("detail", ""))
+	if detail.is_empty():
+		return
+	_add_result_to_log(detail)
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_info"):
+		nm.show_info(detail)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "campaign_event",
+			"title": "Illegal Salvage — Authorities",
+			"description": detail,
+			"tags": ["post_battle", "salvage", "illegal"],
+			"mood": "somber",
+		})
+
 
 func _on_backend_traveler_event(results: Array) -> void:
 	## Strange Character: Traveler post-battle disappearance check (Core Rules p.20)
@@ -622,29 +866,85 @@ func _on_backend_items_consumed(consumed: Array) -> void:
 				_add_result_to_log("  %s used by %s" % [name, user])
 
 func _on_backend_injury_result(injuries: Array) -> void:
-	## Handle injury results from backend
+	## The backend ROLLS AND APPLIES the p.121 Injury Table (InjuryProcessor).
+	## The wizard used to roll its own D100 per casualty and display THAT, while
+	## mutating nothing — so the injury shown was never the injury suffered.
+	_backend_injuries = injuries
+	var lines: Array = []
 	for injury in injuries:
 		if injury is Dictionary:
 			var crew_name = injury.get("crew_name", "Unknown")
-			var severity = injury.get("severity", "Unknown")
+			# "severity" is the raw enum ORDINAL; "type" is the readable name the
+			# processor already puts on the same dict ("CRIPPLING_WOUND"). Every
+			# line printed a bare integer next to the crew name.
+			var severity = injury.get("type", injury.get("severity", "Unknown"))
 			var recovery = injury.get("recovery_turns", 0)
+			var extra: String = _injury_consequence_suffix(injury)
 			if injury.get("is_fatal", false):
 				_add_result_to_log("[color=#DC2626]%s: FATAL - %s[/color]" % [crew_name, severity])
+				lines.append("%s: KILLED — %s%s" % [crew_name, severity, extra])
 			elif recovery > 0:
 				_add_result_to_log("%s: %s (%d turns recovery)" % [crew_name, severity, recovery])
+				lines.append("%s: %s — %d turn(s) in Sick Bay%s" % [
+					crew_name, severity, recovery, extra])
 			else:
 				_add_result_to_log("%s: %s" % [crew_name, severity])
+				lines.append("%s: %s%s" % [crew_name, severity, extra])
+	if lines.is_empty():
+		lines.append("No crew were injured.")
+	_record_backend_step(STEP_INJURIES, lines)
+
+
+func _injury_consequence_suffix(injury: Dictionary) -> String:
+	## Core Rules p.122 consequences the backend now actually applies. Without
+	## this the player is never told a weapon broke or a stat dropped — the gear
+	## simply stops working (p.122: damaged equipment "cannot be used until it
+	## has been Repaired") with no explanation anywhere in the app.
+	var parts: Array = []
+
+	var lost: Array = injury.get("items_lost", [])
+	if not lost.is_empty():
+		parts.append("all items permanently lost (%s)" % ", ".join(lost))
+
+	var damaged: Array = injury.get("items_damaged", [])
+	if not damaged.is_empty():
+		parts.append("%s damaged — Repair before use (p.78)" % ", ".join(damaged))
+
+	var stat: String = str(injury.get("stat_reduced", ""))
+	if not stat.is_empty():
+		parts.append("%s permanently %d → %d" % [
+			stat.capitalize(),
+			int(injury.get("stat_reduced_from", 0)),
+			int(injury.get("stat_reduced_to", 0))])
+
+	if injury.get("luck_bonus", 0) > 0:
+		parts.append("+%d Luck" % int(injury.get("luck_bonus", 0)))
+
+	if injury.get("luck_death_save", false):
+		parts.append("survived on Luck — ALL Luck spent (p.121)")
+
+	if parts.is_empty():
+		return ""
+	return "; " + "; ".join(parts)
 
 func _on_backend_battlefield_finds(finds: Array) -> void:
-	## Handle battlefield finds from backend
+	## p.121: "Roll D100 ONCE on the table below." The backend rolls it and adds
+	## the find; the wizard used to roll a SECOND, different one and that was the
+	## one persisted — roughly doubling battlefield salvage across a campaign.
+	var lines: Array = []
 	for find in finds:
 		if find is Dictionary:
 			var description = find.get("description", "Unknown find")
 			var credits = find.get("credits", 0)
 			if credits > 0:
 				_add_result_to_log("Battlefield: %s (+%d credits)" % [description, credits])
+				lines.append("%s (+%d credits)" % [description, credits])
 			else:
 				_add_result_to_log("Battlefield: %s" % description)
+				lines.append(str(description))
+	if lines.is_empty():
+		lines.append("Nothing of value was found.")
+	_record_backend_step(STEP_BATTLEFIELD_FINDS, lines)
 
 func _on_backend_rival_status(rivals_removed: Array) -> void:
 	## Handle rival status resolution from backend
@@ -659,10 +959,17 @@ func _on_backend_rival_status(rivals_removed: Array) -> void:
 				_add_result_to_log("Rival %s follows you to the next world" % rival_name)
 			else:
 				_add_result_to_log("Rival %s stays behind" % rival_name)
+			_backend_rival_lines.append("%s: %s" % [
+				rival_name,
+				"still hunting you" if follows else "removed from your Rivals list"])
 			# Track rival encounter in NPCTracker
 			if npc_tracker and npc_tracker.has_method("track_rival_encounter"):
 				var result = "victory" if not follows else "ongoing"
 				npc_tracker.track_rival_encounter(str(rival_id), result, turn)
+
+	if _backend_rival_lines.is_empty():
+		_backend_rival_lines.append("No change to your Rivals list.")
+	_record_backend_step(STEP_RIVAL_STATUS, _backend_rival_lines)
 
 func _on_backend_patron_status(patrons_added: Array) -> void:
 	## Handle patron status resolution from backend
@@ -686,9 +993,19 @@ func _on_backend_purchases_made(purchases: Array) -> void:
 			_add_result_to_log("Purchased: %s (-%d credits)" % [item_name, cost])
 
 func _on_backend_substep_changed(substep: int) -> void:
-	## Handle substep change from backend - sync UI
-	if substep != current_step and substep < max_steps:
-		current_step = substep
+	## Handle substep change from backend - sync UI.
+	##
+	## OFF BY ONE: GlobalEnums.PostBattleSubPhase starts at NONE = 0, so the first real
+	## substep RIVAL_STATUS is 1 — while the wizard's step 0 IS "1. Rival Status".
+	## Assigning current_step = substep therefore advanced the UI one step ahead of the
+	## backend for the whole sequence: the backend resolved Rival Status while the
+	## player looked at Patron Status, and the final substep pushed current_step past
+	## the last card.
+	if substep <= 0:
+		return  # NONE — the backend is not on a substep yet
+	var ui_step: int = substep - 1
+	if ui_step != current_step and ui_step < max_steps:
+		current_step = ui_step
 		_show_current_step()
 
 ## Step group headers inserted before specific step indices
@@ -880,48 +1197,28 @@ func _add_step_specific_content(step_index: int) -> void:
 
 func _add_rival_status_content() -> void:
 	## Add rival status check content with Five Parsecs rules
+	## Core Rules p.119, Step 1. THE ROLL THIS STEP USED TO TEACH DOES NOT EXIST:
+	## "Rival follows on 1-3, stays behind on 4-6" appears nowhere in the book.
+	## (The real "do Rivals follow you" roll is p.72's New World Arrival step 1,
+	## a different step in a different phase, and it is a 5+.) The player was made
+	## to perform one invented, gated roll per Rival that changed nothing, while
+	## the actual p.119 outcomes — a new Rival on a 1, or a Rival removed on a 4+
+	## — were decided silently by RivalPatronResolver and shown only in the log.
 	var label: Label = Label.new()
-	label.text = "Roll D6 for each rival to see if they follow you to the next world.\nRival follows on 1-3, stays behind on 4-6."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# Get current rivals from campaign data
-	var gsm = get_node_or_null("/root/GameStateManager")
-	var rival_count: int = 0
-	if gsm and gsm.has_method("get_rivals"):
-		var rivals = gsm.get_rivals()
-		rival_count = rivals.size()
-		for rival in rivals:
-			var rival_panel = _create_rival_status_panel(rival)
-			step_content.add_child(rival_panel)
-	_register_inline_rolls(0, rival_count)
 
-func _create_rival_status_panel(rival: Dictionary) -> Control:
-	## Create a panel for rival status checking
-	# HFlow so name + roll button + result wrap to a second line on a narrow
-	# (~384px) portrait column instead of clipping the roll-outcome text.
-	var panel = HFlowContainer.new()
-	panel.add_theme_constant_override("h_separation", SPACING_SM)
-	panel.add_theme_constant_override("v_separation", SPACING_XS)
+	if _backend_resolved.has(STEP_RIVAL_STATUS):
+		label.text = "Rival status (Core Rules p.119):"
+		_present_backend_result(STEP_RIVAL_STATUS)
+	else:
+		label.text = (
+			"Rival status is resolved automatically from the battle result"
+			+ " (Core Rules p.119): a new Rival on a 1 after holding the field,"
+			+ " and an existing Rival removed on a 4+.")
+	_register_inline_rolls(0, 0)
 
-	var name_label = _make_name_label(rival.get("name", "Unknown Rival"), 150)
-	panel.add_child(name_label)
-	
-	var roll_btn = Button.new()
-	roll_btn.text = "Roll for " + rival.get("name", "Rival")
-	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	roll_btn.pressed.connect(
-		_on_rival_status_roll.bind(rival, roll_btn))
-	panel.add_child(roll_btn)
-
-	var result_label = Label.new()
-	result_label.name = "result_" + str(rival.get("id", 0))
-	result_label.text = "Not rolled"
-	_style_pending_result(result_label)
-	panel.add_child(result_label)
-
-	return panel
 
 func _add_patron_status_content() -> void:
 	## Add patron status content
@@ -984,7 +1281,7 @@ func _add_payment_content() -> void:
 	rules_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rules_note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	rules_note.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	rules_note.add_theme_color_override(
 		"font_color", COLOR_TEXT_MUTED)
 	step_content.add_child(rules_note)
@@ -1018,19 +1315,42 @@ func _add_battlefield_finds_content() -> void:
 		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		step_content.add_child(label)
 
-		var find_btn := Button.new()
-		find_btn.text = "Roll Battlefield Finds (D100)"
-		find_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-		find_btn.pressed.connect(_on_battlefield_finds_d100_pressed.bind(find_btn))
-		step_content.add_child(find_btn)
+		# p.121 is "Roll D100 ONCE". If the backend already rolled and applied it,
+		# show what happened instead of offering a second, contradictory roll.
+		if _backend_resolved.has(STEP_BATTLEFIELD_FINDS):
+			label.text = "Held the Field! Battlefield Finds (Core Rules p.121):"
+			_present_backend_result(STEP_BATTLEFIELD_FINDS)
+			_register_inline_rolls(4, 0)
+		else:
+			var find_btn := Button.new()
+			find_btn.text = "Roll Battlefield Finds (D100)"
+			find_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+			find_btn.pressed.connect(_on_battlefield_finds_d100_pressed.bind(find_btn))
+			step_content.add_child(find_btn)
 
-		var result_label := Label.new()
-		result_label.name = "BattlefieldFindsResult"
-		result_label.text = ""
-		result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		step_content.add_child(result_label)
-		_register_inline_rolls(4, 1)
+			var result_label := Label.new()
+			result_label.name = "BattlefieldFindsResult"
+			result_label.text = ""
+			result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			step_content.add_child(result_label)
+			_register_inline_rolls(4, 1)
+
+
+func _present_backend_result(step_index: int) -> void:
+	## Read-only presentation of a step the backend already applied. Mirrors the
+	## "already resolved" shape the loot handler has always used.
+	for line: Variant in _backend_resolved.get(step_index, []):
+		var entry := Label.new()
+		entry.text = "• " + str(line)
+		entry.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		entry.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(entry)
+	var note := Label.new()
+	note.text = "Already applied to your crew."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+	step_content.add_child(note)
 
 func _create_battlefield_find_panel(enemy_num: int) -> Control:
 	## Create a panel for battlefield finds
@@ -1106,6 +1426,19 @@ func _add_injury_content() -> void:
 	var casualties = battle_results.get("crew_casualties", 0)
 	var injuries = battle_results.get("crew_injuries", 0)
 	
+	# The backend already rolled the p.121 Injury Table and APPLIED the result
+	# (death, Sick Bay turns, stat loss). Re-rolling here showed the player a
+	# different injury from the one their character actually suffered.
+	if _backend_resolved.has(STEP_INJURIES):
+		var header := Label.new()
+		header.text = "Injuries suffered (Core Rules p.121):"
+		header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		step_content.add_child(header)
+		_present_backend_result(STEP_INJURIES)
+		_add_surgery_offers()
+		_register_inline_rolls(7, 0)
+		return
+
 	var total_injury_rolls: int = 0
 	if casualties > 0 or injuries > 0:
 		var injury_container = VBoxContainer.new()
@@ -1131,6 +1464,101 @@ func _add_injury_content() -> void:
 		no_injuries_label.modulate = UIColors.COLOR_EMERALD
 		step_content.add_child(no_injuries_label)
 	_register_inline_rolls(7, total_injury_rolls)
+
+func _add_surgery_offers() -> void:
+	## Core Rules p.122, Injury Table 31-45 Crippling wound: "Require 1D6 credits
+	## of surgery immediately, OR suffer -1 permanent reduction to highest of
+	## Speed or Toughness."
+	##
+	## The backend already applied the reduction — see
+	## InjuryProcessor._apply_crippling_wound for why that ordering is the only
+	## one that cannot silently no-op. This is the pay-to-undo half, and it uses
+	## the same inline-nudge shape as the "Looked worse than it was!" star so the
+	## injury step keeps one interaction vocabulary.
+	for injury: Variant in _backend_injuries:
+		if not (injury is Dictionary):
+			continue
+		if not injury.get("surgery_offer_available", false):
+			continue
+		var cost: int = int(injury.get("surgery_cost", 0))
+		var stat: String = str(injury.get("stat_reduced", ""))
+		if cost <= 0 or stat.is_empty():
+			continue
+
+		var credits: int = _get_current_credits()
+		var crew_name: String = str(injury.get("crew_name", "Crew member"))
+		var btn := Button.new()
+		btn.custom_minimum_size.y = TOUCH_TARGET_MIN
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if credits >= cost:
+			btn.text = "Pay %d credits of surgery — restore %s's %s to %d" % [
+				cost, crew_name, stat.capitalize(),
+				int(injury.get("stat_reduced_from", 0))]
+			btn.pressed.connect(_on_surgery_pressed.bind(injury, btn))
+		else:
+			btn.disabled = true
+			btn.text = "Surgery costs %d credits — you have %d (%s keeps the -1 %s)" % [
+				cost, credits, crew_name, stat.capitalize()]
+		step_content.add_child(btn)
+
+
+func _on_surgery_pressed(injury: Dictionary, btn: Button) -> void:
+	var cost: int = int(injury.get("surgery_cost", 0))
+	var stat: String = str(injury.get("stat_reduced", ""))
+	var restore_to: int = int(injury.get("stat_reduced_from", 0))
+	var crew_id: String = str(injury.get("crew_id", ""))
+	var crew_name: String = str(injury.get("crew_name", "Crew member"))
+	btn.disabled = true
+
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_credits") \
+			or not gsm.has_method("set_credits"):
+		btn.text = "Surgery unavailable — no campaign state"
+		return
+	var credits: int = gsm.get_credits()
+	if credits < cost:
+		btn.text = "Surgery costs %d credits — you have %d" % [cost, credits]
+		return
+
+	var member: Variant = _find_crew_member_by_id(crew_id)
+	if member == null:
+		btn.text = "Surgery failed — %s is no longer with the crew" % crew_name
+		return
+
+	gsm.set_credits(credits - cost)
+	if member is Dictionary:
+		member[stat] = restore_to
+	else:
+		member.set(stat, restore_to)
+
+	# The surgery undoes the wound's permanent half; the offer must not survive a
+	# step revisit or the player could buy the same restoration twice.
+	injury.erase("surgery_offer_available")
+	injury.erase("stat_reduced")
+
+	btn.text = "Surgery paid: %d credits — %s's %s restored to %d" % [
+		cost, crew_name, stat.capitalize(), restore_to]
+	_add_result_to_log(
+		"%s: paid %d credits of surgery, %s restored to %d (Core Rules p.122)" % [
+			crew_name, cost, stat.capitalize(), restore_to])
+
+
+func _find_crew_member_by_id(crew_id: String) -> Variant:
+	if crew_id.is_empty():
+		return null
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_crew_members"):
+		return null
+	for member: Variant in gsm.get_crew_members():
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif "character_id" in member:
+			mid = str(member.character_id)
+		if mid == crew_id:
+			return member
+	return null
+
 
 func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	## Create a panel for injury resolution
@@ -1168,7 +1596,11 @@ func _add_experience_content() -> void:
 	##
 	## Per Core Rules p.98: Bots don't gain XP - they purchase upgrades with credits instead.
 	var label: Label = Label.new()
-	label.text = "Crew members gain experience from battle. Roll for advancement!"
+	# Core Rules p.123: "If a character has enough Experience Points, you may
+	# SPEND XP at this point to acquire a Character Upgrade." No roll is involved,
+	# and the old copy ("Roll for advancement!") promised one the book does not
+	# have and the button did not deliver.
+	label.text = "Crew earned XP. Spend it on the Ability Increase Table (Core Rules p.123)."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
@@ -1224,35 +1656,110 @@ func _add_experience_content() -> void:
 	step_content.add_child(story_label)
 
 func _create_experience_panel(crew_member: Dictionary) -> Control:
-	## Create experience gain panel for crew member
-	# HFlow so name + roll button + result wrap on a narrow (~384px) portrait
-	# column instead of clipping the advancement text.
-	var panel = HFlowContainer.new()
-	panel.add_theme_constant_override("h_separation", SPACING_SM)
-	panel.add_theme_constant_override("v_separation", SPACING_XS)
+	## Core Rules p.123 Character Upgrades: XP is SPENT on the Ability Increase
+	## Table. It is not rolled for.
+	##
+	## THE FABRICATION THIS REPLACES: this panel offered a "Roll Advancement"
+	## button that rolled a D6 and printed "Major advancement - gain 2 skill
+	## points!" on a 6, "gain 1 skill point" on 4-5, "No advancement this time"
+	## otherwise — then mutated NOTHING. There is no advancement roll anywhere in
+	## Five Parsecs and no such currency as a "skill point"; p.123 gives fixed XP
+	## costs per ability (Reactions 7, Combat Skill 7, Speed 5, Savvy 5,
+	## Toughness 6, Luck 10) with per-ability maxima. So the step told the player
+	## they had advanced, every battle, in a currency that does not exist, while
+	## the character sheet never moved.
+	##
+	## Project policy on a mechanic that is not in either book is removal, not
+	## repair. The real spend already existed on the character sheet via
+	## CharacterAdvancementService; this surfaces it where the wizard promised it.
+	var panel = VBoxContainer.new()
+	panel.add_theme_constant_override("separation", SPACING_XS)
 
-	var name_label = _make_name_label(crew_member.get("name", "Unknown"), 120)
-	panel.add_child(name_label)
+	var row = HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", SPACING_SM)
+	row.add_theme_constant_override("v_separation", SPACING_XS)
+	row.add_child(_make_name_label(crew_member.get("name", "Unknown"), 120))
 
-	var roll_button = Button.new()
-	roll_button.text = "Roll Advancement"
-	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
-	panel.add_child(roll_button)
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = TOUCH_TARGET_MIN
+	row.add_child(picker)
 
-	var result_label = Label.new()
-	result_label.name = "exp_result_" + str(crew_member.get("id", 0))
-	result_label.text = "Not rolled"
-	_style_pending_result(result_label)
-	panel.add_child(result_label)
-	# Bind the button + label so the handler can LOCK the button (one advancement
-	# roll per crew per battle — the button used to stay enabled, letting a crew
-	# stack advancements) and update the inline result directly. The old
-	# find_child("exp_result_...") lookup never matched the dynamically-added
-	# label (owner unset -> find_child's owned=true default skips it), so the
-	# inline status stayed "Not rolled" while only the log updated.
-	roll_button.pressed.connect(_on_experience_roll.bind(crew_member, roll_button, result_label))
-	
+	var buy_button := Button.new()
+	buy_button.text = "Spend XP"
+	buy_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+	row.add_child(buy_button)
+	panel.add_child(row)
+
+	var status := Label.new()
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_child(status)
+
+	_refresh_advancement_row(crew_member, picker, buy_button, status)
+	buy_button.pressed.connect(
+		_on_advancement_purchase.bind(crew_member, picker, buy_button, status))
 	return panel
+
+
+func _refresh_advancement_row(
+	crew_member: Dictionary, picker: OptionButton,
+	buy_button: Button, status: Label
+) -> void:
+	## Rebuild the affordable-advancement list from the character's CURRENT XP.
+	picker.clear()
+	var xp: int = int(crew_member.get("experience", crew_member.get("xp", 0)))
+	var options: Array[Dictionary] = AdvancementServiceClass.get_available_advancements(
+		crew_member)
+
+	if options.is_empty():
+		picker.disabled = true
+		buy_button.disabled = true
+		status.text = "%d XP — nothing affordable yet (p.123 costs: Speed/Savvy 5, Toughness 6, Reactions/Combat 7, Luck 10)" % xp
+		_style_pending_result(status)
+		return
+
+	for opt in options:
+		var stat_name: String = str(opt.get("stat", ""))
+		picker.add_item("%s %d→%d (%d XP)" % [
+			stat_name.capitalize().replace("_", " "),
+			int(opt.get("current", 0)), int(opt.get("current", 0)) + 1,
+			int(opt.get("cost", 0))])
+		picker.set_item_metadata(picker.item_count - 1, stat_name)
+	picker.disabled = false
+	buy_button.disabled = false
+	picker.select(0)
+	status.text = "%d XP available" % xp
+	status.modulate = UIColors.COLOR_TEXT_PRIMARY
+
+
+func _on_advancement_purchase(
+	crew_member: Dictionary, picker: OptionButton,
+	buy_button: Button, status: Label
+) -> void:
+	if picker.selected < 0:
+		return
+	var stat_name: String = str(picker.get_item_metadata(picker.selected))
+	if stat_name.is_empty():
+		return
+
+	var result: Dictionary = AdvancementServiceClass.advance_stat(crew_member, stat_name)
+	if not result.get("success", false):
+		status.text = str(result.get("message", "Cannot advance that ability."))
+		status.modulate = UIColors.COLOR_AMBER
+		return
+
+	# advance_stat mutates the dictionary in place; crew_member is the LIVE crew
+	# entry from GameStateManager.get_crew_members(), so the sheet moves with it.
+	status.text = "%s %d → %d — %d XP left" % [
+		stat_name.capitalize().replace("_", " "),
+		int(result.get("old_value", 0)), int(result.get("new_value", 0)),
+		int(result.get("xp_remaining", 0))]
+	status.modulate = UIColors.COLOR_EMERALD
+	_add_result_to_log("%s: %s raised to %d, %d XP remaining (Core Rules p.123)" % [
+		crew_member.get("name", "Crew"), stat_name.capitalize().replace("_", " "),
+		int(result.get("new_value", 0)), int(result.get("xp_remaining", 0))])
+
+	_refresh_advancement_row(crew_member, picker, buy_button, status)
 
 
 func _is_crew_member_bot(crew_member: Dictionary) -> bool:
@@ -1455,57 +1962,30 @@ func _get_ship_stash() -> Array:
 
 func _add_campaign_events_content() -> void:
 	## Add campaign events content with Five Parsecs event tables
+	## Core Rules p.125 step 12: "Roll D100 on the Campaign Event Table. Apply the
+	## result immediately." The backend rolls the REAL 28-entry table (pp.126-128,
+	## data/campaign_tables/campaign_events.json) and applies it.
+	##
+	## This step used to roll its own D100 and print one of five INVENTED results
+	## — "Major positive event!", "Minor positive event", "No significant event",
+	## "Minor complication", "Major complication!" — bucketed at 90/70/30/10. No
+	## such table is in the book. So the player performed a gated, meaningless
+	## roll and saw "Rolled 73 - Minor positive event", while the actual event
+	## (say "Tax Man: Paid 5 Credits") went past as a separate log line.
 	var label: Label = Label.new()
-	label.text = "Roll D100 on campaign events table for random encounters and opportunities."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# HFlow so the roll button + result wrap on a narrow (~384px) portrait column
-	# instead of clipping the campaign-event text.
-	var roll_panel = HFlowContainer.new()
-	roll_panel.add_theme_constant_override("h_separation", SPACING_SM)
-	roll_panel.add_theme_constant_override("v_separation", SPACING_XS)
 
-	var roll_btn = Button.new()
-	roll_btn.text = "Roll Campaign Event"
-	roll_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
-	roll_btn.pressed.connect(
-		_on_campaign_event_roll.bind(roll_btn))
-	roll_panel.add_child(roll_btn)
-
-	var result_label = Label.new()
-	result_label.name = "campaign_event_result"
-	result_label.text = "Not rolled"
-	roll_panel.add_child(result_label)
-
-	step_content.add_child(roll_panel)
-	_register_inline_rolls(11, 1)
-
-func _on_campaign_event_roll(btn: Button = null) -> void:
-	## Handle campaign event roll
-	if btn:
-		btn.disabled = true
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d100("Campaign Event")
+	if _backend_resolved.has(STEP_CAMPAIGN_EVENT):
+		label.text = "Campaign Event (Core Rules pp.126-128):"
+		_present_backend_result(STEP_CAMPAIGN_EVENT)
 	else:
-		roll = randi_range(1, 100)
+		label.text = (
+			"The Campaign Event is rolled on the D100 table (Core Rules"
+			+ " pp.126-128) and applied automatically.")
+	_register_inline_rolls(11, 0)
 
-	var event_result = _interpret_campaign_event(roll)
-	var result_text = "Rolled %d - %s" % [roll, event_result]
-
-	# Update UI
-	var result_label = step_content.find_child(
-		"campaign_event_result")
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = _get_event_color(roll)
-
-	_add_result_to_log("Campaign Event: %s" % result_text)
-	_increment_inline_roll()
 
 func _get_event_color(roll: int) -> Color:
 	## Get color for event based on roll
@@ -1522,28 +2002,49 @@ func _get_event_color(roll: int) -> Color:
 
 func _add_character_events_content() -> void:
 	## Add character events content with individual crew rolls
+	## Core Rules p.126, verbatim: "13. Roll for a Character Event. Select a
+	## random non-Bot, non-Soulless character, and roll D100 on the Character
+	## Event Table." ONE character, ONE roll.
 	var label: Label = Label.new()
-	label.text = "Roll D100 on character events table for each crew member."
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	step_content.add_child(label)
-	
-	# Get crew from campaign
+
+	if _backend_resolved.has(STEP_CHARACTER_EVENT):
+		label.text = "Character Event (Core Rules p.126):"
+		_present_backend_result(STEP_CHARACTER_EVENT)
+		_register_inline_rolls(12, 0)
+		return
+
+	label.text = (
+		"Roll D100 on the Character Event Table for one randomly selected"
+		+ " non-Bot, non-Soulless crew member.")
+
+	# ONE eligible character, chosen at random — not a panel per crew member,
+	# which is what made a six-person crew resolve seven events every turn.
 	var gsm_char = get_node_or_null("/root/GameStateManager")
-	var char_roll_count: int = 0
+	var eligible: Array = []
 	if gsm_char and gsm_char.has_method("get_crew_members"):
-		var crew = gsm_char.get_crew_members()
-		var char_events_container = VBoxContainer.new()
+		for crew_member in gsm_char.get_crew_members():
+			if _was_crew_casualty(crew_member):
+				continue
+			# p.126 excludes Bots and Soulless from the table entirely.
+			if bool(crew_member.get("is_bot", false)) \
+					or bool(crew_member.get("is_soulless", false)):
+				continue
+			eligible.append(crew_member)
 
-		for crew_member in crew:
-			if not _was_crew_casualty(crew_member):
-				var char_panel = _create_character_event_panel(
-					crew_member)
-				char_events_container.add_child(char_panel)
-				char_roll_count += 1
+	if eligible.is_empty():
+		var none := Label.new()
+		none.text = "No eligible crew for a Character Event this turn."
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		step_content.add_child(none)
+		_register_inline_rolls(12, 0)
+		return
 
-		step_content.add_child(char_events_container)
-	_register_inline_rolls(12, char_roll_count)
+	var chosen: Dictionary = eligible[randi() % eligible.size()]
+	step_content.add_child(_create_character_event_panel(chosen))
+	_register_inline_rolls(12, 1)
 
 func _create_character_event_panel(crew_member: Dictionary) -> Control:
 	## Create character event panel for crew member
@@ -1612,29 +2113,42 @@ func _on_character_event_roll(crew_member: Dictionary, btn: Button = null) -> vo
 	_increment_inline_roll()
 
 func _add_galactic_war_content() -> void:
-	## Add galactic war content using GalacticWarPanel
+	## Check for Galactic War Progress (Core Rules p.126 step 14).
+	##
+	## This step used to instantiate GalacticWarPanel, which rendered "war
+	## tracks" — a system that appears in NEITHER rulebook (verified with PyPDF2
+	## across both PDFs; the Compendium index lists exactly one entry, "Galactic
+	## War Progress 126"). That whole subsystem was fabricated AND inert, so the
+	## step showed a permanently-empty panel. Meanwhile the REAL result — the
+	## 2D6 roll per tracked Invaded planet — was already arriving via
+	## _on_backend_galactic_war_updated and being logged as text.
 	if not step_content:
 		return
 
-	# Remove description — component has its own header
-	for child in step_content.get_children():
-		step_content.remove_child(child)
-		child.queue_free()
+	var label: Label = Label.new()
+	label.text = ("Roll 2D6 for each planet you are tracking that was previously Invaded.\n"
+		+ "2-4 Lost to Unity  •  5-7 Contested  •  8-9 Making Ground (+1 to future rolls)\n"
+		+ "10+ Unity Victorious (world visitable again, future Invasion Threat at -2)")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	step_content.add_child(label)
 
-	# Instantiate war panel
-	var panel = WarPanel.instantiate()
-	if panel:
-		# Add to tree FIRST so @onready vars resolve
-		step_content.add_child(panel)
+	var tracked: Array = []
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "invaded_planets" in gs.current_campaign:
+		tracked = gs.current_campaign.invaded_planets
 
-		# Connect signals before setup
-		if panel.has_signal("war_panel_closed"):
-			panel.war_panel_closed.connect(_on_war_panel_closed)
-
-		# Setup AFTER add_child so @onready node refs are valid
-		if panel.has_method("setup"):
-			var war_events = _get_war_events()
-			panel.setup(war_events)
+	var status: Label = Label.new()
+	if tracked.is_empty():
+		status.text = "\nNo Invaded worlds are being tracked — nothing to roll."
+	else:
+		var names: Array = []
+		for planet in tracked:
+			if planet is Dictionary:
+				names.append(str(planet.get("name", planet.get("id", "?"))))
+		status.text = "\nTracking %d Invaded world(s): %s" % [tracked.size(), ", ".join(names)]
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	step_content.add_child(status)
 
 func _get_current_turn() -> int:
 	var gs = get_node_or_null("/root/GameState")
@@ -1649,7 +2163,7 @@ func _add_result_to_log(result: String) -> void:
 	result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	result_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	result_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	result_label.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	results_container.add_child(result_label)
@@ -1680,7 +2194,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 		UIColors.COLOR_EMERALD.g,
 		UIColors.COLOR_EMERALD.b, 0.4)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(float(SPACING_SM))
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -1689,7 +2203,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 
 	var header := Label.new()
 	header.text = "RESULT"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	header.add_theme_color_override(
 		"font_color", UIColors.COLOR_EMERALD)
 	vbox.add_child(header)
@@ -1700,7 +2214,7 @@ func _add_inline_results_if_available(step_idx: int) -> void:
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY)
 		vbox.add_child(lbl)
@@ -1884,7 +2398,7 @@ func _style_side_panels() -> void:
 			UIColors.COLOR_BORDER.b, 0.5
 		)
 		style.set_border_width_all(1)
-		style.set_corner_radius_all(8)
+		style.set_corner_radius_all(4)
 		style.content_margin_left = float(SPACING_SM)
 		style.content_margin_right = float(SPACING_SM)
 		style.content_margin_top = float(SPACING_SM)
@@ -1913,18 +2427,6 @@ func _interpret_loot_roll(roll: int) -> String:
 	else:
 		return "No loot"
 
-func _interpret_campaign_event(roll: int) -> String:
-	## Interpret campaign event roll
-	if roll >= 90:
-		return "Major positive event!"
-	elif roll >= 70:
-		return "Minor positive event"
-	elif roll >= 30:
-		return "No significant event"
-	elif roll >= 10:
-		return "Minor complication"
-	else:
-		return "Major complication!"
 
 func _interpret_character_event(roll: int) -> Dictionary:
 	## Look up character event from JSON data (Core Rules pp.128-130).
@@ -1946,34 +2448,6 @@ func _interpret_character_event(roll: int) -> Dictionary:
 
 # Enhanced signal handlers for specific rolls
 
-func _on_rival_status_roll(rival: Dictionary, btn: Button) -> void:
-	## Handle rival status roll
-	btn.disabled = true
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d6(
-			"Rival Status: " + rival.get("name", "Unknown"))
-	else:
-		roll = randi_range(1, 6)
-
-	var follows = roll <= 3
-	var result_text = "Rolled %d - %s" % [
-		roll, "Follows" if follows else "Stays behind"]
-
-	# Update UI
-	var result_label = step_content.find_child(
-		"result_" + str(rival.get("id", 0)))
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = (
-			UIColors.COLOR_EMERALD if follows
-			else UIColors.COLOR_RED)
-
-	_add_result_to_log(
-		"%s: %s" % [rival.get("name", "Rival"), result_text])
-	_increment_inline_roll()
 
 func _on_roll_payment_pressed(btn: Button = null) -> void:
 	## Core Rules p.120: Roll 1D6 credits. Won objective: treat 1-2 as 3.
@@ -2248,7 +2722,7 @@ func _add_stars_nudge_for_injury(
 	btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_BLUE)
 	btn.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	btn.pressed.connect(
 		_on_stars_nudge_pressed.bind(
 			SA.LOOKED_WORSE, type, num,
@@ -2621,33 +3095,6 @@ func _add_loot_to_inventory(loot_items: Array) -> void:
 	if not parts.is_empty():
 		_add_result_to_log("Added to campaign: %s" % ", ".join(parts))
 
-func _on_experience_roll(crew_member: Dictionary, roll_button: Button = null, result_label: Label = null) -> void:
-	## Handle experience advancement roll
-	# Lock the button first so a crew can't stack multiple advancement rolls in
-	# one post-battle (Core Rules: one advancement roll per crew per battle).
-	if roll_button:
-		roll_button.disabled = true
-		roll_button.text = "Rolled"
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d6("Advancement: " + crew_member.get("name", "Unknown"))
-	else:
-		roll = randi_range(1, 6)
-
-	var advancement = _interpret_advancement_roll(roll)
-	var result_text = "Rolled %d - %s" % [roll, advancement]
-
-	# Update UI — prefer the bound label; fall back to find_child for safety.
-	if result_label == null:
-		result_label = step_content.find_child("exp_result_" + str(crew_member.get("id", 0)))
-	if result_label:
-		result_label.text = result_text
-		result_label.modulate = UIColors.COLOR_EMERALD if roll >= 4 else UIColors.COLOR_TEXT_SECONDARY
-
-	_add_result_to_log("%s: %s" % [crew_member.get("name", "Crew"), result_text])
-
 func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
 	## Interpret injury roll using Five Parsecs injury table
 	if is_casualty:
@@ -2666,15 +3113,6 @@ func _interpret_injury_roll(roll: int, is_casualty: bool) -> String:
 			return "Light injury - 1 turn recovery"
 		else:
 			return "Serious injury - 2 turns recovery"
-
-func _interpret_advancement_roll(roll: int) -> String:
-	## Interpret advancement roll
-	if roll == 6:
-		return "Major advancement - gain 2 skill points!"
-	elif roll >= 4:
-		return "Advancement - gain 1 skill point"
-	else:
-		return "No advancement this time"
 
 func _get_injury_color(severity: String) -> Color:
 	## Get color for injury severity
@@ -2719,30 +3157,25 @@ func _was_crew_casualty(crew_member: Dictionary) -> bool:
 
 	return false
 
-func _get_war_events() -> Array:
-	## Return war events from battle results or state manager
-	if battle_results and battle_results.has("war_events"):
-		return battle_results.get("war_events", [])
-	return []
-
-func _on_war_panel_closed() -> void:
-	## Handle war panel closed signal
-	_advance_to_next_step()
-
 func _advance_to_next_step() -> void:
 	## Advance to next step (used by war panel and other components)
 	_on_next_pressed()
 
 func _get_current_crew() -> Array[Resource]:
 	## Get current crew members as Resource array for training dialog
-	var crew_array: Array[Resource] = []
+	## UNTYPED, and unfiltered. crew_data["members"] holds Character RESOURCES on
+	## a fresh campaign and DICTIONARIES on every loaded save. The old
+	## `Array[Resource]` plus `if crew_member is Resource` dropped every member of
+	## a loaded campaign, so the Advanced Training step opened with an EMPTY
+	## character list for anyone who had saved and come back — which is precisely
+	## the crew that has accumulated enough XP to want it. The dialog reads both
+	## shapes through its own accessors.
+	var crew_array: Array = []
 	var gsm_get_crew = get_node_or_null("/root/GameStateManager")
 
 	if gsm_get_crew and gsm_get_crew.has_method("get_crew_members"):
-		var crew = gsm_get_crew.get_crew_members()
-		# Convert to Resource array if needed
-		for crew_member in crew:
-			if crew_member is Resource:
+		for crew_member in gsm_get_crew.get_crew_members():
+			if crew_member != null:
 				crew_array.append(crew_member)
 
 	return crew_array
@@ -2754,21 +3187,37 @@ func _get_current_credits() -> int:
 		return game_state.get_credits()
 	return 0
 
-func _on_training_completed(character: Resource, training_type: String) -> void:
-	## Handle training completion from TrainingSelectionDialog
-	# Store training result
+func _on_training_completed(
+	character: Variant, training_type: String, payment: Dictionary = {}
+) -> void:
+	## Handle training completion from TrainingSelectionDialog. The dialog has
+	## already charged the fee, spent the XP/credits and recorded the course
+	## (Core Rules p.124) — this is the log and the step record.
 	if current_step >= 0 and current_step < step_results.size():
 		if not step_results[current_step].has("training_completed"):
 			step_results[current_step]["training_completed"] = []
 		step_results[current_step]["training_completed"].append({
 			"character": character,
 			"training_type": training_type,
+			"payment": payment,
 			"timestamp": Time.get_unix_time_from_system()
 		})
 
-	# Add to results log
-	var char_name = character.get("character_name") if character else "Unknown"
-	_add_result_to_log("%s completed %s training" % [char_name, training_type])
+	# `character.get("character_name")` is the 1-arg Object.get() on a Resource
+	# and a Dictionary lookup on a dict — both work, but a Character Resource
+	# returns null for a missing property, so str() the result rather than
+	# printing "<null>" into the log.
+	var char_name: String = "Unknown"
+	if character is Dictionary:
+		char_name = str(character.get("character_name", character.get("name", "Unknown")))
+	elif character and "character_name" in character:
+		char_name = str(character.character_name)
+
+	var paid: String = ""
+	if not payment.is_empty():
+		paid = " (%d XP + %d credits)" % [
+			int(payment.get("xp_spent", 0)), int(payment.get("credits_spent", 0))]
+	_add_result_to_log("%s completed %s training%s" % [char_name, training_type, paid])
 
 func _on_training_closed() -> void:
 	## Handle training dialog closed signal

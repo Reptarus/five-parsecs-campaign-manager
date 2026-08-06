@@ -237,15 +237,11 @@ const PATHS = {
 	"logs": "user://logs/"
 }
 
-# Version Information
-const VERSION = {
-	"major": 1,
-	"minor": 0,
-	"patch": 0,
-	"build": "production",
-	"five_parsecs_rules": "2023 Edition",
-	"godot_version": "4.4"
-}
+# Version information deliberately lives in project.godot, NOT here.
+# Read it with ProjectSettings.get_setting("application/config/version").
+# A duplicated VERSION dict used to sit at this spot with zero consumers and
+# stale values (1.0.0 / Godot 4.4 against the real 0.9.7-dev / 4.6); it was
+# removed rather than corrected so there is one source of truth.
 
 ## Helper Methods for Constant Access
 
@@ -321,8 +317,10 @@ static func get_tutorial_config(config_key: String) -> Variant:
 	return TUTORIAL.get(config_key, null)
 
 static func get_version_string() -> String:
-	## Get formatted version string
-	return "%d.%d.%d-%s" % [VERSION.major, VERSION.minor, VERSION.patch, VERSION.build]
+	## Formatted version string, read from the single source of truth in
+	## project.godot. Previously assembled from a local VERSION dict that had
+	## drifted to 1.0.0 while the project was on 0.9.7-dev.
+	return str(ProjectSettings.get_setting("application/config/version", "unknown"))
 
 static func get_combat_constant(constant_key: String) -> Variant:
 	## Get combat system constant

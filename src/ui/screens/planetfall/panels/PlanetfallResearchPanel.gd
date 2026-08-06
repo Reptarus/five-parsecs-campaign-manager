@@ -10,15 +10,15 @@ signal phase_completed(result_data: Dictionary)
 const PlanetfallResearchScript := preload(
 	"res://src/core/systems/PlanetfallResearchSystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_CYAN := Color("#4FC3F7")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -97,14 +97,14 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 14: RESEARCH"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
 
 	_rp_label = Label.new()
 	_rp_label.text = "Research Points: 0"
-	_rp_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_rp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_rp_label.add_theme_color_override("font_color", COLOR_CYAN)
 	_rp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_rp_label)
@@ -133,7 +133,7 @@ func _build_ui() -> void:
 
 	_continue_btn = Button.new()
 	_continue_btn.text = "Done Researching"
-	_continue_btn.custom_minimum_size = Vector2(220, 48)
+	_continue_btn.custom_minimum_size = Vector2(0, 48)
 	_continue_btn.pressed.connect(_on_continue_pressed)
 	vbox.add_child(_continue_btn)
 	_continue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
@@ -146,7 +146,7 @@ func _build_ui() -> void:
 func _build_theory_list() -> void:
 	var header := Label.new()
 	header.text = "THEORIES"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_theory_list.add_child(header)
 
@@ -196,7 +196,7 @@ func _show_theory_detail(theory_id: String) -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = tname
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_detail_container.add_child(name_lbl)
 
@@ -205,14 +205,14 @@ func _show_theory_detail(theory_id: String) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = theory.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc)
 
 	var cost_lbl := Label.new()
 	cost_lbl.text = "Theory Cost: %d/%d RP | App Cost: %d RP each" % [
 		progress, theory_cost, app_cost]
-	cost_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	cost_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	cost_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	_detail_container.add_child(cost_lbl)
 
@@ -233,7 +233,7 @@ func _show_theory_detail(theory_id: String) -> void:
 	if not apps.is_empty():
 		var apps_header := Label.new()
 		apps_header.text = "Applications:"
-		apps_header.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		apps_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		apps_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		_detail_container.add_child(apps_header)
 
@@ -248,7 +248,7 @@ func _show_theory_detail(theory_id: String) -> void:
 			var app_lbl := Label.new()
 			var status: String = "[UNLOCKED]" if unlocked else "[locked]"
 			app_lbl.text = "  %s (%s) %s" % [aname, atype, status]
-			app_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+			app_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			app_lbl.add_theme_color_override(
 				"font_color",
 				COLOR_SUCCESS if unlocked else COLOR_TEXT_SECONDARY)
@@ -360,7 +360,7 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

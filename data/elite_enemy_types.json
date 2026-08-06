@@ -1,586 +1,1720 @@
 {
   "elite_level_enemies": {
-	"general_rules": [
-	  "Elite-level enemies are more persistent. When traveling to a new world, roll 1D6 for each Elite Rival you have: On a 4+ they opt to follow you to the new world.",
-	  "When facing elite-level enemies, roll up their size as normal. If the size would be less than 4 figures, increase it to 4.",
-	  "If you outnumber the enemy, they are automatically accompanied by a Unique Individual. If you do not outnumber them, roll normally, but a 7+ is required instead of the usual 9+."
-	],
-	"squad_composition": [
-	  {
-		"size": 4,
-		"basic": 3,
-		"specialists": 1,
-		"lieutenants": 0,
-		"captain": 0
-	  },
-	  {
-		"size": 5,
-		"basic": 2,
-		"specialists": 2,
-		"lieutenants": 1,
-		"captain": 0
-	  },
-	  {
-		"size": 6,
-		"basic": 3,
-		"specialists": 2,
-		"lieutenants": 1,
-		"captain": 0
-	  },
-	  {
-		"size": "7+",
-		"basic": "3+",
-		"specialists": 2,
-		"lieutenants": 1,
-		"captain": 1
-	  }
-	],
-	"unit_types": [
-	  {
-		"type": "Basic Enemies",
-		"description": "Armed with the basic weapon for their type."
-	  },
-	  {
-		"type": "Specialists",
-		"description": "Armed with the specialist weapon for their type. If Combat Skill is +0, increase it to +1."
-	  },
-	  {
-		"type": "Lieutenant",
-		"description": "Armed with the basic weapon for their type, plus a Blade. Combat Skill is increased by +1. Fearless. If the character is normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
-	  },
-	  {
-		"type": "Captain",
-		"description": "Armed with the basic weapon for their type, plus a Ripper Sword. Combat Skill is increased by +1. Fearless. If Toughness is less than 5, increase it to 5. If the character is normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
-	  }
-	],
-	"leadership_morale_modifiers": [
-	  {
-		"rank": "Lieutenant",
-		"normal_panic_range": "1-3",
-		"modified_panic_range": "1-2"
-	  },
-	  {
-		"rank": "Lieutenant",
-		"normal_panic_range": "1-2",
-		"modified_panic_range": "1"
-	  },
-	  {
-		"rank": "Lieutenant",
-		"normal_panic_range": "1",
-		"modified_panic_range": "1"
-	  },
-	  {
-		"rank": "Captain",
-		"normal_panic_range": "1-3",
-		"modified_panic_range": "1"
-	  },
-	  {
-		"rank": "Captain",
-		"normal_panic_range": "1-2",
-		"modified_panic_range": "1"
-	  },
-	  {
-		"rank": "Captain",
-		"normal_panic_range": "1",
-		"modified_panic_range": "0"
-	  }
-	],
-	"enemy_tables": [
-	  {
-		"table_name": "Elite Criminal Elements",
-		"description": "You are facing some sort of outlawed enterprise or faction.",
-		"special_rules": [
-		  "Bounty pay: When engaging any opponents from this list, there is an increased chance of a bounty being available. When setting up, roll 1D6. If the score is 1-3, that is the number of bonus credits paid out if you Hold the Field after the battle.",
-		  "Gang feuds: Career criminals also tend to get even. When rolling to see if a defeated criminal group becomes a Rival, you must roll 2D6, with a 1 on either die indicating that you have acquired them as Rivals. If both dice score a 1, they hate you; they become Rivals AND will increase the numbers encountered by +1 in all battles."
-		],
-		"enemies": [
-		  {
-			"name": "Gangers",
-			"roll_range": [1, 10],
-			"num": "+3",
-			"panic": "1-2",
-			"speed": "4\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "1A",
-			"special_rules": [
-			  "Bug Out: When a ganger is Hit by a shot, they will retreat 3\" away from the shooter.",
-			  "Clack Clack: If the enemy would be armed with Scrap Pistols or Handguns, replace two with Shotguns. Shotgun specialists add an Assault Blade.",
-			  "Back Alley fighting: Gangers entering a brawl do not reduce their movement for crossing Difficult terrain."
-			]
-		  },
-		  {
-			"name": "Punks",
-			"roll_range": [11, 19],
-			"num": "+4",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+0",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "1A",
-			"special_rules": [
-			  "Careless: You receive +1 to Seize the Initiative.",
-			  "Style over substance: Punks with Military Rifles or Scrap Pistols swap them for Machine Pistols.",
-			  "Git 'im!: A Punk attacking a Stunned target receives +1 to all shooting rolls."
-			]
-		  },
-		  {
-			"name": "Raiders",
-			"roll_range": [20, 27],
-			"num": "+3",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "2A",
-			"special_rules": [
-			  "Scavengers: If you Hold the Field, you may claim an additional roll on the Battlefield Finds Table.",
-			  "Always prepared: Any Raider with a Pistol-type weapon also carries a Blade.",
-			  "Secure the goodies: Raiders within 4\" of an objective or notable sight marker will not Bail, and receive +1 to shooting and brawling rolls."
-			]
-		  },
-		  {
-			"name": "Cultists",
-			"roll_range": [28, 34],
-			"num": "+4",
-			"panic": "1",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 3,
-			"ai": "A",
-			"weapons": "1A",
-			"special_rules": [
-			  "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor.",
-			  "Fire makes it better: Lieutenants and Captains carry a Clingfire Pistol in addition to their regular weaponry.",
-			  "Destroy the unbeliever: Every time a Cultist is slain, select a random enemy with Line of Sight to the attacker. They will immediately fire on the attacker, Hitting only on 6s."
-			]
-		  },
-		  {
-			"name": "Psychos",
-			"roll_range": [35, 43],
-			"num": "+4",
-			"panic": "1",
-			"speed": "6\"",
-			"combat_skill": "+0",
-			"toughness": 4,
-			"ai": "R",
-			"weapons": "1B",
-			"special_rules": [
-			  "Fire frenzy: Unless firing an Area weapon, Psychos receive +1 shot with any weapon they use, but will Hit only on a natural 6. All shots must be against the same target.",
-			  "Eager to go: At the start of the Enemy phase, the Stunned Psycho closest to your battlefield edge removes 1 Stun marker.",
-			  "Goes boom: Any Psycho with a Scrap Pistol also carries Frakk Grenades. If in range of both weapons, the Psycho will throw a grenade if they can hit more than one target with it."
-			]
-		  },
-		  {
-			"name": "Brat Gang",
-			"roll_range": [44, 48],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "2C",
-			"special_rules": [
-			  "Careless: You receive +1 to Seize the Initiative.",
-			  "Armor vests: 5+ Saving Throw.",
-			  "Best guns daddy could buy: Specialists receive +1 to shooting Hit rolls."
-			]
-		  },
-		  {
-			"name": "Gene Renegades",
-			"roll_range": [49, 51],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+0",
-			"toughness": 4,
-			"ai": "C",
-			"weapons": "1B",
-			"special_rules": [
-			  "Alert: You receive –2 to Seize the Initiative.",
-			  "Teeth and claws: Gene Renegades count as having Blades when brawling. Replace actual Blades with Ripper Swords.",
-			  "Like a predator: At the start of the Enemy Actions phase, select a random Gene Renegade in Cover. If there is a position within 5\" that would allow them a shot at a crew member without Cover, move them there, then activate them."
-			]
-		  },
-		  {
-			"name": "Anarchists",
-			"roll_range": [52, 57],
-			"num": "+3",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+0",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "2B",
-			"special_rules": [
-			  "Stubborn: The first two casualties in the battle do not force a Morale check.",
-			  "Explosive politics: Two basic enemies carry Frakk Grenades and will use them if in range.",
-			  "Fight the power: Anarchists receive +1 to Hit rolls when shooting at or brawling with your crew captain."
-			]
-		  },
-		  {
-			"name": "Pirates",
-			"roll_range": [58, 64],
-			"num": "+3",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "2A",
-			"special_rules": [
-			  "Loot: Gain an extra Loot roll if Holding the Field.",
-			  "Breach tactics: Lieutenants, Captains and 2 random basic enemies all carry Shatter Axes.",
-			  "Ship fighting techniques: A Pirate winning a brawl may immediately fire their weapon as a bonus action."
-			]
-		  },
-		  {
-			"name": "K'Erin Outlaws",
-			"roll_range": [65, 71],
-			"num": "+2",
-			"panic": "1",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "2A",
-			"special_rules": [
-			  "Stubborn: The first two casualties in the battle do not force a Morale check.",
-			  "Para-military: Replace the weapon of one basic enemy with an Auto-Rifle.",
-			  "Regain our honor: At the beginning of the Enemy Actions phase, each K'Erin within 8\" of a crew member rolls 1D6. On a 1-2, they immediately move 4\" towards the nearest crew member as a free move and then activates normally."
-			]
-		  },
-		  {
-			"name": "Skulker Brigands",
-			"roll_range": [72, 79],
-			"num": "+4",
-			"panic": "1-2",
-			"speed": "6\"",
-			"combat_skill": "+1",
-			"toughness": 3,
-			"ai": "C",
-			"weapons": "1B",
-			"special_rules": [
-			  "Alert: You receive –2 to Seize the Initiative.",
-			  "Scavengers: If you Hold the Field, you may claim an additional roll on the Battlefield Finds Table (core rulebook p.121).",
-			  "Pack tactics: If a Skulker is able to fire at a crew member that was already fired upon during the current Enemy Actions phase, they will do so even if they are not the closest target. Add +1 to all Hit rolls when doing so."
-			]
-		  },
-		  {
-			"name": "Tech Gangers",
-			"roll_range": [80, 83],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 5,
-			"ai": "T",
-			"weapons": "3C",
-			"special_rules": [
-			  "Loot: Gain an extra Loot roll if Holding the Field.",
-			  "Overcharged weapons: In odd-numbered rounds (1, 3, 5, etc.) Hand Lasers and Infantry Lasers gain +1 Damage, while Blast Rifles gain Piercing.",
-			  "Tech Armor: 4+ Saving Throw."
-			]
-		  },
-		  {
-			"name": "Starport Scum",
-			"roll_range": [84, 90],
-			"num": "+4",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+0",
-			"toughness": 3,
-			"ai": "D",
-			"weapons": "1A",
-			"special_rules": [
-			  "Friday night warriors: When a Scum is slain, all allies within 6\" will retreat 5\" directly back towards their own battlefield edge, exiting the table if they reach the edge.",
-			  "The one in charge: Scum are always accompanied by a Unique Individual.",
-			  "Cornered rats: Scum within 6\" of a crew member receive a temporary bonus of +1 to Combat Skill and Toughness."
-			]
-		  },
-		  {
-			"name": "Hulker Gang",
-			"roll_range": [91, 94],
-			"num": "+1",
-			"panic": "1",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 5,
-			"ai": "A",
-			"weapons": "1A",
-			"special_rules": [
-			  "Ferocious: When initiating a brawl, roll twice and pick the highest roll.",
-			  "Wrecking crew: All Hulkers strike with Damage 1 (Melee, Impact) when brawling. Hulkers with Melee weapons add +1 Damage and add the Impact trait.",
-			  "Aggro: If a shot fails to overcome a Hulker's Toughness score, they are NOT pushed back. Immediately move them 2\" towards the shooter, initiating a brawl if they make contact. Hulkers are not Stunned by shooting attacks."
-			]
-		  },
-		  {
-			"name": "Gun Slingers",
-			"roll_range": [95, 100],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "1B",
-			"special_rules": [
-			  "Trick shot: Any natural 6 when they shoot allows an additional shot against the same target or another target within 2\".",
-			  "Quick draw: Gun Slingers always go first in the Enemy Actions phase.",
-			  "Deadly aim: Gun Slingers ignore the -1 penalty for shooting at targets in Cover."
-			]
-		  }
-		]
-	  },
-	  {
-		"table_name": "Elite Hired Muscle",
-		"description": "Someone has hired goons to stop you from achieving your goal. Alternatively, they may have been hired to bother whoever is paying you.",
-		"special_rules": [
-		  "Paid professionals: Apply a –1 modifier when you try to Seize the Initiative.",
-		  "Well supplied: Lieutenants and Captains receive a 4+ Armor Saving Throw, replacing any existing protection they would have."
-		],
-		"enemies": [
-		  {
-			"name": "Unknown Mercs",
-			"roll_range": [1, 14],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "2B",
-			"special_rules": [
-			  "Let us just call it a day: If the Mercs are reduced to 1 or 2 remaining figures, you may call a truce at the end of any round. The battle ends and you do not Hold the Field.",
-			  "Tacti-cool: Two basic enemies have sighted weapons, adding +1 to Hit rolls when shooting.",
-			  "Supporting fire: If you defeat a Merc in a brawl, randomly select a Merc with Line of Sight to the winner. They will fire immediately as a bonus action, Hitting only on a natural 6."
-			]
-		  },
-		  {
-			"name": "Enforcers",
-			"roll_range": [15, 26],
-			"num": "+2",
-			"panic": "1",
-			"speed": "4\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "2A",
-			"special_rules": [
-			  "Cop killer: Enforcers always become Rivals after a battle.",
-			  "Blast and clear: Two basic enemies have under-barrel Shotguns fitted to their weapons. They will fire the Shotgun if they are in range, and the other weapon if not.",
-			  "Subdue: Enforcer strikes when brawling receive the Impact trait."
-			]
-		  },
-		  {
-			"name": "Guild Troops",
-			"roll_range": [27, 34],
-			"num": "+2",
-			"panic": "1-2",
-			"speed": "4\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "T",
-			"weapons": "2C",
-			"special_rules": [
-			  "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor.",
-			  "Well supplied: All troops receive a 5+ Armor Saving Throw.",
-			  "Profit focused tactics: Guild troops within 6\" of an objective or point of interest count as +1 to Toughness."
-			]
-		  },
-		  {
-			"name": "Roid-Gangers",
-			"roll_range": [35, 39],
-			"num": "+2",
-			"panic": "1",
-			"speed": "6\"",
-			"combat_skill": "+1",
-			"toughness": 5,
-			"ai": "A",
-			"weapons": "1A",
-			"special_rules": [
-			  "Careless: You receive a +1 bonus to Seize the Initiative.",
-			  "100% Protein: All Roid-Gangers carry a Blade. If an additional Blade is rolled, replace it with a Ripper Sword.",
-			  "Brutes: When initiating a brawl, Roid-Gangers add +1 to the die roll."
-			]
-		  },
-		  {
-			"name": "Black Ops Team",
-			"roll_range": [40, 42],
-			"num": "+1",
-			"panic": "1",
-			"speed": "6\"",
-			"combat_skill": "+2",
-			"toughness": 5,
-			"ai": "T",
-			"weapons": "3A",
-			"special_rules": [
-			  "Who did you make angry this time?",
-			  "Fire teams: When firing, if any friendly Black Ops is within 3\", reroll 1s on the firing dice unless using an Area weapon.",
-			  "Low light vision: In reduced visibility conditions, Black Ops can see clearly out to 12\".",
-			  "Go! go! go!: At the end of each Enemy Actions phase, if any Black Ops are visible without Cover, select one such figure at random. They will move 6\" to get into Cover, while maintaining Line of Sight to at least one crew member."
-			]
-		  },
-		  {
-			"name": "War Bots",
-			"roll_range": [43, 46],
-			"num": "+1",
-			"panic": "-",
-			"speed": "4\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "A",
-			"weapons": "3C",
-			"special_rules": [
-			  "Fearless: Never subject to Morale tests.",
-			  "Armored shell: 5+ Saving Throw.",
-			  "Following Fire: When firing weapons with 1 shot per round, if the initial shot Hits but fails to knock out the target, the War Bot immediately fires again at the same target. Only one additional shot can be gained."
-			]
-		  },
-		  {
-			"name": "Secret Agents",
-			"roll_range": [47, 50],
-			"num": "+1",
-			"panic": "1",
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "C",
-			"weapons": "2C",
-			"special_rules": [
-			  "Costly Loot: If you Hold the Field, gain an additional Loot roll but add an unspecified Rival.",
-			  "Upgraded sights: When firing a weapon with 1 shot on the profile, Secret Agents receive +1 to Hit against targets in Cover.",
-			  "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor."
-			]
-		  }
-		]
-	  },
-	  {
-		"table_name": "Elite Unique Individuals",
-		"description": "All Unique Individuals follow these rules:",
-		"special_rules": [
-		  "They are Fearless and unaffected by Morale.",
-		  "They may follow a different AI routine. If using the AI Variations rules (p.42), Unique Individuals always roll separately, based on their own AI. If using the Enemy Deployment Variables (p.44) or Escalating Battles (p.46), those rolls are based on the main enemy AI.",
-		  "Many of them have Luck and follow the same battle rules as player characters."
-		],
-		"enemies": [
-		  {
-			"name": "Enemy Bruiser",
-			"roll_range": [1, 6],
-			"speed": "-",
-			"combat_skill": "-",
-			"toughness": "+1",
-			"ai": "G",
-			"luck": 0,
-			"weapons": "Power Claw, Shotgun",
-			"special_rules": [
-			  "A particularly unpleasant-looking individual. Bruisers have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
-			  "Overbearing: If the Bruiser rolls a natural 6 when brawling, the opponent is knocked back 3\"."
-			]
-		  },
-		  {
-			"name": "Enemy Heavy",
-			"roll_range": [7, 12],
-			"speed": "-",
-			"combat_skill": "-",
-			"toughness": "-",
-			"ai": "D",
-			"luck": 0,
-			"weapons": "Plasma Rifle",
-			"special_rules": [
-			  "The enemy has opted to bring some additional firepower. Heavies have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
-			  "Rock 'n' Roll: Add +1 shot if stationary and firing."
-			]
-		  },
-		  {
-			"name": "Enemy Boss",
-			"roll_range": [13, 17],
-			"speed": "-",
-			"combat_skill": "+1",
-			"toughness": "+1",
-			"ai": "-",
-			"luck": 1,
-			"weapons": "Hand Cannon, Shatter Axe",
-			"special_rules": [
-			  "One of the worst has managed to climb to the top of the hierarchy. Bosses have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
-			  "Authority figure: Reduce Panic range by –1, but when slain, roll an additional Morale die."
-			]
-		  },
-		  {
-			"name": "Hired Killer",
-			"roll_range": [18, 22],
-			"speed": "6\"",
-			"combat_skill": "+2",
-			"toughness": 5,
-			"ai": "A",
-			"luck": 1,
-			"weapons": "Machine Pistol, Glare Sword",
-			"special_rules": [
-			  "Following fire: When firing, every natural 6 allows the Hired Killer another shot against the same target or a different target within 4\" of the initial target."
-			]
-		  },
-		  {
-			"name": "Corporate Spook",
-			"roll_range": [23, 25],
-			"speed": "5\"",
-			"combat_skill": "+1",
-			"toughness": 4,
-			"ai": "C",
-			"luck": 1,
-			"weapons": "Hand Laser",
-			"special_rules": [
-			  "Fidgety: If the Spook is the only remaining enemy figure, they flee the battle.",
-			  "Employee evaluation: If the Spook is killed, add 1 Rumor and a Rival.",
-			  "State of the art gear: 5+ Screen Saving Throw."
-			]
-		  },
-		  {
-			"name": "Bounty Tracker",
-			"roll_range": [26, 30],
-			"speed": "6\"",
-			"combat_skill": "+2",
-			"toughness": 5,
-			"ai": "A",
-			"luck": 1,
-			"weapons": "Shotgun, Suppression Maul",
-			"special_rules": [
-			  "Target priority: Randomly select a crew member at the start of the first Enemy Action phase. The Bounty Tracker will always attempt to close with and attack that character."
-			]
-		  },
-		  {
-			"name": "Callous Merc",
-			"roll_range": [31, 35],
-			"speed": "5\"",
-			"combat_skill": "+2",
-			"toughness": 5,
-			"ai": "T",
-			"luck": 1,
-			"weapons": "Infantry Laser, Glare Sword",
-			"special_rules": [
-			  "Stay in the fight: If struck by a ranged attack and surviving, the Callous Merc immediately fires at the attacker as a bonus action.",
-			  "Seen it all: No Stun markers can be placed on the Merc if they already have one."
-			]
-		  },
-		  {
-			"name": "Freelancer",
-			"roll_range": [36, 41],
-			"speed": "5\"",
-			"combat_skill": "+2",
-			"toughness": 4,
-			"ai": "T",
-			"luck": 1,
-			"weapons": "Blast Pistol, Ripper Sword",
-			"special_rules": [
-			  "Interesting kit: If you slay the Troubleshooter in a brawl, make a Loot roll and claim the item for use immediately.",
-			  "Calculating: When rolling for Reactions each round, one of your dice is set to a 6 automatically. The rest are rolled normally."
-			]
-		  }
-		]
-	  }
-	]
+    "general_rules": [
+      "Elite-level enemies are more persistent. When traveling to a new world, roll 1D6 for each Elite Rival you have: On a 4+ they opt to follow you to the new world.",
+      "When facing elite-level enemies, roll up their size as normal. If the size would be less than 4 figures, increase it to 4.",
+      "If you outnumber the enemy, they are automatically accompanied by a Unique Individual. If you do not outnumber them, roll normally, but a 7+ is required instead of the usual 9+."
+    ],
+    "squad_composition": [
+      {
+        "size": 4,
+        "basic": 3,
+        "specialists": 1,
+        "lieutenants": 0,
+        "captain": 0
+      },
+      {
+        "size": 5,
+        "basic": 2,
+        "specialists": 2,
+        "lieutenants": 1,
+        "captain": 0
+      },
+      {
+        "size": 6,
+        "basic": 3,
+        "specialists": 2,
+        "lieutenants": 1,
+        "captain": 0
+      },
+      {
+        "size": "7+",
+        "basic": "3+",
+        "specialists": 2,
+        "lieutenants": 1,
+        "captain": 1
+      }
+    ],
+    "unit_types": [
+      {
+        "type": "Basic Enemies",
+        "description": "Armed with the basic weapon for their type."
+      },
+      {
+        "type": "Specialists",
+        "description": "Armed with the specialist weapon for their type. If Combat Skill is +0, increase it to +1."
+      },
+      {
+        "type": "Lieutenant",
+        "description": "Armed with the basic weapon for their type, plus a Blade. Combat Skill is increased by +1. Fearless. If the character is normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
+      },
+      {
+        "type": "Captain",
+        "description": "Armed with the basic weapon for their type, plus a Ripper Sword. Combat Skill is increased by +1. Fearless. If Toughness is less than 5, increase it to 5. If the character is normally armored, increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
+      }
+    ],
+    "leadership_morale_modifiers": [
+      {
+        "rank": "Lieutenant",
+        "normal_panic_range": "1-3",
+        "modified_panic_range": "1-2"
+      },
+      {
+        "rank": "Lieutenant",
+        "normal_panic_range": "1-2",
+        "modified_panic_range": "1"
+      },
+      {
+        "rank": "Lieutenant",
+        "normal_panic_range": "1",
+        "modified_panic_range": "1"
+      },
+      {
+        "rank": "Captain",
+        "normal_panic_range": "1-3",
+        "modified_panic_range": "1"
+      },
+      {
+        "rank": "Captain",
+        "normal_panic_range": "1-2",
+        "modified_panic_range": "1"
+      },
+      {
+        "rank": "Captain",
+        "normal_panic_range": "1",
+        "modified_panic_range": "0"
+      }
+    ],
+    "enemy_tables": [
+      {
+        "table_name": "Elite Criminal Elements",
+        "description": "You are facing some sort of outlawed enterprise or faction.",
+        "special_rules": [
+          "Bounty pay: When engaging any opponents from this list, there is an increased chance of a bounty being available. When setting up, roll 1D6. If the score is 1-3, that is the number of bonus credits paid out if you Hold the Field after the battle.",
+          "Gang feuds: Career criminals also tend to get even. When rolling to see if a defeated criminal group becomes a Rival, you must roll 2D6, with a 1 on either die indicating that you have acquired them as Rivals. If both dice score a 1, they hate you; they become Rivals AND will increase the numbers encountered by +1 in all battles."
+        ],
+        "enemies": [
+          {
+            "name": "Gangers",
+            "roll_range": [
+              1,
+              10
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Organized gangs run many backwater settlements, fighting for control.",
+            "special_rules": [
+              "Bug Out: When a ganger is Hit by a shot, they will retreat 3\" away from the shooter.",
+              "Clack Clack: If the enemy would be armed with Scrap Pistols or Handguns, replace two with Shotguns. Shotgun specialists add an Assault Blade.",
+              "Back Alley fighting: Gangers entering a brawl do not reduce their movement for crossing Difficult terrain."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Punks",
+            "roll_range": [
+              11,
+              19
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Disaffected delinquents, but armed to the teeth.",
+            "special_rules": [
+              "Careless: You receive +1 to Seize the Initiative.",
+              "Style over substance: Punks with Military Rifles or Scrap Pistols swap them for Machine Pistols. Git ’im!: A Punk attacking a Stunned target receives +1 to all shooting rolls."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Raiders",
+            "roll_range": [
+              20,
+              27
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "The only thing better than making something valuable is stealing it from someone else",
+            "special_rules": [
+              "Scavengers: If you Hold the Field, you may claim an additional roll on the Battlefield Finds Table.",
+              "Always prepared: Any Raider with a Pistol-type weapon also carries a Blade.",
+              "Secure the goodies: Raiders within 4\" of an objective or notable sight marker will not Bail, and receive +1 to shooting and brawling rolls."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Cultists",
+            "roll_range": [
+              28,
+              34
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Fringe Space is full of odd para-religious groups, congregating around this or that principle. They are often heavily armed and up to no good.",
+            "special_rules": [
+              "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor.",
+              "Fire makes it better: Lieutenants and Captains carry a Clingfire Pistol in addition to their regular weaponry.",
+              "Destroy the unbeliever: Every time a Cultist is slain, select a random enemy with Line of Sight to the attacker. They will immediately fire on the attacker, Hitting only on 6 s."
+            ],
+            "num": "+4",
+            "panic": "1"
+          },
+          {
+            "name": "Psychos",
+            "roll_range": [
+              35,
+              43
+            ],
+            "speed": "6\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "R",
+            "weapons": "1B",
+            "description": "For some, life in space just drives them nuts – homicidally so.",
+            "special_rules": [
+              "Fire frenzy: Unless firing an Area weapon, Psychos receive +1 shot with any weapon they use, but will Hit only on a natural 6. All shots must be against the same target.",
+              "Eager to go: At the start of the Enemy phase, the Stunned Psycho closest to your battlefield edge removes 1 Stun marker.",
+              "Goes boom: Any Psycho with a Scrap Pistol also carries Frakk Grenades. If in range of both weapons, the Psycho will throw a grenade if they can hit more than one target with it."
+            ],
+            "num": "+4",
+            "panic": "1"
+          },
+          {
+            "name": "Brat Gang",
+            "roll_range": [
+              44,
+              48
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2C",
+            "description": "Upper class fools who have decided to shoot up the neighborhood for fun.",
+            "special_rules": [
+              "Careless: You receive +1 to Seize the Initiative.",
+              "Armor vests: 5+ Saving Throw.",
+              "Best guns daddy could buy: Specialists receive +1 to shooting Hit rolls. 51GAME Options ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Gene Renegades",
+            "roll_range": [
+              49,
+              51
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "C",
+            "weapons": "1B",
+            "description": "Devotees of post-growth genetic reconfiguration, they can take the form of anything from a woman with blue skin to cat-bear-people.",
+            "special_rules": [
+              "Alert: You receive –2 to Seize the Initiative.",
+              "Teeth and claws: Gene Renegades count as having Blades when brawling. Replace actual Blades with Ripper Swords.",
+              "Like a predator: At the start of the Enemy Actions phase, select a random Gene Renegade in Cover. If there is a position within 5\" that would allow them a shot at a crew member without Cover, move them there, then activate them."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Anarchists",
+            "roll_range": [
+              52,
+              57
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2B",
+            "description": "Separatist groups violently opposing the state and the mega-corps.",
+            "special_rules": [
+              "Stubborn: The first two casualties in the battle do not force a Morale check.",
+              "Explosive politics: Two basic enemies carry Frakk Grenades and will use them if in range.",
+              "Fight the power: Anarchists receive +1 to Hit rolls when shooting at or brawling with your crew captain."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Pirates",
+            "roll_range": [
+              58,
+              64
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "Space-faring looters who descend on colonies to raid, pillage and enslave.",
+            "special_rules": [
+              "Loot: Gain an extra Loot roll if Holding the Field.",
+              "Breach tactics: Lieutenants, Captains and 2 random basic enemies all carry Shatter Axes.",
+              "Ship fighting techniques: A Pirate winning a brawl may immediately fire their weapon as a bonus action."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "K’Erin Outlaws",
+            "roll_range": [
+              65,
+              71
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "The warlike K’Erin are an honorable people, though their outcasts frequently raid Human colonies.",
+            "special_rules": [
+              "Stubborn: The first two casualties in the battle do not force a Morale check.",
+              "Para-military: Replace the weapon of one basic enemy with an Auto-Rifle.",
+              "Regain our honor: At the beginning of the Enemy Actions phase, each K’Erin within 8\" of a crew member rolls 1D6. On a 1-2, they immediately move 4\" towards the nearest crew member as a free move and then activates normally."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Skulker Brigands",
+            "roll_range": [
+              72,
+              79
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "C",
+            "weapons": "1B",
+            "description": "Agile and gregarious, these rat-like humanoids show up almost anywhere in space.",
+            "special_rules": [
+              "Alert: You receive –2 to Seize the Initiative.",
+              "Scavengers: If you Hold the Field, you may claim an additional roll on the Battlefield Finds Table (core rulebook p.121).",
+              "Pack tactics: If a Skulker is able to fire at a crew member that was already fired upon during the current Enemy Actions phase, they will do so even if they are not the closest target. Add +1 to all Hit rolls when doing so. 52GAME OPTions ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Tech Gangers",
+            "roll_range": [
+              80,
+              83
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "T",
+            "weapons": "3C",
+            "description": "Weird criminal syndicates who seem to view high-tech with an almost religious reverence.",
+            "special_rules": [
+              "Loot: Gain an extra Loot roll if Holding the Field.",
+              "Overcharged weapons: In odd-numbered rounds (1, 3, 5, etc.) Hand Lasers and Infantry Lasers gain +1 Damage, while Blast Rifles gain Piercing.",
+              "Tech Armor: 4+ Saving Throw."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Starport Scum",
+            "roll_range": [
+              84,
+              90
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 3,
+            "ai": "D",
+            "weapons": "1A",
+            "description": "Any starship port facility will have assorted lowlifes and villains hanging around, waiting to see if today is the day they make it big. It rarely is.",
+            "special_rules": [
+              "Friday night warriors: When a Scum is slain, all allies within 6\" will retreat 5\" directly back towards their own battlefield edge, exiting the table if they reach the edge.",
+              "The one in charge: Scum are always accompanied by a Unique Individual.",
+              "Cornered rats: Scum within 6\" of a crew member receive a temporary bonus of +1 to Combat Skill and Toughness."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Hulker Gang",
+            "roll_range": [
+              91,
+              94
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Human-derived brutes possessing massive upper body strength, they often succumb to berserk fury.",
+            "special_rules": [
+              "Ferocious: When initiating a brawl, roll twice and pick the highest roll.",
+              "Wrecking crew: All Hulkers strike with Damage 1 ( Melee, Impact) when brawling. Hulkers with Melee weapons add +1 Damage and add the Impact trait.",
+              "Aggro: If a shot fails to overcome a Hulker’s Toughness score, they are NOT pushed back. Immediately move them 2\" towards the shooter, initiating a brawl if they make contact. Hulkers are not Stunned by shooting attacks."
+            ],
+            "num": "+1",
+            "panic": "1"
+          },
+          {
+            "name": "Gun Slingers",
+            "roll_range": [
+              95,
+              100
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "1B",
+            "description": "Desperados eager to test their trigger skills against an opponent.",
+            "special_rules": [
+              "Trick shot: When firing a non-Area  weapon, every natural 6 on the Hit dice allows an additional shot. Keep making shots as long as 6 s keep being rolled.",
+              "Downtown shooting style: If the target is within 8\", roll 1 additional shot.",
+              "Count the shells: Lieutenants and Captains carry a Machine Pistol in addition to their regular armaments. 53GAME Options"
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          }
+        ]
+      },
+      {
+        "table_name": "Elite Hired Muscle",
+        "description": "Someone has hired goons to stop you from achieving your goal. Alternatively, they may have been hired to bother whoever is paying you.",
+        "special_rules": [
+          "Paid professionals: Apply a –1 modifier when you try to Seize the Initiative.",
+          "Well supplied: Lieutenants and Captains receive a 4+ Armor Saving Throw, replacing any existing protection they would have."
+        ],
+        "enemies": [
+          {
+            "name": "Unknown Mercs",
+            "roll_range": [
+              1,
+              14
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2B",
+            "description": "The Fringe is crawling with mercenary bands looking to make credits for paramilitary work. Most have some measure of honor, at least when dealing with other professionals.",
+            "special_rules": [
+              "Let us just call it a day: If the Mercs are reduced to 1 or 2 remaining figures, you may call a truce at the end of any round. The battle ends and you do not Hold the Field.",
+              "Tacti-cool: Two basic enemies have sighted weapons, adding +1 to Hit rolls when shooting.",
+              "Supporting fire: If you defeat a Merc in a brawl, randomly select a Merc with Line of Sight to the winner. They will fire immediately as a bonus action, Hitting only on a natural 6."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Enforcers",
+            "roll_range": [
+              15,
+              26
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2A",
+            "description": "While the term usually refers to Unity law enforcement, in Fringe Space it tends to mean any organized troops keeping the peace.",
+            "special_rules": [
+              "Cop killer: Enforcers always become Rivals after a battle.",
+              "Blast and clear: Two basic enemies have under-barrel Shotguns fitted to their weapons. They will fire the Shotgun if they are in range, and the other weapon if not.",
+              "Subdue: Enforcer strikes when brawling receive the Impact trait."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Guild Troops",
+            "roll_range": [
+              27,
+              34
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2C",
+            "description": "Many of the various trade and tech guilds maintain their own private armies to enforce their interests in space.",
+            "special_rules": [
+              "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor.",
+              "Well supplied: All troops receive a 5+ Armor Saving Throw.",
+              "Profit focused tactics: Guild troops within 6\" of an objective or point of interest count as +1 to Toughness."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Roid-Gangers",
+            "roll_range": [
+              35,
+              39
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Criminal gangs obsessed with body enhancement. They often form sub-communities where they communicate through incoherent gibberish.",
+            "special_rules": [
+              "Careless: You receive a +1 bonus to Seize the Initiative. 100% Protein: All Roid-Gangers carry a Blade. If an additional Blade is rolled, replace it with a Ripper Sword.",
+              "Brutes: When initiating a brawl, Roid-Gangers add +1 to the die roll. 54GAME OPTions ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Black Ops Team",
+            "roll_range": [
+              40,
+              42
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": 5,
+            "ai": "T",
+            "weapons": "3A",
+            "description": "Highly trained, elite killers tasked with neutralizing the most dangerous targets. Who did you make angry this time?",
+            "special_rules": [
+              "Fire teams: When firing, if any friendly Black Ops is within 3\", reroll 1 s on the firing dice unless using an Area  weapon.",
+              "Low light vision: In reduced visibility conditions, Black Ops can see clearly out to 12\". Go! go! go!: At the end of each Enemy Actions phase, if any Black Ops are visible without Cover, select one such figure at random. They will move 6\" to get into Cover, while maintaining Line of Sight to at least one crew member."
+            ],
+            "num": "+1",
+            "panic": "1"
+          },
+          {
+            "name": "War Bots",
+            "roll_range": [
+              43,
+              46
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "3C",
+            "description": "The CIM model War Bot, nicknamed “The Demon” , is a mainstay of high-tech, mech-infantry forces.",
+            "special_rules": [
+              "Fearless: Never subject to Morale tests.",
+              "Armored shell: 5+ Saving Throw.",
+              "Following Fire: When firing weapons with 1 shot per round, if the initial shot Hits but fails to knock out the target, the War Bot immediately fires again at the same target. Only one additional shot can be gained."
+            ],
+            "num": "+1",
+            "panic": "–"
+          },
+          {
+            "name": "Secret Agents",
+            "roll_range": [
+              47,
+              50
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "C",
+            "weapons": "2C",
+            "description": "Likely to be spooks working for some powerful organization.",
+            "special_rules": [
+              "Costly Loot: If you Hold the Field, gain an additional Loot roll but add an unspecified Rival.",
+              "Upgraded sights: When firing a weapon with 1 shot on the profile, Secret Agents receive +1 to Hit against targets in Cover.",
+              "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor."
+            ],
+            "num": "+1",
+            "panic": "1"
+          },
+          {
+            "name": "Assassins",
+            "roll_range": [
+              51,
+              53
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1B",
+            "description": "Hired killers. The sort who would garrote themselves AND their grandmother if the job paid enough.",
+            "special_rules": [
+              "Gruesome: Characters rolling for post-battle injuries must apply a –5 modifier to the roll.",
+              "Stopping Power: Replace all Scrap Pistols and Handguns with Hand Cannons.",
+              "Evasive tactics: All shots against Assassins in the open are –1 to Hit."
+            ],
+            "num": "+1",
+            "panic": "1"
+          },
+          {
+            "name": "Feral Mercenaries",
+            "roll_range": [
+              54,
+              59
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2B",
+            "description": "Uplifted Humans merged with animal features, typically wolves.",
+            "special_rules": [
+              "Quick Feet: Dash moves add +4\" move distance instead of +2.",
+              "Shoot to kill: One basic enemy replaces their weapon with a Blast Rifle. This trooper gets a +1 bonus to Hit when shooting.",
+              "Dog Fight: Feral Mercs receive +1 Combat Skill if brawling within 4\" of an ally."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Skulker Mercenaries",
+            "roll_range": [
+              60,
+              64
+            ],
+            "speed": "7\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "C",
+            "weapons": "2C",
+            "description": "Rat-man humanoids. These pests will work for anyone who pays and are surprisingly loyal.",
+            "special_rules": [
+              "Sniff them out: You cannot Seize the Initiative.",
+              "Firefight standard: Replace Hand Lasers with Infantry Lasers. One basic enemy has a sight (+1 to Hit).",
+              "Chemical fog: Visibility is always limited to 9\" for crew (unless it would be lower due to other circumstances). Skulker Mercs are never restricted by visibility limits. 55GAME Options ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Corporate Security",
+            "roll_range": [
+              65,
+              74
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "D",
+            "weapons": "2B",
+            "description": "The corporations pay better than the Unity armed forces, plus great dental insurance.",
+            "special_rules": [
+              "Armor vests: 5+ Saving Throw.",
+              "Flash bangs: Each round, one Security trooper in range will throw a Dazzle Grenade. If multiple Security troopers are in range, select at random.",
+              "Covering fire: Each Enemy Actions phase, the first time a trooper Stuns a target, a random trooper in range and Line of Sight will immediately fire at the same target. This is a bonus action and does not limit regular actions."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Unity Grunts",
+            "roll_range": [
+              75,
+              79
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2C",
+            "description": "While often dismissed as unimaginative cannon fodder, Unity troops are well-trained professionals.",
+            "special_rules": [
+              "Armor vests: 5+ Saving Throw.",
+              "Standard issue: Replace Colony Rifles or Hand Lasers with Needle Rifles.",
+              "Shock tactics: At the start of each Enemy Actions phase, select a random Grunt within Line of Sight and range. They will fire, move, and then fire again."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Security Bots",
+            "roll_range": [
+              80,
+              85
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "D",
+            "weapons": "2A",
+            "description": "Typical Security Bots used to guard all manner of installations and locations.",
+            "special_rules": [
+              "Really careless: You may add +2 when rolling to Seize the Initiative.",
+              "Robot punch: All Bots can punch: Melee, Damage 1.",
+              "Bots: 5+ Saving Throw and Fearless."
+            ],
+            "num": "+2",
+            "panic": "–"
+          },
+          {
+            "name": "Black Dragon Mercs",
+            "roll_range": [
+              86,
+              90
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2C",
+            "description": "Extremely professional, the Black Dragons have carefully cultivated a reputation for “clean” operations and high standards.",
+            "special_rules": [
+              "Stubborn: The first two casualties in the battle do not force a Morale check.",
+              "Back up armaments: Specialists, Lieutenants, and Captains all carry Glare Swords.",
+              "Consumate professionals: Specialists have +2 Combat Skill."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Rage Lizard Mercs",
+            "roll_range": [
+              91,
+              95
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "T",
+            "weapons": "3B",
+            "description": "The Rage Lizard mercenary unit specialize in boarding and ship-board operations.",
+            "special_rules": [
+              "Up Close: If a Rage Lizard is within 1\" of a terrain feature, add +1 to brawling rolls. Burn ’em out: Each Basic enemy carries a one-use Hand Flamer in addition to their main weapon, and will fire it the first time they are in range.",
+              "Aggressive tactics: A Rage Lizard that activates within 5\" of a crew member may fire their weapon and then move to brawl in the same activation."
+            ],
+            "num": "+1",
+            "panic": "1-2"
+          },
+          {
+            "name": "Blood Storm Mercs",
+            "roll_range": [
+              96,
+              100
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "A",
+            "weapons": "2B",
+            "description": "Outlawed in many systems, the Blood Storm merc company are cold-blooded killers. They will take any assignment that doesn’t involve an excessive amount of war crimes.",
+            "special_rules": [
+              "Ferocious: +1 to brawling rolls when initiating combat.",
+              "Uncreative tactics: All basic enemies carry Ripper Swords.",
+              "Finish them off: A crew member defeated in a brawl and having no allies within 3\" will be unable to benefit from any rerolls or modifiers to the post-battle injury roll, and the injury roll cannot be bypassed by any means. 56GAME OPTions"
+            ],
+            "num": "+1",
+            "panic": "1"
+          }
+        ]
+      },
+      {
+        "table_name": "Elite Interested Parties",
+        "description": "For reasons of their own, another group has taken an interest in the job you are doing.",
+        "special_rules": [
+          "Mastermind: Add +1 when rolling to see if a Unique Individual is present.",
+          "On the trail: If encountering an Interested Party during a Quest mission, add +1 to the number encountered."
+        ],
+        "enemies": [
+          {
+            "name": "Renegade Soldiers",
+            "roll_range": [
+              1,
+              6
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2B",
+            "description": "Deserters, mutineers, and other scoundrels. These groups often declare themselves local warlords and overlords.",
+            "special_rules": [
+              "Grudge: If encountered as a Rival, add +1 to the number encountered.",
+              "Scrap armor: All receive a 6+ Armor Saving Throw.",
+              "Suppressing fire: Renegade soldiers firing an Auto-rifle or Rattle Gun add +1 shot."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Bounty Hunters",
+            "roll_range": [
+              7,
+              13
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "1B",
+            "description": "Hunting down fugitives and people that the warlords, governments and gang bosses want found is a booming business, especially if you aren’t too fussed about the legality of it all.",
+            "special_rules": [
+              "Intrigue: After the mission, roll 2D6. Add +1 if you killed a Lieutenant, Captain, or Unique Individual. On a 9+ you obtain a Quest Rumor.",
+              "Hunting tools: Replace any Scrap Pistols with Dueling Pistols.",
+              "The mark: Randomly select a crew member at the start of the battle. Bounty Hunters receive +1 to all shooting and brawling attacks versus this character."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Abandoned",
+            "roll_range": [
+              14,
+              18
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Occasionally, a sort of sickness strikes crews in deep space for extended durations. The causes are unknown, but they often seek out old acquaintances, attacking in an animal-like fever.",
+            "special_rules": [
+              "Careless: You receive +1 to Seize the Initiative.",
+              "Swarming: Every 5-6 on the Morale dice results in another basic enemy being placed on the battlefield. Place them within 1\" of the most distant enemy figure.",
+              "Cowardly: Lieutenants are affected by Morale dice normally."
+            ],
+            "num": "+3",
+            "panic": "1-3"
+          },
+          {
+            "name": "Vigilantes",
+            "roll_range": [
+              19,
+              27
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "Disgruntled locals who have decided to take matters into their own hands.",
+            "special_rules": [
+              "Persistent: If fought as Rivals, when rolling to resolve Rival status after the battle, a 5+ is required to remove them.",
+              "Discouragement: One basic enemy replaces their ranged weapon with a Shotgun.",
+              "Angry mob: If 3+ Vigilantes are within 2\" of each other or on/within the same terrain feature, Panic range is reduced by –1."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Isolationists",
+            "roll_range": [
+              28,
+              35
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "C",
+            "weapons": "1A",
+            "description": "Whenever a group of people declare that they are a political unit, inevitably a smaller group will declare that they will have nothing to do with the rest of them.",
+            "special_rules": [
+              "Dogged: If reduced to only 1 or 2 remaining figures, the remaining Isolationists become Fearless.",
+              "Militia gear: Replace Scrap Pistols and Handguns with Colony Rifles for basic enemies.",
+              "Keep off: When shooting at crew in/on/behind a terrain feature within 8\" of the shooter, add +1 to Hit rolls. 57GAME Options ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Zealots",
+            "roll_range": [
+              36,
+              41
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "Near-suicidal devotees to some cause, belief, principle, or brand loyalty.",
+            "special_rules": [
+              "Ferocious: +1 to brawling rolls when initiating combat.",
+              "Excitable: Lieutenants and Captains carry an additional Hand Flamer and will fire them in preference to other weapons, if in range. The Prophecy!: Every time a 6  is rolled on a Morale die, the Zealot closest to the player’s battlefield edge gains +1 Combat Skill for the rest of the battle."
+            ],
+            "num": "+2",
+            "panic": "1"
+          },
+          {
+            "name": "Mutants",
+            "roll_range": [
+              42,
+              48
+            ],
+            "speed": "4\"",
+            "combat_skill": "+0",
+            "toughness": 5,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "The result of genetic warfare, black-site experiments, or hostile environments, these wretches are often treated with considerable prejudice. Needless to say, eventually some decide to fight back.",
+            "special_rules": [
+              "Cowardly: Lieutenants are affected by Morale dice normally.",
+              "Scrap war: Specialists, Lieutenants and Captains carry a Brutal Melee Weapon.",
+              "Underdog: If the enemy is currently outnumbered on the battlefield, count Combat Skill as +1."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Primitives",
+            "roll_range": [
+              49,
+              52
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "-",
+            "description": "For various reasons, space is full of groups of Humans or aliens existing on a pre-industrial level.",
+            "special_rules": [
+              "Going medieval: Instead of normal weapons, each enemy carries a Blade. Specialists, Lieutenants, and Captains carry a Brutal Melee Weapon.",
+              "Rush job: Dash moves add +3\" to movement, instead of the customary +2\".",
+              "Sneaking in: In Rounds 1 and 2, all Primitives are counted as being in Cover, regardless of their position on the table."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Precursor exiles",
+            "roll_range": [
+              53,
+              56
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "3B",
+            "description": "The refined and elegant Precursors are rarely seen in Human space. Those that are met tend to be the outcasts and those too wild to find a place in their serene home culture.",
+            "special_rules": [
+              "Prediction: You cannot Seize the Initiative.",
+              "High-tech weapons: Replace Auto Rifles with Plasma Rifles, and Rattle Guns with Hyper Blasters.",
+              "Spite: When a Lieutenant or Captain becomes a casualty, they immediately fire any Pistol carried at the nearest crew member before dying. This shot can be taken even if defeated by brawling."
+            ],
+            "num": "+1",
+            "panic": "1-2"
+          },
+          {
+            "name": "K’Erin Colonists",
+            "roll_range": [
+              57,
+              63
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "When this warrior species decides to colonize a world, war almost inevitably follows.",
+            "special_rules": [
+              "Stubborn: The first two casualties in the battle do not force a Morale check. It’s for woodwork: All Colonists carry Ripper Blades. Invasion Threat."
+            ],
+            "num": "+3",
+            "panic": "1"
+          },
+          {
+            "name": "Swift War Squad",
+            "roll_range": [
+              64,
+              68
+            ],
+            "speed": "7\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "A",
+            "weapons": "1B",
+            "description": "Diminutive winged lizards who live in a highly ritualistic caste society.",
+            "special_rules": [
+              "Unpredictable: No modifiers can be applied to the Seize the Initiative roll.",
+              "We like the sound: Two basic enemies replace their weapons with Needle Rifles.",
+              "The stars say to stay: Once two Swift have been removed due to Morale failures, the remaining enemies become Fearless. 58 GAME OPTions ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+4",
+            "panic": "1"
+          },
+          {
+            "name": "Soulless Task Force",
+            "roll_range": [
+              69,
+              72
+            ],
+            "speed": "4\"",
+            "combat_skill": "+2",
+            "toughness": 5,
+            "ai": "T",
+            "weapons": "3C",
+            "description": "Alien robot species operating in an inter-linked hive mind of sorts. Inscrutable.",
+            "special_rules": [
+              "Force screen: Lieutenants and Captains receive a Saving Throw even against Piercing weapons.",
+              "Armored chassis: 6+ Armor Saving Throw.",
+              "Inter-link: If a Soulless fires at a target that any other Soulless had already fired upon this round, they fire 1 additional shot."
+            ],
+            "num": "+1",
+            "panic": "1"
+          },
+          {
+            "name": "Tech Zealots",
+            "roll_range": [
+              73,
+              76
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "A",
+            "weapons": "3C",
+            "description": "Cultists who worship technology. Often brimming with poorly fitted cybernetics.",
+            "special_rules": [
+              "Loot: Gain an extra Loot roll if you Hold the Field.",
+              "Tech sidearms: Lieutenants and Captains carry a Blast Pistol.",
+              "Part machine: 6+ Armor Saving Throw."
+            ],
+            "num": "+2",
+            "panic": "1-2"
+          },
+          {
+            "name": "Colonial Militia",
+            "roll_range": [
+              77,
+              83
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "C",
+            "weapons": "2B",
+            "description": "The armed militia of a colony is its first line of defense and often doubles as law enforcement. Occasionally, the distinction between “organized militia” , “armed criminal gang” and “gun-toting lunatics” can be deceptively difficult to tell.",
+            "special_rules": [
+              "Home field advantage: All crew shots over 12\" range count as being in Cover.",
+              "Defensive armaments: One basic enemy replaces their weapon with a Fury Rifle.",
+              "Delaying action: Militia figures within 6\" of a visible crew member may fire, then retreat a full move."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Planetary Nomads",
+            "roll_range": [
+              84,
+              88
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "C",
+            "weapons": "2A",
+            "description": "On many habitable worlds, colonists will abandon civilization and go live among the dunes and jungles. They tend to react poorly to interlopers.",
+            "special_rules": [
+              "Alert: You are –3 to Seize the Initiative.",
+              "Silent killers: One basic enemy replaces their weapon with a Needle Rifle.",
+              "Hunting shot: Weapons with a shot characteristic of 1  gain the Critical trait."
+            ],
+            "num": "+3",
+            "panic": "1-2"
+          },
+          {
+            "name": "Salvage Team",
+            "roll_range": [
+              89,
+              100
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "T",
+            "weapons": "2B",
+            "description": "A rival crew looking for salvage and ready to fight for it.",
+            "special_rules": [
+              "Scavengers: If you are allowed to roll for Battlefield Finds after the battle, you may roll twice.",
+              "Hard entry: Two basic enemies carry Flak guns in addition to their main weapon and will fire them in preference if in range. All Lieutenants and Captains carry Shatter Axes.",
+              "Here for the goods: Enemies within 6\" of an objective or Notable Sight when activated will move directly towards the item, then fire, taking one shot more than usual. 59 GAME Options"
+            ],
+            "num": "+2",
+            "panic": "1-3"
+          }
+        ]
+      },
+      {
+        "table_name": "Elite Roving Threats",
+        "description": "You've stumbled into something dangerous in the area and must fight for your life. Any valuables found will typically be remnants of some unlucky prior crew.",
+        "special_rules": [
+          "At least they don't bear grudges: Enemies from this list cannot be Rivals.",
+          "All the same: Enemies from this list are not accompanied by Unique Individuals, except on the Insanity difficulty setting (core rulebook, p.65)."
+        ],
+        "enemies": [
+          {
+            "name": "Converted Acquisition",
+            "roll_range": [
+              1,
+              4
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "2B",
+            "description": "Nightmarish cyborg race that replenishes their ranks through captives and corpses, enhanced with bolted-in weaponry and control circuitry.",
+            "special_rules": [
+              "Careless: You receive +1 to Seize the Initiative.",
+              "Built-in: Weapons remove Heavy trait.",
+              "Armored: 5+ Armor Saving Throw. Invasion threat"
+            ],
+            "num": "+2",
+            "panic": "0"
+          },
+          {
+            "name": "Converted Infiltrators",
+            "roll_range": [
+              5,
+              12
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "A",
+            "weapons": "1A",
+            "description": "The Converted often send in adapted members of a prospective target species to scout and spy.",
+            "special_rules": [
+              "Infiltrators: At the end of each Enemy Actions phase, select a random Infiltrator that is not visible to any crew member. They immediately move towards the closest crew member. If any terrain feature lies between the Infiltrator and the selected crew, place them in the middle of (or directly behind) the terrain feature. If there are no intervening features, move them into the feature occupied by the crew member or (if in the open) within 4\".",
+              "Armored: 5+ Armor Saving Throw. Invasion threat"
+            ],
+            "num": "+2",
+            "panic": "0"
+          },
+          {
+            "name": "Abductor Raiders",
+            "roll_range": [
+              13,
+              18
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "A",
+            "weapons": "2A",
+            "description": "The short, large-headed clone species known as the Abductors are despised throughout space. They insist they are abducting and mind-controlling other sapients for a higher purpose.",
+            "special_rules": [
+              "Scurry: If firing at an Abductor in the open and missing, the target immediately takes a normal move towards Cover.",
+              "Capture plans: Specialists add Stun trait to any weapon carried. Invasion threat"
+            ],
+            "num": "+4",
+            "panic": "1"
+          },
+          {
+            "name": "Swarm Brood",
+            "roll_range": [
+              19,
+              28
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "B",
+            "weapons": "Claws",
+            "description": "Multiple-limbed aliens that react to all lifeforms with extreme violence.",
+            "special_rules": [
+              "Claws: Melee, Piercing, Damage 1.",
+              "Pack hunters: Each time the Swarm initiates a brawl, the nearest enemy within 8\" will immediately move 4\" towards the target.",
+              "Dodge: Shots at Swarm in the open and over 9\" away are –1 to Hit. Invasion threat 60 GAME OPTions ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+5",
+            "panic": "0"
+          },
+          {
+            "name": "Haywire Robots",
+            "roll_range": [
+              29,
+              34
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "R",
+            "weapons": "Smash",
+            "description": "Occasionally robots go berserk. This isn’t a problem when it’s a cat-sized cleaning device. It is a problem when the robot is a mining or construction bot.",
+            "special_rules": [
+              "Smash: Melee, Damage 2.",
+              "Heart of steel: 6+ Armor Saving Throw. Immune to Stun.",
+              "Careless: You receive +1 to Seize the Initiative and robots do not receive Cover unless they are in or immediately behind the terrain feature."
+            ],
+            "num": "+3",
+            "panic": "0"
+          },
+          {
+            "name": "Razor lizards",
+            "roll_range": [
+              35,
+              44
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": 3,
+            "ai": "B",
+            "weapons": "Fangs",
+            "description": "An oversized lizard brimming with spikes and sharp teeth.",
+            "special_rules": [
+              "Fangs: Melee, Piercing, Damage +0.",
+              "Pointy bits: A character winning a brawl by only 1 point takes a Damage +0 Hit.",
+              "Slither and sneak: Razor Lizards suffer no movement reductions for terrain features and can move over obstacles up to 2\" height with no movement penalty. They can Jump down from a feature up to 3\" height with no damage or movement reduction."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Sand Runners",
+            "roll_range": [
+              45,
+              56
+            ],
+            "speed": "7\"",
+            "combat_skill": "+0",
+            "toughness": 3,
+            "ai": "B",
+            "weapons": "Chomp",
+            "description": "Fast predators associated with desert planets. As they are trainable, they can be found on many Human worlds, though unfortunately, if set free, they revert to wild behavior quickly.",
+            "special_rules": [
+              "Chomp: Melee, Damage 1.",
+              "Leap: If a Sand Runner finishes a normal move within 3\" of a crew member, it will leap into brawling combat as a Free Action.",
+              "They can hear you breathe: Any time two or more 6 s are rolled on the Reaction dice at the start of the round, an additional Sand Runner is placed on the table 1D6\" from the center in a random direction."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Void Rippers",
+            "roll_range": [
+              57,
+              63
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "R",
+            "weapons": "Teeth",
+            "description": "Swarms of extremely aggressive fish-like flyers. They can rip a man to shreds in moments.",
+            "special_rules": [
+              "Teeth: Melee, Damage +0.",
+              "Gruesome: When rolling for post-battle injuries, apply –5 to the roll. Bots and Soulless are not penalized.",
+              "Hover: Rippers are assumed to float 1\" above the terrain and are not inhibited by any ground features, including Impassable ones. They never trigger any form of Environmental Hazard."
+            ],
+            "num": "+3",
+            "panic": "1"
+          },
+          {
+            "name": "Krorg",
+            "roll_range": [
+              64,
+              69
+            ],
+            "speed": "5\"",
+            "combat_skill": "+2",
+            "toughness": 6,
+            "ai": "R",
+            "weapons": "Rip and tear",
+            "description": "These beasts resemble a bear from Old Earth, but with larger claws and a surly demeanor.",
+            "special_rules": [
+              "Rip and tear: Melee, Damage 2.",
+              "Ferocious: +1 to brawling when initiating the combat.",
+              "Hulking brute: Immune to Stun. +1 to Hit when shooting at a Krorg when one is in the open. 61 GAME Options ROLL ENEMY NUM. PANIC SPEEDCOMBAT SKILLTOUGH. AIWEAP."
+            ],
+            "num": "+1",
+            "panic": "0"
+          },
+          {
+            "name": "Large bugs",
+            "roll_range": [
+              70,
+              78
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": 5,
+            "ai": "R",
+            "weapons": "Mandibles",
+            "description": "Oversized insects and other creepy-crawlies are a distressingly common sight throughout space.",
+            "special_rules": [
+              "Mandibles: Melee, Stun, Damage 1.",
+              "Easy targets: +1 to Hit when shooting at Bugs.",
+              "Wave attacks: Each time a Bug is removed due to Morale loss, another Bug arrives. Each time a Bug is destroyed, roll 1D6. On a 5-6, another Bug arrives.  Use a random direction roll in the center of the table to determine which battlefield edge the Bug arrives from."
+            ],
+            "num": "+5",
+            "panic": "1-2"
+          },
+          {
+            "name": "Carnivore Chasers",
+            "roll_range": [
+              79,
+              84
+            ],
+            "speed": "7\"",
+            "combat_skill": "+1",
+            "toughness": 4,
+            "ai": "B",
+            "weapons": "Teeth",
+            "description": "Fast pack predators. Will hunt any prey they can bring down.",
+            "special_rules": [
+              "Teeth: Melee, Damage +0.",
+              "Keen senses: You cannot Seize the Initiative.",
+              "Latch on:  A crew member that loses a brawl takes one additional Hit."
+            ],
+            "num": "+4",
+            "panic": "1-2"
+          },
+          {
+            "name": "Vent Crawlers",
+            "roll_range": [
+              85,
+              97
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": 4,
+            "ai": "R",
+            "weapons": "Claws",
+            "description": "Homicidal alien lifeforms that like to lurk inside starships and on strange moons.",
+            "special_rules": [
+              "Claws: Melee, Piercing, Damage 1.",
+              "Fate worse than death: If a post-battle injury roll indicates the character has died, they cannot be saved and no rerolls are possible for any reason.",
+              "We call them that because: At the start of Round 1, before Reaction dice are rolled, roll 1D6 for every Area terrain feature. Every 5-6 causes a Vent Crawler to be placed within the feature."
+            ],
+            "num": "+2",
+            "panic": "0"
+          },
+          {
+            "name": "Distorts",
+            "roll_range": [
+              98,
+              100
+            ],
+            "speed": "4\"",
+            "combat_skill": "+0",
+            "toughness": 4,
+            "ai": "B",
+            "weapons": "Corroding",
+            "description": "Touch Extra-dimensional horrors. It’s rumored they are the remnants of sapient beings who were lost in teleport accidents.",
+            "special_rules": [
+              "Corroding touch: Melee, Piercing, Damage 3.",
+              "Shimmer: Distorts ignore all terrain and obstacles when moving, regardless of height.",
+              "Displace: When a Distort is slain, roll 1D6. On a 5-6, place a new Distort 1D6\" directly behind the slain enemy, away from the attacker. Elite Unique Individuals All Unique Individuals follow these rules: • They are Fearless and unaffected by Morale. • They may follow a different AI routine. If using the AI Variations rules (p.42), Unique Individuals always roll separately, based on their own AI. If using the Enemy Deployment Variables (p.44) or Escalating Battles (p.46), those rolls are based on the main enemy AI. • Many of them have Luck and follow the same battle rules as player characters. ROLL ENEMY SPEEDCOMBAT SKILLTOUGH. AILUCK WEAPONS 01-06 Enemy Bruiser — — +1 G 0 Power Claw, Shotgun A particularly unpleasant-looking individual. Bruisers have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
+              "Overbearing: If the Bruiser rolls a natural 6 when brawling, the opponent is knocked back 3\". 62 GAME OPTions"
+            ],
+            "num": "+1",
+            "panic": "0"
+          }
+        ]
+      },
+      {
+        "table_name": "Elite Unique Individuals",
+        "description": "All Unique Individuals follow these rules:",
+        "special_rules": [
+          "They are Fearless and unaffected by Morale.",
+          "They may follow a different AI routine. If using the AI Variations rules (p.42), Unique Individuals always roll separately, based on their own AI. If using the Enemy Deployment Variables (p.44) or Escalating Battles (p.46), those rolls are based on the main enemy AI.",
+          "Many of them have Luck and follow the same battle rules as player characters."
+        ],
+        "enemies": [
+          {
+            "name": "Enemy Bruiser",
+            "roll_range": [
+              1,
+              6
+            ],
+            "speed": "—",
+            "combat_skill": "—",
+            "toughness": "+1",
+            "ai": "G",
+            "weapons": "Power Claw, Shotgun",
+            "description": "A particularly unpleasant-looking individual. Bruisers have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
+            "special_rules": [
+              "Overbearing: If the Bruiser rolls a natural 6 when brawling, the opponent is knocked back 3\". 62 GAME OPTions ROLL ENEMY SPEEDCOMBAT SKILLTOUGH. AILUCK WEAPONS"
+            ],
+            "luck": 0
+          },
+          {
+            "name": "Enemy Heavy",
+            "roll_range": [
+              7,
+              12
+            ],
+            "speed": "—",
+            "combat_skill": "—",
+            "toughness": "—",
+            "ai": "D",
+            "weapons": "Plasma Rifle",
+            "description": "The enemy has opted to bring some additional firepower. Heavies have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried. Rock ’n’ Roll: Add +1 shot if stationary and firing.",
+            "special_rules": [],
+            "luck": 0
+          },
+          {
+            "name": "Enemy Boss",
+            "roll_range": [
+              13,
+              17
+            ],
+            "speed": "—",
+            "combat_skill": "+1",
+            "toughness": "+1",
+            "ai": "—",
+            "weapons": "Hand Cannon, Shatter Axe",
+            "description": "One of the worst has managed to climb to the top of the hierarchy. Bosses have the base profile of the enemy fought, with the above changes. Listed weapons replace those normally carried.",
+            "special_rules": [
+              "Authority figure: Reduce Panic range by –1, but when slain, roll an additional Morale die."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Hired Killer",
+            "roll_range": [
+              18,
+              22
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": "5",
+            "ai": "A",
+            "weapons": "Machine Pistol, Glare Sword",
+            "description": "Will murder for credits.",
+            "special_rules": [
+              "Following fire: When firing, every natural 6 allows the Hired Killer another shot against the same target or a different target within 4\" of the initial target."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Corporate Spook",
+            "roll_range": [
+              23,
+              25
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "C",
+            "weapons": "Hand Laser",
+            "description": "One of the mega-corps must be up to no good if they send these creeps.",
+            "special_rules": [
+              "Fidgety: If the Spook is the only remaining enemy figure, they flee the battle.",
+              "Employee evaluation: If the Spook is killed, add 1 Rumor and a Rival.",
+              "State of the art gear: 5+ Screen Saving Throw."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Bounty Tracker",
+            "roll_range": [
+              26,
+              30
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": "5",
+            "ai": "A",
+            "weapons": "Shotgun, Suppression Maul",
+            "description": "Someone is willing to pay money to have you brought in, whole or in pieces.",
+            "special_rules": [
+              "Target priority: Randomly select a crew member at the start of the first Enemy Action phase. The Bounty Tracker will always attempt to close with and attack that character."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Callous Merc",
+            "roll_range": [
+              31,
+              35
+            ],
+            "speed": "5\"",
+            "combat_skill": "+2",
+            "toughness": "5",
+            "ai": "T",
+            "weapons": "Infantry Laser, Glare Sword",
+            "description": "Bitter and disillusioned mercenaries sometimes strike out on their own.",
+            "special_rules": [
+              "Stay in the fight: If struck by a ranged attack and surviving, the Callous Merc immediately fires at the attacker as a bonus action.",
+              "Seen it all: No Stun markers can be placed on the Merc if they already have one."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Freelancer",
+            "roll_range": [
+              36,
+              41
+            ],
+            "speed": "5\"",
+            "combat_skill": "+2",
+            "toughness": "4",
+            "ai": "T",
+            "weapons": "Blast Pistol, Ripper Sword",
+            "description": "A troubleshooter hired to supervise an operation and take care of any intrusions.",
+            "special_rules": [
+              "Interesting kit: If you slay the Troubleshooter in a brawl, make a Loot roll and claim the item for use immediately.",
+              "Calculating: When rolling for Reactions each round, one of your dice is set to a 6  automatically. The rest are rolled normally. 63 GAME Options ROLL ENEMY SPEEDCOMBAT SKILLTOUGH. AILUCK WEAPONS"
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Secret Agent",
+            "roll_range": [
+              42,
+              44
+            ],
+            "speed": "6\"",
+            "combat_skill": "+2",
+            "toughness": "4",
+            "ai": "A",
+            "weapons": "Various, Glare Sword",
+            "description": "Mysterious individual, packing some state-of-the-art murder implements.",
+            "special_rules": [
+              "Combination weapons: When activated each round, roll 1D6 to determine weapon for that round: 1-2 Plasma Rifle, 3-4 Fury Rifle, 5-6 Flak Gun."
+            ],
+            "luck": 2
+          },
+          {
+            "name": "Hulker Brawler",
+            "roll_range": [
+              45,
+              48
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": "6",
+            "ai": "A",
+            "weapons": "Flak Gun, Shatter Axe",
+            "description": "A burly post-Human uplift, brimming with strength and barely contained anger.",
+            "special_rules": [
+              "Overpowering: Roll twice and pick the highest roll when brawling.",
+              "Brute rush: If struck by ranged attacks, and the roll versus Toughness is a natural 1, the Brawler moves a full move directly towards the shooter, attempting to engage them in a brawl. This can only happen once per weapon attack, and resolves after all shots from the attacker are resolved."
+            ],
+            "luck": 0
+          },
+          {
+            "name": "Gun Slinger",
+            "roll_range": [
+              49,
+              53
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "T",
+            "weapons": "Hand Cannon, Machine Pistol",
+            "description": "One of any number of trigger-happy people that seem to congregate in Fringe Space. The best of them are frighteningly effective at their craft.",
+            "special_rules": [
+              "Slinging guns: May fire both pistols in the same round. Resolve the Hand Cannon first. Different targets may be selected."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Engineer Tech",
+            "roll_range": [
+              54,
+              56
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "C",
+            "weapons": "Blast Pistol",
+            "description": "A quiet alien species fascinated with technology and gadgetry.",
+            "special_rules": [
+              "Weapon upgrades: Each Enemy Action phase, pick a random enemy figure. They may reroll 1s when firing this phase."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Mutant Bruiser",
+            "roll_range": [
+              57,
+              61
+            ],
+            "speed": "4\"",
+            "combat_skill": "+1",
+            "toughness": "5",
+            "ai": "G",
+            "weapons": "Shotgun, Brutal",
+            "description": "Melee Weapon A misshapen beast of a creature, irregular in both body and temperament.",
+            "special_rules": [
+              "Ferocious: +1 bonus when initiating a brawl.",
+              "Hurl: If a brawl ends as a draw, the Bruiser hurls their opponent 1D6\" in a random direction. The target is then Stunned. This happens instead of both figures taking a Hit as normal."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Precursor Wanderer",
+            "roll_range": [
+              62,
+              65
+            ],
+            "speed": "7\"",
+            "combat_skill": "+2",
+            "toughness": "4",
+            "ai": "A",
+            "weapons": "Infantry Laser, Glare Sword",
+            "description": "An alien mystic, brimming with psionic energies.",
+            "special_rules": [
+              "One with the flow: When activated normally, the Wanderer fires their weapon immediately, then moves and then fires a second time.",
+              "Predictions: When declaring any shot against the Wanderer, roll 1D6. On a 5-6, the shot cannot be taken (and another target cannot be selected), and the Wanderer immediately takes a half move and then fires once at the would-be attacker."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Hakshan Investigator",
+            "roll_range": [
+              66,
+              69
+            ],
+            "speed": "5\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "D",
+            "weapons": "Plasma Rifle",
+            "description": "Odd, suited aliens that trek the Galaxy in search of something vitally important to their species.",
+            "special_rules": [
+              "Driven: If a Notable Sight is present on the table and has not yet been claimed, the Investigator adds +1 to all shooting and brawling rolls.",
+              "Armored suit: Not affected by any environmental threats. All weapons count as Damage +0 against the suit. 64 GAME OPTions ROLL ENEMY SPEEDCOMBAT SKILLTOUGH. AILUCK WEAPONS"
+            ],
+            "luck": 1
+          },
+          {
+            "name": "K’Erin Warrior",
+            "roll_range": [
+              70,
+              75
+            ],
+            "speed": "5\"",
+            "combat_skill": "+3",
+            "toughness": "5",
+            "ai": "A",
+            "weapons": "Machine Pistol, Ripper Sword",
+            "description": "A noble alien warrior seeking adventure.",
+            "special_rules": [
+              "Master fencer: A brawl ending in a draw is treated as a win by the Warrior."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Nomad Scout",
+            "roll_range": [
+              76,
+              79
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "D",
+            "weapons": "Hunting Rifle, Blade",
+            "description": "A skilled tracker and shooter, hiring out to the starfolk for credits.",
+            "special_rules": [
+              "Concealed: Always counts as being in Cover when fired upon.",
+              "Deadly accuracy: +1 to Hit bonus when shooting."
+            ],
+            "luck": 0
+          },
+          {
+            "name": "Cyborg Merc",
+            "roll_range": [
+              80,
+              82
+            ],
+            "speed": "7\"",
+            "combat_skill": "+2",
+            "toughness": "6",
+            "ai": "T",
+            "weapons": "Auto Rifle, Power Claw",
+            "description": "A mercenary stuffed full of cybernetic enhancements. Often contemptuous of the “meat-bags” they fight alongside.",
+            "special_rules": [
+              "Built-in armor: 5+ Armor Saving Throw. If negated by Piercing weapon, the Merc still receives a saving throw on a 6 .",
+              "Nerve overrides: Remove a Stun marker when activating, instead of afterwards."
+            ],
+            "luck": 1
+          },
+          {
+            "name": "Rogue Psionic",
+            "roll_range": [
+              83,
+              85
+            ],
+            "speed": "5\"",
+            "combat_skill": "+0",
+            "toughness": "4",
+            "ai": "C",
+            "weapons": "Hand Gun, Hold Out Pistol",
+            "description": "Self-taught Psionics are a substantial asset in a gun battle.",
+            "special_rules": [
+              "I just knew how to: Allies within 3\" of the Psionic may reroll 1 s when firing."
+            ],
+            "luck": 3
+          },
+          {
+            "name": "Gene Dog",
+            "roll_range": [
+              86,
+              91
+            ],
+            "speed": "6\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "G",
+            "weapons": "Fangs",
+            "description": "Enhanced versions of Earth-dog breeds, usually modified to withstand the environment.",
+            "special_rules": [
+              "Fangs: Melee, Piercing, Damage +0.",
+              "Loyal: When someone engages the owner in a brawl, the Dog immediately moves a full move to enter the same brawl. If it succeeds, it will fight the attacker instead of the owner. If the owner is slain, the Dog will remain in place, attacking anyone that comes within 8\". If the Dog is the only remaining enemy on the battlefield, it will flee."
+            ],
+            "luck": 0
+          },
+          {
+            "name": "Sand Runner",
+            "roll_range": [
+              92,
+              96
+            ],
+            "speed": "7\"",
+            "combat_skill": "+1",
+            "toughness": "4",
+            "ai": "G",
+            "weapons": "Chomp",
+            "description": "These fierce lizards can make surprisingly loyal companions.",
+            "special_rules": [
+              "Chomp: Melee, Damage 1.",
+              "Leap: If a Sand Runner finishes a normal move within 3\" of a crew member, it will leap into brawling combat as a Free Action."
+            ],
+            "luck": 0
+          },
+          {
+            "name": "Mk II Security Bot",
+            "roll_range": [
+              97,
+              100
+            ],
+            "speed": "5\"",
+            "combat_skill": "+2",
+            "toughness": "5",
+            "ai": "G",
+            "weapons": "Fury Rifle, Power Claw",
+            "description": "The state of the art in robotic security details.",
+            "special_rules": [
+              "Targeting AI: May fire twice per round. Shots must be taken at each of the two closest visible targets. If only one target is visible, only one shot is taken.",
+              "Armored chassis: 5+ Armor Saving Throw. 65 GAME Options"
+            ],
+            "luck": 0
+          }
+        ]
+      }
+    ],
+    "_source": "Compendium pp.48-65. Enemy rows extracted from the PDF text layer; each table verified to span D100 1-100 with no gap or overlap."
   }
 }

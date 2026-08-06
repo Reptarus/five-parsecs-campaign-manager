@@ -101,6 +101,11 @@ func _load_from_save_file(save_path: String) -> void:
 		if c is Dictionary:
 			var tagged: Dictionary = (c as Dictionary).duplicate(true)
 			tagged["_source_mode"] = src_mode
+			# Needed so the dashboard can REMOVE this character from its source
+			# save after a successful import — otherwise the pull direction leaves
+			# them in both campaigns. The push direction (muster-out) already does
+			# destination-first-then-remove; this is its missing counterpart.
+			tagged["_source_path"] = save_path
 			_source_characters.append(tagged)
 
 
@@ -175,7 +180,7 @@ func _show_step_1() -> void:
 
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel"
-	cancel_btn.custom_minimum_size = Vector2(200, 44)
+	cancel_btn.custom_minimum_size = Vector2(0, 44)
 	cancel_btn.pressed.connect(func() -> void:
 		import_cancelled.emit()
 		queue_free())
@@ -208,7 +213,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
-	select_btn.custom_minimum_size = Vector2(200, 44)
+	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func() -> void: _show_step_2(captured))
 	card.add_child(select_btn)
@@ -226,6 +231,15 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var planetfall_char: Dictionary = _transfer_service.convert_to_planetfall(
 		source_char, source_label)
 	var canonical: Dictionary = _transfer_service.export_to_canonical(source_char, sm)
+
+	# Stamp the source coordinates HERE, the only scope holding the raw source
+	# character — both convert_to_planetfall() and export_to_canonical() rebuild
+	# the dict from known keys and would drop them. The dashboard uses these to
+	# remove the original after a successful import, so a pulled veteran stops
+	# existing in two campaigns at once.
+	planetfall_char["_source_path"] = str(source_char.get("_source_path", ""))
+	planetfall_char["_source_character_id"] = str(source_char.get("character_id",
+		source_char.get("id", "")))
 
 	var char_name: String = planetfall_char.get("name", "Unknown")
 	var title := Label.new()
@@ -258,14 +272,14 @@ func _show_step_2(source_char: Dictionary) -> void:
 
 	var next_btn := Button.new()
 	next_btn.text = "Proceed to Class Training"
-	next_btn.custom_minimum_size = Vector2(240, 52)
+	next_btn.custom_minimum_size = Vector2(0, 52)
 	next_btn.pressed.connect(func() -> void:
 		_show_step_3_training(planetfall_char, canonical))
 	btn_row.add_child(next_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
-	back_btn.custom_minimum_size = Vector2(140, 48)
+	back_btn.custom_minimum_size = Vector2(0, 48)
 	back_btn.pressed.connect(func() -> void: _show_step_1())
 	btn_row.add_child(back_btn)
 
@@ -298,7 +312,7 @@ func _show_step_3_training(planetfall_char: Dictionary, canonical: Dictionary) -
 		card.add_child(note)
 		var import_btn := Button.new()
 		import_btn.text = "Import as Unclassed"
-		import_btn.custom_minimum_size = Vector2(220, 48)
+		import_btn.custom_minimum_size = Vector2(0, 48)
 		import_btn.pressed.connect(func() -> void:
 			_finalize_import(planetfall_char, "", canonical))
 		_step_container.add_child(import_btn)
@@ -314,12 +328,12 @@ func _show_step_3_training(planetfall_char: Dictionary, canonical: Dictionary) -
 	var picker := OptionButton.new()
 	for cls in available:
 		picker.add_item(str(cls).capitalize())
-	picker.custom_minimum_size = Vector2(200, 44)
+	picker.custom_minimum_size = Vector2(0, 44)
 	card.add_child(picker)
 
 	var roll_btn := Button.new()
 	roll_btn.text = "Attempt Class Training"
-	roll_btn.custom_minimum_size = Vector2(240, 48)
+	roll_btn.custom_minimum_size = Vector2(0, 48)
 	roll_btn.pressed.connect(func() -> void:
 		var desired := str(available[picker.selected]) if picker.selected >= 0 else str(available[0])
 		var res: Dictionary = _transfer_service.attempt_class_training(planetfall_char, desired)
@@ -328,7 +342,7 @@ func _show_step_3_training(planetfall_char: Dictionary, canonical: Dictionary) -
 
 	var skip_btn := Button.new()
 	skip_btn.text = "Skip — Import Unclassed"
-	skip_btn.custom_minimum_size = Vector2(240, 44)
+	skip_btn.custom_minimum_size = Vector2(0, 44)
 	skip_btn.pressed.connect(func() -> void:
 		_finalize_import(planetfall_char, "", canonical))
 	_step_container.add_child(skip_btn)
@@ -360,7 +374,7 @@ func _show_training_result(
 		card.add_child(msg)
 		var import_btn := Button.new()
 		import_btn.text = "Import as %s" % assigned.capitalize()
-		import_btn.custom_minimum_size = Vector2(240, 48)
+		import_btn.custom_minimum_size = Vector2(0, 48)
 		import_btn.pressed.connect(func() -> void:
 			_finalize_import(planetfall_char, assigned, canonical))
 		_step_container.add_child(import_btn)
@@ -374,13 +388,13 @@ func _show_training_result(
 		card.add_child(msg)
 		var retry_btn := Button.new()
 		retry_btn.text = "Try Again"
-		retry_btn.custom_minimum_size = Vector2(160, 44)
+		retry_btn.custom_minimum_size = Vector2(0, 44)
 		retry_btn.pressed.connect(func() -> void:
 			_show_step_3_training(planetfall_char, canonical))
 		_step_container.add_child(retry_btn)
 		var unclassed_btn := Button.new()
 		unclassed_btn.text = "Import as Unclassed"
-		unclassed_btn.custom_minimum_size = Vector2(220, 44)
+		unclassed_btn.custom_minimum_size = Vector2(0, 44)
 		unclassed_btn.pressed.connect(func() -> void:
 			_finalize_import(planetfall_char, "", canonical))
 		_step_container.add_child(unclassed_btn)
@@ -450,7 +464,7 @@ func _create_glass_card(parent: Control) -> VBoxContainer:
 	style.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.8)
 	style.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(16)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(20)
 	panel.add_theme_stylebox_override("panel", style)
 	parent.add_child(panel)

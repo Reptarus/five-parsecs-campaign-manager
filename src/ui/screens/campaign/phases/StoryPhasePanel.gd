@@ -278,9 +278,14 @@ func _present_via_narrative_screen() -> void:
 
 
 func _event_to_narrative_dict(event) -> Dictionary:
-	# `get_art_tag()` does not exist on StoryEvent today; canonical fallback
-	# string format keyed by event_number is documented in the sprint plan.
-	var art_tag := "story_event_%02d" % event.event_number
+	# StoryEvent now parses `art_tag` from the event JSON (Aug 1 2026). The
+	# derived form stays as a fallback for an event authored without one; it
+	# matches the convention every manifest in data/scenes/ already uses.
+	var art_tag: String = ""
+	if "art_tag" in event:
+		art_tag = str(event.art_tag)
+	if art_tag.is_empty():
+		art_tag = "story_event_%02d" % event.event_number
 	var bonus_dict: Dictionary = {}
 	if "objectives" in event and event.objectives is Dictionary:
 		var bonus_value = event.objectives.get("bonus", {})
@@ -295,12 +300,37 @@ func _event_to_narrative_dict(event) -> Dictionary:
 		"art_tag": art_tag,
 		"core_text": event.narrative_intro,
 		"briefing_text": event.narrative_briefing,
-		"advisor_role": "social",
-		"advisor_mood": "warning",
+		# Per-event, from the JSON `presentation` block (Aug 1 2026). All seven
+		# events used to hand NarrativeScreen the same hardcoded social/warning
+		# advisor and the same "Continue to Battle" button, so the Story Track
+		# presented identically from Foiled! to the final confrontation.
+		# Fallbacks keep an event authored without a presentation block working.
+		"advisor_role": _event_advisor_role(event),
+		"advisor_mood": _event_advisor_mood(event),
 		"turn_restrictions": restrictions,
 		"bonus_objective": bonus_dict,
-		"choices": [{"id": 0, "label": "Continue to Battle", "hint": ""}],
+		"choices": [{
+			"id": 0, "label": _event_choice_label(event), "hint": "",
+		}],
 	}
+
+
+func _event_advisor_role(event) -> String:
+	if "advisor_role" in event and not str(event.advisor_role).is_empty():
+		return str(event.advisor_role)
+	return "social"
+
+
+func _event_advisor_mood(event) -> String:
+	if "advisor_mood" in event and not str(event.advisor_mood).is_empty():
+		return str(event.advisor_mood)
+	return "warning"
+
+
+func _event_choice_label(event) -> String:
+	if "choice_label" in event and not str(event.choice_label).is_empty():
+		return str(event.choice_label)
+	return "Continue to Battle"
 
 
 func _build_narrative_context() -> Dictionary:

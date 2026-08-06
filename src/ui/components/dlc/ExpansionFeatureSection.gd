@@ -92,7 +92,7 @@ func _build_pack_section(
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 	add_child(card)
@@ -109,7 +109,7 @@ func _build_pack_section(
 	var name_lbl := Label.new()
 	name_lbl.text = catalog.get("name", dlc_id)
 	name_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -117,7 +117,7 @@ func _build_pack_section(
 
 	# Owned/locked badge
 	var badge := Label.new()
-	badge.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	badge.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	if is_owned:
 		badge.text = "Owned"
 		badge.add_theme_color_override(
@@ -162,6 +162,11 @@ func _build_pack_section(
 	for feat: Dictionary in features:
 		var flag_name: String = feat.get("flag", "")
 		if flag_name in _excluded_flags:
+			continue
+		# Never show a switch whose rules are not wired. See
+		# DLCContentCatalog.UNIMPLEMENTED_FLAGS for the list and the measurement
+		# rule that governs it.
+		if DLCContentCatalogRef.is_flag_unimplemented(flag_name):
 			continue
 		var flag_val: int = -1
 		if _dlc_mgr:

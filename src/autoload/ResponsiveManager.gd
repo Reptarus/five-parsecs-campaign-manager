@@ -34,13 +34,58 @@ var is_landscape: bool = true
 var screen_scale_factor: float = 1.0
 var _viewport: Viewport = null
 
+## The project theme, and the font sizes it shipped with.
+##
+## get_font_size_multiplier() has always existed and has always been right, but
+## almost nothing asked it: the codebase sets type size at roughly 1,200 call sites
+## with add_theme_font_size_override(), and an override outranks the theme, so text
+## was the same number of pixels on a 310dp phone as on a 1920px desktop. On the
+## narrow end that is what pushes layouts off the edge — a Label's minimum width IS
+## its text width, so type that never shrinks makes a page that cannot.
+##
+## Scaling the theme fixes every control that does NOT override, which is the whole
+## default-themed half of the app. Screens that do override are being moved onto the
+## shared chrome batch by batch, and that reads the multiplier directly.
+var _theme: Theme = null
+var _base_font_sizes: Dictionary = {}
+
+
 func _ready() -> void:
 	_viewport = get_tree().root
 	_detect_screen_scale()
 	_update_breakpoint()
 	_update_orientation()
+	_capture_theme_font_sizes()
+	_apply_theme_font_scale()
 	if _viewport:
 		_viewport.size_changed.connect(_on_viewport_size_changed)
+
+
+## Remember the authored sizes ONCE, so repeated rescales compound off the original
+## rather than off the last scaled value (0.85 applied twice is 0.72, and a few
+## rotations would shrink the app to nothing).
+func _capture_theme_font_sizes() -> void:
+	_theme = load("res://src/ui/themes/sci_fi_theme.tres") as Theme
+	if _theme == null:
+		return
+	for type_name in _theme.get_font_size_type_list():
+		for size_name in _theme.get_font_size_list(type_name):
+			_base_font_sizes[[type_name, size_name]] = _theme.get_font_size(size_name, type_name)
+	if _theme.has_default_font_size():
+		_base_font_sizes[["", "__default"]] = _theme.default_font_size
+
+
+func _apply_theme_font_scale() -> void:
+	if _theme == null or _base_font_sizes.is_empty():
+		return
+	var mult := get_font_size_multiplier()
+	for key: Array in _base_font_sizes:
+		var base: int = _base_font_sizes[key]
+		var scaled: int = maxi(9, int(round(float(base) * mult)))
+		if key[0] == "" and key[1] == "__default":
+			_theme.default_font_size = scaled
+		else:
+			_theme.set_font_size(key[1], key[0], scaled)
 
 func _on_viewport_size_changed() -> void:
 	var previous_breakpoint := current_breakpoint
@@ -49,6 +94,9 @@ func _on_viewport_size_changed() -> void:
 	_update_orientation()
 	viewport_resized.emit(current_viewport_size)
 	if current_breakpoint != previous_breakpoint:
+		# Rescale type BEFORE announcing the change, so every listener that relays
+		# out is already measuring against the new text metrics.
+		_apply_theme_font_scale()
 		breakpoint_changed.emit(current_breakpoint)
 	# The effective layout class shifts on a bucket change OR a rotation. Rotation
 	# at constant width emits no breakpoint_changed, so portrait-aware screens
@@ -189,17 +237,28 @@ func get_spacing_multiplier() -> float:
 func get_responsive_spacing(base_spacing: int) -> int:
 	return int(float(base_spacing) * get_spacing_multiplier())
 
+## The type ladder, one distinct step per breakpoint.
+##
+## TABLET used to return 1.0, the same as DESKTOP, so nothing about the type
+## changed anywhere between 480dp and 1024dp -- which is most of a desktop
+## window's travel and the whole tablet range. A ladder with a repeated rung is
+## indistinguishable from no ladder at the sizes people actually resize through.
+##
+## The tokens in UIColors are authored at the DESKTOP rung (1.0), so this only
+## ever trims for smaller screens and grows for genuinely large ones.
 func get_font_size_multiplier() -> float:
 	match current_breakpoint:
 		Breakpoint.MOBILE: return 0.85
-		Breakpoint.TABLET: return 1.0
+		Breakpoint.TABLET: return 0.92
 		Breakpoint.DESKTOP: return 1.0
 		Breakpoint.WIDE: return 1.15
 		Breakpoint.ULTRAWIDE: return 1.3
 	return 1.0
 
+## Never round a readable size down into an unreadable one: 9px is the floor the
+## theme rescale uses too, so the two paths agree on the smallest legible step.
 func get_responsive_font_size(base_size: int) -> int:
-	return int(float(base_size) * get_font_size_multiplier())
+	return maxi(9, int(round(float(base_size) * get_font_size_multiplier())))
 
 func get_touch_target_size() -> int:
 	if current_breakpoint == Breakpoint.MOBILE:

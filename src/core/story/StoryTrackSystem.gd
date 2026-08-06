@@ -58,6 +58,10 @@ var mercenary_captured: bool = false
 # ── Story Track Outcome ─────────────────────────────────────────────
 ## "active", "won", "lost", "inactive"
 var story_outcome: String = "inactive"
+## Effects produced by a completion that happened OUTSIDE a battle — currently
+## only the Event 7 missed-chance loss (p.159). Transient: CampaignPhaseManager
+## drains it on the turn it appears, so it is deliberately not serialized.
+var pending_completion_effects: Dictionary = {}
 
 # ── Event Data ──────────────────────────────────────────────────────
 var story_events: Array[StoryEvent] = []
@@ -161,8 +165,17 @@ func begin_campaign_turn() -> StoryEvent:
 	# Normal pending event
 	if pending_story_event:
 		pending_story_event = false
-		is_story_event_turn = true
 		var event: StoryEvent = get_current_event()
+		# Core Rules p.159, Event 7: "You may delay this battle for up to 3
+		# campaign turns." The clock reaching zero OPENS the window; it does not
+		# force the fight. From here _check_event_7_delay() runs the countdown and
+		# the player can jump in at any point via trigger_event_7_now(), which the
+		# CampaignDashboard "Play now" button calls.
+		if event and event.is_final_event:
+			_setup_event_7_delay(event)
+			is_story_event_turn = false
+			return null
+		is_story_event_turn = true
 		if event:
 			story_event_triggered.emit(event)
 		return event
@@ -201,7 +214,11 @@ func get_battle_config() -> Dictionary:
 
 ## Apply post-battle effects after a Story Event battle.
 ## Advances to next event and sets new clock value.
-func apply_post_battle(won: bool) -> Dictionary:
+##
+## `outcome` carries battle facts this system cannot see for itself:
+##   held_field, mercenary_captured (Event 2), captive_survived (Event 6).
+## Optional so existing callers and tests keep working.
+func apply_post_battle(won: bool, outcome: Dictionary = {}) -> Dictionary:
 	if not is_story_event_turn:
 		return {}
 
@@ -212,6 +229,16 @@ func apply_post_battle(won: bool) -> Dictionary:
 	is_story_event_turn = false
 	completed_event_ids.append(event.event_id)
 	event.is_completed = true
+
+	# Persistent story state that later events read back. Both fields were
+	# serialized from the start but nothing ever wrote them, so Event 3's
+	# "captured the mercenary" Seize-the-Initiative bonus (+3 instead of +2) and
+	# Event 7's "if your old companion was rescued" roll could never trigger.
+	if event.event_number == 2 and bool(outcome.get("mercenary_captured", false)):
+		mercenary_captured = true
+	if event.event_number == 6 and won \
+			and bool(outcome.get("captive_survived", true)):
+		companion_rescued = true
 
 	var effects: Dictionary = event.post_battle_effects.duplicate()
 	effects["won"] = won
@@ -279,13 +306,29 @@ func _check_event_7_delay() -> StoryEvent:
 		is_story_event_turn = false
 		return null
 
-	# Delay exhausted or player chose to go now
+	# Core Rules p.159, verbatim: "You may delay this battle for up to 3 campaign
+	# turns. If you wait longer than that, the chance is missed, and you must
+	# consult the 'Losing the Story' section below."
+	#
+	# The window closing LOSES the story. This used to fire the battle anyway,
+	# which handed the player the confrontation the book says they forfeited.
 	event_7_available = false
-	is_story_event_turn = true
+	is_story_event_turn = false
 	var event: StoryEvent = get_current_event()
+	var effects: Dictionary = {}
 	if event:
-		story_event_triggered.emit(event)
-	return event
+		effects = event.post_battle_effects.duplicate(true)
+		effects["event_id"] = event.event_id
+		effects["event_number"] = event.event_number
+		if not event.event_id in completed_event_ids:
+			completed_event_ids.append(event.event_id)
+		event.is_completed = true
+	effects["missed_the_chance"] = true
+	# Stashed for CampaignPhaseManager, which routes it through the same effects
+	# applier the post-battle path uses. There is no battle on this path, so
+	# nothing else would ever pay out "Losing the Story".
+	pending_completion_effects = _complete_story_track(false, effects)
+	return null
 
 
 ## Player chooses to play Event 7 now (instead of delaying)
@@ -301,10 +344,17 @@ func trigger_event_7_now() -> StoryEvent:
 	return event
 
 
-## After Event 6 completes, set up Event 7 availability
-func _setup_event_7_delay() -> void:
+## Open the Event 7 delay window (Core Rules p.159).
+## Called when the Story Clock reaches zero on the final event.
+func _setup_event_7_delay(event: StoryEvent = null) -> void:
 	event_7_available = true
-	delay_turns_remaining = 3
+	# The book's "up to 3 campaign turns" rides in from the JSON as
+	# campaign_turn_modifications.can_delay_up_to → StoryEvent.max_delay_turns.
+	# It used to be hardcoded here while that parsed field had zero readers.
+	var window: int = 3
+	if event != null and event.max_delay_turns > 0:
+		window = event.max_delay_turns
+	delay_turns_remaining = window
 
 
 # ── Story Track Completion (Core Rules p.160) ───────────────────────

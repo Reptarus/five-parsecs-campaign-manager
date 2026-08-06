@@ -1,53 +1,31 @@
 class_name CompendiumDeploymentVariables
 extends RefCounted
-## Enemy Deployment Variables — Compendium pp.44-45
+## Enemy Deployment Variables — Compendium pp.44-45.
 ##
-## When failing to Seize the Initiative, roll D100 by AI type to determine
-## how enemies deploy. If initiative IS seized, enemies use Line (standard).
+## "Set up both sides normally and roll to Seize the Initiative. If you fail,
+##  roll D100 on the table below, using the AI type to calculate which deployment
+##  type the enemy will use. If you successfully Seize the Initiative, the enemy
+##  will always use the Line (i.e. standard) deployment option."
 ##
-## All output is TEXT INSTRUCTIONS for the tabletop companion model.
-## Gated behind DLCManager.ContentFlag.DEPLOYMENT_VARIABLES.
+## data/compendium/deployment_variables.json has held the nine deployment types
+## and all six AI-type D100 columns, byte-correct against the book, since it was
+## written — and had ZERO loaders. This file is that loader.
+##
+## Output is TEXT INSTRUCTIONS: the app tells the player how to place the enemy
+## on the physical table. It does not move figures.
+
+const FLAG := "DEPLOYMENT_VARIABLES"
+
+## AI types the p.44 table has a column for. Guardian is deliberately absent —
+## the book prints six columns and Guardian is not one of them, so a Guardian
+## force gets no variable deployment rather than a fabricated one.
+const TABLE_AI_TYPES: Array = [
+	"aggressive", "cautious", "defensive", "rampage", "tactical", "beast",
+]
 
 
 ## ============================================================================
-## JSON DATA LOADING (RulesReference canonical, const fallback)
-## ============================================================================
-
-static var _ref_data: Dictionary = {}
-static var _ref_loaded: bool = false
-
-static func _ensure_ref_loaded() -> void:
-	if _ref_loaded:
-		return
-	_ref_loaded = true
-	var path := "res://data/RulesReference/AlternateEnemyDeployment.json"
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
-		_ref_data = json.data
-	file.close()
-
-static func get_ref_data() -> Dictionary:
-	_ensure_ref_loaded()
-	return _ref_data
-
-
-## ============================================================================
-## DLC GATING
-## ============================================================================
-
-static func _is_enabled() -> bool:
-	var dlc_mgr = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	if not dlc_mgr:
-		return false
-	return dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.DEPLOYMENT_VARIABLES)
-
-
-
-## ============================================================================
-## COMPENDIUM DATA LOADING (from JSON)
+## DATA LOADING
 ## ============================================================================
 
 static var _data: Dictionary = {}
@@ -57,14 +35,16 @@ static func _ensure_loaded() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	var file := FileAccess.open("res://data/compendium/deployment_variables.json", FileAccess.READ)
+	var file := FileAccess.open(
+		"res://data/compendium/deployment_variables.json", FileAccess.READ)
 	if not file:
-		push_warning("CompendiumDeploymentVariables: Could not load deployment_variables.json")
+		push_warning("CompendiumDeploymentVariables: could not load deployment_variables.json")
 		return
 	var json := JSON.new()
 	if json.parse(file.get_as_text()) == OK and json.data is Dictionary:
 		_data = json.data
 	file.close()
+
 
 static var DEPLOYMENT_TYPES: Array:
 	get:
@@ -76,40 +56,101 @@ static var DEPLOYMENT_TABLES: Dictionary:
 		_ensure_loaded()
 		return _data.get("deployment_tables", {})
 
+
 ## ============================================================================
-## QUERY METHODS
+## DLC GATING
 ## ============================================================================
 
-## Roll deployment type for a given AI type. Returns deployment dict.
-## If initiative was seized, always returns Line.
-static func roll_deployment(ai_type: String, seized_initiative: bool = false) -> Dictionary:
-	if not _is_enabled():
-		return {}
-	if seized_initiative:
-		return DEPLOYMENT_TYPES[0] # Line
-
-	var ai_key := ai_type.to_lower()
-	if not DEPLOYMENT_TABLES.has(ai_key):
-		return DEPLOYMENT_TYPES[0] # Default to Line
-
-	var roll := randi_range(1, 100)
-	var table: Array = DEPLOYMENT_TABLES[ai_key]
-	for entry in table:
-		var deploy_idx: int = entry[0]
-		var r_min: int = entry[1]
-		var r_max: int = entry[2]
-		if roll >= r_min and roll <= r_max:
-			var result: Dictionary = DEPLOYMENT_TYPES[deploy_idx].duplicate()
-			result["roll"] = roll
-			result["ai_type"] = ai_key
-			return result
-
-	return DEPLOYMENT_TYPES[0]
+static func _get_dlc_manager() -> Node:
+	if not Engine.get_main_loop():
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/DLCManager")
 
 
-## Get deployment type by ID.
-static func get_deployment_type(deploy_id: String) -> Dictionary:
-	for dt in DEPLOYMENT_TYPES:
-		if dt.id == deploy_id:
-			return dt
+static func _is_flag_enabled(flag_name: String) -> bool:
+	var dlc_mgr := _get_dlc_manager()
+	if not dlc_mgr:
+		return false
+	var flag_value: int = dlc_mgr.ContentFlag.get(flag_name, -1)
+	if flag_value < 0:
+		return false
+	return dlc_mgr.is_feature_enabled(flag_value)
+
+
+## ============================================================================
+## THE RULE
+## ============================================================================
+
+## Normalize whatever the enemy force calls its AI to a p.44 column name.
+static func normalize_ai_type(ai_type: String) -> String:
+	var key: String = ai_type.strip_edges().to_lower()
+	# Single-letter codes are how enemy_types.json stores AI (A/C/D/R/T/B).
+	match key:
+		"a": key = "aggressive"
+		"c": key = "cautious"
+		"d": key = "defensive"
+		"r": key = "rampage"
+		"t": key = "tactical"
+		"b": key = "beast"
+	if key in TABLE_AI_TYPES:
+		return key
+	return ""
+
+
+static func get_deployment_type(type_id: String) -> Dictionary:
+	for entry in DEPLOYMENT_TYPES:
+		if entry is Dictionary and str(entry.get("id", "")) == type_id:
+			return entry.duplicate(true)
 	return {}
+
+
+## Resolve the enemy's deployment for this battle.
+##
+## `seized` true short-circuits to Line per p.44 — that is the rule, not an
+## optimisation, so it applies before the flag check has any dice to roll.
+## Returns {} when the option is off or the AI type has no column (Guardian).
+static func roll_deployment(ai_type: String, seized: bool) -> Dictionary:
+	if not _is_flag_enabled(FLAG):
+		return {}
+	var column: String = normalize_ai_type(ai_type)
+	if column.is_empty():
+		return {}
+	if seized:
+		var line: Dictionary = get_deployment_type("line")
+		if line.is_empty():
+			return {}
+		line["roll"] = 0
+		line["ai_type"] = column
+		line["reason"] = "Initiative seized — the enemy always uses Line deployment (p.44)."
+		return line
+
+	var rows: Array = DEPLOYMENT_TABLES.get(column, [])
+	if rows.is_empty():
+		return {}
+	var roll: int = randi_range(1, 100)
+	var types: Array = DEPLOYMENT_TYPES
+	for row in rows:
+		# Rows are [type_index, roll_min, roll_max] against DEPLOYMENT_TYPES.
+		if not (row is Array) or row.size() != 3:
+			continue
+		if roll < int(row[1]) or roll > int(row[2]):
+			continue
+		var index: int = int(row[0])
+		if index < 0 or index >= types.size():
+			return {}
+		var out: Dictionary = (types[index] as Dictionary).duplicate(true)
+		out["roll"] = roll
+		out["ai_type"] = column
+		out["reason"] = "Initiative not seized — D100 %d on the %s column (p.44)." % [
+			roll, column.capitalize()]
+		return out
+	return {}
+
+
+## The placement clarification p.44 prints beneath the table. Shown alongside
+## Infiltration and Concealed because those are the two that arrive mid-battle.
+static func get_arrival_placement_note() -> String:
+	return ("Figures arriving from concealment or infiltration are placed anywhere"
+		+ " within or directly behind the feature that lets them fire on at least"
+		+ " one crew member. Arriving enemies with no ranged attack are placed as"
+		+ " close to a crew member as the feature allows (Compendium p.44).")

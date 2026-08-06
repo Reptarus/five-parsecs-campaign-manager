@@ -10,6 +10,7 @@ const SecureSaveManager = preload("res://src/core/validation/SecureSaveManager.g
 const CampaignValidator = preload("res://src/core/validation/CampaignValidator.gd")
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 signal finalization_started()
 signal validation_completed(result: Dictionary)
@@ -24,6 +25,141 @@ const MAX_RETRY_ATTEMPTS = 3
 
 var _save_manager: SecureSaveManager
 var _validator: CampaignValidator
+
+# ============================================================================
+# DUAL-SHAPE CREW ACCESS
+#
+# Finalization is the ONE place that sees crew members in their pre-canonical
+# form. A freshly created campaign hands this service Character RESOURCES; the
+# transform further down (_transform_crew_data) is what converts them to the
+# canonical Dictionary shape that every later consumer expects. Anything reading
+# or writing a member BEFORE that transform must therefore handle both shapes —
+# and must never use the 2-arg `.get(key, default)`, which is an invalid call on
+# an Object and silently aborts the whole enclosing function.
+# ============================================================================
+
+func _member_field(member: Variant, key: String, default_value: Variant) -> Variant:
+	if member == null:
+		return default_value
+	if member is Dictionary:
+		return (member as Dictionary).get(key, default_value)
+	if key in member:
+		return member.get(key)
+	return default_value
+
+func _member_set(member: Variant, key: String, value: Variant) -> void:
+	if member == null:
+		return
+	if member is Dictionary:
+		(member as Dictionary)[key] = value
+		return
+	if not (key in member):
+		return
+	# A typed Array property (e.g. Character.equipment is Array[String]) rejects a
+	# plain `=` from an untyped Array at runtime; assign() element-converts.
+	var current: Variant = member.get(key)
+	if current is Array and (current as Array).is_typed() and value is Array:
+		(current as Array).assign(value)
+		return
+	member.set(key, value)
+
+# ============================================================================
+# THE STARTING-RESOURCE LEDGER (Core Rules pp.28, 66)
+#
+# Both of these are static and pure so the arithmetic can be asserted without
+# running finalization — which registers a campaign start against the player's
+# on-disk profile and resets half a dozen autoloads.
+# ============================================================================
+
+static func compute_starting_credits(
+		equipment_data: Dictionary, crew_data: Dictionary,
+		resources: Dictionary = {}) -> int:
+	## THE one credits grant (Core Rules p.28: 1 credit per crew member, plus the
+	## credit dice their Background / Motivation / Class rolled).
+	##
+	## The Equipment step is the SSOT: EquipmentPanel._generate_equipment_for_
+	## actual_crew() computes `crew_size × 1cr` PLUS every member's
+	## creation_bonuses.bonus_credits and exports the sum, so that figure is
+	## already the complete book total and anything added on top is a duplicate.
+	##
+	## It used to be added on top TWICE. `crew_data["bonus_credits"]` is the SAME
+	## per-character dice the equipment panel already summed, and a WEALTH loop
+	## re-rolled a motivation bonus that character creation had ALREADY rolled
+	## into creation_bonuses (gear_database.json gives `wealth` a
+	## "credits_dice": "1d6"). A crew with one WEALTH member and one Wealthy
+	## Merchant Family background arrived with roughly double the credits the
+	## review screen had promised — and the WEALTH part was a different number
+	## than the one the player watched being rolled.
+	##
+	## The crew-level figures survive only as a RECONSTRUCTION for a payload
+	## where the equipment step never ran and its total is therefore 0.
+	var equipment_credits: int = int(equipment_data.get(
+		"starting_credits", equipment_data.get("credits", 0)))
+	if equipment_credits > 0:
+		return equipment_credits
+	var reconstruct: int = int(resources.get("credits", 0))
+	if reconstruct == 0:
+		reconstruct = int(crew_data.get("bonus_credits", 0))
+	return int(crew_data.get("members", []).size()) + reconstruct
+
+static func _is_unassigned(item: Variant) -> bool:
+	if not (item is Dictionary):
+		return true
+	var owner_name: String = str((item as Dictionary).get("owner", ""))
+	return owner_name.is_empty() or owner_name == "Unassigned"
+
+static func split_equipment_by_owner(equipment_list: Array) -> Dictionary:
+	## owner_name -> Array[String] of item NAMES, for the items the Equipment step
+	## assigned to a specific crew member. Names, not item Dictionaries: a crew
+	## member's `equipment` is an Array[String] (Character.gd), and pushing a
+	## Dictionary into it is a hard typed-array rejection that loses the item.
+	var owner_items: Dictionary = {}
+	for item in equipment_list:
+		if _is_unassigned(item):
+			continue
+		var owner_name: String = str((item as Dictionary).get("owner", ""))
+		var item_name: String = str((item as Dictionary).get("name", ""))
+		if item_name.is_empty():
+			continue
+		if not owner_items.has(owner_name):
+			owner_items[owner_name] = []
+		if item_name not in owner_items[owner_name]:
+			owner_items[owner_name].append(item_name)
+	return owner_items
+
+static func unassigned_equipment(equipment_list: Array) -> Array:
+	## The ship stash: everything NOT handed to a named crew member.
+	##
+	## ONE ITEM, ONE HOME — an item is a physical card, on a character's sheet OR
+	## in the stash, never both (the tabletop invariant in CLAUDE.md, checked at
+	## runtime by GameState.verify_consistency CHECK 4). The stash used to be
+	## handed the FULL generated list, so every item the crew had just been given
+	## also sat in the stash: a starting loadout showed up twice, and selling the
+	## stash copy would have minted credits out of nothing.
+	var stash: Array = []
+	for item in equipment_list:
+		if _is_unassigned(item):
+			stash.append(item)
+	return stash
+
+static func roll_starting_story_points() -> int:
+	## Core Rules p.66: "When creating a new campaign, begin the game with 1D6+1
+	## story points." No production site rolled this — a new crew started with
+	## nothing but whatever their creation tables happened to grant, so a crew
+	## that rolled no story-point results opened the campaign on zero and the
+	## whole p.66 economy started empty.
+	##
+	## The two OPTIONAL p.66 adjustments ("roll twice and pick the better score"
+	## for a first-time player, "+1 if you own Five Parsecs AND Five Klicks AND
+	## Five Leagues") are player declarations the wizard has no surface for, so
+	## they are deliberately not applied rather than chosen on the player's
+	## behalf.
+	##
+	## Hardcore -1 and the Insanity "start with none, can never receive them"
+	## clause are NOT applied here — they live in
+	## DifficultyModifiers.apply_starting_story_points_modifier(), driven by
+	## data/difficulty_modifiers.json.
+	return randi_range(1, 6) + 1
 
 func _init() -> void:
 	_save_manager = SecureSaveManager.new()
@@ -94,16 +230,22 @@ func _validate_campaign_data(data: Dictionary, state_manager: RefCounted) -> Dic
 		if not found:
 			errors.append("Missing required data: %s" % section_name)
 	
-	# Layer 2: Business Logic Validation
-	if state_manager and state_manager.has_method("validate_complete_state"):
-		var state_validation = state_manager.validate_complete_state()
-		if not state_validation.valid:
-			if state_validation.has("errors") and state_validation.errors is Dictionary:
-				for phase in state_validation.errors:
-					var phase_errors = state_validation.errors[phase]
-					if phase_errors is Array:
-						errors.append_array(phase_errors)
-	
+	# Layer 2 (Business Logic Validation) IS DELIBERATELY ABSENT.
+	#
+	# It used to guard on `state_manager.has_method("validate_complete_state")` —
+	# a method with ZERO definitions anywhere in the repo, so the branch was
+	# permanently false and the layer never ran. A has_method() check against a
+	# name nothing implements does not fail loudly; it quietly does nothing.
+	#
+	# It is removed rather than repointed at get_validation_summary(). That
+	# summary's completability answer runs the STRICT per-phase validators, and
+	# the strict crew check compares members.size() against the TOTAL crew size
+	# while the crew panel stores members EXCLUDING the captain — permanently
+	# short by one until _merge_captain_into_crew runs. Feeding that into this
+	# list, which blocks campaign creation, would have refused legal campaigns.
+	# Reconcile the members-vs-total convention first; Layers 1, 3 and 4 below
+	# already cover the data this one was meant to.
+
 	# Layer 3: Game Rules Validation
 	var game_rules_result = _validate_game_rules(data)
 	errors.append_array(game_rules_result.errors)
@@ -242,7 +384,30 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var profile = PlayerProfileRef.get_instance()
 	if profile:
 		profile.register_campaign_start()
-		# Store Elite Rank bonus data in progress_data for downstream consumption
+		# Store Elite Rank bonus data in progress_data for downstream consumption.
+		#
+		# BOTH OF THESE ARE STILL UNAPPLIED, and both need player-choice UI that
+		# does not exist yet — recorded here rather than silently dropped. Read
+		# Core Rules p.65 before implementing either, because the obvious reading
+		# of the key names is WRONG:
+		#
+		#   elite_rank_xp_bonus — "Receive 2 XP per Elite Rank, which may be
+		#     assigned to ANY CHARACTERS YOU LIKE, resolving any Character
+		#     Upgrades immediately." Which character gets it is the player's
+		#     decision, so this needs an allocation prompt; spreading it evenly
+		#     would be the app making that choice.
+		#
+		#   extra_starting_characters — "For every 3 Elite Ranks, you may roll up
+		#     an ADDITIONAL STARTING CHARACTER. You are still limited to your
+		#     starting crew size, but may PICK FROM AMONG THE POOL of generated
+		#     characters." It does NOT add crew beyond campaign_crew_size — it
+		#     widens the CANDIDATE POOL the player chooses from during the crew
+		#     step. There is no candidate-pool concept in the creation wizard
+		#     today, so this is a wizard feature, not a finalization write.
+		#
+		# Neither can affect a new player (both scale off Elite Ranks, which a
+		# fresh profile has none of), so shipping them wrong would be worse than
+		# shipping them pending.
 		campaign.progress_data["elite_rank_xp_bonus"] = profile.get_starting_xp_bonus()
 		campaign.progress_data["extra_starting_characters"] = profile.get_extra_starting_characters()
 		# Story point bonus applied later in initialize_resources via DifficultyModifiers
@@ -257,6 +422,20 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var prog_opts: Array = campaign_cfg.get("progressive_difficulty_options", [])
 	if not prog_opts.is_empty():
 		campaign.progress_data["progressive_difficulty_options"] = prog_opts
+
+	# Difficulty Toggles (Compendium pp.32-34) — the 12 selected option ids.
+	# ExpandedConfigPanel has collected these into local_campaign_config since it
+	# was written and they got no further: the coordinator whitelist did not name
+	# the key, so it was dropped at the panel boundary and NOTHING in the game
+	# ever read a toggle id. Same shape as Progressive Difficulty above, and the
+	# same fix.
+	var toggle_ids: Array = campaign_cfg.get("difficulty_toggles", [])
+	if not toggle_ids.is_empty():
+		campaign.progress_data["difficulty_toggles"] = toggle_ids
+	# The wizard's creation-time override has done its job now that the ids live
+	# on the campaign. Left set, it would keep answering for EVERY later read in
+	# the session, including a different campaign loaded from disk.
+	CompendiumTogglesRef.clear_creation_toggles()
 
 	# Per-campaign narrative wrap override (May 29 2026). null = use global,
 	# true/false = override. Only persisted when explicitly set in the config
@@ -285,20 +464,7 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Build a name→Array[String] lookup, then set each member's equipment
 	# in one shot (avoids per-item .append() flagged by lint).
 	var equipment_list: Array = transformed_equipment.get("equipment", [])
-	var owner_items: Dictionary = {}  # owner_name -> Array[item_name]
-	for item in equipment_list:
-		if not item is Dictionary:
-			continue
-		var owner_name: String = item.get("owner", "")
-		if owner_name.is_empty() or owner_name == "Unassigned":
-			continue
-		var item_name: String = item.get("name", "")
-		if item_name.is_empty():
-			continue
-		if not owner_items.has(owner_name):
-			owner_items[owner_name] = []
-		if item_name not in owner_items[owner_name]:
-			owner_items[owner_name].append(item_name)
+	var owner_items: Dictionary = split_equipment_by_owner(equipment_list)
 	for member in transformed_crew.get("members", []):
 		var member_name: String = ""
 		if "character_name" in member:
@@ -313,6 +479,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 			member["equipment"] = owner_items[member_name]
 		elif "equipment" in member:
 			member.equipment = owner_items[member_name]
+
+	transformed_equipment["equipment"] = unassigned_equipment(equipment_list)
 
 	# NOW persist crew (with equipment already attached) and ship-stash equipment list
 	campaign.initialize_crew(transformed_crew)
@@ -340,26 +508,49 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		var transformed_captain = _transform_captain_data_for_turn_system(captain_data)
 		campaign.set_captain(transformed_captain)
 
-	# Initialize ship (format is compatible)
+	# Initialize ship (format is compatible).
+	#
+	# Compendium p.34 "Starting in the Gutter", third bullet: "Begin the game
+	# without a ship. You'll have to scrape together the cash to purchase one.
+	# See the 'Getting a New Ship' section in the core rulebook (p.60)."
+	# The debt block below is skipped with it — there is no hull to owe on.
 	var ship_data = data.get("ship", {})
+	if CompendiumTogglesRef.is_toggle_active("starting_gutter"):
+		ship_data = {}
+		if "has_ship" in campaign:
+			campaign.has_ship = false
 	campaign.initialize_ship(ship_data)
 
-	# PHASE 2 FIX: Transfer ship debt to GameStateManager
-	if GameStateManager and ship_data.has("debt"):
-		var debt = ship_data.get("debt", 0)
-		if GameStateManager.has_method("set_ship_debt"):
-			GameStateManager.set_ship_debt(debt)
-		else:
-			pass
+	# Ship debt goes onto the CAMPAIGN, which owns it.
+	#
+	# It used to be handed to GameStateManager.set_ship_debt(), which resolves
+	# the campaign through GameState.current_campaign — and that is still null
+	# here, because the campaign is not installed until CampaignCreationUI's
+	# _on_campaign_finalized() runs AFTER finalization returns. So the write was
+	# a no-op — and this file's own readiness check was reporting it in the log
+	# the whole time ("Credits not set or zero", "Location not set"), through a
+	# channel equally unable to see the campaign. See _verify_campaign_is_ready().
+	#
+	# The visible symptom: a freshly created campaign had ship_debt 0 while its
+	# nested ship_data["debt"] held the real figure, so the crew flew debt-free
+	# until the first save/reload, where from_dictionary()'s migration recovers
+	# it. Same campaign, two different debts depending on whether you had
+	# reloaded — and the free ride was the one you got at the table.
+	if ship_data.has("debt"):
+		campaign.ship_debt = int(ship_data.get("debt", 0))
 
 	# Initialize world (format is compatible)
 	var world_data = data.get("world", {})
 	campaign.initialize_world(world_data)
 
-	# Set world data as current_location in GameStateManager
-	if GameStateManager and not world_data.is_empty() and GameStateManager.has_method("set_location"):
-		var location_name: String = world_data.get("name", "Unknown World")
-		GameStateManager.set_location(location_name)
+	# Current location, written onto the campaign for the same reason as the debt
+	# above: GameStateManager.set_location() does `_get_campaign().world_data
+	# ["current_location"] = loc`, and _get_campaign() is null until the campaign
+	# is installed after finalization returns. Writing world_data directly is the
+	# identical mutation without the dependency on state that does not exist yet.
+	if not world_data.is_empty():
+		campaign.world_data["current_location"] = str(
+			world_data.get("name", "Unknown World"))
 
 	# Seed the starting world into PlanetDataManager so it joins visited_planets
 	# with discovered_on_turn=0 and current_planet_id set. Without this, the
@@ -367,8 +558,79 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# the autoload's perspective), and any consumer that derives state from
 	# pdm.visited_planets — including the Galaxy Log anchor logic — would miss
 	# it (Opus 4.8 audit B2 — Galaxy Log plan, 2026-06-01).
+	#
+	# The 0 below is only a REQUEST. upsert_current_world() keeps whatever
+	# `discovered_on_turn` the world dict already carries and substitutes this
+	# argument only when that value is <= 0. WorldInfoPanel used to stamp 1
+	# (its turn getter defaulted to 1 against a creation state that has no
+	# campaign_turn key), so the 1 won and every save on disk recorded the
+	# starting world as discovered on turn 1 — this comment promised 0 and was
+	# wrong for as long as it has existed. The panel now stamps 0 at creation.
 	var tree_for_pdm = Engine.get_main_loop() if Engine.get_main_loop() else null
 	var root_for_pdm = tree_for_pdm.root if tree_for_pdm else null
+
+	# CLEAR THE SHARED AUTOLOADS FIRST — the LOAD path already does this and the
+	# CREATION path did not, so a second campaign made in the same session
+	# inherited the first one's galaxy and factions.
+	#
+	# PlanetDataManager and FactionSystem are process-wide singletons. Their only
+	# reset lives in <Core>.apply_pending_qol_data() (FiveParsecsCampaignCore.gd
+	# :556-559 and :589-592, the latter commented "so stale faction/rival state
+	# from a PRIOR campaign can't bleed in via the shared autoload"). Creation
+	# never reaches that: CampaignCreationUI calls set_current_campaign(), not
+	# load_campaign(), and _pending_qol_data is only filled by from_dictionary().
+	# GameStateManager.start_new_campaign() clears only _temp_data.
+	#
+	# This is not cosmetic. upsert_current_world() below is additive, and
+	# _build_qol_data() snapshots the LIVE autoloads into every save
+	# (FiveParsecsCampaignCore.gd:388-390, :399-402) — and finalize_campaign()
+	# saves immediately after this. So the new campaign's FIRST file on disk
+	# already contained the previous campaign's worlds, travel breadcrumbs,
+	# faction standings and rival reputations, and the Galaxy Log rendered them.
+	# The starting-world anchor was wrong too: the prior campaign's entries are
+	# inserted before ours, so the min-discovered_on_turn scan reached theirs first.
+	#
+	# The list below must stay in step with FiveParsecsCampaignCore._build_qol_data(),
+	# which is what actually snapshots these autoloads into the save. That function
+	# reads EIGHT autoloads; this block used to reset two of them, so the other six
+	# leaked the previous campaign into the new one's first file on disk.
+	#
+	# DLCManager is deliberately NOT reset here: campaign creation mutates that
+	# autoload live as the player toggles expansions (ExpandedConfigPanel.gd:705) and
+	# reads it back as the new campaign's config (:707), so clearing it at
+	# finalization would erase the player's own selections. Its cross-campaign leak
+	# is fixed on the load path instead (FiveParsecsCampaignCore.apply_pending_qol_data).
+	if root_for_pdm:
+		var pdm_reset = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
+		if pdm_reset and pdm_reset.has_method("deserialize_all"):
+			pdm_reset.deserialize_all({})
+		var faction_reset = root_for_pdm.get_node_or_null("/root/FactionSystem")
+		if faction_reset and faction_reset.has_method("cleanup"):
+			faction_reset.cleanup()
+		# Patrons / rivals / locations — otherwise the new crew starts with the last
+		# campaign's contacts, and NPCTracker suppresses generating their own.
+		var npc_reset = root_for_pdm.get_node_or_null("/root/NPCTracker")
+		if npc_reset and npc_reset.has_method("reset"):
+			npc_reset.reset()
+		# Transaction ledger + credits mirror.
+		var econ_reset = root_for_pdm.get_node_or_null("/root/WorldEconomyManager")
+		if econ_reset and econ_reset.has_method("deserialize"):
+			econ_reset.deserialize({})
+		# Journal entries + timeline (a new campaign must not inherit a history).
+		var journal_reset = root_for_pdm.get_node_or_null("/root/CampaignJournal")
+		if journal_reset and journal_reset.has_method("load_from_save"):
+			journal_reset.load_from_save({})
+		# Per-phase checklist ticks from the previous campaign's turn.
+		var checklist_reset = root_for_pdm.get_node_or_null("/root/TurnPhaseChecklist")
+		if checklist_reset and checklist_reset.has_method("load_from_save"):
+			checklist_reset.load_from_save({})
+		# EquipmentManager is deliberately NOT reset here either, for the same reason as
+		# DLCManager: EquipmentPanel._persist_equipment_to_manager() (EquipmentPanel.gd:747)
+		# loads the new crew's starting gear into that autoload at creation STEP 4, and
+		# finalization is step 7 — clearing here would wipe the loadout the player just
+		# generated. Both are cleared when the creation flow OPENS instead
+		# (CampaignCreationUI._reset_campaign_scoped_autoloads).
+
 	if root_for_pdm and not world_data.is_empty():
 		var pdm = root_for_pdm.get_node_or_null("/root/PlanetDataManager")
 		if pdm and pdm.has_method("upsert_current_world"):
@@ -410,30 +672,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		campaign.set_house_rules(house_rules)
 		pass # House rules transferred
 
-	# SPRINT 5.3: Transfer resources with unified credits source of truth
-	# Equipment credits + crew bonus credits are combined into single total
 	var resources = data.get("resources", {})
-	var equipment_credits = equipment_data.get("starting_credits", equipment_data.get("credits", 0))
-	var creation_credits = resources.get("credits", 0)
-	# Coordinator stores crew bonus credits under crew_data, not resources
-	if creation_credits == 0:
-		creation_credits = crew_data.get("bonus_credits", 0)
-	var total_credits = creation_credits + equipment_credits
-
-	# MOTIVATION BONUS: Apply campaign-level resource bonuses from crew motivations
-	# Core Rules: WEALTH gives +1D6 starting credits, FAME gives +1 story point
-	var motivation_story_bonus: int = 0
-	var crew_members_for_bonus = crew_data.get("members", [])
-	for member in crew_members_for_bonus:
-		if member is Dictionary:
-			var m = member.get("motivation", 0)
-			# Handle both String and int motivation values
-			var is_wealth: bool = (m is String and m == "WEALTH") or (m is int and m == GlobalEnums.Motivation.WEALTH)
-			var is_fame: bool = (m is String and m == "FAME") or (m is int and m == GlobalEnums.Motivation.FAME)
-			if is_wealth:
-				total_credits += randi_range(1, 6)
-			elif is_fame:
-				motivation_story_bonus += 1
+	var total_credits: int = compute_starting_credits(equipment_data, crew_data, resources)
 
 	# DATA MAPPING FIX: Coordinator stores patrons/rivals in crew dict, not resources
 	# Fall back to crew_data if resources dict doesn't have them
@@ -450,29 +690,38 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# Coordinator stores crew story points under crew_data, not resources
 	if raw_story_points == 0:
 		raw_story_points = crew_data.get("story_points", 0)
-	var base_story_points: int = raw_story_points + motivation_story_bonus
-	if profile:
-		base_story_points += profile.get_starting_story_point_bonus()
-	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
-		base_story_points, campaign.difficulty
-	)
-
 	# Prison Planet campaign effects (Compendium p.138 "New Campaigns" boxout)
 	# Character brings old profile but stripped of equipment/implants, +3 XP,
 	# +3 Enforcer Rivals, +1 Story Point
-	for member in crew_data.get("members", []):
-		var origin_val = member.get("origin", 0) if member is Dictionary else 0
+	#
+	# THE MEMBER EFFECTS MUST TARGET THE CAMPAIGN'S OWN CREW, NOT `crew_data`.
+	# `crew_data` is the SOURCE payload (:331); `campaign.initialize_crew()` (:378)
+	# stored a `duplicate(true)` of the transformed copy well before this point, so
+	# every write into a source member is orphaned the instant it happens — the
+	# same trap the equipment ordering comment at :335 already warns about. The
+	# rivals and the story point survived only because they go into
+	# `rivals_data` / an accumulator that IS read afterwards; the equipment strip,
+	# the implant strip and the +3 XP silently went nowhere.
+	#
+	# Running here (after initialize_crew, after the loadout seeding) is also the
+	# correct ORDER for the rule: the strip must remove gear the crew was already
+	# given, not be overwritten by a later grant.
+	var prison_planet_story_bonus: int = 0
+	var campaign_members: Array = []
+	if campaign.crew_data is Dictionary:
+		campaign_members = campaign.crew_data.get("members", [])
+	for member in campaign_members:
+		var origin_val = _member_field(member, "origin", 0)
 		var is_pp: bool = false
 		if origin_val is int:
 			is_pp = (origin_val == GlobalEnums.Origin.PRISON_PLANET)
 		elif origin_val is String:
 			is_pp = origin_val.to_lower() in ["prison_planet", "prison planet"]
 		if is_pp:
-			# Strip equipment and implants
-			if member is Dictionary:
-				member["equipment"] = []
-				member["implants"] = []
-				member["experience"] = member.get("experience", 0) + 3
+			# Strip equipment and implants, +3 XP (both crew shapes)
+			_member_set(member, "equipment", [])
+			_member_set(member, "implants", [])
+			_member_set(member, "experience", int(_member_field(member, "experience", 0)) + 3)
 			# +3 Enforcer Rivals
 			for i in range(3):
 				rivals_data.append({
@@ -480,7 +729,17 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 					"name": "Enforcer (Prison Planet)",
 					"source": "prison_planet"})
 			# +1 Story Point
-			raw_story_points += 1
+			prison_planet_story_bonus += 1
+
+	# The p.66 starting roll, plus what the creation tables granted, plus Prison
+	# Planet. See roll_starting_story_points() for why the roll lives there.
+	var base_story_points: int = roll_starting_story_points() + raw_story_points \
+		+ prison_planet_story_bonus
+	if profile:
+		base_story_points += profile.get_starting_story_point_bonus()
+	var final_story_points: int = DifficultyModifiers.apply_starting_story_points_modifier(
+		base_story_points, campaign.difficulty
+	)
 
 	# Always initialize resources, even if empty dict - equipment credits must be included
 	campaign.initialize_resources({
@@ -495,11 +754,11 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
 
-	# Verify GameStateManager integration
-	var gsm_verification = _verify_game_state_manager_integration()
-	if not gsm_verification.get("success", false):
-		push_warning("CampaignFinalizationService: GameStateManager integration incomplete")
-		for warning in gsm_verification.get("warnings", []):
+	# Verify the campaign itself carries what the turn system needs.
+	var readiness = _verify_campaign_is_ready(campaign)
+	if not readiness.get("success", false):
+		push_warning("CampaignFinalizationService: campaign is missing expected data")
+		for warning in readiness.get("warnings", []):
 			push_warning("  - " + warning)
 
 	# Validate campaign resource
@@ -509,49 +768,54 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	return campaign
 
-func _verify_game_state_manager_integration() -> Dictionary:
-	## Verify all required data was transferred to GameStateManager
+func _verify_campaign_is_ready(campaign: Resource) -> Dictionary:
+	## Verify the campaign carries what the turn system needs, BY READING THE
+	## CAMPAIGN.
+	##
+	## This used to read everything back through GameStateManager, which resolves
+	## GameState.current_campaign — and that is null throughout finalization,
+	## because the campaign is not installed until CampaignCreationUI's
+	## _on_campaign_finalized() runs after this returns. So the check could only
+	## ever report the PREVIOUS campaign's values, or nothing at all: it logged
+	## "Credits not set or zero" and "Location not set" on every successful
+	## creation, and would have gone on logging them however correct the campaign
+	## was. A verification that cannot observe its subject is worse than none —
+	## it trains you to ignore the log.
 	var result = {"success": true, "transferred": [], "warnings": []}
-
-	if not GameStateManager:
+	if campaign == null:
 		result.success = false
-		result.warnings.append("GameStateManager not available - all transfers failed")
+		result.warnings.append("No campaign resource to verify")
 		return result
 
-	# Check credits
-	if GameStateManager.has_method("get_credits"):
-		var credits = GameStateManager.get_credits()
-		if credits > 0:
-			result.transferred.append("credits: %d" % credits)
-		else:
-			result.warnings.append("Credits not set or zero")
+	var credits: int = int(campaign.credits) if "credits" in campaign else 0
+	if credits > 0:
+		result.transferred.append("credits: %d" % credits)
+	else:
+		result.warnings.append("Credits not set or zero")
 
-	# Check ship debt
-	if GameStateManager.has_method("get_ship_debt"):
-		var debt = GameStateManager.get_ship_debt()
-		result.transferred.append("ship_debt: %d" % debt)
+	if "ship_debt" in campaign:
+		result.transferred.append("ship_debt: %d" % int(campaign.ship_debt))
 
-	# Check story track
-	if GameStateManager.has_method("is_story_track_enabled"):
-		var story_enabled = GameStateManager.is_story_track_enabled()
-		result.transferred.append("story_track: %s" % ("enabled" if story_enabled else "disabled"))
+	if "story_track_enabled" in campaign:
+		result.transferred.append("story_track: %s"
+			% ("enabled" if bool(campaign.story_track_enabled) else "disabled"))
 
-	# Check location
-	if GameStateManager.has_method("get_location"):
-		var location = GameStateManager.get_location()
-		if location and not location.is_empty():
-			result.transferred.append("location: set")
-		else:
-			result.warnings.append("Location not set")
+	var location: String = ""
+	if "world_data" in campaign and campaign.world_data is Dictionary:
+		location = str(campaign.world_data.get("current_location",
+			campaign.world_data.get("name", "")))
+	if not location.is_empty():
+		result.transferred.append("location: %s" % location)
+	else:
+		result.warnings.append("Location not set")
 
-	# Check victory conditions
-	if GameStateManager.has_method("get_victory_conditions"):
-		var victory = GameStateManager.get_victory_conditions()
-		if victory and not victory.is_empty():
-			result.transferred.append("victory_conditions: %d" % victory.size())
+	if "victory_conditions" in campaign and campaign.victory_conditions is Dictionary \
+			and not campaign.victory_conditions.is_empty():
+		result.transferred.append(
+			"victory_conditions: %d" % campaign.victory_conditions.size())
 
-	# Summary log
-	pass # GSM integration check complete
+	if not (result.warnings as Array).is_empty():
+		result.success = false
 
 	if result.warnings.size() > 0:
 		result.success = false
@@ -816,8 +1080,46 @@ func _transform_equipment_data_for_turn_system(equipment_data: Dictionary) -> Di
 		if category_items is Array:
 			all_items.append_array(category_items)
 
-	transformed["equipment"] = all_items
-	pass # Equipment data transformed
+	# DEDUPE BY ID while folding. A corrupted creation payload can carry the same
+	# item under both the flat key and a category key (see below), in which case
+	# the naive append_array above puts it in the stash twice. Erasing the source
+	# keys alone does not help: it just moves the duplicates INTO "equipment".
+	# id-less entries are always unique originals (the duplication bugs only ever
+	# copied items that already HAD ids), so they pass through untouched.
+	var folded: Array = []
+	var seen_ids: Dictionary = {}
+	for candidate in all_items:
+		if not (candidate is Dictionary):
+			folded.append(candidate)
+			continue
+		var cid: String = str(candidate.get("id", ""))
+		if cid.is_empty():
+			folded.append(candidate)
+			continue
+		if seen_ids.has(cid):
+			continue
+		seen_ids[cid] = true
+		folded.append(candidate)
+	transformed["equipment"] = folded
+
+	# ERASE the category keys we just folded in. `duplicate(true)` above copied
+	# them, and without this they survive alongside the flat list holding the SAME
+	# items, which then persists into every save. FiveParsecsCampaignCore
+	# .get_all_equipment() unions equipment + weapons + armor + gear, so each item
+	# comes back TWICE: the restore loop in GameState._restore_equipment_from_campaign
+	# auto-generates an id on the first pass, writes it into the shared Dictionary,
+	# then hits the same object on the second pass and reports "Equipment with ID
+	# already exists" (8 errors on every single boot of an affected save).
+	#
+	# `items` goes too. Its only reader is FinalPanel.gd:691, which reads the
+	# CREATION dict during Step 7 review, before this transform runs. Nothing reads
+	# it off the persisted campaign, so keeping it is pure save bloat: a third copy
+	# of the same stash.
+	#
+	# `equipment` is the canonical ship stash per the data-ownership contract, so
+	# collapsing to it is the correct end state, not just a dedupe.
+	for consumed_key in ["weapons", "armor", "gear", "items"]:
+		transformed.erase(consumed_key)
 
 	if not transformed.has("credits"):
 		transformed["credits"] = 0  # Set during equipment generation (Core Rules p.28)

@@ -29,7 +29,61 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 ```
 Sets up crew/enemy lists, shows tier selection, initializes components.
 
-### Phase 30: Battle Setup Additions (BattlePhase.gd)
+> ## ⛔ APPEND TO THE TAIL OF `initialize_battle`, NEVER BAIL OUT EARLY
+>
+> This function used to `return` early whenever `mission_data` carried
+> `selected_tier` — a UX streamline that skipped the SETUP/DEPLOYMENT review. But
+> `CampaignTurnController` stamps `selected_tier` on **every** campaign battle, so
+> everything below the return never ran in a real campaign. It cost **five wires**
+> before anyone noticed, including four whole Compendium chapters:
+> `_setup_no_minis_panel` (pp.66-73), `_setup_stealth_panel`,
+> `_setup_street_fight_panel` (pp.123-136), `_setup_salvage_panel` (pp.137-147)
+> and `_populate_deployment_conditions` (p.88 panel blank in every battle).
+>
+> The file carried a comment warning about this hazard seven lines above the
+> return, and **four later additions landed below it anyway** — a comment is not a
+> guard rail. The return is gone (Aug 6 2026, `0f10cbfcd`); the stage skip now runs
+> at the END of the function. Do not reintroduce an early exit here.
+>
+> **Ordering also matters, not just position.** `_populate_deployment_conditions`
+> was moved into `_on_tier_selected` because it was being called before the panel
+> it fills was constructed — "above the return" was necessary but not sufficient.
+
+### Drawer architecture (the battle UI is drawers, not tabs)
+
+`_make_drawer` builds **seven**: `crew`, `enemies`, `intel`, `dice`, `reference`,
+`tracking`, `mission`. Both content hosts (`phase_content`, `setup_content`) point
+at the **`tracking`** body.
+
+The toolbar is tier-filtered — `["crew","enemies","intel","dice","reference"]`, plus
+`tracking` only at tier >= 1. **`current_tier` defaults to LOG_ONLY (0)**, so
+anything added to `tracking` is UNREACHABLE at the default tier. That is deliberate
+for assist trackers and was a bug for scenario rules.
+
+- **Scenario/mission panels go in the `mission` drawer**, via `_mission_panel_host()`.
+  That chokepoint sets `_mission_drawer_used` AND rebuilds the toolbar, because the
+  toolbar is built during tier selection — *before* these panels exist. Gated on
+  MISSION TYPE, not tier: a player running the whole fight by hand needs the
+  scenario procedure more than an assisted one, not less.
+- **Record Result** is appended AFTER the tier-filtered loop, so it exists at every
+  tier. It is the "I played it on my table, just take my result" path — the single
+  most important control in a companion app.
+- `_rebuild_drawer_toolbar` must `remove_child()` **before** `queue_free()`:
+  `queue_free` defers to end-of-frame, so a rebuild otherwise holds old and new
+  buttons together (observed: 14 instead of 7).
+
+### Tier control is live and mid-battle
+
+`tier_badge` is a **Button** (was a `Label`). Tapping it opens the tier chooser in
+change mode; `set_tier()` is called **unforced**, so the controller's
+"cannot downgrade mid-battle" guard finally has the caller it was written for.
+Lower tiers are GREYED with a tooltip rather than silently no-opping.
+
+### Phase 30: Battle Setup Additions
+
+> ⚠ **`BattlePhase.gd` was DELETED (`99fad30b2`).** The live path is
+> `CampaignTurnController → PreBattleUI → TacticalBattleUI → PostBattlePhase`.
+> The `battle_setup_data` keys below are still real; only the host is different.
 
 `battle_setup_data` now includes:
 - `"unique_individual"`: Dict with `present`, `count`, `forced` — determined by `_determine_unique_individual()` using `DifficultyModifiers`
@@ -39,7 +93,24 @@ Sets up crew/enemy lists, shows tier selection, initializes components.
 - `"black_zone_mission"`: Mission type for Black Zone (5 types)
 - `"difficulty"`: `GlobalEnums.DifficultyLevel` int value
 
-New systems: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — preloaded in BattlePhase.gd.
+New systems: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — now reached via
+`CampaignTurnController` / `BattleSetupRules`, NOT the deleted `BattlePhase.gd`.
+
+### `no_win_condition` is ENFORCED (p.91, p.92)
+
+Rival and Invasion battles have **no Win condition** — Hold the Field is the reward
+path (the p.119 removal roll), not a win. `success` must be false regardless of
+`held_field`, while `held_field` stays true and keeps driving its own rewards.
+
+Applied at **all four** `success` producers: `_resolve_battle`, the auto-resolve
+path, `_on_log_only_results_submitted` (where the PLAYER declares the outcome and
+could otherwise declare a Win in a battle the book says cannot be won), and
+`_build_evacuation_result_dict`. If you add a fifth producer, gate it too — this is
+the "guard applied to N-1 of N sites" shape.
+
+Do NOT delete `PaymentProcessor`'s `and not is_rival_mission` guard as redundant:
+p.120 states it as its own rule ("Rival missions do not award any bonus for
+Winning"). Two independent rules that happen to agree.
 
 ### Stage Visibility (`_apply_stage_visibility()`)
 

@@ -18,9 +18,9 @@ const FONT_SIZE_SM := UIColors.FONT_SIZE_SM
 const FONT_SIZE_MD := UIColors.FONT_SIZE_MD
 const FONT_SIZE_LG := UIColors.FONT_SIZE_LG
 const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
 const COLOR_AMBER := UIColors.COLOR_AMBER
 const COLOR_EMERALD := UIColors.COLOR_EMERALD
 const COLOR_RED := UIColors.COLOR_RED
@@ -63,7 +63,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	# Warning header
 	var header := Label.new()
 	header.text = "This campaign uses expansion content"
-	header.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	header.add_theme_color_override("font_color", COLOR_AMBER)
 	header.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(header)
@@ -74,7 +74,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	card_style.bg_color = COLOR_ELEVATED
 	card_style.border_color = COLOR_BORDER
 	card_style.set_border_width_all(1)
-	card_style.set_corner_radius_all(8)
+	card_style.set_corner_radius_all(4)
 	card_style.set_content_margin_all(SPACING_MD)
 	list_card.add_theme_stylebox_override("panel", card_style)
 	vbox.add_child(list_card)
@@ -86,7 +86,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	var requires_lbl := Label.new()
 	requires_lbl.text = "Required expansions not owned:"
 	requires_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	requires_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	list_vbox.add_child(requires_lbl)
@@ -101,14 +101,14 @@ func _build_ui(missing_packs: Array[String]) -> void:
 		var bullet := Label.new()
 		bullet.text = "·"
 		bullet.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		bullet.add_theme_color_override("font_color", COLOR_RED)
 		row.add_child(bullet)
 
 		var name_lbl := Label.new()
 		name_lbl.text = pack_name
 		name_lbl.add_theme_font_size_override(
-			"font_size", FONT_SIZE_MD)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY)
 		row.add_child(name_lbl)
@@ -120,7 +120,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 		+ " unavailable. Species bonuses, special mission rules,"
 		+ " and other expansion content may not function correctly.")
 	warning.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	warning.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	warning.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	warning.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(warning)
@@ -141,7 +141,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	cancel_btn.custom_minimum_size = Vector2(100, TOUCH_TARGET_MIN)
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_btn.add_theme_stylebox_override("normal", cancel_style)
 	cancel_btn.add_theme_color_override(
@@ -154,7 +154,7 @@ func _build_ui(missing_packs: Array[String]) -> void:
 	load_btn.custom_minimum_size = Vector2(130, TOUCH_TARGET_MIN)
 	var load_style := StyleBoxFlat.new()
 	load_style.bg_color = COLOR_AMBER.darkened(0.3)
-	load_style.set_corner_radius_all(6)
+	load_style.set_corner_radius_all(4)
 	load_style.set_content_margin_all(SPACING_SM)
 	load_btn.add_theme_stylebox_override("normal", load_style)
 	load_btn.add_theme_color_override(
@@ -164,10 +164,10 @@ func _build_ui(missing_packs: Array[String]) -> void:
 
 	var store_btn := Button.new()
 	store_btn.text = "Get Expansion"
-	store_btn.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	store_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	var store_style := StyleBoxFlat.new()
 	store_style.bg_color = COLOR_EMERALD.darkened(0.2)
-	store_style.set_corner_radius_all(6)
+	store_style.set_corner_radius_all(4)
 	store_style.set_content_margin_all(SPACING_SM)
 	store_btn.add_theme_stylebox_override("normal", store_style)
 	store_btn.add_theme_color_override(

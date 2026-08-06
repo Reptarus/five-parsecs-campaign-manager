@@ -157,7 +157,18 @@ func _ensure_background() -> void:
 	_background = TextureRect.new()
 	_background.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_background.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_background.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	# IGNORE_SIZE, not FIT_WIDTH_PROPORTIONAL. The sheet PNGs are tall portrait
+	# pages, so FIT_WIDTH_PROPORTIONAL gave this TextureRect a MINIMUM HEIGHT of
+	# width x aspect — which propagated up and pushed the preview 640-844px off the
+	# bottom of the screen at every size the layout sweep measured.
+	#
+	# It also disagreed with the field overlays. _get_display_scale() (:285) fits the
+	# source page into the renderer's OWN size by the limiting axis and centres it —
+	# i.e. exactly KEEP_ASPECT_CENTERED with no minimum imposed. IGNORE_SIZE makes
+	# the background obey the same box the field rects are computed against, so this
+	# fixes the overflow and removes a latent mismatch in the CV-calibrated overlay
+	# alignment rather than trading one for the other.
+	_background.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_background.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# show_behind_parent so the SheetRenderer's own _draw() (debug overlay rects)
 	# renders ON TOP of the background PNG. Without this, the parent's _draw is
@@ -222,7 +233,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			lbl.position = rect_screen.position
 			lbl.size = rect_screen.size
 			lbl.text = str(value) if value != null else ""
-			lbl.add_theme_font_size_override("font_size", display_font_size)
+			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
 			lbl.add_theme_color_override("font_color", Color.BLACK)
 			lbl.clip_text = true
 			lbl.horizontal_alignment = _h_align(align)
@@ -238,7 +249,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			rtl.scroll_active = false
 			rtl.text = str(value) if value != null else ""
 			rtl.add_theme_font_size_override(
-				"normal_font_size", display_font_size)
+				"normal_font_size", ScreenChrome.font_size(display_font_size))
 			rtl.add_theme_color_override("default_color", Color.BLACK)
 			rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			return rtl
@@ -248,7 +259,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			cb.size = rect_screen.size
 			# Filled checkbox if value is truthy; empty otherwise.
 			cb.text = "X" if _is_truthy(value) else ""
-			cb.add_theme_font_size_override("font_size", display_font_size)
+			cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
 			cb.add_theme_color_override("font_color", Color.BLACK)
 			cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

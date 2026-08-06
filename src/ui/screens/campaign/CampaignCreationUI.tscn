@@ -25,7 +25,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.102, 0.102, 0.18, 1)
+color = Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -49,12 +49,11 @@ theme_override_constants/separation = 4
 
 [node name="Title" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
+theme_type_variation = &"TextXL"
 text = "Create New Campaign"
 
 [node name="StepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 16
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 text = "Step 1 of 7: Configuration"
 
@@ -97,16 +96,16 @@ theme_override_constants/v_separation = 8
 alignment = 1
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Back"
 
 [node name="NextButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Next"
 
 [node name="FinishButton" type="Button" parent="MarginContainer/VBoxContainer/Navigation"]
-custom_minimum_size = Vector2(150, 50)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 text = "Start Campaign"

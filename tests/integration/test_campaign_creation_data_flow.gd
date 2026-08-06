@@ -10,10 +10,13 @@ const FinalPanel = preload("res://src/ui/screens/campaign/panels/FinalPanel.gd")
 var coordinator: CampaignCreationCoordinator
 var final_panel: FinalPanel
 
+# auto_free() releases at end of scope; queue_free() defers a frame and
+# gdUnit4 counts orphans before that frame arrives, which is what made the
+# full-suite run segfault on accumulated leaks.
 func before_test() -> void:
 	"""Setup test environment"""
-	coordinator = CampaignCreationCoordinator.new()
-	final_panel = FinalPanel.new()
+	coordinator = auto_free(CampaignCreationCoordinator.new())
+	final_panel = auto_free(FinalPanel.new())
 	add_child(coordinator)
 	add_child(final_panel)
 
@@ -21,9 +24,9 @@ func before_test() -> void:
 func after_test() -> void:
 	"""Cleanup"""
 	if coordinator:
-		coordinator.queue_free()
+		pass  # auto_free() owns teardown.
 	if final_panel:
-		final_panel.queue_free()
+		pass  # auto_free() owns teardown.
 
 
 ## TEST SUITE 1: Coordinator Data Normalization

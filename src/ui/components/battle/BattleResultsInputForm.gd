@@ -1,4 +1,5 @@
 extends PanelContainer
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 ## Battle Results Input Form — LOG_ONLY Tier
 ##
@@ -18,6 +19,7 @@ var _pending_prefill: Dictionary = {}
 var _outcome_btn: OptionButton
 var _held_field_check: CheckBox
 var _rounds_spin: SpinBox
+var _psionic_uses_spin: SpinBox
 var _enemies_defeated_spin: SpinBox
 var _enemies_total_label: Label
 var _submit_btn: Button
@@ -30,6 +32,14 @@ var _objective_id: String = ""
 var _objective_name: String = ""
 var _objective_condition: String = ""
 var _objective_met_check: CheckBox
+var _notable_sight_check: CheckBox
+
+# Core Rules p.123 per-character XP bonuses. Both are things only the player
+# witnessed, so they are asked rather than derived; both were previously read
+# from battle_result keys that no producer wrote.
+var _first_casualty_btn: OptionButton
+var _unique_kill_btn: OptionButton
+var _reduced_lethality_btn: OptionButton
 
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
@@ -135,6 +145,30 @@ func _build_ui() -> void:
 		_objective_met_check.text = "Objective achieved"
 		_objective_met_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 		obj_card.add_child(_objective_met_check)
+
+		# Core Rules p.89 Notable Sights: the item "can be acquired by moving into
+		# contact with it, and foregoing any other actions that round."
+		#
+		# THE BUG THIS FIXES: the app told the player a Person of Interest was
+		# 2D6+2" from the centre and worth +1 story point, they spent a crew
+		# member's whole round walking there, and reaching it awarded NOTHING —
+		# there was no way to record that it had been reached and no consumer for
+		# it if there had been. Asked here for the same reason the objective is:
+		# the fight happens on the player's table, so only they know.
+		var sight: Dictionary = _mission_data.get("notable_sight", {})
+		var sight_reward: String = str(sight.get("effect", ""))
+		if not sight_reward.is_empty() and str(sight.get("type", "NOTHING")) != "NOTHING":
+			var sight_lbl := Label.new()
+			sight_lbl.text = "Notable Sight — %s" % sight_reward
+			sight_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			sight_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			sight_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			obj_card.add_child(sight_lbl)
+			_notable_sight_check = CheckBox.new()
+			_notable_sight_check.text = "Reached the Notable Sight"
+			_notable_sight_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+			obj_card.add_child(_notable_sight_check)
+
 		vbox.add_child(obj_section[0])
 
 	# === OUTCOME SECTION ===
@@ -181,6 +215,34 @@ func _build_ui() -> void:
 	_rounds_spin.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	rounds_vbox.add_child(_rounds_spin)
 	outcome_row.add_child(rounds_vbox)
+
+	# Psionic power uses (Compendium p.21). This form used to hardcode
+	# "psionic_uses": 0, so on the LOG_ONLY / manually-recorded path the p.21
+	# detection roll could never fire no matter what happened on the table —
+	# "a Psionic does not run any risk of detection unless they actively use a
+	# power during combat", and the app was reporting that they never did.
+	# Shown only when the Psionics DLC is active, so a crew without psionics is
+	# not asked a question that cannot apply to them.
+	var _dlc_psi: Node = get_node_or_null("/root/DLCManager")
+	if _dlc_psi and _dlc_psi.is_feature_enabled(_dlc_psi.ContentFlag.PSIONICS):
+		var psi_vbox := VBoxContainer.new()
+		var psi_label := Label.new()
+		psi_label.text = "Psionic powers used"
+		psi_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		psi_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		psi_vbox.add_child(psi_label)
+
+		_psionic_uses_spin = SpinBox.new()
+		_psionic_uses_spin.min_value = 0
+		_psionic_uses_spin.max_value = 20
+		_psionic_uses_spin.value = 0
+		_psionic_uses_spin.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		_psionic_uses_spin.tooltip_text = (
+			"How many times your crew used a psionic power this battle. "
+			+ "On a world where Psionics are Outlawed this triggers the "
+			+ "detection roll (Compendium p.21).")
+		psi_vbox.add_child(_psionic_uses_spin)
+		outcome_row.add_child(psi_vbox)
 
 	outcome_card.add_child(outcome_row)
 	vbox.add_child(outcome_section[0])
@@ -250,6 +312,58 @@ func _build_ui() -> void:
 		_injury_checks.append(check)
 	vbox.add_child(inj_section[0])
 
+	# === XP CREDIT SECTION (Core Rules p.123) ===
+	#
+	# Two of the book's seven XP sources are per-character and depend on
+	# something only the player saw happen on their table:
+	#   "First character to inflict a casualty  +1"
+	#   "Killed Unique Individual                +1"
+	# Both were read by ExperienceTrainingProcessor from battle_result keys that
+	# NO PRODUCER EVER WROTE, so neither bonus had ever been awarded. They cannot
+	# be derived — the app does not watch the dice — so it asks, which is the
+	# whole companion-app premise.
+	var xp_section := _create_section("XP CREDIT  (Core Rules p.123)")
+	var xp_card: VBoxContainer = xp_section[1]
+
+	var xp_hint := Label.new()
+	xp_hint.text = "Optional. Leave as \"Nobody\" if it did not happen."
+	xp_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	xp_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	xp_card.add_child(xp_hint)
+
+	_first_casualty_btn = _build_crew_picker(
+		xp_card, "First to inflict a casualty (+1 XP)")
+	# Errata v1.06 (update 1.03): the bonus goes to the first crew figure that
+	# inflicts a casualty AND CAN EARN XP — Bots are ignored, so they are not
+	# offered here at all.
+	_unique_kill_btn = _build_crew_picker(
+		xp_card, "Killed a Unique Individual (+1 XP)")
+
+	# Compendium p.34 Reduced Lethality: "Before rolling for post-battle
+	# injuries, If you have two or more injured characters you may select one to
+	# be exempt from rolling."
+	#
+	# Asked HERE, on the results form, for the same reason the objective and the
+	# first-casualty credit are: the app cannot make this call, and this is the
+	# one moment the player is already telling it what happened. It also keeps
+	# the choice BEFORE the rolls, as the book requires — the post-battle screen
+	# would be too late, because the orchestrator has already rolled the Injury
+	# Table by the time that screen renders, and choosing with the results
+	# visible would make the option strictly stronger than the book's.
+	if CompendiumTogglesRef.is_toggle_active("reduced_lethality"):
+		var rl_hint := Label.new()
+		rl_hint.text = ("Reduced Lethality (Compendium p.34): with two or more"
+			+ " injured, one may skip the injury roll entirely — full recovery,"
+			+ " no Sick Bay. Choose before the rolls are made.")
+		rl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rl_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		rl_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		xp_card.add_child(rl_hint)
+		_reduced_lethality_btn = _build_crew_picker(
+			xp_card, "Exempt from the injury roll")
+
+	vbox.add_child(xp_section[0])
+
 	# === SUBMIT BUTTON ===
 	vbox.add_child(HSeparator.new())
 	_submit_btn = Button.new()
@@ -296,6 +410,73 @@ func _apply_prefill() -> void:
 	if _pending_prefill.has("objective_met") and _objective_met_check:
 		_objective_met_check.button_pressed = bool(
 			_pending_prefill["objective_met"])
+	# Figures the player marked down during the battle. These tick the INJURIES
+	# boxes, not the casualties boxes: Core Rules p.122 says a figure that went
+	# Out of Action always rolls the post-battle Injury Table and the ROLL decides
+	# dead / injured / recovered, so going down mid-battle must not pre-declare
+	# anyone killed. The player can still move any of them to Casualties.
+	if _pending_prefill.has("downed_crew_indices"):
+		for idx in _pending_prefill["downed_crew_indices"]:
+			var i: int = int(idx)
+			if i >= 0 and i < _injury_checks.size():
+				_injury_checks[i].button_pressed = true
+
+func _build_crew_picker(parent: VBoxContainer, label_text: String) -> OptionButton:
+	## A labelled "which crew member?" dropdown. Item 0 is always "Nobody" so the
+	## default awards nothing — an XP bonus must be a deliberate answer.
+	##
+	## Bots are omitted: errata v1.06 states the first-casualty bonus goes to the
+	## first figure that inflicts a casualty AND CAN EARN XP, and a Bot cannot.
+	## Offering one would invite the player to record a bonus the rules then drop.
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", UIColors.SPACING_XS)
+
+	var lbl := Label.new()
+	lbl.text = label_text
+	lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	row.add_child(lbl)
+
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	picker.accessibility_name = label_text
+	picker.add_item("Nobody", -1)
+	for i in _crew.size():
+		if _is_bot(_crew[i]):
+			continue
+		picker.add_item(_get_crew_name(_crew[i]), i)
+	picker.select(0)
+	row.add_child(picker)
+
+	parent.add_child(row)
+	return picker
+
+func _is_bot(member) -> bool:
+	if member is Dictionary:
+		var d: Dictionary = member
+		if bool(d.get("is_bot", false)):
+			return true
+		return str(d.get("species_id", "")).to_lower() in ["bot", "soulless"]
+	if member and "is_bot" in member and bool(member.is_bot):
+		return true
+	if member and "species_id" in member:
+		return str(member.species_id).to_lower() in ["bot", "soulless"]
+	return false
+
+func _picked_crew_id(picker: OptionButton) -> String:
+	## The crew_id behind the current selection, or "" for "Nobody".
+	if picker == null or picker.selected < 0:
+		return ""
+	var idx: int = picker.get_item_id(picker.selected)
+	if idx < 0 or idx >= _crew.size():
+		return ""
+	var member = _crew[idx]
+	if member is Dictionary:
+		var d: Dictionary = member
+		return str(d.get("character_id", d.get("id", "")))
+	if member and "character_id" in member:
+		return str(member.character_id)
+	return ""
 
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner
@@ -353,6 +534,30 @@ func _on_outcome_changed(index: int) -> void:
 		_held_field_check.button_pressed = false
 		_held_field_check.disabled = true
 
+func _resolve_defeated_enemies(confirmed_count: int) -> Array:
+	## The per-figure defeated-enemy records the prefill collected, trimmed to the
+	## count the player confirmed on the form (they own the final number). If the
+	## player raised the count above what was marked down mid-battle, the extras
+	## are recorded as anonymous figures of the mission's enemy type so downstream
+	## consumers still see the right number of kills.
+	var tracked: Array = _pending_prefill.get("defeated_enemies", [])
+	var out: Array = []
+	for entry in tracked:
+		if out.size() >= confirmed_count:
+			break
+		if entry is Dictionary:
+			out.append(entry)
+	while out.size() < confirmed_count:
+		out.append({
+			"name": str(_mission_data.get("enemy_type", "Enemy")),
+			"type": str(_mission_data.get("enemy_type", "")),
+			"was_lieutenant": false,
+			"was_specialist": false,
+			"was_unique_individual": false,
+		})
+	return out
+
+
 func _on_casualty_toggled(_pressed: bool, _member) -> void:
 	# If a crew member is marked as casualty, uncheck their injury box
 	for i in _crew.size():
@@ -402,24 +607,52 @@ func _on_submit() -> void:
 		"enemies_defeated_count": enemies_defeated,
 		"enemies_remaining": _enemy_count - enemies_defeated,
 		"crew_alive": crew_alive,
-		"psionic_uses": 0,
+		"psionic_uses": (int(_psionic_uses_spin.value)
+			if _psionic_uses_spin != null else 0),
 		# Crew data
 		"crew_casualties": casualties_data.size(),
 		"crew_injuries": injuries_data.size(),
 		"crew_casualties_data": casualties_data,
 		"crew_injuries_data": injuries_data,
 		"crew_participants": participants,
-		# Enemy data
-		"defeated_enemies": [],
-		"defeated_enemy_list": [],
+		# Enemy data. These were hardcoded [] regardless of what happened, so
+		# BattleResultNormalizer's per-enemy rival stamp (which walks
+		# defeated_enemies to mark who your new Rivals are) had nothing to work
+		# with after a manually recorded battle. The prefill carries the figures
+		# the player actually marked down, trimmed to the count they confirmed.
+		"defeated_enemies": _resolve_defeated_enemies(enemies_defeated),
+		"defeated_enemy_list": _resolve_defeated_enemies(enemies_defeated),
 		# Objective (Core Rules p.90) — player-declared, authoritative for success
 		"objective_id": _objective_id,
 		"objective_met": objective_met,
+		# Core Rules p.123 per-character XP bonuses, player-declared for the same
+		# reason the objective is: the app cannot see whose shot landed first.
+		# ExperienceTrainingProcessor reads first_casualty_by as a crew_id and
+		# unique_kills as a LIST of crew_ids — matching those shapes exactly, so
+		# no consumer change is needed.
+		# Core Rules p.89: the Notable Sight's "listed reward is gained" only if
+		# the crew reached it. Consumed post-battle by PostBattleCompletion.
+		"notable_sight_claimed": (_notable_sight_check != null
+			and is_instance_valid(_notable_sight_check)
+			and _notable_sight_check.button_pressed),
+		"first_casualty_by": _picked_crew_id(_first_casualty_btn),
+		"unique_kills": ([] if _picked_crew_id(_unique_kill_btn) == ""
+			else [_picked_crew_id(_unique_kill_btn)]),
+		# Compendium p.34 Reduced Lethality. Read by InjuryProcessor.
+		# process_injuries(), which skips this crew member's roll entirely and
+		# records a complete recovery. "" means no exemption was chosen.
+		"reduced_lethality_exempt_crew_id": _picked_crew_id(_reduced_lethality_btn),
 		# Mission context passthrough
 		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),
 		"is_black_zone": _mission_data.get("is_black_zone", false),
 		"is_quest_finale": _mission_data.get("is_quest_finale", false),
+		# Expanded Quest Progression (Compendium p.79). The step id says WHICH
+		# obligation this battle was taken on; quest_survival_reached is the
+		# 54-65 row's own in-battle clock ("Once the score reaches 28, you can end
+		# the mission"), set by TacticalBattleUI while the fight is running.
+		"quest_step_id": _mission_data.get("quest_step_id", ""),
+		"quest_survival_reached": _mission_data.get("quest_survival_reached", false),
 		"mission_source": _mission_data.get("mission_source", "opportunity"),
 		"mission_type": _mission_data.get("type", _mission_data.get("mission_type", "")),
 		"enemy_type": _mission_data.get("enemy_type", "Unknown"),

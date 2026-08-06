@@ -22,7 +22,7 @@ const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
 const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
 const COLOR_BORDER := UIColors.COLOR_BORDER
 const COLOR_ACCENT := UIColors.COLOR_BLUE
-const COLOR_ACCENT_HOVER := Color("#3A7199")
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_CYAN := UIColors.COLOR_CYAN
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
@@ -77,7 +77,7 @@ func _build_ui() -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	add_theme_stylebox_override("panel", style)
 
@@ -97,23 +97,31 @@ func _build_ui() -> void:
 
 	var name_lbl := Label.new()
 	name_lbl.text = catalog.get("name", _dlc_id)
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
+	# Same reason as the tagline below: pack names are long enough that an unwrapped
+	# Label's minimum width carried the whole card, and therefore the store page, past
+	# the edge of a phone. Autowrap is safe in this VBox column.
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_col.add_child(name_lbl)
 
 	var tagline_lbl := Label.new()
 	tagline_lbl.text = catalog.get("tagline", "")
 	tagline_lbl.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	tagline_lbl.add_theme_color_override(
 		"font_color", COLOR_TEXT_SECONDARY)
+	# Taglines are full sentences (the longest needs 421px unwrapped). Without
+	# autowrap the Label demands that as a MINIMUM and drags the whole card — and
+	# therefore the store page — past the edge of a phone screen.
+	tagline_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_col.add_child(tagline_lbl)
 
 	_price_label = Label.new()
 	_price_label.text = catalog.get("price_default", "")
 	_price_label.add_theme_font_size_override(
-		"font_size", FONT_SIZE_LG)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_price_label.add_theme_color_override("font_color", COLOR_CYAN)
 	header.add_child(_price_label)
 
@@ -124,7 +132,7 @@ func _build_ui() -> void:
 	desc.scroll_active = false
 	desc.text = catalog.get("description", "")
 	desc.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)
@@ -133,7 +141,7 @@ func _build_ui() -> void:
 	_enabled_badge = Label.new()
 	_enabled_badge.visible = false
 	_enabled_badge.add_theme_font_size_override(
-		"font_size", FONT_SIZE_XS)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	_enabled_badge.add_theme_color_override(
 		"font_color", COLOR_ACCENT_HOVER)
 	vbox.add_child(_enabled_badge)
@@ -143,7 +151,7 @@ func _build_ui() -> void:
 	_details_toggle.text = "Show Details"
 	_details_toggle.flat = true
 	_details_toggle.add_theme_font_size_override(
-		"font_size", FONT_SIZE_SM)
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_details_toggle.add_theme_color_override(
 		"font_color", COLOR_CYAN)
 	_details_toggle.custom_minimum_size.y = TOUCH_TARGET_MIN
@@ -166,7 +174,7 @@ func _build_ui() -> void:
 	vbox.add_child(action_row)
 
 	_buy_btn = Button.new()
-	_buy_btn.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_buy_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	action_row.add_child(_buy_btn)
 	_style_buy_button(catalog.get("price_default", ""))
 
@@ -179,7 +187,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 		var cat_label := Label.new()
 		cat_label.text = cat_name
 		cat_label.add_theme_font_size_override(
-			"font_size", FONT_SIZE_SM)
+			"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		cat_label.add_theme_color_override(
 			"font_color", COLOR_ACCENT)
 		_features_container.add_child(cat_label)
@@ -194,7 +202,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 			var bullet := Label.new()
 			bullet.text = "  ·"
 			bullet.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			bullet.add_theme_color_override(
 				"font_color", COLOR_TEXT_MUTED)
 			row.add_child(bullet)
@@ -204,7 +212,7 @@ func _build_feature_list(catalog: Dictionary) -> void:
 				feat.get("label", ""),
 				feat.get("preview", "")]
 			feat_label.add_theme_font_size_override(
-				"font_size", FONT_SIZE_SM)
+				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			feat_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
 			feat_label.autowrap_mode = (
@@ -219,7 +227,7 @@ func _style_buy_button(price: String) -> void:
 	_buy_btn.text = "Buy %s" % price if price else "Buy"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_ACCENT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate() as StyleBoxFlat
@@ -247,9 +255,12 @@ func _style_owned_button() -> void:
 	_buy_btn.text = "Manage Features"
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_SUCCESS.darkened(0.3)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	_buy_btn.add_theme_stylebox_override("normal", style)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(_buy_btn)
 	_buy_btn.add_theme_color_override(
 		"font_color", COLOR_TEXT_PRIMARY)
 	_buy_btn.disabled = false

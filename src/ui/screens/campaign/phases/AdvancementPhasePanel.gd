@@ -4,6 +4,7 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/AdvancementPhasePanel.gd")
 const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 
 @onready var title_label: Label = $VBoxContainer/TitleLabel
 @onready var crew_section_label: Label = $VBoxContainer/CrewLabel
@@ -49,8 +50,44 @@ var max_stats: Dictionary = {
 	"LUCK": 1 # Humans can have 3
 }
 
+## Panel-local key -> the canonical stat name the Compendium option is keyed by.
+const _SLOWER_PROGRESSION_KEYS := {
+	"REACTION": "reactions",
+	"COMBAT": "combat_skill",
+	"SPEED": "speed",
+	"SAVVY": "savvy",
+	"TOUGHNESS": "toughness",
+	"LUCK": "luck",
+}
+
+
+func _apply_slower_progression() -> void:
+	## Compendium p.32 "Slower Progression" reprints the Core Rules p.123 Ability
+	## Increase Table with higher costs and three lower maximums.
+	##
+	## Rewritten INTO this panel's own dictionaries rather than read at each of
+	## the twelve `advancement_costs.REACTION` / `max_stats.LUCK` dot-accesses
+	## below — one place to be right, and the display strings at :212-217 pick up
+	## the lowered maximums for free.
+	##
+	## This panel is the THIRD copy of the advancement numbers in the codebase
+	## (AdvancementSystem and CharacterAdvancementConstants hold the others), and
+	## all three now route through the same helper. A difficulty option applied
+	## to two of three screens is worse than one applied to none: it reads as
+	## implemented and silently does not apply wherever the player actually is.
+	if not CompendiumTogglesRef.is_toggle_active("slaves_to_stargrind_progression"):
+		return
+	for panel_key in _SLOWER_PROGRESSION_KEYS:
+		var stat: String = _SLOWER_PROGRESSION_KEYS[panel_key]
+		advancement_costs[panel_key] = CompendiumTogglesRef.progression_cost(
+			stat, int(advancement_costs.get(panel_key, 0)))
+		max_stats[panel_key] = CompendiumTogglesRef.progression_maximum(
+			stat, int(max_stats.get(panel_key, 5)))
+
+
 func _ready() -> void:
 	super._ready()
+	_apply_slower_progression()
 	_style_phase_title(title_label)
 	_style_section_label(crew_section_label)
 	_style_item_list(crew_list)

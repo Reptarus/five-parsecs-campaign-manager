@@ -15,9 +15,17 @@ const DualInputRollScene = preload("res://src/ui/components/battle/DualInputRoll
 const CompendiumSpeciesRef = preload("res://src/data/compendium_species.gd")
 const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
 const CompendiumNoMinisRef = preload("res://src/data/compendium_no_minis.gd")
+const CompendiumGridMovementRef = preload(
+	"res://src/data/compendium_grid_movement.gd")
 
 signal checklist_completed()
 signal checklist_item_checked(item_id: String, checked: bool)
+## Emitted when the player picks the movement system for THIS battle
+## (Compendium p.90). TacticalBattleUI listens so the setup drawer and the p.91
+## flanking note follow the same choice — a drawer still telling the player to
+## mark out a grid they just opted out of is the defect this whole option exists
+## to avoid.
+signal movement_system_changed(use_grid: bool)
 
 # Design system constants (from UIColors)
 const SPACING_SM := UIColors.SPACING_SM
@@ -119,7 +127,76 @@ var _check_states: Dictionary = {} # item_id -> bool
 var _item_nodes: Dictionary = {} # item_id -> CheckBox
 var _vbox: VBoxContainer
 
+## Compendium p.90: "You do not have to commit to using this system for every
+## battle of a given campaign. The movement system used can be changed as often
+## as you want, with different battles using different movement systems."
+##
+## So this is a PER-BATTLE choice, and it is not the same question as the DLC
+## flag. The flag means "this content is active in my game" and decides whether
+## the selector appears at all; this variable answers "am I using it in THIS
+## fight" and decides what the checklist actually instructs.
+##
+## Default: on when the option is owned and enabled. The flag IS the opt-in, so
+## a player who turned grid movement on should not have to re-affirm it every
+## battle — they get the selector to opt OUT of a single fight.
+var _use_grid_movement: bool = false
+var _movement_selector: Control = null
+var _movement_group: ButtonGroup = null
+
+
+## The steps the player actually works through, resolved at runtime.
+##
+## CHECKLIST_ITEMS above is the CORE-RULES setup. Grid-Based Movement
+## (Compendium pp.90-93) changes the PHYSICAL setup: the table is divided into
+## zones first, and figures deploy in a square touching their table edge rather
+## than in a core-rules deployment zone. This checklist is the moment the player
+## performs that, so the steps have to change with the option — generating the
+## rule text into a drawer they must know to open is not delivering the rule,
+## and leaving "Place your crew within your deployment zone" on screen actively
+## instructs the NON-grid procedure.
+##
+## Every loop over the checklist goes through here so a step can never appear in
+## one pass (rendering) and vanish in another (progress counting).
+func _items() -> Array[Dictionary]:
+	var table_ft: float = _table_size_ft()
+	# build_* not get_*: the FLAG decides whether the selector is offered, the
+	# per-battle CHOICE decides what the steps say (Compendium p.90). Calling the
+	# flag-gated wrappers here would make the option all-or-nothing for the whole
+	# campaign, which is the one thing the book explicitly says it is not.
+	var grid_step: Dictionary = {}
+	var crew_hint: String = ""
+	var enemy_hint: String = ""
+	if _use_grid_movement:
+		grid_step = CompendiumGridMovementRef.build_checklist_step(table_ft)
+		crew_hint = CompendiumGridMovementRef.build_deploy_crew_hint(table_ft)
+		enemy_hint = CompendiumGridMovementRef.build_deploy_enemy_hint()
+
+	var out: Array[Dictionary] = []
+	for item: Dictionary in CHECKLIST_ITEMS:
+		var row: Dictionary = item.duplicate(true)
+		match str(row.get("id", "")):
+			"deploy_crew":
+				if not crew_hint.is_empty():
+					row["hint"] = crew_hint
+			"deploy_enemies":
+				if not enemy_hint.is_empty():
+					row["hint"] = enemy_hint
+		out.append(row)
+		# The grid is marked out BEFORE anything is deployed onto it.
+		if str(row.get("id", "")) == "setup_terrain" and not grid_step.is_empty():
+			out.append(grid_step)
+	return out
+
+
+func _table_size_ft() -> float:
+	var settings := get_node_or_null("/root/SettingsManager")
+	if settings and settings.has_method("get_table_size_ft"):
+		return float(settings.get_table_size_ft())
+	return 0.0
+
 func _ready() -> void:
+	# The flag is the opt-in; a battle starts using what the player enabled.
+	_use_grid_movement = CompendiumGridMovementRef.is_enabled()
 	_setup_panel_style()
 	_build_ui()
 
@@ -156,14 +233,163 @@ func _build_ui() -> void:
 	var sep := HSeparator.new()
 	_vbox.add_child(sep)
 
+	# Per-battle movement system (Compendium p.90) — only when the option is
+	# owned and enabled. Built BEFORE the steps because it changes them.
+	_build_movement_selector()
+
 	# Build checklist items
-	for item: Dictionary in CHECKLIST_ITEMS:
+	for item: Dictionary in _items():
 		var item_node := _create_checklist_item(item)
 		_vbox.add_child(item_node)
 		_check_states[item.id] = false
 
 	# Apply initial tier visibility
 	_apply_tier_filter()
+
+
+## ============================================================================
+## PER-BATTLE MOVEMENT SYSTEM (Compendium p.90)
+## ============================================================================
+
+func _build_movement_selector() -> void:
+	if not CompendiumGridMovementRef.is_enabled():
+		return  # Not owned/enabled — the question does not apply.
+
+	var box := VBoxContainer.new()
+	box.name = "MovementSystemSelector"
+	box.add_theme_constant_override("separation", 2)
+	_vbox.add_child(box)
+
+	var heading := Label.new()
+	heading.text = "Movement system for this battle"
+	heading.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	heading.add_theme_color_override("font_color", COLOR_ACCENT)
+	box.add_child(heading)
+
+	var note := Label.new()
+	note.text = ("You are not committed for the campaign — different battles may "
+		+ "use different movement systems (Compendium p.90).")
+	note.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	note.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	box.add_child(note)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", SPACING_MD)
+	box.add_child(row)
+
+	_movement_group = ButtonGroup.new()
+	row.add_child(_make_movement_option(
+		"Standard", "MovementStandard", not _use_grid_movement))
+	row.add_child(_make_movement_option(
+		"Grid-based", "MovementGrid", _use_grid_movement))
+
+	var sep := HSeparator.new()
+	sep.modulate = Color(1, 1, 1, 0.3)
+	box.add_child(sep)
+	_movement_selector = box
+
+
+func _make_movement_option(label: String, node_name: String,
+		pressed: bool) -> CheckBox:
+	var cb := CheckBox.new()
+	cb.name = node_name
+	cb.text = label
+	cb.button_group = _movement_group  # mutually exclusive
+	cb.button_pressed = pressed
+	cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	cb.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	cb.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	# Bind the meaning, not the node: only the GRID button carries a payload, so
+	# the handler cannot be fooled by ButtonGroup's deselect-then-select order.
+	cb.pressed.connect(_on_movement_option_pressed.bind(node_name == "MovementGrid"))
+	return cb
+
+
+func _on_movement_option_pressed(use_grid: bool) -> void:
+	set_grid_movement(use_grid)
+
+
+## Set the per-battle movement system. Public so the battle UI can seed it from
+## a scenario override before the player ever sees the checklist.
+func set_grid_movement(use_grid: bool) -> void:
+	if use_grid == _use_grid_movement:
+		return
+	_use_grid_movement = use_grid
+	_sync_movement_buttons()
+	_refresh_movement_steps()
+	movement_system_changed.emit(use_grid)
+	# Switching can complete the list (grid step removed) or un-complete it.
+	if _is_checklist_complete():
+		checklist_completed.emit()
+
+
+func is_using_grid_movement() -> bool:
+	return _use_grid_movement
+
+
+func _sync_movement_buttons() -> void:
+	if not _movement_selector:
+		return
+	var grid_btn: CheckBox = _movement_selector.get_node_or_null("MovementGrid")
+	var std_btn: CheckBox = _movement_selector.get_node_or_null("MovementStandard")
+	if grid_btn:
+		grid_btn.set_pressed_no_signal(_use_grid_movement)
+	if std_btn:
+		std_btn.set_pressed_no_signal(not _use_grid_movement)
+
+
+## Apply a movement-system change to the already-built rows.
+##
+## Deliberately NARROW: it adds or removes the one step that comes and goes and
+## re-texts the two hints the grid rewrites. It must NOT rebuild _vbox wholesale
+## — add_species_reminders() and its four siblings append their own rows here
+## after _build_ui(), they are not part of _items(), and a blanket rebuild would
+## silently delete every one of them.
+func _refresh_movement_steps() -> void:
+	if not _vbox:
+		return
+
+	var wanted: Array[Dictionary] = _items()
+	var wanted_ids: Dictionary = {}
+	for item: Dictionary in wanted:
+		var item_id: String = str(item.get("id", ""))
+		wanted_ids[item_id] = true
+		var node: Control = _vbox.get_node_or_null("Item_%s" % item_id)
+		if node == null:
+			node = _create_checklist_item(item)
+			_vbox.add_child(node)
+			_check_states[item_id] = false
+			_place_after(node, "Item_setup_terrain")
+		else:
+			_retext_hint(node, str(item.get("hint", "")))
+
+	# The grid step is the only row _items() can withdraw.
+	if not wanted_ids.has("grid_zones"):
+		var stale: Control = _vbox.get_node_or_null("Item_grid_zones")
+		if stale:
+			_vbox.remove_child(stale)
+			stale.queue_free()
+		# Drop the state too, or re-enabling the grid would restore a row that
+		# looks already done.
+		_check_states.erase("grid_zones")
+		_item_nodes.erase("grid_zones")
+
+	_apply_tier_filter()
+
+
+func _place_after(node: Control, anchor_name: String) -> void:
+	## The grid is marked out BEFORE anything is deployed onto it, so the new row
+	## goes immediately after terrain rather than at the end of the list.
+	var anchor: Control = _vbox.get_node_or_null(anchor_name)
+	if anchor:
+		_vbox.move_child(node, anchor.get_index() + 1)
+
+
+func _retext_hint(item_node: Control, hint: String) -> void:
+	var hint_label: Label = item_node.get_node_or_null("Hint")
+	if hint_label:
+		hint_label.text = hint
 
 func _create_checklist_item(item: Dictionary) -> VBoxContainer:
 	var container := VBoxContainer.new()
@@ -188,6 +414,8 @@ func _create_checklist_item(item: Dictionary) -> VBoxContainer:
 	# Hint text (smaller, secondary color)
 	if item.has("hint") and not item.hint.is_empty():
 		var hint_label := Label.new()
+		# Named so a movement-system switch can re-text it in place (p.90).
+		hint_label.name = "Hint"
 		hint_label.text = item.hint
 		hint_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		hint_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
@@ -218,7 +446,7 @@ func _on_item_toggled(toggled_on: bool, item_id: String) -> void:
 		checklist_completed.emit()
 
 func _is_checklist_complete() -> bool:
-	for item: Dictionary in CHECKLIST_ITEMS:
+	for item: Dictionary in _items():
 		if item.tier > _current_tier:
 			continue
 		if not _check_states.get(item.id, false):
@@ -233,7 +461,7 @@ func set_tier(tier: int) -> void:
 func _apply_tier_filter() -> void:
 	if not _vbox:
 		return
-	for item: Dictionary in CHECKLIST_ITEMS:
+	for item: Dictionary in _items():
 		var item_node: Control = _vbox.get_node_or_null("Item_%s" % item.id)
 		if item_node:
 			item_node.visible = item.tier <= _current_tier
@@ -241,7 +469,7 @@ func _apply_tier_filter() -> void:
 ## Get the number of visible checklist items for current tier.
 func get_item_count() -> int:
 	var count := 0
-	for item: Dictionary in CHECKLIST_ITEMS:
+	for item: Dictionary in _items():
 		if item.tier <= _current_tier:
 			count += 1
 	return count
@@ -249,7 +477,7 @@ func get_item_count() -> int:
 ## Get the number of checked items for current tier.
 func get_checked_count() -> int:
 	var count := 0
-	for item: Dictionary in CHECKLIST_ITEMS:
+	for item: Dictionary in _items():
 		if item.tier <= _current_tier and _check_states.get(item.id, false):
 			count += 1
 	return count
@@ -267,11 +495,17 @@ func serialize() -> Dictionary:
 	return {
 		"tier": _current_tier,
 		"checked": _check_states.duplicate(),
+		# Per-battle, so it belongs with the per-battle checkboxes rather than
+		# in settings: reloading mid-setup must not silently revert the choice.
+		"use_grid_movement": _use_grid_movement,
 	}
 
 ## Deserialize from save data.
 func deserialize(data: Dictionary) -> void:
 	_current_tier = data.get("tier", 0)
+	# Restore the movement system BEFORE the checkboxes: it changes which rows
+	# exist, and a checked state for a row that has not been created yet is lost.
+	set_grid_movement(bool(data.get("use_grid_movement", _use_grid_movement)))
 	var checked: Dictionary = data.get("checked", {})
 	for item_id: String in checked:
 		_check_states[item_id] = checked[item_id]

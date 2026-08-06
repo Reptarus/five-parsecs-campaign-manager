@@ -30,6 +30,45 @@ enum EquipmentCategory {
 var _equipment_storage: Array = []
 var _character_equipment: Dictionary = {}
 
+## When false, add_equipment() does NOT write through to GameState.current_campaign.
+## Disabled for the duration of the campaign-creation wizard, where the "current"
+## campaign is still the previously played one. See add_equipment().
+var _campaign_write_through: bool = true
+
+
+func set_campaign_write_through(enabled: bool) -> void:
+	## Gate the campaign write-through. Callers MUST re-enable it — leaving it off
+	## would silently stop the live campaign's ship stash from persisting.
+	_campaign_write_through = enabled
+
+
+func _remove_from_campaign_stash(equipment_id: String) -> void:
+	## Mirror of add_equipment()'s write-through, for removals.
+	##
+	## THE BUG THIS FIXES: add_equipment() wrote BOTH the cache and the campaign, but
+	## remove_equipment() only ever emptied the cache. So selling an item or using a
+	## single-use consumable took it out of the runtime list while leaving it in
+	## campaign.equipment_data["equipment"] — the canonical store — and the item
+	## REAPPEARED on the next load. One item, one home (the tabletop invariant) was
+	## broken on every removal.
+	##
+	## Gated the same way as the add: during campaign creation the "current" campaign
+	## is still the previously played one, so we must not reach into its stash.
+	if not _campaign_write_through:
+		return
+	var gs = get_node_or_null("/root/GameState")
+	if not (gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign):
+		return
+	var stash = gs.current_campaign.equipment_data.get("equipment", null)
+	if not (stash is Array):
+		return
+	var arr: Array = stash
+	for i in range(arr.size() - 1, -1, -1):
+		var it = arr[i]
+		if it is Dictionary and str((it as Dictionary).get("id", "")) == equipment_id:
+			arr.remove_at(i)
+	gs.current_campaign.equipment_data["equipment"] = arr
+
 # Equipment database loaded from JSON (Core Rules pp.49-58)
 var _equipment_db: Dictionary = {}
 var _db_weapons: Array = []
@@ -44,6 +83,33 @@ func _ready() -> void:
 	_load_equipment_database()
 
 func _load_equipment_database() -> void:
+	## Reuse GameDataManager's already-parsed copy instead of re-reading the file.
+	##
+	## equipment_database.json (~20 KB) was being parsed THREE times at every cold
+	## start: GameDataManager.load_equipment_database() (autoload #3),
+	## DataManager._load_json_databases() (#4) and here (#20). That is pure
+	## duplicated work on the main thread before the menu is interactive, and on a
+	## mid-range Android phone JSON parsing plus the Dictionary/Array allocation it
+	## causes is a measurable slice of boot.
+	##
+	## Ordering is safe: GameDataManager is autoload #3 and EquipmentManager is #20,
+	## and _ready() runs in registration order, so its `equipment_database` is
+	## already populated by the time this runs. The file fallback below stays for
+	## unit tests and any context where the autoload is absent — it must not become
+	## a hard dependency.
+	var gdm: Node = null
+	var loop := Engine.get_main_loop()
+	if loop and loop is SceneTree:
+		gdm = (loop as SceneTree).root.get_node_or_null("/root/GameDataManager")
+	if gdm and gdm.get("equipment_database") is Dictionary \
+			and not (gdm.equipment_database as Dictionary).is_empty():
+		_equipment_db = gdm.equipment_database
+		_db_weapons = _equipment_db.get("weapons", [])
+		_db_armor = _equipment_db.get("armor", [])
+		_db_gear = _equipment_db.get("gear", [])
+		_load_onboard_items()
+		return
+
 	var path := "res://data/equipment_database.json"
 	var file := FileAccess.open(path, FileAccess.READ)
 	if not file:
@@ -179,8 +245,17 @@ func add_equipment(equipment_data: Dictionary) -> bool:
 	# clear_all_equipment() emptied only the runtime cache and not the campaign
 	# stash — re-appended a copy of every unique item on each load, growing the
 	# persisted stash unboundedly across save/load cycles (8 -> 16 -> 24 -> ...).
+	#
+	# SUPPRESSED DURING CAMPAIGN CREATION. The write-through targets whatever
+	# GameState currently holds, and during the creation wizard that is still the
+	# PREVIOUS campaign — set_current_campaign() is not called until after
+	# finalization (CampaignCreationUI.gd:335). So the new crew's starting gear,
+	# loaded at creation step 4, was being appended to the OLD campaign's ship stash.
+	# The new campaign does not need it: finalization builds equipment_data from the
+	# wizard's own data (CampaignFinalizationService.gd:280).
 	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
+	if _campaign_write_through and gs and gs.get("current_campaign") \
+			and "equipment_data" in gs.current_campaign:
 		var stash: Array = gs.current_campaign.equipment_data.get("equipment", [])
 		var new_id: String = str(equipment_data.get("id", ""))
 		var already_present: bool = false
@@ -210,7 +285,8 @@ func remove_equipment(equipment_id: String) -> bool:
 	for i in range(_equipment_storage.size() - 1, -1, -1):
 		if _equipment_storage[i].get("id") == equipment_id:
 			_equipment_storage.remove_at(i)
-			
+			_remove_from_campaign_stash(equipment_id)
+
 			# Remove from any characters who might have it
 			for character_id in _character_equipment:
 				var equipment_list = _character_equipment[character_id]
@@ -275,17 +351,51 @@ func get_character_equipment(character_id: String) -> Array:
 
 ## Get all equipment in storage
 func get_all_equipment() -> Array:
+	## The flat registry of ALL known items — ship stash PLUS character-owned gear.
+	## Cache-backed by design: character ownership only exists here, not on the
+	## campaign Resource. Do NOT make this owner-backed; the ship stash is a SUBSET
+	## of it and has its own accessor below.
 	return _equipment_storage.duplicate()
+
 
 ## Ship-stash API — 8 call sites (ShipStashPanel, UpkeepPhaseComponent,
 ## PurchaseItemsComponent, PostBattleSequence) guard on these names, which never
 ## existed on this autoload, so the stash UI read empty and purchases were dropped.
 ## The ship stash IS this manager's equipment storage (campaign.equipment_data).
 func get_ship_stash() -> Array:
-	return get_all_equipment()
+	## Resolve from the OWNER, not the cache.
+	##
+	## campaign.equipment_data["equipment"] is canonical per the data-ownership table.
+	## _equipment_storage is populated ONLY at campaign load
+	## (GameState._restore_equipment_from_campaign), so mid-session it is a frozen
+	## snapshot taken at load time.
+	##
+	## TradePhasePanel writes the owner directly at SIX sites (:436 ship component,
+	## :445 buy, :492 sell, :611 the 3cr trade-table roll, :646/:665 Merchant reroll)
+	## and never touches this manager. So anything bought or rolled during the TRADING
+	## step — mandatory every campaign turn — was invisible to every stash reader:
+	## ShipStashPanel showed "No items in ship stash", the p.76 sell-for-upkeep dialog
+	## would not offer it, the in-battle consumable picker could not use it, and a Fake
+	## ID bought in Trade granted no +1 on the licence roll (Core Rules p.57,
+	## TravelPhase._fake_id_license_bonus). The dashboard reads equipment_data directly
+	## and DID show it — hence "my gear vanished in Trade but not on the dashboard".
+	##
+	## Gated on _campaign_write_through, which already means "current_campaign is the
+	## campaign we belong to". During the creation wizard it is FALSE (current_campaign
+	## is still the previously played one), so the wizard correctly reads its own cache
+	## rather than the old campaign's stash. Campaign-less modes fall through too.
+	if _campaign_write_through:
+		var gs = get_node_or_null("/root/GameState")
+		if gs and gs.get("current_campaign") and "equipment_data" in gs.current_campaign:
+			var stash = gs.current_campaign.equipment_data.get("equipment", null)
+			if stash is Array:
+				return (stash as Array).duplicate()
+	return _equipment_storage.duplicate()
 
 func get_ship_stash_count() -> int:
-	return _equipment_storage.size()
+	## Owner-backed, same reason as get_ship_stash(): counting the cache reported a
+	## stale total after any Trade purchase.
+	return get_ship_stash().size()
 
 func can_add_to_ship_stash() -> bool:
 	return true  # no hard cap in the data model; panels enforce any display caps
@@ -299,8 +409,10 @@ func add_to_ship_stash(item: Dictionary) -> bool:
 ## Consumables currently in the ship stash. (Core Rules p.54: consumables are not
 ## carried by a specific character — any crew member may use one from the Stash in battle.)
 func get_stash_consumables() -> Array:
+	## Owner-backed. Iterating the cache meant a consumable bought during Trade could
+	## not be used in the next battle (TacticalBattleUI:3866).
 	var out: Array = []
-	for eq in _equipment_storage:
+	for eq in get_ship_stash():
 		if eq is Dictionary and (str(eq.get("type", "")).to_lower() == "consumable"
 				or str(eq.get("category", "")).to_lower() == "consumable"):
 			out.append(eq)
@@ -330,8 +442,27 @@ func use_stash_consumable(item_id: String) -> Dictionary:
 ## when rehydrating runtime state from a newly-loaded campaign Resource so leftover
 ## items from a previous session don't bleed into the new one.
 func clear_all_equipment() -> void:
+	## Clear the runtime caches AND the canonical owner.
+	##
+	## This used to clear only _equipment_storage / _character_equipment. But every
+	## stash READ is owner-backed (get_ship_stash() resolves
+	## campaign.equipment_data["equipment"], see its note), so clearing the caches
+	## cleared nothing observable — get_ship_stash() kept returning the same items
+	## and callers that use this to reset saw the previous state survive intact.
+	## add_equipment()'s idempotency note at :245 already documents the asymmetry;
+	## this closes it.
+	##
+	## Gated on _campaign_write_through for the same reason add_equipment() is:
+	## during the creation wizard GameState still holds the PREVIOUS campaign, and
+	## wiping that campaign's stash from here would destroy real data.
 	_equipment_storage.clear()
 	_character_equipment.clear()
+	var gs = get_node_or_null("/root/GameState")
+	if _campaign_write_through and gs and gs.get("current_campaign") \
+			and "equipment_data" in gs.current_campaign:
+		var ed: Dictionary = gs.current_campaign.equipment_data
+		if ed.has("equipment") and ed["equipment"] is Array:
+			ed["equipment"].clear()
 	equipment_list_updated.emit()
 
 ## Bulk-set a character's owned equipment IDs, bypassing the normal compatibility
@@ -682,12 +813,15 @@ func _on_character_removed(character_id: String) -> void:
 	if character_id in _character_equipment:
 		_character_equipment.erase(character_id)
 
-## Generate available items for market/trade UI.
-## Core Rules p.125: Purchase items by paying 3 credits for a roll on Military
-## Weapon, Gear, or Gadget table. You can also buy Hand Guns, Blades, Colony
-## Rifles, or Shotguns for 1 credit each.
-## TODO: Replace with proper Trade Table (Core Rules p.79) implementation.
-## For now returns random items from equipment database at their listed cost.
+## Generate available items for the TRADING-phase market/purchase UI.
+## Core Rules p.125 (Purchase Items): pay 3 credits for a roll on the Military
+## Weapon, Gear, or Gadget table, or buy Hand Guns, Blades, Colony Rifles, or
+## Shotguns for 1 credit each. This returns candidate items priced at their listed
+## JSON cost (no fabricated markup) for that market view.
+## NOTE: This is NOT the Trade Table (Core Rules p.79) — that barter/roll mechanic
+## is the World-Phase "Trade" crew task and is already implemented canonically at
+## CrewTaskComponent._get_trade_table_result() (data/trade_table.json). Do NOT
+## reimplement the Trade Table here; it would duplicate the single source of truth.
 func generate_market_items(_location_type: int, item_count: int = 5) -> Array:
 	var market_items: Array = []
 	for i in range(item_count):
@@ -715,4 +849,3 @@ func use_consumable(item_data: Dictionary) -> Dictionary:
 	item_data["remaining_uses"] = uses - 1
 	var depleted: bool = item_data["remaining_uses"] <= 0
 	return {"success": true, "remaining": item_data["remaining_uses"], "depleted": depleted, "reason": ""}
-

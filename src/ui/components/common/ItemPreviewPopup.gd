@@ -67,8 +67,7 @@ func _populate(data: Dictionary) -> void:
 	var name_label := Label.new()
 	name_label.text = name_text
 	name_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	name_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -109,8 +108,7 @@ func _populate(data: Dictionary) -> void:
 		desc_label.scroll_active = true
 		desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		desc_label.add_theme_font_size_override(
-			"normal_font_size", UIColors.FONT_SIZE_SM
-		)
+			"normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		desc_label.add_theme_color_override(
 			"default_color", UIColors.COLOR_TEXT_SECONDARY
 		)
@@ -129,8 +127,7 @@ func _populate(data: Dictionary) -> void:
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
 	close_btn.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_MD
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	close_btn.pressed.connect(_on_close)
 	_vbox.add_child(close_btn)
 
@@ -139,8 +136,7 @@ func _create_stat_row(label_text: String, value_text: String) -> HBoxContainer:
 	var lbl := Label.new()
 	lbl.text = label_text + ":"
 	lbl.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)
@@ -150,8 +146,7 @@ func _create_stat_row(label_text: String, value_text: String) -> HBoxContainer:
 	var val := Label.new()
 	val.text = value_text
 	val.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	val.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)

@@ -10,7 +10,9 @@ extends Resource
 
 # Signals
 signal condition_rolled(condition: DeploymentCondition)
-signal condition_applied(condition_id: String, effects: Dictionary)
+## NO `condition_applied` SIGNAL — deleted Aug 6 2026 with apply_condition(),
+## its only emitter. Leaving a declared-never-emitted signal behind would put a
+## finding back into lint_signal_wiring.py, which is currently clean.
 
 # Deployment Condition Resource Class
 class DeploymentCondition extends Resource:
@@ -63,69 +65,22 @@ func get_condition_for_roll(roll: int, mission_type: MissionType) -> DeploymentC
 
 	return null
 
-## Apply condition effects to battle state
-func apply_condition(condition: DeploymentCondition, battle_state: Dictionary) -> Dictionary:
-	if not condition:
-		return battle_state
-
-	var modified_state := battle_state.duplicate(true)
-
-	match condition.condition_id:
-		"NO_CONDITION":
-			pass # No modifications
-
-		"SMALL_ENCOUNTER":
-			# Random crew sits out, reduce enemy numbers
-			modified_state["crew_sits_out"] = 1
-			var enemy_count: int = modified_state.get("enemy_count", 0)
-			var crew_count: int = modified_state.get("crew_count", 0)
-			if enemy_count > crew_count:
-				modified_state["enemy_count"] = enemy_count - 2
-			else:
-				modified_state["enemy_count"] = enemy_count - 1
-
-		"POOR_VISIBILITY":
-			# Maximum visibility 1D6+8", reroll each round
-			modified_state["visibility_limit"] = randi_range(1, 6) + 8
-			modified_state["visibility_reroll"] = true
-
-		"BRIEF_ENGAGEMENT":
-			# End check: 2D6 <= round number
-			modified_state["brief_engagement"] = true
-
-		"TOXIC_ENVIRONMENT":
-			# Stun -> casualty on failed 4+ save
-			modified_state["toxic_environment"] = true
-			modified_state["stun_save_required"] = 4
-
-		"SURPRISE_ENCOUNTER":
-			# Enemy can't act round 1
-			modified_state["enemy_skip_round_1"] = true
-
-		"DELAYED":
-			# 2 crew start off table, arrive on roll <= round
-			modified_state["delayed_crew"] = 2
-
-		"SLIPPERY_GROUND":
-			# -1 Speed at ground level
-			modified_state["speed_modifier"] = -1
-			modified_state["ground_level_only"] = true
-
-		"BITTER_STRUGGLE":
-			# Enemy Morale +1
-			modified_state["enemy_morale_bonus"] = 1
-
-		"CAUGHT_OFF_GUARD":
-			# All crew act Slow in round 1
-			modified_state["crew_slow_round_1"] = true
-
-		"GLOOMY":
-			# Max visibility 9", but firers can be targeted at any range
-			modified_state["visibility_limit"] = 9
-			modified_state["firers_targetable_any_range"] = true
-
-	condition_applied.emit(condition.condition_id, modified_state)
-	return modified_state
+## NO apply_condition() HERE. Deleted Aug 6 2026 (battle-phase audit).
+##
+## It was a SECOND, competing implementation of the p.88 effects: a 60-line
+## match on condition_id producing its own key names (`enemy_skip_round_1`,
+## `crew_slow_round_1`, `enemy_morale_bonus`, `speed_modifier`...) that nothing
+## anywhere read. It had ZERO callers for its entire life, so the p.88 rules
+## reached the table only through `BattleSetupRules._apply_deployment_condition`,
+## whose outputs (`crew_cap_delta`, `enemy_delta`, `panic_range_delta`,
+## `round_one.*`) DO have consumers — verified in sweep W1.
+##
+## This is a dead PROVIDER, not a missing wire: the live path implements the
+## same rules correctly, so nothing was waiting on this. Do NOT resurrect it,
+## and do NOT "wire up" the `effects` dictionaries either — that would recreate
+## the same competing implementation from the data side. The `effects` blocks in
+## data/deployment_conditions.json stay as the structured rules reference; the
+## player-facing text comes from get_condition_effects_summary() below.
 
 ## Get all conditions for display
 func get_all_conditions() -> Array[DeploymentCondition]:

@@ -218,26 +218,31 @@ static func get_effects_for_ai_type(ai_type: String) -> Array[Dictionary]:
 ## ============================================================================
 
 ## Generate setup instructions explaining escalation rules for this battle.
+##
+## PLAIN TEXT, deliberately: the sole consumer is TacticalBattleUI's battle-setup
+## tab, which renders through _add_setup_text() into a plain Label. The BBCode
+## this used to emit would have shown the player literal "[b]" tags — nobody saw
+## that because the whole section was unreachable until the AI type was wired up.
 static func generate_setup_text(ai_type: String) -> String:
 	if not is_enabled():
 		return ""
 	var lines: Array[String] = [
-		"[b]ESCALATING BATTLES[/b] (Compendium p.46)",
+		"ESCALATING BATTLES (Compendium p.46)",
+		"AI Type: %s" % ai_type.capitalize(),
 		"",
-		"[b]AI Type:[/b] %s" % ai_type.capitalize(),
-		"",
-		"[b]Trigger (check end of each round):[/b]",
+		"Trigger (check at end of each round):",
 		"  - Any enemy removed from play",
 		"  - A crew member reached an objective",
 		"  - End of Round 1 if enemies outnumbered by 3+",
+		"Limit: max 3 escalation rolls per battle.",
 		"",
-		"[b]Limit:[/b] Max 3 escalation rolls per battle.",
-		"",
-		"[b]Possible Effects:[/b]",
+		"Possible results on this AI's D100 column:",
 	]
 	var effects := get_effects_for_ai_type(ai_type)
 	for eff in effects:
-		lines.append("  %s (%s): %s" % [eff.name, eff.range, eff.id])
+		# Print the ACTUAL rule, not the internal slug. This used to append
+		# eff.id, so the line read "Morale Increase (01-15): morale_increase".
+		lines.append("  %s (%s) — %s" % [eff.name, eff.range, eff.instruction])
 	return "\n".join(lines)
 
 

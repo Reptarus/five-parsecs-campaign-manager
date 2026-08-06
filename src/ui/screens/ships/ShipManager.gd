@@ -6,6 +6,7 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 ## AdaptivePanelGroup preloaded by path (responsive 3-pane → vertical stack in
 ## portrait; browse/overview). Path preload avoids the stale class_name cache.
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+const ShipStashPanelClass = preload("res://src/ui/components/inventory/ShipStashPanel.gd")
 
 signal ship_repaired(hull_points: int)
 signal debt_paid(amount: int)
@@ -41,6 +42,32 @@ func _ready() -> void:
 		add_child(pc)
 		pc.setup(pc_mc as MarginContainer)
 
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons (drawn on
+	# their own CanvasLayer above this screen). Pushes content DOWN -- a right-side
+	# margin would raise the container's minimum WIDTH and propagate an overflow up
+	# the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	# One header idiom app-wide: "< Back" first, then the title at FONT_SIZE_XL. The
+	# scene used to pin the title at 32px, which outranks the responsive theme.
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
+
+	# Short-screen scroll. With the Stash added there are four panes, and a landscape
+	# phone is narrow enough that the group falls to a single column and stacks all
+	# four — far taller than ~291 design px. The other manager screens all wire this;
+	# ShipManager was the one that did not. Pinned=1 keeps the header fixed, and the
+	# helper no-ops above 620px so nothing changes on a tablet or desktop.
+	var _sss_column := get_node_or_null("MarginContainer/VBoxContainer")
+	if _sss_column is BoxContainer:
+		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
+		add_child(_sss)
+		_sss.setup(_sss_column as BoxContainer, 1)
+
 ## Reparent the 3 content panels (Ship Status / Upgrades / Travel) into an
 ## AdaptivePanelGroup: side-by-side in landscape, stacked vertically in portrait
 ## (STACK / browse-overview — no master-detail selection). Header + Controls are
@@ -54,6 +81,9 @@ func _setup_adaptive_panels() -> void:
 	var travel: Control = get_node_or_null("%Travel")
 	if not (ship_status and ship_upgrades and travel):
 		return
+	# Do this BEFORE the panes are reparented: it only touches their own children.
+	_wrap_pane_content_in_scroll(ship_status)
+	_wrap_pane_content_in_scroll(travel)
 	var main_content: Node = ship_status.get_parent()       # the MainContent HBox
 	var vbox: Node = main_content.get_parent() if main_content else null
 	if not vbox:
@@ -64,7 +94,11 @@ func _setup_adaptive_panels() -> void:
 	# TABS in portrait: Ship Status / Upgrades / Travel are 3 distinct sections,
 	# so a tab strip is more phone-friendly than one long scroll.
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
-	group.max_columns = 3
+	# Four panes now (Status / Upgrades / Travel / Stash). Left at 3 the grid wrapped
+	# the fourth onto a second ROW, which doubled the group's height and pushed the
+	# screen 40px off a landscape phone. AdaptivePanelGroup still drops columns below
+	# its own minimum column width, so this is a ceiling, not a demand.
+	group.max_columns = 4
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(group)
@@ -72,8 +106,58 @@ func _setup_adaptive_panels() -> void:
 	group.add_pane(ship_status, "Ship Status")
 	group.add_pane(ship_upgrades, "Upgrades")
 	group.add_pane(travel, "Travel")
+
+	# The ship's hold. Core Rules p.55 calls the ship the place the crew "store
+	# their Stash and personal equipment", so this is where it belongs.
+	#
+	# Until now there was NO way to look at the stash between turns: the only two
+	# readers were the post-battle loot step and the p.76 sell-for-upkeep dialog,
+	# both mid-flow. ShipStashPanel was built for exactly this job and then never
+	# instantiated by anything — a finished component sitting in the tree unused.
+	var stash := ShipStashPanelClass.new()
+	stash.name = "ShipStash"
+	group.add_pane(stash, "Stash")
+
 	main_content.queue_free()  # now empty; Header + Controls untouched
 	_panel_group = group
+
+
+## Let a pane's content scroll instead of forcing the whole screen taller.
+##
+## Ship Status and Travel stack six-plus rows — two of them SpinBoxes sitting at the
+## 48px touch floor — with no scroll of their own, so their combined minimum HEIGHT
+## dragged the root MarginContainer ~67px off a 338px landscape viewport. Because the
+## root grows both ways that overflow also re-centres the screen to a negative y,
+## which is what put the title back under the SettingsOverlay band. Upgrades already
+## solves this with an internal ScrollContainer around its list; this gives the other
+## two panes the same treatment.
+##
+## horizontal_scroll_mode stays DISABLED on purpose: a ScrollContainer absorbs a
+## child's minimum on its SCROLLABLE axes only, so the pane keeps reporting its
+## content width (nothing gets clipped sideways) while the height stops propagating —
+## docs/sop/responsive-adaptive-ui.md.
+func _wrap_pane_content_in_scroll(pane: Control) -> void:
+	if pane == null or not is_instance_valid(pane):
+		return
+	var content: Control = null
+	for child in pane.get_children():
+		if child is ScrollContainer:
+			return  # already wrapped — keep this idempotent
+		if content == null and child is Control:
+			content = child as Control
+	if content == null:
+		return
+	var scroll := ScrollContainer.new()
+	scroll.name = "PaneScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var idx: int = content.get_index()
+	pane.remove_child(content)
+	pane.add_child(scroll)
+	pane.move_child(scroll, idx)
+	scroll.add_child(content)
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 func _load_components_database() -> void:
 	## Load Core Rules components from JSON (pp.60-62)
@@ -269,12 +353,10 @@ func _on_debt_changed(_value: float) -> void:
 	ship_data["debt"] = int(_value)
 
 func _on_back_pressed() -> void:
-	## Handle back button press
-	if has_node("/root/SceneRouter"):
-		get_node("/root/SceneRouter").navigate_back()
-	else:
-		# Fallback - emit a signal or use get_tree().change_scene_to_file()
-		pass
+	## Reachable from the Campaign Dashboard, so fall back THERE rather than the
+	## main menu when there is no history to pop. The old fallback branch was a bare
+	## `pass`, i.e. a dead end at exactly the moment the router was missing.
+	ScreenChrome.navigate_back(self, "campaign_dashboard")
 
 func _on_travel_pressed() -> void:
 	## Handle travel button press

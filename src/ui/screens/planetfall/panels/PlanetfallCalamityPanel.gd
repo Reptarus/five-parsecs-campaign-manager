@@ -9,15 +9,15 @@ extends Control
 const PlanetfallCalamityScript := preload(
 	"res://src/core/systems/PlanetfallCalamitySystem.gd")
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_BASE := Color("#1A1A2E")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
+const COLOR_BASE := UIColors.COLOR_PRIMARY
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -84,7 +84,7 @@ func _build_content() -> void:
 
 	var title := Label.new()
 	title.text = "ACTIVE CALAMITIES"
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_DANGER)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
@@ -94,7 +94,7 @@ func _build_content() -> void:
 	if active.is_empty():
 		var empty := Label.new()
 		empty.text = "No active calamities. The colony is safe... for now."
-		empty.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		empty.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		empty.add_theme_color_override("font_color", COLOR_SUCCESS)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_content.add_child(empty)
@@ -110,7 +110,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_DANGER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 	_content.add_child(card)
@@ -122,7 +122,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	# Name
 	var name_lbl := Label.new()
 	name_lbl.text = cal.get("name", "Unknown Calamity")
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_DANGER)
 	inner.add_child(name_lbl)
 
@@ -132,7 +132,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = cal.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(desc)
 
@@ -161,7 +161,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	if turn > 0:
 		var turn_lbl := Label.new()
 		turn_lbl.text = "Triggered: Turn %d" % turn
-		turn_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		turn_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		turn_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		inner.add_child(turn_lbl)
 
@@ -170,7 +170,7 @@ func _add_section(parent: VBoxContainer, title_text: String,
 		content_text: String, accent: Color) -> void:
 	var t := Label.new()
 	t.text = title_text
-	t.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	t.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	t.add_theme_color_override("font_color", accent)
 	parent.add_child(t)
 
@@ -179,7 +179,7 @@ func _add_section(parent: VBoxContainer, title_text: String,
 	c.fit_content = true
 	c.scroll_active = false
 	c.text = content_text
-	c.add_theme_font_size_override("normal_font_size", FONT_SIZE_XS)
+	c.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	c.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	parent.add_child(c)
 
@@ -215,6 +215,6 @@ func _add_progress_display(parent: VBoxContainer, cal_id: String,
 	if not progress_text.is_empty():
 		var lbl := Label.new()
 		lbl.text = "Progress: %s" % progress_text
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		parent.add_child(lbl)

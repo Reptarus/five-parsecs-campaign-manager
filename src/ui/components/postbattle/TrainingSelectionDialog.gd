@@ -7,7 +7,10 @@ class_name TrainingSelectionDialog
 
 # Signals
 # Sprint 26.3: Character-Everywhere - use Character type instead of Resource
-signal training_completed(character: Character, training_type: String)
+## `character` is untyped because crew members are Character Resources on a fresh
+## campaign and Dictionaries on every loaded save. `payment` carries the actual
+## p.124 split that was charged: {cost, xp_spent, credits_spent, ...}.
+signal training_completed(character: Variant, training_type: String, payment: Dictionary)
 signal dialog_closed()
 
 # Design System Constants (from BaseCampaelPanel)
@@ -24,74 +27,114 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 const FONT_SIZE_XL := 24
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_TEXT_DISABLED := Color("#404040")
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
-const COLOR_DANGER := Color("#DC2626")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
+const COLOR_DANGER := UIColors.COLOR_RED
 
-# Training costs and descriptions (from AdvancementSystem.gd)
+# The seven Advanced Training courses, Core Rules p.125. Names, costs and
+# effect text are verbatim from the book's table.
+#
+# There used to be an eighth, "Engineer" at cost 15. It is NOT a course — p.125
+# has exactly seven rows, and "Engineer" appears there only as a CHARACTER CLASS
+# inside the Mechanic entry ("Engineers count any XP spent as double value for
+# obtaining this"). A fabricated course, removed per the data-integrity rule.
 const TRAINING_TYPES := {
 	"pilot": {
-		"name": "Pilot",
+		"name": "Pilot Training",
 		"cost": 20,
-		"description": "Ship operations bonuses and piloting skills"
-	},
-	"medical": {
-		"name": "Medical",
-		"cost": 20,
-		"description": "Healing actions and medical skill +2"
+		"description": "If a Starship Travel event calls for a Savvy test, you may "
+			+ "roll 2D6, pick the better die and add +2 to the score."
 	},
 	"mechanic": {
-		"name": "Mechanic",
+		"name": "Mechanic training",
 		"cost": 15,
-		"description": "Equipment repair and repair skill +2"
+		"description": "If your ship is in need of Repairs, you may repair +1 Hull "
+			+ "Point damage every campaign turn. Engineers count any XP spent as "
+			+ "double value for obtaining this."
 	},
-	"broker": {
-		"name": "Broker",
-		"cost": 15,
-		"description": "Trade bonuses for buying and selling"
-	},
-	"security": {
-		"name": "Security",
-		"cost": 10,
-		"description": "Combat bonuses and defensive abilities"
+	"medical": {
+		"name": "Medical school",
+		"cost": 20,
+		"description": "After each battle, you may nominate a casualty that will "
+			+ "roll twice on the Injury Table, picking the better result."
 	},
 	"merchant": {
-		"name": "Merchant",
+		"name": "Merchant school",
 		"cost": 10,
-		"description": "Market bonuses and trade opportunities"
+		"description": "When this crew member Trades, you may reroll one Trade roll "
+			+ "each campaign turn. The new roll must be accepted."
+	},
+	"security": {
+		"name": "Security training",
+		"cost": 10,
+		"description": "If this crew member is part of your squad, you may add +1 "
+			+ "when rolling to Seize the Initiative. Ferals obtain this at -2 Cost."
+	},
+	"broker": {
+		"name": "Broker training",
+		"cost": 15,
+		"description": "When rolling to obtain licenses, Advanced Training "
+			+ "applications, or searching for Patrons, add +1 to the roll."
 	},
 	"bot_tech": {
-		"name": "Bot Tech",
+		"name": "Bot technician",
 		"cost": 10,
-		"description": "Bot management and bot skill +2"
-	},
-	"engineer": {
-		"name": "Engineer",
-		"cost": 15,
-		"description": "Ship upgrade bonuses and engineering"
+		"description": "All Bot upgrades cost 1 credit less. If a Bot or Soulless "
+			+ "character must roll for a post-battle injury, roll twice and pick "
+			+ "the better result."
 	}
 }
 
-## Sprint 20.2: Fixed constants to match backend (Core Rules p.123)
+## Core Rules p.124 defaults. Two World Traits change them (pp.73-74):
+## "Restricted education — You must roll 6+ to be approved for Advanced Training
+## on this world" and "Expensive education — The fee to enroll in Advanced
+## Training is 3 credits". Read through _fee() / _threshold() below, never the
+## constants directly.
 const ENROLLMENT_FEE := 1    # 1 credit application fee per Core Rules
 const APPROVAL_THRESHOLD := 4  # 2D6 roll, 4+ required for approval
 const APPROVAL_DICE := "2D6"   # Dice type for approval roll display
 
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+
 # State
-var available_crew: Array[Resource] = []
-var selected_character: Resource = null
+#
+# UNTYPED on purpose. crew_data["members"] holds Character RESOURCES on a fresh
+# campaign and DICTIONARIES on every loaded save (the save round-trip narrows
+# them). The old `Array[Resource]` meant the caller's `if member is Resource`
+# filter dropped every member of a loaded campaign, so a tester who saved and
+# reloaded opened this step to an empty character list — the one situation where
+# a crew has enough XP to want it. Accessors below read either shape.
+var available_crew: Array = []
+var selected_character: Variant = null
 var selected_training_type: String = ""
+var current_credits: int = 0
 var can_afford_enrollment: bool = false
+## p.124: "Only one attempt is permitted per campaign turn." The fee is paid and
+## the 2D6 rolled once, pass or fail; a denied application does not refund and
+## does not get a retry until next turn.
+var attempted_this_turn: bool = false
+## Trait ids for the world the crew is standing on (Core Rules pp.73-75).
+var world_traits: Array = []
+
+## "Expensive education — The fee to enroll in Advanced Training is 3 credits."
+func _enrollment_fee() -> int:
+	return WorldTraitEffectsClass.training_enrollment_fee(ENROLLMENT_FEE, world_traits)
+
+## "Restricted education — You must roll 6+ to be approved for Advanced Training
+## on this world."
+func _approval_threshold() -> int:
+	return WorldTraitEffectsClass.training_approval_threshold(
+		APPROVAL_THRESHOLD, world_traits)
 
 # Node references
 @onready var title_label: Label = %TitleLabel
@@ -119,12 +162,12 @@ func _setup_ui() -> void:
 	panel_style.border_width_top = 2
 	panel_style.border_width_right = 2
 	panel_style.border_width_bottom = 2
-	panel_style.set_corner_radius_all(8)
+	panel_style.set_corner_radius_all(4)
 	panel_style.set_content_margin_all(SPACING_XL)
 	add_theme_stylebox_override("panel", panel_style)
 	
 	# Title styling
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	
 	# Style buttons
@@ -135,11 +178,11 @@ func _setup_ui() -> void:
 	character_selector.custom_minimum_size.y = TOUCH_TARGET_MIN
 	
 	# Cost display styling
-	xp_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	credits_cost_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	xp_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	credits_cost_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	
 	# Result display styling
-	result_display.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	result_display.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	result_display.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 func _style_button(button: Button, bg_color: Color) -> void:
@@ -164,27 +207,101 @@ func _connect_signals() -> void:
 	roll_button.pressed.connect(_on_roll_pressed)
 	close_button.pressed.connect(_on_close_pressed)
 
-func setup(crew: Array, current_credits: int) -> void:
+func setup(crew: Array, credits: int) -> void:
 	## Initialize dialog with crew data and credit availability
 	available_crew = crew
-	can_afford_enrollment = current_credits >= ENROLLMENT_FEE
-	
+	current_credits = credits
+	# Core Rules pp.73-74 World Traits change both the fee and the threshold on
+	# some worlds. Cached once here so every read below sees the same world.
+	var gs = get_node_or_null("/root/GameState")
+	world_traits = WorldTraitEffectsClass.traits_for_current_world(
+		gs.current_campaign) if gs else []
+	can_afford_enrollment = current_credits >= _enrollment_fee()
+
 	_populate_character_list()
 	_populate_training_list()
 	_update_ui_state()
 
+
+# ── Dual-shape accessors (Character Resource OR crew Dictionary) ────────────
+
+func _char_name(c: Variant) -> String:
+	if c is Dictionary:
+		return str(c.get("character_name", c.get("name", "Unknown")))
+	if c and "character_name" in c:
+		return str(c.character_name)
+	return "Unknown"
+
+func _char_xp(c: Variant) -> int:
+	if c is Dictionary:
+		return int(c.get("experience", c.get("xp", 0)))
+	if c and "experience" in c:
+		return int(c.experience)
+	return 0
+
+## p.124: "Each crew member can only ever be trained in a single course."
+## The canonical field is `acquired_training: Array[String]`. This used to read
+## `selected_character.training`, a property Character does NOT have — so the
+## check was always against an empty array and the one-course rule never held.
+func _char_training(c: Variant) -> Array:
+	if c is Dictionary:
+		var t: Variant = c.get("acquired_training", [])
+		return t if t is Array else []
+	if c and "acquired_training" in c:
+		return c.acquired_training
+	return []
+
+## p.124: "Bots can have a training module installed, but the cost must be paid
+## in credits exclusively."
+func _char_is_bot(c: Variant) -> bool:
+	if c is Dictionary:
+		return bool(c.get("is_bot", false))
+	if c and "is_bot" in c:
+		return bool(c.is_bot)
+	return false
+
+func _char_origin(c: Variant) -> String:
+	if c is Dictionary:
+		return str(c.get("species_id", c.get("origin", ""))).to_lower()
+	if c and "species_id" in c:
+		return str(c.species_id).to_lower()
+	if c and "origin" in c:
+		return str(c.origin).to_lower()
+	return ""
+
+func _char_class(c: Variant) -> String:
+	if c is Dictionary:
+		return str(c.get("character_class", c.get("class", ""))).to_lower()
+	if c and "character_class" in c:
+		return str(c.character_class).to_lower()
+	return ""
+
+## The cost of a course FOR THIS CHARACTER (Core Rules p.125 footnotes):
+## "Ferals can obtain this training at -2 Cost" (Security training) and
+## "Engineers count any XP spent as double value for obtaining this" (Mechanic
+## training) — the latter is a payment-side rule, returned separately so the
+## credits half of a split payment is not also halved.
+func _course_cost_for(c: Variant, training_key: String) -> int:
+	var base: int = int(TRAINING_TYPES[training_key]["cost"])
+	if training_key == "security" and _char_origin(c).contains("feral"):
+		base = maxi(0, base - 2)
+	return base
+
+func _xp_multiplier_for(c: Variant, training_key: String) -> int:
+	if training_key == "mechanic" and _char_class(c).contains("engineer"):
+		return 2
+	return 1
+
 func _populate_character_list() -> void:
 	## Populate character dropdown with available crew
 	character_selector.clear()
-	
+
 	for character in available_crew:
-		# Sprint 26.3: Character-Everywhere - use Character properties with fallback
-		var char_name: String = character.character_name if "character_name" in character else "Unknown"
-		# Note: Character class uses "experience" property, not "experience_points"
-		var current_xp: int = character.experience if "experience" in character else 0
-		var display_text := "%s (%d XP)" % [char_name, current_xp]
+		var display_text := "%s (%d XP)" % [_char_name(character), _char_xp(character)]
+		if not _char_training(character).is_empty():
+			display_text += " — already trained"
 		character_selector.add_item(display_text)
-	
+
 	if available_crew.size() > 0:
 		character_selector.selected = 0
 		selected_character = available_crew[0]
@@ -256,87 +373,196 @@ func _on_training_selected(training_key: String, toggled_on: bool) -> void:
 		_update_cost_display()
 		_update_ui_state()
 
+## How a course would be paid for (Core Rules p.124): "The cost can be paid
+## using unspent XP, credits or any combination thereof."
+##
+## The book's own worked example — 8 unspent XP plus 12 credits for a cost-20
+## Pilot Training — was IMPOSSIBLE here: the dialog required the full cost in XP
+## and offered no credits half at all, so training was unaffordable until very
+## late in a campaign, which is the opposite of the book's intent.
+##
+## XP is spent first because it has no other post-battle use at this step, and
+## the book presents it that way ("The character has 8 unspent XP I can use, so
+## I'd have to pay the rest as an additional 12 credits").
+## Returns {cost, xp_spent, credits_spent, affordable, reason}.
+func _payment_plan(c: Variant, training_key: String) -> Dictionary:
+	var cost: int = _course_cost_for(c, training_key)
+	var plan: Dictionary = {
+		"cost": cost, "xp_spent": 0, "credits_spent": 0,
+		"affordable": false, "reason": "",
+	}
+	# Credits available for the COURSE, after reserving the application fee.
+	var spendable_credits: int = maxi(0, current_credits - _enrollment_fee())
+
+	if _char_is_bot(c):
+		# p.124: "Bots can have a training module installed, but the cost must be
+		# paid in credits exclusively."
+		plan["credits_spent"] = cost
+		plan["affordable"] = spendable_credits >= cost
+		if not plan["affordable"]:
+			plan["reason"] = "Bots must pay in credits: %d needed, %d spare" % [
+				cost, spendable_credits]
+		return plan
+
+	var xp_value: int = _char_xp(c) * _xp_multiplier_for(c, training_key)
+	var xp_applied: int = mini(xp_value, cost)
+	# Undo the multiplier to find how much XP actually leaves the sheet.
+	plan["xp_spent"] = int(ceil(float(xp_applied) / float(
+		_xp_multiplier_for(c, training_key))))
+	plan["credits_spent"] = cost - xp_applied
+	plan["affordable"] = spendable_credits >= plan["credits_spent"]
+	if not plan["affordable"]:
+		plan["reason"] = "Need %d XP + %d credits (have %d XP, %d spare credits)" % [
+			plan["xp_spent"], plan["credits_spent"], _char_xp(c), spendable_credits]
+	return plan
+
 func _update_cost_display() -> void:
 	## Update cost display labels
-	if selected_training_type.is_empty():
+	if selected_training_type.is_empty() or selected_character == null:
 		xp_cost_label.text = "XP Cost: -"
 		credits_cost_label.text = "Enrollment: -"
 		return
-	
-	var training_data: Dictionary = TRAINING_TYPES[selected_training_type]
-	var xp_cost: int = training_data["cost"]
-	
-	xp_cost_label.text = "XP Cost: %d" % xp_cost
-	credits_cost_label.text = "Enrollment: %d credits" % ENROLLMENT_FEE
-	
-	# Color code based on affordability
-	if selected_character:
-		# Sprint 26.3: Use "experience" property (not "experience_points")
-		var current_xp: int = selected_character.experience if "experience" in selected_character else 0
-		var can_afford_xp := current_xp >= xp_cost
-		
-		xp_cost_label.add_theme_color_override("font_color", COLOR_SUCCESS if can_afford_xp else COLOR_DANGER)
-		credits_cost_label.add_theme_color_override("font_color", COLOR_SUCCESS if can_afford_enrollment else COLOR_DANGER)
+
+	var plan: Dictionary = _payment_plan(selected_character, selected_training_type)
+	xp_cost_label.text = "Course %d: %d XP + %d credits" % [
+		plan["cost"], plan["xp_spent"], plan["credits_spent"]]
+	credits_cost_label.text = "Application fee: %d credit" % _enrollment_fee()
+
+	xp_cost_label.add_theme_color_override(
+		"font_color", COLOR_SUCCESS if plan["affordable"] else COLOR_DANGER)
+	credits_cost_label.add_theme_color_override(
+		"font_color", COLOR_SUCCESS if can_afford_enrollment else COLOR_DANGER)
 
 func _update_ui_state() -> void:
 	## Update button states based on selections and affordability
 	var has_selection := selected_character != null and not selected_training_type.is_empty()
-	var can_afford_xp := false
-	
-	if has_selection and selected_character:
-		# Sprint 26.3: Use "experience" property (not "experience_points")
-		var current_xp: int = selected_character.experience if "experience" in selected_character else 0
-		var training_data: Dictionary = TRAINING_TYPES[selected_training_type]
-		var xp_cost: int = training_data["cost"]
-		can_afford_xp = current_xp >= xp_cost
 
-		# Check if character already has this training
-		var current_training: Array = selected_character.training if "training" in selected_character else []
-		var already_has_training := selected_training_type in current_training
-		
-		if already_has_training:
-			roll_button.disabled = true
-			result_display.text = "Character already has this training"
-			result_display.add_theme_color_override("font_color", COLOR_WARNING)
-			return
-	
-	roll_button.disabled = not (has_selection and can_afford_xp and can_afford_enrollment)
-	result_display.text = ""
-	
-	if not can_afford_enrollment and has_selection:
-		result_display.text = "Insufficient credits for enrollment fee"
-		result_display.add_theme_color_override("font_color", COLOR_DANGER)
-	elif not can_afford_xp and has_selection:
-		result_display.text = "Insufficient XP for training"
-		result_display.add_theme_color_override("font_color", COLOR_DANGER)
-
-func _on_roll_pressed() -> void:
-	## Handle approval roll button press - Sprint 20.2 fixed to use 2D6, 4+
-	if not selected_character or selected_training_type.is_empty():
+	if attempted_this_turn:
+		roll_button.disabled = true
+		result_display.text = "Only one Advanced Training attempt per campaign turn (p.124)"
+		result_display.add_theme_color_override("font_color", COLOR_WARNING)
 		return
 
-	# Roll 2D6 for approval (Core Rules: 4+ required)
+	if has_selection:
+		# p.124: "Each crew member can only ever be trained in a single course."
+		# ANY existing course blocks a second one — not just the same course.
+		var current_training: Array = _char_training(selected_character)
+		if not current_training.is_empty():
+			roll_button.disabled = true
+			result_display.text = "%s is already trained in %s — one course per crew member" % [
+				_char_name(selected_character), str(current_training[0])]
+			result_display.add_theme_color_override("font_color", COLOR_WARNING)
+			return
+
+		var plan: Dictionary = _payment_plan(selected_character, selected_training_type)
+		roll_button.disabled = not (plan["affordable"] and can_afford_enrollment)
+		if not can_afford_enrollment:
+			result_display.text = "Insufficient credits for the %d-credit application fee" % _enrollment_fee()
+			result_display.add_theme_color_override("font_color", COLOR_DANGER)
+		elif not plan["affordable"]:
+			result_display.text = str(plan["reason"])
+			result_display.add_theme_color_override("font_color", COLOR_DANGER)
+		else:
+			result_display.text = ""
+		return
+
+	roll_button.disabled = true
+	result_display.text = ""
+
+func _on_roll_pressed() -> void:
+	## Core Rules p.124, in the book's own order: "Select a crew member who wishes
+	## to attend, pay an application fee of 1 credit, and roll 2D6, requiring a 4+
+	## to be approved."
+	if selected_character == null or selected_training_type.is_empty():
+		return
+	if attempted_this_turn:
+		return
+
+	var gsm = get_node_or_null("/root/GameStateManager")
+	var plan: Dictionary = _payment_plan(selected_character, selected_training_type)
+
+	# The application fee is paid to APPLY, so it is spent whether or not the
+	# roll is approved. It was displayed and gated on, and never deducted.
+	if gsm and gsm.has_method("remove_credits"):
+		gsm.remove_credits(_enrollment_fee())
+	current_credits = maxi(0, current_credits - _enrollment_fee())
+	attempted_this_turn = true
+
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll_result: int = 0
 	if dice_manager and dice_manager.has_method("roll_d6"):
-		roll_result = dice_manager.roll_d6("Training Approval (die 1)") + dice_manager.roll_d6("Training Approval (die 2)")
+		roll_result = dice_manager.roll_d6("Training Approval (die 1)") \
+			+ dice_manager.roll_d6("Training Approval (die 2)")
 	else:
 		roll_result = randi_range(1, 6) + randi_range(1, 6)
 
-	var approved := roll_result >= APPROVAL_THRESHOLD
+	# p.125 Broker training: "When rolling to obtain licenses, ADVANCED TRAINING
+	# APPLICATIONS, or searching for Patrons, add +1 to the roll." The other two
+	# uses were wired; this one was not.
+	var broker_bonus: int = 1 if _crew_has_broker_training() else 0
+	roll_result += broker_bonus
+
+	var approved := roll_result >= _approval_threshold()
+	var roll_text: String = "%s Roll: %d" % [APPROVAL_DICE, roll_result]
+	if broker_bonus > 0:
+		roll_text += " (incl. +1 Broker)"
 
 	if approved:
-		result_display.text = "%s Roll: %d - Training APPROVED!" % [APPROVAL_DICE, roll_result]
+		_apply_training(plan)
+		result_display.text = "%s - APPROVED. Paid %d XP + %d credits (+%d fee)." % [
+			roll_text, plan["xp_spent"], plan["credits_spent"], _enrollment_fee()]
 		result_display.add_theme_color_override("font_color", COLOR_SUCCESS)
-
-		# Emit signal for backend processing
-		training_completed.emit(selected_character, selected_training_type)
-
-		# Disable roll button to prevent double-training
-		roll_button.disabled = true
+		training_completed.emit(selected_character, selected_training_type, plan)
 	else:
-		result_display.text = "%s Roll: %d - Training DENIED (need %d+)" % [APPROVAL_DICE, roll_result, APPROVAL_THRESHOLD]
+		result_display.text = "%s - DENIED (need %d+). The %d-credit fee is spent; try again next turn." % [
+			roll_text, _approval_threshold(), _enrollment_fee()]
 		result_display.add_theme_color_override("font_color", COLOR_DANGER)
+
+	roll_button.disabled = true
+
+## Does anyone in the crew have Broker training (Core Rules p.125)? The bonus is
+## a CREW-level benefit — the book's Advanced Training application is made by the
+## crew, not by the applicant, and p.124 notes "you cannot benefit from more than
+## one crew member with the same training", so one Broker is enough and a second
+## adds nothing.
+func _crew_has_broker_training() -> bool:
+	for c in available_crew:
+		if "broker" in _char_training(c):
+			return true
+	return false
+
+## Actually hand over the training (Core Rules p.124). Everything below this line
+## used to be missing entirely: the player picked a course, saw "Training
+## APPROVED!", read "<name> completed pilot training" in the log, and nothing was
+## spent and nothing was learned. The step was pure theatre.
+func _apply_training(plan: Dictionary) -> void:
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("remove_credits") and int(plan["credits_spent"]) > 0:
+		gsm.remove_credits(int(plan["credits_spent"]))
+	current_credits = maxi(0, current_credits - int(plan["credits_spent"]))
+
+	var xp_spent: int = int(plan["xp_spent"])
+	if selected_character is Dictionary:
+		selected_character["experience"] = maxi(
+			0, int(selected_character.get("experience", 0)) - xp_spent)
+		var training: Array = _char_training(selected_character)
+		if selected_training_type not in training:
+			training = training.duplicate()
+			training.append(selected_training_type)
+			selected_character["acquired_training"] = training
+	else:
+		if "experience" in selected_character:
+			selected_character.experience = maxi(
+				0, int(selected_character.experience) - xp_spent)
+		# add_training() is the canonical mutator; the direct append is the
+		# fallback for a Character that predates it.
+		if selected_character.has_method("add_training"):
+			selected_character.add_training(selected_training_type)
+		elif "acquired_training" in selected_character:
+			if selected_training_type not in selected_character.acquired_training:
+				selected_character.acquired_training.append(selected_training_type)
+
+	_populate_character_list()
 
 func _on_close_pressed() -> void:
 	## Handle close button press

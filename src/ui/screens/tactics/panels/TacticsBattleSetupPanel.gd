@@ -105,7 +105,7 @@ func _build_ui() -> void:
 
 	_complete_btn = Button.new()
 	_complete_btn.text = "Complete Phase"
-	_complete_btn.custom_minimum_size = Vector2(200, TOUCH_TARGET_COMFORT)
+	_complete_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	_complete_btn.pressed.connect(_on_complete)
 	nav.add_child(_complete_btn)
 
@@ -141,7 +141,7 @@ func _add_info_card(card_title: String, body: String) -> void:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.content_margin_left = SPACING_MD
 	style.content_margin_right = SPACING_MD
 	style.content_margin_top = SPACING_SM

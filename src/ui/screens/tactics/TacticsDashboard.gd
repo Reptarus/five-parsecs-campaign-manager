@@ -5,6 +5,7 @@ extends "res://src/ui/screens/tactics/TacticsScreenBase.gd"
 
 const EmptyStateWidgetClass = preload("res://src/ui/components/common/EmptyStateWidget.gd")
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const VeteranImportPanelClass = preload(
 	"res://src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd")
 
@@ -188,8 +189,23 @@ func _on_commission_pressed() -> void:
 func _apply_commission(vet: Dictionary) -> void:
 	if not _campaign or not _campaign.has_method("add_veteran_character"):
 		return
+	# Strip the source coordinates before the veteran lands in the roster.
+	var src_path: String = str(vet.get("_source_path", ""))
+	var src_id: String = str(vet.get("_source_character_id", ""))
+	vet.erase("_source_path")
+	vet.erase("_source_character_id")
+
 	_campaign.add_veteran_character(vet)
 	_on_save()
+
+	# DESTINATION FIRST, THEN DROP THE SOURCE — matches the retire-out path.
+	# Without this a commissioned veteran stayed in their original campaign
+	# too, so one character existed in two and could be commissioned again.
+	if not src_path.is_empty() and not src_id.is_empty():
+		if not CharacterTransferService.remove_character_from_save(src_path, src_id):
+			push_warning(
+				"TacticsDashboard: commissioned %s but could not remove them from %s"
+				% [src_id, src_path])
 	_rebuild()
 
 
@@ -210,7 +226,11 @@ func _do_retire(vet: Dictionary, target_mode: String, overlay: Node) -> void:
 	envelope["source_campaign_id"] = _campaign.campaign_id if "campaign_id" in _campaign else ""
 	envelope["source_campaign_name"] = _campaign.campaign_name \
 		if "campaign_name" in _campaign else ""
-	_write_transfer_file(envelope, vet)
+	# Write the destination FIRST and only drop the source if it succeeded. Once the
+	# veteran leaves this roster the transfer file is the ONLY copy.
+	if not _write_transfer_file(envelope, vet):
+		_notify_transfer_write_failed()
+		return
 
 	var vid: String = str(vet.get("id", vet.get("character_id", "")))
 	if _campaign.has_method("remove_veteran_character"):
@@ -221,19 +241,33 @@ func _do_retire(vet: Dictionary, target_mode: String, overlay: Node) -> void:
 	_rebuild()
 
 
-func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> void:
+func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> bool:
+	## Returns true only if the envelope is on disk.
+	##
+	## Previously void, with the write wrapped in `if file:` while the caller removed
+	## the veteran and saved unconditionally. An I/O failure deleted the veteran from
+	## this campaign, PERSISTED that deletion, and left nothing for the destination —
+	## gone from both ends, with no message.
+	##
+	## Routed through SaveFileWriter so the write is checked (flush, get_error,
+	## verified rename) rather than assumed.
 	var transfer_dir := "user://transfers/"
 	if not DirAccess.dir_exists_absolute(transfer_dir):
 		DirAccess.make_dir_recursive_absolute(transfer_dir)
 	var cid: String = str(char_data.get("id", char_data.get("character_id", "")))
 	var filename := "transfer_%s_%s.json" % [cid, str(Time.get_unix_time_from_system())]
-	var temp_path := transfer_dir + filename + ".tmp"
-	var final_path := transfer_dir + filename
-	var file := FileAccess.open(temp_path, FileAccess.WRITE)
-	if file:
-		file.store_string(JSON.stringify(envelope, "\t"))
-		file.close()
-		DirAccess.rename_absolute(temp_path, final_path)
+	var err: Error = SaveFileWriterRef.write_text_atomic(
+		transfer_dir + filename, JSON.stringify(envelope, "\t"))
+	return err == OK
+
+
+func _notify_transfer_write_failed() -> void:
+	push_error("TacticsDashboard: transfer file could not be written — "
+		+ "veteran kept in the roster rather than lost")
+	var notifier := get_node_or_null("/root/NotificationManager")
+	if notifier and notifier.has_method("show_notification"):
+		notifier.show_notification(
+			"Transfer failed — the veteran is still on your roster. Check device storage.")
 
 
 func _build_retire_overlay(vets: Array) -> Control:
@@ -282,7 +316,7 @@ func _build_retire_overlay(vets: Array) -> Control:
 
 	var cancel := Button.new()
 	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(200, 44)
+	cancel.custom_minimum_size = Vector2(0, 44)
 	cancel.pressed.connect(func() -> void: overlay.queue_free())
 	vbox.add_child(cancel)
 	return overlay

@@ -80,14 +80,14 @@ const PADDING_HORIZONTAL := 18
 ## 6 semantic colors mirror BaseCampaignPanel palette: NEUTRAL + 5 chapter
 ## accents observed in the rulebook (cyan default + red + gold/amber +
 ## green + purple). All applied uniformly via `accent_color` setter.
-const COLOR_NEUTRAL := Color("#E0E0E0")
-const COLOR_PRIMARY := Color("#4FC3F7")  ## cyan — rulebook default
-const COLOR_SUCCESS := Color("#10B981")  ## green
-const COLOR_WARNING := Color("#D97706")  ## gold/amber
-const COLOR_DANGER  := Color("#DC2626")  ## red — Character Creation etc.
+const COLOR_NEUTRAL := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_PRIMARY := UIColors.COLOR_CYAN  ## cyan — rulebook default
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD  ## green
+const COLOR_WARNING := UIColors.COLOR_AMBER  ## gold/amber
+const COLOR_DANGER  := UIColors.COLOR_RED  ## red — Character Creation etc.
 const COLOR_PURPLE  := Color("#9333EA")  ## GM appendix accent
 
-const BG_COLOR := Color("#252542")  ## matches existing glass-card bg
+const BG_COLOR := UIColors.COLOR_SECONDARY  ## matches existing glass-card bg
 
 @export var accent_color: Color = COLOR_PRIMARY:
 	set(value):
@@ -180,7 +180,7 @@ func _build_panel() -> void:
 	# Banner font scales with atlas variant: smaller on compact panels so
 	# the title doesn't compete with the body for visual weight.
 	var banner_font_size: int = 14 if _active_atlas == ATLAS_COMPACT else 18
-	_banner_label.add_theme_font_size_override("font_size", banner_font_size)
+	_banner_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(banner_font_size))
 	_banner.add_child(_banner_label)
 
 	_content_slot = MarginContainer.new()

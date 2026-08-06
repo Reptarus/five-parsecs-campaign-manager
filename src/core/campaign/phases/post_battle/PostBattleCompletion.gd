@@ -6,6 +6,12 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+## Path-preloaded: BattleResultNormalizer deliberately declares NO class_name
+## (see its header — the global class cache is stale), so it cannot be referenced
+## as a global identifier. Reused here for _to_crew_entry(), which is the exact
+## character-object -> crew_id resolution the journal harvest below needs.
+const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 
 func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	## Update character lifetime statistics from battle results (kills, damage, participation)
@@ -31,24 +37,69 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 		if char_id.is_empty():
 			continue
 
-		if member is Object and "battles_participated" in member:
+		var kills: Array = kills_by_character.get(char_id, [])
+		# DICTIONARY BRANCH TOO. Crew members are canonically Dictionaries (the
+		# data-ownership table), so gating on `member is Object` skipped every real
+		# crew member: no lifetime counters ever moved, and the per-character battle
+		# journal event was never created — which is why CharacterHistoryPanel showed
+		# no battles for anyone.
+		if member is Dictionary:
+			var d: Dictionary = member
+			d["battles_participated"] = int(d.get("battles_participated", 0)) + 1
+			if char_id not in units_downed:
+				d["battles_survived"] = int(d.get("battles_survived", 0)) + 1
+			d["lifetime_kills"] = int(d.get("lifetime_kills", 0)) + kills.size()
+			d["lifetime_damage_dealt"] = int(d.get("lifetime_damage_dealt", 0)) 				+ int(damage_dealt_per_unit.get(char_id, 0))
+			d["lifetime_damage_taken"] = int(d.get("lifetime_damage_taken", 0)) 				+ int(damage_taken_per_unit.get(char_id, 0))
+			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
+		elif member is Object and "battles_participated" in member:
 			member.battles_participated += 1
 			if char_id not in units_downed:
 				member.battles_survived += 1
-			var kills: Array = kills_by_character.get(char_id, [])
 			member.lifetime_kills += kills.size()
 			member.lifetime_damage_dealt += damage_dealt_per_unit.get(char_id, 0)
 			member.lifetime_damage_taken += damage_taken_per_unit.get(char_id, 0)
 			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
 
+func _resolve_participant_ids(participants: Array) -> Array:
+	## Resolve battle participants to character IDS for journal attribution.
+	##
+	## The journal harvest used to keep only `participant is String`, but ALL THREE
+	## live producers fill crew_participants with character OBJECTS:
+	## TacticalBattleUI.gd:4194-4197 and :4428-4430 (both pass
+	## unit.original_character) and BattleResultsInputForm.gd:373. So crew_ids was
+	## deterministically [] and every battle entry landed with
+	## characters_involved == [] — no battle was ever attributable to a crew member
+	## in CharacterHistoryPanel's "Journal Entries" section, the journal screen's
+	## per-character filter, or the entry detail pane.
+	##
+	## The contract is documented one file over, at PostBattleContext.gd:203-205:
+	## "Producers fill crew_participants with character OBJECTS (not IDs). The old
+	## loop treated them as IDs ... and always returned []." That fix landed on
+	## get_participating_crew() and never reached this harvest.
+	##
+	## Only tests/fixtures/BattleTestFactory.gd:239 supplies Strings, which is
+	## exactly why the suite never caught it: the fixture modelled the contract the
+	## code EXPECTED rather than the one production produces. Strings are still
+	## accepted so those fixtures keep working.
+	var ids: Array = []
+	for participant in participants:
+		if participant is String:
+			if not str(participant).is_empty():
+				ids.append(str(participant))
+			continue
+		var entry: Dictionary = BattleResultNormalizerClass._to_crew_entry(participant)
+		var cid: String = str(entry.get("crew_id", ""))
+		if not cid.is_empty():
+			ids.append(cid)
+	return ids
+
+
 func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 	## Create a journal entry for the completed battle
 	if not ctx.campaign_journal or not ctx.campaign_journal.has_method("auto_create_battle_entry"):
 		return
-	var crew_ids: Array = []
-	for participant in ctx.crew_participants:
-		if participant is String:
-			crew_ids.append(participant)
+	var crew_ids: Array = _resolve_participant_ids(ctx.crew_participants)
 
 	# Determine zone type for tagging and description enrichment
 	var zone_type: String = ""
@@ -154,6 +205,20 @@ func record_planet_mission(ctx: PostBattleContextClass) -> void:
 			world_id = String(current_for_mission.id)
 	if not world_id.is_empty():
 		pdm.complete_mission(world_id, ctx.battle_result)
+
+
+func resolve_connection(ctx: PostBattleContextClass) -> Dictionary:
+	## Expanded Connections (Compendium p.81). The offer is spent once the
+	## mission is played — it is an opportunity, not a standing obligation like a
+	## Quest step, so nothing outlives the battle it was attached to.
+	##
+	## Returns the record that was resolved, or {}. The narrative payoffs the 30
+	## rows describe (Rumors, XP, Story Points, new Rivals) are table instructions
+	## the player applies at their own board; this closes the app's side of it so
+	## the same Connection cannot be offered twice.
+	if ctx.campaign == null:
+		return {}
+	return ExpandedConnectionsRef.resolve_pending(ctx.campaign, false)
 
 ## Morale system removed — Core Rules has no campaign-level morale mechanic.
 ## Combat morale (Panic checks) is a separate in-battle mechanic handled by
@@ -321,3 +386,92 @@ func process_consumed_items(ctx: PostBattleContextClass) -> Array:
 			push_warning("PostBattleCompletion: Could not remove consumed item '%s' from character '%s'" % [weapon_name, char_id])
 
 	return results
+
+
+func apply_notable_sight_reward(ctx: PostBattleContextClass) -> Dictionary:
+	## Called from PostBattlePhase._process_completion_step, immediately before
+	## the battle journal entry so a recovered sight lands in the same record.
+	##
+	## Core Rules p.89 Notable Sights: the item "can be acquired by moving into
+	## contact with it, and foregoing any other actions that round" — and its
+	## listed reward is then gained.
+	##
+	## THE BUG THIS FIXES: the app rolled the sight, told the player it was
+	## 2D6+2" from the centre and what it was worth, rendered its marker on the
+	## battlefield map, and then had NO consumer for it. A crew member could spend
+	## their whole round walking to a Person of Interest and the promised +1 story
+	## point never arrived. The producer is the results form's "Reached the
+	## Notable Sight" check (BattleResultsInputForm), asked rather than derived
+	## because the fight happens on the player's table.
+	##
+	## Returns {applied: bool, type: String, description: String}.
+	var result := {"applied": false, "type": "", "description": ""}
+	if not bool(ctx.battle_result.get("notable_sight_claimed", false)):
+		return result
+
+	var sight: Dictionary = ctx.battle_result.get("notable_sight", {})
+	if sight.is_empty():
+		sight = ctx.battle_result.get("mission_data", {}).get("notable_sight", {})
+	var sight_type: String = str(sight.get("type", "NOTHING"))
+	result["type"] = sight_type
+	if sight_type == "NOTHING" or sight_type.is_empty():
+		return result
+
+	match sight_type:
+		"DOCUMENTATION":
+			ctx.add_quest_rumor()
+			result["description"] = "Documentation: gained a Quest Rumor"
+		"SHINY_BITS":
+			_grant_credits(ctx, 1)
+			result["description"] = "Shiny bits: +1 credit"
+		"REALLY_SHINY_BITS":
+			_grant_credits(ctx, 2)
+			result["description"] = "Really shiny bits: +2 credits"
+		"PERSON_OF_INTEREST":
+			ctx.add_story_points(1)
+			result["description"] = "Person of interest: +1 story point"
+		"PECULIAR_ITEM":
+			ctx.award_xp_to_random_crew(2)
+			result["description"] = "Peculiar item: +2 XP"
+		"PRIORITY_TARGET":
+			# "Add +1 to their Toughness. If they are SLAIN, gain 1D3 credits."
+			# The +1 Toughness is a battlefield instruction the player applies on
+			# the table; only the payout is a campaign mutation, and it is owed
+			# only if that figure died.
+			if bool(ctx.battle_result.get("priority_target_slain", false)):
+				var credits: int = ctx.roll_d6()
+				credits = int(ceil(credits / 2.0))  # 1D3
+				_grant_credits(ctx, credits)
+				result["description"] = "Priority target slain: +%d credits" % credits
+			else:
+				result["description"] = "Priority target survived: no reward"
+		"LOOT_CACHE", "CURIOUS_ITEM":
+			# Both resolve to a Loot Table roll, which Step 7 owns. Flag it so the
+			# loot step grants the extra roll rather than duplicating that logic
+			# here — one roller, one source of truth.
+			ctx.battle_result["extra_loot_rolls"] = int(
+				ctx.battle_result.get("extra_loot_rolls", 0)) + 1
+			result["description"] = "%s: +1 Loot Table roll" % sight_type.capitalize()
+		_:
+			push_warning(
+				"PostBattleCompletion: unknown Notable Sight type '%s'" % sight_type)
+			return result
+
+	result["applied"] = true
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "battle",
+			"auto_generated": true,
+			"title": "Notable Sight recovered",
+			"description": str(result["description"]),
+			"tags": ["notable_sight", "post_battle"],
+		})
+	return result
+
+
+func _grant_credits(ctx: PostBattleContextClass, amount: int) -> void:
+	if amount <= 0:
+		return
+	if ctx.game_state_manager and ctx.game_state_manager.has_method("get_credits") \
+			and ctx.game_state_manager.has_method("set_credits"):
+		ctx.game_state_manager.set_credits(ctx.game_state_manager.get_credits() + amount)

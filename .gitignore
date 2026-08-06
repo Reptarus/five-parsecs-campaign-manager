@@ -19,6 +19,7 @@ export_presets.cfg
 
 # Project-local secrets (never commit)
 .env.local
+support_config.cfg
 addons/talo/settings.cfg
 
 # Imported translations (automatically generated from CSV files)
@@ -65,9 +66,20 @@ node_modules
 
 # Dev artifacts - prevent root clutter
 /reports/
-/scripts/
+# NOTE: `/scripts/*` not `/scripts/`. Git cannot re-include a file whose PARENT
+# DIRECTORY is excluded, so with `/scripts/` the negation below silently did
+# nothing: the four existing lints only appeared to be covered by it because they
+# were added before the rule existed, and .gitignore does not affect
+# already-tracked files. Any NEW lint was silently dropped by `git add`.
+# Excluding the directory CONTENTS instead lets the negation work.
+/scripts/*
 # ...but the lint suite is tracked CI tooling (wiring-audit + data-ownership guards)
 !/scripts/lint_*.py
+# ...and the release tooling, which has to be reproducible on another machine.
+# Named explicitly rather than globbed so adding a scratch script here stays ignored
+# by default — the same trap the comment above describes.
+!/scripts/make_launcher_icons.py
+!/scripts/inspect_pck.py
 /tools/
 /mcp-servers/
 /screenshot/
@@ -87,4 +99,18 @@ test_full_run.txt
 
 # Sheet-calibration tool debug outputs (visualization only, not source of truth)
 tools/_debug/
+
+# Signing keys — NEVER commit.
+# Losing the Play upload key means the app can never be updated; leaking it means
+# someone else can publish as us. Keep the keystore outside the repo entirely; these
+# patterns are a backstop for the day someone drops one in by accident.
+*.jks
+*.keystore
+*.p12
+*.pepk
+keystore.properties
+key.properties
+
+# Godot stores the release keystore PATH AND PASSWORD in plaintext here.
+.godot/export_credentials.cfg
 

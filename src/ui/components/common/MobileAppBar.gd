@@ -61,7 +61,7 @@ func _build() -> void:
 	_back_button.text = "←"  # ←
 	_back_button.flat = true
 	_back_button.custom_minimum_size = Vector2(UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN)
-	_back_button.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_back_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_back_button.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	_back_button.tooltip_text = "Back"
 	_back_button.pressed.connect(_on_back)
@@ -74,14 +74,14 @@ func _build() -> void:
 	row.add_child(text_box)
 
 	_title_label = Label.new()
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_LG)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_title_label.clip_text = true
 	text_box.add_child(_title_label)
 
 	_subtitle_label = Label.new()
-	_subtitle_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_subtitle_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_subtitle_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_subtitle_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_subtitle_label.clip_text = true

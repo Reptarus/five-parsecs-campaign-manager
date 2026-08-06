@@ -22,8 +22,14 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const CompendiumDeploymentVariablesRef = preload(
+	"res://src/data/compendium_deployment_variables.gd")
+const CompendiumGridMovementRef = preload(
+	"res://src/data/compendium_grid_movement.gd")
+const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
 const BattleResolverRouterClass = preload("res://src/core/battle/BattleResolverRouter.gd")
@@ -48,6 +54,7 @@ const _SCENE_REGISTRY: Dictionary = {
 	"dice_dashboard": "res://src/ui/components/battle/DiceDashboard.tscn",
 	"combat_calculator": "res://src/ui/components/battle/CombatCalculator.tscn",
 	"battle_round_hud": "res://src/ui/components/battle/BattleRoundHUD.gd",
+	"story_marker_panel": "res://src/ui/components/battle/StoryMarkerPanel.gd",
 	"cheat_sheet": "res://src/ui/components/battle/CheatSheetPanel.gd",
 	"weapon_table": "res://src/ui/components/battle/WeaponTableDisplay.tscn",
 	"combat_situation": "res://src/ui/components/battle/CombatSituationPanel.tscn",
@@ -86,7 +93,11 @@ func _get_res(key: String) -> Resource:
 @onready var return_button: Button = %ReturnButton
 @onready var auto_resolve_button: Button = %AutoResolveButton
 @onready var title_label: Label = %TitleLabel
-@onready var tier_badge: Label = %TierBadge
+## A BUTTON, not a Label. It was a Label, which is why the tracking tier was
+## frozen for the whole battle — see _on_tier_badge_pressed. Every existing use
+## is `.text`, which Button supports identically. Styled flat so the top bar
+## still reads as a badge rather than sprouting a chunky button.
+@onready var tier_badge: Button = %TierBadge
 @onready var phase_breadcrumb: HBoxContainer = %PhaseBreadcrumb
 
 # --- Map-Primary + Drawers frame (redesign) -------------------------------
@@ -146,9 +157,6 @@ var _rail_intent_info: bool = false
 @onready var overlay_content: VBoxContainer = $OverlayLayer/OverlayCenter/OverlayContent
 
 # Reaction Dice UI (handled by ReactionDicePanel component in Sprint 4)
-var dice_pool_display: HBoxContainer = null
-var character_assignment_list: VBoxContainer = null
-var confirm_assignments_button: Button = null
 
 # Stars of the Story battle HUD (Core Rules p.67 — 3 mid-battle abilities)
 var _stars_battle_button: Button = null
@@ -199,6 +207,9 @@ var unified_log: FPCM_UnifiedBattleLog = null  # Replaces BattleJournal + Fallba
 var dice_dashboard: Control = null
 var combat_calculator: Control = null
 var battle_round_hud: Control = null
+## Story Track Event 5 marker tracker (Core Rules p.157). Only instantiated when
+## the mission carries story_event_id == "kidnap"; null on every other battle.
+var story_marker_panel: Control = null
 var character_cards: Array = [] # Array of CharacterStatusCard instances (crew + enemy drawer cards)
 var _unit_card_by_id: Dictionary = {}   # _unit_id(unit) -> CharacterStatusCard (live drawer card)
 var _drawer_repopulate_queued: bool = false  # re-entrancy guard for deferred drawer rebuilds
@@ -253,6 +264,14 @@ var _current_terrain_theme: String = ""
 var _stored_mission_data: Variant = null
 var _terrain_section_start_index: int = -1
 var _terrain_section_end_index: int = -1
+## Per-battle movement system (Compendium p.90: "The movement system used can be
+## changed as often as you want, with different battles using different movement
+## systems"). The DLC flag says the option is available; THIS says it is in use
+## for this fight. Owned here rather than in the checklist because three surfaces
+## depend on it — the setup drawer, the p.91 flanking note, and the checklist —
+## and a per-battle rule with three readers needs exactly one writer.
+var _use_grid_movement: bool = false
+var _grid_setup_section: VBoxContainer = null
 ## Last BattlefieldGenerator result (sectors/combat_notes/visibility_limit) —
 ## drives the redesign's info-rail BATTLEFIELD card + TERRAIN KEY legend.
 var _battlefield_data: Dictionary = {}
@@ -286,6 +305,8 @@ var _sector_popover: Control = null
 
 # Psionics tracking (Compendium pp.19-22) — counts uses for post-battle legality detection
 var _psionic_uses: int = 0
+## Compendium p.22: "Reinforcements can arrive only once in each battle."
+var _psionic_reinforcements_arrived: bool = false
 var _psionic_powers_json: Dictionary = {}  # Cached psionic_powers.json data
 
 ## AI type descriptions for enemy action phase guidance (Core Rules pp.94-103)
@@ -299,11 +320,45 @@ const AI_DESCRIPTIONS: Dictionary = {
 	"B": "Beast — move toward nearest figure, attack on contact",
 }
 
+## AI code -> the full type name used by data/RulesReference/EnemyAI.json.
+## Codes are Core Rules p.92 ("The AI Type column indicates the type of AI to
+## use: A Aggressive / C Cautious / D Defensive / G Guardian / R Rampage /
+## T Tactical / B Beast").
+const AI_CODE_TO_NAME: Dictionary = {
+	"A": "Aggressive",
+	"C": "Cautious",
+	"D": "Defensive",
+	"G": "Guardian",
+	"R": "Rampage",
+	"T": "Tactical",
+	"B": "Beast",
+}
+
+## The Escalating Battles D100 table (Compendium p.46) has exactly SIX columns.
+## Guardian is a real Core Rules AI type with no column in that table, so a
+## Guardian enemy legitimately gets no Escalation check — this list is what the
+## setup screen tests against so the omission is stated instead of silent.
+const ESCALATION_AI_TYPES: PackedStringArray = [
+	"aggressive", "cautious", "defensive", "rampage", "tactical", "beast",
+]
+
+const EnemyAIOracleRouterClass = preload("res://src/core/battle/EnemyAIOracleRouter.gd")
+var _ai_reference_router: RefCounted = null
+
 # SceneRouter-based battle delegation (Bug Hunt, Planetfall, Tactics)
 # When loaded via SceneRouter (not embedded as child), these track the
 # return route and temp_data key for storing results.
 var _return_screen: String = ""
 var _result_temp_key: String = ""
+
+# Seed-once guard for the End-Phase Morale tracker. set_enemy_count() resets the
+# per-round casualty count and the fled tally, so a second seed mid-battle would
+# erase real progress.
+var _morale_seeded: bool = false
+
+## Always-visible battle-state chip strip (round / enemies + panic / objective /
+## deployment condition), built into the phase banner.
+var _glance_row: HFlowContainer = null
 
 # DLC Escalating Battles tracking (Compendium pp.46-48)
 var _dlc_ai_type: String = ""
@@ -326,6 +381,14 @@ func _ready() -> void:
 	# Deferred check: if initialize_battle() wasn't called by the campaign flow,
 	# show tier selection anyway so standalone/MCP/demo mode works (BUG-B01 fix)
 	call_deferred("_check_standalone_mode")
+
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons (drawn on
+	# their own CanvasLayer above this screen). Pushes content DOWN -- a right-side
+	# margin would raise the container's minimum WIDTH and propagate an overflow up
+	# the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 func _initialize_managers() -> void:
 	## Initialize manager references
@@ -355,12 +418,15 @@ func _connect_signals() -> void:
 		return_button.pressed.connect(_on_return_to_battle_resolution)
 	if auto_resolve_button:
 		auto_resolve_button.pressed.connect(_on_auto_resolve_battle)
+	# The tracking-tier badge is the mid-battle tier control (it was a Label, so
+	# the tier was frozen once the battle began). has_signal guards the case where
+	# an older .tscn still has it as a Label.
+	if tier_badge and tier_badge.has_signal("pressed"):
+		tier_badge.pressed.connect(_on_tier_badge_pressed)
 
 	# Battlefield signals removed — terrain is text-based via BattlefieldGenerator
 
 	# Reaction Dice signals
-	if confirm_assignments_button:
-		confirm_assignments_button.pressed.connect(_on_confirm_dice_assignments)
 
 	# Stars of the Story HUD — deferred so campaign data is loaded
 	call_deferred("_setup_stars_battle_ui")
@@ -450,10 +516,32 @@ func _build_redesign_frame() -> void:
 	# survives when the rail is suppressed on a narrow screen.
 	_make_drawer("intel", "Battlefield Intel", DrawerClass.Edge.RIGHT, true)
 	_make_drawer("dice", "Dice Roller", DrawerClass.Edge.RIGHT, true)
-	_make_drawer("reference", "Battle Round Reference (Core Rules p.119)",
+	# p.118 is the BATTLE ROUND REFERENCE spread (verified against the PDF);
+	# p.119 is where Post-Battle Activities starts.
+	_make_drawer("reference", "Battle Round Reference (Core Rules p.118)",
 		DrawerClass.Edge.RIGHT)
 	_make_drawer("tracking", "Tracking", DrawerClass.Edge.RIGHT, true)
-	_make_drawer("oracle", "Enemy AI Oracle", DrawerClass.Edge.RIGHT, true)
+	# The SCENARIO's own rules surface (Compendium stealth / street fight /
+	# salvage / No-Minis). Deliberately NOT the "tracking" drawer.
+	#
+	# THE BUG THIS FIXES (Aug 6 battle-phase audit): these four panels were added to
+	# phase_content, which IS the tracking drawer body — and the tracking button is
+	# tier-gated to ASSISTED+. But the panels are gated on MISSION TYPE, not tier.
+	# So a LOG_ONLY player who drew a salvage mission got a fully-built, fully-
+	# seeded, signal-connected panel inside a drawer with no opener: no toolbar
+	# button, no portrait menu entry, no auto-open, and SlideOverDrawer has no
+	# swipe-to-open. For No-Minis, where the panel IS the battlefield, that is the
+	# entire game behind a door with no handle.
+	#
+	# Its button appears only when a panel was actually placed here, so an ordinary
+	# battle never advertises an empty drawer (the mistake the deleted "oracle"
+	# drawer made — see the note below).
+	_make_drawer("mission", "Mission Rules", DrawerClass.Edge.RIGHT, true)
+	# NO separate "oracle" drawer. One existed and NOTHING was ever added to its
+	# body, so the FULL_ORACLE toolbar button opened a blank panel. The AI oracle
+	# is deliberately an intent layer sitting above the per-figure enemy cards
+	# (see _populate_unit_drawer), so it lives in the "enemies" drawer and a second
+	# empty surface competing for the same content is worse than none.
 
 	# Repoint the funnel shims at drawer bodies. setup_content stays a valid
 	# host for any legacy funnel, but the pre-battle checklist itself is a
@@ -497,6 +585,27 @@ func _make_drawer(id: String, title: String, edge: int,
 	d.set_content(body)
 	_drawers[id] = d
 	_drawer_bodies[id] = body
+
+
+## True once a scenario panel has been placed in the "mission" drawer.
+var _mission_drawer_used: bool = false
+
+
+func _mission_panel_host() -> Node:
+	## Host for the scenario's own rules panel, and the ONLY place that marks the
+	## mission drawer live. Falls back to phase_content if the drawer is somehow
+	## missing, so a panel is never silently dropped on the floor.
+	var body = _drawer_bodies.get("mission")
+	if body == null:
+		return phase_content
+	_mission_drawer_used = true
+	# The toolbar is built during tier selection, which runs BEFORE these panels
+	# are created at the tail of initialize_battle — so it has to be rebuilt once
+	# the drawer actually has content or the button never appears. Rebuilding is
+	# idempotent (it frees and re-adds the bar's children).
+	if _toolbar_built and tier_controller:
+		_rebuild_drawer_toolbar(tier_controller.current_tier)
+	return body
 
 
 func _open_drawer(id: String) -> void:
@@ -859,12 +968,40 @@ func _rail_hp_bar(hp: int, mx: int) -> Control:
 	row.add_child(lbl)
 	return row
 
+func _is_standalone_battle() -> bool:
+	## True when this battle has no owning 5PFH campaign to persist a table for.
+	##
+	## Two independent signals, either sufficient:
+	##  - a non-empty _battle_mode_id (bug_hunt / planetfall / tactics run their own
+	##    campaign cores and never use 5PFH's active_battlefield contract)
+	##  - no current_campaign at all (Battle Simulator, MCP/demo, tier-select mode)
+	##
+	## Deliberately NOT using the PhaseContainer ancestor walk that
+	## _check_standalone_mode does: this is called during persistence, long after
+	## reparenting, so an ownership question must be answered from state, not layout.
+	if not _battle_mode_id.is_empty():
+		return true
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null:
+		return true
+	return gs.get("current_campaign") == null
+
+
 func _check_standalone_mode() -> void:
 	## If initialize_battle() was never called, check if battle context was
 	## stored in temp_data by a gamemode turn controller (Bug Hunt, Planetfall,
 	## Tactics). If so, auto-initialize from that context. Otherwise, show
 	## tier selection for standalone/MCP/demo mode (BUG-B01, B06, B17, B18 fix).
 	if _battle_initialized:
+		return
+	# Deferred from _ready(), so it runs a frame later and this screen may have
+	# left the tree by then. Guarding HERE rather than at each symptom: the whole
+	# chain below is tree-dependent, and a detached run produced three separate
+	# errors from one deferred call — the /root/GameStateManager lookup in
+	# _try_auto_init_from_temp_data(), the /root lookup in
+	# _build_terrain_controls(), and get_viewport() coming back null in
+	# _overlay_width(). One check at the entry point stops all of them.
+	if not is_inside_tree():
 		return
 	# QA-FIX: Only show tier selection if actually visible and not embedded in campaign flow.
 	if not visible:
@@ -985,6 +1122,14 @@ func _apply_responsive_layout() -> void:
 	## Scale panel sizes proportionally to viewport
 	if _responsive_layout_in_progress:
 		return  # Guard against re-entrant calls from resize feedback
+	# Reached from call_deferred() AND from a resize debounce timer, so it can
+	# fire a frame or more after this screen left the tree — during a scene
+	# transition, say. get_viewport() is null on a detached node, and the next
+	# line called a method on it ("Cannot call method 'get_visible_rect' on a
+	# null value"). Checked before the re-entrancy flag is set, so an early
+	# return cannot leave the flag stuck true and permanently disable layout.
+	if not is_inside_tree():
+		return
 	_responsive_layout_in_progress = true
 
 	var vp := get_viewport().get_visible_rect().size
@@ -1205,6 +1350,103 @@ func _reconcile_bars_portrait() -> void:
 ## Build the persistent phase-instruction banner at the TOP of BottomContent
 ## (adjacent to the phase buttons that advance it), so the player always sees the
 ## PHYSICAL action to perform this phase. Hidden until the first instruction is set.
+func _refresh_glance_chips() -> void:
+	## Repaint the always-visible battle-state strip. Cheap, so it is rebuilt on
+	## every state change rather than diffed.
+	if _glance_row == null or not is_instance_valid(_glance_row):
+		return
+	# remove_child BEFORE queue_free: queue_free is deferred, so the old chips are
+	# still in the tree for the rest of the frame and the strip would briefly show
+	# both the stale and the fresh set.
+	for c in _glance_row.get_children():
+		_glance_row.remove_child(c)
+		c.queue_free()
+
+	# The tracker is authoritative once the battle is running, but it reports 0
+	# before it starts (setup/deployment), which would blank the chip. Take
+	# whichever is further along.
+	var round_num: int = current_turn
+	if round_tracker and round_tracker.has_method("get_current_round"):
+		round_num = maxi(round_num, int(round_tracker.get_current_round()))
+	if round_num > 0:
+		_add_glance_chip("Round %d" % round_num, UIColors.COLOR_CYAN,
+			"Battle round %d" % round_num)
+
+	# Enemies left + the Panic range they bail on — the two numbers that decide
+	# whether to press the attack. Available now that the morale tracker is seeded.
+	var standing: int = 0
+	for unit in enemy_units:
+		if not unit.is_dead and unit.health > 0:
+			standing += 1
+	var panic_txt: String = ""
+	if morale_tracker and is_instance_valid(morale_tracker) \
+			and "panic_range_max" in morale_tracker:
+		var pr: int = int(morale_tracker.panic_range_max)
+		panic_txt = " · Panic %s" % ("0" if pr <= 0 else "1-%d" % pr)
+	if not enemy_units.is_empty():
+		_add_glance_chip("%d enemy left%s" % [standing, panic_txt],
+			UIColors.COLOR_RED,
+			"%d enemy figures still standing%s" % [standing, panic_txt])
+
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		var done: bool = _objective_tracker.is_complete()
+		_add_glance_chip(
+			"%s: %s" % [_objective_tracker.get_objective_name(),
+				"DONE" if done else "open"],
+			UIColors.COLOR_EMERALD if done else UIColors.COLOR_WARNING,
+			"Objective %s %s" % [_objective_tracker.get_objective_name(),
+				"complete" if done else "not yet met"])
+
+	var deploy: Dictionary = _battle_context.get("deployment", {})
+	var cond_title: String = str(deploy.get("condition_title",
+		deploy.get("condition_id", "")))
+	if cond_title != "" and cond_title != "NO_CONDITION":
+		_add_glance_chip(cond_title.capitalize(), UIColors.COLOR_WARNING,
+			"Deployment condition: %s" % cond_title)
+
+	# Invasion hold clock (Core Rules p.92): "You must hold out for 6 rounds,
+	# then you can flee or fight until you Hold the Field... Any figure that
+	# leaves the table before Round 6 becomes a casualty." A 6-round obligation
+	# the player has to count is exactly what a glance chip is for — and until
+	# now BattleSetupRules computed hold_rounds and nothing displayed it.
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var hold_rounds: int = int(setup_rules.get("hold_rounds", 0))
+	if hold_rounds > 0:
+		var round_now: int = maxi(current_turn, 1)
+		if round_now < hold_rounds:
+			_add_glance_chip("Hold %d/%d" % [round_now, hold_rounds],
+				UIColors.COLOR_RED,
+				"Invasion: hold out for %d rounds. Leaving before round %d makes that figure a casualty (Core Rules p.92)."
+					% [hold_rounds, hold_rounds])
+		else:
+			_add_glance_chip("Hold complete", UIColors.COLOR_EMERALD,
+				"Invasion: the %d-round hold is done — you may now flee or fight on until you Hold the Field (p.92)."
+					% hold_rounds)
+
+
+func _add_glance_chip(text: String, color: Color, a11y: String) -> void:
+	var chip := PanelContainer.new()
+	var st := StyleBoxFlat.new()
+	st.bg_color = UIColors.COLOR_TERTIARY
+	st.border_color = color
+	st.set_border_width_all(1)
+	st.set_corner_radius_all(10)
+	st.content_margin_left = UIColors.SPACING_SM
+	st.content_margin_right = UIColors.SPACING_SM
+	st.content_margin_top = 2
+	st.content_margin_bottom = 2
+	chip.add_theme_stylebox_override("panel", st)
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+	lbl.add_theme_color_override("font_color", color)
+	# Godot 4.6 AccessKit reports nothing useful for unnamed code-built controls.
+	lbl.accessibility_name = a11y
+	chip.add_child(lbl)
+	_glance_row.add_child(chip)
+
+
 func _build_phase_instruction_banner() -> void:
 	if _phase_banner != null or phase_hud == null:
 		return
@@ -1233,6 +1475,16 @@ func _build_phase_instruction_banner() -> void:
 		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_phase_banner_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vb.add_child(_phase_banner_label)
+	# Glance strip: the handful of numbers a player at a physical table checks
+	# constantly (round, enemies left + their Panic range, objective progress,
+	# active deployment condition). All of it previously required opening a
+	# drawer mid-turn with dice in one hand. HFlow so it wraps in portrait
+	# instead of overflowing the 360dp floor.
+	_glance_row = HFlowContainer.new()
+	_glance_row.name = "GlanceChips"
+	_glance_row.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	_glance_row.add_theme_constant_override("v_separation", 4)
+	vb.add_child(_glance_row)
 	bottom_content.add_child(_phase_banner)
 	bottom_content.move_child(_phase_banner, 0)
 	_phase_banner.visible = false
@@ -1300,6 +1552,9 @@ func _set_phase_instruction(phase_idx: int, phase_name: String, instruction: Str
 	if _phase_banner_label:
 		_phase_banner_label.text = instruction
 	_phase_banner.visible = true
+	# The banner changes once per phase, which is exactly when the glance numbers
+	# are worth repainting.
+	_refresh_glance_chips()
 
 func _build_phase_breadcrumb() -> void:
 	## Build the stage breadcrumb in TopBar
@@ -1353,12 +1608,25 @@ func _update_breadcrumb(stage: int) -> void:
 
 func _instance_log_only_components() -> void:
 	## Instance and add LOG_ONLY tier components to zones
-	# UnifiedBattleLog → Center / replaces BattleJournal + FallbackLog
-	unified_log = FPCM_UnifiedBattleLog.new()
-	unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	if phase_content:
-		phase_content.add_child(unified_log)
+	# UnifiedBattleLog — the canonical instance is built ONCE into the FeedStrip
+	# (see the "Single canonical feed" block in the layout builder) and reused here.
+	#
+	# THE BUG THIS FIXES: this function used to unconditionally `.new()` a SECOND
+	# UnifiedBattleLog and reassign `unified_log` to it. The first instance stayed
+	# parented in %FeedHost — the visible bottom feed strip, which
+	# _apply_stage_visibility shows for every stage except TIER_SELECT and
+	# _apply_responsive_layout even sizes — but no longer had any reference pointing
+	# at it, so it never received a single line. Every _log_message /
+	# unified_log.log_* call went into the Tracking drawer copy instead, i.e. the
+	# player's always-on battle feed was permanently blank and the whole running
+	# account of the fight was hidden behind a drawer.
+	if not (unified_log and is_instance_valid(unified_log)):
+		unified_log = FPCM_UnifiedBattleLog.new()
+		unified_log.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		unified_log.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		var log_host: Node = feed_host if feed_host else phase_content
+		if log_host:
+			log_host.add_child(unified_log)
 
 	# DiceDashboard
 	dice_dashboard = _get_res("dice_dashboard").instantiate()
@@ -1682,12 +1950,25 @@ func _instance_assisted_components() -> void:
 
 func _instance_oracle_components() -> void:
 	## Instance FULL_ORACLE tier components into their zones
-	# EnemyIntentPanel → Left / "Enemies" tab
+	# EnemyIntentPanel is created in the STABLE tracking host and then moved to the
+	# top of the enemy drawer by _populate_unit_drawer ("an AI-intent layer ON TOP
+	# of the per-figure enemy tracker, not a replacement"). Do NOT create it in the
+	# enemies body directly: that body is cleared and rebuilt on every repopulate,
+	# so the panel would be queue_free()d out from under this reference.
+	#
+	# THE BUG THIS FIXES: activate_oracle() had ZERO callers repo-wide, so
+	# _oracle_container.visible stayed false forever — EnemyAIOracleRouter, the
+	# book's 1D6 behaviour tables and CardOracleSystem were all unreachable at
+	# runtime, and the panel just read "No enemy intents detected / AI: Tactical"
+	# with a hardcoded type no matter who you were fighting.
 	enemy_intent_panel = _get_res("enemy_intent").new()
 	enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if phase_content:
 		phase_content.add_child(enemy_intent_panel)
+	# activate_oracle() builds the router and reveals the mode selector. Deferred
+	# so it runs after the panel's own _ready() has built _oracle_container.
+	_activate_enemy_oracle.call_deferred()
 
 	# EnemyGenerationWizard → shown as modal overlay (not stacked in PhaseContent)
 	enemy_generation_wizard = _get_res("enemy_generation").instantiate()
@@ -1811,6 +2092,14 @@ func _connect_assisted_signals() -> void:
 	# InitiativeCalculator — initiative results + overlay dismiss
 	if initiative_calculator:
 		initiative_calculator.continue_requested.connect(_hide_overlay)
+		# Record the outcome into _battle_context so the battle briefing's
+		# INITIATIVE block (which reads seize_initiative_result, a key nothing
+		# used to write) actually renders, and the p.112 "may Move or fire, hits
+		# only on a natural 6" instruction reaches the player.
+		if not initiative_calculator.initiative_calculated.is_connected(
+				_on_initiative_calculated):
+			initiative_calculator.initiative_calculated.connect(
+				_on_initiative_calculated)
 		if unified_log:
 			initiative_calculator.initiative_calculated.connect(
 				func(result) -> void:
@@ -1937,8 +2226,52 @@ func _show_overlay(content_node: Control) -> void:
 	overlay_content.add_child(content_node)
 	# Drive the overlay width responsively so portrait phones don't overflow.
 	overlay_content.custom_minimum_size.x = _overlay_width()
+	_ensure_overlay_scroll()
+	call_deferred("_fit_overlay_height")
 	overlay_bg.visible = true
 	overlay_center.visible = true
+
+
+## Put the overlay content in a scroll so a tall modal cannot exceed the screen.
+##
+## Width was already handled; height was not. The tier picker needs 568px on a phone
+## in landscape (338 available) and 770px on a small phone, and a CenterContainer
+## sizes its child to that minimum whatever the screen — so the top and bottom of the
+## overlay, including its buttons, were simply off the screen. Created once and reused.
+func _ensure_overlay_scroll() -> ScrollContainer:
+	if overlay_content == null or not is_instance_valid(overlay_content):
+		return null
+	var parent := overlay_content.get_parent()
+	if parent is ScrollContainer:
+		return parent as ScrollContainer
+	if parent == null:
+		return null
+	var scroll := ScrollContainer.new()
+	scroll.name = "OverlayScroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	var idx: int = overlay_content.get_index()
+	parent.remove_child(overlay_content)
+	parent.add_child(scroll)
+	parent.move_child(scroll, idx)
+	scroll.add_child(overlay_content)
+	return scroll
+
+
+## Cap the overlay at the viewport, but only when it is actually taller.
+##
+## Deferred because the content's minimum is not known until the frame after it is
+## added; a short overlay keeps its natural height rather than stretching.
+func _fit_overlay_height() -> void:
+	var scroll := _ensure_overlay_scroll()
+	if scroll == null or not is_inside_tree():
+		return
+	var vp := get_viewport()
+	if vp == null:
+		return
+	var available: float = maxf(160.0, vp.get_visible_rect().size.y - 32.0)
+	var wanted: float = overlay_content.get_combined_minimum_size().y
+	scroll.custom_minimum_size.x = _overlay_width()
+	scroll.custom_minimum_size.y = minf(wanted, available)
 
 func _hide_overlay() -> void:
 	## Hide the modal overlay. Uses remove_child for reusable nodes.
@@ -1965,11 +2298,38 @@ func show_enemy_generation_overlay() -> void:
 
 var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
 
+## Compendium p.34 "Time is Running Out" runtime state.
+## _paying_by_hour_limit is the 2D6-pick-highest+4 round count rolled once at
+## setup (0 = the option is off); _movement_all_over_arrivals counts arrivals so
+## the SECOND one is the specialist the book calls for; _fickle_scans_resolved
+## keeps the end-of-Round-3 removal from firing twice.
+var _paying_by_hour_limit: int = 0
+var _paying_by_hour_expired: bool = false
+var _movement_all_over_arrivals: int = 0
+var _fickle_scans_resolved: bool = false
+
+## Expanded Quest Progression row 54-65 (Compendium p.79): "At the end of each
+## round, roll 1D6 and track the scores. If you have an Engineer among your crew,
+## add +1 to the score. Once the score reaches 28, you can end the mission."
+## 0 target = the row is not this battle's step.
+var _quest_survival_score: int = 0
+var _quest_survival_announced: bool = false
+
 func _check_pending_battle_event() -> void:
-	## Check if a battle event should trigger this round (Core Rules p.118:
-	## rounds 2 and 4). Called after overlay dismissal so overlays don't collide.
+	## Check if a battle event should trigger this round (Core Rules pp.116-117:
+	## end of Round 2 and end of Round 4, and no more after that).
+	## Called after overlay dismissal so overlays don't collide.
 	## Guarded so it only fires once per round (not on every overlay dismiss).
 	if not round_tracker or not round_tracker.has_method("check_battle_event"):
+		return
+	# Core Rules p.116 heads this table "BATTLE EVENTS (OPTIONAL)" and closes it
+	# with "Use of this table is optional — you may choose to use it occasionally
+	# during your campaign, or not at all." The app rolled them unconditionally,
+	# so a player who had opted out at the table still got an event announced at
+	# the end of rounds 2 and 4. Defaults on, so nothing changes unless asked.
+	var settings := get_node_or_null("/root/SettingsManager")
+	if settings and settings.has_method("are_battle_events_enabled") \
+			and not settings.are_battle_events_enabled():
 		return
 	var current_round: int = round_tracker.get_current_round()
 	if _battle_event_fired_this_round == current_round:
@@ -2013,6 +2373,30 @@ func _on_tier_selected(tier: int) -> void:
 	if tier >= 1 and (not crew_units.is_empty() or not enemy_units.is_empty()):
 		_create_character_cards([])
 
+	# Same reason the cards are rebuilt above: initialize_battle() runs BEFORE the
+	# player picks a tier, so these ASSISTED components did not exist yet and the
+	# configuration calls there were no-ops. enemy_units, _stored_mission_data and
+	# the crew are all populated by now.
+	_seed_morale_tracker()
+	# Core Rules p.88 Deployment Condition — populate the panel now that
+	# _instance_assisted_components() has actually created it. Relocated here from
+	# initialize_battle, where it was a guaranteed no-op on BOTH paths (see the note
+	# at its old site). Reads the condition already stamped on _stored_mission_data
+	# rather than re-rolling: a second roll would show the player a DIFFERENT
+	# condition from the one the battle is actually being fought under.
+	# No-op at LOG_ONLY by design — the panel is an ASSISTED+ component.
+	_populate_deployment_conditions(
+		_stored_mission_data if _stored_mission_data is Dictionary else {})
+	if initiative_calculator and is_instance_valid(initiative_calculator) \
+			and initiative_calculator.has_method("set_crew"):
+		var crew_for_init: Array = []
+		for unit in crew_units:
+			if unit.original_character:
+				crew_for_init.append(unit.original_character)
+		if not crew_for_init.is_empty():
+			initiative_calculator.set_crew(crew_for_init)
+	_apply_initiative_context()
+
 	_apply_tier_visibility(tier)
 	_hide_overlay()
 	_apply_stage_visibility(BattleStage.SETUP)
@@ -2020,6 +2404,103 @@ func _on_tier_selected(tier: int) -> void:
 	# Pre-battle checklist: a CENTERED MODAL on the existing OverlayLayer
 	# (approved plan ModalLayer role), not the deleted Setup tab.
 	_show_pre_battle_checklist(tier)
+
+
+## ── Mid-battle tracking-tier change (Aug 6 battle-phase audit) ──────────────
+##
+## THE GAP THIS FILLS: set_tier() had exactly ONE caller — _on_tier_selected,
+## above, passing force = true "at battle start" — and TierBadge was a Label. So
+## the tracking level was frozen for the whole battle: a player who picked
+## LOG_ONLY and then wanted help, or picked FULL_ORACLE and found it noisy, could
+## only abandon the battle and restart, discarding in-battle state.
+##
+## BattleTierController proves this was designed for and never built: it guards
+## `if not force and tier < current_tier: push_warning("Cannot downgrade tier
+## mid-battle")`. A guard against mid-battle DOWNGRADE only makes sense if
+## mid-battle CHANGES were expected. This is the unforced caller it was written
+## for — the first one.
+
+func _on_tier_badge_pressed() -> void:
+	## TierBadge tapped — offer a tier change using the SAME panel as the
+	## pre-battle pick, re-dressed via configure_for_change().
+	if tier_controller == null:
+		# No tier chosen yet (shouldn't happen in-battle); fall back to the
+		# ordinary first-pick flow rather than doing nothing.
+		_show_tier_selection()
+		return
+	var panel: Control = _get_res("tier_selection").new()
+	panel.tier_selected.connect(_on_tier_change_requested)
+	if panel.has_signal("change_cancelled"):
+		panel.change_cancelled.connect(_hide_overlay)
+	if panel.has_method("configure_for_change"):
+		panel.configure_for_change(int(tier_controller.current_tier))
+	_show_overlay(panel)
+
+
+func _on_tier_change_requested(tier: int) -> void:
+	## Apply a MID-BATTLE tier change. Unlike _on_tier_selected this does NOT
+	## build a new BattleTierController — doing so would reset the battle's tier
+	## state and bypass the very downgrade guard we want enforced.
+	if tier_controller == null:
+		_on_tier_selected(tier)
+		return
+	var before: int = int(tier_controller.current_tier)
+	if tier == before:
+		_hide_overlay()
+		return
+
+	# UNFORCED — the controller is the authority on whether this is allowed.
+	tier_controller.set_tier(tier)
+	if int(tier_controller.current_tier) == before:
+		# Refused (a downgrade). The panel disables those options, so this is a
+		# belt-and-braces path; say so rather than closing as if it worked.
+		_log_message(
+			"Tracking level cannot be reduced mid-battle — still %s."
+				% _tier_label(before), UIColors.COLOR_WARNING)
+		_hide_overlay()
+		return
+
+	# Accepted. Build whatever the new tier needs. Every one of these is already
+	# guarded against double-instantiation, which is why the upgrade path was
+	# effectively complete before this control existed to invoke it.
+	_activate_tier_components(int(tier_controller.current_tier))
+	_apply_tier_visibility(int(tier_controller.current_tier))
+	_hide_overlay()
+	_log_message("Tracking level raised to %s."
+		% _tier_label(int(tier_controller.current_tier)), UIColors.COLOR_EMERALD)
+
+
+func _tier_label(tier: int) -> String:
+	match tier:
+		0: return "LOG ONLY"
+		1: return "ASSISTED"
+		2: return "FULL ORACLE"
+	return "UNKNOWN"
+
+
+func _activate_tier_components(tier: int) -> void:
+	## Instantiate + seed everything a given tier needs. Extracted from
+	## _on_tier_selected so a mid-battle upgrade runs the IDENTICAL path as the
+	## first pick — two copies would drift, and a tier upgrade that half-builds
+	## its components is worse than no upgrade control at all.
+	if tier >= 1 and victory_progress == null:
+		_instance_assisted_components()
+	if tier >= 2 and enemy_intent_panel == null:
+		_instance_oracle_components()
+	if tier >= 1 and (not crew_units.is_empty() or not enemy_units.is_empty()):
+		_create_character_cards([])
+	_seed_morale_tracker()
+	_populate_deployment_conditions(
+		_stored_mission_data if _stored_mission_data is Dictionary else {})
+	if initiative_calculator and is_instance_valid(initiative_calculator) \
+			and initiative_calculator.has_method("set_crew"):
+		var crew_for_init: Array = []
+		for unit in crew_units:
+			if unit.original_character:
+				crew_for_init.append(unit.original_character)
+		if not crew_for_init.is_empty():
+			initiative_calculator.set_crew(crew_for_init)
+	_apply_initiative_context()
 
 func _show_pre_battle_checklist(tier: int) -> void:
 	## Show the pre-battle checklist as a centered modal. The dense per-step
@@ -2061,9 +2542,16 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	var checklist: Control = _get_res("pre_battle_checklist").new()
 	checklist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	checklist.checklist_completed.connect(_on_checklist_completed)
+	if checklist.has_signal("movement_system_changed"):
+		checklist.movement_system_changed.connect(_on_movement_system_changed)
 	col.add_child(checklist)
 	# Set tier AFTER adding to tree so _ready() has built the UI
 	checklist.set_tier(tier)
+	# Seed the per-battle movement system (Compendium p.90) from the value the
+	# setup drawer already rendered with, so the two never disagree. AFTER
+	# add_child for the same reason as set_tier: _ready() builds the rows.
+	if checklist.has_method("set_grid_movement"):
+		checklist.set_grid_movement(_use_grid_movement)
 
 	# "Begin Battle" fixed footer (sibling of scroller, never clipped)
 	var begin_btn := Button.new()
@@ -2133,10 +2621,34 @@ func _build_battle_card() -> Control:
 	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(title)
 
-	# Objective + win condition (p.89-90)
-	var obj_txt: String = str(md.get("objective", md.get("type", "")))
+	# Objective + win condition (p.89-90).
+	#
+	# THE BUG THIS FIXES: this read mission_data["objective"] — the JOB's name
+	# from the world phase — while the glance chip, the battle log and the
+	# results form all read the objective the tracker actually resolved from the
+	# p.89 D10 table. A desktop run showed "◆ Objective: Fight Off" on the card
+	# while the chip read "Deliver: open" and the log was tracking "all enemies
+	# with package undamaged". The card's whole purpose is to state the WIN
+	# CONDITION, so naming a different objective than the one being tracked told
+	# the player to satisfy the wrong one. The tracker is authoritative; the
+	# mission keys are the fallback for paths that never built a tracker.
+	var obj_txt: String = ""
+	var obj_key: String = ""
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		obj_txt = _objective_tracker.get_objective_name()
+		# The win-text table is keyed by the snake_case objective ID, so look up
+		# by ID and display by name. Passing the display name matched nothing for
+		# the two multi-word objectives ("Fight Off" != "fight_off",
+		# "Move Through" != "move_through") and printed a BLANK win condition —
+		# on the one card row whose entire job is to state how you win.
+		obj_key = _objective_tracker.get_objective_id()
+	if obj_txt == "":
+		obj_txt = str(md.get("mission_objective",
+			md.get("objective", md.get("type", ""))))
+	if obj_key == "":
+		obj_key = obj_txt
 	if obj_txt != "":
-		var win: String = BattleFlowGuideClass.objective_win_text(obj_txt)
+		var win: String = BattleFlowGuideClass.objective_win_text(obj_key)
 		rows += 1
 		_battle_card_row(vbox, "◆ Objective: %s" % obj_txt.capitalize(),
 			win + (" (Core Rules p.90)" if win != "" else ""),
@@ -2215,6 +2727,14 @@ func _on_checklist_dismissed() -> void:
 	_hide_overlay()
 	_apply_stage_visibility(BattleStage.DEPLOYMENT)
 	_update_action_buttons_for_deployment()
+	# Surface the scenario's own rules ONCE, here rather than at initialize time,
+	# so it does not fight the pre-battle checklist modal for the screen. A stealth
+	# or salvage mission's procedure is not optional context — it is the mission —
+	# so the player should not have to discover the drawer to find it. Deferred so
+	# the stage-visibility pass above settles first. Exclusive-open, so it closes
+	# whatever else was open; the player can close it like any other drawer.
+	if _mission_drawer_used and _drawers.has("mission"):
+		call_deferred("_open_drawer", "mission")
 	_log_message(
 		"Deploy your crew in the deployment zone",
 		UIColors.COLOR_CYAN
@@ -2284,8 +2804,17 @@ func _ensure_results_form_drawer() -> void:
 	rbody.add_child(_log_only_results_form)
 
 func _build_results_prefill() -> Dictionary:
-	## Seed the results form from the live objective tracker so the player starts
-	## from the objective-accurate guess (they still confirm/edit on the table).
+	## Seed the results form from what the player already recorded during the
+	## battle, so Record Result opens pre-filled and they only correct it.
+	##
+	## THE BUG THIS FIXES: this read ONLY the objective tracker. A player who spent
+	## the whole fight marking figures down on the crew and enemy cards opened the
+	## form to every casualty box unchecked, zero enemies defeated and round 1 — and
+	## for a battle with no trackable objective _objective_tracker is null, so the
+	## prefill was completely empty. The one screen that decides what the campaign
+	## records ignored every input the companion had collected.
+	##
+	## The player still owns every value: this is a starting point, not an answer.
 	var prefill: Dictionary = {}
 	if _objective_tracker != null and _objective_tracker.has_objective():
 		prefill = _objective_tracker.get_result_prefill()
@@ -2297,7 +2826,69 @@ func _build_results_prefill() -> Dictionary:
 				and "victory_condition" in os.current_objective:
 			prefill["objective_condition"] = str(
 				os.current_objective.victory_condition)
+
+	# Live table state. Only fills what the objective tracker did not already
+	# provide, so the tracker stays authoritative where it has an opinion.
+	# defeated_enemies was hardcoded [] on this path, so RivalPatronResolver's
+	# per-enemy rival stamp had nothing to walk after a manually recorded battle.
+	var defeated: Array = _defeated_enemy_records()
+	var enemies_down: int = defeated.size()
+	prefill["defeated_enemies"] = defeated
+	if not prefill.has("enemies_defeated"):
+		prefill["enemies_defeated"] = enemies_down
+
+	# Downed crew, by index into the SAME array _ensure_results_form_drawer
+	# passes to setup() (built from crew_units in order).
+	#
+	# These pre-check the INJURIES boxes, never the casualties boxes: Core Rules
+	# p.122 — a figure that went Out of Action always rolls the post-battle Injury
+	# Table, and the ROLL decides dead / injured / recovered. Being downed
+	# mid-battle must not pre-classify anyone as killed. Same rule the played path
+	# already applies when it routes downed crew into injuries_data.
+	var downed: Array = []
+	var crew_standing: int = 0
+	for i in range(crew_units.size()):
+		var unit = crew_units[i]
+		if unit.is_dead or unit.health <= 0:
+			downed.append(i)
+		else:
+			crew_standing += 1
+	prefill["downed_crew_indices"] = downed
+
+	if not prefill.has("rounds"):
+		prefill["rounds"] = maxi(1, current_turn)
+	if not prefill.has("victory"):
+		prefill["victory"] = enemies_down >= enemy_units.size() \
+			and crew_standing > 0
+	if not prefill.has("held_field"):
+		prefill["held_field"] = bool(prefill["victory"])
 	return prefill
+
+func _defeated_enemy_records() -> Array:
+	## The single builder for the `defeated_enemies` contract, shared by all four
+	## result paths (played, manual Record Result prefill, in-battle auto-resolve,
+	## "It's Time To Go").
+	##
+	## THE GAP THIS CLOSES: each path built its own version and they disagreed.
+	## The in-battle auto-resolve path hardcoded [], so RivalPatronResolver could
+	## never chase a Rival off after an auto-resolved battle; two others omitted
+	## was_specialist / was_unique_individual, which the post-battle XP reads.
+	## Consolidated on the richest shape so no consumer is starved by which
+	## button the player happened to press.
+	var records: Array = []
+	for unit in enemy_units:
+		if unit.is_dead or unit.health <= 0:
+			records.append({
+				"name": unit.node_name,
+				"type": unit.enemy_type if "enemy_type" in unit else "",
+				"was_lieutenant": unit.is_lieutenant \
+					if "is_lieutenant" in unit else false,
+				"was_specialist": unit.is_specialist \
+					if "is_specialist" in unit else false,
+				"was_unique_individual": unit.is_unique_individual \
+					if "is_unique_individual" in unit else false,
+			})
+	return records
 
 func _on_record_result_pressed() -> void:
 	## Reachable end-a-played-battle control (Record Result button). Opens the
@@ -2313,6 +2904,16 @@ func _on_log_only_results_submitted(result: Dictionary) -> void:
 	## (on-device F10 walk, Test21: drawer stayed open atop PostBattle).
 	if _drawers.has("results") and is_instance_valid(_drawers["results"]):
 		_drawers["results"].close()
+	# p.91 / p.92 — the player declares the outcome on this form, and it happily
+	# accepts "we won" for a battle the book says cannot be won. Enforce the rule
+	# on the way out, and SAY SO, rather than silently overriding what they ticked.
+	# Their Hold the Field answer is untouched: that is the reward path here.
+	if _has_no_win_condition() and bool(result.get("success", false)):
+		result["success"] = false
+		_log_message(
+			"No Win condition in this battle (Core Rules p.91/p.92) — recorded as "
+			+ "survived without a Win. Holding the Field still counts.",
+			UIColors.COLOR_WARNING)
 	_log_message("Battle results recorded", UIColors.COLOR_EMERALD)
 	_apply_stage_visibility(BattleStage.RESOLUTION)
 	tactical_battle_completed.emit(result)
@@ -2328,6 +2929,15 @@ func _apply_tier_visibility(tier: int) -> void:
 			0: tier_badge.text = "[LOG ONLY]"
 			1: tier_badge.text = "[ASSISTED]"
 			2: tier_badge.text = "[FULL ORACLE]"
+	# BattleRoundHUD gates its End-Phase auto-prompt (the "morale check needed /
+	# roll d100 for a Battle Event" reminder) on its OWN _display_tier, which
+	# defaults to 0 and was never set from here — set_display_tier() had zero
+	# callers repo-wide. So _update_auto_prompt() hit `if _display_tier < 1:` and
+	# hid the prompt at EVERY tier, including FULL_ORACLE. This is the single
+	# place a tier change is applied, so it is the correct hook.
+	if battle_round_hud and is_instance_valid(battle_round_hud) \
+			and battle_round_hud.has_method("set_display_tier"):
+		battle_round_hud.set_display_tier(tier)
 	_rebuild_drawer_toolbar(tier)
 
 
@@ -2352,13 +2962,30 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		action_buttons.add_child(bar)
 		action_buttons.move_child(bar, 0)
+	# remove_child BEFORE queue_free. queue_free() DEFERS to the end of the frame,
+	# so the old buttons stay parented while the new ones are added below — the bar
+	# holds BOTH for the rest of the frame. Observed live on Aug 6 2026 via an MCP
+	# probe: a rebuild returned 14 buttons instead of 7, a full duplicate set. It
+	# self-corrects next frame, but HFlowContainer computes its minimum size from
+	# the children it has NOW, so the bottom bar reflows for a frame — and this is
+	# the bar the map row has to share height with. Rebuilds got more frequent when
+	# _mission_panel_host() gained a call site, which is what surfaced it.
 	for c in bar.get_children():
+		bar.remove_child(c)
 		c.queue_free()
 	var ids: Array = ["crew", "enemies", "intel", "dice", "reference"]
 	if tier >= 1:
 		ids.append("tracking")
-	if tier >= 2:
-		ids.append("oracle")
+	# MISSION-TYPE gated, not tier gated. The scenario's own rules must be
+	# reachable at LOG_ONLY too — a player running the whole fight by hand needs
+	# the salvage/stealth/street-fight procedure MORE than an assisted one, not
+	# less. Only shown when a panel was actually placed there (_mission_panel_host).
+	if _mission_drawer_used:
+		ids.append("mission")
+	# No "oracle" button at tier 2: its drawer body was never populated, so it
+	# opened blank. The AI oracle is an intent layer on top of the per-figure
+	# enemy cards and lives in the "enemies" drawer (see _instance_oracle_components
+	# and the reparent in _populate_unit_drawer).
 	for id: String in ids:
 		var b := Button.new()
 		b.text = id.capitalize()
@@ -2561,6 +3188,13 @@ func _on_round_started(round_number: int) -> void:
 	_log_message("=== ROUND %d BEGINS ===" % round_number, UIColors.COLOR_CYAN)
 	if unified_log:
 		unified_log.new_round()
+	# The HUD counts casualties PER ROUND to size its End-Phase morale prompt
+	# (Core Rules p.114: roll 1D6 per figure lost THIS round). reset_round_tracking()
+	# had zero callers, so _casualties_this_round accumulated across the whole
+	# battle and round 4 would claim every casualty since round 1.
+	if battle_round_hud and is_instance_valid(battle_round_hud) \
+			and battle_round_hud.has_method("reset_round_tracking"):
+		battle_round_hud.reset_round_tracking()
 	_reset_all_unit_reactions()
 	# Tick down battle event overlay durations (fog/hazard/reinforcement markers expire)
 	if battlefield_grid_panel and battlefield_grid_panel.has_method("tick_overlay_durations"):
@@ -2568,6 +3202,10 @@ func _on_round_started(round_number: int) -> void:
 	# Advance objective progress (auto-derives rounds_survived + turn countdown)
 	if _objective_tracker != null:
 		_objective_tracker.on_round_advanced(round_number)
+	# Story Event 5 marker decay (Core Rules p.157: "At the end of Round 3 and
+	# each round thereafter, roll 1D6 for every remaining marker").
+	if story_marker_panel != null and is_instance_valid(story_marker_panel):
+		story_marker_panel.on_round_advanced(round_number)
 		_refresh_objective_panel()
 
 func _on_round_ended(round_number: int) -> void:
@@ -2577,8 +3215,146 @@ func _on_round_ended(round_number: int) -> void:
 	# DLC: Escalating Battles check (Compendium pp.46-48)
 	_check_escalating_battles(round_number)
 
+	# Compendium p.34 "Time is Running Out" — the three options that resolve at
+	# the end of a round.
+	_check_movement_all_over(round_number)
+	_check_fickle_scans(round_number)
+	_check_paying_by_the_hour(round_number)
+
+	# Expanded Quest Progression row 54-65 (Compendium p.79).
+	_check_quest_survival_clock(round_number)
+
+
+func _check_quest_survival_clock(round_number: int) -> void:
+	## Compendium p.79, verbatim: "At the end of each round, roll 1D6 and track
+	## the scores. If you have an Engineer among your crew, add +1 to the score.
+	## Once the score reaches 28, you can end the mission. Claim 1 Quest Rumor."
+	##
+	## "You CAN end the mission" — the book gives the player the option, it does
+	## not end the battle for them. So this announces the threshold and records it
+	## on the mission so the results form can report it; leaving the table is
+	## still the player's call.
+	if not (_stored_mission_data is Dictionary):
+		return
+	var mission: Dictionary = _stored_mission_data
+	var target: int = int(mission.get("quest_survival_target", 0))
+	if target <= 0 or _quest_survival_announced:
+		return
+	var die: int = randi_range(1, 6)
+	var engineer: int = int(mission.get("quest_engineer_bonus", 0))
+	_quest_survival_score += die + engineer
+	if _quest_survival_score < target:
+		_log_message(
+			"Quest step: 1D6 = %d%s — score %d/%d (Compendium p.79)."
+			% [die, (" +%d Engineer" % engineer) if engineer > 0 else "",
+				_quest_survival_score, target],
+			UIColors.COLOR_AMBER)
+		return
+	_quest_survival_announced = true
+	mission["quest_survival_reached"] = true
+	_log_message(
+		"Quest step: score %d/%d at the end of Round %d — you may end the mission now"
+		% [_quest_survival_score, target, round_number]
+		+ " and claim 1 Quest Rumor (Compendium p.79).",
+		UIColors.COLOR_EMERALD)
+
+
+func _check_movement_all_over(round_number: int) -> void:
+	## Compendium p.34, verbatim: "At the end of each round, including the first,
+	## roll 1D6. If the roll is equal to or below the round number that just
+	## elapsed, one additional enemy figure shows up. This means that from Round 6
+	## onwards a new enemy will arrive every round.
+	##
+	## Place the arriving enemy at the center of a random battlefield edge (roll
+	## 1D6: 1-2 left edge, 3-4 enemy edge, 5-6 right edge). The first enemy that
+	## arrives is a basic enemy, the second is a specialist, with all remaining
+	## reinforcements being basic enemies."
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("movement_all_over"):
+		return
+	var roll: int = randi_range(1, 6)
+	if roll > round_number:
+		_log_message(
+			"Movement all over the Place: 1D6 = %d vs round %d — no arrival."
+			% [roll, round_number], UIColors.COLOR_TEXT_SECONDARY)
+		return
+
+	_movement_all_over_arrivals += 1
+	# "The first enemy that arrives is a basic enemy, the second is a specialist,
+	# with all remaining reinforcements being basic enemies." Second only.
+	var arrival_role: String = "specialist" if _movement_all_over_arrivals == 2 else "basic"
+	var edge_roll: int = randi_range(1, 6)
+	var edge: String = "left edge"
+	if edge_roll >= 5:
+		edge = "right edge"
+	elif edge_roll >= 3:
+		edge = "enemy edge"
+	_log_message(
+		"Movement all over the Place: 1D6 = %d vs round %d — a %s enemy arrives at the centre of the %s (1D6 = %d)."
+		% [roll, round_number, arrival_role, edge, edge_roll], UIColors.COLOR_AMBER)
+
+
+func _check_fickle_scans(round_number: int) -> void:
+	## Compendium p.34: "Any Notable Sight that has not been investigated by the
+	## end of Round 3 is removed from play."
+	if round_number != 3 or _fickle_scans_resolved:
+		return
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("fickle_scans"):
+		return
+	_fickle_scans_resolved = true
+	# The mission dict on this screen is _stored_mission_data — a Variant, so it
+	# is shape-checked before use like every other read of it in this file.
+	if not (_stored_mission_data is Dictionary):
+		return
+	var md: Dictionary = _stored_mission_data
+	var sight: Dictionary = md.get("notable_sight", {})
+	if sight.is_empty():
+		return
+	md["notable_sight_removed"] = true
+	_log_message(
+		"Fickle Scans: the Notable Sight (%s) was not investigated by the end of Round 3 and is removed from play."
+		% str(sight.get("name", "unknown")), UIColors.COLOR_AMBER)
+	_refresh_objective_panel()
+
+
+func _check_paying_by_the_hour(round_number: int) -> void:
+	## Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	## add 4 (for a final total of 5-10). After the conclusion of this round, the
+	## only objectives that can still be achieved are Defend and Fight Off."
+	##
+	## The limit itself is rolled once at setup (_roll_paying_by_the_hour_limit);
+	## this only announces the moment it expires. The book does NOT end the
+	## battle here — play continues, but every other objective is off the table.
+	if _paying_by_hour_limit <= 0 or _paying_by_hour_expired:
+		return
+	if round_number < _paying_by_hour_limit:
+		return
+	_paying_by_hour_expired = true
+	if _stored_mission_data is Dictionary:
+		(_stored_mission_data as Dictionary)["time_limit_expired"] = true
+	_log_message(
+		"They are Paying us by the Hour: the clock ran out at the end of Round %d."
+		% round_number + " Only Defend and Fight Off objectives can still be achieved.",
+		UIColors.COLOR_AMBER)
+	_refresh_objective_panel()
+
+
+func _roll_paying_by_the_hour_limit() -> void:
+	## Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	## add 4 (for a final total of 5-10)."
+	if not CompendiumDifficultyTogglesRef.is_toggle_active("paying_by_hour"):
+		return
+	var a: int = randi_range(1, 6)
+	var b: int = randi_range(1, 6)
+	_paying_by_hour_limit = maxi(a, b) + 4
+	_paying_by_hour_expired = false
+	if _stored_mission_data is Dictionary:
+		(_stored_mission_data as Dictionary)["round_limit"] = _paying_by_hour_limit
+	_log_message(
+		"They are Paying us by the Hour: 2D6 = %d/%d, highest + 4 — the job runs for %d rounds."
+		% [a, b, _paying_by_hour_limit], UIColors.COLOR_AMBER)
+
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
-	## Handle battle event trigger (rounds 2 and 4 per Five Parsecs p.118)
+	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
 	_log_message(
 		"BATTLE EVENT! (Round %d) - Rolling on event table..." % round_num,
 		UIColors.COLOR_AMBER
@@ -2652,6 +3428,10 @@ func _on_tracker_battle_started() -> void:
 
 	# Session 48: Pass battle context to HUD and cheat sheet
 	_battle_context = _stored_mission_data if _stored_mission_data is Dictionary else {}
+	# Second seeding attempt: on the pre-selected-tier fast path the tier can be
+	# applied before _battle_context exists. Guarded internally, so whichever call
+	# gets there first wins and the other is a no-op.
+	_seed_morale_tracker()
 	if battle_round_hud and battle_round_hud.has_method("set_battle_context"):
 		battle_round_hud.set_battle_context(_battle_context)
 	if cheat_sheet_panel and cheat_sheet_panel.has_method("set_battle_context"):
@@ -2781,11 +3561,36 @@ func _show_reaction_roll_ui() -> void:
 	roll_button.pressed.connect(_on_roll_reactions_pressed)
 	action_buttons.add_child(roll_button)
 
+func _round_one_condition_note() -> String:
+	## Core Rules p.88 deployment conditions whose effect lands ONLY in round 1.
+	## BattleSetupRules computes these into setup_rules.round_one; before this
+	## they were computed and read by nothing, so a Caught Off Guard crew acted
+	## normally and a Delayed crew all started on the table.
+	if current_turn > 1:
+		return ""
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var r1: Dictionary = setup_rules.get("round_one", {})
+	if r1.is_empty():
+		return ""
+	var notes: Array[String] = []
+	if bool(r1.get("crew_all_slow", false)):
+		notes.append("Caught Off Guard — your ENTIRE crew acts in Slow Actions this round, whatever they rolled.")
+	if bool(r1.get("enemy_skips", false)):
+		notes.append("Surprise Encounter — the enemy does not act at all this round.")
+	var delayed: int = int(r1.get("delayed_crew", 0))
+	if delayed > 0:
+		notes.append("Delayed — %d crew start OFF the table. At the end of each round roll 1D6 per absent figure; they arrive on a roll at or under the round number." % delayed)
+	if notes.is_empty():
+		return ""
+	return "\n⚠ Round 1: " + "  ".join(notes)
+
 func _show_quick_actions_ui() -> void:
 	## QUICK ACTIONS — surface ActivationTrackerPanel for crew checklist
 	_clear_action_buttons()
 	_set_phase_instruction(1, "Quick Actions",
-		"Crew who passed their reaction roll act now. Move and act each on the table, then mark them done.")
+		"Crew who passed their reaction roll act now. Move and act each on the table, then mark them done."
+			+ _round_one_condition_note())
 	_surface_phase_component(activation_tracker)
 	_log_message(
 		"Quick Actions — crew who passed reactions act now.",
@@ -2799,37 +3604,52 @@ func _show_quick_actions_ui() -> void:
 func _show_enemy_actions_ui() -> void:
 	## ENEMY ACTIONS — tier-aware display with contextual enemy info
 	_clear_action_buttons()
-	# At FULL_ORACLE tier, surface EnemyIntentPanel with AI oracle.
+	# The book's AI instructions (base condition + 1D6 table + activation order)
+	# go to EVERY tier — the tier gates AUTOMATION, not INSTRUCTIONS. Previously
+	# this card was built only in the `elif` below, so a LOG_ONLY player running
+	# the enemy entirely by hand got no AI guidance at all.
+	if not _battle_context.is_empty():
+		_surface_custom_phase_content(_build_enemy_action_content())
+		if right_tabs: right_tabs.current_tab = 2
+
+	# At FULL_ORACLE tier the interactive oracle lives in its own drawer, reachable
+	# from the toolbar's Oracle button. It is NOT surfaced as phase content: the
+	# phase content is the book reference card above, which every tier needs.
 	if tier_controller and tier_controller.current_tier >= 2:
-		# F8 fix: enemy_intent_panel can be invalid by combat — it is the one
-		# phase component freed during the SETUP->COMBAT rebuild (the others
-		# survive). Passing a freed ref to the TYPED _surface_phase_component(
-		# component: Control) param fails the call-boundary type check and ABORTS
-		# this method, so the "Enemy Actions Done" button below never builds ->
-		# the Enemy Actions phase soft-locks (and the FULL_ORACLE oracle, the
-		# whole point of the tier, silently vanishes). Recreate if invalid,
-		# mirroring the line ~2009 recreate-if-null pattern.
+		# F8 fix (kept): enemy_intent_panel can be invalid by combat — it is the
+		# one phase component freed during the SETUP->COMBAT rebuild. Recreate if
+		# invalid, mirroring the recreate-if-null pattern used elsewhere.
 		if not is_instance_valid(enemy_intent_panel):
 			enemy_intent_panel = _get_res("enemy_intent").new()
 			enemy_intent_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			enemy_intent_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			if phase_content:
 				phase_content.add_child(enemy_intent_panel)
-		if is_instance_valid(enemy_intent_panel):
-			_surface_phase_component(enemy_intent_panel)
+			_activate_enemy_oracle.call_deferred()
 		if right_tabs: right_tabs.current_tab = 2
-	elif not _battle_context.is_empty():
-		# ASSISTED tier: show structured enemy action card
-		var enemy_card: Control = _build_enemy_action_content()
-		_surface_custom_phase_content(enemy_card)
-		if right_tabs: right_tabs.current_tab = 2
-	else:
+	elif _battle_context.is_empty():
 		_surface_phase_component(null)
 		if right_tabs: right_tabs.current_tab = 1
 	var ef: Dictionary = _battle_context.get("enemy_force", {})
 	var enemy_name: String = ef.get("type", "enemies")
+	# Snap Fire holders. The card already flags each holder individually, but the
+	# player is looking at the ENEMY half of the table during this phase and has
+	# no reason to scroll the crew cards — so whoever is holding was invisible at
+	# exactly the moment their hold matters. Errata v1.06 also clarifies that a
+	# snap shot may be taken at ANY point of the enemy's move, not only at its
+	# end, which is the part that decides where to interrupt.
+	var snap_holders: Array[String] = []
+	for unit in crew_units:
+		if "is_holding_snap" in unit and unit.is_holding_snap \
+				and not unit.is_dead and unit.health > 0:
+			snap_holders.append(str(unit.node_name))
+	var snap_line: String = ""
+	if not snap_holders.is_empty():
+		snap_line = "\n⚡ Holding Snap Fire: %s — may shoot at ANY point of an enemy's move (errata v1.06), not only when it stops." \
+			% ", ".join(snap_holders)
 	_set_phase_instruction(2, "Enemy Actions",
-		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range." % enemy_name)
+		"Resolve %s actions on the table — move each toward its target per its AI, and fire if in range.%s%s"
+			% [enemy_name, snap_line, _round_one_condition_note()])
 	_log_message(
 		"Enemy Actions — resolve %s actions on the table." % enemy_name,
 		UIColors.COLOR_RED)
@@ -2905,6 +3725,96 @@ func _find_psionic_crew_member() -> Dictionary:
 					"species_id": member.species_id if "species_id" in member else ""}
 			return result
 	return {}
+
+func _add_psionic_legality_section(vbox: VBoxContainer) -> void:
+	## The world's psionic legality changes what using a power costs you
+	## (Compendium pp.20-22), and the action card never mentioned it.
+	##
+	## The "Highly unusual" band is 26-55 on the D100 — roughly a THIRD of all
+	## worlds — and its entire consequence was unreachable: p.22 says "Every time
+	## you use a psionic power, if two or more of the Projection roll dice show
+	## 6s... the enemy is going to call for reinforcements", and
+	## PsionicSystem.check_highly_unusual_reinforcements() implemented it
+	## correctly with ZERO callers. The player was never told to look at their
+	## dice, so the reinforcements never came.
+	var PsiRef = load("res://src/core/systems/PsionicSystem.gd")
+	if PsiRef == null:
+		return
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign):
+		return
+	var legality: int = int(campaign.progress_data.get("psionic_legality", -1))
+	if legality < 0:
+		return
+
+	var sep := HSeparator.new()
+	vbox.add_child(sep)
+
+	var status := Label.new()
+	status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status.text = "THIS WORLD: Psionics are %s." % PsiRef.get_legality_name(legality)
+	status.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+	vbox.add_child(status)
+
+	if legality == PsiRef.PsionicLegality.OUTLAWED:
+		var outlawed := Label.new()
+		outlawed.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		outlawed.text = ("OUTLAWED: using a power risks detection. A D6 is rolled after "
+			+ "the battle — caught on a 1 if you used a power once, on a 1-2 if more "
+			+ "than once. Psi-hunters become a Rival (Compendium p.21).")
+		outlawed.add_theme_font_size_override("font_size", 12)
+		outlawed.add_theme_color_override("font_color", UIColors.COLOR_DANGER)
+		vbox.add_child(outlawed)
+		return
+
+	if legality != PsiRef.PsionicLegality.HIGHLY_UNUSUAL:
+		return
+
+	var attention := Label.new()
+	attention.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	attention.text = ("DRAWS ATTENTION: if TWO OR MORE of your Projection dice "
+		+ "showed a 6, the enemy calls for reinforcements (Compendium p.22).")
+	attention.add_theme_font_size_override("font_size", 12)
+	attention.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+	vbox.add_child(attention)
+
+	if _psionic_reinforcements_arrived:
+		var spent := Label.new()
+		spent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		spent.text = "Reinforcements have already arrived this battle — they come only once."
+		spent.add_theme_font_size_override("font_size", 12)
+		spent.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		vbox.add_child(spent)
+		return
+
+	var roll_btn := Button.new()
+	roll_btn.text = "Two or more 6s — roll reinforcements"
+	roll_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+	roll_btn.pressed.connect(_on_psionic_reinforcements_pressed)
+	vbox.add_child(roll_btn)
+
+func _on_psionic_reinforcements_pressed() -> void:
+	## Compendium p.22: "Roll three D6 and check each die" — 1 none, 2-5 a basic
+	## enemy, 6 an enemy Specialist. "Reinforcements will arrive at the end of the
+	## next round unless you have cleared the table of opponents by then...
+	## Reinforcements can arrive only once in each battle, and arrive at the
+	## center of the enemy table edge."
+	if _psionic_reinforcements_arrived:
+		return
+	_psionic_reinforcements_arrived = true
+	var PsiRef = load("res://src/core/systems/PsionicSystem.gd")
+	if PsiRef == null:
+		return
+	var rolled: Array[String] = PsiRef._roll_highly_unusual_reinforcements()
+	var text: String = PsiRef.get_reinforcement_text(rolled)
+	_log_message("PSIONIC ATTENTION — %s Arriving at the END OF THE NEXT ROUND." % text,
+		UIColors.COLOR_WARNING)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning(text)
 
 func _on_psionic_action_pressed(psi_char: Dictionary) -> void:
 	## Show psionic action instructions and increment usage counter.
@@ -3003,6 +3913,8 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 	weapon_note.add_theme_font_size_override("font_size", 12)
 	weapon_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(weapon_note)
+
+	_add_psionic_legality_section(vbox)
 
 	# Dismiss button
 	var dismiss := Button.new()
@@ -3223,6 +4135,18 @@ func _build_enemy_action_content() -> Control:
 				if not rule_str.is_empty():
 					lines.append(
 						"  [color=#D97706]%s[/color]" % rule_str)
+
+		# Activation ORDER — Core Rules p.113, verbatim: "enemy figures begin with
+		# those closest to the player's battlefield edge, then progress away
+		# towards the opposing battlefield edge. If two figures are equally close,
+		# start on their left side." The player has to get this right on the table
+		# and it was surfaced nowhere in the app.
+		lines.append("")
+		lines.append("[b]Order:[/b] nearest YOUR edge first, working away. "
+			+ "Ties: start on their left.")
+
+		# The book's actual AI instructions for this type (base condition + 1D6).
+		lines.append_array(_ai_reference_lines(ai_code))
 	else:
 		lines.append(
 			"Move each enemy toward closest crew, shoot if in range.")
@@ -3237,12 +4161,215 @@ func _build_enemy_action_content() -> Control:
 			"[color=#10B981][b]SURPRISE:[/b] Enemies cannot act this round![/color]")
 	elif cond_id == "BITTER_STRUGGLE":
 		lines.append("")
+		# "Enemy Morale is +1" (p.88) is ambiguous where morale IS the Panic
+		# range. Compendium p.49 settles it: improved Morale = a SMALLER Panic
+		# range. Stating the effect beats quoting the ambiguous phrase.
 		lines.append(
-			"[color=#D97706]Bitter Struggle: Enemy Morale +1[/color]")
+			"[color=#D97706]Bitter Struggle: enemy Morale improved — their Panic range is 1 narrower, so they are harder to break (p.88).[/color]")
 
 	rtl.text = "\n".join(lines)
 	vbox.add_child(rtl)
 	return vbox
+
+func _ai_type_name(ai_code: String) -> String:
+	## "A" -> "Aggressive". Tolerates a full name already being passed in.
+	var code: String = ai_code.strip_edges()
+	if AI_CODE_TO_NAME.has(code.to_upper()):
+		return AI_CODE_TO_NAME[code.to_upper()]
+	return code if code != "" else "Aggressive"
+
+
+func _ai_reference_lines(ai_code: String) -> Array:
+	## The BOOK's AI instructions for this enemy: base condition, then the 1D6
+	## behaviour table (Core Rules pp.113-115, data/RulesReference/EnemyAI.json).
+	##
+	## Shown at EVERY tier. The tier gates AUTOMATION, never INSTRUCTIONS — a
+	## LOG_ONLY player is running the enemy by hand off this text and needs it MORE
+	## than a FULL_ORACLE player does, not less. Before this, the only AI guidance
+	## anywhere in the battle was a one-line AI_DESCRIPTIONS summary.
+	var lines: Array = []
+	if _ai_reference_router == null:
+		_ai_reference_router = EnemyAIOracleRouterClass.new()
+	if _ai_reference_router == null:
+		return lines
+
+	var type_name: String = _ai_type_name(ai_code)
+	var data: Dictionary = {}
+	if _ai_reference_router.has_method("_find_ai_type"):
+		data = _ai_reference_router._find_ai_type(type_name)
+	if data.is_empty():
+		return lines
+
+	var base: String = str(data.get("base_condition", ""))
+	if base != "":
+		lines.append("")
+		lines.append("[b]Base condition[/b] — check this FIRST:")
+		lines.append("  [color=#4FC3F7]%s[/color]" % base)
+
+	var note: String = str(data.get("note", ""))
+	if note != "":
+		lines.append("  [color=#808080]%s[/color]" % note)
+
+	var table: Array = data.get("behavior_table", [])
+	if not table.is_empty():
+		lines.append("")
+		lines.append("[b]Otherwise roll 1D6:[/b]")
+		for entry in table:
+			if entry is Dictionary:
+				lines.append("  [b]%s[/b]  %s" % [
+					str(entry.get("roll", "?")), str(entry.get("action", ""))])
+
+	lines.append_array(_ai_errata_lines(type_name))
+	return lines
+
+
+func _ai_errata_lines(type_name: String) -> Array:
+	## Official errata v1.06 clarifications to the AI rules. These change how the
+	## player runs the enemy turn and appear in NEITHER rulebook, so a player
+	## working off the printed page would get them wrong — which makes the oracle
+	## reference card the only place they can be surfaced.
+	var out: Array = []
+	var name_lc: String = type_name.to_lower()
+
+	# Applies to every AI type: "Unless constrained by a special rule, the AI is
+	# assumed to always be aware of your characters and should act accordingly,
+	# even if they are behind a terrain feature."
+	out.append("")
+	out.append("[color=#808080][i]Errata: the AI always knows where your crew are — even behind terrain — unless a special rule says otherwise.[/i][/color]")
+
+	if name_lc.begins_with("defensive"):
+		# "Defensive AI considers any terrain within one move to be 'Adjacent'
+		# for the purpose of its AI instructions."
+		out.append("[color=#D97706][i]Errata: for Defensive AI, any terrain within ONE MOVE counts as \"Adjacent\".[/i][/color]")
+
+	if name_lc.begins_with("guardian"):
+		# "If the figure a Guardian AI protects is slain, the Guardian will adopt
+		# the AI mode used by the main enemy force."
+		out.append("[color=#D97706][i]Errata: if the figure this Guardian protects is slain, it switches to the main force's AI for the rest of the battle.[/i][/color]")
+
+	return out
+
+
+func _apply_initiative_context() -> void:
+	## Hand the campaign-computed Seize the Initiative modifiers to the calculator
+	## that actually rolls (Core Rules p.112).
+	##
+	## THE BUG THIS FIXES: mission_data["initiative_context"] had exactly two
+	## references in the whole repo — written by CampaignTurnController, read by
+	## PreBattleUI to draw a probability. It never reached the roll. The calculator
+	## sourced every modifier from checkboxes the player had to tick by hand, so
+	## the app told you "you need 9+ on 2D6" and then rolled against an unmodified
+	## target: Hardcore -2, Insanity -3 and the outnumbered +1 were all displayed
+	## and then silently dropped.
+	if not (initiative_calculator and is_instance_valid(initiative_calculator)):
+		return
+	if not initiative_calculator.has_method("apply_initiative_context"):
+		return
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ctx: Dictionary = md.get("initiative_context", {})
+	if ctx is Dictionary and not ctx.is_empty():
+		initiative_calculator.apply_initiative_context(ctx)
+
+
+func _on_initiative_calculated(result) -> void:
+	## Record the seize outcome where the battle briefing already looks for it.
+	##
+	## _build_battlefield_intel renders an "INITIATIVE: SEIZED / not seized" block
+	## from _battle_context["seize_initiative_result"] — a key NOTHING in the repo
+	## ever wrote, so that block was dead. The calculator's result only ever
+	## reached the log feed.
+	if result == null:
+		return
+	var seized: bool = false
+	var total: int = 0
+	if "success" in result:
+		seized = bool(result.success)
+	if "roll_total" in result:
+		total = int(result.roll_total)
+	elif "total" in result:
+		total = int(result.total)
+	_battle_context["seize_initiative_result"] = {
+		"success": seized,
+		"roll_total": total,
+	}
+	# Core Rules p.112: on 10+ every crew figure may either Move or fire before
+	# round 1, and those shots only Hit on a natural 6.
+	if seized:
+		_log_message(
+			"INITIATIVE SEIZED (%d) — each crew figure may Move OR fire now. "
+			% total + "Shots Hit only on a natural 6.",
+			UIColors.COLOR_EMERALD)
+	else:
+		_log_message("Initiative not seized (%d) — begin Round 1 normally."
+			% total, UIColors.COLOR_TEXT_SECONDARY)
+
+	_apply_enemy_deployment_variable(seized)
+
+
+## Compendium pp.44-45 Enemy Deployment Variables. p.44 keys the whole rule off
+## this exact moment: "Set up both sides normally and roll to Seize the
+## Initiative. If you fail, roll D100 on the table below, using the AI type to
+## calculate which deployment type the enemy will use. If you successfully Seize
+## the Initiative, the enemy will always use the Line (i.e. standard) deployment
+## option."
+##
+## deployment_variables.json held all six AI columns, byte-correct, with ZERO
+## loaders — so a player who owned the Freelancer's Handbook and switched this on
+## got standard deployment in every battle of every campaign.
+func _apply_enemy_deployment_variable(seized: bool) -> void:
+	var force: Dictionary = _battle_context.get("enemy_force", {})
+	if force.is_empty() and _stored_mission_data is Dictionary:
+		force = _stored_mission_data.get("enemy_force", {})
+	var deployment: Dictionary = CompendiumDeploymentVariablesRef.roll_deployment(
+		str(force.get("ai", "")), seized)
+	if deployment.is_empty():
+		return
+
+	_battle_context["enemy_deployment_variable"] = deployment
+	_log_message("ENEMY DEPLOYMENT — %s. %s" % [
+		str(deployment.get("name", "Line")), str(deployment.get("reason", ""))],
+		Color("#D97706"))
+	_log_message(str(deployment.get("instruction", "")), Color("#4FC3F7"))
+	# Infiltration and Concealed put figures on the table mid-battle, so the
+	# placement clarification only matters for those two.
+	if str(deployment.get("id", "")) in ["infiltration", "concealed"]:
+		_log_message(
+			CompendiumDeploymentVariablesRef.get_arrival_placement_note(),
+			UIColors.COLOR_TEXT_SECONDARY)
+	# Compendium p.91 amends where a flanking force stands when the grid is in
+	# use, and it names exactly the two p.45 variables. It belongs HERE rather
+	# than in the setup panel because the deployment type is not known until this
+	# roll — the setup tab is built during initialize_battle, before Seize the
+	# Initiative has happened. Returns "" for every other deployment.
+	# Gated on the PER-BATTLE choice, not the flag: a player who picked Standard
+	# movement for this fight must not be told where the grid puts a flanker.
+	var grid_flank: String = ""
+	if _use_grid_movement:
+		grid_flank = CompendiumGridMovementRef.build_flanking_instruction(
+			str(deployment.get("id", "")))
+	if not grid_flank.is_empty():
+		_log_message(grid_flank, Color("#38BDF8"))
+	if unified_log:
+		unified_log.add_entry("event", "Enemy deployment: %s"
+			% str(deployment.get("name", "Line")))
+
+
+func _activate_enemy_oracle() -> void:
+	## Turn the oracle on and seed it with the force we already know about, so the
+	## player is not asked to hand-enter an enemy group and its AI type that the
+	## app generated itself. Core Rules pp.91-94: one enemy type per battle.
+	if not (enemy_intent_panel and is_instance_valid(enemy_intent_panel)):
+		return
+	if enemy_intent_panel.has_method("activate_oracle"):
+		enemy_intent_panel.activate_oracle()
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ef: Dictionary = _battle_context.get("enemy_force", md.get("enemy_force", {}))
+	var type_name: String = _ai_type_name(str(ef.get("ai", "A")))
+	if enemy_intent_panel.has_method("set_ai_behavior_type"):
+		enemy_intent_panel.set_ai_behavior_type(type_name)
+
 
 func _build_end_phase_checklist() -> Control:
 	## Build a numbered end-of-round checklist with condition-specific steps.
@@ -3263,60 +4390,116 @@ func _build_end_phase_checklist() -> Control:
 
 	var step_num: int = 0
 
-	# Step: Morale check (always)
+	# Step: Morale check. Core Rules p.114 — the enemy tests ONLY if it lost
+	# figures this round, one die per figure lost. Say which it is, and when there
+	# is nothing to roll say so instead of leaving a box the player must reason about.
 	step_num += 1
-	vbox.add_child(_make_checklist_step(
-		step_num, "Morale check — roll 1D6 per casualty this round, "
-		+ "Bail Range removes enemies"))
+	var enemy_losses: int = 0
+	if morale_tracker and is_instance_valid(morale_tracker) \
+			and "casualties_this_round" in morale_tracker:
+		enemy_losses = int(morale_tracker.casualties_this_round)
+	if enemy_losses > 0:
+		vbox.add_child(_make_checklist_step(
+			step_num, "Morale: roll %dD6 (enemy lost %d). Each die in the Bail range removes one, closest to their edge first."
+				% [enemy_losses, enemy_losses],
+			_resolve_end_phase_morale, "Roll morale"))
+	else:
+		vbox.add_child(_make_checklist_step(
+			step_num, "Morale: no enemy figures lost this round — no check.",
+			Callable(), "", true))
 
-	# Step: Deployment condition round checks
+	# Step: the enemy may give up once your objective is met (Core Rules
+	# pp.114-115). This prompt did not exist anywhere in the app, so a player who
+	# completed their objective had no way to learn the battle could end here.
+	var giveup: Dictionary = _giveup_check_info()
+	if not giveup.is_empty():
+		step_num += 1
+		vbox.add_child(_make_checklist_step(
+			step_num, giveup["text"],
+			_on_giveup_roll_pressed if giveup["rollable"] else Callable(),
+			"Roll", not giveup["rollable"]))
+
+	# Step: Deployment condition round checks. Each opens the Dice drawer with the
+	# roll named, rather than telling the player to go find it.
+	var open_dice: Callable = func() -> void: _open_drawer("dice")
+
 	if cond_id == "BRIEF_ENGAGEMENT":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Brief Engagement: Roll 2D6 — on %d or less, battle ends" % round_num))
+			"Brief Engagement: Roll 2D6 — on %d or less, battle ends" % round_num,
+			open_dice, "2D6"))
 
 	if cond_id == "DELAYED" and round_num >= 2:
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Delayed crew: Roll 1D6 — on %d or less, they arrive at your edge" % round_num))
+			"Delayed crew: Roll 1D6 — on %d or less, they arrive at your edge" % round_num,
+			open_dice, "1D6"))
 
 	if cond_id == "TOXIC_ENVIRONMENT":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Toxic Environment: Stunned units roll 1D6+Savvy, below 4 = casualty"))
+			"Toxic Environment: Stunned units roll 1D6+Savvy, below 4 = casualty",
+			open_dice, "1D6"))
 
 	if cond_id == "POOR_VISIBILITY":
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Reroll visibility: 1D6+8\" maximum range for next round"))
+			"Reroll visibility: 1D6+8\" maximum range for next round",
+			open_dice, "1D6"))
 
-	# Step: Battle Event (rounds 2 and 4 only)
+	# Step: Battle Event — end of Round 2 and Round 4 only (Core Rules pp.116-117).
 	if round_num == 2 or round_num == 4:
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
-			"Battle Event: Roll D100 (Core Rules p.116)"))
+			"Battle Event: Roll D100 (Core Rules p.116)",
+			func() -> void: _on_battle_event_triggered(round_num, "end_phase"),
+			"Roll D100"))
 
-	# Step: Victory check (always)
+	# Step: objective / battle end (always). Reads the live tracker so it states
+	# where the battle actually stands instead of asking an open question.
 	step_num += 1
-	vbox.add_child(_make_checklist_step(
-		step_num,
-		"Victory check — all enemies eliminated or bailed?"))
+	var enemies_up: int = 0
+	for unit in enemy_units:
+		if not unit.is_dead and unit.health > 0:
+			enemies_up += 1
+	if enemies_up == 0:
+		vbox.add_child(_make_checklist_step(
+			step_num,
+			"No enemies left standing — you Hold the Field. Record the result.",
+			_on_record_result_pressed, "Record"))
+	else:
+		var obj_line: String = "%d enemy figure%s still standing." % [
+			enemies_up, "" if enemies_up == 1 else "s"]
+		if _objective_tracker != null and _objective_tracker.has_objective():
+			obj_line += "  Objective: %s" % (
+				"COMPLETE" if _objective_tracker.is_complete() else "not yet met")
+		vbox.add_child(_make_checklist_step(step_num, obj_line, Callable(), "", true))
 
 	return vbox
 
-func _make_checklist_step(number: int, text: String) -> HBoxContainer:
-	## Create a single checklist step with checkbox + label.
+func _make_checklist_step(number: int, text: String,
+		action: Callable = Callable(), action_label: String = "",
+		resolved: bool = false) -> HBoxContainer:
+	## One end-of-round step. When the step has something to roll it carries a
+	## button that DOES it; steps that do not apply this round arrive already
+	## ticked with an explanation.
+	##
+	## These rows used to be bare CheckBoxes with no signal and no state — purely
+	## decorative. The player read "Morale check" and then had to go find the
+	## morale panel themselves, which is the opposite of what a companion is for.
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", 8)
 
 	var check := CheckBox.new()
 	check.custom_minimum_size = Vector2(
 		UIColors.TOUCH_TARGET_MIN, UIColors.TOUCH_TARGET_MIN)
+	check.button_pressed = resolved
+	check.accessibility_name = "Step %d done" % number
 	hbox.add_child(check)
 
 	var lbl := Label.new()
@@ -3325,10 +4508,82 @@ func _make_checklist_step(number: int, text: String) -> HBoxContainer:
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	lbl.add_theme_font_size_override("font_size", 14)
 	lbl.add_theme_color_override(
-		"font_color", UIColors.COLOR_TEXT_PRIMARY)
+		"font_color", UIColors.COLOR_TEXT_SECONDARY if resolved
+			else UIColors.COLOR_TEXT_PRIMARY)
 	hbox.add_child(lbl)
 
+	if action.is_valid() and not resolved:
+		# A Button (not a CheckBox) so it gets keyboard/controller focus and a
+		# focus ring for free, per the Godot 4 GUI navigation defaults.
+		var btn := Button.new()
+		btn.text = action_label if action_label != "" else "Roll"
+		btn.custom_minimum_size = Vector2(96, UIColors.TOUCH_TARGET_MIN)
+		btn.accessibility_name = "%s: %s" % [btn.text, text]
+		btn.pressed.connect(func() -> void:
+			action.call()
+			check.button_pressed = true)
+		hbox.add_child(btn)
+
 	return hbox
+
+
+func _giveup_check_info() -> Dictionary:
+	## Core Rules pp.114-115: once you have achieved your objective's Win
+	## condition, at the end of the current and EVERY subsequent round roll to see
+	## if the enemy gives up — 2D6 for Cautious / Defensive / Tactical opponents,
+	## 1D6 for Aggressive. "If either die is a natural 1, the enemy withdraws and
+	## the battle ends immediately, with you Holding the Field." Rampaging and
+	## Beast opponents never give up: they "fight until either side has completely
+	## left the table."
+	##
+	## Returns {} when the check does not apply this round.
+	if _objective_tracker == null or not _objective_tracker.has_objective():
+		return {}
+	if not _objective_tracker.is_complete():
+		return {}
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var ai: String = str(ef.get("ai", "A")).to_upper()
+	var name: String = str(ef.get("type", "The enemy"))
+	if ai in ["R", "B"]:
+		return {
+			"text": "%s will NOT give up (%s) — they fight until one side leaves the table."
+				% [name, _ai_type_name(ai)],
+			"rollable": false,
+		}
+	var dice: int = 1 if ai == "A" else 2
+	return {
+		"text": "Objective complete — roll %dD6 for %s to give up. A natural 1 on either die ends the battle; you Hold the Field."
+			% [dice, name],
+		"rollable": true,
+	}
+
+
+func _on_giveup_roll_pressed() -> void:
+	## Roll the enemy give-up check and, on a natural 1, end the battle with the
+	## field held (Core Rules p.115). Routed to the Record Result form pre-filled
+	## as a win rather than resolving it silently — the player still confirms what
+	## happened on their table.
+	var ef: Dictionary = _battle_context.get("enemy_force", {})
+	var ai: String = str(ef.get("ai", "A")).to_upper()
+	var dice: int = 1 if ai == "A" else 2
+	var rolls: Array[int] = []
+	var withdrew: bool = false
+	for _i in range(dice):
+		var r: int = randi_range(1, 6)
+		rolls.append(r)
+		if r == 1:
+			withdrew = true
+	var roll_text: String = ", ".join(
+		PackedStringArray(rolls.map(func(r): return str(r))))
+	if withdrew:
+		_log_message("Give up: rolled %s — the enemy WITHDRAWS. You Hold the Field."
+			% roll_text, UIColors.COLOR_EMERALD)
+		if unified_log:
+			unified_log.log_victory("Enemy withdrew (give-up roll %s)" % roll_text)
+		_on_record_result_pressed()
+	else:
+		_log_message("Give up: rolled %s — they stay. Roll again next round."
+			% roll_text, UIColors.COLOR_TEXT_SECONDARY)
 
 func _surface_custom_phase_content(content: Control) -> void:
 	## Surface a dynamically-built Control in the phase content area.
@@ -3361,20 +4616,20 @@ func _surface_phase_component(component: Control) -> void:
 		component.visible = true
 
 func _on_roll_reactions_pressed() -> void:
-	## Handle reaction roll button press
-	_log_message("Rolling reactions for crew...", UIColors.COLOR_CYAN)
-	# Roll for each crew member
-	for unit in crew_units:
-		if unit.health > 0:
-			var roll = _roll_dice("Reaction: " + unit.node_name, "D6")
-			unit.initiative_roll = roll
-			var success = roll <= unit.reactions
-			_log_message("  %s: Rolled %d vs Reactions %d - %s" % [
-				unit.node_name, roll, unit.reactions,
-				"QUICK" if success else "SLOW"
-			], UIColors.COLOR_EMERALD if success else UIColors.COLOR_TEXT_SECONDARY)
-
-	# Advance phase via round tracker
+	## The Reaction Roll (Core Rules p.113) — now the ONLY roll.
+	##
+	## THE BUG THIS FIXES: there were TWO. _assign_crew_reaction_slots() rolled a
+	## die per figure and set react_slot, which drives the Quick/Slow rails.
+	## This function — the button the player actually presses — rolled AGAIN,
+	## wrote initiative_roll, logged that second result and never touched
+	## react_slot. The numbers shown to the player were not the numbers the app
+	## acted on, and pressing the button twice produced a third answer.
+	##
+	## Also implements the pool semantics the book describes ("Roll a number of D6
+	## equal to the number of your characters. Assign each of the dice results to
+	## one of your characters") and the Feral Impetuous Actions constraint, which
+	## existed nowhere.
+	_assign_crew_reaction_slots(true)
 	if round_tracker and round_tracker.has_method("advance_phase"):
 		round_tracker.advance_phase()
 
@@ -3397,10 +4652,72 @@ func _on_advance_phase_pressed() -> void:
 
 ## Initialize tactical battle with crew and enemies
 
+func _setup_story_marker_panel(mission_dict: Dictionary) -> void:
+	## Story Track Event 5 "Kidnap" (Core Rules p.157): six markers, investigated
+	## by approach, yielding the Evidence that unlocks Event 6. Nothing else in
+	## the game produces Evidence, so without this panel the p.157 search could
+	## only ever crawl forward on its automatic +1 per failed roll.
+	if story_marker_panel != null:
+		return
+	if str(mission_dict.get("story_event_id", "")) != "kidnap":
+		return
+
+	var cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
+	var event: Variant = null
+	if cpm != null and "story_track" in cpm and cpm.story_track != null:
+		if cpm.story_track.has_method("get_current_event"):
+			event = cpm.story_track.get_current_event()
+
+	story_marker_panel = _get_res("story_marker_panel").new()
+	story_marker_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var bottom_content: VBoxContainer = bottom_bar.get_child(0) \
+		if bottom_bar and bottom_bar.get_child_count() > 0 else null
+	if bottom_content and bottom_content is VBoxContainer:
+		bottom_content.add_child(story_marker_panel)
+		bottom_content.move_child(story_marker_panel, 0)
+	else:
+		# No bottom bar on this layout — drop the panel rather than leaking it.
+		story_marker_panel.queue_free()
+		story_marker_panel = null
+		push_warning("TacticalBattleUI: no bottom_content for StoryMarkerPanel")
+		return
+
+	story_marker_panel.setup(event, dice_manager)
+	story_marker_panel.evidence_changed.connect(_on_story_evidence_changed)
+	story_marker_panel.markers_resolved.connect(_on_story_markers_resolved)
+	_log_message(
+		"Story Event 5: place 6 markers, crew no closer than 8\" to any of them.",
+		UIColors.COLOR_AMBER)
+
+func _on_story_evidence_changed(total: int) -> void:
+	_log_message("Evidence uncovered — %d piece(s) so far." % total,
+		UIColors.COLOR_EMERALD)
+	# Park the tally on mission_data rather than on one result dict. There are
+	# FOUR tactical_battle_completed.emit() sites (played, evacuation, in-battle
+	# auto-resolve, map auto-resolve) and mission_data is what every one of them
+	# carries into BattleResultNormalizer — the single chokepoint. Stamping here
+	# means no emission path can silently drop the Evidence.
+	if _stored_mission_data is Dictionary:
+		_stored_mission_data["story_evidence_found"] = total
+
+func _on_story_markers_resolved() -> void:
+	## p.157: "The mission ends once all markers have been revealed or removed."
+	_log_message(
+		"All markers resolved — the mission ends. Record your result.",
+		UIColors.COLOR_AMBER)
+
 func initialize_battle(crew_members: Array, enemies: Array, mission_data = null) -> void:
 	## Initialize the tactical battle
 	_battle_initialized = true
 	_log_message("Initializing tactical battle...", UIColors.COLOR_CYAN)
+
+	# Compendium p.34: "When setting up, roll two D6, pick the highest die and
+	# add 4." Rolled here, once, so the limit is fixed for the whole battle.
+	_movement_all_over_arrivals = 0
+	_fickle_scans_resolved = false
+	_quest_survival_score = 0
+	_quest_survival_announced = false
+	_roll_paying_by_the_hour_limit()
 
 	# Update title header with mission name. The objective fallback tolerates
 	# both a String id and a Dict {name,...} (Bug Hunt stores a Dict, and
@@ -3450,6 +4767,7 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# BUG-042 FIX: Pass crew data to initiative calculator for equipment auto-detection
 	if initiative_calculator and initiative_calculator.has_method("set_crew"):
 		initiative_calculator.set_crew(crew_members)
+	_apply_initiative_context()
 
 	# Pass crew data to CharacterQuickRollPanel for dice rolling with stats
 	if character_quick_roll and character_quick_roll.has_method("set_crew"):
@@ -3483,20 +4801,48 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
+	# Per-battle movement system (Compendium p.90) — resolved BEFORE the setup
+	# tab renders, because the tab prints the grid procedure. A scenario may
+	# stamp `use_grid_movement`; otherwise the DLC flag is the opt-in and the
+	# player can still switch it in the pre-battle checklist.
+	_resolve_grid_movement_choice(
+		mission_data if mission_data is Dictionary else {})
 	_populate_setup_tab(mission_data)
 
 	# Detect Bug Hunt mode from mission context
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
 
-	# UX streamline: If tier was pre-selected in PreBattleUI, skip the
-	# TIER_SELECT overlay and go straight to COMBAT stage.
-	if mission_dict.has("selected_tier"):
-		var pre_tier: int = mission_dict.get("selected_tier", 0)
-		_on_tier_selected(pre_tier)
-		# Skip SETUP/DEPLOYMENT — player already reviewed everything in PreBattleUI
-		_on_auto_deploy_clicked()
-		_apply_stage_visibility(BattleStage.COMBAT)
-		return
+	# Story Track Event 5 marker tracker (Core Rules p.157). This was hoisted here
+	# to escape the pre-selected-tier EARLY RETURN that used to sit below it — the
+	# return is now gone (see the block below), so position is no longer load-
+	# bearing. Kept here because it must precede the tier adoption either way.
+	_setup_story_marker_panel(mission_dict)
+
+	# UX streamline: if the tier was pre-selected in PreBattleUI, adopt it now and
+	# skip the SETUP/DEPLOYMENT review at the BOTTOM of this function — the player
+	# already reviewed everything in the wizard.
+	#
+	# THE BUG THIS FIXES (Aug 6 battle-phase audit): this branch used to `return`
+	# right here. CampaignTurnController:2111 stamps `selected_tier` on EVERY
+	# campaign battle, so nothing below the return ever ran in a real campaign:
+	#   - _setup_no_minis_panel        → Compendium pp.66-73 unreachable
+	#   - _setup_stealth_panel         → Compendium stealth unreachable
+	#   - _setup_street_fight_panel    → Compendium pp.123-138 unreachable
+	#   - _setup_salvage_panel         → Compendium pp.137-147 unreachable
+	#   - _populate_deployment_conditions → p.88 panel blank in every battle
+	#   - _battle_mode_id / _is_bug_hunt_mode / _is_planetfall_mode never set
+	# Four Compendium chapters had no UI at all. The two adjacent lines in
+	# CampaignTurnController tell the whole story: it stamps `selected_tier`
+	# (triggering the return) and then stamps `representation_mode` "so it can
+	# show the No-Minis abstract panel when chosen" — the panel the return killed.
+	#
+	# The comment 7 lines above warned about exactly this hazard and four later
+	# additions landed below the line anyway, so the RETURN IS GONE rather than
+	# re-documented. Do not reintroduce an early exit here: append to the tail of
+	# this function instead.
+	var tier_pre_selected: bool = mission_dict.has("selected_tier")
+	if tier_pre_selected:
+		_on_tier_selected(int(mission_dict.get("selected_tier", 0)))
 
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
@@ -3512,14 +4858,69 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
-	# DLC: Wire mission-type-specific panels
+	# Core Rules p.88 Deployment Conditions — the population call used to live HERE
+	# and has moved to _on_tier_selected(). It was inert at this site on BOTH paths:
+	# the campaign path never reached it (the early return above), and on the
+	# tier-overlay path it ran BEFORE the player picked a tier, so
+	# `deployment_conditions` was still null and the function returned at its own
+	# guard. The panel is created by _instance_assisted_components(), which only
+	# runs from _on_tier_selected, so that is the only site where it is guaranteed
+	# to exist. Same relocation, same reason, as _seed_morale_tracker().
+
+	# DLC: Wire mission-type-specific panels (Fixer's Guidebook).
+	#
+	# The panels need the GENERATOR's shape, where `objective` is a Dictionary
+	# carrying the roll range, instruction text and has_individual flag. The
+	# campaign hand-off (WorldPhaseController) flattens a job to a Patron-shaped
+	# literal in which `objective` is a plain String, so it carries the generator
+	# payload alongside under `compendium_mission` rather than merging the two
+	# incompatible shapes. Fall back to mission_dict for the standalone/battle-
+	# simulator paths, which build the generator shape directly.
 	var mission_type: String = mission_dict.get("type", "")
+	var compendium_payload: Dictionary = mission_dict.get("compendium_mission", mission_dict)
 	if mission_type == "stealth":
-		_setup_stealth_panel(mission_dict)
+		_setup_stealth_panel(compendium_payload)
 	elif mission_type == "street_fight":
-		_setup_street_fight_panel(mission_dict)
+		_setup_street_fight_panel(compendium_payload)
 	elif mission_type == "salvage":
-		_setup_salvage_panel(mission_dict)
+		_setup_salvage_panel(compendium_payload)
+
+	# Deferred from the pre-selected-tier branch at the top of this function. With
+	# the tier already chosen there is no TIER_SELECT overlay and no SETUP/
+	# DEPLOYMENT review to run, so deploy and jump straight to COMBAT — but only
+	# AFTER every panel above has been built. Doing this with a `return` up top is
+	# what stranded five wires; keep it here, at the tail.
+	if tier_pre_selected:
+		_on_auto_deploy_clicked()
+		_apply_stage_visibility(BattleStage.COMBAT)
+
+func _populate_deployment_conditions(mission_dict: Dictionary) -> void:
+	## Show the p.88 condition the battle funnel already rolled for THIS battle.
+	if deployment_conditions == null or not is_instance_valid(deployment_conditions):
+		return
+
+	var stamped: Dictionary = mission_dict.get("deployment_condition", {})
+	var condition_id: String = str(stamped.get("condition_id", ""))
+	if condition_id.is_empty():
+		# p.88's table is ignored during an Invasion, and a Rival ambush can
+		# suppress it too, so "no condition stamped" is a legitimate state — hide
+		# the panel rather than show an empty one.
+		deployment_conditions.hide()
+		return
+
+	var DeploySysClass = load("res://src/core/battle/DeploymentConditionsSystem.gd")
+	var deploy_sys = DeploySysClass.new()
+	var condition = deploy_sys.get_condition_by_id(condition_id)
+	if condition == null:
+		push_warning(
+			"TacticalBattleUI: unknown deployment condition id '%s'" % condition_id)
+		deployment_conditions.hide()
+		return
+
+	deployment_conditions.display_condition(condition, int(stamped.get("roll", 0)))
+	if unified_log:
+		unified_log.log_action("Deployment", str(stamped.get("title", condition_id)))
+
 
 func _create_character_cards(_crew_members: Array) -> void:
 	## Phase 2: the Crew and Enemy SlideOverDrawers ARE the per-figure battle
@@ -3721,6 +5122,17 @@ func _on_card_action(char_name: String, action_type: String, unit) -> void:
 		if activation_tracker and is_instance_valid(activation_tracker) \
 				and activation_tracker.has_method("set_unit_activated"):
 			activation_tracker.set_unit_activated(_unit_id(unit), true)
+		# Core Rules p.118, verbatim: "Stunned figures may Move OR make a Combat
+		# Action. Remove one Stun marker after acting." Nothing removed markers
+		# anywhere — they were only cleared by a full round reset, so a figure
+		# Stunned once stayed Stunned for the rest of the battle and the player
+		# had to remember to clear it by hand.
+		if unit.stun_markers > 0:
+			unit.stun_markers -= 1
+			if unified_log:
+				unified_log.log_action(char_name,
+					"acted while Stunned — remove 1 Stun marker (%d left)"
+						% unit.stun_markers)
 	if unified_log:
 		unified_log.log_action(char_name, action_type)
 	_refresh_unit_rails()
@@ -3741,14 +5153,29 @@ func _mark_casualty(unit, is_crew: bool, feed_morale: bool = true) -> void:
 	if activation_tracker and is_instance_valid(activation_tracker) \
 			and activation_tracker.has_method("set_unit_defeated"):
 		activation_tracker.set_unit_defeated(_unit_id(unit), true)
-	if feed_morale and not is_crew and morale_tracker \
-			and is_instance_valid(morale_tracker):
-		# casualties_this_round drives perform_morale_check() at End Phase.
-		if morale_tracker.has_method("add_casualty"):
-			morale_tracker.add_casualty()
-		elif "casualties_this_round" in morale_tracker:
-			morale_tracker.casualties_this_round += 1
+	if feed_morale and not is_crew:
+		if morale_tracker and is_instance_valid(morale_tracker):
+			# casualties_this_round drives perform_morale_check() at End Phase.
+			if morale_tracker.has_method("add_casualty"):
+				morale_tracker.add_casualty()
+			elif "casualties_this_round" in morale_tracker:
+				morale_tracker.casualties_this_round += 1
+			# Keep the survivor count honest — it caps how many figures CAN bail.
+			# Only on the feed_morale path: perform_morale_check() already
+			# subtracts the bails itself, and the bail removal re-enters here
+			# with feed_morale=false, so decrementing there would double-count.
+			if "enemies_remaining" in morale_tracker:
+				morale_tracker.enemies_remaining = maxi(
+					0, morale_tracker.enemies_remaining - 1)
+		# The HUD keeps its own per-round count for the End-Phase prompt text.
+		# Its report_casualty() was only ever called from one legacy "mark unit
+		# dead" branch, never from this chokepoint, so the prompt under-reported
+		# (usually reading zero) even once the tier gate was fixed.
+		if battle_round_hud and is_instance_valid(battle_round_hud) \
+				and battle_round_hud.has_method("report_casualty"):
+			battle_round_hud.report_casualty()
 	_refresh_unit_rails()
+	_refresh_glance_chips()
 	_queue_drawer_repopulate()
 
 
@@ -3900,31 +5327,169 @@ func _refresh_undo_button() -> void:
 	_undo_button.text = "↶ Undo %s" % str(_undo_snapshot.get("label", "")) if has_snap else "↶ Undo"
 
 
-func _assign_crew_reaction_slots() -> void:
-	## Core Rules p.114 Reaction Roll: roll 1D6 per crew figure. Roll <= that
-	## figure's Reactions => it acts in the QUICK phase (slot 1); otherwise
-	## SLOW (slot 2). Enemies never roll (always ENEMY phase, slot 3).
-	var dm = get_node_or_null("/root/DiceManager")
-	var q: int = 0
-	var s: int = 0
+func _assign_crew_reaction_slots(verbose: bool = false) -> void:
+	## The Reaction Roll, Core Rules p.113. THE single roll for the round.
+	##
+	## The book rolls a POOL — "Roll a number of D6 equal to the number of your
+	## characters" — and then the player "assign[s] each of the dice results to
+	## one of your characters". Rolling one die per figure and pinning it there
+	## removes the round's main tactical decision, so this rolls the pool and
+	## applies FPCM_ReactionRollPool's best-fit default, which the player can
+	## then re-read off the per-figure lines below.
+	##
+	## Enemies never roll (always the Enemy Actions phase).
+	var living: Array = []
 	for unit in crew_units:
 		if unit.is_dead:
 			unit.react_slot = 0
 			continue
-		var d6: int = 0
-		if dm and dm.has_method("roll_d6"):
-			d6 = dm.roll_d6("Reaction Roll: %s" % unit.node_name)
-		else:
-			d6 = (randi() % 6) + 1
-		if d6 <= unit.reactions:
-			unit.react_slot = 1
+		living.append(unit)
+	if living.is_empty():
+		_refresh_unit_rails()
+		return
+
+	var dm = get_node_or_null("/root/DiceManager")
+	var roller: Callable = Callable()
+	if dm and dm.has_method("roll_d6"):
+		roller = func() -> int: return dm.roll_d6("Reaction Roll")
+
+	var figures: Array = []
+	for i in range(living.size()):
+		figures.append({
+			"id": str(i),
+			"name": str(living[i].node_name),
+			"reactions": int(living[i].reactions),
+			"is_feral": _unit_is_feral(living[i]),
+		})
+
+	var dice: Array[int] = ReactionRollPoolClass.roll_pool(living.size(), roller)
+	var assignment: Dictionary = ReactionRollPoolClass.auto_assign(dice, figures)
+
+	var q: int = 0
+	var s: int = 0
+	for i in range(living.size()):
+		var unit = living[i]
+		var die: int = int(assignment.get(str(i), 6))
+		unit.initiative_roll = die
+		unit.react_slot = ReactionRollPoolClass.slot_for(die, unit.reactions)
+		if unit.react_slot == ReactionRollPoolClass.SLOT_QUICK:
 			q += 1
 		else:
-			unit.react_slot = 2
 			s += 1
+		if verbose and unified_log:
+			unified_log.log_action("Reaction Roll", "  %s: %d vs Reactions %d — %s" % [
+				unit.node_name, die, unit.reactions,
+				"QUICK" if unit.react_slot == ReactionRollPoolClass.SLOT_QUICK else "SLOW"])
+
 	if unified_log:
-		unified_log.log_action("Reaction Roll", "%d Quick · %d Slow" % [q, s])
+		var pool_txt: String = ", ".join(dice.map(func(d): return str(d)))
+		unified_log.log_action("Reaction Roll",
+			"Pool [%s] → %d Quick · %d Slow" % [pool_txt, q, s])
+		# p.113 Feral Impetuous Actions. Surfaced because it CONSTRAINS the
+		# player's assignment, and a player who does not know the rule cannot
+		# tell why the app placed the 1 where it did.
+		if ReactionRollPoolClass.feral_die_required(dice, figures):
+			unified_log.log_action("Reaction Roll",
+				"Feral: exactly one 1 was rolled, so it must go to a Feral character (p.113).")
 	_refresh_unit_rails()
+
+
+func _unit_is_feral(unit) -> bool:
+	## Feral is a species, so it can arrive as species_id or the legacy origin.
+	for key in ["species_id", "origin"]:
+		if key in unit and str(unit.get(key)).to_lower() == "feral":
+			return true
+	var oc = unit.original_character if "original_character" in unit else null
+	if oc == null:
+		return false
+	for key in ["species_id", "origin"]:
+		if key in oc and str(oc.get(key)).to_lower() == "feral":
+			return true
+	return false
+
+
+func _seed_morale_tracker() -> void:
+	## Feed MoralePanicTracker the REAL enemy force (Core Rules p.114).
+	##
+	## THE BUG THIS FIXES: set_enemy_count() and setup_from_enemy_data() had ZERO
+	## callers anywhere in the repo. So total_enemies / enemies_remaining stayed 0,
+	## and perform_morale_check() capped its result with
+	##   bailable    = maxi(0, enemies_remaining - fearless) -> 0
+	##   actual_bails = mini(bails, bailable)                -> 0
+	## which made _resolve_end_phase_morale() return at `if bails <= 0` every single
+	## time. The End-Phase Morale check — the mechanic that ends most Five Parsecs
+	## battles — could never remove a figure. The panel also showed the hardcoded
+	## default "Panic: 1-2" with a blank enemy name regardless of who you fought,
+	## and Stubborn / Fearless / Dogged were never detected because the special
+	## rules were never handed over.
+	##
+	## Seeded once per battle: set_enemy_count() resets casualties_this_round and
+	## fled_enemies, so re-seeding mid-battle would silently erase progress.
+	if _morale_seeded:
+		return
+	if not (morale_tracker and is_instance_valid(morale_tracker)):
+		return
+
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var ef: Dictionary = _battle_context.get("enemy_force", md.get("enemy_force", {}))
+	if ef.is_empty():
+		return
+
+	# enemy_force names the type under "type"; setup_from_enemy_data reads "name"
+	# (it was written against a raw enemy_types.json entry).
+	if morale_tracker.has_method("setup_from_enemy_data"):
+		morale_tracker.setup_from_enemy_data({
+			"name": ef.get("type", "Unknown"),
+			"panic": ef.get("panic", "1-2"),
+			"special_rules": ef.get("special_rules", []),
+		})
+
+	# Figures actually on the table beats the generator's count — a Unique
+	# Individual is added "in addition to those normally encountered" (p.94).
+	var figure_count: int = enemy_units.size()
+	if figure_count <= 0:
+		figure_count = int(ef.get("count", 0))
+	if morale_tracker.has_method("set_enemy_count"):
+		morale_tracker.set_enemy_count(figure_count)
+
+	# Fearless figures are skipped by the Morale dice and must not be counted as
+	# bailable (Core Rules p.114 Fearless, p.105 Unique Individuals).
+	var lieutenants: int = 0
+	var has_unique: bool = bool(ef.get("has_unique_individual", false))
+	for unit in enemy_units:
+		if unit.is_lieutenant:
+			lieutenants += 1
+		if unit.is_unique_individual:
+			has_unique = true
+	if "lieutenant_count" in morale_tracker:
+		morale_tracker.lieutenant_count = lieutenants
+	if "unique_individual_present" in morale_tracker:
+		morale_tracker.unique_individual_present = has_unique
+
+	# Bitter Struggle (Core Rules p.88): "Enemy Morale is +1". Compendium p.49
+	# fixes the direction — its Leadership table is headed "enemy Morale is
+	# IMPROVED according to the table below" and every row moves the Panic range
+	# DOWN, so improved Morale means a SMALLER Panic range and a harder enemy to
+	# break. BattleSetupRules computes the delta; this is the only place that can
+	# apply it, because the panic range is not known until the tracker is seeded.
+	# Floored at 1: on that same table only Captain-grade leadership reaches 0
+	# (Fearless), and a deployment condition is not that.
+	var setup_rules: Dictionary = _stored_mission_data.get("setup_rules", {}) \
+		if _stored_mission_data is Dictionary else {}
+	var panic_delta: int = int(setup_rules.get("panic_range_delta", 0))
+	if panic_delta != 0 and "panic_range_max" in morale_tracker:
+		var before: int = int(morale_tracker.panic_range_max)
+		morale_tracker.panic_range_max = maxi(1, before + panic_delta)
+		if unified_log and morale_tracker.panic_range_max != before:
+			unified_log.log_action("Morale",
+				"Bitter Struggle — enemy Panic range %d → %d (Core Rules p.88)"
+					% [before, int(morale_tracker.panic_range_max)])
+
+	_morale_seeded = true
+	if unified_log:
+		unified_log.log_action("Morale", "%s — Panic %s, %d figures" % [
+			ef.get("type", "Enemy"), str(ef.get("panic", "?")), figure_count])
 
 
 func _resolve_end_phase_morale() -> void:
@@ -4119,6 +5684,28 @@ func _on_manual_round_reset() -> void:
 
 ## Legacy _check_victory_conditions() removed — VictoryProgressPanel handles this in END_PHASE
 
+func _has_no_win_condition() -> bool:
+	## Core Rules p.91 (Rivals): "There is no Win condition against Rivals, but if
+	## you Hold the Field, you have an increased chance of permanently chasing them
+	## off." p.92 (Invasion): "There is no Win condition."
+	##
+	## THE BUG THIS FIXES (Aug 6 battle-phase audit): BattleSetupRules computes
+	## `no_win_condition` at scenario setup (:196 Rival, :251 Invasion) and NOTHING
+	## in the victory path ever read it — its only reader was a PreBattleUI label.
+	## Meanwhile _resolve_battle sets victory = "all enemies down / outnumbering",
+	## which is exactly what happens when you see a Rival off. So `success` came
+	## out true and every survivor was paid p.123's "Survived and Won +3" instead
+	## of "Survived, but did not Win +2" (both verified against the PDF).
+	##
+	## NOTE it is `success` that must go false, NOT `held_field`: holding the field
+	## is the REWARD path for these battles (the p.119 Rival removal roll, the
+	## p.120 payment gate, the p.121 Loot/Finds gates) and must keep working.
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var rules: Dictionary = md.get("setup_rules", {})
+	return bool(rules.get("no_win_condition", false))
+
+
 func _resolve_battle() -> void:
 	## Resolve the tactical battle — transition to RESOLUTION stage.
 	## Emits a rich Dictionary (not BattleResult class) so PostBattlePhase
@@ -4179,16 +5766,7 @@ func _resolve_battle() -> void:
 			injuries_data.append(unit.original_character)
 
 	# Build defeated enemy list for loot/XP
-	var defeated_enemies: Array = []
-	for unit in enemy_units:
-		if unit.health <= 0:
-			defeated_enemies.append({
-				"name": unit.node_name,
-				"type": unit.enemy_type if "enemy_type" in unit \
-					else "",
-				"was_lieutenant": unit.is_lieutenant \
-					if "is_lieutenant" in unit else false,
-			})
+	var defeated_enemies: Array = _defeated_enemy_records()
 
 	# Crew who participated (for XP distribution)
 	var crew_participants: Array = []
@@ -4217,6 +5795,12 @@ func _resolve_battle() -> void:
 		obj_id = _objective_tracker.get_objective_id()
 		obj_met = _objective_tracker.is_complete()
 		obj_progress = _objective_tracker.get_panel_conditions()
+	# p.91 / p.92 — applied AFTER the objective block so it wins regardless of how
+	# success was derived, including the no-objective default above (which is the
+	# branch Rival and Invasion battles actually take, since p.89 rolls objectives
+	# only for Opportunity, Patron and Quest missions).
+	if _has_no_win_condition():
+		obj_success = false
 
 	var result_dict: Dictionary = {
 		"victory": victory,
@@ -4268,10 +5852,16 @@ func _on_auto_resolve_battle() -> void:
 	## Auto-resolve the remaining battle using BattleResolver for rules-accurate combat
 	_log_message("Auto-resolving battle with Five Parsecs combat rules...", UIColors.COLOR_AMBER)
 
-	# Convert TacticalUnits to dictionaries for BattleResolver
+	# Convert TacticalUnits to dictionaries for BattleResolver.
+	# `_auto_resolve_deployed_units` keeps the TacticalUnit for each entry we
+	# push into crew_deployed, IN THE SAME ORDER. Without it the result mapping
+	# below indexed crew_units_final (which mirrors the FILTERED crew_deployed)
+	# using an index from the UNFILTERED crew_units — see the comment there.
 	var crew_deployed: Array = []
+	var deployed_units: Array = []
 	for unit in crew_units:
 		if unit.health > 0:
+			deployed_units.append(unit)
 			var unit_dict: Dictionary = {
 				"name": unit.node_name,
 				"character_name": unit.node_name,
@@ -4335,35 +5925,76 @@ func _on_auto_resolve_battle() -> void:
 	_log_message("Combat resolved: %d rounds fought" % result.rounds_fought, UIColors.COLOR_CYAN)
 	_log_message("Enemies defeated: %d / %d" % [enemies_defeated_count, enemies_deployed.size()], UIColors.COLOR_CYAN)
 
-	# Determine crew casualties from resolver's final state
+	# Determine crew casualties from resolver's final state.
+	#
+	# THE BUG: this walked `crew_units` (ALL crew) but indexed `crew_units_final`
+	# (which mirrors `crew_deployed`, FILTERED to health > 0) with the same `i`.
+	# Any crew member already down when auto-resolve is triggered — the normal
+	# case, since you auto-resolve after taking losses — shifted every later
+	# index by one, so THE WRONG CREW MEMBERS TOOK THE CASUALTIES:
+	#   crew_units      = [A(down), B, C]
+	#   crew_deployed   = [B, C]        -> crew_units_final = [B', C']
+	#   i=0: unit A read B' and was reported ALIVE despite being down
+	#   i=1: unit B read C' and inherited C's fate
+	#   i=2: unit C fell past the end and was judged on its pre-resolve health
+	# Now indexed through `deployed_units`, built in lockstep with crew_deployed,
+	# and the not-deployed crew are handled explicitly as the casualties they are.
 	var crew_units_final: Array = resolver_result.get("crew_units_final", [])
-	for i in range(crew_units.size()):
-		var unit: TacticalUnit = crew_units[i]
-		var is_alive: bool = true
+	var fates: Dictionary = {}  # TacticalUnit -> is_alive
+	for i in range(deployed_units.size()):
+		var alive: bool = true
 		if i < crew_units_final.size():
-			is_alive = crew_units_final[i].get("is_alive", true)
-		elif unit.health <= 0:
-			is_alive = false
+			alive = crew_units_final[i].get("is_alive", true)
+		fates[deployed_units[i]] = alive
+	for unit_pre in crew_units:
+		if not fates.has(unit_pre):
+			# Not deployed => already at 0 health when auto-resolve started.
+			fates[unit_pre] = false
+
+	for unit in crew_units:
+		var is_alive: bool = fates.get(unit, true)
 
 		if not is_alive and unit.original_character:
-			# Use Compendium casualty table if available, else core rules
-			var casualty_check: Dictionary = _roll_compendium_casualty()
+			var oc = unit.original_character
+			# Compendium pp.99-100 Casualty Tables, when the option is on.
+			#
+			# These rows are IN-BATTLE outcomes, not a death check. Only "Goner"
+			# removes the figure from play; Dazed / Wounded / Knock down /
+			# Temporary shutdown / Damaged / Bleeding all leave it standing, and
+			# p.100 states those conditions are "removed at the end of the battle
+			# and [have] no long-term effects" — so those crew take NO post-battle
+			# roll at all. That is the whole point of the option: it "tends to keep
+			# combatants in the fight longer than normal" (p.99).
+			#
+			# The old code read casualty_check["id"] and compared it to
+			# "instant_kill"/"dead". These rows carry `outcome`, never `id`, and
+			# no row has ever been named either of those — so even once the reader
+			# was fixed, every result would have fallen to the injuries branch.
+			var is_mech: bool = bool(_oc_field(oc, "is_bot", false)) \
+				or bool(_oc_field(oc, "is_soulless", false))
+			var casualty_check: Dictionary = _roll_compendium_casualty(
+				CompendiumDifficultyTogglesRef.casualty_category_for(is_mech, false),
+				bool(_oc_field(oc, "is_captain", false)))
 			if not casualty_check.is_empty():
-				var cas_id: String = casualty_check.get("id", "")
-				_log_message(casualty_check.get("instruction", ""), Color("#DC2626"))
-				if cas_id == "instant_kill" or cas_id == "dead":
-					result.crew_casualties.append(unit.original_character)
-				else:
-					result.crew_injuries.append(unit.original_character)
-					var injury_check: Dictionary = _roll_compendium_injury()
-					if not injury_check.is_empty():
-						_log_message(injury_check.get("instruction", ""), Color("#D97706"))
+				var outcome: String = str(casualty_check.get("outcome", ""))
+				_log_message("%s — %s (D6 %d, %s column): %s" % [
+					str(_oc_field(oc, "character_name", _oc_field(oc, "name", "Crew"))),
+					outcome, int(casualty_check.get("roll", 0)),
+					str(casualty_check.get("column", "regular")),
+					str(casualty_check.get("effect", "")),
+				], Color("#DC2626") if outcome == "Goner" else Color("#D97706"))
+				if outcome != "Goner":
+					# Still on their feet. Not a casualty, no post-battle roll.
+					continue
+				# Removed from play. The post-battle Injury Table decides whether
+				# that is death — the casualty table never kills outright.
+				result.crew_injuries.append(oc)
 			else:
 				var death_roll: int = _roll_dice("Death Check", "D6")
 				if death_roll <= 2:
-					result.crew_casualties.append(unit.original_character)
+					result.crew_casualties.append(oc)
 				else:
-					result.crew_injuries.append(unit.original_character)
+					result.crew_injuries.append(oc)
 
 	if crew_casualties_count > 0:
 		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
@@ -4408,6 +6039,9 @@ func _on_auto_resolve_battle() -> void:
 		else:
 			obj_success = result.victory or held_field
 			obj_met = _objective_tracker.is_complete()
+	# p.91 / p.92, same rule as the played path above.
+	if _has_no_win_condition():
+		obj_success = false
 
 	# Emit rich Dictionary (same contract as _resolve_battle)
 	var md: Dictionary = _stored_mission_data \
@@ -4428,10 +6062,27 @@ func _on_auto_resolve_battle() -> void:
 		"crew_participants": crew_units.map(
 			func(u): return u.original_character).filter(
 			func(c): return c != null),
-		"defeated_enemies": [],
+		# THE GAP THIS FIXES: this path hardcoded []. BattleResultNormalizer walks
+		# defeated_enemies to stamp rival kills, and RivalPatronResolver reads
+		# those stamps to decide whether a Rival is chased off — so on the
+		# in-battle auto-resolve path a Rival could never be removed no matter
+		# how comprehensively you beat it. Built the same way as the played path.
+		"defeated_enemies": _defeated_enemy_records(),
 		"enemies_defeated_count": enemies_defeated_count,
 		"enemies_remaining": enemies_deployed.size() \
 			- enemies_defeated_count,
+		# Core Rules p.123: "Any character that flees the battlefield in the first
+		# 2 rounds of the battle receives no XP." That is the ONLY rule this key
+		# feeds — ExperienceTrainingProcessor._calculate_crew_xp returns 0 on it.
+		# Do NOT widen it to the p.91 Rival threshold ("flee before 4 rounds are
+		# up" costs an item); that is a separate rule with a separate window, and
+		# carried on setup_rules.flee_before_round.
+		# Only the manual Record Result form and the "It's Time To Go" star wrote
+		# this key, so an auto-resolved 1-round rout still paid full XP.
+		"fled_early": (not held_field) and result.rounds_fought <= 2,
+		# The round count the p.91 item-loss check needs, which the XP threshold
+		# above cannot express.
+		"rounds": result.rounds_fought,
 		"crew_alive": crew_units.filter(
 			func(u): return u.health > 0).size(),
 		"is_red_zone": md.get("is_red_zone", false),
@@ -4473,97 +6124,16 @@ func _log_message(message: String, color: Color = Color.WHITE) -> void:
 
 ## Reaction Dice System
 
-var reaction_dice_pool: Array[int] = []
-var dice_assignments: Dictionary = {} # character_id -> dice_value
-
-func _on_reaction_dice_rolled(dice_values: Array) -> void:
-	## Handle reaction dice rolled at start of round
-	reaction_dice_pool = dice_values
-	dice_assignments.clear()
-	_display_dice_pool()
-	_display_character_assignments()
-	_log_message("Reaction dice rolled: %s" % str(dice_values), UIColors.COLOR_CYAN)
-
-func _on_reaction_dice_assigned(character_id: String, dice_value: int) -> void:
-	## Handle dice assignment update
-	dice_assignments[character_id] = dice_value
-	_display_character_assignments()
-
-func _on_confirm_dice_assignments() -> void:
-	## Confirm all dice assignments and proceed
-	_log_message("Reaction dice assignments confirmed", UIColors.COLOR_EMERALD)
-
-func _display_dice_pool() -> void:
-	## Display available reaction dice
-	if not dice_pool_display:
-		return
-
-	# Clear existing dice
-	for child in dice_pool_display.get_children():
-		child.queue_free()
-
-	# Create visual for each die
-	for die_value in reaction_dice_pool:
-		var die_label := Label.new()
-		die_label.text = "[%d]" % die_value
-		die_label.add_theme_font_size_override("font_size", _scaled_font(20))
-
-		# Color code by value (higher = better)
-		if die_value >= 5:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
-		elif die_value >= 3:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-		else:
-			die_label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
-
-		dice_pool_display.add_child(die_label)
-
-func _display_character_assignments() -> void:
-	## Display character assignment options
-	if not character_assignment_list:
-		return
-
-	# Clear existing assignments
-	for child in character_assignment_list.get_children():
-		child.queue_free()
-
-	# Create assignment row for each crew member
-	for unit in crew_units:
-		if unit.health <= 0:
-			continue
-
-		var row := HBoxContainer.new()
-
-		var name_label := Label.new()
-		name_label.text = unit.node_name
-		name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_label)
-
-		var assigned_value: int = dice_assignments.get(unit.node_name, 0)
-		var value_label := Label.new()
-		value_label.text = str(assigned_value) if assigned_value > 0 else "-"
-		row.add_child(value_label)
-
-		# Add assign button
-		var assign_button := Button.new()
-		assign_button.text = "Assign"
-		assign_button.pressed.connect(_on_assign_dice_to_character.bind(unit.node_name))
-		row.add_child(assign_button)
-
-		character_assignment_list.add_child(row)
-
-func _on_assign_dice_to_character(character_name: String) -> void:
-	## Assign next available die to character
-	# Find first unassigned die
-	var assigned_values = dice_assignments.values()
-	for die_value in reaction_dice_pool:
-		if die_value not in assigned_values:
-			dice_assignments[character_name] = die_value
-			_display_character_assignments()
-			_log_message("%s assigned reaction die: %d" % [character_name, die_value], UIColors.COLOR_CYAN)
-			return
-
-	_log_message("No dice available to assign!", UIColors.COLOR_RED)
+# The legacy reaction-dice assignment UI was DELETED here (~90 lines).
+# dice_pool_display, character_assignment_list and confirm_assignments_button
+# were declared `= null` and NEVER assigned — no @onready, no .new() — so every
+# function below them returned at its first `if not <node>` guard and the whole
+# feature was unreachable. Its state (reaction_dice_pool, dice_assignments) was
+# likewise written by nothing that ran.
+#
+# Superseded by FPCM_ReactionRollPool + _assign_crew_reaction_slots(), which
+# implement the Core Rules p.113 pool properly: one roll, a best-fit default
+# assignment, and the Feral Impetuous Actions constraint this version never had.
 
 ## ── Battlefield View Helpers ───────────────────────────────────────
 
@@ -4614,13 +6184,9 @@ func _populate_setup_tab(mission_data) -> void:
 				planet_type_id = planet.get("type",
 					planet.get("planet_type", 0))
 
-	# Table size: stored contract wins, else the player's setting (p.108)
-	var table_size_ft: float = float(bf_data.get("table_size_ft", 0.0))
-	if table_size_ft <= 0.0:
-		var settings_mgr = get_node_or_null("/root/SettingsManager")
-		table_size_ft = settings_mgr.get_table_size_ft() \
-			if settings_mgr and settings_mgr.has_method("get_table_size_ft") \
-			else 3.0
+	# Table size: stored contract wins, else the player's setting (p.108).
+	# Shared with the grid-section rebuild so the two cannot drift.
+	var table_size_ft: float = _setup_table_size_ft(bf_data)
 	var bf_dims: Dictionary = BattlefieldGridClass.dims_for_table(table_size_ft)
 
 	var stored_sectors: Array = []
@@ -4981,8 +6547,15 @@ func _populate_setup_tab(mission_data) -> void:
 			Color("#808080"))
 		_add_setup_separator()
 
-	# Section 5: DLC Compendium Difficulty Instructions
-	var dlc_instructions: Array = mission_dict.get("dlc_difficulty_instructions", [])
+	# Section 5: Compendium GAME OPTIONS the player switched on.
+	#
+	# These blocks used to read three mission_dict keys — "dlc_difficulty_instructions",
+	# "dlc_ai_type" and "dramatic_combat_effects" — that NO producer anywhere ever
+	# wrote (proved by the producer/consumer census, scripts/lint_handoff_contracts.py).
+	# Every value is derivable right here from the DLC flags, the campaign, and the
+	# enemy force the app already generated, so they are built locally now instead of
+	# waiting on a stamp that was never going to come.
+	var dlc_instructions: Array[String] = _build_compendium_option_instructions()
 	if not dlc_instructions.is_empty():
 		_add_setup_section_header("COMPENDIUM DIFFICULTY RULES")
 		for instruction: String in dlc_instructions:
@@ -4997,19 +6570,39 @@ func _populate_setup_tab(mission_data) -> void:
 			elif instruction.begins_with("MILESTONE:"):
 				color = Color("#10B981") # Green for milestones
 			_add_setup_text(instruction, color)
-		# Store AI type for escalation checks
-		_dlc_ai_type = mission_dict.get("dlc_ai_type", "")
 		_add_setup_separator()
 
-		# Add escalation setup text if enabled
-		if EscalatingBattlesManagerRef.is_enabled():
-			_add_setup_section_header("ESCALATING BATTLES")
+	# Escalating Battles (Compendium pp.46-48) keys its D100 column off the enemy's
+	# main AI type. This assignment used to live INSIDE the guard above, so even a
+	# correct dlc_ai_type producer would have been swallowed by a DIFFERENT missing
+	# key: _check_escalating_battles() returns early while _dlc_ai_type is empty, so
+	# the D100 was never rolled once in any battle of any campaign.
+	var esc_force: Dictionary = _battle_context.get(
+		"enemy_force", mission_dict.get("enemy_force", {}))
+	_dlc_ai_type = _ai_type_name(str(esc_force.get("ai", "A"))).to_lower()
+	if EscalatingBattlesManagerRef.is_enabled():
+		_add_setup_section_header("ESCALATING BATTLES")
+		if _dlc_ai_type in ESCALATION_AI_TYPES:
 			var esc_text: String = EscalatingBattlesManagerRef.generate_setup_text(_dlc_ai_type)
 			_add_setup_text(esc_text, Color("#D97706"))
-			_add_setup_separator()
+		else:
+			# The p.46 table has exactly six columns (Aggressive / Cautious /
+			# Defensive / Rampage / Tactical / Beast). Guardian has none, so the
+			# book grants these enemies no Escalation — say so rather than
+			# silently skipping the check and leaving the player guessing.
+			_add_setup_text(
+				"No Escalation table for %s AI — the Compendium p.46 table covers "
+				% _ai_type_name(str(esc_force.get("ai", "A")))
+				+ "Aggressive, Cautious, Defensive, Rampage, Tactical and Beast only.",
+				Color("#808080"))
+		_add_setup_separator()
 
-	# Section 5b: Dramatic Combat effects (Compendium DLC)
-	var dramatic_effects: Array = mission_dict.get("dramatic_combat_effects", [])
+	# Section 5b: Dramatic Combat (Compendium p.87). Adjusted Shooting is already
+	# applied by the resolvers (BattleResolver / NoMinis / Stealth / Salvage), but
+	# Duck Back and Lunge are executed by the player at the table, so the rule TEXT
+	# is the implementation for a companion app — and it was never being shown.
+	var dramatic_effects: Array[String] = \
+		CompendiumDifficultyTogglesRef.get_dramatic_combat_rule_instructions()
 	if not dramatic_effects.is_empty():
 		_add_setup_section_header("DRAMATIC COMBAT")
 		for effect in dramatic_effects:
@@ -5018,15 +6611,25 @@ func _populate_setup_tab(mission_data) -> void:
 				_add_setup_text(effect_str, Color("#E879F9")) # Purple for dramatic
 		_add_setup_separator()
 
-	# Section 5c: Grid Movement instructions (Compendium DLC)
-	var grid_instructions: Array = mission_dict.get("grid_movement_instructions", [])
-	if not grid_instructions.is_empty():
-		_add_setup_section_header("GRID-BASED MOVEMENT")
-		for grid_inst in grid_instructions:
-			var inst_str: String = str(grid_inst)
-			if not inst_str.is_empty():
-				_add_setup_text(inst_str, Color("#38BDF8")) # Sky blue for grid
-		_add_setup_separator()
+	# Section 5c: Grid-Based Movement (Compendium pp.90-93).
+	#
+	# This read had ZERO producers repo-wide: nothing has ever written
+	# `grid_movement_instructions`, so the section never rendered in any battle
+	# of any campaign. The chapter needs no campaign state and no dice — only
+	# the flag and the table size, both known right here — so the instructions
+	# are GENERATED at the consumer. Doing it upstream would mean replicating a
+	# producer in four controllers (campaign / simulator / Bug Hunt / Planetfall)
+	# for no gain. A stamped value still wins, so a scenario can override.
+	# The section lives in its own container so the pre-battle checklist's
+	# movement-system switch (p.90) can rebuild JUST this block. Re-running the
+	# whole of _populate_setup_tab would re-enter terrain generation, and in the
+	# standalone modes that regenerates the map the player has already laid out
+	# on their physical table.
+	_grid_setup_section = VBoxContainer.new()
+	_grid_setup_section.name = "GridMovementSection"
+	_grid_setup_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	setup_content.add_child(_grid_setup_section)
+	_rebuild_grid_setup_section(mission_dict, table_size_ft)
 
 	# Section 6: Regenerate button
 	var regen_button := Button.new()
@@ -5287,6 +6890,17 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.has_method("set_battlefield_data"):
 		return
+	# A STANDALONE battle must not write the campaign's saved table.
+	#
+	# active_battlefield is shared state written by four entry points but cleared by
+	# ONE (CampaignTurnController's post-battle handler). Battle Simulator and the
+	# other standalone modes generate their own map and persisted it through the same
+	# chokepoint, which writes through to campaign.progress_data — so playing a
+	# standalone battle while a campaign was loaded OVERWROTE the physical table the
+	# player had already built for their next campaign mission, and it survived the
+	# save. Standalone battles have no campaign to persist to; keep them in memory.
+	if _is_standalone_battle():
+		return
 	# Carry over campaign-path context a re-persist shouldn't lose
 	var prev: Dictionary = gs.get_battlefield_data() \
 		if gs.has_method("get_battlefield_data") else {}
@@ -5513,6 +7127,145 @@ func _create_setup_label(text: String, color: Color, font_size: int = 14) -> Lab
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return label
 
+
+## ============================================================================
+## PER-BATTLE MOVEMENT SYSTEM (Compendium p.90)
+## ============================================================================
+##
+## "You do not have to commit to using this system for every battle of a given
+## campaign. The movement system used can be changed as often as you want, with
+## different battles using different movement systems."
+##
+## Two different questions, and conflating them is what made this all-or-nothing:
+##   DLC flag  — is Grid-Based Movement part of my game at all
+##   THIS      — am I using it in the fight I am setting up right now
+##
+## The player answers the second in the pre-battle checklist. Three surfaces have
+## to agree on the answer: the checklist steps (deploy in an edge SQUARE, not a
+## deployment zone), the setup drawer procedure, and the p.91 flanking note. One
+## writer, three readers.
+
+## Table size for the setup drawer: the persisted battlefield contract wins,
+## else the player's p.108 setting. Shared so a later rebuild cannot drift from
+## the value the first render used.
+func _setup_table_size_ft(bf_data: Dictionary = {}) -> float:
+	var bf: Dictionary = bf_data
+	if bf.is_empty():
+		var game_state = get_node_or_null("/root/GameState")
+		if game_state and game_state.has_method("get_battlefield_data"):
+			bf = game_state.get_battlefield_data()
+	var ft: float = float(bf.get("table_size_ft", 0.0))
+	if ft > 0.0:
+		return ft
+	var settings_mgr = get_node_or_null("/root/SettingsManager")
+	if settings_mgr and settings_mgr.has_method("get_table_size_ft"):
+		return float(settings_mgr.get_table_size_ft())
+	return 3.0
+
+
+func _resolve_grid_movement_choice(mission_dict: Dictionary) -> void:
+	## A scenario may stamp the choice; otherwise the flag is the opt-in, so a
+	## player who enabled grid movement does not re-affirm it every battle — the
+	## selector exists to opt OUT of a single fight.
+	if mission_dict.has("use_grid_movement"):
+		_use_grid_movement = bool(mission_dict["use_grid_movement"])
+		return
+	_use_grid_movement = CompendiumGridMovementRef.is_enabled()
+
+
+func _rebuild_grid_setup_section(mission_dict: Dictionary,
+		table_size_ft: float) -> void:
+	if not is_instance_valid(_grid_setup_section):
+		return
+	# remove_child BEFORE queue_free: a freed-but-still-parented node would sit
+	# above the rows added on the next two lines.
+	for child in _grid_setup_section.get_children():
+		_grid_setup_section.remove_child(child)
+		child.queue_free()
+	if not _use_grid_movement:
+		return  # Standard movement this battle — contribute nothing.
+
+	# This read had ZERO producers repo-wide before Aug 6, so the section never
+	# rendered in any battle. The chapter needs no campaign state and no dice,
+	# only the flag and the table size, so the instructions are GENERATED at the
+	# consumer; a stamped value still wins so a scenario can override.
+	var grid_instructions: Array = mission_dict.get(
+		"grid_movement_instructions", [])
+	if grid_instructions.is_empty():
+		grid_instructions = CompendiumGridMovementRef.build_setup_instructions(
+			table_size_ft)
+	if grid_instructions.is_empty():
+		return
+
+	var header := Label.new()
+	header.text = "GRID-BASED MOVEMENT"
+	header.add_theme_font_size_override("font_size", _scaled_font(12))
+	header.add_theme_color_override("font_color", Color("#808080"))
+	header.uppercase = true
+	_grid_setup_section.add_child(header)
+	for grid_inst in grid_instructions:
+		var inst_str: String = str(grid_inst)
+		if not inst_str.is_empty():
+			_grid_setup_section.add_child(
+				_create_setup_label(inst_str, Color("#38BDF8")))
+	var sep := HSeparator.new()
+	sep.modulate = Color(0.216, 0.255, 0.318, 0.5)
+	_grid_setup_section.add_child(sep)
+
+
+func _on_movement_system_changed(use_grid: bool) -> void:
+	if use_grid == _use_grid_movement:
+		return
+	_use_grid_movement = use_grid
+	# Stamp it onto the mission so the choice travels with the battle instead of
+	# living only inside a modal the player is about to dismiss.
+	if _stored_mission_data is Dictionary:
+		_stored_mission_data["use_grid_movement"] = use_grid
+	_rebuild_grid_setup_section(
+		_stored_mission_data if _stored_mission_data is Dictionary else {},
+		_setup_table_size_ft())
+	if use_grid:
+		_log_message(
+			"Movement: GRID-BASED for this battle (Compendium pp.90-93).",
+			Color("#38BDF8"))
+	else:
+		_log_message(
+			"Movement: STANDARD for this battle (core rules, inches).",
+			Color("#38BDF8"))
+
+## Build the Compendium GAME OPTIONS instruction lines for the battle-setup tab.
+##
+## Progressive Difficulty (Compendium pp.30-31) is a campaign-creation choice that
+## reached campaign.progress_data and was then read by NOBODY: a player who ticked
+## Basic or Advanced got no extra enemies, no respawns, and not one line of text
+## for the entire campaign. The milestone tables in data/progressive_difficulty.json
+## are book-exact — only the call was missing.
+##
+## Milestones are cumulative: the book says "apply both the highest Respawn and the
+## highest Strength entry that applies to you" (p.30), and get_active_milestones()
+## already returns every entry at or below the current turn.
+func _build_compendium_option_instructions() -> Array[String]:
+	var out: Array[String] = []
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return out
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign):
+		return out
+	var progress: Dictionary = campaign.progress_data
+	var turn_number: int = int(progress.get("turns_played", 0))
+	var options: Array = progress.get("progressive_difficulty_options", [])
+	for option: Variant in options:
+		var milestones: Array[Dictionary] = \
+			ProgressiveDifficultyTrackerRef.get_active_milestones(
+				turn_number, int(option))
+		for milestone: Dictionary in milestones:
+			var instruction: String = str(milestone.get("instruction", "")).strip_edges()
+			if not instruction.is_empty():
+				out.append("MILESTONE: " + instruction)
+	return out
+
+
 ## ── DLC: Escalating Battles (Compendium pp.46-48) ────────────────
 
 func _check_escalating_battles(round_number: int) -> void:
@@ -5570,15 +7323,29 @@ func _check_escalating_battles(round_number: int) -> void:
 			unified_log.add_entry("event", instruction)
 
 
-## ── DLC: Compendium Casualty/Injury Tables (Compendium p.86) ────
+## ── DLC: Compendium Casualty Tables (Compendium pp.99-100) ────────
 
-func _roll_compendium_casualty() -> Dictionary:
-	## Roll on compendium casualty table if CASUALTY_TABLES enabled, else empty
-	return CompendiumDifficultyTogglesRef.roll_casualty()
+## Read a field off a crew member that may be a Character Resource OR a minimal
+## Dictionary (TacticalUnit accepts both — Battle Simulator builds dicts).
+## `in` works for both; 2-arg .get() would ABORT on a Resource.
+func _oc_field(oc: Variant, key: String, fallback: Variant = null) -> Variant:
+	if oc is Dictionary:
+		return oc.get(key, fallback)
+	if oc is Object and key in oc:
+		return oc.get(key)
+	return fallback
 
-func _roll_compendium_injury() -> Dictionary:
-	## Roll on compendium detailed injury table if DETAILED_INJURIES enabled, else empty
-	return CompendiumDifficultyTogglesRef.roll_detailed_injury()
+
+func _roll_compendium_casualty(category: String = "humanoid",
+		is_boss: bool = false) -> Dictionary:
+	## Roll on the Compendium casualty table if CASUALTY_TABLES is on, else {}.
+	return CompendiumDifficultyTogglesRef.roll_casualty(category, is_boss)
+
+# _roll_compendium_injury() was DELETED here. The Detailed Post-Battle Injury
+# table is a POST-BATTLE table — p.101: "can be used in place of the one in the
+# core rules" — so rolling it mid-battle-resolution was the wrong stage, and it
+# would have double-rolled against the post-battle step once that step was
+# wired. It now lives at its proper site, InjuryProcessor.process_single_injury.
 
 
 ## ── DLC: No-Minis Combat Panel (Compendium pp.66-73) ────────────
@@ -5606,9 +7373,11 @@ func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
 	no_minis_combat_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_minis_combat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Battle Log" tab alongside the journal
-	if phase_content:
-		phase_content.add_child(no_minis_combat_panel)
+	# The No-Minis panel IS the battlefield — it belongs in the mission drawer,
+	# reachable at every tier, not the tier-gated tracking drawer.
+	var nm_host: Node = _mission_panel_host()
+	if nm_host:
+		nm_host.add_child(no_minis_combat_panel)
 
 	# Initialize the abstract battle
 	no_minis_combat_panel.setup_battle(crew_size, enemy_count)
@@ -5641,9 +7410,9 @@ func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 	stealth_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stealth_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(stealth_mission_panel)
+	var st_host: Node = _mission_panel_host()
+	if st_host:
+		st_host.add_child(stealth_mission_panel)
 
 	# Initialize with mission data
 	stealth_mission_panel.setup_mission(mission_dict)
@@ -5678,9 +7447,9 @@ func _setup_street_fight_panel(mission_dict: Dictionary) -> void:
 	street_fight_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	street_fight_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(street_fight_panel)
+	var sf_host: Node = _mission_panel_host()
+	if sf_host:
+		sf_host.add_child(street_fight_panel)
 
 	# Initialize with mission data
 	street_fight_panel.setup_mission(mission_dict)
@@ -5713,9 +7482,9 @@ func _setup_salvage_panel(mission_dict: Dictionary) -> void:
 	salvage_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	salvage_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(salvage_mission_panel)
+	var sv_host: Node = _mission_panel_host()
+	if sv_host:
+		sv_host.add_child(salvage_mission_panel)
 
 	# Initialize with mission data
 	salvage_mission_panel.setup_mission(mission_dict)
@@ -5775,6 +7544,17 @@ class TacticalUnit:
 	var is_activated: bool = false
 	var react_slot: int = 0
 
+	# Enemy identity carried over from the generated force. These did not exist,
+	# so every `"is_lieutenant" in unit` / `"enemy_type" in unit` guard in this file
+	# was permanently FALSE: the post-battle `defeated_enemies` list recorded every
+	# kill as type "" with was_lieutenant false, and the End-Phase Morale seeding
+	# could not tell how many figures are Fearless (Core Rules p.114 — a Lieutenant
+	# is skipped by the Morale dice unless Cowardly).
+	var enemy_type: String = ""
+	var is_lieutenant: bool = false
+	var is_specialist: bool = false
+	var is_unique_individual: bool = false
+
 	# Equipment
 	var _weapon_range: int = 12
 	var _weapon_shots: int = 1
@@ -5814,12 +7594,37 @@ class TacticalUnit:
 			combat_skill = enemy.get("combat", enemy.get("combat_skill", 0))
 			toughness = enemy.get("toughness", 0)
 			reactions = enemy.get("reaction", enemy.get("reactions", 0))
+			# Carry the generator's role flags onto the figure — without these the
+			# post-battle defeated-enemy list and the Morale seeding were blind.
+			#
+			# EnemyGenerator's vocabulary is `role` ("standard"/"lieutenant"/
+			# "specialist") plus `is_leader`; it does NOT emit is_lieutenant. Read the
+			# producer's real keys here rather than renaming them at the source —
+			# those keys are pinned by the battle-result contract.
+			enemy_type = str(enemy.get("type", ""))
+			var _role: String = str(enemy.get("role", "")).to_lower()
+			is_lieutenant = _role == "lieutenant" \
+				or bool(enemy.get("is_leader", false)) \
+				or bool(enemy.get("is_lieutenant", false))
+			is_specialist = _role == "specialist" \
+				or bool(enemy.get("is_specialist", false))
+			is_unique_individual = _role == "unique" \
+				or bool(enemy.get("is_unique_individual", false))
 		else:
 			var _name_val = enemy.get("name") if enemy else null
 			node_name = str(_name_val) if _name_val else "Enemy"
 			combat_skill = enemy.get("combat_skill") if enemy and enemy.get("combat_skill") != null else 0
 			toughness = enemy.get("toughness") if enemy and enemy.get("toughness") != null else 0
 			reactions = enemy.get("reactions") if enemy and enemy.get("reactions") != null else 0
+			if enemy:
+				if enemy.get("type") != null:
+					enemy_type = str(enemy.get("type"))
+				is_lieutenant = bool(enemy.get("is_lieutenant")) \
+					if enemy.get("is_lieutenant") != null else false
+				is_specialist = bool(enemy.get("is_specialist")) \
+					if enemy.get("is_specialist") != null else false
+				is_unique_individual = bool(enemy.get("is_unique_individual")) \
+					if enemy.get("is_unique_individual") != null else false
 
 		max_health = max(1, toughness)
 		health = max_health
@@ -6125,18 +7930,96 @@ func _apply_its_time_to_go(campaign, stars) -> void:
 	# Hide popup + Stars button (one-shot used; popup also reflects 0/1 anyway)
 	if _stars_battle_popup:
 		_stars_battle_popup.hide()
-	# Build battle_result and emit completion
-	var battle_result := {
+	tactical_battle_completed.emit(_build_evacuation_result_dict(true))
+
+
+func _build_evacuation_result_dict(via_star: bool) -> Dictionary:
+	## Standard battle-result contract for a battle the crew LEAVES rather than
+	## fights to a finish — currently the "It's time to go!" star (Core Rules p.67).
+	##
+	## THE BUG THIS FIXES: the evacuation path emitted its own ad-hoc 8-key dict.
+	## It sent crew_casualties / crew_injuries as ARRAYS where every other producer
+	## sends ints, used an "objectives_met" key no consumer reads, and omitted
+	## success, crew_participants, crew_casualties_data, crew_injuries_data,
+	## mission_source and the zone flags. Downstream, BattleResultNormalizer steps 7
+	## and 8 build injuries_sustained / casualties FROM crew_*_data, so both came out
+	## empty, and PostBattlePhase reads a missing "success" as false. Invoking the
+	## once-per-campaign escape therefore cost the player every injury roll, all XP,
+	## and any objective they had already completed.
+	##
+	## Core Rules p.115: leaving the battlefield means you do NOT Hold the Field, but
+	## objectives achieved BEFORE exiting still stand ("having achieved your
+	## objectives before exiting the battle").
+	var crew_alive: int = crew_units.filter(func(u): return u.health > 0).size()
+	var enemies_alive: int = enemy_units.filter(func(u): return u.health > 0).size()
+
+	# current_turn is the round in progress (set by _on_round_started), so the round
+	# the crew bails in IS a round they fought.
+	var rounds: int = maxi(0, current_turn)
+
+	# Downed crew route to injuries_data, never casualties_data — Core Rules p.122:
+	# a figure that went Out of Action ALWAYS rolls the post-battle Injury Table, and
+	# the roll decides dead / injured / recovered. Same rule the played path applies.
+	var injuries_data: Array = []
+	for unit in crew_units:
+		if unit.health <= 0:
+			injuries_data.append(unit.original_character)
+
+	var defeated_enemies: Array = _defeated_enemy_records()
+
+	var crew_participants: Array = []
+	for unit in crew_units:
+		if unit.original_character:
+			crew_participants.append(unit.original_character)
+
+	var obj_id: String = ""
+	var obj_met: bool = false
+	var obj_progress: Array = []
+	if _objective_tracker != null and _objective_tracker.has_objective():
+		obj_id = _objective_tracker.get_objective_id()
+		obj_met = _objective_tracker.is_complete()
+		obj_progress = _objective_tracker.get_panel_conditions()
+
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+
+	return {
 		"victory": false,
+		"won": false,
+		# The objective still decides the mission (Core Rules p.90); leaving the
+		# table only forfeits Holding the Field.
+		# p.91 / p.92: a battle with no Win condition cannot be recorded as won,
+		# however it ended. No-op in practice (these battles have no objective, so
+		# obj_met is already false) but stated explicitly — this codebase's
+		# recurring defect is rules that hold only by coincidence.
+		"success": obj_met and not _has_no_win_condition(),
 		"held_field": false,
 		"evacuated": true,
-		"evacuated_via_star": true,
-		"crew_casualties": [],
-		"crew_injuries": [],
-		"rounds_fought": 0,
-		"objectives_met": []
+		"evacuated_via_star": via_star,
+		# Core Rules p.123, verbatim: "Any character that flees the battlefield in
+		# the first 2 rounds of the battle receives no XP."
+		"fled_early": rounds <= 2,
+		"objective_id": obj_id,
+		"objective_met": obj_met,
+		"objective_progress": obj_progress,
+		"rounds_fought": rounds,
+		"crew_casualties": 0,
+		"crew_injuries": injuries_data.size(),
+		"crew_casualties_data": [],
+		"crew_injuries_data": injuries_data,
+		"crew_participants": crew_participants,
+		"defeated_enemies": defeated_enemies,
+		"enemies_defeated_count": defeated_enemies.size(),
+		"enemies_remaining": enemies_alive,
+		"crew_alive": crew_alive,
+		"is_red_zone": md.get("is_red_zone", false),
+		"is_black_zone": md.get("is_black_zone", false),
+		"is_quest_finale": md.get("is_quest_finale", false),
+		"mission_source": md.get("mission_source", "opportunity"),
+		"mission_type": md.get("type", ""),
+		"auto_resolved": false,
+		"psionic_uses": _psionic_uses,
 	}
-	tactical_battle_completed.emit(battle_result)
 
 
 func _use_battle_star_met_my_mate(campaign, stars) -> void:
@@ -6265,7 +8148,14 @@ func _setup_battle_notes_widget() -> void:
 	var panel := PanelContainer.new()
 	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
 	panel.offset_left = -260
-	panel.offset_top = 16
+	# Start below the floating gear/bug buttons, which live on their own CanvasLayer in
+	# the same top-right corner. reserve_band_on() cannot help here: this widget is on
+	# a CanvasLayer of its own, so it is not a descendant of anything the reservation
+	# can push down. Ask the overlay where it actually is instead of hardcoding a gap.
+	panel.offset_top = 16.0
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("get_reserved_bottom"):
+		panel.offset_top = maxf(16.0, float(_so.get_reserved_bottom()) + 8.0)
 	panel.offset_right = -16
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.08, 0.08, 0.10, 0.85)

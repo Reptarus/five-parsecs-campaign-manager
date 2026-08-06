@@ -470,3 +470,120 @@ func test_raided_crew_6_trends_higher_than_standard():
 	var avg_raided := float(sum_raided) / float(iterations)
 	var avg_standard := float(sum_standard) / float(iterations)
 	assert_that(avg_raided).is_greater(avg_standard)
+
+# ============================================================================
+# Core Rules p.93 — the modifiers that reach the count
+# ============================================================================
+# These pin a WIRING bug, not a formula. generate_enemies_as_dicts() passed
+# `danger_level` (the p.83 Patron Danger Pay rating) into the parameter named
+# `difficulty`, which indexes the DIFFICULTY MODE table. So the campaign
+# difficulty never reached the enemy count: Hardcore never got its +1,
+# Challenging never rerolled, Easy never dropped an enemy at 5+ — and a job
+# that happened to roll danger_level 1 silently applied EASY's reduction.
+#
+# The assertions are on BOUNDS over many samples, not on averages or on a
+# seeded value. Every one is either guaranteed by the code (a floor the
+# modifier makes unreachable) or has a miss probability below 1e-15 at the
+# sample counts used, which is the standard the seeded-harness note in the SOP
+# asks for: assert the invariant, never the roll.
+
+const _DIFF_NORMAL := 2
+const _DIFF_CHALLENGING := 4
+const _DIFF_HARDCORE := 6
+const _DIFF_INSANITY := 8
+const _SAMPLES := 400
+
+func _bounds(difficulty: int, crew_size: int, is_quest: bool = false,
+		crew_in_field: int = 0) -> Dictionary:
+	var lo := 999
+	var hi := 0
+	for _i in range(_SAMPLES):
+		var n: int = enemy_generator._calculate_enemy_count(
+			difficulty, crew_size, is_quest, crew_in_field)
+		lo = mini(lo, n)
+		hi = maxi(hi, n)
+	return {"min": lo, "max": hi}
+
+## p.93: "If the campaign's difficulty mode is Hardcore or Insanity, add +1 to
+## the final number faced." Crew size 5 rolls a single D6, so the honest range
+## is 1-6 at Normal and 2-7 at Hardcore. The MINIMUM is guaranteed by the +1,
+## and 400 samples of 1D6 miss the 6 with probability (5/6)^400 ~ 1e-32.
+func test_hardcore_adds_one_enemy():
+	var normal: Dictionary = _bounds(_DIFF_NORMAL, 5)
+	var hardcore: Dictionary = _bounds(_DIFF_HARDCORE, 5)
+	assert_int(normal["max"]).is_equal(6)
+	assert_int(hardcore["max"]).is_equal(7)
+	assert_int(hardcore["min"]).is_greater_equal(2)
+
+## Insanity is named in the same sentence as Hardcore and its data row carried
+## enemy_count_modifier 0, so the hardest mode in the book fielded one fewer
+## enemy than the rules require.
+func test_insanity_adds_one_enemy():
+	var insanity: Dictionary = _bounds(_DIFF_INSANITY, 5)
+	assert_int(insanity["max"]).is_equal(7)
+	assert_int(insanity["min"]).is_greater_equal(2)
+
+## p.93 Challenging ("reroll any die that scored a 1 or 2 before selecting") is
+## already pinned above by test_challenging_rerolls_low_dice at crew size 4.
+## Not duplicated here.
+
+## p.93: "Modify this, based on the size of your crew in the field. If you are
+## fielding a crew of 2 or more figures below the standard size for your
+## campaign (typically 6), subtract 1 from the enemy numbers." Unimplemented —
+## the generator only ever received the campaign SETTING, never the deployed
+## count, so it could not tell a full crew from a depleted one.
+func test_a_short_crew_faces_one_fewer_enemy():
+	var full: Dictionary = _bounds(_DIFF_NORMAL, 5, false, 5)
+	var short: Dictionary = _bounds(_DIFF_NORMAL, 5, false, 3)
+	assert_int(full["max"]).is_equal(6)
+	assert_int(short["max"]).is_equal(5)
+
+## Exactly ONE figure short is not enough — the book says "2 or more".
+func test_one_figure_short_is_not_enough():
+	var one_short: Dictionary = _bounds(_DIFF_NORMAL, 5, false, 4)
+	assert_int(one_short["max"]).is_equal(6)
+
+## An unreported field size must not silently penalise the enemy count.
+func test_unreported_field_size_applies_no_modifier():
+	var unreported: Dictionary = _bounds(_DIFF_NORMAL, 5, false, 0)
+	assert_int(unreported["max"]).is_equal(6)
+
+## The WIRING, at the live entry point. The two suites above call
+## _calculate_enemy_count() directly and would have passed against the bug —
+## the formula was always right, it was the ARGUMENT that was wrong.
+## generate_enemies_as_dicts() is what the campaign actually calls, and it
+## passed danger_level where difficulty belonged.
+##
+## Both missions below carry the SAME danger_level and differ only in
+## difficulty_mode. Under the old code that made them identical.
+##
+## The enemy is a ROVING THREAT on purpose. p.93 excludes that subtable from the
+## Unique Individual roll, and Hardcore adds +1 to that roll — so against any
+## other category a Hardcore force is larger for a second, unrelated reason, and
+## this test passes against the very bug it exists to catch. It did, on the
+## first draft, with Gangers. Isolating the count modifier is the whole point.
+func test_difficulty_mode_reaches_the_live_enemy_generator():
+	var iterations := 200
+	var sum_normal := 0
+	var sum_hardcore := 0
+	for _i in range(iterations):
+		var normal: Array = enemy_generator.generate_enemies_as_dicts({
+			"mission_source": "opportunity",
+			"enemy_type": "Converted Infiltrators",
+			"danger_level": 2,
+			"difficulty_mode": _DIFF_NORMAL,
+		}, 5)
+		var hardcore: Array = enemy_generator.generate_enemies_as_dicts({
+			"mission_source": "opportunity",
+			"enemy_type": "Converted Infiltrators",
+			"danger_level": 2,
+			"difficulty_mode": _DIFF_HARDCORE,
+		}, 5)
+		sum_normal += normal.size()
+		sum_hardcore += hardcore.size()
+	# +1 per battle is guaranteed by the rule, so the means differ by ~1.0.
+	# Asserting a gap of at least 0.5 rather than exactly 1.0 keeps this an
+	# invariant test — it survives an unrelated change to the base dice — while
+	# still being far outside the sampling noise of 200 draws.
+	assert_float(float(sum_hardcore) / iterations).is_greater(
+		float(sum_normal) / iterations + 0.5)

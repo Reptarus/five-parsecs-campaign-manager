@@ -21,6 +21,9 @@ const FILTER_DEBOUNCE_SEC := 0.15
 const SIDEBAR_WIDTH := 320
 const EXPORT_DIR := "user://exports/journal/"
 const TOP_TAG_CHIPS := 12
+## Below this much DESIGN height the filter block is collapsed regardless of width —
+## a phone in landscape is wide but only ~338px tall. Matches WorldPhaseController.
+const SHORT_VIEWPORT_DESIGN_PX := 620.0
 
 ## Share menu item IDs
 const SHARE_COPY_ENTRY_PLAIN := 0
@@ -80,6 +83,9 @@ var _empty_label: Label
 var _debounce_timer: Timer
 var _type_chip_buttons: Dictionary = {}    ## type_string → Button
 var _tag_chip_buttons: Dictionary = {}     ## tag_string → Button
+var _filter_toggle: Button                 ## "Filters (N active)" disclosure
+var _filter_body: VBoxContainer            ## Everything the disclosure collapses
+var _filters_collapsed: bool = false
 
 
 func _ready() -> void:
@@ -93,6 +99,11 @@ func _ready() -> void:
 	_consume_scene_router_context()
 	_apply_filters()
 	_subscribe_to_journal_signals()
+	# super._ready() is skipped above, so reserve the floating-overlay band by hand.
+	# Must run after _build_ui(): the MarginContainer it targets is created there.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 
 
 func _setup_debounce_timer() -> void:
@@ -111,6 +122,15 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_top", SPACING_MD)
 	margin.add_theme_constant_override("margin_bottom", SPACING_MD)
 	add_child(margin)
+
+	# Portrait de-clip. SPACING_LG on both sides is 48px of the ~339 design px a
+	# phone has, and this screen's content needs ~341 on its own — so the margins
+	# alone put it over. PortraitChrome trims LEFT/RIGHT only (never the top, so it
+	# does not fight the SettingsOverlay band reservation) and restores them in
+	# landscape via ResponsiveManager.layout_class_changed.
+	var portrait_chrome = load("res://src/ui/components/base/PortraitChrome.gd").new()
+	add_child(portrait_chrome)
+	portrait_chrome.setup(margin)
 
 	_outer = VBoxContainer.new()
 	_outer.add_theme_constant_override("separation", SPACING_MD)
@@ -145,22 +165,22 @@ func _build_header() -> Control:
 
 	_title_label = Label.new()
 	_title_label.text = "Campaign Journal"
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	header.add_child(_title_label)
 
 	_sort_toggle = Button.new()
 	_sort_toggle.text = "Newest first"
-	_sort_toggle.custom_minimum_size = Vector2(160, TOUCH_TARGET_MIN)
+	_sort_toggle.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	DialogStyles.style_secondary_button(_sort_toggle)
 	_sort_toggle.pressed.connect(_on_sort_toggled)
 	header.add_child(_sort_toggle)
 
 	_share_button = MenuButton.new()
 	_share_button.text = "Share..."
-	_share_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
-	_share_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_share_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_share_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_share_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	var share_popup: PopupMenu = _share_button.get_popup()
 	share_popup.add_item("Copy Entry (Plain)", SHARE_COPY_ENTRY_PLAIN)
@@ -185,13 +205,34 @@ func _build_filter_panel() -> Control:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	panel.add_theme_stylebox_override("panel", style)
 
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", SPACING_SM)
 	panel.add_child(v)
+
+	# Disclosure row. Search stays visible always; everything below it collapses.
+	#
+	# Expanded, this block is a search field, two chip rows (14 type chips and up to 12
+	# tag chips, each wrapping), three dropdowns, a turn range and a reset button —
+	# over 400px of filters sitting on top of the entry list it filters. On a phone
+	# that left nothing for the entries themselves and pushed the screen 232px off the
+	# bottom. It starts collapsed on phones and expanded on tablet/desktop, and
+	# re-evaluates on rotation.
+	_filter_toggle = Button.new()
+	_filter_toggle.toggle_mode = true
+	_filter_toggle.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	_filter_toggle.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	DialogStyles.style_secondary_button(_filter_toggle)
+	_filter_toggle.toggled.connect(_on_filters_toggled)
+	v.add_child(_filter_toggle)
+
+	_filter_body = VBoxContainer.new()
+	_filter_body.add_theme_constant_override("separation", SPACING_SM)
+	v.add_child(_filter_body)
+	v = _filter_body  # everything below builds into the collapsible body
 
 	_search_input = LineEdit.new()
 	_search_input.placeholder_text = "Search title / description..."
@@ -218,17 +259,17 @@ func _build_filter_panel() -> Control:
 	v.add_child(adv)
 
 	_character_dropdown = OptionButton.new()
-	_character_dropdown.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_character_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_character_dropdown.item_selected.connect(_on_character_selected)
 	adv.add_child(_labeled("Character:", _character_dropdown))
 
 	_location_dropdown = OptionButton.new()
-	_location_dropdown.custom_minimum_size = Vector2(200, TOUCH_TARGET_MIN)
+	_location_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_location_dropdown.item_selected.connect(_on_location_selected)
 	adv.add_child(_labeled("Planet:", _location_dropdown))
 
 	_mood_dropdown = OptionButton.new()
-	_mood_dropdown.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	_mood_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_mood_dropdown.item_selected.connect(_on_mood_selected)
 	adv.add_child(_labeled("Mood:", _mood_dropdown))
 
@@ -236,7 +277,7 @@ func _build_filter_panel() -> Control:
 	turn_box.add_theme_constant_override("separation", SPACING_XS)
 	var turn_lbl := Label.new()
 	turn_lbl.text = "Turn:"
-	turn_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	turn_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	turn_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	turn_box.add_child(turn_lbl)
 	_turn_min_spin = SpinBox.new()
@@ -259,18 +300,89 @@ func _build_filter_panel() -> Control:
 
 	_reset_button = Button.new()
 	_reset_button.text = "Reset Filters"
-	_reset_button.custom_minimum_size = Vector2(140, TOUCH_TARGET_MIN)
+	_reset_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	DialogStyles.style_secondary_button(_reset_button)
 	_reset_button.pressed.connect(_on_reset_filters)
 	adv.add_child(_reset_button)
 
+	_apply_filter_disclosure_default(true)
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	# layout_class_changed, not breakpoint_changed: rotating a tablet keeps the width
+	# bucket but flips single-column, which is what this decision keys off.
+	if rm and rm.has_signal("layout_class_changed"):
+		# A METHOD callable, not a lambda. Godot cleans up connections whose target
+		# object is freed, but a lambda's captures are not tracked that way — after
+		# this screen is freed the autoload kept calling it, printing "Lambda capture
+		# at index 0 was freed" on every rotation for the rest of the session.
+		#
+		# GUARDED: CampaignScreenBase._connect_responsive_signals() already connects
+		# this exact signal to this exact method (and guards its own call), so this
+		# second connect errored with "Signal 'layout_class_changed' is already
+		# connected" every time the screen opened. Godot 4 refuses duplicate
+		# connects, which is why the handler still only fired once — but the error
+		# was real and the project convention is that any connect() reachable from a
+		# rebuild path is is_connected-guarded.
+		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
+			rm.layout_class_changed.connect(_on_layout_class_changed)
 	return panel
+
+
+## Collapse the filter block on phones, expand it everywhere else.
+##
+## Only touches the state when the layout class changes, so a player who opened the
+## filters on a phone keeps them open until they rotate.
+func _apply_filter_disclosure_default(force: bool = false) -> void:
+	var collapse := false
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		collapse = bool(rm.should_collapse_to_single_column())
+	# Height matters as much as width. A phone in landscape is 733 design px WIDE, so
+	# it is not single-column and kept the filters open — in 338px of height, where the
+	# block alone is taller than the screen. Collapse on a short viewport too.
+	var vp := get_viewport()
+	if vp and vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX:
+		collapse = true
+	if collapse == _filters_collapsed and not force:
+		return
+	_filters_collapsed = collapse
+	if _filter_toggle:
+		_filter_toggle.button_pressed = not collapse
+	if _filter_body:
+		_filter_body.visible = not collapse
+	_update_filter_toggle_text()
+
+
+func _on_filters_toggled(pressed: bool) -> void:
+	_filters_collapsed = not pressed
+	if _filter_body:
+		_filter_body.visible = pressed
+	_update_filter_toggle_text()
+
+
+## "Filters" alone would hide the fact that a filter is still narrowing the list after
+## the block is collapsed, so the count of non-default filters is part of the label.
+func _update_filter_toggle_text() -> void:
+	if _filter_toggle == null:
+		return
+	var active := _filter_type_set.size() + _filter_tag_set.size()
+	if not _filter_character_id.is_empty():
+		active += 1
+	if not _filter_location.is_empty():
+		active += 1
+	if not _filter_mood.is_empty():
+		active += 1
+	if not _filter_search.is_empty():
+		active += 1
+	if _filter_turn_min >= 0 or _filter_turn_max >= 0:
+		active += 1
+	var suffix := " (%d active)" % active if active > 0 else ""
+	_filter_toggle.text = "Filters%s %s" % [suffix, "▾" if not _filters_collapsed else "▸"]
 
 
 func _build_chip_row_header(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return lbl
 
@@ -280,7 +392,7 @@ func _labeled(label_text: String, control: Control) -> Control:
 	hb.add_theme_constant_override("separation", SPACING_XS)
 	var lbl := Label.new()
 	lbl.text = label_text
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hb.add_child(lbl)
 	hb.add_child(control)
@@ -290,7 +402,7 @@ func _labeled(label_text: String, control: Control) -> Control:
 func _build_results_label() -> Label:
 	_results_label = Label.new()
 	_results_label.text = "Showing 0 entries"
-	_results_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_results_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	_results_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	return _results_label
 
@@ -310,7 +422,7 @@ func _build_content_split() -> Control:
 	sidebar_style.bg_color = COLOR_ELEVATED
 	sidebar_style.border_color = COLOR_BORDER
 	sidebar_style.set_border_width_all(1)
-	sidebar_style.set_corner_radius_all(6)
+	sidebar_style.set_corner_radius_all(4)
 	sidebar_style.set_content_margin_all(SPACING_SM)
 	sidebar.add_theme_stylebox_override("panel", sidebar_style)
 	_entry_list = ItemList.new()
@@ -327,7 +439,7 @@ func _build_content_split() -> Control:
 	detail_style.bg_color = COLOR_ELEVATED
 	detail_style.border_color = COLOR_BORDER
 	detail_style.set_border_width_all(1)
-	detail_style.set_corner_radius_all(6)
+	detail_style.set_corner_radius_all(4)
 	detail_style.set_content_margin_all(SPACING_MD)
 	detail_panel.add_theme_stylebox_override("panel", detail_style)
 	var detail_scroll := ScrollContainer.new()
@@ -347,7 +459,7 @@ func _build_content_split() -> Control:
 	_detail_richtext.fit_content = true
 	_detail_richtext.scroll_active = false
 	_detail_richtext.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_richtext.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	_detail_richtext.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	_detail_richtext.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_detail_richtext.meta_clicked.connect(_on_meta_clicked)
 	detail_vbox.add_child(_detail_richtext)
@@ -541,14 +653,21 @@ func _make_chip(label: String, accent: Color) -> Button:
 	var btn := Button.new()
 	btn.text = label
 	btn.toggle_mode = true
-	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN - 12)
-	btn.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	# TOUCH_TARGET_MIN is 48 DESIGN px, which is the 48dp floor exactly — the "- 12"
+	# that used to be here made every tag chip 36 design px = 41.8dp, under the floor
+	# on the primary form factor. With TOP_TAG_CHIPS at 12 this was the single largest
+	# source of sub-floor controls in the whole app (84 of 181 sweep findings, and it
+	# fired at EVERY window size including desktop, so it was never a compression
+	# artifact). Keep the compact LOOK via the small font + tight chip styling below;
+	# do not buy it back out of the touch target.
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(COLOR_ELEVATED.r, COLOR_ELEVATED.g, COLOR_ELEVATED.b, 0.5)
 	normal.border_color = COLOR_BORDER
 	normal.set_border_width_all(1)
-	normal.set_corner_radius_all(12)
+	normal.set_corner_radius_all(4)
 	normal.set_content_margin_all(SPACING_XS)
 	normal.content_margin_left = SPACING_SM
 	normal.content_margin_right = SPACING_SM
@@ -558,7 +677,7 @@ func _make_chip(label: String, accent: Color) -> Button:
 	pressed.bg_color = Color(accent.r, accent.g, accent.b, 0.35)
 	pressed.border_color = accent
 	pressed.set_border_width_all(1)
-	pressed.set_corner_radius_all(12)
+	pressed.set_corner_radius_all(4)
 	pressed.set_content_margin_all(SPACING_XS)
 	pressed.content_margin_left = SPACING_SM
 	pressed.content_margin_right = SPACING_SM
@@ -608,6 +727,9 @@ func _on_journal_entry_id_changed(entry_id: String) -> void:
 # ── Filter Application ──────────────────────────────────────────────────────
 
 func _apply_filters() -> void:
+	# Keep the "(N active)" count on the disclosure honest — it is the only signal
+	# that the list is still filtered once the block is collapsed.
+	_update_filter_toggle_text()
 	_filtered_entries.clear()
 	for entry: Dictionary in _all_entries:
 		if _entry_passes_filters(entry):
@@ -1134,7 +1256,7 @@ func _ensure_notes_dialog() -> void:
 	var hint := Label.new()
 	hint.text = "Add a free-form note for sharing or future reference."
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	hint.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	vbox.add_child(hint)
 
 	_notes_editor_text = TextEdit.new()
@@ -1280,7 +1402,7 @@ func _populate_photos_grid(photos: Array) -> void:
 		var caption_label := Label.new()
 		caption_label.text = caption if not caption.is_empty() else path.get_file()
 		caption_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		caption_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		caption_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		caption_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cell.add_child(caption_label)
 
@@ -1313,3 +1435,7 @@ func _consume_scene_router_context() -> void:
 		_filter_type_set[pre_type] = true
 		if _type_chip_buttons.has(pre_type):
 			_type_chip_buttons[pre_type].set_pressed_no_signal(true)
+
+
+func _on_layout_class_changed(_cols: int = 0) -> void:
+	_apply_filter_disclosure_default()

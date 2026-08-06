@@ -71,7 +71,7 @@ A `@tool` container for **local** two-pane horizontal↔vertical switching of on
 4. **`_apply_responsive_layout()` runs before `_setup_screen()`** in `CampaignScreenBase._ready` — code-built responsive nodes need the post-setup re-apply (already in the base) or a synchronous pull in setup.
 5. **3-column screens that stack to 1 column** need an OUTER scroll + content-sized columns; nested inner+outer ScrollContainers double-scroll. (Dashboard Phase-4 work.)
 6. **Touch-target sizing stays device-keyed** (COMFORT on mobile bucket, MIN otherwise), NOT orientation-keyed — target size tracks input method, not aspect.
-7. **The base-class `should_use_single_column()` ITSELF must delegate to `ResponsiveManager` — not `get_visible_rect()`.** (Jun 24 2026) For a long time `BaseCampaignPanel.should_use_single_column()` (L474) AND `CampaignScreenBase.should_use_single_column()` (L383) detected portrait via `get_viewport().get_visible_rect().size` (`y > x`) — the exact thing gotcha #1 forbids — so they returned false in device portrait and SILENTLY DEFEATED every panel's correct stacking code (EquipmentPanel `_apply_split_orientation`, WorldInfoPanel cards): the panel called the helper, got false, stayed multi-column. Both now call `_responsive_manager.should_collapse_to_single_column()` with the old logic as fallback. Anti-regression: `grep -rn get_visible_rect src/ui` should find NO orientation/breakpoint use — only true content-rect needs (e.g. pan/zoom math). The fix only shows on a real device; desktop can't hold a portrait window (see Verification).
+7. **The base-class `should_use_single_column()` ITSELF must delegate to `ResponsiveManager` — not `get_visible_rect()`.** (Jun 24 2026) For a long time `BaseCampaignPanel.should_use_single_column()` (L474) AND `CampaignScreenBase.should_use_single_column()` (L383) detected portrait via `get_viewport().get_visible_rect().size` (`y > x`) — the exact thing gotcha #1 forbids — so they returned false in device portrait and SILENTLY DEFEATED every panel's correct stacking code (EquipmentPanel `_apply_split_orientation`, WorldInfoPanel cards): the panel called the helper, got false, stayed multi-column. Both now call `_responsive_manager.should_collapse_to_single_column()` with the old logic as fallback. Anti-regression: `grep -rn get_visible_rect src/ui` should find NO orientation/breakpoint use — only true content-rect needs (e.g. pan/zoom math). ~~The fix only shows on a real device; desktop can't hold a portrait window~~ — **corrected Jul 30 2026: a desktop window pixel IS a device dp, so this is verifiable at a 393×851 desktop window. See Verification.**
 
 ## Phase status (Jun 2026)
 
@@ -97,6 +97,67 @@ content_scale_factor = TARGET_EFFECTIVE(1.12) × ui_scale × dpi_scale × (1080.
 
 The `1080/min(window)` term CANCELS the square-base stretch and holds a CONSTANT effective scale (~1.12) in both orientations — text is the same physical size portrait and landscape, and resizing changes how much content fits, not the text size. `dpi_scale` (`screen_get_scale()`) is real on Android/iOS/macOS/Wayland/Web, **1.0 on Windows** (use `screen_get_dpi()` for Windows-hiDPI). `content_scale_factor` does NOT affect ResponsiveManager's dp breakpoint classification — column/collapse is unchanged.
 
+### The type scale: how a font size becomes responsive (Jul 31 2026)
+
+`ResponsiveManager.get_font_size_multiplier()` has always existed and always been
+right. Almost nothing consumed it. In non-battle `src/ui` there were **990
+`add_theme_font_size_override()` calls against 208 responsive ones**, plus **173
+`theme_override_font_sizes/font_size` pins in `.tscn` files** — and a control with an
+override is invisible to the theme system permanently. So type was the same physical
+size on a 360dp phone and a 1440px desktop, and the user reported exactly that twice.
+
+This matters beyond readability: **a Label's minimum width IS its text width**
+(`probe_label_min.gd`: plain 233px → `clip_text` 1px). Type that never shrinks makes a
+page that physically cannot fit, which is the hidden driver behind a whole class of the
+overflow findings in the section above.
+
+There are now three paths, and every new piece of UI must use one of them:
+
+| Where the size lives | Use | Rescales |
+| --- | --- | --- |
+| Control just inherits the theme | nothing — do not override | theme rescale, live |
+| Code sets a size | `ScreenChrome.font_size(UIColors.FONT_SIZE_MD)` | at build time |
+| A `.tscn` sets a size | `theme_type_variation = &"TextSM"` (see rungs below) | theme rescale, live |
+
+- **The theme rescale**: `ResponsiveManager._capture_theme_font_sizes()` snapshots every
+  authored size at boot and `_apply_theme_font_scale()` rewrites them from that snapshot
+  on each breakpoint change. Snapshot-based on purpose — rescaling from the CURRENT value
+  compounds (0.85 twice is 0.72, and a few rotations shrink the app to nothing).
+- **The rungs** (`sci_fi_theme.tres`): `TextXS` 11 / `TextSM` 14 / `TextLG` 18 / `TextXL`
+  24 / `TextHero` 48 on Label, `ButtonSM` 14 / `ButtonLG` 18 on Button. 16 is the theme
+  default for both — a `= 16` pin should be DELETED, not converted. **Never put a Label
+  variation on a Button**: it would inherit Label's (nonexistent) styleboxes and lose its
+  background entirely.
+- **Verified, not assumed** (this is the load-bearing bit): a variation's font size DOES
+  appear in `Theme.get_font_size_type_list()`, so the rescale loop reaches it; it keeps
+  its `base_type` registration across the rewrite; and a live in-tree control re-resolves
+  it **one frame after** the mutation. That last point is why scene variations beat the
+  code wrapper — they follow a rotation without the screen being rebuilt.
+- **The ladder has one distinct rung per breakpoint**: 0.85 / 0.92 / 1.00 / 1.15 / 1.30.
+  TABLET used to return 1.0, identical to DESKTOP, so nothing changed anywhere between
+  480dp and 1024dp — most of a desktop window's travel and the whole tablet range. A
+  ladder with a repeated rung is indistinguishable from no ladder at the sizes people
+  actually resize through.
+
+**SUPERSEDED:** the old per-site workaround "for a single over-wide TITLE in an HFlow
+header, shrink the font in portrait via `add_theme_font_size_override` gated on
+`should_collapse_to_single_column()`" is no longer needed and should not be added to new
+code — every path above already shrinks in portrait. The autowrap half of that rule
+still stands in full (see below): **in a FlowContainer, never autowrap — `clip_text` +
+`OVERRUN_TRIM_ELLIPSIS`.**
+
+**⚠️ New failure mode this creates.** A control whose height came from its PINNED font
+plus stylebox padding can drop under the 48dp touch floor once the font scales down.
+Found live: seven `HelpButton`s sat at exactly 48dp with a pinned 14px font and fell to
+46.4dp at the MOBILE 0.85 rung — a real defect that the pin had been masking. **Pin
+`custom_minimum_size.y` to the touch target on any control whose tap area depends on its
+text size**; never rely on font padding to reach 48dp. `verify_layout.gd` catches this.
+
+Measure it with `tests/tools/probe_type_scale.gd` (windowed), which instantiates real
+screens at four sizes and reports the DISTRIBUTION of resolved sizes — a regression back
+to pinned type shows up as a column of identical numbers. Reading the multiplier proves
+nothing, because for years almost nothing consumed it.
+
 ### Narrow-width fit (portrait rows must fit ~384px)
 
 CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 1080 design space (then scales to 0.4×), so "portrait verified at content_scale 1.0" only tests COLUMN COLLAPSE — individual rows are never forced to fit a real phone width. After the scaling fix above, the portrait design space is the real ~384px, and rows authored for 1080 overflow. Patterns to make rows fit ~384px (applied across ~19 screens):
@@ -105,7 +166,7 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 - A 1-col GridContainer makes ALL stacked columns share the WIDEST column's min-width — so ONE long label in one column clips the whole screen. Wrap it.
 - Fixed-size card grids (`_create_stats_grid`, cards are fixed 64px and can't shrink, inside scroll-disabled layouts): drop column count in portrait via `should_use_single_column()`.
 - Verify by measuring `get_combined_minimum_size().x` of every Control against the portrait viewport width (a live MCP `run_script` tree-walk) — find the widest intrinsic-min driver, not just visible clipping.
-- **⚠️ `autowrap` is a TRAP when a label sits beside a WIDE ATOMIC sibling (a button) in an `HFlowContainer` row** (caught twice, battle-flow UX pass Jun 2026). An autowrap Label reports a ~0 minimum width, so the HFlow allocates it the *leftover* space next to the button and it char-wraps **vertically** (one char per line) or collapses to near-invisible. The autowrap+`SIZE_EXPAND_FILL` recipe above is for a label that is the PRIMARY/widest element of its row (e.g. a full-width info-row value, or a stacked description) — NOT for a name/result label competing with a fixed-width button. For those rows use an **ATOMIC label** (no autowrap) + `OVERRUN_TRIM_ELLIPSIS` + a fixed `custom_minimum_size.x`: the HFlow then wraps the WHOLE label to its own line (clean), and the ellipsis caps a pathologically long value. Same trap for a single over-wide TITLE in an HFlow header — a lone autowrap label char-wraps; **shrink the font in portrait** instead (`add_theme_font_size_override` gated on `should_collapse_to_single_column()`, restored in landscape).
+- **⚠️ `autowrap` is a TRAP when a label sits beside a WIDE ATOMIC sibling (a button) in an `HFlowContainer` row** (caught twice, battle-flow UX pass Jun 2026). An autowrap Label reports a ~0 minimum width, so the HFlow allocates it the *leftover* space next to the button and it char-wraps **vertically** (one char per line) or collapses to near-invisible. The autowrap+`SIZE_EXPAND_FILL` recipe above is for a label that is the PRIMARY/widest element of its row (e.g. a full-width info-row value, or a stacked description) — NOT for a name/result label competing with a fixed-width button. For those rows use an **ATOMIC label** (no autowrap) + `OVERRUN_TRIM_ELLIPSIS` + a fixed `custom_minimum_size.x`: the HFlow then wraps the WHOLE label to its own line (clean), and the ellipsis caps a pathologically long value. Same trap for a single over-wide TITLE in an HFlow header — a lone autowrap label char-wraps. ~~shrink the font in portrait via a gated `add_theme_font_size_override`~~ **superseded Jul 31 2026**: the type scale shrinks in portrait on its own (see "The type scale" above), so an over-wide HFlow title needs only `clip_text` + `OVERRUN_TRIM_ELLIPSIS`. Do not add new per-site font gating.
 - **Measurement alone is NOT sufficient — pair the `get_combined_minimum_size().x` tree-walk with a SCREENSHOT.** They catch different failure classes: the tree-walk proves nothing exceeds the viewport (so an autowrap label always "passes" with its ~0 min), while the screenshot proves the content is actually *readable* (catches the vertical char-wrap the measurement is blind to).
 
 ### Slider-first hybrid + portrait de-clip (Jun 2026)
@@ -131,3 +192,174 @@ CRITICAL LESSON: with the square base, portrait content lays out in a fake-wide 
 
 - **Unit:** `tests/unit/test_responsive_manager_effective_columns.gd` (16) + `tests/unit/test_adaptive_panel_group.gd` (10, incl. `focus_pane` TABS-switch + GRID-noop guard). gdUnit4 with `-c`, NEVER `--headless` (signal-11).
 - **Live (MCP):** `run_project` → `run_script` to `DisplayServer.window_set_size()` and read `ResponsiveManager.current_viewport_size` / `get_effective_columns()` / a screen's actual columns. `window_set_size` is async — read on the NEXT `run_script` call. Disable the TransitionManager overlay ColorRect (`visible=false`) so screenshots aren't blocked. Test the matrix: 540×960 (phone→1 col), 768×1024 (tablet→2), 1280×720 (desktop→3), plus a constant-width rotation to confirm `layout_class_changed` re-lays-out exactly once.
+- **Geometry sweep (`tests/tools/verify_layout.gd`, Jul 30 2026):** 32 in-scope screens × 6 sizes = 192 checks, measuring REAL rects — off-screen overflow, SettingsOverlay-band collision, the ≥48dp touch floor, and unwrapped-Label minimums. Run **WITHOUT `--headless`**: it needs a real window or `window_set_size` means nothing. A screen with <3 visible Controls is reported SKIP-with-reason, never folded into the pass count (a screen whose `_ready()` silently unwound renders almost nothing and would trivially satisfy every geometric check).
+
+- **Rotation sweep (`tests/tools/verify_rotation.gd`, Jul 30 2026):** 25 screens, ONE instance each, walked portrait → landscape → back at phone and tablet scale. This is the sweep above's blind spot: `verify_layout.gd` builds a fresh screen at each size, so every screen gets its first layout AT its final size and one that ignores a live rotation passes at both. Checks overflow after each resize AND that the layout changed shape — a phone in portrait is one column or a tab strip, a tablet in landscape is not the same shape as phone portrait, and rotating back restores the portrait shape (no one-way latch). Shape assertions are behavioural on purpose; asserting "columns == what the code computes" would only re-assert the implementation. ResponsiveManager's own answer is reported next to a failure but deliberately NOT part of the compared string — folding it in made every portrait/landscape pair differ by construction and turned the check into a guaranteed pass.
+
+### Sizing rules that actually govern overflow (Godot 4.6 docs-confirmed)
+
+Every off-screen bug fixed in the Jul 30 sweep came back to one of these three. They are
+cheap to check and were each re-derived the expensive way first.
+
+**1. `custom_minimum_size` is a FLOOR, never a ceiling.** Per the Control docs: *"The
+actual minimum size is the **maximum** value of this property and the internal minimum
+size (see `get_combined_minimum_size()`)."* So "capping" a container by assigning a
+smaller `custom_minimum_size` does nothing — if the CONTENT wants more, the content wins.
+EULAScreen kept rendering ~380px wide with a 275 cap set, because a 46-character
+unwrapped `CheckButton` label underneath demanded ~350. **Always find the widest CHILD
+before touching the parent** — tree-walk `get_combined_minimum_size().x` and sort.
+
+**2. A minimum propagates all the way up.** `update_minimum_size()` "invalidates the
+minimum size cache in this node and in parent nodes **up to top level**". That is why
+adding a right-hand content margin to clear the floating overlay pushed an entire screen
+off the side: the margin raised the container's minimum width, and that travelled up the
+tree. Reserve space with something that costs only the axis you can afford — a spacer or
+a top margin, not a side margin.
+
+**3. Scrolling is what STOPS a minimum from propagating.** A `ScrollContainer` absorbs its
+child's minimum on any axis where scrolling is enabled. Two modes do NOT absorb it:
+`SCROLL_MODE_DISABLED` (the child must fit, so it propagates) and
+`SCROLL_MODE_MAXIMIZE_FIRST` (documented as making the container "report a minimum size
+based on its content"). So wrapping in a ScrollContainer is the principled fix for content
+that legitimately cannot fit — as long as the axis you need absorbed is actually
+scrollable.
+
+Corollaries worth knowing:
+
+- **`clip_text` on a Label zeroes its width minimum** — useful, but in a container that
+  does not expand it, the Label then gets zero width and vanishes. Pair it with
+  `size_flags_horizontal = SIZE_EXPAND_FILL`.
+- **Autowrap inside an `HFlowContainer` explodes the HEIGHT.** HFlow asks an autowrapping
+  Label for its height at its narrowest width (its longest word) and gets back the line
+  count for the whole string — one AdvancementManager title produced a 900px header. Use
+  `clip_text` + ellipsis there instead.
+- **`flat = true` on a Button drops the themed stylebox**, so it gets no padding and falls
+  under the touch floor unless given its own `custom_minimum_size`.
+- **CheckBox height is icon-driven, not stylebox-driven.** Adding `content_margin` to its
+  stylebox measurably does nothing; pin `custom_minimum_size.y`.
+- **A width floor on a Button is almost always a bug.** Its HEIGHT floor is the 48dp
+  touch target and is real; its width floor stops the button shrinking with its
+  container and propagates by rule 2. The Jul 30 sweep removed 161 of them across
+  `src/ui` (everything ≥140px). A button in a VBox still fills the column afterwards —
+  `size_flags_horizontal` already defaults to FILL — and in an HBox/HFlow it shrinks to
+  its text. Floors below ~140 are usually guaranteeing a comfortable tap area on a small
+  inline control and are fine.
+- **A long button label wants `autowrap_mode`, not a wider button** — but only where the
+  container will give it width. See the next section; getting this wrong produces slabs.
+
+### Autowrap collapse: the trap this project has hit three times
+
+Turning on `autowrap_mode` makes a control's minimum WIDTH fall to its longest word. If
+the container then hands it that minimum, the control reports the height of the *entire*
+string and renders as a tall thin sliver. Measured on 4.6-stable
+(`tests/tools/probe_control_caps.gd`, one autowrapping Button, text "Accept Black Zone
+Mission"):
+
+| Container | flags | minimum |
+| --- | --- | --- |
+| horizontal `BoxContainer` | default (FILL) | **32 × 486** ← slab |
+| horizontal `BoxContainer` | `SIZE_EXPAND_FILL` | 32 × 45 ✓ |
+| `HFlowContainer` | any | **32 × 486** ← slab (FlowContainer ignores main-axis expand) |
+| `HFlowContainer` | autowrap OFF | 254 × 45 ✓ |
+| vertical container | default (FILL) | fine — FILL already gives the full column width |
+
+So the rule is about the PARENT, not the control:
+
+- **vertical container** → autowrap freely.
+- **horizontal `BoxContainer`** → autowrap **plus** `SIZE_EXPAND_FILL`, or it slabs.
+- **`FlowContainer`** → never autowrap. It sizes children to their main-axis minimum and
+  ignores expand, so there is no way to give a wrapping child room. Use `clip_text` +
+  `OVERRUN_TRIM_ELLIPSIS`.
+
+Nothing overflows when this happens, which is why three separate occurrences were each
+caught by a screenshot rather than a check. `verify_layout.gd` now detects it directly:
+the control wraps, its minimum width is under half its unwrapped width, its minimum
+height is over three lines, **and** the container actually handed it that collapsed width
+(the last condition is what keeps a wrapping label in a VBox from being flagged). The
+finding carries the node path and the first 32 characters of its text, because these are
+code-built nodes whose names are `@Label@2497`.
+
+Community context: this is a known rough edge, not a project quirk — see
+[godot#47005](https://github.com/godotengine/godot/issues/47005) (popup with an autowrap
+label opens too tall), [godot#83546](https://github.com/godotengine/godot/issues/83546)
+(popup + container + autowrap sorts wrong) and the standing proposal for
+[`autowrap_maximum_width`](https://github.com/godotengine/godot-proposals/issues/13568).
+
+### Reparenting silently unsubscribes a component
+
+`_ready()` runs **once**. `_exit_tree()` runs on every removal. So a component that
+subscribes in `_ready()` and unsubscribes in `_exit_tree()` goes permanently deaf the
+first time anything MOVES it — and `ShortScreenScroll`, `AdaptivePanelGroup.add_pane()`
+and any `reparent()` all move things.
+
+Two live examples found by `verify_rotation.gd`: `AdaptivePanelGroup` kept a phone tab
+strip on a tablet in landscape (ResponsiveManager said `eff_cols=4`, the group sat at
+`cols=1`), and `WorldPhaseComponent` stopped receiving turn events entirely **with no
+visual symptom at all**.
+
+**Subscribe in `_enter_tree()`, disconnect in `_exit_tree()`**, and make the subscribe
+idempotent. This is the pattern the Godot community converged on for the same reason —
+see the [Godot forum thread on re-added nodes](https://forum.godotengine.org/t/handling-signal-subscription-when-re-adding-nodes-to-the-scene-in-godot-4-3-with-c/85210).
+
+### `custom_maximum_size` does NOT exist in 4.6-stable
+
+The **master** class reference documents `get_bound_minimum_size()` ("maximum size has
+priority over minimum size"), which implies a maximum-size API. It is not in this build:
+`custom_maximum_size` is absent from the property list, and `get_combined_maximum_size()`
+and `get_bound_minimum_size()` both report `has_method() == false`
+(`tests/tools/probe_control_caps.gd`). Keep capping width the way EULAScreen and
+LegalTextViewer do — a `CenterContainer` sizing a child to its minimum. Re-check this
+when the project moves off 4.6.
+
+### The three helpers that fix "does not fit", and when to reach for which
+
+| Symptom | Helper | What it does |
+| --- | --- | --- |
+| Content clipped LEFT/RIGHT in portrait | `PortraitChrome` (`src/ui/components/base/`) | Trims a root MarginContainer's L/R margins in portrait to **16dp under 600dp wide, 24dp at or above it** (`PORTRAIT_GUTTER_DP` / `PORTRAIT_GUTTER_MEDIUM_DP`, derived to design px at runtime); restores the scene's original margin in landscape. 16dp is Material 3's *compact* margin — it is the phone value, not the every-portrait-window value, and holding it on a larger portrait window reads as content jammed against the frame. Also has `setup_offsets(content)` for a screen that pads with anchor offsets instead of a MarginContainer |
+| Content taller than the screen (phone landscape ~338 design px) | `ShortScreenScroll` (same directory) | Wraps everything after N pinned children in a ScrollContainer whose vertical scrolling is AUTO only while the viewport is short |
+| Content under the floating gear/bug buttons | `SettingsOverlay.reserve_band_on(self)` | Pushes content DOWN by exactly the overlap that exists at this screen's position |
+
+All three are idempotent, self-wiring (they react to rotation), and safe to call from a
+screen's `_ready()`. **`ShortScreenScroll` toggles a flag rather than re-parenting on
+rotation** — the scroll exists always, and a DISABLED ScrollContainer propagates its
+child's minimum exactly like the plain container it replaced, so tall screens are byte
+for byte what they were.
+
+**Ordering matters when a root grows both ways.** A vertical overflow on a `grow_vertical = 2`
+root re-centres the screen to a negative `y`, which puts the header back under the
+SettingsOverlay band that `reserve_band_on()` just cleared it from. Fix the height first;
+the band collision usually disappears with it.
+
+### Diagnosing: let the tools name the driver
+
+The outermost overflowing node is the right thing to REPORT and never the thing to FIX —
+a minimum propagates, so a screen hanging 300px off the edge is one label or one button
+row deep inside it refusing to shrink.
+
+- `tests/tools/verify_layout.gd` names the deepest control accounting for each overflow,
+  inline in the finding (`[width driver: PanelContainer .../LeftColumn min=327x16]`).
+- `tests/tools/probe_widest.gd <scene> <w> <h> [x|y] [campaign=...]` prints the whole
+  minimum-size chain for one screen at one size, excluding anything inside a
+  ScrollContainer (which is allowed to overflow).
+- `tests/tools/probe_label_min.gd` is the settled answer to "what actually reduces a
+  Label's minimum width": plain 233px → `clip_text` 1px → `autowrap` 1px. Measured, not
+  inferred from the docs, which only describe what is DRAWN.
+- `tests/tools/probe_type_scale.gd [-- scene=res://…]` walks real screens at four window
+  sizes and prints the resolved font-size distribution per size. Use it whenever type
+  "looks the same everywhere" — it distinguishes "the ladder is flat" from "this screen
+  pins its sizes", which the multiplier alone cannot. Windowed, like the sweeps.
+
+### A desktop window pixel IS a device dp — layout QA is NOT device-blocked
+
+This SOP previously said portrait layout could only be verified on hardware. **That was wrong.**
+
+```text
+Device:   design space = (physical px / screen_get_scale()) / 1.16 = dp / 1.16
+Desktop:  screen_get_scale() == 1.0 on Windows       → design space = window_px / 1.16
+```
+
+The 1.16 is derived, not magic: `SettingsManager._apply_ui_scale()` cancels the square-1080 base stretch with `stretch_cancel = 1080 / short_axis` (the same `1080/min(window)` term described above). Measured live: a 393×851 window reports `MOBILE / portrait / 1 column / 56px touch target`, design space `338.79 × 733.42`, and `338.79 × 1.16 = 392.99998`. **Derive the ratio at runtime; never hardcode 1.16.**
+
+Consequence: everything geometric is a desktop job. Device time is for what dp equivalence genuinely cannot settle — safe-area insets (`get_display_safe_area()` returns the whole monitor on Windows), real touch physics / fling, physical legibility and thumb reach, ARM perf/thermals, Android plugins, scoped storage. See `docs/testing/TABLET_CHECKLIST_2026-08-02.md`.
+
+**Why this matters more than it sounds**: the existing "responsive" suites (`test_postbattle_responsive.gd`, `test_prebattle_responsive_layout.gd`, `test_tactical_battle_responsive.gd`) assert CONFIGURATION — autowrap flags, panel resolution, column counts — and contain zero `window_set_size` / `get_global_rect` calls. Every one of them passed while the MainMenu title was clipped 67px off both edges and drawn 103px underneath the button column. Asserting a flag is not measuring a rect.

@@ -1,9 +1,23 @@
 class_name HubFeatureCard
 extends PanelContainer
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Dark card with cyan left border, icon, title, description, and arrow.
 ## Used as a dashboard hub navigation element — replaces plain button lists.
 ## Inspired by Fallout Wasteland Warfare hub screen feature cards.
+
+## Icon box, square. Sized up from the original 28 now that it no longer stretches to
+## the card's height — at 28 in a 100px-tall card it read as an afterthought.
+const ICON_SIZE := 36
 
 signal card_pressed
 
@@ -39,20 +53,10 @@ func _ready() -> void:
 func _build_ui() -> void:
 	custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_COMFORT)
 
-	# Card style — dark bg with cyan left border
-	var style := StyleBoxFlat.new()
-	style.bg_color = UIColors.COLOR_SECONDARY
-	style.border_color = UIColors.COLOR_CYAN
-	style.border_width_left = 3
-	style.border_width_top = 0
-	style.border_width_right = 0
-	style.border_width_bottom = 0
-	style.set_corner_radius_all(4)
-	style.content_margin_left = UIColors.SPACING_MD
-	style.content_margin_right = UIColors.SPACING_MD
-	style.content_margin_top = UIColors.SPACING_SM
-	style.content_margin_bottom = UIColors.SPACING_SM
-	add_theme_stylebox_override("panel", style)
+	# Card look — dark bg with a cyan left edge — now lives in the theme as the
+	# NavCard variation, so section cards, .tscn-built rows and this card all read
+	# from one definition instead of three copies of the same numbers.
+	ScreenChrome.apply_card(self)
 
 	var hbox := HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", UIColors.SPACING_MD)
@@ -62,8 +66,7 @@ func _build_ui() -> void:
 	# Icon
 	_icon_label = Label.new()
 	_icon_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_XL + 4
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL + 4))
 	_icon_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_CYAN
 	)
@@ -75,7 +78,12 @@ func _build_ui() -> void:
 	_icon_texture_rect = TextureRect.new()
 	_icon_texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_icon_texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_icon_texture_rect.custom_minimum_size = Vector2(28, 28)
+	_icon_texture_rect.custom_minimum_size = Vector2(ICON_SIZE, ICON_SIZE)
+	# SHRINK_CENTER, not the default FILL. A child of an HBox fills vertically, so this
+	# box was stretching to the card's full height — measured 28 wide by 111 TALL — and
+	# KEEP_ASPECT_CENTERED then drew a 28px icon marooned in the middle of it. That is
+	# why the icons read as too small for the card: they were, relative to their box.
+	_icon_texture_rect.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_icon_texture_rect.modulate = UIColors.COLOR_CYAN
 	_icon_texture_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon_texture_rect.visible = false
@@ -90,18 +98,22 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	_title_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
 	_title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Autowrap is safe HERE (a VBox column, unlike an HBox header where it would grow
+	# the row). Without it "Gear & Consumables" pinned this card's minimum width at
+	# 290px: in a single-column HFlow that is wider than a phone's scroll viewport, so
+	# the Library list grew a horizontal scrollbar and every card sized to its own
+	# title instead of the column — a ragged list of different-width cards.
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_vbox.add_child(_title_label)
 
 	_desc_label = Label.new()
 	_desc_label.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_SM
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_desc_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY
 	)
@@ -113,8 +125,7 @@ func _build_ui() -> void:
 	var arrow := Label.new()
 	arrow.text = "→"
 	arrow.add_theme_font_size_override(
-		"font_size", UIColors.FONT_SIZE_LG
-	)
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
 	arrow.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_MUTED
 	)
@@ -137,10 +148,12 @@ func _on_hover_enter() -> void:
 	add_theme_stylebox_override("panel", style)
 
 func _on_hover_exit() -> void:
-	var style: StyleBoxFlat = get_theme_stylebox("panel").duplicate()
-	style.border_color = UIColors.COLOR_CYAN
-	style.bg_color = UIColors.COLOR_SECONDARY
-	add_theme_stylebox_override("panel", style)
+	# CLEAR the override rather than painting the resting look back on. An
+	# override outranks the theme permanently, so re-applying one here would mean
+	# that after a single hover the card no longer reads from the NavCard
+	# variation at all — and any later change to the card look would silently skip
+	# every card the player had happened to touch.
+	remove_theme_stylebox_override("panel")
 
 ## Configure the card with an emoji icon. Returns self for chaining.
 ## Safe to call before or after add_child() — data is deferred if UI not built yet.

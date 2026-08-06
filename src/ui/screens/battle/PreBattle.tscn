@@ -143,9 +143,10 @@ size_flags_vertical = 3
 layout_mode = 2
 theme_type_variation = &"DarkPanel"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/FooterPanel"]
+[node name="HBoxContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/FooterPanel"]
 layout_mode = 2
-theme_override_constants/separation = 20
+theme_override_constants/h_separation = 20
+theme_override_constants/v_separation = 8
 alignment = 2
 
 [node name="BackButton" type="Button" parent="MarginContainer/VBoxContainer/FooterPanel/HBoxContainer"]

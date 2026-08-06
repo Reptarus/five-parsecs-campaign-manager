@@ -25,20 +25,20 @@ const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18
 const FONT_SIZE_XL := 24
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
+const COLOR_BASE := UIColors.COLOR_PRIMARY
+const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
+const COLOR_INPUT := UIColors.COLOR_TERTIARY
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_CYAN
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
-const COLOR_TEXT_DISABLED := Color("#404040")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
+const COLOR_TEXT_DISABLED := UIColors.COLOR_TEXT_MUTED
 
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_WARNING := Color("#D97706")
+const COLOR_SUCCESS := UIColors.COLOR_EMERALD
+const COLOR_WARNING := UIColors.COLOR_AMBER
 
 # UI References
 var condition_type_option: OptionButton
@@ -115,14 +115,14 @@ func _create_header() -> VBoxContainer:
 	# Title
 	var title_label := Label.new()
 	title_label.text = "Create Custom Victory Condition"
-	title_label.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	container.add_child(title_label)
 
 	# Description
 	var desc := Label.new()
 	desc.text = "Adjust the target value for any victory condition to suit your campaign style."
-	desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	container.add_child(desc)
@@ -139,7 +139,7 @@ func _create_victory_type_card() -> PanelContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 
@@ -149,7 +149,7 @@ func _create_victory_type_card() -> PanelContainer:
 	# Label
 	var label := Label.new()
 	label.text = "VICTORY TYPE"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(label)
 
@@ -173,7 +173,7 @@ func _create_target_value_card() -> PanelContainer:
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 
@@ -183,7 +183,7 @@ func _create_target_value_card() -> PanelContainer:
 	# Label
 	var label := Label.new()
 	label.text = "TARGET VALUE"
-	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(label)
 
@@ -211,22 +211,22 @@ func _create_action_buttons() -> HBoxContainer:
 
 	var cancel_style := StyleBoxFlat.new()
 	cancel_style.bg_color = COLOR_BORDER
-	cancel_style.set_corner_radius_all(6)
+	cancel_style.set_corner_radius_all(4)
 	cancel_style.set_content_margin_all(SPACING_SM)
 	cancel_button.add_theme_stylebox_override("normal", cancel_style)
 	cancel_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	cancel_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	cancel_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	container.add_child(cancel_button)
 
 	# Confirm button (primary action)
 	confirm_button = Button.new()
 	confirm_button.text = "Create Custom Condition"
-	confirm_button.custom_minimum_size = Vector2(220, TOUCH_TARGET_COMFORT)
+	confirm_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 
 	var confirm_style := StyleBoxFlat.new()
 	confirm_style.bg_color = COLOR_ACCENT
-	confirm_style.set_corner_radius_all(6)
+	confirm_style.set_corner_radius_all(4)
 	confirm_style.set_content_margin_all(SPACING_SM)
 	confirm_button.add_theme_stylebox_override("normal", confirm_style)
 
@@ -234,9 +234,12 @@ func _create_action_buttons() -> HBoxContainer:
 	var confirm_hover := confirm_style.duplicate()
 	confirm_hover.bg_color = COLOR_ACCENT_HOVER
 	confirm_button.add_theme_stylebox_override("hover", confirm_hover)
+	# Derive pressed/disabled/focus from the box above so this button keeps
+	# its shape when it is clicked. See DialogStyles.complete_button_states.
+	DialogStyles.complete_button_states(confirm_button)
 
 	confirm_button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	confirm_button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	confirm_button.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	confirm_button.pressed.connect(_on_confirm_pressed)
 	container.add_child(confirm_button)
 
@@ -248,7 +251,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 
@@ -257,7 +260,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	focus_style.set_border_width_all(2)
 	line_edit.add_theme_stylebox_override("focus", focus_style)
 
-	line_edit.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	line_edit.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	line_edit.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 func _style_option_button(option_btn: OptionButton) -> void:
@@ -266,7 +269,7 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
@@ -275,7 +278,7 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	focus_style.set_border_width_all(2)
 	option_btn.add_theme_stylebox_override("focus", focus_style)
 
-	option_btn.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	option_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	option_btn.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
 func _populate_condition_types() -> void:
@@ -397,7 +400,7 @@ func _create_preview_card(victory_type: int, target_value: int) -> PanelContaine
 	style.bg_color = COLOR_ELEVATED
 	style.border_color = COLOR_FOCUS # Cyan to show "preview" state
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(8)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	card.add_theme_stylebox_override("panel", style)
 
@@ -418,21 +421,21 @@ func _create_preview_card(victory_type: int, target_value: int) -> PanelContaine
 	# === PREVIEW LABEL ===
 	var preview_label := Label.new()
 	preview_label.text = "PREVIEW"
-	preview_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	preview_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	preview_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(preview_label)
 
 	# === TITLE ===
 	var title := Label.new()
 	title.text = "%s (Custom: %d)" % [name, target_value]
-	title.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(title)
 
 	# === DESCRIPTION ===
 	var description := Label.new()
 	description.text = short_desc
-	description.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	description.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(description)
@@ -460,7 +463,7 @@ func _create_preview_card(victory_type: int, target_value: int) -> PanelContaine
 	if not strategy.is_empty():
 		var tip := Label.new()
 		tip.text = "Strategy: %s" % strategy
-		tip.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		tip.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		tip.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(tip)
@@ -480,7 +483,7 @@ func _create_badge(text: String, bg_color: Color) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = text
-	label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	badge.add_child(label)
 
@@ -494,7 +497,7 @@ func _get_difficulty_color(difficulty: String) -> Color:
 		"Medium":
 			return COLOR_WARNING
 		"Hard", "Very Hard":
-			return Color("#DC2626") # COLOR_DANGER
+			return UIColors.COLOR_RED # COLOR_DANGER
 		_:
 			return COLOR_BORDER
 

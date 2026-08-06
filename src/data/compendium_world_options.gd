@@ -6,9 +6,9 @@ extends RefCounted
 ## All output is TEXT INSTRUCTIONS for the tabletop companion model.
 ##
 ## Features:
-##   FRINGE_WORLD_STRIFE - Instability tracking + D100 strife events (pp.148-153)
-##   EXPANDED_LOANS      - Multi-step loan system: origin, interest, enforcement (pp.152-158)
-##   NAME_GENERATION     - D100 tables for worlds, colonies, ships, corporate patrons (pp.157-162)
+##   FRINGE_WORLD_STRIFE - Instability tracking + D100 strife events (pp.148-151)
+##   EXPANDED_LOANS      - Multi-step loan system: origin, interest, enforcement (pp.152-156)
+##   NAME_GENERATION     - D100 tables for worlds, colonies, ships, corporate patrons (pp.157-160)
 ##   EXPANDED_FACTIONS   - DLC gate for existing FactionSystem
 ##   TERRAIN_GENERATION  - DLC gate for compendium terrain themes
 
@@ -24,8 +24,17 @@ static func _ensure_ref_loaded() -> void:
 	if _ref_loaded:
 		return
 	_ref_loaded = true
-	# Load terrain tables and fringe world strife data
-	for path in ["res://data/RulesReference/TerrainTables.json", "res://data/RulesReference/FringeWorldStrife"]:
+	# Terrain tables only. This loop used to carry a second entry,
+	# "res://data/RulesReference/FringeWorldStrife" — no file extension, and no
+	# such file exists under any name in data/RulesReference/. FileAccess.open
+	# returned null every time and the loop skipped it in silence, so the entry
+	# read as "strife data is loaded here" while loading nothing at all.
+	#
+	# The strife table is real and does reach play; it just arrives by the OTHER
+	# loader in this file (_ensure_loaded, world_options.json -> strife_events,
+	# 10 rows). Do not re-add a RulesReference strife path unless you have first
+	# confirmed the file is on disk.
+	for path in ["res://data/RulesReference/TerrainTables.json"]:
 		var file := FileAccess.open(path, FileAccess.READ)
 		if file:
 			var json := JSON.new()
@@ -158,25 +167,32 @@ static var CORP_PART2: Array:
 ## QUERY METHODS
 ## ============================================================================
 
-## Check if world is unstable on arrival. D6 4+ (or 5+ if less chaotic).
-static func check_world_unstable(use_calmer_setting: bool = false) -> bool:
-	var threshold := 5 if use_calmer_setting else 4
-	return randi_range(1, 6) >= threshold
-
-
-## Roll instability change for this campaign turn.
-## Returns the new instability delta (always positive before modifiers).
-static func roll_instability_delta(active_rivals: int, patron_job: bool, held_field_roving: bool) -> int:
-	var delta := randi_range(1, 6)
-	delta += active_rivals
-	if patron_job:
-		delta -= 1
-	if held_field_roving:
-		delta -= 1
-	return maxi(delta, 0)
+## ============================================================================
+## FRINGE WORLD STRIFE — the mechanism moved out of this file (Aug 3 2026)
+## ============================================================================
+##
+## `check_world_unstable()` and `roll_instability_delta()` used to live here as
+## two stateless dice helpers, and that was the whole problem: pp.148-151 is a
+## per-world SCORE that persists across campaign turns, and neither helper had
+## anywhere to put it. `roll_instability_delta` had exactly one caller, in
+## phases/WorldPhase.gd — a file with zero instantiations — and
+## `check_world_unstable` was reached only through `should_check_strife()`,
+## which re-rolled the ARRIVAL die every turn and then fired the D100
+## immediately instead of at the book's threshold of 10.
+##
+## The stateful engine is now `src/core/world/FringeWorldStrife.gd`:
+##   arrival roll   -> FringeWorldStrife.roll_arrival()   (idempotent per world)
+##   accumulation   -> FringeWorldStrife.accumulate()     (Invasion step)
+##   the D100 table -> still rolled here, by roll_strife_event() below.
+##
+## This file keeps ownership of the TABLE. Do not re-add a mechanism here.
 
 
 ## Roll a Fringe World Strife event (D100). Returns empty if DLC disabled.
+##
+## Callers should not invoke this directly to "check for strife" — the book only
+## rolls it when a world's Instability reaches or exceeds 10.
+## FringeWorldStrife.accumulate() owns that decision.
 static func roll_strife_event() -> Dictionary:
 	if not _is_flag_enabled("FRINGE_WORLD_STRIFE"):
 		return {}
@@ -189,13 +205,18 @@ static func roll_strife_event() -> Dictionary:
 	return STRIFE_EVENTS[0]
 
 
-## Check if strife should be checked (legacy compat — prefer check_world_unstable).
-static func should_check_strife(is_fringe_world: bool) -> bool:
-	if not _is_flag_enabled("FRINGE_WORLD_STRIFE"):
-		return false
-	if not is_fringe_world:
-		return false
-	return check_world_unstable()
+## DELETED (Aug 3 2026): `should_check_strife(is_fringe_world)`.
+##
+## It was the entire live entry point to this chapter and it could not work. It
+## took a boolean `is_fringe_world` that NO producer in the repository ever
+## wrote, so the guard was permanently false; if it had been reachable it would
+## then have re-rolled the p.148 ARRIVAL die on every campaign turn and fired the
+## D100 straight away, skipping the Instability score the whole chapter runs on.
+##
+## Use FringeWorldStrife.roll_arrival() at arrival and
+## FringeWorldStrife.accumulate() in the Invasion step. Do not reinstate a
+## boolean "is this a fringe world" gate — the book's gate is the arrival 1D6,
+## and its result is per-world state, not a property of the world's type.
 
 
 ## Roll loan origin (D100). Returns empty if DLC disabled.
@@ -209,6 +230,29 @@ static func roll_loan_origin() -> Dictionary:
 			result["roll"] = roll
 			return result
 	return LOAN_ORIGINS[0]
+
+
+## Compendium p.152 Step 2, the origin surcharge on the loan principal:
+##
+##   "Unity Program loans must add +5 Credits due to fees and paperwork.
+##    Free Trader or Suspicious Character loans must add +1D6 Credits due to
+##    personal whims."
+##
+## The other two origins (Sector Government, Corporate) add nothing. Returns the
+## credits to add on top of the ship's p.31 cost.
+##
+## world_options.json has carried a `fee_adjustment` string on every origin row
+## since it was written, describing exactly this, and nothing ever read it — the
+## principal was a flat `20` constant at the one call site, so all five lenders
+## charged the same and the step was decorative.
+static func loan_origin_surcharge(origin_id: String) -> int:
+	match origin_id:
+		"unity_program":
+			return 5
+		"free_trader", "suspicious_character":
+			return randi_range(1, 6)
+		_:
+			return 0
 
 
 ## Roll interest rate (D100). Returns empty if DLC disabled.

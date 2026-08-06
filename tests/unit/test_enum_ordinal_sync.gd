@@ -60,3 +60,29 @@ func test_dead_skill_and_ability_enums_stay_deleted() -> void:
 	assert_bool(gl.has("Ability")).is_false()
 	assert_bool(ge.has("Skill")).is_false()
 	assert_bool(ge.has("Ability")).is_false()
+
+
+func test_dead_combat_enums_stay_deleted() -> void:
+	# CombatModifier / CombatStatus / CombatTactic / CombatAdvantage were
+	# deleted from BOTH files 2026-08-02. Every member was fabricated and all
+	# four had zero users.
+	#
+	# Core Rules p.44 resolves shooting as 1D6 + Combat Skill against a target
+	# number, and cover is BINARY — it selects one of three rows (3+ within 6"
+	# in the open, 5+ within range in the open or within 6" in Cover, 6+ within
+	# range in Cover), it does not contribute a modifier. So there are no
+	# light/medium/heavy cover tiers. "Pinned" and "Overwatch" occur ZERO times
+	# in the Core Rules and ZERO times in the Compendium; the only status effect
+	# the book has is Stunned (p.40).
+	#
+	# Re-adding one side only would silently violate the sync rule, so pin the
+	# deletion the same way Skill/Ability are pinned above.
+	var gl: Dictionary = _constant_map("res://src/core/systems/GlobalEnums.gd")
+	var ge: Dictionary = _constant_map("res://src/core/enums/GameEnums.gd")
+	for dead_enum in ["CombatModifier", "CombatStatus", "CombatTactic", "CombatAdvantage"]:
+		assert_bool(gl.has(dead_enum)).override_failure_message(
+			"GlobalEnums.%s was re-added — it is fabricated, see Core Rules p.44" % dead_enum
+		).is_false()
+		assert_bool(ge.has(dead_enum)).override_failure_message(
+			"GameEnums.%s was re-added — it is fabricated, see Core Rules p.44" % dead_enum
+		).is_false()

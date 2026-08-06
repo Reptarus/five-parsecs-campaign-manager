@@ -147,3 +147,34 @@ func test_personal_breakthrough_respects_maxed_abilities():
 	var character := {"origin": "human", "combat": 5, "reaction": 6, "speed": 8, "savvy": 5, "toughness": 6}
 	var raised: String = ctx.apply_random_ability_increase(character)
 	assert_str(raised).is_empty()
+
+# ============================================================================
+# Difficulty fallback — the ordinal trap
+# ============================================================================
+
+func test_missing_game_state_does_not_report_easy():
+	## GlobalEnums.DifficultyLevel is {NONE=0, EASY=1, NORMAL=2, ...}, so the old
+	## `return 1` fallback in get_campaign_difficulty() reported EASY whenever
+	## game_state_manager was absent. That silently granted the Core Rules p.64
+	## Easy-mode concessions — PaymentProcessor's +1 credit, the invasion-roll
+	## modifier, the XP modifier — to campaigns that were not on Easy. It also
+	## made test_failed_mission_still_pays fail ~1 run in 6 (a 6 became a 7).
+	var ctx = auto_free(PostBattleContextClass.new())
+	assert_int(ctx.get_campaign_difficulty()).is_equal(
+		GlobalEnums.DifficultyLevel.NONE)
+	assert_int(ctx.get_campaign_difficulty()).is_not_equal(
+		GlobalEnums.DifficultyLevel.EASY)
+
+func test_payment_never_exceeds_a_plain_d6_without_modifiers():
+	## Guards the same regression from the payout side: with no danger pay, no
+	## Red Zone, no quest finale and no difficulty source, payment is a plain 1D6.
+	var processor = PaymentProcessor.new()
+	for _i in range(30):
+		var ctx = auto_free(PostBattleContextClass.new())
+		ctx.battle_result = {
+			"is_invasion": false, "is_red_zone": false,
+			"is_quest_finale": false, "is_rival_mission": false, "danger_pay": 0,
+		}
+		ctx.mission_successful = false
+		var payment: int = processor.process_payment(ctx)
+		assert_int(payment).is_between(1, 6)

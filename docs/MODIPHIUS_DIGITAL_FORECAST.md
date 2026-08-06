@@ -248,6 +248,53 @@ Apply app conversion rate to addressable market. Industry benchmarks for compani
 - Deal-structure recommendations — see `PARTNERSHIP_DEAL_STRUCTURE_RESEARCH.md` §8
 - Mac/iOS hardware integration math — see `UPFRONT_INVESTMENT_TRANSPARENCY.md` §3 (ROI math anchored to §5 Moderate; Fallout calibration confirms Moderate is achievable)
 
+### 5b-rev. ARPU CORRECTION (2026-07-27) — supersedes the $18 figure used in 5c/5d/5e
+
+**The $18 weighted ARPU below is overstated by roughly 20%, and every table that inherits it (§5c, §5d, §5e, §6b, §7b, §9) is overstated with it.** Corrected basis:
+
+The $18 assumption is *"$9.99 base + ~$8 in DLC attach"*, which implies each buyer purchases **~1.15 expansions**. Modiphius's own confirmed physical sales say otherwise:
+
+| Product | Physical units **[CONFIRMED]** | Attach vs Core (32,500 mid) |
+|---|---:|---:|
+| 5PFH Core | 30,000–35,000 | — |
+| Planetfall | ~6,000 | **18.5%** |
+| Tactics + Bug Hunt | ~5,000 | **15.4%** |
+
+**82–85% of core buyers never bought an expansion.** Expected expansion purchases per buyer is **0.68**, not 1.15.
+
+**Corrected ARPU, book-by-book at mobile price points:**
+
+| SKU | Price | Attach | Expected per buyer |
+|---|---:|---:|---:|
+| Base app | $9.99 | 100% | $9.99 |
+| Compendium bundle | $9.99 | 25% ⚠ ASSUMED | $2.50 |
+| Planetfall | $6.99 | 18.5% **[DERIVED]** | $1.29 |
+| Tactics | $6.99 | 15.4% **[DERIVED]** | $1.08 |
+| Bug Hunt | $4.99 | 15.4% **[DERIVED]** | $0.77 |
+| **Weighted ARPU** | | | **$15.63** |
+
+⚠ **The Compendium attach rate is the single biggest lever in this model and it is the one number we do not have.** §4c lists it as `[UNKNOWN]`. It is core-adjacent so it should attach higher than Planetfall, but 25% is an assumption. Sensitivity: at 15% attach, ARPU falls to $14.63 — the conclusions below are unchanged. **Ask Modiphius for the Compendium DTRPG figure.**
+
+### 5b-rev2. Corrected revenue — mobile-first, book-by-book
+
+Supersedes §5c/§5d/§5e/§6b. Basis: full ecosystem 51,113 (§5a), ARPU $15.63, mobile platform fee 15% under the small-business programmes (net ×0.85), **not** Steam's 30%.
+
+| Scenario | Conversion | Buyers | Gross | Net (×0.85) | Per month |
+|---|---:|---:|---:|---:|---:|
+| Floor | 2% | 1,022 | $15,974 | **$13,578** | $1,132 |
+| Conservative | 5% | 2,556 | $39,950 | **$33,958** | $2,830 |
+| **Moderate** | **10%** | **5,111** | **$79,885** | **$67,902** | **$5,658** |
+| Strong | 20% | 10,223 | $159,785 | **$135,818** | $11,318 |
+| Aggressive | 30% | 15,334 | $239,670 | **$203,720** | $16,977 |
+
+**Why book-by-book beats a single all-in price on mobile.** At $19.99 flat, ARPU is higher per buyer but the entry price suppresses conversion. Break-even against book-by-book requires holding ~7.8% conversion where $9.99 holds 10%; a doubled entry price does not retain 78% of the funnel on mobile. Book-by-book also delivers the per-product sales attribution Modiphius asked for in the LOI comments ("we'll have to be able to identify sales of those products to pay royalties").
+
+**Consequence for the maintenance-fee threshold (§2c of the meeting brief):** Conservative lands at **$2,830/mo**, just under the proposed $3,000 threshold; Moderate lands at **$5,658/mo**, just above the $5,000 taper endpoint. **The $3,000–$5,000 taper band is precisely the range the app passes through as it ramps from Conservative to Moderate** — which is exactly when a hard cliff would bite, and exactly why the fee should phase rather than switch off.
+
+**What would change these numbers:** the Compendium attach rate (biggest lever); real alpha conversion data replacing the §5b scenario ladder; adding the Steam desktop edition, which is upside not modelled here.
+
+---
+
 ### 5c. App revenue scenarios (5PFH Core audience only, ~38K players)
 
 Price points under consideration: $9.99 / $14.99 / $19.99 / $24.99 base + DLC.
@@ -290,6 +337,8 @@ Formula: `Base gross × 1.25`. Applied to Section 5d rows:
 ---
 
 ## 6. Storefront Fees (Net Revenue After Platform Cut)
+
+> ⚠ **SUPERSEDED 2026-07-27.** The product is mobile-first (Android first), not Steam-first — see `reference_platform_steam_debut_mobile_distribution`. Use §5b-rev2 for current net figures (mobile fee 15%, not Steam's 30%). This section is retained for history.
 
 **Strategy: Steam-first launch, mobile pocket edition as Phase 2.**
 

@@ -37,23 +37,22 @@ func _ready() -> void:
 	_ensure_base_background()
 	_setup_responsive_layout()
 	_build_ui()
+
+	# Base _ready() is deliberately skipped above, so the SettingsOverlay band
+	# reservation it normally performs is invoked manually here -- same as
+	# _ensure_base_background() / _setup_responsive_layout(). Without it this
+	# screen's header draws underneath the floating gear/bug buttons.
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
 	_populate()
 
 
 func _init_row_styles() -> void:
-	# Card-style rows matching HubFeatureCard: 3px cyan left border
-	_style_row_even = StyleBoxFlat.new()
-	_style_row_even.bg_color = UIColors.COLOR_SECONDARY
-	_style_row_even.border_color = UIColors.COLOR_CYAN
-	_style_row_even.border_width_left = 3
-	_style_row_even.border_width_top = 0
-	_style_row_even.border_width_right = 0
-	_style_row_even.border_width_bottom = 0
-	_style_row_even.set_corner_radius_all(4)
-	_style_row_even.content_margin_left = UIColors.SPACING_MD
-	_style_row_even.content_margin_right = UIColors.SPACING_MD
-	_style_row_even.content_margin_top = UIColors.SPACING_SM
-	_style_row_even.content_margin_bottom = UIColors.SPACING_SM
+	# The row look is the Library's nav-card recipe. Read from ScreenChrome rather
+	# than re-typed here: this file used to carry its own copy of the same twelve
+	# lines, so a change to the card style silently skipped the category list.
+	_style_row_even = ScreenChrome.card_style()
 
 	_style_row_odd = _style_row_even.duplicate()
 	_style_row_odd.bg_color = UIColors.COLOR_SECONDARY.lerp(
@@ -87,6 +86,11 @@ func _build_ui() -> void:
 	outer.offset_top = UIColors.SPACING_LG
 	outer.offset_bottom = -UIColors.SPACING_LG
 	add_child(outer)
+	# Portrait de-clip, same as CompendiumScreen: 32px per side is a fifth of a
+	# 360dp phone, and the entry rows were paying for it.
+	var _pc = load("res://src/ui/components/base/PortraitChrome.gd").new()
+	add_child(_pc)
+	_pc.setup_offsets(outer)
 
 	# Header row
 	var header := HBoxContainer.new()
@@ -115,15 +119,21 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = _category.get("title", "Category")
-	_title_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XL)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XL))
 	_title_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_title_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	# Clip + ellipsis in an HBox header: an unclipped Label demands its full unwrapped
+	# width as a minimum and that minimum propagates up to the screen root.
+	_title_label.clip_text = true
+	_title_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	header.add_child(_title_label)
 
 	_count_label = Label.new()
-	_count_label.custom_minimum_size.x = 100
+	# No width floor. "36 items" needs ~60px; the 100px floor it used to carry was
+	# 40px of a phone's 339 spent on nothing, on a row that was already overflowing.
+	_count_label.custom_minimum_size.x = 0
 	_count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_count_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_count_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	header.add_child(_count_label)
 
@@ -135,7 +145,7 @@ func _build_ui() -> void:
 		_header_desc.text = "%s — %s" % [desc, source] if not desc.is_empty() else source
 	else:
 		_header_desc.text = desc
-	_header_desc.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	_header_desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	_header_desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	_header_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outer.add_child(_header_desc)
@@ -167,7 +177,7 @@ func _build_ui() -> void:
 	_search_input.add_theme_stylebox_override("normal", s_style)
 	_search_input.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_search_input.add_theme_color_override("font_placeholder_color", UIColors.COLOR_TEXT_MUTED)
-	_search_input.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	_search_input.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	_search_input.text_changed.connect(_on_filter_text_changed)
 	outer.add_child(_search_input)
 
@@ -220,7 +230,7 @@ func _create_filter_button(label_text: String, filter_value: String) -> Button:
 	btn.custom_minimum_size.y = 36
 	btn.toggle_mode = true
 	btn.button_pressed = (filter_value == _active_filter)
-	btn.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	# Store raw filter value as metadata (display text may differ from value)
 	btn.set_meta("filter_value", filter_value)
 	btn.toggled.connect(func(pressed: bool) -> void:
@@ -342,7 +352,7 @@ func _create_group_header(section_text: String) -> HBoxContainer:
 
 	var label := Label.new()
 	label.text = section_text.replace("_", " ").to_upper()
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	label.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	row.add_child(label)
@@ -407,10 +417,17 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 	name_label.text = str(
 		item.get("name", item.get("term", item.get("type", "Unknown")))
 	)
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY
 	)
+	# Entry names are book terms and some are long ("Converted Assault Team"). Unclipped
+	# they set the row's minimum width, which on a 360dp phone put the rows 51px wider
+	# than the list and gave the Library a HORIZONTAL scrollbar. Expand-fill so the
+	# label claims the leftover width, and wrap inside it rather than clipping — the
+	# name is the one thing on the row the reader needs in full.
+	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(name_label)
 
@@ -427,8 +444,7 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 		var stat_label := Label.new()
 		stat_label.text = stat_text
 		stat_label.add_theme_font_size_override(
-			"font_size", UIColors.FONT_SIZE_XS
-		)
+			"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 		stat_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		stat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		text_vbox.add_child(stat_label)
@@ -500,7 +516,7 @@ func _create_compact_item_row(item: Dictionary, index: int) -> PanelContainer:
 
 	var name_label := Label.new()
 	name_label.text = str(item.get("name", item.get("term", item.get("type", "Unknown"))))
-	name_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
+	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
 	name_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	name_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -549,7 +565,7 @@ func _create_type_badge(type_text: String) -> PanelContainer:
 	var badge := PanelContainer.new()
 	var badge_style := StyleBoxFlat.new()
 	badge_style.bg_color = _get_type_color(type_text).darkened(0.6)
-	badge_style.set_corner_radius_all(8)
+	badge_style.set_corner_radius_all(4)
 	badge_style.content_margin_left = 6
 	badge_style.content_margin_right = 6
 	badge_style.content_margin_top = 1
@@ -559,7 +575,7 @@ func _create_type_badge(type_text: String) -> PanelContainer:
 
 	var label := Label.new()
 	label.text = type_text
-	label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_XS)
+	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	label.add_theme_color_override("font_color", _get_type_color(type_text))
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.add_child(label)

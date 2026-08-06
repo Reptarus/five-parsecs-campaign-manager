@@ -5,17 +5,17 @@
         "tooltip_position": "center"
     },
     {
-        "target_path": "MenuButtons/NewCampaign",
+        "target_path": "MenuScroll/MenuButtons/NewCampaign",
         "text": "Start here to create your first campaign. You'll choose difficulty, create your captain, recruit crew, and generate your starting world.",
         "tooltip_position": "right"
     },
     {
-        "target_path": "MenuButtons/Library",
+        "target_path": "MenuScroll/MenuButtons/Library",
         "text": "The Compendium lets you browse weapons, enemies, species, and game rules anytime \u2014 even without an active campaign.",
         "tooltip_position": "right"
     },
     {
-        "target_path": "MenuButtons/Options",
+        "target_path": "MenuScroll/MenuButtons/Options",
         "text": "Adjust display settings, accessibility options, and manage your data here. You can always replay this tutorial from Settings.",
         "tooltip_position": "right"
     }

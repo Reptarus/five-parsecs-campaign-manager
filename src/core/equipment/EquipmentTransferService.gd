@@ -184,15 +184,82 @@ func _set_member_equipment(member, equipment: Array) -> void:
 	if member is Dictionary:
 		member["equipment"] = equipment
 	elif member is Object and "equipment" in member:
-		member.equipment = equipment
+		# Character.equipment is a typed Array[String]. A plain `=` of an untyped
+		# Array is a RUNTIME ERROR in Godot 4 that aborts the caller; only
+		# assign() element-converts. GameState's legacy-heal already documents
+		# this exact trap — the same rule has to hold here.
+		if member.equipment is Array and (member.equipment as Array).is_typed():
+			member.equipment.assign(_as_string_array(equipment))
+		else:
+			member.equipment = equipment
+
+func _as_string_array(items: Array) -> Array:
+	## Collapse mixed item entries down to the Array[String]-of-names model that
+	## a Character Resource can physically hold (see GameState's legacy heal:
+	## "restores the Array[String]-of-names model every consumer expects").
+	var out: Array = []
+	for it in items:
+		if it is Dictionary:
+			var d: Dictionary = it
+			out.append(str(d.get("name", d.get("id", ""))))
+		else:
+			out.append(str(it))
+	return out
+
+func _name_for_id(item_id: String) -> String:
+	## Best-effort id -> display name, so a typed member's name-shaped entry can
+	## still be matched when the caller only has the card's id. Looks in the
+	## stash first (the item registry) and falls back to the id itself.
+	if _campaign == null or not ("equipment_data" in _campaign):
+		return item_id
+	var stash: Variant = _campaign.equipment_data.get("equipment", [])
+	if stash is Array:
+		for it in stash:
+			if it is Dictionary and str((it as Dictionary).get("id", "")) == item_id:
+				return str((it as Dictionary).get("name", item_id))
+	return item_id
+
+func _member_holds_typed_equipment(member) -> bool:
+	## True for a Character Resource whose `equipment` is a typed Array[String] —
+	## it can hold item NAMES but never item cards (Dictionaries).
+	if member is Dictionary:
+		return false
+	return member is Object and "equipment" in member \
+		and member.equipment is Array and (member.equipment as Array).is_typed()
 
 func _add_to_character(character_id: String, item: Dictionary) -> bool:
 	var member = _find_crew_member(character_id)
 	if member == null:
 		return false
 	var eq: Array = _get_member_equipment(member)
-	# Reject duplicate ids (tabletop invariant: cards are unique).
 	var new_id: String = str(item.get("id", ""))
+	var new_name: String = str(item.get("name", new_id))
+
+	# SHAPE-AWARE STORE. Crew members are canonically Dictionaries — that is what
+	# CampaignFinalizationService normalizes fresh crews to, so this is the path
+	# the app actually takes. But a Character RESOURCE can still reach here
+	# (tests, tools, any future caller that skips finalization), and its
+	# `equipment` is a typed Array[String]: appending a Dictionary to it is a
+	# runtime error that aborts mid-transfer, AFTER the item has already been
+	# removed from the stash. Rather than leave that landmine, a typed member
+	# stores the item's NAME and the card's extra fields are not retained —
+	# a documented fidelity limit of the names model, not a silent loss.
+	if _member_holds_typed_equipment(member):
+		# Store the card's ID, not its name. The id round-trips exactly (the
+		# stash no longer holds the card once it has moved, so a name could not
+		# be resolved back to it), and the display path already resolves ids —
+		# CharacterDetailsScreen._resolve_equipment_name() looks entries up
+		# through EquipmentManager.get_equipment(). What a typed array cannot
+		# carry is the rest of the card; that is the documented limit of the
+		# Array[String] model, not a silent loss.
+		var store_key: String = new_id if not new_id.is_empty() else new_name
+		for existing_entry in eq:
+			if str(existing_entry) == store_key:
+				return false
+		eq.append(store_key)
+		return true
+
+	# Reject duplicate ids (tabletop invariant: cards are unique).
 	for existing in eq:
 		if existing is Dictionary and str(existing.get("id", "")) == new_id:
 			return false  # Silently succeed-as-noop? No — caller needs to know.
@@ -205,6 +272,22 @@ func _remove_from_character(character_id: String, item_id: String) -> Dictionary
 	if member == null:
 		return {}
 	var eq: Array = _get_member_equipment(member)
+
+	# Typed (Array[String]) members hold NAMES, so the caller's item_id will not
+	# match directly. Accept either, and hand back a real card so the stash keeps
+	# a usable record — the id is regenerated because the names model cannot
+	# carry the original one.
+	if _member_holds_typed_equipment(member):
+		# Entries are id strings (see _add_to_character), but tolerate a
+		# name-shaped legacy entry too.
+		var by_name: String = _name_for_id(item_id)
+		for i in range(eq.size()):
+			var entry_key: String = str(eq[i])
+			if entry_key == item_id or entry_key == by_name:
+				eq.remove_at(i)
+				return {"id": item_id, "name": by_name}
+		return {}
+
 	for i in range(eq.size()):
 		var entry = eq[i]
 		if entry is Dictionary and str(entry.get("id", "")) == item_id:

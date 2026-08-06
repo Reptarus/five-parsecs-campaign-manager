@@ -6,6 +6,9 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+## Core Rules p.131 Loot Table — the "Gift" event (72-75) rolls on it directly.
+const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
+const EquipmentTransferServiceClass = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
 # Precursor event state (Core Rules p.128: Precursors roll twice, pick either)
 var _pending_event1: Dictionary = {}
@@ -17,11 +20,35 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	## Core Rules p.128: Roll on random non-Bot, non-Soulless crew member.
 	## If the selected character is Precursor, roll twice and pick either.
 
-	# Filter eligible crew (exclude Bots and Soulless per Core Rules p.128)
+	# Core Rules p.126, verbatim: "Select a random non-Bot, non-Soulless
+	# character ... Any character is eligible, as long as they are part of your
+	# crew, EVEN IF THEY ARE IN SICK BAY."
+	#
+	# This drew from ctx.crew_participants — the crew who FOUGHT the battle.
+	# Injured crew are filtered out before deployment, so they were absent from
+	# that list and could never be selected. That is precisely backwards for the
+	# several table entries written for them: "You are starting to wonder if it
+	# is time to move on" (11-12), "The local food is sitting well with you"
+	# (24-26, which REDUCES recovery time) and "You've had a lot of time to burn"
+	# (98-100, which explicitly acts even in Sick Bay) were unreachable by design.
 	var eligible: Array = []
-	for crew_id in ctx.crew_participants:
+	var roster: Array = ctx.get_crew_members()
+	for member in roster:
+		var crew_id: String = ""
+		if member is Dictionary:
+			crew_id = str(member.get("character_id", member.get("id", "")))
+		elif member != null and "character_id" in member:
+			crew_id = str(member.character_id)
+		if crew_id.is_empty():
+			continue
 		if not ctx.is_character_bot_or_soulless(crew_id):
 			eligible.append(crew_id)
+	# Defensive: if the roster could not be read, fall back to the battle's
+	# participants rather than skipping the step entirely.
+	if eligible.is_empty():
+		for crew_id_fallback in ctx.crew_participants:
+			if not ctx.is_character_bot_or_soulless(crew_id_fallback):
+				eligible.append(crew_id_fallback)
 	if eligible.is_empty():
 		return {"type": "none", "name": "No Event"}
 
@@ -135,7 +162,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			if origin_lower == species_key.to_lower():
 				var exception_text: String = species_exceptions[species_key]
 				if "unaffected" in exception_text.to_lower() or "not affected" in exception_text.to_lower() or "no benefit" in exception_text.to_lower() or "cannot benefit" in exception_text.to_lower():
-					return "%s (%s): Unaffected by '%s'" % [char_name, origin, event_title]
+					# p.126, verbatim: "If an event is completely inapplicable,
+					# simply add +1 XP to the character." A species that is
+					# immune to the event IS that case — a K'Erin drawing "All
+					# this endless violence is depressing you" used to receive
+					# nothing at all instead of the book's fallback.
+					ctx.add_character_xp(character, 1)
+					return "%s (%s): Unaffected by '%s' — +1 XP instead (p.126)" % [
+						char_name, origin, event_title]
 
 	match event_title:
 		"Violence is Depressing":
@@ -202,7 +236,32 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s made local friends: +1 XP" % char_name
 
 		"Time to Move On":
-			return "%s considers moving on (if in Sick Bay: D6 <= recovery turns = leaves)" % char_name
+			## p.128, 11-12: "If the character is currently in Sick Bay, roll 1D6.
+			## If the roll is equal or below the number of campaign turns of
+			## recovery left, they will decide to leave the crew."
+			##
+			## Was a bare description. The roll never happened, so nobody ever left
+			## — and the rule is self-limiting by design: the longer the stay, the
+			## likelier the departure, which is the whole point of the row.
+			var remaining: int = ctx.get_member_recovery_turns(character)
+			if remaining <= 0:
+				return "%s thought about moving on, but is not in Sick Bay — no effect" % char_name
+			var leave_roll: int = ctx.roll_d6("Time to Move On (%s)" % char_name)
+			if leave_roll > remaining:
+				return "%s considered leaving: rolled %d vs %d turns left — they stay" % [
+					char_name, leave_roll, remaining]
+			_mark_departed(character)
+			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+				ctx.campaign_journal.create_entry({
+					"type": "character_departure",
+					"auto_generated": true,
+					"title": "Time to Move On",
+					"description": "%s left the crew from Sick Bay (rolled %d vs %d turns remaining, Core Rules p.128)" % [
+						char_name, leave_roll, remaining],
+					"tags": ["departure", "character_event"],
+				})
+			return "%s LEAVES the crew: rolled %d vs %d turns of recovery left" % [
+				char_name, leave_roll, remaining]
 
 		"Letter from Home":
 			ctx.add_character_xp(character, 1)
@@ -243,13 +302,54 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				elif character is Dictionary:
 					character["status"] = "departed"
 				return "%s (Feeler) has a mental breakdown from crew fight and leaves permanently" % char_name
+			## p.129, 20-23: "Randomly select another crew member and roll
+			## 1D6+Combat Skill for each. The LOWER score must spend one campaign
+			## turn in Sick Bay. On a draw, BOTH go to Sick Bay. If a K'Erin is in
+			## the crew, you must fight them."
+			##
+			## The Feeler and K'Erin special cases above were both wired; the fight
+			## itself was not. Both branches returned a description of a contest
+			## that never happened, so nobody ever went to Sick Bay from it.
+			var opponent: Variant = null
 			if ctx.has_crew_with_origin("K'Erin") and origin_lower != "k'erin":
-				return "%s must scrap with K'Erin crewmate: D6+Combat each. Loser 1 turn Sick Bay (draw = both)" % char_name
+				opponent = _find_crew_with_origin(ctx, character, "k'erin")
+			if opponent == null:
+				opponent = _other_crew_member(ctx, character)
+			if opponent == null:
+				return "%s wanted a scrap but has no crewmates to fight" % char_name
+
+			var opp_name: String = ctx.get_char_name(opponent)
+			var a_score: int = ctx.roll_d6("Scrap: %s" % char_name) 				+ int(_member_field(character, "combat", 0))
+			var b_score: int = ctx.roll_d6("Scrap: %s" % opp_name) 				+ int(_member_field(opponent, "combat", 0))
+
+			if a_score == b_score:
+				ctx.injure_specific_crew(character, 1)
+				ctx.injure_specific_crew(opponent, 1)
+				return "%s and %s brawled to a draw (%d each) — BOTH spend 1 turn in Sick Bay" % [
+					char_name, opp_name, a_score]
+			var loser: Variant = character if a_score < b_score else opponent
+			var loser_name: String = char_name if a_score < b_score else opp_name
+			ctx.injure_specific_crew(loser, 1)
+			return "%s scrapped with %s (%d vs %d) — %s spends 1 turn in Sick Bay" % [
+				char_name, opp_name, a_score, b_score, loser_name]
 			return "%s in scrap: D6+Combat vs random crewmate. Loser to Sick Bay 1 turn (draw = both)" % char_name
 
 		"Good Food":
+			## p.129, 24-26: "If in Sick Bay, reduce your recovery time by one
+			## campaign turn. If not, earn +1 XP. Engineers receive no benefit."
+			##
+			## Was an unconditional +1 XP: a character IN Sick Bay got the XP they
+			## are not owed and kept the recovery turn they should have lost, and
+			## Engineers got a benefit the book denies them.
+			if origin_lower == "engineer":
+				return "%s (Engineer) gains nothing from the local food (Core Rules p.129)" % char_name
+			var sick_turns: int = ctx.get_member_recovery_turns(character)
+			if sick_turns > 0:
+				ctx.reduce_member_recovery(character, 1)
+				return "%s: good food in Sick Bay — recovery %d -> %d turns" % [
+					char_name, sick_turns, maxi(0, sick_turns - 1)]
 			ctx.add_character_xp(character, 1)
-			return "%s: Good food. If Sick Bay: -1 recovery. If not: +1 XP" % char_name
+			return "%s: the local food agrees with them — +1 XP" % char_name
 
 		"Not the Same Person":
 			return "%s rerolls Motivation (p.26). +1 XP per ability bonus. Same motivation = +1 Story Point" % char_name
@@ -267,8 +367,16 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s earned on the side: +2 Credits" % char_name
 
 		"Heart to Heart":
+			## p.129, 42-45: "Select a random crew member. BOTH earn +1 XP."
+			## Only the event's own character was paid; the crewmate the rule
+			## exists to include got nothing.
 			ctx.add_character_xp(character, 1)
-			return "%s had heart to heart: Both characters +1 XP (select random crewmate)" % char_name
+			var confidant: Variant = _other_crew_member(ctx, character)
+			if confidant == null:
+				return "%s had a heart to heart with nobody aboard: +1 XP" % char_name
+			ctx.add_character_xp(confidant, 1)
+			return "%s and %s had a heart to heart: +1 XP each" % [
+				char_name, ctx.get_char_name(confidant)]
 
 		"Exercise":
 			ctx.add_character_xp(character, 2)
@@ -283,8 +391,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s picked up unusual hobby: +1 Story Point" % char_name
 
 		"Scars Tell the Story":
+			## p.129, 52-55: "IF the character was injured in any way last or this
+			## campaign turn, they earn +2 XP." The condition was printed and never
+			## applied — an uninjured character collected 2 free XP, which is the
+			## single largest unconditional XP source on the whole table.
+			if not _was_injured_recently(character, ctx):
+				return "%s has no fresh scars to tell of — no XP (Core Rules p.129)" % char_name
 			ctx.add_character_xp(character, 2)
-			return "%s: Scars tell the story. +2 XP if injured last/this turn" % char_name
+			return "%s: the scars tell the story — +2 XP" % char_name
 
 		"Time to Reflect":
 			var xp_roll: int = randi_range(1, 3)
@@ -300,21 +414,49 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 
 		"Hurt Working on Ship":
 			ctx.injure_specific_crew(character, 1)
-			if gsm and gsm.has_method("damage_hull"):
-				gsm.damage_hull(1)
+			# `damage_hull` does not exist anywhere in the repo — permanently
+			# false guard, so the ship never actually took the point of damage
+			# this event's own result string claims. Real API: apply_ship_damage().
+			if gsm and gsm.has_method("apply_ship_damage"):
+				gsm.apply_ship_damage(1)
 			return "%s hurt working on ship: 1 turn Sick Bay, ship -1 Hull" % char_name
 
 		"Found True Love":
-			if gsm and gsm.has_method("add_story_points"):
-				gsm.add_story_points(1)
-			return "%s found true love: +1 Story Point (if motivation=True Love: also +1D6 XP)" % char_name
+			## p.129, 67-68: "If the character's motivation was True Love, they earn
+			## +1D6 XP. REGARDLESS, get +1 story point." The story point landed; the
+			## motivation payout never did, so the one row on the table that rewards
+			## a specific Motivation rewarded nothing.
+			ctx.add_story_points(1)
+			var motivation: String = str(_member_field(character, "motivation", "")).to_lower()
+			if motivation.replace("_", " ") == "true love":
+				var love_xp: int = ctx.roll_d6("True Love XP (%s)" % char_name)
+				ctx.add_character_xp(character, love_xp)
+				return "%s found true love — their Motivation: +%d XP and +1 Story Point" % [
+					char_name, love_xp]
+			return "%s found true love: +1 Story Point" % char_name
 
 		"Personal Enemy":
 			ctx.add_rival("%s's personal enemy" % char_name)
 			return "%s: Personal enemy. +1 Rival (leaves if %s leaves crew)" % [char_name, char_name]
 
 		"Gift":
-			return "%s received a gift: Roll once on Loot Table" % char_name
+			## p.129, 72-75: "Someone has sent you a gift. Roll once on the Loot
+			## Table (p.131)." Was a bare description — the loot roll never
+			## happened and the crew received nothing.
+			var gift_items: Array = LootTableResolver.roll_loot()
+			if gift_items.is_empty():
+				return "%s received a gift, but the Loot Table yielded nothing" % char_name
+			var names: Array[String] = []
+			var campaign_ref: Variant = ctx.campaign
+			var transfer = EquipmentTransferServiceClass.new(campaign_ref) if campaign_ref else null
+			for item in gift_items:
+				if not (item is Dictionary):
+					continue
+				names.append(str(item.get("name", "an item")))
+				if transfer:
+					transfer.add_loot_to_stash(item)
+			return "%s received a gift: %s (added to the stash)" % [
+				char_name, ", ".join(names)]
 
 		"Feel Great":
 			ctx.apply_character_status_effect(character, {
@@ -408,7 +550,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s has time to burn: Extra action next turn (even in Sick Bay)" % char_name
 
 		_:
-			return "%s: Character event '%s' (manual resolution)" % [char_name, event_title]
+			# p.126, verbatim: "In some cases, an event may end up not making any
+			# sense. If so, tweak or ignore it, as necessary. If an event is
+			# completely inapplicable, simply add +1 XP to the character."
+			# An event title with no handler is exactly that case, and the
+			# character used to walk away with nothing.
+			ctx.add_character_xp(character, 1)
+			return "%s: '%s' did not apply — +1 XP instead (Core Rules p.126)" % [
+				char_name, event_title]
 
 
 func _get_species_id(character: Variant, ctx: PostBattleContextClass) -> String:
@@ -433,3 +582,71 @@ func _get_character_equipment(character: Variant) -> Array:
 	elif character is Dictionary:
 		return character.get("equipment", [])
 	return []
+
+
+## ── Helpers for the pp.128-130 events wired above ─────────────────────────────
+
+func _member_field(character: Variant, key: String, default_value: Variant) -> Variant:
+	## Crew members are canonically Dictionaries but a Character Resource still
+	## reaches here on a fresh campaign. Dictionary.get takes 2 args and
+	## Object.get takes 1, so the wrong form ABORTS the whole handler.
+	if character is Dictionary:
+		return character.get(key, default_value)
+	if character != null and key in character:
+		return character.get(key)
+	return default_value
+
+
+func _mark_departed(character: Variant) -> void:
+	## Same shape the Feeler breakdown above already writes — the orchestrator
+	## does the actual crew removal off `status`.
+	if character is Dictionary:
+		character["status"] = "departed"
+	elif character != null and "status" in character:
+		character.status = "departed"
+
+
+func _other_crew_member(ctx: PostBattleContextClass, exclude: Variant) -> Variant:
+	## A random crew member who is NOT the event's own character and is still
+	## with the crew. Returns null on a one-person crew.
+	var candidates: Array = []
+	for member in ctx.get_crew_members():
+		if member == exclude:
+			continue
+		var status: String = str(_member_field(member, "status", "")).to_lower()
+		if status in ["dead", "departed", "retired", "missing"]:
+			continue
+		candidates.append(member)
+	if candidates.is_empty():
+		return null
+	return candidates[randi() % candidates.size()]
+
+
+func _find_crew_with_origin(
+		ctx: PostBattleContextClass, exclude: Variant, origin: String) -> Variant:
+	var wanted: String = origin.to_lower()
+	for member in ctx.get_crew_members():
+		if member == exclude:
+			continue
+		var sid: String = str(_member_field(
+			member, "species_id", _member_field(member, "origin", ""))).to_lower()
+		if sid == wanted:
+			return member
+	return null
+
+
+func _was_injured_recently(character: Variant, ctx: PostBattleContextClass) -> bool:
+	## p.129 "injured in any way last or THIS campaign turn". Outstanding Sick Bay
+	## time covers both windows: an injury taken this turn is still counting down,
+	## and one taken last turn has at most been decremented once. An injuries[]
+	## entry stamped with the current or previous turn also counts, which catches
+	## a 0-turn injury (Knocked out, Equipment loss) that leaves no recovery time.
+	if ctx.get_member_recovery_turns(character) > 0:
+		return true
+	var current_turn: int = int(ctx.battle_result.get("turn", 0))
+	var injuries: Variant = _member_field(character, "injuries", [])
+	if injuries is Array:
+		for inj in injuries:
+			if inj is Dictionary and int(inj.get("turn_sustained", -99)) >= current_turn - 1:
+				return true
+	return false

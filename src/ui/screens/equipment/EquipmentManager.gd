@@ -40,12 +40,32 @@ func _ready() -> void:
 		add_child(pc)
 		pc.setup(pc_mc as MarginContainer)
 
+	# Keep content clear of the floating SettingsOverlay gear/bug buttons, which
+	# are drawn on their own CanvasLayer ABOVE this screen. Pushes content DOWN --
+	# a right-side margin would raise the container's minimum WIDTH and propagate
+	# an overflow up the tree (proven and reverted on HelpScreen).
+	var _so := get_node_or_null("/root/SettingsOverlay")
+	if _so and _so.has_method("reserve_band_on"):
+		_so.reserve_band_on(self)
+
+	_adopt_screen_header()
+
 	# Wait for scene to be fully ready if nodes are null
 	if equipment_grid == null or crew_list == null or details_container == null:
 		call_deferred("_deferred_initialization")
 		return
 	
 	_initialize_systems()
+
+## Bring the scene-built header onto the shared idiom: "< Back" first, then the
+## title at FONT_SIZE_XL. The scene used to pin the title at 32px, which outranks
+## the responsive theme, so on a phone "Equipment Manager" wrapped to two lines and
+## pushed the Back button off the top of the screen.
+func _adopt_screen_header() -> void:
+	ScreenChrome.adopt_header(
+		get_node_or_null("MarginContainer/VBoxContainer/Header/BackButton") as Button,
+		get_node_or_null("MarginContainer/VBoxContainer/Header/Title") as Label
+	)
 
 func _deferred_initialization():
 	## Initialize after scene is fully ready
@@ -189,7 +209,7 @@ func _refresh_equipment_display() -> void:
 		var validated_equipment = DataValidator.validate_equipment(equipment)
 		var item_button: Button = Button.new()
 		item_button.text = DataValidator.safe_get_name(validated_equipment)
-		item_button.custom_minimum_size = Vector2(150, 60)
+		item_button.custom_minimum_size = Vector2(0, 60)
 		item_button.pressed.connect(_on_equipment_selected.bind(validated_equipment))
 		equipment_grid.add_child(item_button)
 

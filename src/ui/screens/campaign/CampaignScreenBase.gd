@@ -1,6 +1,16 @@
 extends Control
 class_name CampaignScreenBase
 
+## Path preload, not the bare `ScreenChrome` identifier.
+##
+## This file is parsed very early — before the global class_name cache is
+## necessarily warm — and a cold cache turns an unresolved global class into a
+## PARSE error that cascades: every screen extending this base fails to compile
+## and renders blank. Loading by path cannot go stale. Same reason
+## EquipmentManager, ShipManager and PatronRivalManager path-preload
+## AdaptivePanelGroup.
+const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+
 ## Lightweight base class for campaign screens (dashboard, crew management,
 ## trading, travel, etc). Provides the UIColors design system, responsive
 ## layout helpers, and UI factory methods shared across all campaign screens.
@@ -95,7 +105,30 @@ func _ready() -> void:
 	# code-built responsive node (e.g. HelpScreen's sidebar split) would otherwise
 	# get no orientation-correct initial layout until the first rotation.
 	_update_layout_for_mode()
+	_clear_settings_overlay_band()
 	screen_ready.emit()
+
+
+## Keep screen content out from under the floating SettingsOverlay buttons.
+##
+## SettingsOverlay is an autoload CanvasLayer drawn ABOVE every screen, so a header
+## that spans the full width runs underneath the gear/bug buttons in the top-right
+## corner — obscured and untappable there. The MainMenu title was the visible worst
+## case; the layout sweep counted this on most screens.
+##
+## Push content DOWN rather than padding it in from the right: a right-side margin
+## raises the container's MINIMUM WIDTH, that minimum propagates up the tree, and
+## the whole screen then overflows horizontally — measurably worse than the overlap
+## it fixes (proven and reverted on HelpScreen). Vertical space is far less
+## contended than horizontal on the phone form factor this app targets.
+##
+## Geometry is ASKED OF the overlay, never hardcoded: which buttons are visible
+## varies per screen (SettingsOverlay hides the gear on MainMenu/Settings and the
+## bug button on Settings), so the reserved band is not a constant.
+func _clear_settings_overlay_band() -> void:
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("reserve_band_on"):
+		so.reserve_band_on(self)
 
 func _exit_tree() -> void:
 	if _responsive_manager and \
@@ -181,6 +214,9 @@ func _show_pending_transfers_dialog(pending: Array, campaign, mode: String) -> v
 func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 	var applied := 0
 	var skipped := 0
+	# Transfer files whose character made it into the roster in memory. They are
+	# deleted only after the campaign is successfully written (see below).
+	var consumed_files: Array[String] = []
 	for t in pending:
 		# Crew-size guard (5PFH only — fixed cap chosen at creation, Core Rules p.63).
 		# Skipped transfers keep their file (apply deletes only on success).
@@ -190,19 +226,89 @@ func _apply_pending_transfers(pending: Array, campaign, mode: String) -> void:
 			if campaign.get_crew_size() >= campaign.get_campaign_crew_size():
 				skipped += 1
 				continue
+		# ADD FIRST, REWARD SECOND. apply_transfer_rewards() used to run before the
+		# roster add, so a failed _add_character_to_mode() left the player holding
+		# the mustering credits, the Story Point and the Sector Government patron
+		# with no character — and since the transfer file is (correctly) kept on
+		# failure, re-importing granted the whole lot again.
+		var ch: Dictionary = CharacterTransferService.peek_character(t)
+		if ch.is_empty():
+			continue
+		# Planetfall p.164: "You may only bring one character from an Isolation
+		# victory into each new campaign." `isolation_single_char` was set on the
+		# character and read NOWHERE, so the cap did not exist — every Isolation
+		# survivor could be imported.
+		if bool(ch.get("from_isolation_victory", false)) \
+				and _campaign_has_isolation_veteran(campaign, mode):
+			skipped += 1
+			continue
+		if not _add_character_to_mode(campaign, mode, ch):
+			continue
 		var res: Dictionary = CharacterTransferService.apply_transfer_rewards(campaign, t)
 		if not res.get("success", false):
 			continue
-		var ch: Dictionary = res.get("character", {})
-		if _add_character_to_mode(campaign, mode, ch):
-			applied += 1
+		applied += 1
+		# Queue, do not delete yet — the character exists only in memory until the
+		# save below succeeds. A transfer file is the ONLY copy of that character.
+		var consumed: String = str(res.get("consumed_file", ""))
+		if not consumed.is_empty():
+			consumed_files.append(consumed)
 	if applied > 0 and _game_state and _game_state.has_method("save_campaign"):
-		_game_state.save_campaign(campaign)
+		var save_res = _game_state.save_campaign(campaign)
+		# Only now is it safe to destroy the source files. If the write failed, the
+		# transfers stay on disk and are re-offered next time rather than vanishing.
+		var saved := true
+		if save_res is Dictionary:
+			saved = bool(save_res.get("success", true))
+		if saved:
+			for path in consumed_files:
+				if FileAccess.file_exists(path):
+					DirAccess.remove_absolute(path)
+		else:
+			push_warning(
+				"CampaignScreenBase: campaign save failed; %d transfer file(s) kept for retry"
+				% consumed_files.size())
+			applied = 0
 		_on_transfers_applied()
 	_notify_transfer_result(applied, skipped)
 
 ## Dispatch an imported character to the right roster mutator for its mode.
+func _campaign_has_isolation_veteran(campaign, mode: String) -> bool:
+	## True if this campaign already holds a character brought out of a Planetfall
+	## Isolation victory (Planetfall p.164 caps that at one per campaign).
+	## Scans the roster the same way _add_character_to_mode() writes it.
+	if campaign == null:
+		return false
+	var roster: Array = []
+	match mode:
+		"five_parsecs":
+			if "crew_data" in campaign and campaign.crew_data is Dictionary:
+				roster = campaign.crew_data.get("members", [])
+		"bug_hunt":
+			if "main_characters" in campaign:
+				roster = campaign.main_characters
+		"planetfall":
+			if "roster" in campaign:
+				roster = campaign.roster
+		"tactics":
+			if "veteran_characters" in campaign:
+				roster = campaign.veteran_characters
+	for member in roster:
+		if member is Dictionary and bool(member.get("from_isolation_victory", false)):
+			return true
+	return false
+
 func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
+	# Reject a character id already on this roster.
+	#
+	# Cross-mode import is a PULL — it reads the source save and does not remove the
+	# character from it — so importing the same veteran twice (or re-importing after a
+	# muster-out) put two entries with the SAME character_id on one roster. From there
+	# every id-keyed lookup resolves to whichever copy is first, XP and injuries land on
+	# one of the two arbitrarily, and the crew id index has a duplicate key.
+	if _roster_already_has(campaign, mode, str(ch.get("character_id", ch.get("id", "")))):
+		push_warning("CampaignScreenBase: character already on this roster; import skipped")
+		return false
 	match mode:
 		"five_parsecs":
 			if campaign.has_method("add_crew_member"):
@@ -223,6 +329,35 @@ func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
 				campaign.add_veteran_character(ch)
 				return true
 	return false
+
+func _roster_already_has(campaign, mode: String, character_id: String) -> bool:
+	## True if this character id is already on the target roster. Each mode keeps its
+	## roster in a different field, so the lookup is per-mode.
+	if character_id.is_empty() or campaign == null:
+		return false
+	var roster: Array = []
+	match mode:
+		"five_parsecs":
+			if "crew_data" in campaign and campaign.crew_data is Dictionary:
+				var m = campaign.crew_data.get("members", [])
+				roster = m if m is Array else []
+		"bug_hunt":
+			if "main_characters" in campaign and campaign.main_characters is Array:
+				roster = campaign.main_characters
+		"planetfall":
+			if "roster" in campaign and campaign.roster is Array:
+				roster = campaign.roster
+		"tactics":
+			if "veteran_characters" in campaign and campaign.veteran_characters is Array:
+				roster = campaign.veteran_characters
+	for m in roster:
+		if not (m is Dictionary):
+			continue
+		var d: Dictionary = m
+		if str(d.get("character_id", d.get("id", ""))) == character_id:
+			return true
+	return false
+
 
 func _notify_transfer_result(applied: int, skipped: int) -> void:
 	var nm = get_node_or_null("/root/NotificationManager")
@@ -453,54 +588,43 @@ func get_responsive_touch_target() -> int:
 	return TOUCH_TARGET_COMFORT if is_mobile_layout() else TOUCH_TARGET_MIN
 
 # ── Style factories ───────────────────────────────────────────────────────────
+#
+# These all delegate to ScreenChrome now. They kept their names and signatures so
+# no subclass had to change, but they no longer each invent their own geometry:
+# between this file and BaseCampaignPanel there were about twenty near-identical
+# copies of these helpers producing 8px, 12px and 16px cards, which is most of the
+# reason the app had five corner radii at once.
+#
+# The "glass" name is historical. It described a 16px, 80%-alpha, 24px-padded card
+# that no longer exists — the card look is now the SectionCard recipe.
 
-func _create_glass_card_style(alpha: float = 0.8) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, alpha)
-	s.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(16)
-	s.set_content_margin_all(SPACING_LG)
-	return s
+func _create_glass_card_style(_alpha: float = 0.8) -> StyleBoxFlat:
+	return ScreenChrome.panel_style()
 
 func _create_glass_card_elevated() -> StyleBoxFlat:
-	return _create_glass_card_style(0.9)
+	return ScreenChrome.panel_style()
 
 func _create_glass_card_subtle() -> StyleBoxFlat:
-	return _create_glass_card_style(0.6)
+	return ScreenChrome.panel_style()
 
 func _create_elevated_card_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
+	var s := ScreenChrome.panel_style()
 	s.bg_color = COLOR_TERTIARY
-	s.border_color = COLOR_BORDER
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(8)
-	s.set_content_margin_all(SPACING_MD)
 	return s
 
 func _create_glass_panel_style() -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(COLOR_SECONDARY.r, COLOR_SECONDARY.g, COLOR_SECONDARY.b, 0.8)
-	s.border_color = Color(COLOR_BORDER.r, COLOR_BORDER.g, COLOR_BORDER.b, 0.5)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(16)
-	s.set_content_margin_all(SPACING_LG)
-	return s
+	return ScreenChrome.panel_style()
 
 func _create_glass_panel_style_compact() -> StyleBoxFlat:
-	var s := _create_glass_panel_style()
-	s.set_content_margin_all(SPACING_MD)
-	s.set_corner_radius_all(12)
-	return s
+	return ScreenChrome.panel_style()
 
+## A card that carries a semantic colour (blue/amber/red/cyan status boxes).
+##
+## The accent lands on the LEFT edge, the same place and weight the Library's nav
+## cards use, rather than as an all-round tint — so a status card and a tappable
+## card are told apart by colour, not by two unrelated shapes.
 func _create_accent_card_style(accent_color: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.1)
-	s.border_color = Color(accent_color.r, accent_color.g, accent_color.b, 0.2)
-	s.set_border_width_all(1)
-	s.set_corner_radius_all(12)
-	s.set_content_margin_all(SPACING_MD)
-	return s
+	return ScreenChrome.card_style(accent_color)
 
 # ── Panel styling helpers (screen-specific) ───────────────────────────────────
 
@@ -561,19 +685,19 @@ func _create_section_card(
 		hdr.add_theme_constant_override("separation", SPACING_SM)
 		var icon_lbl := Label.new()
 		icon_lbl.text = icon
-		icon_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		icon_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		icon_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		hdr.add_child(icon_lbl)
 		var title_lbl := Label.new()
 		title_lbl.text = title.to_upper()
-		title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		hdr.add_child(title_lbl)
 		vbox.add_child(hdr)
 	else:
 		var title_lbl := Label.new()
 		title_lbl.text = title.to_upper()
-		title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(title_lbl)
 
@@ -587,7 +711,7 @@ func _create_section_card(
 	if not description.is_empty():
 		var desc := Label.new()
 		desc.text = description
-		desc.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(desc)
@@ -604,19 +728,19 @@ func _create_section_header(title: String, icon: String = "") -> HBoxContainer:
 		icon_panel.custom_minimum_size = Vector2(32, 32)
 		var icon_style := StyleBoxFlat.new()
 		icon_style.bg_color = Color(COLOR_ACCENT.r, COLOR_ACCENT.g, COLOR_ACCENT.b, 0.2)
-		icon_style.set_corner_radius_all(8)
+		icon_style.set_corner_radius_all(4)
 		icon_panel.add_theme_stylebox_override("panel", icon_style)
 		var icon_lbl := Label.new()
 		icon_lbl.text = icon
 		icon_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		icon_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		icon_lbl.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+		icon_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		icon_panel.add_child(icon_lbl)
 		hbox.add_child(icon_panel)
 
 	var title_lbl := Label.new()
 	title_lbl.text = title
-	title_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	hbox.add_child(title_lbl)
 	return hbox
@@ -642,14 +766,14 @@ func _create_info_row(
 
 	var lbl := Label.new()
 	lbl.text = label
-	lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	hbox.add_child(lbl)
 
 	var val_lbl := Label.new()
 	val_lbl.text = value
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", value_color)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	# Fill the remaining row width and WRAP long values (e.g. a ship name) so a
@@ -666,7 +790,7 @@ func _create_stat_display(stat_name: String, value) -> PanelContainer:
 	panel.custom_minimum_size = Vector2(64, 56)
 	var style := StyleBoxFlat.new()
 	style.bg_color = COLOR_INPUT
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -674,13 +798,13 @@ func _create_stat_display(stat_name: String, value) -> PanelContainer:
 	vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name_lbl := Label.new()
 	name_lbl.text = stat_name.to_upper()
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(name_lbl)
 	var val_lbl := Label.new()
 	val_lbl.text = str(value)
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XL)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	val_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(val_lbl)
@@ -703,7 +827,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	style.bg_color = Color(COLOR_INPUT.r, COLOR_INPUT.g, COLOR_INPUT.b, 0.6)
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_XS)
 	panel.add_theme_stylebox_override("panel", style)
 
@@ -712,7 +836,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	hbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	var name_lbl := Label.new()
 	name_lbl.text = stat_name.to_upper()
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hbox.add_child(name_lbl)
 	var val_lbl := Label.new()
@@ -722,7 +846,7 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	else:
 		val_text = str(value)
 	val_lbl.text = val_text
-	val_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	val_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	val_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 	hbox.add_child(val_lbl)
 	panel.add_child(hbox)
@@ -748,8 +872,8 @@ func _create_character_card(
 	p_container.clip_contents = true
 
 	var avatar_colors := [
-		Color("#3b82f6"), Color("#8b5cf6"), Color("#06b6d4"),
-		Color("#10b981"), Color("#f59e0b"), Color("#ef4444"),
+		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
+		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
 		Color("#ec4899"), Color("#14b8a6")]
 	var c_idx := char_name.hash() % avatar_colors.size()
 	if c_idx < 0:
@@ -784,7 +908,7 @@ func _create_character_card(
 		il.text = char_name.substr(0, 1).to_upper() if char_name else "?"
 		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		il.add_theme_font_size_override("font_size", int(p_size * 0.45))
+		il.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(p_size * 0.45)))
 		il.add_theme_color_override("font_color", Color.WHITE)
 		il.custom_minimum_size = Vector2(p_size, p_size)
 		p_container.add_child(il)
@@ -793,15 +917,33 @@ func _create_character_card(
 
 	var info := VBoxContainer.new()
 	info.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	# All three labels below CLIP rather than sit atomic, and that is load-bearing.
+	# An atomic Label reports its full text width as a minimum, and a minimum
+	# propagates to the top of the tree: "[Captain] Lieutenant Blake Zhang" made one
+	# crew card demand 349px in a 290px column, so the crew list scrolled sideways
+	# and every name in it was cut off mid-word with no ellipsis to say so. Crew
+	# names are player-authored, so their width is unbounded by definition -- this
+	# cannot be solved by picking a wider column.
+	#
+	# clip_text + EXPAND_FILL is the pair: clip drops the minimum to ~0, expand
+	# claims the leftover width so the label does not then vanish. (Only valid
+	# because `info` is a VBox — a FlowContainer would ignore the expand.)
 	var name_lbl := Label.new()
 	name_lbl.text = char_name
-	name_lbl.add_theme_font_size_override("font_size", FONT_SIZE_LG)
+	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.clip_text = true
+	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(name_lbl)
 	var sub_lbl := Label.new()
 	sub_lbl.text = subtitle
-	sub_lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	sub_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	sub_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	sub_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sub_lbl.clip_text = true
+	sub_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	info.add_child(sub_lbl)
 
 	if not stats.is_empty():
@@ -812,8 +954,11 @@ func _create_character_card(
 			stats_txt += "%s:%s" % [key, stats[key]]
 		var stats_lbl := Label.new()
 		stats_lbl.text = stats_txt
-		stats_lbl.add_theme_font_size_override("font_size", FONT_SIZE_XS)
+		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		stats_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		stats_lbl.clip_text = true
+		stats_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		info.add_child(stats_lbl)
 
 	hbox.add_child(info)
@@ -827,7 +972,7 @@ func _create_labeled_input(label_text: String, input: Control) -> VBoxContainer:
 	if not label_text.is_empty():
 		var lbl := Label.new()
 		lbl.text = label_text
-		lbl.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		container.add_child(lbl)
 	input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -844,7 +989,7 @@ func _create_add_button(text: String) -> Button:
 	style.bg_color = Color.TRANSPARENT
 	style.border_color = COLOR_TEXT_SECONDARY
 	style.set_border_width_all(2)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_MD)
 	btn.add_theme_stylebox_override("normal", style)
 	btn.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
@@ -858,7 +1003,7 @@ func _style_line_edit(line_edit: LineEdit) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	line_edit.add_theme_stylebox_override("normal", style)
 	var focus_style := style.duplicate()
@@ -872,42 +1017,20 @@ func _style_option_button(option_btn: OptionButton) -> void:
 	style.bg_color = COLOR_INPUT
 	style.border_color = COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(6)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(SPACING_SM)
 	option_btn.add_theme_stylebox_override("normal", style)
 
+## Style a button. `is_primary` marks the one action the screen is pushing.
+##
+## Delegates to DialogStyles so screens using this helper and screens using
+## DialogStyles directly stop producing two different-looking buttons — this one
+## drew an 8px pill, DialogStyles a 4px one.
 func _style_button(button: Button, is_primary: bool = false) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_BLUE if is_primary else COLOR_TERTIARY
-	style.set_corner_radius_all(8)
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	var hover := style.duplicate()
-	hover.bg_color = COLOR_ACCENT_HOVER if is_primary \
-			else Color(COLOR_TERTIARY.r + 0.1, COLOR_TERTIARY.g + 0.1, COLOR_TERTIARY.b + 0.1)
-	button.add_theme_stylebox_override("hover", hover)
-	var pressed := style.duplicate()
-	pressed.bg_color = Color(style.bg_color.r - 0.1, style.bg_color.g - 0.1, style.bg_color.b - 0.1)
-	button.add_theme_stylebox_override("pressed", pressed)
+	if is_primary:
+		DialogStyles.style_primary_button(button)
+	else:
+		DialogStyles.style_secondary_button(button)
 
 func _style_danger_button(button: Button) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = COLOR_RED
-	style.set_corner_radius_all(8)
-	style.content_margin_left = SPACING_MD
-	style.content_margin_right = SPACING_MD
-	style.content_margin_top = SPACING_SM
-	style.content_margin_bottom = SPACING_SM
-	button.add_theme_stylebox_override("normal", style)
-	button.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	button.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-	var hover := style.duplicate()
-	hover.bg_color = Color(COLOR_RED.r + 0.1, COLOR_RED.g, COLOR_RED.b)
-	button.add_theme_stylebox_override("hover", hover)
+	DialogStyles.style_danger_button(button)

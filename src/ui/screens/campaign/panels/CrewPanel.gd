@@ -54,7 +54,7 @@ func _wrap_content_in_scroll() -> void:
 func _apply_base_background() -> void:
 	var bg := ColorRect.new()
 	bg.name = "__panel_bg"
-	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.color = UIColors.COLOR_PRIMARY  # COLOR_BASE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.show_behind_parent = true
@@ -71,7 +71,7 @@ func _add_guidance_label() -> void:
 	)
 	guidance.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	guidance.add_theme_color_override(
-		"font_color", Color("#808080"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	guidance.add_theme_font_size_override("font_size", _scaled_font(14))
 	content.add_child(guidance)
 	content.move_child(guidance, 0)
@@ -98,9 +98,34 @@ func _connect_signals() -> void:
 
 	crew_list.item_selected.connect(_on_crew_member_selected)
 
+func apply_campaign_crew_size(size: int) -> void:
+	## CONFIG owns the crew size (Core Rules p.63). It is the value the rules
+	## engine reads — enemy-count dice, the deployment cap, the recruit gate — so
+	## this panel must CONSUME it, not hold a second opinion.
+	##
+	## It used to hold its own `selected_size`, defaulting to 6 and never told
+	## what the player picked at step 1. Choose a crew of 4 there and this panel
+	## still asked for 6, so the roster and campaign_crew_size disagreed and the
+	## campaign was created with an enemy-count formula for a crew it did not have.
+	var clamped: int = clampi(size, 4, 6)
+	if clamped == selected_size:
+		return
+	selected_size = clamped
+	if crew_size_option:
+		for i in range(crew_size_option.item_count):
+			if crew_size_option.get_item_id(i) == clamped:
+				crew_size_option.select(i)
+				break
+	_update_crew_list()
+	_update_candidate_hint()
+	crew_updated.emit(crew_members)
+
 func _on_crew_size_selected(index: int) -> void:
 	selected_size = crew_size_option.get_item_id(index)
 	_update_crew_list()
+	# Keep the Elite Rank candidate hint honest when the size changes after a
+	# randomize — otherwise it keeps telling the player to remove the old number.
+	_update_candidate_hint()
 	crew_updated.emit(crew_members)
 
 func _on_add_member_pressed() -> void:
@@ -131,12 +156,35 @@ func _on_remove_member_pressed() -> void:
 	if index >= 0 and index < crew_members.size():
 		crew_members.remove_at(index)
 		_update_crew_list()
+		_update_candidate_hint()
 		crew_updated.emit(crew_members)
+
+func _extra_candidate_slots() -> int:
+	## Core Rules p.65: "For every 3 Elite Ranks, you may roll up an additional
+	## starting character. You are still limited to your starting crew size, but
+	## may PICK FROM AMONG THE POOL of generated characters."
+	##
+	## Note what this perk is NOT: it does not grant extra crew. It rolls up
+	## extra CANDIDATES so the player has a choice. progress_data
+	## ["extra_starting_characters"] recorded the number and nothing ever read
+	## it, so a veteran player's whole reward was a line of text on the review
+	## screen.
+	var ProfileRef = load("res://src/core/player/PlayerProfile.gd")
+	if ProfileRef == null:
+		return 0
+	var profile = ProfileRef.get_instance()
+	if profile == null or not profile.has_method("get_extra_starting_characters"):
+		return 0
+	return maxi(0, int(profile.get_extra_starting_characters()))
 
 func _on_randomize_pressed() -> void:
 	crew_members.clear()
 
-	for i in range(selected_size - 1):
+	# Roll the crew PLUS any Elite Rank candidates, so there is something to
+	# choose between. The player trims back down to the crew size with Remove;
+	# validation refuses to advance while the roster is over size.
+	var extra: int = _extra_candidate_slots()
+	for i in range(selected_size - 1 + extra):
 		character_creator.start_creation(CharacterCreator.CreatorMode.INITIAL_CREW)
 		character_creator._on_randomize_pressed()
 		if character_creator.current_character:
@@ -144,7 +192,30 @@ func _on_randomize_pressed() -> void:
 	character_creator.hide()
 
 	_update_crew_list()
+	_update_candidate_hint()
 	crew_updated.emit(crew_members)
+
+func _update_candidate_hint() -> void:
+	## Tell the player, in the panel, that they are over size on purpose and
+	## must cut down — otherwise an over-size roster just looks like a bug.
+	var hint := content.get_node_or_null("__candidate_hint")
+	var keep: int = selected_size - 1
+	var over: int = crew_members.size() - keep
+	if over <= 0:
+		if hint:
+			hint.queue_free()
+		return
+	if hint == null:
+		hint = Label.new()
+		hint.name = "__candidate_hint"
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hint.add_theme_font_size_override("font_size", _scaled_font(14))
+		hint.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+		content.add_child(hint)
+		content.move_child(hint, 1)
+	hint.text = ("Elite Rank: %d extra candidate(s) rolled. Remove %d to get down "
+		+ "to your crew of %d — you pick who stays (Core Rules p.65).") % [
+			_extra_candidate_slots(), over, selected_size]
 
 func _on_character_created(character) -> void:
 	character_creator.hide()
@@ -203,7 +274,7 @@ func _update_crew_list() -> void:
 			+ "Use 'Randomize All' or 'Add Member' below."
 		lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 		lbl.add_theme_color_override(
-			"font_color", Color("#6b7280"))
+			"font_color", UIColors.COLOR_TEXT_MUTED)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.horizontal_alignment = (
 			HORIZONTAL_ALIGNMENT_CENTER)
@@ -227,7 +298,9 @@ func _update_crew_list() -> void:
 		]
 		crew_list.add_item(text)
 
-	# Update controls state
+	# Update controls state. Adding is capped at the crew size — the Elite Rank
+	# perk rolls extra CANDIDATES (p.65), it does not raise the cap, so the
+	# only way to exceed the size is by rolling and then trimming.
 	add_button.disabled = (
 		crew_members.size() >= selected_size - 1)
 	edit_button.disabled = true
@@ -261,7 +334,7 @@ func _build_crew_card(
 	name_lbl.text = character.character_name
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	name_lbl.add_theme_color_override(
-		"font_color", Color("#f3f4f6"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	info_vbox.add_child(name_lbl)
 
 	var cls := _enum_value_name(
@@ -273,7 +346,7 @@ func _build_crew_card(
 	sub_lbl.text = "%s  •  %s" % [cls, origin]
 	sub_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 	sub_lbl.add_theme_color_override(
-		"font_color", Color("#9ca3af"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	info_vbox.add_child(sub_lbl)
 
 	hbox.add_child(info_vbox)
@@ -338,7 +411,7 @@ func _on_crew_card_input(
 				if card is PanelContainer:
 					var s := _card_style()
 					if i == index:
-						s.border_color = Color("#3b82f6")
+						s.border_color = UIColors.COLOR_BLUE
 						s.set_border_width_all(2)
 					card.add_theme_stylebox_override(
 						"panel", s)
@@ -348,8 +421,8 @@ func _build_stat_badge(
 ) -> PanelContainer:
 	var badge := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1f2937")
-	style.set_corner_radius_all(6)
+	style.bg_color = UIColors.COLOR_TERTIARY
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	badge.add_theme_stylebox_override("panel", style)
 	badge.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -360,7 +433,7 @@ func _build_stat_badge(
 	name_l.add_theme_font_size_override(
 		"font_size", _scaled_font(11))
 	name_l.add_theme_color_override(
-		"font_color", Color("#9ca3af"))
+		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	name_l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hb.add_child(name_l)
 	var val_l := Label.new()
@@ -368,17 +441,17 @@ func _build_stat_badge(
 	val_l.add_theme_font_size_override(
 		"font_size", _scaled_font(12))
 	val_l.add_theme_color_override(
-		"font_color", Color("#3b82f6"))
+		"font_color", UIColors.COLOR_BLUE)
 	hb.add_child(val_l)
 	badge.add_child(hb)
 	return badge
 
 func _card_style() -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#111827")
-	style.border_color = Color("#374151")
+	style.bg_color = UIColors.COLOR_SECONDARY
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(12)
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(12)
 	return style
 
@@ -408,17 +481,17 @@ func _apply_button_style(
 	if not button:
 		return
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#3b82f6") if is_primary \
-		else Color("#1f2937")
-	style.set_corner_radius_all(8)
+	style.bg_color = UIColors.COLOR_BLUE if is_primary \
+		else UIColors.COLOR_TERTIARY
+	style.set_corner_radius_all(4)
 	style.set_content_margin_all(8)
 	button.add_theme_stylebox_override("normal", style)
 	button.add_theme_font_size_override("font_size", _scaled_font(16))
 	button.add_theme_color_override(
-		"font_color", Color("#f3f4f6"))
+		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	button.custom_minimum_size.y = 48
 	var hover := style.duplicate()
-	hover.bg_color = Color("#60a5fa") if is_primary \
+	hover.bg_color = UIColors.COLOR_ACCENT_HOVER if is_primary \
 		else Color("#2d3748")
 	button.add_theme_stylebox_override("hover", hover)
 	var pressed := style.duplicate()
@@ -443,7 +516,7 @@ func _add_help_button() -> void:
 	help_btn.add_theme_font_size_override(
 		"font_size", _scaled_font(18))
 	help_btn.add_theme_color_override(
-		"font_color", Color("#4FC3F7"))
+		"font_color", UIColors.COLOR_CYAN)
 	help_btn.tooltip_text = "Help: Crew management"
 	help_btn.pressed.connect(_on_help_pressed)
 	var controls = get_node_or_null("Content/Controls")
@@ -507,7 +580,7 @@ func _get_starting_bonuses(character) -> Array:
 	for item in rolled_items:
 		tags.append({
 			"text": item.get("name", "Unknown"),
-			"color": Color("#3b82f6"),
+			"color": UIColors.COLOR_BLUE,
 			"source": item.get("type", "").capitalize()})
 	var tables := {
 		"backgrounds": character.background,
@@ -544,33 +617,33 @@ func _get_starting_bonuses(character) -> Array:
 					"_", " ").capitalize() + " Roll"
 				tags.append({
 					"text": label,
-					"color": Color("#3b82f6"),
+					"color": UIColors.COLOR_BLUE,
 					"source": source_name})
 		var res: Dictionary = entry.get("resources", {})
 		if res.get("patron", 0) > 0:
 			tags.append({
 				"text": "Patron ×%d" % res["patron"],
-				"color": Color("#10B981"),
+				"color": UIColors.COLOR_EMERALD,
 				"source": source_name})
 		if res.get("rival", 0) > 0:
 			tags.append({
 				"text": "Rival ×%d" % res["rival"],
-				"color": Color("#DC2626"),
+				"color": UIColors.COLOR_RED,
 				"source": source_name})
 		if res.get("quest_rumors", 0) > 0:
 			tags.append({
 				"text": "Rumors ×%d" % res["quest_rumors"],
-				"color": Color("#D97706"),
+				"color": UIColors.COLOR_AMBER,
 				"source": source_name})
 		if res.has("credits_dice"):
 			tags.append({
 				"text": "+%s cr" % res["credits_dice"],
-				"color": Color("#D97706"),
+				"color": UIColors.COLOR_AMBER,
 				"source": source_name})
 		if res.get("story_points", 0) > 0:
 			tags.append({
 				"text": "SP ×%d" % res["story_points"],
-				"color": Color("#8B5CF6"),
+				"color": UIColors.COLOR_PURPLE,
 				"source": source_name})
 	return tags
 
@@ -629,7 +702,7 @@ func _build_bonus_tag(
 		src_lbl.add_theme_font_size_override(
 			"font_size", _scaled_font(8))
 		src_lbl.add_theme_color_override(
-			"font_color", Color("#6b7280"))
+			"font_color", UIColors.COLOR_TEXT_MUTED)
 		tag_vbox.add_child(src_lbl)
 		pill.add_child(tag_vbox)
 	return pill

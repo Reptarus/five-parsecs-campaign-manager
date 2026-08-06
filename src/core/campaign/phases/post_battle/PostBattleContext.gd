@@ -20,7 +20,10 @@ var planet_data_manager: Variant = null
 var campaign_journal: Variant = null
 var equipment_manager: Variant = null
 var dlc_manager: Variant = null
-var galactic_war_manager: Variant = null
+## CampaignPhaseManager autoload. Owns `story_track` and `intro_campaign`, so
+## StoryTrackProcessor needs it to advance the Story Clock (Core Rules p.153)
+## and the Introductory Campaign turn (Compendium pp.104-109) after a battle.
+var campaign_phase_manager: Variant = null
 
 # Campaign and battle state (set per start_post_battle_phase() call)
 var campaign: Variant = null
@@ -122,7 +125,14 @@ func get_campaign_difficulty() -> int:
 					return gs.difficulty
 				elif "difficulty_level" in gs:
 					return gs.difficulty_level
-	return 1
+	# NONE (0), NOT 1. GlobalEnums.DifficultyLevel is
+	# {NONE=0, EASY=1, NORMAL=2, ...}, so the old `return 1` fallback reported
+	# EASY whenever game_state_manager was absent — handing out the Core Rules
+	# p.64 Easy-mode concessions (PaymentProcessor +1 credit at :45, the
+	# invasion-roll modifier at :124, the XP modifier in
+	# ExperienceTrainingProcessor:286) to campaigns that were not on Easy.
+	# NONE matches no real mode, so every difficulty branch correctly declines.
+	return GlobalEnums.DifficultyLevel.NONE
 
 # --- Crew Helpers ---
 
@@ -162,6 +172,69 @@ func get_crew_member(crew_id: String) -> Variant:
 			return member
 	return null
 
+func apply_crew_death(crew_id: String) -> bool:
+	## Mark a crew member killed by a post-battle injury (Core Rules pp.94-95).
+	##
+	## THE BUG THIS FIXES: InjuryProcessor.process_single_injury() returns EARLY on a
+	## fatal roll (`if is_fatal: return processed_injury`) and never reached
+	## apply_crew_injury — and nothing else wrote a death either. Grep confirmed
+	## `status == "DEAD"` is READ (PostBattleCompletion.gd:205, to pick the journal
+	## outcome) and never WRITTEN. PostBattleSequence only appends the string
+	## "(FATAL)" to a UI label (:2194).
+	##
+	## So a crew member killed by the injury table stayed fully active: still
+	## deployable (GameStateManager.filter_deployable checks status DEAD), still
+	## eligible for Crew Tasks, still counted for upkeep, and their battle journal
+	## entry recorded them as "survived".
+	##
+	## Writes the shape the existing readers already look for, rather than inventing
+	## a new field: status "DEAD" is what filter_deployable and PostBattleCompletion
+	## test, and is_dead/in_sick_bay keep the dashboard and task gates consistent.
+	var member = get_crew_member(crew_id)
+	if member == null:
+		return false
+	if member is Dictionary:
+		member["status"] = "DEAD"
+		member["is_dead"] = true
+		member["is_wounded"] = true
+		member["in_sick_bay"] = false  # dead, not recovering
+		member["recovery_turns"] = 0
+	elif member is Object:
+		if "status" in member:
+			member.status = "DEAD"
+		if "is_dead" in member:
+			member.is_dead = true
+	return true
+
+
+func apply_luck_death_save(crew_id: String) -> bool:
+	## Core Rules p.121 (step 8, Determine Injuries and Recovery), verbatim:
+	##   "If a character with Luck would be slain through a roll on this table, they
+	##    miraculously survive, but immediately lose ALL Luck points. They can earn
+	##    additional points as normal in the future. Unless this occurs, Luck points
+	##    are now recovered automatically."
+	##
+	## This is a DIFFERENT rule from the in-battle Luck save (p.46, "lose 1 point of
+	## Luck instead" of becoming a casualty). The in-battle one needs no campaign
+	## write: both resolvers deep-copy the crew before the fight
+	## (BattleResolver.gd:177 `crew.duplicate(true)`), so campaign Luck is never
+	## depleted by a battle and "recovered automatically" is already satisfied.
+	##
+	## The post-battle one was NOT implemented on the live path at all. InjuryProcessor
+	## went straight to apply_crew_death() on any fatal roll, so a crew member holding
+	## Luck was killed outright — permanent character loss the book explicitly prevents.
+	##
+	## Returns true if Luck was spent to save them (caller must NOT kill the character).
+	var member = get_crew_member(crew_id)
+	if member == null:
+		return false
+	if _get_character_stat(member, "luck") <= 0:
+		return false
+	# "immediately lose ALL Luck points" — zero, not decrement.
+	_set_character_stat(member, "luck", 0)
+	return true
+
+
 func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 	## GameStateManager has no apply_crew_injury — the guarded calls at
 	## InjuryProcessor.gd:141,181 were dead, so rolled injuries never mutated the
@@ -176,9 +249,42 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 		"duration": recovery,
 		"description": injury.get("description", "Injury sustained"),
 	}
+	# Write the CANONICAL Sick Bay shape, not a private counter.
+	#
+	# This used to set only `injury_recovery_turns`, a field NO reader knows. Every
+	# Sick Bay consumer checks something else, so a post-battle injury enforced
+	# nothing at all: the crew member stayed deployable
+	# (GameStateManager.filter_deployable), stayed eligible for Crew Tasks
+	# (CrewTaskComponent.gd:182-183), and still counted for upkeep
+	# (UpkeepPhaseComponent.gd:151-153, UpkeepSystem.gd:73-77). Core Rules p.55 /
+	# p.76 / p.99 were unenforced for every injury rolled after a battle.
+	#
+	# The canonical shape, confirmed against each reader:
+	#   injuries[]      Array of {type, recovery_turns, ...}; the turn-rollover
+	#                   countdown (CampaignPhaseManager.gd:296-313) decrements each
+	#                   entry and removes it at 0.
+	#   in_sick_bay     bool, the primary gate for tasks and upkeep exemption.
+	#   recovery_turns  int, UpkeepPhaseComponent's fallback when in_sick_bay is absent.
+	#   status          "injured", which CrewTaskComponent.gd:183 ORs into its gate.
+	# `injury_recovery_turns` is still written so anything already reading it keeps
+	# working, but it is no longer the only home.
+	var turn_sustained: int = int(battle_result.get("turn", 0))
+	var injury_record := {
+		"type": effect["type"],
+		"recovery_turns": recovery,
+		"description": effect["description"],
+		"turn_sustained": turn_sustained,
+	}
 	if member is Dictionary:
 		member["is_wounded"] = true
 		member["injury_recovery_turns"] = maxi(int(member.get("injury_recovery_turns", 0)), recovery)
+		if not member.has("injuries"):
+			member["injuries"] = []
+		member["injuries"].append(injury_record)
+		if recovery > 0:
+			member["in_sick_bay"] = true
+			member["recovery_turns"] = maxi(int(member.get("recovery_turns", 0)), recovery)
+			member["status"] = "injured"
 		if not member.has("status_effects"):
 			member["status_effects"] = []
 		member["status_effects"].append(effect)
@@ -187,6 +293,15 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 			member.is_wounded = true
 		if "injury_recovery_turns" in member:
 			member.injury_recovery_turns = maxi(int(member.injury_recovery_turns), recovery)
+		if "injuries" in member and member.injuries is Array:
+			member.injuries.append(injury_record)
+		if recovery > 0:
+			if "in_sick_bay" in member:
+				member.in_sick_bay = true
+			if "recovery_turns" in member:
+				member.recovery_turns = maxi(int(member.recovery_turns), recovery)
+			if "status" in member:
+				member.status = "injured"
 		apply_character_status_effect(member, effect)
 	return true
 
@@ -281,10 +396,32 @@ func has_crew_with_class(character_class: String) -> bool:
 # --- Campaign Mutation Helpers ---
 
 func add_story_points(amount: int) -> void:
-	## Add story points to campaign via GameStateManager
-	if game_state_manager \
-			and game_state_manager.has_method("add_story_points"):
-		game_state_manager.add_story_points(amount)
+	## Add story points to the campaign this phase is operating on.
+	##
+	## This used to be gated SOLELY on the injected GameStateManager reference, so
+	## any context where that was not set dropped the award with no error. Story
+	## points are owned by FiveParsecsCampaignCore.story_points (the
+	## data-ownership table) and several Campaign and Character Events grant them,
+	## so a missing manager must not be able to swallow a rule.
+	if amount == 0:
+		return
+	# The CAMPAIGN wins, not the manager. The autoload resolves in any running
+	# engine but answers for its own current_campaign, so a phase operating on a
+	# different campaign object had its award absorbed silently.
+	var gc: Variant = campaign if campaign != null else _get_current_campaign()
+	if gc == null:
+		var gsm: Variant = game_state_manager
+		if gsm == null and Engine.get_main_loop():
+			gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("add_story_points"):
+			gsm.add_story_points(amount)
+			return
+		push_warning("PostBattleContext: no campaign — %d story points dropped" % amount)
+		return
+	if gc is Dictionary:
+		gc["story_points"] = maxi(0, int(gc.get("story_points", 0)) + amount)
+	elif "story_points" in gc:
+		gc.story_points = maxi(0, int(gc.story_points) + amount)
 
 func add_quest_rumor() -> void:
 	var gc = _get_current_campaign()
@@ -307,6 +444,14 @@ func add_quest_rumor() -> void:
 			"source": "event"
 		})
 		gc["rumors"] = rumors
+	# RESOURCE BRANCH — the live 5PFH campaign is a FiveParsecsCampaignCore RESOURCE,
+	# never a Dictionary, so gating on `gc is Dictionary` alone skipped the whole body.
+	# add_rival() below was fixed for exactly this; its four siblings were not. They
+	# also targeted fields that do not exist on the Resource (gc["rumors"], gc["patrons"]
+	# as a dict key) while the canonical owners are quest_rumors: int (:49) and
+	# patrons: Array (:47) on FiveParsecsCampaignCore.
+	elif "quest_rumors" in gc:
+		gc.quest_rumors += 1
 
 func remove_quest_rumor() -> void:
 	var gc = _get_current_campaign()
@@ -317,25 +462,112 @@ func remove_quest_rumor() -> void:
 		if rumors.size() > 0:
 			rumors.remove_at(randi() % rumors.size())
 			gc["rumors"] = rumors
+	elif "quest_rumors" in gc:
+		gc.quest_rumors = maxi(0, int(gc.quest_rumors) - 1)
 
 func add_rival(rival_name: String) -> void:
+	## Adds an event-sourced rival to the canonical `rivals` list.
+	##
+	## This used to be gated on `if gc is Dictionary` alone. The live 5PFH campaign
+	## is a FiveParsecsCampaignCore RESOURCE, not a Dictionary, so the whole body was
+	## skipped and every event-granted rival was silently dropped. It used the RIGHT
+	## key and still wrote nothing, which is why it never looked wrong. Same class of
+	## defect as RivalPatronResolver's `active_rivals`, opposite cause.
 	var gc = _get_current_campaign()
 	if gc == null:
 		return
+	var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+	var rival := {
+		"id": rival_id,
+		"name": rival_name,
+		"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
+		"hostility": randi_range(3, 5),
+		"resources": randi_range(1, 3),
+		"source": "event"
+	}
 	if gc is Dictionary:
 		var rivals: Array = gc.get("rivals", [])
-		var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
-		rivals.append({
-			"id": rival_id,
-			"name": rival_name,
-			"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
-			"hostility": randi_range(3, 5),
-			"resources": randi_range(1, 3),
-			"source": "event"
-		})
+		rivals.append(rival)
 		gc["rivals"] = rivals
-		if planet_data_manager and planet_data_manager.current_planet_id != "":
-			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
+	elif "rivals" in gc:
+		gc.rivals.append(rival)
+	else:
+		return
+	if planet_data_manager and planet_data_manager.current_planet_id != "":
+		planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
+
+func remove_patron(patron_id: String) -> bool:
+	## Errata v1.06 (Core Rules p.119): "Failing a job you have accepted from a
+	## known Patron causes them to be removed from your list of known Patrons."
+	## Returns true if a matching Patron was actually dropped.
+	if patron_id.is_empty():
+		return false
+	var gc = _get_current_campaign()
+	if gc == null:
+		return false
+	var patrons: Array = []
+	if gc is Dictionary:
+		patrons = gc.get("patrons", [])
+	elif "patrons" in gc and gc.patrons is Array:
+		patrons = gc.patrons
+	else:
+		return false
+	for i in range(patrons.size() - 1, -1, -1):
+		var p = patrons[i]
+		var pid: String = ""
+		# NAME IS A VALID IDENTITY HERE. campaign.patrons is a MIXED array — the
+		# creation tables append bare name Strings, events append dicts — so an
+		# entry may have no id at all, and a String entry matched nothing under the
+		# old id-only read. JobOfferComponent._patron_identity() falls back to the
+		# name for exactly this reason; the two must agree or the errata v1.06
+		# removal silently misses every name-only Patron.
+		if p is Dictionary:
+			var pd: Dictionary = p
+			pid = str(pd.get("id", pd.get("patron_id", pd.get("name", ""))))
+		elif p != null and typeof(p) == TYPE_STRING:
+			pid = str(p)
+		elif p != null and "id" in p:
+			pid = str(p.id)
+		if pid == patron_id:
+			patrons.remove_at(i)
+			if gc is Dictionary:
+				gc["patrons"] = patrons
+			return true
+	return false
+
+func _append_patron(patron: Dictionary) -> void:
+	## Append a KNOWN patron to the canonical list, idempotently. p.119 says you
+	## "may add the Patron to your list of contacts on this planet" — running the
+	## same job twice must not create a duplicate contact.
+	var gc = _get_current_campaign()
+	if gc == null:
+		return
+	var patrons: Array = []
+	if gc is Dictionary:
+		patrons = gc.get("patrons", [])
+	elif "patrons" in gc and gc.patrons is Array:
+		patrons = gc.patrons
+	else:
+		return
+
+	var new_id: String = str(patron.get("id", patron.get("name", "")))
+	if new_id != "":
+		for existing in patrons:
+			var eid: String = ""
+			if existing is Dictionary:
+				var ed: Dictionary = existing
+				eid = str(ed.get("id", ed.get("patron_id", ed.get("name", ""))))
+			else:
+				eid = str(existing)
+			if eid == new_id:
+				return
+
+	patrons.append(patron)
+	if gc is Dictionary:
+		gc["patrons"] = patrons
+	if planet_data_manager and planet_data_manager.current_planet_id != "" and new_id != "":
+		planet_data_manager.add_contact_to_planet(
+			planet_data_manager.current_planet_id, new_id)
 
 func remove_random_patron() -> void:
 	var gc = _get_current_campaign()
@@ -346,8 +578,23 @@ func remove_random_patron() -> void:
 		if patrons.size() > 0:
 			patrons.remove_at(randi() % patrons.size())
 			gc["patrons"] = patrons
+	elif "patrons" in gc and gc.patrons is Array and gc.patrons.size() > 0:
+		gc.patrons.remove_at(randi() % gc.patrons.size())
 
-func add_patron() -> void:
+func add_patron(patron: Dictionary = {}) -> void:
+	## With no argument this GENERATES a new contact — correct for the campaign and
+	## character events that hand you one out of nowhere (CampaignEventEffects,
+	## CharacterEventEffects).
+	##
+	## Post-battle Step 2 is NOT that case. Core Rules p.119: "If you succeeded in
+	## a Patron mission, you may add THE Patron to your list of contacts on this
+	## planet" — the one whose job you just finished. Calling this bare meant a
+	## successful job added a randomly-named stranger ("Lady Silver", "Old Sal")
+	## with a rolled persistence flag, while the Patron you actually worked for was
+	## never recorded. Pass their identity and they are added as themselves.
+	if not patron.is_empty():
+		_append_patron(patron)
+		return
 	var gc = _get_current_campaign()
 	if gc == null:
 		return
@@ -367,18 +614,43 @@ func add_patron() -> void:
 		gc["patrons"] = patrons
 		if planet_data_manager and planet_data_manager.current_planet_id != "":
 			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, patron_id)
+	elif "patrons" in gc and gc.patrons is Array:
+		var patron_types2: Array = ["Corporate", "Government", "Criminal", "Private", "Mercenary"]
+		var patron_names2: Array = ["The Broker", "Lady Silver", "Commander Vex", "Old Sal", "The Collector"]
+		var pid: String = "patron_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+		gc.patrons.append({
+			"id": pid,
+			"name": patron_names2[randi() % patron_names2.size()],
+			"type": patron_types2[randi() % patron_types2.size()],
+			"relationship": randi_range(1, 3),
+			"persistent": randi_range(1, 6) >= 4,
+			"source": "event"
+		})
+		if planet_data_manager and planet_data_manager.current_planet_id != "":
+			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, pid)
 
 # --- Character Mutation Helpers ---
 
 func add_character_xp(character: Variant, xp_amount: int) -> void:
-	if not character:
+	## DICTIONARY BRANCH FIRST — has_method() on a Dictionary is an INVALID CALL that
+	## unwinds the whole function, so this mutator silently did nothing for the crew
+	## shape the project actually uses (crew members are canonically Dictionaries per
+	## the data-ownership table). Every caller was affected: the post-battle XP award,
+	## award_xp_to_random_crew and award_xp_to_all_crew.
+	##
+	## Third occurrence of this exact trap found today — see InjuryProcessor and
+	## get_crew_members(), which already documents the rule at :130.
+	if character == null:
 		return
-	if character.has_method("add_experience"):
-		character.add_experience(xp_amount)
-	elif "experience" in character:
-		character.experience += xp_amount
-	elif character is Dictionary:
-		character["experience"] = character.get("experience", 0) + xp_amount
+	if character is Dictionary:
+		var d: Dictionary = character
+		d["experience"] = int(d.get("experience", 0)) + xp_amount
+		return
+	if character is Object:
+		if character.has_method("add_experience"):
+			character.add_experience(xp_amount)
+		elif "experience" in character:
+			character.experience += xp_amount
 
 func award_xp_to_random_crew(xp_amount: int) -> void:
 	var crew := get_crew_members()
@@ -390,33 +662,76 @@ func award_xp_to_all_crew(xp_amount: int) -> void:
 	for member in crew:
 		add_character_xp(member, xp_amount)
 
-func injure_random_crew(recovery_turns: int) -> void:
+func award_xp_to_captain(xp_amount: int) -> void:
+	## THIS METHOD DID NOT EXIST. CampaignEventEffects.gd:162 called it directly,
+	## with no has_method() guard, for the Core Rules p.126 campaign event
+	## "You've managed to settle some old business ... If you have no Rivals, your
+	## captain earns +1 XP instead." A call to a nonexistent method is an INVALID
+	## CALL that aborts the enclosing function, so apply_effect() unwound: the
+	## captain gained nothing AND the event's result string was never returned.
+	##
+	## The captain is the crew member carrying is_captain == true — it MUST live in
+	## crew_data["members"], not only in captain_data (data-ownership table).
+	## Falls back to the first member so the book's XP is never silently dropped
+	## on a campaign whose captain flag is missing.
 	var crew := get_crew_members()
-	if crew.size() > 0:
-		var member = crew[randi() % crew.size()]
-		if "injury_recovery_turns" in member:
-			member.injury_recovery_turns = recovery_turns
+	if crew.is_empty():
+		return
+	for member in crew:
+		var flagged := false
+		if member is Dictionary:
+			flagged = bool((member as Dictionary).get("is_captain", false))
+		elif member is Object and "is_captain" in member:
+			flagged = bool(member.is_captain)
+		if flagged:
+			add_character_xp(member, xp_amount)
+			return
+	add_character_xp(crew[0], xp_amount)
+
+func _crew_id_of(member: Variant) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+func injure_random_crew(recovery_turns: int) -> void:
+	## Route through apply_crew_injury so the Sick Bay this imposes is the one
+	## every gate reads. It used to set ONLY `injury_recovery_turns`, a legacy
+	## mirror the turn-rollover countdown ignores (see the Sick Bay block above),
+	## so the stay never actually counted down or blocked anything.
+	var crew := get_crew_members()
+	if crew.is_empty():
+		return
+	var member: Variant = crew[randi() % crew.size()]
+	apply_crew_injury(_crew_id_of(member), {
+		"type": "injury", "severity": 1, "recovery_turns": recovery_turns,
+		"description": "Injury sustained", "is_fatal": false,
+	})
 
 func injure_specific_crew(character: Variant, recovery_turns: int) -> void:
+	## TWO faults, both silent, and the Character Events that send someone to
+	## Sick Bay (p.129 Scrap with Crewmate, p.129 Hurt Working on Ship) went
+	## through here:
+	##
+	## 1. The guard read game_state_manager.has_method("apply_crew_injury").
+	##    GameStateManager has NO such method — the same permanently-false guard
+	##    already documented at InjuryProcessor — so this ALWAYS fell to the else.
+	## 2. The else opened with `character.is_wounded = true`. Crew members are
+	##    canonically DICTIONARIES, and a Dictionary has no such property, so that
+	##    assignment is an invalid set that ABORTS the whole function — the
+	##    status_effects append on the next line never ran either.
+	##
+	## Net effect: nothing was written at all, and even had it been, a
+	## status_effects `duration` is not the shape the Sick Bay gates read.
+	## apply_crew_injury writes injuries[] + in_sick_bay + recovery_turns +
+	## status, which is what the countdown and the task/upkeep gates consult.
 	if not character:
 		return
-	var injury_data := {
-		"type": "injury",
-		"severity": 1,
-		"recovery_turns": recovery_turns,
-		"description": "Injury sustained",
-		"is_fatal": false
-	}
-	if game_state_manager and game_state_manager.has_method("apply_crew_injury"):
-		var crew_id: Variant = character.character_name if "character_name" in character else 0
-		game_state_manager.apply_crew_injury(crew_id, injury_data)
-	else:
-		character.is_wounded = true
-		if character.get("status_effects") != null:
-			character.status_effects.append({
-				"type": "injury", "severity": 1,
-				"duration": recovery_turns, "description": "Injury sustained"
-			})
+	apply_crew_injury(_crew_id_of(character), {
+		"type": "injury", "severity": 1, "recovery_turns": recovery_turns,
+		"description": "Injury sustained", "is_fatal": false,
+	})
 
 func apply_character_status_effect(character: Variant, effect: Dictionary) -> void:
 	## Apply a persistent status effect from a Character Event (Core Rules pp.128-130).
@@ -486,55 +801,409 @@ func apply_random_ability_increase(character: Variant) -> String:
 	_set_character_stat(character, chosen, _get_character_stat(character, chosen) + 1)
 	return chosen
 
+# --- Sick Bay recovery ---
+#
+# THE SHARED BUG IN THE THREE FUNCTIONS BELOW: every one of them wrote ONLY
+# `injury_recovery_turns`, which the turn-rollover countdown does not read. That
+# countdown (CampaignPhaseManager._process_turn_rollover) decrements each entry
+# in `injuries[]` and ends the Sick Bay stay when that array is EMPTY —
+# `injury_recovery_turns` is a legacy mirror it merely zeroes on the way out, as
+# apply_crew_injury() documents at :252-270.
+#
+# So the whole family shortened a number nobody consults and the crew member
+# stayed in Sick Bay for the full original duration: Campaign Event 1-3 Friendly
+# Doc (p.126, "reduce their Recovery time by one campaign turn each"), the p.84
+# Patron medical-care benefit, and the Character Event that gives a turn back.
+# Each reported success and changed nothing a gate could see.
+
+func _member_injuries(member: Variant) -> Array:
+	if member is Dictionary:
+		var inj: Variant = member.get("injuries", null)
+		return inj if inj is Array else []
+	if member and "injuries" in member and member.injuries is Array:
+		return member.injuries
+	return []
+
+func _set_member_field(member: Variant, field: String, value: Variant) -> void:
+	if member is Dictionary:
+		member[field] = value
+	elif member and field in member:
+		member.set(field, value)
+
+func get_member_recovery_turns(member: Variant) -> int:
+	## Turns until the member leaves Sick Bay = the LONGEST outstanding injury,
+	## because the countdown decrements every entry each turn and clears the bay
+	## only once they are all gone.
+	var longest: int = 0
+	for inj in _member_injuries(member):
+		if inj is Dictionary:
+			longest = maxi(longest, int(inj.get("recovery_turns", 0)))
+	if longest > 0:
+		return longest
+	# Legacy/partial shape: in Sick Bay with a summary counter but no entries.
+	if member is Dictionary:
+		return int(member.get("recovery_turns", member.get("injury_recovery_turns", 0)))
+	if member and "recovery_turns" in member:
+		return int(member.recovery_turns)
+	return 0
+
+func reduce_member_recovery(member: Variant, turns: int) -> int:
+	## Shorten a Sick Bay stay by `turns`, writing the shape every gate reads.
+	## Returns the turns actually removed (0 if they were not recovering).
+	if member == null or turns <= 0:
+		return 0
+	var before: int = get_member_recovery_turns(member)
+	if before <= 0:
+		return 0
+
+	var injuries: Array = _member_injuries(member)
+	for i in range(injuries.size() - 1, -1, -1):
+		var inj: Variant = injuries[i]
+		if not (inj is Dictionary):
+			continue
+		var left: int = maxi(0, int(inj.get("recovery_turns", 0)) - turns)
+		if left <= 0:
+			injuries.remove_at(i)
+		else:
+			inj["recovery_turns"] = left
+
+	# Injury status effects carry their own duration; keep them in step or the
+	# character sheet contradicts the Sick Bay gate.
+	for effect in _member_status_effects(member):
+		if effect is Dictionary \
+				and str(effect.get("type", "")) in [
+					"injury", "MINOR_INJURY", "SERIOUS_INJURY", "CRIPPLING_WOUND"] \
+				and effect.has("duration"):
+			effect["duration"] = maxi(0, int(effect["duration"]) - turns)
+
+	var after: int = 0
+	for inj in injuries:
+		if inj is Dictionary:
+			after = maxi(after, int(inj.get("recovery_turns", 0)))
+	if injuries.is_empty():
+		after = maxi(0, before - turns)
+
+	_set_member_field(member, "recovery_turns", after)
+	_set_member_field(member, "injury_recovery_turns", after)
+	if after <= 0:
+		# p.126: "If they recover, they can act normally next campaign turn."
+		_set_member_field(member, "in_sick_bay", false)
+		var st: String = ""
+		if member is Dictionary:
+			st = str(member.get("status", ""))
+		elif member and "status" in member:
+			st = str(member.status)
+		if st == "injured" or st == "RECOVERING":
+			_set_member_field(member, "status", "ACTIVE")
+	return before - after
+
 func reduce_character_recovery(character: Variant, turns: int) -> void:
-	if not character:
-		return
-	if character.get("status_effects") != null:
-		for effect in character.status_effects:
-			if effect is Dictionary and effect.get("type", "") in ["injury", "MINOR_INJURY", "SERIOUS_INJURY", "CRIPPLING_WOUND"]:
-				if "duration" in effect:
-					effect.duration = maxi(0, effect.duration - turns)
+	reduce_member_recovery(character, turns)
 
 func reduce_recovery_time(max_crew: int) -> void:
-	var crew := get_crew_members()
+	## Campaign Event 1-3, Friendly Doc (Core Rules p.126): "Select up to two crew
+	## members in Sick Bay and reduce their Recovery time by one campaign turn
+	## each."
 	var healed_count: int = 0
-	for member in crew:
+	for member in get_crew_members():
 		if healed_count >= max_crew:
 			break
-		var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
-		if recovery_turns > 0:
-			if "injury_recovery_turns" in member:
-				member.injury_recovery_turns = max(0, recovery_turns - 1)
+		if reduce_member_recovery(member, 1) > 0:
 			healed_count += 1
 
 func heal_crew_in_sickbay() -> void:
-	var crew := get_crew_members()
-	for member in crew:
-		var recovery_turns: int = member.injury_recovery_turns if "injury_recovery_turns" in member else 0
-		if recovery_turns > 0:
-			if "injury_recovery_turns" in member:
-				member.injury_recovery_turns = 0
+	## Clear ONE crew member's remaining Sick Bay time entirely.
+	for member in get_crew_members():
+		var remaining: int = get_member_recovery_turns(member)
+		if remaining > 0:
+			reduce_member_recovery(member, remaining)
 			return
 
 # --- Equipment Helpers ---
+#
+# DAMAGED GEAR IS A STATUS-EFFECT MARKER ON THE OWNER, not a field on the item.
+# The live representation everywhere in this codebase is
+#   {type: "item_damaged", damaged_item: <item name>}
+# appended to the owning crew member's status_effects. Character Events write it
+# (CharacterEventEffects, "Don't Make Them Like They Used To"), travel events
+# write it (TravelEventResolver._damage_random_item), and Repair Your Kit READS
+# it (CrewTaskComponent._first_damaged_item / _resolve_damaged_item, p.78).
+#
+# Anything that damages equipment must write THIS shape. An item flag such as
+# `damaged: true` or `condition: "damaged"` is invisible to the repair task, so
+# gear marked that way can never be fixed.
 
-func damage_random_equipment() -> void:
-	var all_equipment: Array = []
-	if game_state_manager and game_state_manager.has_method("get_crew_members"):
-		for member in game_state_manager.get_crew_members():
-			if member.get("is_dead") == true:
-				continue
-			var member_name: String = member.character_name if "character_name" in member else "Unknown"
-			if "weapons" in member:
-				for w in member.weapons:
-					all_equipment.append({"source": "crew", "owner": member_name, "item_name": str(w)})
-			if "items" in member:
-				for it in member.items:
-					all_equipment.append({"source": "crew", "owner": member_name, "item_name": str(it)})
-	if all_equipment.is_empty():
-		return
-	var _random_index: int = randi() % all_equipment.size()
-	# Damage is informational — condition tracking handled by EquipmentManager
+static func _entry_item_name(entry: Variant) -> String:
+	return str(entry.get("name", "")) if entry is Dictionary else str(entry)
+
+func _member_equipment(member: Variant) -> Array:
+	## Returns the LIVE array so callers can mutate through to the campaign.
+	if member is Dictionary:
+		var eq: Variant = member.get("equipment", null)
+		return eq if eq is Array else []
+	if member and "equipment" in member and member.equipment is Array:
+		return member.equipment
+	return []
+
+func _member_status_effects(member: Variant) -> Array:
+	if member is Dictionary:
+		if not (member.get("status_effects", null) is Array):
+			member["status_effects"] = []
+		return member["status_effects"]
+	if member and "status_effects" in member and member.status_effects is Array:
+		return member.status_effects
+	return []
+
+func _member_is_dead(member: Variant) -> bool:
+	if member is Dictionary:
+		return bool(member.get("is_dead", false)) \
+			or str(member.get("status", "")) == "DEAD"
+	if member and "is_dead" in member:
+		return bool(member.is_dead)
+	return false
+
+func _is_item_already_damaged(member: Variant, item_name: String) -> bool:
+	for eff in _member_status_effects(member):
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+				and str(eff.get("damaged_item", "")) == item_name:
+			return true
+	return false
+
+func mark_item_damaged(member: Variant, item_name: String, source: String) -> bool:
+	## Returns false when there was nothing to do (no name, or already damaged) so
+	## callers can report an honest count instead of claiming a hit every time.
+	if member == null or item_name.is_empty():
+		return false
+	if _is_item_already_damaged(member, item_name):
+		return false
+	# NO `duration` KEY, deliberately. Both turn-rollover loops
+	# (Character.process_status_effect_turn and the Dictionary branch of
+	# CampaignPhaseManager._process_character_event_effects) are written as
+	# `if "duration" in effect: effect["duration"] -= 1; if <= 0: expire`, so a
+	# literal `"duration": 0` — which this used to carry — went to -1 and was
+	# REMOVED at the very next rollover. Damaged gear repaired itself overnight
+	# and Repair Your Kit (p.78) still had nothing to fix, which was the whole
+	# point of writing the marker. Omitting the key is the built-in escape hatch
+	# for indefinite effects; the dashboard already reads `duration` with a
+	# default and only renders a turn count when it is > 0.
+	apply_character_status_effect(member, {
+		"type": "item_damaged",
+		"name": "Damaged Equipment",
+		"description": "%s is damaged and cannot be used until Repaired (Core Rules p.78)." % item_name,
+		"damaged_item": item_name,
+		"source_event": source,
+	})
+	return true
+
+func _damage_random_item_on(member: Variant, source: String) -> String:
+	if member == null:
+		return ""
+	# Already-damaged items are excluded: otherwise a second Equipment Loss result
+	# can "damage" the same broken rifle and cost the player nothing.
+	var candidates: Array = []
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if not item_name.is_empty() and not _is_item_already_damaged(member, item_name):
+			candidates.append(item_name)
+	if candidates.is_empty():
+		return ""
+	var chosen: String = candidates[randi() % candidates.size()]
+	mark_item_damaged(member, chosen, source)
+	return chosen
+
+func damage_random_equipment_for(crew_id: String, source: String = "Injury Table") -> String:
+	## Core Rules p.122, Injury Table 17-30 and Bot Injury Table 16-30:
+	## "Random carried item is damaged." Returns the item name, "" if none.
+	return _damage_random_item_on(get_crew_member(crew_id), source)
+
+
+## Names of every item with the book's ARMOR trait (data/armor.json
+## category == "armor"). Screens are deliberately excluded: armor.json separates
+## "Physical protective gear that provides Saving Throws" from "Energy-based or
+## stealth protective devices", and Compendium p.101 Critical Strike asks
+## specifically whether the character is "wearing Armor".
+static var _armor_names_cache: PackedStringArray = PackedStringArray()
+static var _armor_names_loaded: bool = false
+
+static func _armor_item_names() -> PackedStringArray:
+	if _armor_names_loaded:
+		return _armor_names_cache
+	_armor_names_loaded = true
+	var file := FileAccess.open("res://data/armor.json", FileAccess.READ)
+	if file == null:
+		return _armor_names_cache
+	var json := JSON.new()
+	var ok: bool = json.parse(file.get_as_text()) == OK
+	file.close()
+	if not ok or not (json.data is Dictionary):
+		return _armor_names_cache
+	for entry in json.data.get("armor", []):
+		if entry is Dictionary and str(entry.get("category", "")) == "armor":
+			_armor_names_cache.append(str(entry.get("name", "")).to_lower())
+	return _armor_names_cache
+
+
+func get_worn_armor_name(member: Variant) -> String:
+	## The first ARMOR-trait item the member carries, or "" if they wear none.
+	if member == null:
+		return ""
+	var armor_names: PackedStringArray = _armor_item_names()
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if item_name.to_lower() in armor_names:
+			return item_name
+	return ""
+
+
+func damage_worn_armor_for(crew_id: String, source: String) -> String:
+	## Compendium p.101 Critical Strike: "they survive, but the armor is damaged."
+	var member: Variant = get_crew_member(crew_id)
+	var armor_name: String = get_worn_armor_name(member)
+	if armor_name.is_empty():
+		return ""
+	mark_item_damaged(member, armor_name, source)
+	return armor_name
+
+
+func destroy_random_equipment_for(crew_id: String) -> String:
+	## Compendium p.101 Item Hit on a 5-6: the item is DESTROYED, not damaged, so
+	## it leaves the sheet entirely rather than becoming a Repair Your Kit job.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return ""
+	var equipment: Array = _member_equipment(member)
+	if equipment.is_empty():
+		return ""
+	var index: int = randi() % equipment.size()
+	var item_name: String = _entry_item_name(equipment[index])
+	equipment.remove_at(index)
+	# A destroyed item must not keep a damaged-marker behind it, or Repair Your
+	# Kit would offer to fix something the character no longer owns.
+	var effects: Array = _member_status_effects(member)
+	for i in range(effects.size() - 1, -1, -1):
+		var eff: Variant = effects[i]
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged" \
+				and str(eff.get("damaged_item", "")) == item_name:
+			effects.remove_at(i)
+	return item_name
+
+func damage_all_equipment_for(crew_id: String, source: String = "Injury Table") -> Array:
+	## Core Rules p.122, Injury Table 1-5 Gruesome fate and Bot 1-5 Obliterated:
+	## "...and all carried equipment is damaged." DAMAGED, not lost — the gear
+	## survives the character and is repairable under p.78.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return []
+	var damaged: Array = []
+	for entry in _member_equipment(member):
+		var item_name: String = _entry_item_name(entry)
+		if mark_item_damaged(member, item_name, source):
+			damaged.append(item_name)
+	return damaged
+
+func lose_all_equipment_for(crew_id: String) -> Array:
+	## Core Rules p.122, Injury Table 16 Miraculous escape: "The character
+	## survives and receives +1 Luck, but all items carried are PERMANENTLY
+	## LOST." Distinct from Gruesome fate — these items leave the game entirely,
+	## so no repair marker is written and the entries are removed outright.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null:
+		return []
+	var equipment: Array = _member_equipment(member)
+	var lost: Array = []
+	for entry in equipment:
+		var item_name: String = _entry_item_name(entry)
+		if not item_name.is_empty():
+			lost.append(item_name)
+	if lost.is_empty():
+		return []
+	# Mutating the live array writes through to the campaign; reassigning a new
+	# array would not (and on a Character it would hit the Array[String] setter).
+	equipment.clear()
+	# Outstanding damage markers now point at items that no longer exist, which
+	# would leave Repair Your Kit offering to fix thin air forever.
+	var effects: Array = _member_status_effects(member)
+	for i in range(effects.size() - 1, -1, -1):
+		var eff: Variant = effects[i]
+		if eff is Dictionary and str(eff.get("type", "")) == "item_damaged":
+			effects.remove_at(i)
+	return lost
+
+func get_stash_items() -> Array:
+	## The ship stash, per the data-ownership table:
+	## campaign.equipment_data["equipment"]. Returns the LIVE array so callers can
+	## mutate through; never the "pool" key, which was a systemic bug in Phase 22.
+	var gc: Variant = _get_current_campaign()
+	if gc == null:
+		return []
+	var data: Variant = null
+	if gc is Dictionary:
+		data = gc.get("equipment_data", null)
+	elif "equipment_data" in gc:
+		data = gc.equipment_data
+	if not (data is Dictionary):
+		return []
+	var items: Variant = data.get("equipment", null)
+	return items if items is Array else []
+
+func damage_random_equipment() -> String:
+	## Campaign Event 45-48 "Equipment Malfunction" (Core Rules p.127), verbatim:
+	## "If there are any items in your Stash, a random item is damaged and must
+	## be Repaired." The STASH, not a crew member's carried kit — the event's own
+	## result string already said "Random stash item damaged".
+	##
+	## THE BUG THIS FIXES: the body ended at `var _random_index: int = randi() %
+	## all_equipment.size()` under the comment "Damage is informational —
+	## condition tracking handled by EquipmentManager". EquipmentManager does no
+	## such thing; the index was computed and discarded, so the event damaged
+	## nothing, ever. It also gathered from crew `weapons`/`items` — neither the
+	## right container nor keys the canonical crew shape carries — so the
+	## candidate list was empty before the discard even mattered.
+	##
+	## Stash damage is a flag on the item dict, NOT the owner-side status-effect
+	## marker: `damaged: true` already drives the "[DAMAGED]" suffix in Assign
+	## Equipment (AssignEquipmentComponent.gd:156) and the sell-list exclusion in
+	## Purchase Items (PurchaseItemsComponent.gd:155). Both readers were built and
+	## neither had ever had a producer.
+	var items: Array = get_stash_items()
+	var candidates: Array = []
+	for i in range(items.size()):
+		var entry: Variant = items[i]
+		if entry is Dictionary and not bool(entry.get("damaged", false)):
+			candidates.append(i)
+	if candidates.is_empty():
+		return ""
+	var idx: int = candidates[randi() % candidates.size()]
+	var item: Dictionary = items[idx]
+	item["damaged"] = true
+	item["damage_source"] = "Campaign Event: Equipment Malfunction (Core Rules p.127)"
+	return str(item.get("name", "an item"))
+
+func apply_permanent_stat_reduction(crew_id: String, stats: Array, amount: int) -> Dictionary:
+	## Core Rules p.122, Injury Table 31-45 Crippling wound: "-1 permanent
+	## reduction to highest of Speed or Toughness."
+	##
+	## Picks the highest of the listed stats (ties resolve to the first listed —
+	## the book does not break them, and either is legal), floors the result at 0,
+	## and returns {stat, from, to}. Empty when nothing could be reduced.
+	var member: Variant = get_crew_member(crew_id)
+	if member == null or stats.is_empty() or amount == 0:
+		return {}
+	var chosen: String = ""
+	var best: int = -1
+	for s in stats:
+		var stat_name: String = str(s)
+		var value: int = _get_character_stat(member, stat_name)
+		if value > best:
+			best = value
+			chosen = stat_name
+	if chosen.is_empty() or best <= 0:
+		return {}
+	var reduced: int = maxi(0, best + amount)
+	if reduced == best:
+		return {}
+	_set_character_stat(member, chosen, reduced)
+	return {"stat": chosen, "from": best, "to": reduced}
 
 func add_random_equipment_to_stash() -> void:
 	var gc = _get_current_campaign()

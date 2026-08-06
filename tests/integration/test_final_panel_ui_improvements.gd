@@ -17,7 +17,7 @@ var mock_campaign_data: Dictionary
 func before():
 	"""Create FinalPanel instance and mock campaign data"""
 	# Instantiate scene to get proper @onready content_container
-	panel = FinalPanelScene.instantiate()
+	panel = auto_free(FinalPanelScene.instantiate())
 	add_child(panel)
 
 	# Wait 6 frames for complex UI construction
@@ -34,7 +34,7 @@ func before():
 func after():
 	"""Clean up panel and reset mock data"""
 	if panel and is_instance_valid(panel):
-		panel.queue_free()
+		pass  # auto_free() owns teardown.
 	panel = null
 	mock_campaign_data.clear()
 	await get_tree().process_frame

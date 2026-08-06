@@ -131,7 +131,7 @@
       "page_reference": "p.78",
       "roll_mechanic": "1D6 + Savvy + Engineer bonus + credits spent",
       "dice_target": 6,
-      "max_crew": 1,
+      "max_crew": 2,
       "credit_bonus_max": -1,
       "credit_bonus_note": "Each credit spent on spare parts = +1 (no cap stated)",
       "success_reward": "Item repaired and usable",
@@ -143,7 +143,8 @@
         "+1 if character is an Engineer",
         "May spend credits on spare parts: +1 per credit",
         "6+ = item repaired",
-        "Natural 1 ALWAYS fails regardless of modifiers — item destroyed"
+        "Natural 1 ALWAYS fails regardless of modifiers — item destroyed",
+        "Up to 2 crew may take this task, like every other (p.76). The max_crew of 1 here was a fabricated restriction that contradicted this file's own metadata note; p.78 states no per-task exception."
       ]
     },
     {

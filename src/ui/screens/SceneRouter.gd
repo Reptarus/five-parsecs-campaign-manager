@@ -14,10 +14,13 @@ var transition_duration: float = 0.2  # Default 200ms
 const SCENE_PATHS = {
 	# Main screens
 	"main_menu": "res://src/ui/screens/mainmenu/MainMenu.tscn",
-	"main_game": "res://src/scenes/main/MainGameScene.tscn",
+	# "main_game" removed: src/scenes/main/MainGameScene.tscn does not exist
+	# anywhere in the repo, and its only callers were this file's own
+	# enter_main_game()/navigate_to_main_game() helpers, which nothing called.
 
 	# Campaign management
 	"campaign_creation": "res://src/ui/screens/campaign/CampaignCreationUI.tscn",
+	"campaign_editor": "res://src/ui/screens/campaign/CampaignEditorScreen.tscn",
 	# "main_campaign": UNUSED - no navigate_to calls exist
 	# "campaign_turn": DEPRECATED - replaced by campaign_turn_controller
 	"campaign_dashboard": "res://src/ui/screens/campaign/CampaignDashboard.tscn",
@@ -29,7 +32,6 @@ const SCENE_PATHS = {
 	"character_creator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	# "character_progression": UNUSED - no navigate_to calls exist
-	"advancement_manager": "res://src/ui/screens/character/AdvancementManager.tscn",
 	# "crew_creation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
 	"crew_management": "res://src/ui/screens/crew/CrewManagementScreen.tscn",
 
@@ -37,24 +39,24 @@ const SCENE_PATHS = {
 	"equipment_manager": "res://src/ui/screens/equipment/EquipmentManager.tscn",
 	"equipment_generation": "res://src/ui/screens/equipment/EquipmentGenerationScene.tscn",
 	"ship_manager": "res://src/ui/screens/ships/ShipManager.tscn",
-	"ship_inventory": "res://src/ui/screens/ships/ShipInventory.tscn",
 
 	# World and exploration
 	"world_phase": "res://src/ui/screens/world/WorldPhaseController.tscn",
-	"mission_selection": "res://src/ui/screens/world/MissionSelectionUI.tscn",
+	# "mission_selection": DELETED with MissionSelectionUI. The route had ZERO
+	# navigate_to callers, and its only integration point —
+	# WorldPhaseController._initialize_mission_selection() — was a `pass`
+	# documented as deprecated in favour of JobOfferComponent.
 	"patron_rival_manager": "res://src/ui/screens/world/PatronRivalManager.tscn",
 	# "world_phase_summary": UNUSED - no navigate_to calls exist
 	# "travel_phase": legacy screen DELETED — travel is a step in the unified World Phase
 
 	# Battle system
 	"pre_battle": "res://src/ui/screens/battle/PreBattle.tscn",
-	"battlefield_main": "res://src/ui/screens/battle/BattlefieldMain.tscn",
 	"tactical_battle": "res://src/ui/screens/battle/TacticalBattleUI.tscn",
 	"post_battle": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 	"post_battle_sequence": "res://src/ui/screens/postbattle/PostBattleSequence.tscn",
 
 	# Events and story
-	"campaign_events": "res://src/ui/screens/events/CampaignEventsManager.tscn",
 	# "story_phase": REMOVED - not official Five Parsecs phase
 
 	# Campaign phases
@@ -70,9 +72,15 @@ const SCENE_PATHS = {
 	"campaign_journal": "res://src/ui/screens/campaign/CampaignJournalScreen.tscn",
 	"settings": "res://src/ui/screens/settings/SettingsScreen.tscn",
 
-	# Tutorial
-	"tutorial_selection": "res://src/ui/screens/tutorial/TutorialSelection.tscn",
-	"new_campaign_tutorial": "res://src/ui/screens/tutorial/NewCampaignTutorial.tscn",
+	# Tutorial routes: BOTH removed 2026-08-01.
+	# "new_campaign_tutorial" went first — nothing navigated to it and its node
+	# names did not match the shared script's @onready paths.
+	# "tutorial_selection" followed for the same reason one level up: its only
+	# entry point was MainMenu._show_tutorial_popup(), which had ZERO callers
+	# repo-wide, so the popup never appeared, the route was never taken, and
+	# TutorialSelection.tscn + NewCampaignTutorial.gd (341 lines) were unreachable.
+	# The live onboarding is the coach-mark overlay (TutorialUI + data/tutorials/)
+	# and the book's Introductory Campaign (Compendium pp.104-109).
 
 	# Help / Library
 	"help": "res://src/ui/help/HelpScreen.tscn",
@@ -221,6 +229,20 @@ func navigate_back() -> void:
 	@warning_ignore("unsafe_call_argument")
 	navigate_to(previous_scene, {}, false) # Don't add to history when going back
 
+## Alias for navigate_back().
+##
+## Four screens — CompendiumScreen, CompendiumCategoryView, GalaxyLogScreen and
+## LegalTextViewer — call `go_back()` behind a `has_method("go_back")` guard with a
+## hardcoded destination as the fallback. The method never existed, so the guard was
+## always false and every one of them took the fallback: the Library's Back button
+## went to the main menu even when the Library had been opened from a campaign
+## dashboard. The guard hid the bug instead of surfacing it.
+##
+## Adding the alias lights all four up with no edit at their call sites, and stops
+## the next copy-paste of that block from silently doing the same thing.
+func go_back() -> void:
+	navigate_back()
+
 ## Get the name of the current scene
 func get_current_scene() -> String:
 	return current_scene
@@ -257,22 +279,25 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"campaign":
 			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "campaign_turn_controller"]
 		"character":
-			scenes = ["character_creator", "character_details", "advancement_manager", "crew_management"]
+			scenes = ["character_creator", "character_details", "crew_management"]
 		"equipment":
-			scenes = ["equipment_manager", "ship_manager", "ship_inventory"]
+			scenes = ["equipment_manager", "ship_manager"]
 		"world":
-			scenes = ["world_phase", "job_selection", "mission_selection", "patron_rival_manager"]
+			# "job_selection" and "mission_selection" removed: neither is a key in
+			# SCENE_PATHS (job_selection never was; mission_selection was deleted
+			# with its screen), so both were names navigate_to() would reject.
+			scenes = ["world_phase", "patron_rival_manager"]
 		"battle":
-			scenes = ["pre_battle", "battlefield_main", "tactical_battle", "post_battle", "post_battle_results", "post_battle_sequence"]
-		"events":
-			scenes = ["campaign_events"]
+			# "post_battle_results" removed: it is not a key in SCENE_PATHS, so
+			# get_scenes_by_category("battle") returned a name navigate_to()
+			# would reject with "Scene not found".
+			scenes = ["pre_battle", "tactical_battle", "post_battle", "post_battle_sequence"]
 		"phases":
 			# Official Five Parsecs phase structure (travel folded into world_phase)
 			scenes = ["world_phase", "post_battle_sequence"]
 		"utility":
 			scenes = ["game_over", "campaign_journal", "settings"]
-		"tutorial":
-			scenes = ["tutorial_selection", "new_campaign_tutorial"]
+		# "tutorial" category dropped with the tutorial_selection route.
 	return scenes
 
 ## Campaign phase navigation helpers
@@ -282,7 +307,10 @@ func navigate_to_campaign_phase(phase: String) -> void:
 	var phase_scene_map = {
 		"world": "world_phase",
 		"pre_battle": "pre_battle",
-		"battle": "battlefield_main",
+		# NOTE: no "battle" entry. The battle phase runs CampaignTurnController ->
+		# PreBattleUI -> TacticalBattleUI. It used to point at BattlefieldMain, a 3D
+		# SubViewport screen that drew a grey PlaneMesh; that contradicted the
+		# companion-not-simulator thesis and has been deleted.
 		"post_battle": "post_battle_sequence"
 		# Note: Battle flow runs CampaignTurnController → PreBattleUI → TacticalBattleUI
 		# Note: Deprecated phases removed (upkeep, story) - functionality integrated into official phases
@@ -309,21 +337,15 @@ func return_to_main_menu() -> void:
 	clear_history()
 	navigate_to("main_menu")
 
-func enter_main_game() -> void:
-	# Enter the main game scene
-	navigate_to("main_game")
-
-func navigate_to_main_game() -> void:
-	# Navigate to the main game scene - alias for enter_main_game
-	enter_main_game()
-
 func change_scene(scene_path: String) -> void:
 	# Direct scene change using file path - for compatibility
 	get_tree().call_deferred("change_scene_to_file", scene_path)
 
 func open_character_management() -> void:
-	# Open character management
-	navigate_to("advancement_manager")
+	# Crew roster. Character advancement lives on CharacterDetailsScreen, one tap
+	# deeper — AdvancementManager was a second, contradictory door onto it and was
+	# deleted rather than wired.
+	navigate_to("crew_management")
 
 func open_equipment_management() -> void:
 	# Open equipment management
@@ -446,7 +468,7 @@ func _preload_campaign_flow_scenes(current_scene_name: String) -> void:
 		"equipment_generation":
 			scenes_to_preload = ["campaign_dashboard"]
 		"world_phase":
-			scenes_to_preload = ["pre_battle", "battlefield_main", "post_battle"]
+			scenes_to_preload = ["pre_battle", "post_battle"]
 		"campaign_dashboard":
 			scenes_to_preload = ["world_phase"]
 	

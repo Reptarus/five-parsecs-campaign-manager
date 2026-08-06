@@ -19,14 +19,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="Five Parsecs Campaign Manager"
-config/version="0.9.7-dev"
+config/version="0.9.7-alpha1"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://assets/iconnew.png"
 
 [autoload]
-
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 SettingsManager="*res://src/autoload/SettingsManager.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
@@ -59,12 +58,12 @@ LegalConsentManager="*res://src/core/legal/LegalConsentManager.gd"
 CampaignAnalytics="*res://src/core/analytics/CampaignAnalytics.gd"
 TaloAnalyticsAdapter="*res://src/core/analytics/TaloAnalyticsAdapter.gd"
 TweenFX="*uid://d2n10rw2dnx8o"
-GalacticWarManager="*res://src/core/campaign/GalacticWarManager.gd"
 FactionSystem="*res://src/core/systems/FactionSystem.gd"
 Talo="*uid://bpmdn8oc34pg7"
 
 [debug]
 
+file_logging/enable_file_logging=true
 gdscript/warnings/enable=false
 gdscript/warnings/unused_variable=true
 gdscript/warnings/unused_signal=true
@@ -106,10 +105,6 @@ theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 
 pointing/emulate_touch_from_mouse=true
 
-[logging]
-
-file_logging/enable_file_logging=true
-
 [physics]
 
 common/physics_ticks_per_second=30
@@ -117,7 +112,11 @@ common/physics_ticks_per_second=30
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
-environment/defaults/default_clear_color=Color(0.101961, 0.101961, 0.180392, 1)
+; UIColors.COLOR_PRIMARY (#0a0d14). Eleven screens inject no background of their
+; own and render straight onto this, so it IS the page colour for a third of the
+; app; it used to be the old navy-purple #1A1A2E, which is why those screens
+; looked like a different product than the ones that do inject a background.
+environment/defaults/default_clear_color=Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [steam]
 

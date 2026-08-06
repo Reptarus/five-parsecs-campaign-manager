@@ -20,20 +20,40 @@ enum SaveType {
 	COMBINED   # Both armor and screen present
 }
 
-# Core Rules to-hit table (p.44): Roll 1D6 + Combat Skill
-# Open within 6": 3+
-# Open in range OR Cover within 6": 5+
-# Cover in range: 6+
+# Core Rules to-hit table: roll 1D6 + Combat Skill.
+#   Open within 6"    3+
+#   Open in range     5+
+#   Cover within 6"   5+   <- errata only; see below
+#   Cover in range    6+
 const HIT_OPEN_CLOSE := 3       # Open target within 6" (Core Rules p.44)
 const HIT_OPEN_RANGE := 5       # Open target in range (Core Rules p.44)
-# Core Rules p.44 ("To Hit") lists a close bonus ONLY for OPEN targets. Cover is a
-# single row — "within weapon range and in Cover 6+" — spanning ALL ranges, so a
-# cover target within 6" is ALSO 6+. Was 5 (an unflagged deviation, no
-# GAME_BALANCE_ESTIMATE tag) — corrected per the Data Integrity rule (book wins).
-const HIT_COVER_CLOSE := 6      # Cover target within 6" (Core Rules p.44 — cover is 6+ at all ranges)
+
+# ⚠ DO NOT "CORRECT" THIS TO 6. It has already been flipped once by mistake.
+#
+# Both printed tables list only THREE rows and neither mentions a covered target
+# within 6". p.44: "Within 6" and in the open 3+ / Within weapon range and in the
+# open 5+ / Within weapon range and in Cover 6+". p.118 repeats those three. Read
+# on its own, that reasonably implies cover is 6+ at every range — which is
+# exactly the inference a previous pass made when it changed this constant from
+# 5 to 6 and pinned the change with a test.
+#
+# The official errata settles it the other way. "Five Parsecs errata,
+# clarifications and tweaks" v1.06 (docs/gameplay/rules/5P_errata_and_tweaks106.pdf),
+# verbatim:
+#
+#     "Correction p.118: Add to Firing table: Covered target within 6": 5+.
+#      The main rules on p.44 are correct."
+#
+# So the missing fourth row is real and the close-range bonus DOES apply to
+# covered targets. The errata is the designer's corrections document and
+# outranks the printed tables, which are the thing being corrected. The original
+# value of 5 was right all along.
+const HIT_COVER_CLOSE := 5      # Cover target within 6" (errata v1.06, correction to p.118)
 const HIT_COVER_RANGE := 6      # Cover target in range (Core Rules p.44)
-const ELEVATION_BONUS := 1
-const LONG_RANGE_PENALTY := 1   # Added to threshold beyond weapon range
+# ELEVATION_BONUS and LONG_RANGE_PENALTY deleted 2026-08-02 — both fabricated.
+# The p.44 To Hit table has exactly three rows and none mentions height, and a
+# target beyond weapon range cannot be shot at all (every row reads "within
+# weapon range"), so there is nothing for a long-range penalty to apply to.
 
 # Range bands (inches) — Core Rules p.44
 const POINT_BLANK_RANGE := 6    # "Within 6 inches"
@@ -50,18 +70,27 @@ const SKULKER_IMMUNE_CONSUMABLES := ["booster_pills", "combat_serum", "rage_out"
 const ARMOR_SAVE_NONE := 7  # Cannot save
 const ARMOR_SAVE_LIGHT := 6
 const ARMOR_SAVE_COMBAT := 5
-const ARMOR_SAVE_BATTLE_SUIT := 4
-const ARMOR_SAVE_POWERED := 3
+# ARMOR_SAVE_BATTLE_SUIT (4+) and ARMOR_SAVE_POWERED (3+) deleted 2026-08-02.
+# "battle suit" and "powered armor" occur ZERO times in the Core Rules and ZERO
+# times in the Compendium. Every armor in the book saves on 5+ or 6+ (p.54);
+# a 4+ is reachable only by stacking, via combine_saving_throws() (p.46).
 
 # Screen save thresholds (NOT ignored by piercing weapons)
 const SCREEN_SAVE_NONE := 7      # No screen
 const SCREEN_SAVE_BASIC := 6     # Basic energy screen
 const SCREEN_SAVE_MILITARY := 5  # Military-grade screen
-const SCREEN_SAVE_ADVANCED := 4  # Advanced screen technology
+# SCREEN_SAVE_ADVANCED (4+) deleted 2026-08-02 — fabricated. The book's only
+# save-granting screen is the Screen generator at 5+ (p.54).
 
 # Status effects: Core Rules p.40 — stun from weapon Stun/Impact traits, NOT damage threshold
 # STUN_THRESHOLD was fabricated (removed). Stun is trait-based per Core Rules p.51.
-const SUPPRESS_THRESHOLD := 6  # APP_SPECIFIC — not in Core Rules
+# SUPPRESS_THRESHOLD deleted 2026-08-02. It was already tagged "APP_SPECIFIC —
+# not in Core Rules", and project policy is that anything not in the books is
+# removed rather than kept. Suppression is not a Five Parsecs mechanic at all:
+# every "suppress*" occurrence in the Core Rules is the Suppression maul weapon,
+# "Pain suppressor" or the "Emo-suppressed" background, and the Compendium adds
+# only "Suppressing fire" (Renegade Soldiers firing an Auto-rifle or Rattle Gun
+# add +1 shot). The book's one status effect is Stunned (p.40).
 
 # Experience awards — loaded from data/injury_results.json (Core Rules p.123)
 # Additive decomposition: participation + bonus = Core Rules flat values
@@ -107,58 +136,106 @@ static var XP_SURVIVAL_INJURY: int:
 #region Hit Calculations
 
 ## Calculate additional hit modifiers beyond the base to-hit table
-## Returns modifier to subtract from the base threshold
+## Returns the total bonus ADDED to the 1D6 shooting roll (Core Rules p.44).
+##
+## p.44 is "roll 1D6, adding the Combat Skill of the firer" against a target
+## number that already accounts for range and cover — so cover is NOT a modifier
+## here, it selects the target number in calculate_hit_threshold().
+##
+## The book grants exactly three other to-hit modifiers, and all three come from
+## gear rather than from position or status:
+##   Heavy trait     -1 if the firer moved this round      (p.51)
+##   Snap shot trait +1 within 6"                          (p.51)
+##   Bipod gun mod   +1 at ranges over 8" when Aiming or firing from Cover,
+##                   non-Pistol weapons only               (p.53)
+##
+## REMOVED 2026-08-02, all fabricated — none appears in either book:
+##   elevation (+1 high ground / -1 shooting uphill), a long-range penalty
+##   beyond weapon range (out of range you simply cannot take the shot — every
+##   p.44 row reads "within weapon range"), a -2 for being Stunned (Stunned
+##   means Move OR Combat Action but not both, p.40 — it is not a to-hit
+##   penalty), and a -1 for being Suppressed. Suppression does not exist; the
+##   "Ferals ignore suppression (p.20)" comment was a fabricated citation, as
+##   p.20 gives Ferals only immunity to enemy-imposed Seize the Initiative
+##   penalties and first claim on a lone 1 in the Reaction Roll.
+##
+## Aiming is NOT a flat +1 either. p.46: a figure that is not Stunned and did
+## not Move may "pick up any 1s on the To Hit dice and roll them again once."
+## That is a reroll, applied when rolling — see apply_aim_reroll().
 static func calculate_hit_modifier(
 	attacker_combat_skill: int,
-	target_in_cover: bool,
-	attacker_elevated: bool,
-	target_elevated: bool,
 	range_inches: float,
-	weapon_range: int,
-	is_stunned: bool = false,
-	is_suppressed: bool = false,
-	has_aim_bonus: bool = false,
-	attacker_species: String = ""
+	weapon_traits: Array = [],
+	firer_moved: bool = false,
+	has_bipod: bool = false,
+	is_aiming: bool = false,
+	firer_in_cover: bool = false
 ) -> int:
-	var modifier := 0
+	# Combat Skill is added to the roll (p.44).
+	var modifier := attacker_combat_skill
 
-	# Combat skill (added to roll per Core Rules p.44)
-	modifier += attacker_combat_skill
+	var traits_lower: Array = []
+	for t in weapon_traits:
+		traits_lower.append(str(t).to_lower())
 
-	# Elevation modifiers
-	if attacker_elevated and not target_elevated:
-		modifier += ELEVATION_BONUS
-	elif target_elevated and not attacker_elevated:
-		modifier -= 1  # Shooting uphill
-
-	# Beyond weapon range penalty
-	if range_inches > weapon_range:
-		modifier -= LONG_RANGE_PENALTY
-
-	# Status effects
-	if is_stunned:
-		modifier -= 2
-	# Ferals ignore suppression (Five Parsecs p.20)
-	if is_suppressed and attacker_species.to_lower() != "feral":
+	# Heavy: -1 to Hit if the firer moved this round (p.51).
+	if firer_moved and "heavy" in traits_lower:
 		modifier -= 1
 
-	# Aim bonus
-	if has_aim_bonus:
-		modifier += 1
+	# Snap shot: +1 to Hit within 6" (p.51).
+	if "snap shot" in traits_lower or "snap_shot" in traits_lower or "snap" in traits_lower:
+		if range_inches <= POINT_BLANK_RANGE:
+			modifier += 1
 
-	# Note: cover and point-blank range are handled by the
-	# base to-hit lookup table in calculate_hit_threshold,
-	# NOT as additive modifiers.
+	# Bipod: +1 over 8" when Aiming or firing from Cover, non-Pistol only (p.53).
+	if has_bipod and range_inches > 8.0 and (is_aiming or firer_in_cover):
+		if not ("pistol" in traits_lower):
+			modifier += 1
+
 	return modifier
+
+
+## Aiming (Core Rules p.46) — "If a character is not Stunned and does not Move,
+## they can Aim their shots more accurately. When using an Aimed shot, pick up
+## any 1s on the To Hit dice and roll them again once."
+##
+## Takes the dice already rolled and returns them with every 1 rerolled exactly
+## once. This is the whole rule: Aiming is a reroll, never a flat bonus.
+##
+## Enemy behaviour (same page): Tactical, Cautious and Defensive enemies will
+## try to Aim when shooting from Cover; Aggressive and Rampaging never Aim.
+static func apply_aim_reroll(rolls: Array, rng: RandomNumberGenerator = null) -> Array:
+	var generator := rng
+	if generator == null:
+		generator = RandomNumberGenerator.new()
+		generator.randomize()
+	var rerolled: Array = []
+	for roll in rolls:
+		if int(roll) == 1:
+			rerolled.append(generator.randi_range(1, 6))
+		else:
+			rerolled.append(int(roll))
+	return rerolled
+
+
+## True if this enemy AI type will Aim when firing from Cover (Core Rules p.46).
+static func enemy_will_aim(ai_type: String) -> bool:
+	var ai := ai_type.to_lower()
+	return ai in ["tactical", "cautious", "defensive"]
 
 ## Calculate the threshold needed to hit (Core Rules p.44)
 ## Uses lookup table: roll 1D6 + Combat Skill >= threshold
 ## Returns the minimum roll needed on d6 (before combat skill)
+##
+## attacker_elevated / target_elevated are retained ONLY so the four existing
+## call sites keep working; they are deliberately unused. There is no elevation
+## modifier anywhere in the Core Rules or the Compendium — the p.44 table has
+## exactly three rows and none of them mentions height.
 static func calculate_hit_threshold(
 	attacker_combat_skill: int,
 	target_in_cover: bool,
-	attacker_elevated: bool,
-	target_elevated: bool,
+	_attacker_elevated: bool,
+	_target_elevated: bool,
 	range_inches: float,
 	weapon_range: int,
 	modifiers: Dictionary = {}
@@ -177,17 +254,17 @@ static func calculate_hit_threshold(
 		else:
 			base_target = HIT_OPEN_RANGE   # 5+
 
-	# Apply additional modifiers (combat skill, elevation, status)
+	# Combat Skill plus the only three real to-hit modifiers (Heavy, Snap shot,
+	# Bipod). Callers that still pass is_stunned / is_suppressed / has_aim_bonus
+	# in `modifiers` are simply ignored now — none of those is a book modifier.
 	var extra := calculate_hit_modifier(
 		attacker_combat_skill,
-		target_in_cover,
-		attacker_elevated,
-		target_elevated,
 		range_inches,
-		weapon_range,
-		modifiers.get("is_stunned", false),
-		modifiers.get("is_suppressed", false),
-		modifiers.get("has_aim_bonus", false)
+		modifiers.get("weapon_traits", []),
+		modifiers.get("firer_moved", false),
+		modifiers.get("has_bipod", false),
+		modifiers.get("is_aiming", false),
+		modifiers.get("firer_in_cover", false)
 	)
 
 	# threshold = base - modifiers
@@ -258,39 +335,79 @@ static func resolve_hit_outcome(damage_rating: int, target_toughness: int, dice_
 		"natural_6": natural_6,
 	}
 
-## Calculate armor save threshold
-static func get_armor_save_threshold(armor_type: String, species: String = "") -> int:
-	# Soulless have innate 6+ armor save (Five Parsecs p.19)
-	if species.to_lower() == "soulless":
-		var base_threshold = ARMOR_SAVE_LIGHT  # 6+ save
-		# If they have better armor, use that instead
-		var armor_threshold = ARMOR_SAVE_NONE
-		match armor_type.to_lower():
-			"light", "flak":
-				armor_threshold = ARMOR_SAVE_LIGHT
-			"combat", "tactical":
-				armor_threshold = ARMOR_SAVE_COMBAT
-			"battle_suit", "heavy":
-				armor_threshold = ARMOR_SAVE_BATTLE_SUIT
-			"powered", "power_armor":
-				armor_threshold = ARMOR_SAVE_POWERED
-		# Return best (lowest) threshold
-		return mini(base_threshold, armor_threshold)
-	
-	# Standard armor saves
-	match armor_type.to_lower():
-		"none", "":
-			return ARMOR_SAVE_NONE
-		"light", "flak":
-			return ARMOR_SAVE_LIGHT
-		"combat", "tactical":
-			return ARMOR_SAVE_COMBAT
-		"battle_suit", "heavy":
-			return ARMOR_SAVE_BATTLE_SUIT
-		"powered", "power_armor":
-			return ARMOR_SAVE_POWERED
+## Innate armor plating (Core Rules p.46): "Bot, Soulless, De-converted, and
+## Assault Bot characters have built-in armor plating, which grants them a 6+
+## Armor Saving Throw (5+ for Assault Bots)."
+static func get_innate_armor_save(species: String) -> int:
+	match species.to_lower():
+		"assault_bot", "assault bot":
+			return ARMOR_SAVE_COMBAT  # 5+
+		"bot", "soulless", "de_converted", "de-converted", "deconverted":
+			return ARMOR_SAVE_LIGHT   # 6+
 		_:
 			return ARMOR_SAVE_NONE
+
+
+## Multiple Saving Throws (Core Rules p.46): "If a character has two or more
+## Saving Throws, only roll for the best Saving Throw, but lower the target
+## number by 1."
+##
+## The book's own examples: a Bot (6+) fitted with a 5+ screen combines to 4+
+## (the screen, improved by 1); two 5+ armor sources combine to 4+.
+##
+## Note this is NOT min() — that was the old behaviour and it silently dropped
+## the -1 the book grants for stacking.
+static func combine_saving_throws(saves: Array) -> int:
+	var real_saves: Array = []
+	for s in saves:
+		var v := int(s)
+		if v > 0 and v < ARMOR_SAVE_NONE:
+			real_saves.append(v)
+	if real_saves.is_empty():
+		return ARMOR_SAVE_NONE
+	var best: int = real_saves.min()
+	if real_saves.size() >= 2:
+		best -= 1  # stacking improves the best save by 1
+	return maxi(best, 2)  # a save can never be better than 2+
+
+
+## Armor Saving Throw for a worn armor item (Core Rules p.54 Protective Devices).
+##
+## The book's armor list is short and every value is 5+ or 6+ — there is no
+## "battle suit" and no "powered armor" anywhere in either book (zero
+## occurrences of both phrases), so the old 4+ and 3+ tiers were fabricated and
+## have been removed. A 4+ save is reachable only through combine_saving_throws().
+##
+## Screens are looked up separately by get_screen_save_threshold(); a character
+## may wear no more than one armor and one screen (p.54).
+static func get_armor_save_threshold(armor_type: String, species: String = "") -> int:
+	var worn := ARMOR_SAVE_NONE
+	match armor_type.to_lower():
+		"none", "":
+			worn = ARMOR_SAVE_NONE
+		"combat armor", "combat_armor", "combat", "tactical":
+			worn = ARMOR_SAVE_COMBAT       # 5+ (p.54)
+		"battle dress", "battle_dress":
+			worn = ARMOR_SAVE_COMBAT       # 5+, also +1 Reactions to max 4 (p.54)
+		"frag vest", "frag_vest", "light", "flak":
+			worn = ARMOR_SAVE_LIGHT        # 6+, improved to 5+ against Area (p.54)
+		_:
+			worn = ARMOR_SAVE_NONE
+
+	# Innate plating combines with worn armor per Multiple Saving Throws (p.46).
+	var innate := get_innate_armor_save(species)
+	if innate < ARMOR_SAVE_NONE and worn < ARMOR_SAVE_NONE:
+		return combine_saving_throws([innate, worn])
+	return mini(innate, worn)
+
+
+## Frag vest is "6+ Saving Throw, improved to 5+ against any Area attack" (p.54).
+static func get_armor_save_vs_area(armor_type: String, species: String = "") -> int:
+	var base := get_armor_save_threshold(armor_type, species)
+	var normalized := armor_type.to_lower()
+	if normalized in ["frag vest", "frag_vest", "light", "flak"]:
+		return maxi(base - 1, 2)
+	return base
 
 ## Check if armor saves against damage (Core Rules p.46)
 ## Threshold is STATIC per armor type. Piercing trait negates armor binary,
@@ -301,19 +418,33 @@ static func check_armor_save(roll: int, armor_type: String, damage: int = 1) -> 
 	var threshold := get_armor_save_threshold(armor_type)
 	return roll >= threshold
 
-## Get screen save threshold based on screen type
+## Screen Saving Throw (Core Rules p.54 Protective Devices).
+##
+## The book has exactly ONE screen that grants a save: the Screen generator,
+## "Receives a 5+ Saving Throw against gunfire. No effect against Area or Melee
+## attacks." The other three screens do not roll a save at all — Deflector field
+## automatically deflects a single ranged Hit per battle, Flak screen reduces
+## Area Damage by -1 (to a cap of +0), and Camo cloak grants Cover rather than a
+## save.
+##
+## The old "basic 6+ / advanced 4+" tiers were fabricated. A 4+ screen is
+## reachable only by stacking via combine_saving_throws().
+##
+## Screens are NOT negated by the Piercing trait (p.46).
 static func get_screen_save_threshold(screen_type: String) -> int:
 	match screen_type.to_lower():
-		"none", "":
-			return SCREEN_SAVE_NONE
-		"basic", "personal":
-			return SCREEN_SAVE_BASIC
-		"military", "combat":
-			return SCREEN_SAVE_MILITARY
-		"advanced", "elite":
-			return SCREEN_SAVE_ADVANCED
+		"screen generator", "screen_generator", "military", "combat", "basic", "personal":
+			return SCREEN_SAVE_MILITARY  # 5+
 		_:
 			return SCREEN_SAVE_NONE
+
+
+## True if this screen even applies against the incoming attack (p.54).
+## Screen generator explicitly has "no effect against Area or Melee attacks".
+static func screen_applies(screen_type: String, is_area: bool, is_melee: bool) -> bool:
+	if get_screen_save_threshold(screen_type) >= SCREEN_SAVE_NONE:
+		return false
+	return not (is_area or is_melee)
 
 ## Check if screen saves against damage (NOT affected by piercing)
 static func check_screen_save(roll: int, screen_type: String, _damage: int = 1) -> bool:
@@ -791,6 +922,22 @@ static func resolve_brawl(
 	if atk_out["saved"] > 0:
 		result["effects"].append("attacker_brawl_save")
 
+	# Core Rules p.45, post-Brawl move: "A character that ELIMINATES their
+	# opponent (the figure is removed from the battlefield) can move 2\" in any
+	# direction, but cannot enter a new Brawl. This move is taken immediately
+	# after the Brawl has been resolved."
+	#
+	# The gate is ELIMINATION, not winning. Winning a Brawl that the loser
+	# survives (a Stun, or a deflected Hit) earns nothing, and p.45 says so
+	# explicitly for the lone fighter in a Multiple Opponents brawl: "If the lone
+	# fighter wins, they do not get a 2\"..."
+	result["attacker_may_move_2in"] = int(result["damage_to_defender"]) > 0
+	result["defender_may_move_2in"] = int(result["damage_to_attacker"]) > 0
+	result["bonus_move_inches"] = 2
+	result["bonus_move_may_enter_new_brawl"] = false
+	if result["attacker_may_move_2in"] or result["defender_may_move_2in"]:
+		result["effects"].append("post_brawl_2in_move_on_elimination")
+
 	# Sprint 26.5: Debug log brawl resolution
 	var attacker_name: String = attacker.get("character_name", attacker.get("name", "Unknown"))
 	var defender_name: String = defender.get("character_name", defender.get("name", "Unknown"))
@@ -984,18 +1131,97 @@ static func check_stun(_total_damage: int, _target_toughness: int, weapon_traits
 			return true
 	return false
 
-## Check if attack causes suppression
-static func check_suppression(hit_occurred: bool, _weapon_traits: Array = []) -> bool:
-	# Basic suppression: any hit can suppress
-	return hit_occurred
+# check_suppression() and get_suppression_penalty() deleted 2026-08-02 — both
+# fabricated, both zero-caller. Suppression is not a Five Parsecs mechanic; see
+# the note on the removed SUPPRESS_THRESHOLD constant above.
+#
+# get_stun_duration() (which returned a flat 1 "turn") is also gone. Stun is not
+# measured in turns at all — it is a MARKER COUNT, handled below.
 
-## Calculate stun duration in turns
-static func get_stun_duration() -> int:
-	return 1
 
-## Calculate suppression penalty
-static func get_suppression_penalty() -> int:
-	return -1
+## Impact trait (Core Rules p.51): "If target is Stunned, place a second Stun
+## marker." So Impact only does anything to an ALREADY-Stunned target.
+static func check_impact_stun(target_already_stunned: bool, weapon_traits: Array = []) -> bool:
+	if not target_already_stunned:
+		return false
+	for trait_name in weapon_traits:
+		if str(trait_name).to_lower() == "impact":
+			return true
+	return false
+
+
+## Stun markers (Core Rules p.40).
+##
+## "Characters can accumulate multiple Stun markers. If a character ever has 3
+## or more Stun markers at the same time, they are knocked out and removed from
+## play." There is no duration — a marker is removed after the figure acts, and
+## while it holds any marker it may Move OR take a Combat Action but not both
+## (a Free Action is still allowed).
+const STUN_MARKERS_TO_KNOCK_OUT := 3
+
+static func is_knocked_out_by_stun(stun_markers: int) -> bool:
+	return stun_markers >= STUN_MARKERS_TO_KNOCK_OUT
+
+
+## Brawling against a Stunned opponent (Core Rules p.40/p.45): "remove all Stun
+## markers, but the attacker receives a +1 dice bonus for every Stun marker that
+## was removed."
+static func brawl_bonus_from_stun(opponent_stun_markers: int) -> int:
+	return maxi(opponent_stun_markers, 0)
+
+
+## Clumsy (Core Rules p.51): "-1 to Brawling rolls, if opponent has higher
+## Speed." Conditional on the opponent, which is why it cannot be baked into the
+## flat trait effects.
+static func brawl_clumsy_modifier(has_clumsy: bool, own_speed: float, opponent_speed: float) -> int:
+	if has_clumsy and opponent_speed > own_speed:
+		return -1
+	return 0
+
+
+## Multiple Opponents in a Brawl (Core Rules p.45): "Resolve the combat
+## normally, with the outnumbering side getting a +1 bonus to the Brawl roll."
+static func brawl_outnumbering_modifier(own_side_count: int, opposing_count: int) -> int:
+	return 1 if own_side_count > opposing_count else 0
+
+
+## Panic Fire (Core Rules p.46-47).
+##
+## "A character may opt to expend all their available ammunition as quickly as
+## possible... limited to firing at half the weapon's base Range (ignoring all
+## range enhancements). Conduct attacks as normal, but roll 2 additional shots.
+## Attacks are resolved one at a time, with each being directed at the closest
+## available target at that moment. After the volley is completed, the weapon
+## (and all identical weapons carried) is out of ammunition for the rest of the
+## battle... The Panic Fire option is never used by enemies."
+##
+## Single use weapons cannot Panic Fire (p.51).
+const PANIC_FIRE_EXTRA_SHOTS := 2
+
+static func can_panic_fire(weapon_traits: Array, is_enemy: bool = false) -> bool:
+	if is_enemy:
+		return false  # "never used by enemies"
+	for trait_name in weapon_traits:
+		var t := str(trait_name).to_lower()
+		if t == "single use" or t == "single_use":
+			return false
+	return true
+
+
+## Returns {range_inches, shots} for a Panic Fire volley, or an empty Dictionary
+## if this weapon may not Panic Fire. base_range is the weapon's BASE Range —
+## range enhancements are deliberately ignored per the rule.
+static func panic_fire_profile(
+	base_range: float, base_shots: int, weapon_traits: Array, is_enemy: bool = false
+) -> Dictionary:
+	if not can_panic_fire(weapon_traits, is_enemy):
+		return {}
+	return {
+		"range_inches": base_range / 2.0,
+		"shots": base_shots + PANIC_FIRE_EXTRA_SHOTS,
+		"targets": "closest available at the moment each shot resolves",
+		"ammo_spent": true,
+	}
 
 #endregion
 
@@ -1348,9 +1574,14 @@ static func check_utility_devices(character: Dictionary, context: Dictionary = {
 	var result := {
 		"jump_distance": 0,
 		"climb_distance": 0,
+		# Kept at 0 always. No utility device in either book grants a detection
+		# range — the Motion tracker's real effect (p.57) is +1 to Seize the
+		# Initiative, which is the key below.
 		"detection_range": 0,
+		"seize_initiative_bonus": 0,
 		"reroll_ones": false,
 		"reaction_dice_bonus": 0,
+		"reaction_discard_one": false,
 		"can_glide": false,
 		"effects": []
 	}
@@ -1376,29 +1607,51 @@ static func _apply_utility_device_effect(
 			result["effects"].append("jump_belt_9_inches")
 
 		"grapple_launcher":
-			# Can climb up to 12" vertically
+			# p.56 verbatim: "As a Combat Action, the character may use the
+			# launcher to scale a terrain feature within 1\". The character can
+			# ascend up to 12\" but must reach a surface they can stand on."
 			result["climb_distance"] = 12
+			result["climb_requires_feature_within_inches"] = 1.0
+			result["climb_costs_combat_action"] = true
+			result["climb_needs_standable_surface"] = true
 			result["effects"].append("grapple_launcher_12_climb")
 
 		"motion_tracker":
-			# Detect hidden enemies within 12"
-			result["detection_range"] = 12
-			result["effects"].append("motion_tracker_12_detect")
+			# p.57 verbatim: "Add +1 to all rolls to Seize the Initiative."
+			#
+			# Was "detect hidden enemies within 12\"" — fabricated. There is no
+			# detection mechanic attached to this device anywhere in the book.
+			# SeizeInitiativeSystem.set_motion_tracker() already applied the real
+			# +1; this site was a second, wrong description of the same item.
+			result["seize_initiative_bonus"] = 1
+			result["effects"].append("motion_tracker_+1_seize_initiative")
 
 		"battle_visor":
-			# Reroll 1s on attack rolls
+			# p.56 verbatim: "When shooting, the character may reroll any 1s on
+			# the firing dice."
 			result["reroll_ones"] = true
 			result["effects"].append("battle_visor_reroll_ones")
 
 		"communicator":
-			# +1 Reaction die for the crew
+			# p.56 verbatim: "When making the Reaction roll each round, you may
+			# roll one additional die, then choose a die to discard."
+			# The discard half was missing — without it the extra die is a pure
+			# gain rather than a swap.
 			result["reaction_dice_bonus"] += 1
-			result["effects"].append("communicator_+1_reaction")
+			result["reaction_discard_one"] = true
+			result["effects"].append("communicator_+1_reaction_then_discard")
 
 		# Phase 9: Additional battle-time utility devices (Core Rules pp.56-57)
 		"auto_sensor":
-			# Fire 1 Pistol shot at enemy entering 4" LoS (natural 6 only)
+			# p.56 verbatim: "If an enemy begins or ends a move within 4\" and
+			# Line of Sight of the character, you may immediately fire one shot
+			# from any Pistol carried. The shot is resolved even if the enemy is
+			# in contact with a character and Hits only on a natural 6."
 			result["auto_sensor"] = true
+			result["auto_sensor_range_inches"] = 4.0
+			result["auto_sensor_requires_pistol"] = true
+			result["auto_sensor_hits_on_natural_six_only"] = true
+			result["auto_sensor_fires_even_if_in_contact"] = true
 			result["effects"].append("auto_sensor_4in_overwatch")
 
 		"concealed_blade":
@@ -1553,7 +1806,18 @@ static func get_weapon_trait_effects(
 		"is_loud": false,
 		"causes_stun": false,
 		"causes_knockback": false,
-		"causes_suppression": false,
+		# Terrifying (p.51): "Any target hit must retreat 1D6" away from the
+		# firer." A forced move, not a morale check.
+		"forces_retreat": false,
+		"retreat_dice": "",
+		# Core Rules p.51 traits that were previously unrepresented.
+		"brawl_modifier": 0,                    # Melee +2, Pistol +1
+		"clumsy_if_opponent_faster": false,     # Clumsy: -1 vs a faster opponent
+		"allows_brawl_reroll": false,           # Elegant
+		"natural_six_inflicts_two_hits": false, # Critical
+		"second_stun_if_already_stunned": false,# Impact
+		"area_bonus_shot_radius_inches": 0.0,   # Area
+		"forbids_panic_fire": false,            # Single use
 		"is_area_effect": false,
 		"is_melee": false,
 		"is_pistol": false,
@@ -1609,13 +1873,23 @@ static func _apply_weapon_trait(
 	moved_this_turn: bool,
 	is_aimed_shot: bool
 ) -> void:
+	# The Core Rules p.51 trait list is CLOSED. In full it is: Area, Clumsy,
+	# Critical, Elegant, Focused, Heavy, Impact, Melee, Piercing, Pistol,
+	# Single use, Snap shot, Stun, Terrifying.
+	#
+	# Deleted 2026-08-02, each with ZERO occurrences in the Core Rules AND the
+	# Compendium: "accurate" (+1 hit), "slow" (-1 hit close), "devastating"
+	# (+1 damage), "powered" (+1 damage), "high_penetration" (+2 armor pen),
+	# "knockback", "burst_fire" (+2 shots), "single_shot", "long_range" (+6").
+	# Note the book DOES push every figure back 1" per Hit (p.46) — that is
+	# universal, not a trait, so "knockback" had nothing to gate.
+	#
+	# "rapid_fire", "overheat", "shockwave", "shrapnel" and "burn" appear ONLY
+	# in the Compendium's Game Options alternative weapon set, not in the Core
+	# Rules. They must not attach to Core Rules weapons by default — see the
+	# weapon-table warning in docs/RULES_WIRING_AUDIT_2026-08.md.
 	match trait_name:
-		# Accuracy Traits
-		"accurate":
-			effects["hit_modifier"] += 1
-			effects["traits_applied"].append("accurate_+1_hit")
-
-		"snap_shot":
+		"snap_shot", "snap shot":
 			# +1 hit at close range (within 6")
 			if range_band == "short":
 				effects["hit_modifier"] += 1
@@ -1626,12 +1900,6 @@ static func _apply_weapon_trait(
 			effects["force_single_target"] = true
 			effects["traits_applied"].append("focused_single_target")
 
-		"slow":
-			# -1 hit at close range
-			if range_band == "short":
-				effects["hit_modifier"] -= 1
-				effects["traits_applied"].append("slow_-1_close")
-
 		"heavy":
 			# Core Rules p.51: -1 to Hit if firer moved this round (NO damage bonus)
 			if moved_this_turn:
@@ -1639,21 +1907,70 @@ static func _apply_weapon_trait(
 				effects["traits_applied"].append("heavy_-1_moved")
 
 		# Damage Traits
-		"devastating":
-			effects["damage_modifier"] += 1
-			effects["traits_applied"].append("devastating_+1_damage")
-
-		"powered":
-			effects["damage_modifier"] += 1
-			effects["traits_applied"].append("powered_+1_damage")
-
 		"piercing", "armor_piercing":
+			# p.51: "Ignore Armor Saving Throws." Screens are NOT affected (p.46).
 			effects["is_piercing"] = true
 			effects["traits_applied"].append("piercing_ignores_armor")
 
-		"high_penetration":
-			effects["armor_penetration"] += 2
-			effects["traits_applied"].append("high_pen_+2")
+		"critical":
+			# p.51: "A natural 6 on the to Hit roll will inflict 2 Hits on the
+			# target." Not a damage bonus — a second Hit, resolved (and saved
+			# against) separately.
+			#
+			# ⚠ DESCRIPTIVE FLAG ONLY. Critical is already APPLIED at the
+			# to-hit-resolution site in resolve_ranged_attack(), which appends
+			# the "critical_extra_hit" effect (see ~line 629). Do not act on this
+			# flag as well, or the second Hit lands twice. It exists so the p.51
+			# trait table is complete and machine-checkable.
+			effects["natural_six_inflicts_two_hits"] = true
+			effects["traits_applied"].append("critical_natural_6_two_hits")
+
+		"area":
+			# p.51 verbatim: "Resolve all shots against the initial target. They
+			# cannot be spread. Then resolve one bonus shot against every figure
+			# within 2\"."
+			#
+			# NOT the Compendium Game Options version (select a target point,
+			# every figure within 2" hit on a 4+). That belongs to the
+			# alternative weapon set and must not be the default.
+			effects["is_area_effect"] = true
+			effects["force_single_target"] = true  # "They cannot be spread"
+			effects["area_bonus_shot_radius_inches"] = 2.0
+			effects["traits_applied"].append("area_bonus_shot_within_2in")
+
+		# Brawling Traits
+		"melee":
+			# p.51: "+2 to Brawling rolls."
+			effects["is_melee"] = true
+			effects["brawl_modifier"] += 2
+			effects["traits_applied"].append("melee_+2_brawl")
+
+		"pistol":
+			# p.51: "+1 to Brawling rolls."
+			effects["is_pistol"] = true
+			effects["brawl_modifier"] += 1
+			effects["traits_applied"].append("pistol_+1_brawl")
+
+		"clumsy":
+			# p.51: "-1 to Brawling rolls, if opponent has higher Speed."
+			# Conditional on the opponent, so the caller applies it — see
+			# brawl_clumsy_modifier().
+			effects["clumsy_if_opponent_faster"] = true
+			effects["traits_applied"].append("clumsy_-1_vs_faster")
+
+		"elegant":
+			# p.51: "When Brawling, the fighter may reroll the die. Enemies will
+			# always reroll if they have a lower total than their opponent, and
+			# can improve the result."
+			effects["allows_brawl_reroll"] = true
+			effects["traits_applied"].append("elegant_brawl_reroll")
+
+		"single use", "single_use":
+			# p.51: used once and deducted from supply; Panic Fire (p.46) cannot
+			# be used with Single use weapons.
+			effects["is_one_use"] = true
+			effects["forbids_panic_fire"] = true
+			effects["traits_applied"].append("single_use")
 
 		# Status Effect Traits
 		"stun", "stunning":
@@ -1663,37 +1980,33 @@ static func _apply_weapon_trait(
 			effects["traits_applied"].append("stun_ignore_toughness")
 
 		"impact":
-			effects["causes_stun"] = true  # Double stun
-			effects["traits_applied"].append("impact_double_stun")
+			# p.51 verbatim: "If target is Stunned, place a second Stun marker."
+			# Impact does NOTHING to an unstunned target — it is conditional, so
+			# it cannot set causes_stun unconditionally the way it used to.
+			# The caller resolves it via check_impact_stun().
+			effects["second_stun_if_already_stunned"] = true
+			effects["traits_applied"].append("impact_second_marker_if_stunned")
 
-		"knockback":
-			effects["causes_knockback"] = true
-			effects["traits_applied"].append("causes_knockback")
-
-		"suppressive":
-			effects["causes_suppression"] = true
-			effects["traits_applied"].append("causes_suppression")
+		# "suppressive" removed 2026-08-02 — there is no such weapon trait. The
+		# p.51 trait list is Area, Clumsy, Critical, Elegant, Focused, Heavy,
+		# Impact, Melee, Piercing, Pistol, Single use, Snap shot, Stun and
+		# Terrifying. The Compendium's "Suppressing fire" is a Renegade Soldier
+		# special rule (+1 shot with an Auto-rifle or Rattle Gun), not a trait.
 
 		"terrifying":
-			effects["traits_applied"].append("terrifying_morale_check")
+			# p.51 verbatim: "Any target hit must retreat 1D6" away from the
+			# firer." It is a forced move, NOT a morale check.
+			effects["forces_retreat"] = true
+			effects["retreat_dice"] = "1D6"
+			effects["traits_applied"].append("terrifying_retreat_1d6")
 
 		# Range/Shots Traits
-		"rapid_fire":
-			effects["rapid_fire"] = true
-			effects["rapid_fire_shots"] = 3  # Default rapid fire shots
-			effects["traits_applied"].append("rapid_fire_3_shots")
-
-		"burst_fire":
-			effects["shots_modifier"] += 2
-			effects["traits_applied"].append("burst_+2_shots")
-
-		"single_shot":
-			effects["shots_modifier"] = 0  # Force single shot
-			effects["traits_applied"].append("single_shot_only")
-
-		"long_range":
-			effects["range_modifier"] += 6
-			effects["traits_applied"].append("long_range_+6")
+		# "rapid_fire", "burst_fire", "single_shot" and "long_range" removed
+		# 2026-08-02 — none is a Core Rules trait. Shots are a column on the
+		# weapon profile (p.49-50), not something a trait adds. The book's only
+		# way to gain extra shots is Panic Fire (p.46): half the weapon's base
+		# Range, +2 additional shots, and the weapon (plus all identical weapons
+		# carried) is out of ammunition for the rest of the battle.
 
 		"short_range":
 			effects["range_modifier"] -= 6
@@ -1864,39 +2177,70 @@ static func apply_consumable_effect(
 		return result
 	match consumable_id.to_lower():
 		"booster_pills":
-			# Core Rules p.54: Remove all Stun markers, double Speed this round
+			# p.54 verbatim: "the character removes all Stun markers. They may
+			# move at double normal Speed this round."
+			user["stun_markers"] = 0
 			user["is_stunned"] = false
-			user["speed"] = user.get("speed", 4) * 2
+			user["speed_multiplier_this_round"] = 2
 			result["applied"] = true
-			result["description"] = "Stun cleared, Speed doubled this round"
+			result["expires"] = "end_of_round"
+			result["description"] = "All Stun markers removed, double Speed this round"
 		"combat_serum":
-			# Core Rules p.54: +2" Speed, +2 Reactions for rest of battle
+			# p.54 verbatim: "+2\" Speed and +2 Reactions for the rest of the battle."
 			user["speed"] = user.get("speed", 4) + 2
 			user["reactions"] = user.get("reactions", 1) + 2
 			result["applied"] = true
-			result["description"] = "+2 Speed, +2 Reactions (rest of battle)"
+			result["expires"] = "end_of_battle"
+			result["description"] = "+2\" Speed, +2 Reactions (rest of battle)"
 		"rage_out":
-			# Core Rules p.54: +2" Speed, +1 Brawling roll
+			# p.54 verbatim: "The user gains +2\" Speed and +1 to all Brawling
+			# rolls for the rest of this and the following round. A K'Erin user
+			# gets the benefits for the rest of the battle."
 			user["speed"] = user.get("speed", 4) + 2
 			user["brawl_bonus"] = user.get("brawl_bonus", 0) + 1
+			var is_kerin: bool = user_species in ["k_erin", "kerin", "k'erin"]
+			user["rage_out_rounds_remaining"] = -1 if is_kerin else 2
 			result["applied"] = true
-			result["description"] = "+2 Speed, +1 Brawling"
+			result["expires"] = "end_of_battle" if is_kerin else "after_next_round"
+			result["description"] = ("+2\" Speed, +1 Brawling (rest of battle — K'Erin)"
+				if is_kerin else "+2\" Speed, +1 Brawling (this and next round)")
 		"still":
-			# Core Rules p.54: +1 to Hit, cannot Move this round
+			# p.54 verbatim: "The user gains +1 to Hit, but cannot Move during
+			# this and the next round." The movement lock is NOT one round.
 			user["hit_bonus"] = user.get("hit_bonus", 0) + 1
 			user["cannot_move"] = true
+			user["still_rounds_remaining"] = 2
 			result["applied"] = true
-			result["description"] = "+1 to Hit, cannot Move"
+			result["expires"] = "after_next_round"
+			result["description"] = "+1 to Hit, cannot Move this round or the next"
 		"stim_pack":
-			# Core Rules p.54: If downed, remain in play with 1 Stun marker
+			# p.54 verbatim: "If a character would become a casualty, they remain
+			# on the table with a single Stun marker. This item can be used
+			# reflexively upon becoming a casualty. It does not require an action."
 			user["has_stim_pack"] = true
 			result["applied"] = true
-			result["description"] = "If downed, survive with Stun instead"
+			result["reflexive"] = true
+			result["costs_action"] = false
+			result["description"] = "If downed, remain on the table with 1 Stun marker"
 		"kiranin_crystals":
-			# Core Rules p.54: Daze all characters within 4"
+			# p.54 verbatim: "A bright, dazzling display of hypnotic lights will
+			# daze any character within 4\" of the user, making them unable to
+			# act this round. The crystals have no effect on characters that
+			# already acted earlier in the round, and do not affect the user. A
+			# character that is attacked in Brawling combat will defend
+			# themselves normally."
+			#
+			# All three exclusions were missing — without them the crystals froze
+			# the whole area including the thrower and figures that had already
+			# gone, which is far stronger than the book allows.
 			result["applied"] = true
 			result["area_daze_range"] = 4.0
-			result["description"] = "Daze all within 4\""
+			result["excludes_user"] = true
+			result["excludes_already_acted"] = true
+			result["still_defends_in_brawl"] = true
+			result["expires"] = "end_of_round"
+			result["description"] = ("Daze every character within 4\" that has not "
+				+ "yet acted this round (not the user); they still defend in Brawls")
 	if result["applied"]:
 		result["effects"].append("consumable_used")
 	return result
