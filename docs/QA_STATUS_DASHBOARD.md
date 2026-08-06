@@ -2,6 +2,73 @@
 
 ---
 
+## § Battle-Phase DELIVERY Audit (Aug 6 2026) — branch `campaign-editor-and-fixits`
+
+Commits `740db7e36`, `0f10cbfcd`, `e32445c9b`, `dbc33c70a`. Solo, no agent fan-out.
+
+**The framing that produced everything below.** Prior audits asked *"is this rule
+implemented correctly?"* and the answer was almost always yes — every table checked
+was byte-exact against the PDF. This one asked *"does the player ever reach it?"*
+and found four Compendium chapters that could not be opened in a real campaign.
+
+> **The generalization, which held five separate times in one day:**
+> when a rule appears missing, check whether a function implementing it already
+> exists **with no caller**. Early return above the call · called before its target
+> existed · container with no opener · zero-caller producer ×2.
+
+### Defects found and fixed
+
+| Finding | Severity | Detail |
+|---|---|---|
+| **Four Compendium chapters unreachable in campaign play** | **P0** | No-Minis (pp.66-73), Stealth (pp.117-122), Street Fights (pp.123-136), Salvage (pp.137-147). `initialize_battle` early-returned whenever `selected_tier` was stamped, and `CampaignTurnController` stamps it on EVERY campaign battle — so the four `_setup_*_panel` calls at the tail never ran. The file **warned about this exact hazard 7 lines above the return**; four later additions landed below it anyway. Worst case is No-Minis: the mode whose entire premise is that the app hosts the fight. |
+| **Populated panels in a drawer with no opener** | **P0** | On paths that DID build them, they landed in `phase_content` = the `tracking` drawer body, whose button is ASSISTED+ while the default tier is LOG_ONLY. All three routes (landscape bar, portrait `≡` menu, auto-open) were closed simultaneously, which is why it never surfaced. New dedicated `mission` drawer, offered at EVERY tier whenever a panel was actually placed there. |
+| **Hold the Field scored as a WIN in Rival/Invasion battles** | **HIGH** | p.91 and p.92 both say "there is no Win condition". `no_win_condition` was computed for both and read by nothing, so seeing a Rival off paid the p.123 "Survived and Won +3" instead of "+2" and inflated `battles_won` against the p.64 victory conditions. Applied at **all four** `success` producers — two more than the sweep initially listed, including the LOG_ONLY form where the PLAYER declares the outcome and could declare a Win in a battle the book says cannot be won. |
+| **Insanity campaigns earned story points** | **HIGH** | Core Rules p.65 disables them entirely. `TravelEventResolver` was the ONE award site in the codebase writing `campaign.story_points` directly instead of going through `GameStateManager`, which is where the gate lives — so pp.70-72 travel events paid out where nothing else did. Reported for weeks by `lint_data_ownership` and dismissed in `TABLET_TEST_READINESS.md` §5 as "real, small, not player-visible". |
+| **Compendium p.137 salvage availability D6 had never rolled** | **HIGH** | `find_salvage_job()` held the roll and had ZERO callers repo-wide. Three rules inert at once: a job was offered EVERY campaign turn instead of five in six, the 2-credit acceptance fee was never charged, and `is_illegal` had no producer, making the "authorities on your trail" consequence unreachable. Now a real mandatory 3-option prompt at the book's position (after the post-game Rivals roll). |
+| **Tracking tier locked for the whole battle** | MED | `set_tier()` had exactly one caller, passing `force = true`; `tier_badge` was a `Label`. The controller's own "cannot downgrade mid-battle" guard proves a non-forced caller was designed for and never written. Badge is now a Button; lower tiers greyed **with a reason** rather than silently no-opping into a `push_warning`. |
+| **Grid movement was campaign-wide, contra p.90** | MED | "The movement system used can be changed as often as you want, with different battles using different movement systems." Every consumer gated on the DLC flag. The three ungated `build_*` functions written for the per-battle choice had zero callers. |
+| **Gloomy / Invasion early-departure never recurred** | MED | Correct rules, stated once pre-battle and never at the decision point — the player deciding whether to run at round 3 was never told that leaving before round 6 makes that figure a casualty. |
+| **`PostBattleSequence.gd` failed to PARSE** | **P0 (self-inflicted, caught pre-tablet)** | A new function referenced `post_battle_phase` — a local from a *different* function; the member has an underscore. GDScript treats that as a parse error, taking the whole script down, i.e. the entire post-battle wizard. **Missed by `--headless --quit`, by 2254 passing unit cases, and by `verify_post_battle` 46/46** (that harness drives the backend orchestrator and never loads the wizard UI). Only `--headless --import` found it. |
+| **Toolbar rebuild duplicated itself** | LOW | `queue_free()` DEFERS to end-of-frame, so a rebuild added new buttons while old ones were still parented — 14 instead of 7. Found only by an MCP runtime probe; **invisible to all 79 harness checks because they assert the button is PRESENT, and a duplicate set still contains it.** |
+| **2 orphan files deleted** | LOW | `BattlefieldManager.gd` (431 lines, density-float terrain across desert/urban/forest/space_station — contradicting the live four-book-theme generator) and `Enemy.gd` (366 lines, `extends CharacterBody2D`, sole reference a preload of itself). |
+
+### Two harness defects — the code was right both times
+
+Both `verify_post_battle` rows had been red for weeks and were reported as live
+defects. Neither was.
+
+- **Danger pay** — the trial built its mission as `mission_source: "opportunity"`
+  and asserted Danger Pay reached credits, so it had been failing **on the fix**.
+  p.120 Step 4 is verbatim *"If you did a **Patron** job, add the Pay bonus to the
+  Danger Pay"*, and p.83 puts the table under *"If you received a job offer from a
+  Patron."* Now uses a patron job, plus a new `danger_pay_is_patron_only` row.
+- **"1 in 40 injuries costs nothing"** — instrumented rather than reasoned about:
+  seed 16 rolled `MINOR_INJURY(rec=1)` correctly, then p.129 Character Event 24-26
+  *"reduce your recovery time by one turn"* took 1 → 0. A legitimate heal the row's
+  four fields could not express.
+
+> **Widen the observation; never relax the assertion** — then prove the widened
+> version can still fail. Forcing `apply_crew_injury` to no-op yields 35/40 caught
+> with `healed_by_event=0`, so the new "this is fine" bucket does not absorb a real
+> drop.
+
+### State at close
+
+| Check | Result |
+|---|---|
+| `tests/unit` | **2254/2254**, 194 suites, 0 failures |
+| `verify_battle_ui` | **79/79** (grown 49 → 79 checks) |
+| `verify_post_battle` | **46/46** — first fully green run |
+| Parse sweep (`--headless --import`) | **0 errors** project-wide |
+| `signal_wiring` / `tscn_connections` / `autoload_lookups` / `data_ownership` | **all CLEAN** |
+| `lint_orphan_assets` | orphans **0** (41 test-only files remain, tracked) |
+| APK | `build/fpfh-0.9.7-aug06c.apk`, verified by unzip + decompressed-bytecode content match |
+
+Every fix was reverted once to confirm exactly its own tests fail, then restored —
+breaks kept isolated, since a combined break cannot prove independence.
+
+---
+
 ## § Pre-Tablet QA Sprint (Jul 29-30 2026) — branch `campaign-editor-and-fixits`
 
 Scope: **A1 alpha surface only** (Bug Hunt / Planetfall / Tactics are hidden behind

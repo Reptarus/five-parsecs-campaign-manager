@@ -1,9 +1,10 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-05-13 (May 13 deal-frame clarification — recoupment Reading B confirmed, quarterly maintenance fee structure introduced post-recoupment, Phase 1 / Phase 2 arc reframe captured)
+**Last Updated**: 2026-08-06 (battle-phase DELIVERY audit shipped; all four wiring lints CLEAN; partnership header refreshed to the Jul 27 call outcome, which it had been ~3 months behind)
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
-**Partnership status**: Modiphius deal frame settling — $X "total dev budget" recoupment (Reading B: dev keeps 100% of net receipts until $X recouped, no upfront), 50/50 split post-recoupment with quarterly maintenance/support/development fee carve-out to dev BEFORE the split, pro-rata recoupment if Modiphius later contributes budget. Phase 1 = prove the thesis (this deal). Phase 2 = lock-in conversation (career sweetener / multi-IP commitment) arrives later if Phase 1 succeeds. May 18-22 follow-up call. Closed alpha kickoff target Mon May 25 2026. Steam EA target late Sep 2026.
+**Partnership status**: Jul 27 2026 call OUTCOME — **$9.99 one-time base + per-book unlocks APPROVED** (no subscription); taper accepted pending his team; **Five Parsecs own-IP scope adopted** (Traveller out of scope); LOI moving to Modiphius letterhead. **Diff the letterhead version against the agreed Google Doc before signing** (`docs/BOILERPLATE_REVIEW_CHECKLIST.md`). Alpha kickoff date deliberately DEFERRED for social coordination — do not re-propose one unprompted. Underlying deal frame: 50/50 net split post-recoupment, quarterly maintenance/support/development fee carve-out to dev BEFORE the split. Phase 1 = prove the thesis (this deal); Phase 2 = lock-in conversation arrives later if Phase 1 succeeds.
+**⚠ Correspondence caveat**: `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` stops at Jun 4 2026. For anything after that, pull Gmail + Google Doc comments — the repo is NOT the record.
 **Active partnership artifacts**: `docs/MODIPHIUS_CORRESPONDENCE_JOURNAL.md` (chronological log), `docs/MEETING_PREP_2026-05-18.md` (LOI talking points), `docs/BROADENING_SCOPE_SKETCH.md` (1-pager for Chris), `docs/BOILERPLATE_REVIEW_CHECKLIST.md` (Definitive Agreement defense), `docs/PARTNERSHIP_PAPERWORK_PRIMER.md` (LOI → MOU → Definitive Agreement mental model)
 **Mutually agreed strategic theses** (do NOT re-argue these in any doc):
   - **T1**: Companion app, not digital port — complements physical, doesn't replace it
@@ -29,14 +30,24 @@ Note: The Godot folder IS named `*.exe` (it's a directory containing executables
 
 ---
 
-## Project Status (April 2026)
+## Project Status (table below is April 2026 unless a row says otherwise)
+
+> **⚠ READ THIS BEFORE TRUSTING ANY ROW.** These are IMPLEMENTATION counts, and
+> the Jul-Aug 2026 audits proved implementation is NOT delivery. "100% mechanics
+> compliance" was true and simultaneously Quests were unplayable end to end, four
+> Compendium chapters were unreachable in campaign play, and the p.137 salvage
+> table had never rolled. A mechanic counts as present here if the code exists —
+> not if the player can reach it. Treat every row as a lead to verify, never as
+> evidence a feature works. See the Aug 6 delivery audit above.
 
 | Metric | Value |
 |--------|-------|
 | Version | **0.9.7-dev** |
-| Game Mechanics Compliance | **100%** (170/170 mechanics) |
+| Game Mechanics Compliance | **100% IMPLEMENTED** (170/170) — see the warning above; implemented ≠ delivered |
 | Core Rules Systems | 11/11 verified |
-| QA Rules Accuracy Audit | **925/925 values verified** (0 UNVERIFIED) |
+| QA Rules Accuracy Audit | **925/925 values verified** (0 UNVERIFIED) — data accuracy only, says nothing about reachability |
+| Wiring lints (Aug 6 2026) | `signal_wiring` / `tscn_connections` / `autoload_lookups` / `data_ownership` all **CLEAN**; `orphan_assets` orphans **0** (41 test-only files remain as a tracked backlog) |
+| Test suite (Aug 6 2026) | **2254/2254** unit cases, 194 suites · `verify_battle_ui` 79/79 · `verify_post_battle` 46/46 |
 | Campaign Turn Phases | 9/9 fully wired |
 | Campaign Creation | 7-phase coordinator system |
 | Bug Hunt Gamemode | Phases 1-7 complete (38 files) |
@@ -297,10 +308,11 @@ CampaignPhaseManager._process_turn_rollover()
 
 - **Status Effects**: `Character.status_effects: Array[Dictionary]` — each `{type, name, description, duration, source_event}`
 - **9 effect types**: `skip_next_battle`, `unavailable`, `departed`, `skip_tasks`, `ignore_next_injury`, `item_damaged`, `item_lost_recovery`, `no_xp`, `extra_action`
-- **6 enforcement gates**: BattlePhase crew filter, CrewTaskComponent eligibility, ExperienceTrainingProcessor XP block, InjuryProcessor immunity, UpkeepPhaseComponent exemption, CampaignDashboard pill display
+- **6 enforcement gates, ALL LIVE**: deployment-time crew filter, CrewTaskComponent eligibility, ExperienceTrainingProcessor XP block, InjuryProcessor immunity, UpkeepPhaseComponent exemption, CampaignDashboard pill display. The deployment gate is `GameStateManager.filter_deployable()`, reached via `CampaignTurnController._deployable()` at **four** live call sites (`:1369`, `:1435`, `:2039`, `:2107`) — NOT via the deleted `BattlePhase.gd`. See the note two lines down for why this looked dead.
 - **Serialization**: Round-trips via `to_dictionary()`/`from_dictionary()`
 - **Turn countdown**: Follows sick bay recovery pattern (dual Resource + Dictionary path)
-- **GameStateManager.get_deployable_crew()**: intended to filter DEAD/RETIRED/DEPARTED/MISSING before deployment, BUT is currently UNCALLED (0 callers — the old `BattlePhase` consumer was deleted). The live battle path uses `GameState.get_active_crew()` (no status filter), so the deployment-time exclusion gate + the Character-Events `skip_next_battle` gate are UNENFORCED. Real gap flagged by the wiring-audit sprint (Blocked — needs a focused, MCP-verified fix; `get_deployable_crew` kept as the fix seed).
+- **The deployment filter IS enforced — via `filter_deployable()`, not `get_deployable_crew()`.** ⚠ This entry previously read "UNCALLED (0 callers) … the deployment-time exclusion gate + the Character-Events `skip_next_battle` gate are UNENFORCED." **That was WRONG and it survived here for weeks** (corrected Aug 6 2026). `GameStateManager.get_deployable_crew()` genuinely has zero callers, which is what the note was grepping — but it is a one-line convenience wrapper around `filter_deployable(get_crew_members())`, and **`filter_deployable()` is the real filter authority and IS live**: `CampaignTurnController._deployable()` (`:1950`) routes four battle-path call sites through it (`:1369`, `:1435`, `:2039`, `:2107`). DEAD/MISSING/RETIRED, Sick Bay/recovering, and the `departed` / `skip_next_battle` status effects are all excluded at deployment. Wired in P1 `2df0949a`, which `docs/WIRING_CLEANUP_BACKLOG.md` recorded correctly while this file kept the pre-fix text.
+  - **The transferable lesson**: grepping for the WRAPPER and finding zero callers says nothing about the rule. Follow the wrapper to what it delegates to and grep THAT. A zero-caller convenience function sitting on top of a live one is the most convincing false positive in this codebase.
 
 ### Crew Task Event Queue (Session 21)
 
@@ -413,6 +425,44 @@ The battle system is a **tabletop companion assistant** (NOT a tactical simulato
 Record Result → `PostBattlePhase`. `BattlePhase.gd` was DELETED in 99fad30b2 —
 any doc or comment naming it as live is stale.
 
+#### Battle-phase DELIVERY audit (Aug 6 2026) — the rule was right, the CALL was missing
+
+Follow-up to the Jul 30-31 sprint below, on a different axis. That one found
+rules computed and never consumed. **This one found rules implemented correctly
+and never REACHED** — the fifth-most-common shape in this codebase and the one no
+key census can see, because both halves exist and are correct.
+
+**The generalization, which held five times in one day:** *when a rule appears
+missing, check whether a function implementing it already exists with no caller.*
+
+| Disguise | What was actually wrong |
+|---|---|
+| Four Compendium chapters unreachable in campaign play (No-Minis pp.66-73, stealth, street fight pp.123-138, salvage pp.137-147) | an **early return** in `initialize_battle` above their four setup calls. `CampaignTurnController` stamps `selected_tier` on EVERY campaign battle, so the last 40 lines never ran. The file warned about this hazard 7 lines above the return; four later additions landed below it anyway |
+| p.88 deployment panel blank in every battle | `_populate_deployment_conditions` called BEFORE the panel it fills existed |
+| Compendium mission panels invisible at the default tier | they were added to the `tracking` drawer, whose opener is ASSISTED+; the default is LOG_ONLY. All three routes (landscape bar, portrait menu, auto-open) were closed at once |
+| Hold the Field scored as a WIN in Rival/Invasion battles (p.91, p.92 "There is no Win condition") | `no_win_condition` computed for both, read by nothing → +3 XP instead of +2, and inflated `battles_won`. Applied at **all four** `success` producers, two more than the sweep first listed |
+| Compendium p.137 salvage availability D6 totally inert | `find_salvage_job()` held the roll and had ZERO callers; the live producer never invoked it. Three rules dead at once: no-job (a job every turn instead of 5 in 6), the 2cr fee, and `is_illegal` |
+| Grid movement all-or-nothing, contra p.90 | the three ungated `build_*` functions written for the per-battle choice had ZERO callers |
+| Gloomy / Invasion early-departure | correct rules, stated once pre-battle and never at the decision point |
+| Insanity earned story points from travel events (p.65) | `TravelEventResolver` was the ONE award site bypassing `GameStateManager`, where the gate lives |
+
+**The tier was also locked for the whole battle.** `set_tier()` had exactly one
+caller passing `force = true`, and `tier_badge` was a `Label`. The controller's own
+"cannot downgrade mid-battle" guard proves a non-forced caller was intended and
+never written. The badge is now a Button; lower tiers are GREYED with a reason
+rather than silently no-opping into a `push_warning`.
+
+**Traps worth keeping.** `queue_free()` DEFERS to end-of-frame, so rebuilding a
+container in place must `remove_child()` FIRST or it holds old and new children
+together for a frame (a toolbar rebuild returned 14 buttons instead of 7). And a
+**containment assertion is blind to duplication** — all 79 checks in
+`verify_battle_ui` missed that, because they assert the button is present and a
+duplicate set still contains it.
+
+Ledger: sweeps W1-W10 in `review-the-core-rules-jazzy-harbor.md`. Harnesses now
+`verify_battle_ui` 79/79 and `verify_post_battle` 46/46 (its first fully green run
+— two of its three long-standing failures were TEST defects, not code).
+
 #### Battle-phase audit sprint (Jul 30-31 2026) — rules now APPLIED, not just displayed
 
 The recurring defect was one shape: **a value rolled, stored, displayed, and
@@ -425,7 +475,7 @@ touching these. All are test-pinned; do not "simplify" them back.
 | AI Blade rule (p.104 + errata) | never implemented | Rampaging always, Aggressive unless CS +0, never for animals |
 | Rival attack types (pp.91-92) | reached one label | Ambush/Brought Friends/Assault/Raid all applied |
 | Invasion (p.92) | Notable-Sight skip only | +1 enemy, 6-round hold clock, no Win condition |
-| Deployment conditions (p.88) | `apply_condition()` had ZERO callers | crew cap, round-one behaviour, Bitter Struggle panic |
+| Deployment conditions (p.88) | `apply_condition()` had ZERO callers | crew cap, round-one behaviour, Bitter Struggle panic — applied by `BattleSetupRules`. `apply_condition()` itself was DELETED Aug 6 2026: it was a competing second implementation whose key names nothing read |
 | Red/Black Zone (p.150) | display-only | count REPLACED at 7+Numbers, 3 Specialists, Roving Threats |
 | Reaction Roll (p.113) | rolled TWICE, results disagreed | one pool roll, best-fit assign, Feral rule |
 | p.119 rival removal | read `is_unique`, a key nothing writes | reads `was_unique_individual`/`was_lieutenant` |
@@ -996,7 +1046,9 @@ Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Pa
 - `src/core/equipment/EquipmentTransferService.gd` — chokepoint for all equipment movement (RefCounted, instantiate per operation)
 - `src/core/state/GameState.gd:verify_consistency()` — debug invariant checker, call at phase transitions
 - `scripts/lint_data_ownership.py` — CI lint, run with `py scripts/lint_data_ownership.py`
-- **Wiring-audit lints (Jul 10 2026, `py scripts/<name>`)**: `lint_signal_wiring.py` (signals declared but never emitted — flags "live dead-wires" where a listener can never fire), `lint_tscn_connections.py` (`.tscn [connection method=]` must resolve to a real `func` on the target's script — catches dead buttons), `lint_autoload_lookups.py` (`/root/Name` must be a project.godot autoload or an evidence-allowlisted runtime node; `# lint:ignore` marks intentional test seams like the MockDiceSystem `/root/DiceSystem` injection). All three currently REPORT a legacy backlog (67 signals / 6 tscn / 35 autoload) — they are the going-forward guard + the cleanup worklist, not yet exit-0.
+- **Wiring-audit lints (Jul 10 2026, `py scripts/<name>`)**: `lint_signal_wiring.py` (signals declared but never emitted — flags "live dead-wires" where a listener can never fire), `lint_tscn_connections.py` (`.tscn [connection method=]` must resolve to a real `func` on the target's script — catches dead buttons), `lint_autoload_lookups.py` (`/root/Name` must be a project.godot autoload or an evidence-allowlisted runtime node; `# lint:ignore` marks intentional test seams like the MockDiceSystem `/root/DiceSystem` injection). **All three are CLEAN (exit 0) as of Aug 6 2026** — the legacy backlog they were introduced to track (67 signals / 6 tscn / 35 autoload) is CLOSED. They are now a regression guard: a new finding means you just introduced one.
+- **`lint_data_ownership.py` is CLEAN (exit 0) as of Aug 6 2026.** It supports `# lint:ignore` as a TRAILING comment on the offending line (not the line above — it matches the same line). Use it only where the write is genuinely justified and say why at the site; the two current exemptions are in `TravelEventResolver` / `CampaignEventEffects`, which are parameterised by campaign and so cannot delegate to a singleton bound to a different one.
+- **`lint_orphan_assets.py` reports TWO categories and exits 1 on either.** `orphans` (unreachable from product AND tests) is **0**. `test_only` — files kept alive solely by their own tests — is **41** and is a deliberate wire-or-delete backlog (`docs/WIRING_CLEANUP_BACKLOG.md` tier 7); it includes components documented here as built-but-unwired (BookFrame, OrnamentPanel). Do not bulk-delete that list.
 - `tests/unit/test_equipment_persistence.gd` — 7 tests covering save/load round-trip, ownership rebuild, and tabletop invariants
 - `tests/unit/test_equipment_transfer_service.gd` — 10 tests covering the transfer service API
 
@@ -1094,7 +1146,8 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **CharacterCard portrait priority**: `_update_portrait()` checks `portrait_path` first (custom image), falls back to colored initials (8 deterministic colors from `name.hash() % 8`). IconRegistry class icons are no longer the default
 - **CampaignDashboard ButtonContainer is HFlowContainer**: NOT GridContainer. Auto-wraps, no `columns` property to manage
 - **Deleted fabricated systems (Apr 2026)**: MoraleSystem.gd, EnemyLootGenerator.gd, LootEconomyIntegrator.gd, CampaignWorkflowOrchestrator.gd, DeveloperDashboard.gd, WorkflowSystemTester.gd, equipment_tables.json, `src/core/debug/` directory, FiveParsecsStrangeCharacters.gd (6 invented types), BaseStrangeCharacters.gd — all removed. Do NOT reference or re-create these
-- **Deleted dead files (Jul 2 2026 fixit sprint)**: CampaignSerializer.gd, CampaignFactory.gd (+`src/core/workflow/` dir), CampaignStateService.gd, GameSystemManager.gd, MissionIntegrator.gd, WorldPhaseUI.gd (the replaced monolith), `src/game/story/StoryQuestData.gd` (duplicate — live copy is `src/core/story/`), legacy CampaignManager.gd, EventManager.gd, SystemErrorIntegrator.gd, UIBackendIntegrationValidator.gd, ValidationErrorBoundary.gd, `src/core/systems/world` (extension-less orphan), `src/core/victory/VictoryConditionSelection.gd` (duplicate — live copy is `src/game/victory/`), the fabricated `BattleCalculations` species region, DeploymentManager `infer_*` methods, and the dead `Skill`/`Ability` enums from BOTH enum files, plus stale tests `test_ship_stash_persistence.gd`. Do NOT re-create; `tests/unit/test_enum_ordinal_sync.gd` + `test_species_rule_gates.gd` pin the invariants. Wiring-audit sprint (Jul 10 2026, branch `wiring-audit-sprint`) DELETED the orphans `src/game/combat/CombatResolver.gd` (the "nonexistent enum" reason was STALE — its `GameEnumsScript` alias resolves to GlobalEnums which HAS `SPECIAL_ABILITY`; the file was simply zero-referenced), `src/ui/screens/rules/RulesDisplay.gd`, `src/ui/screens/rules/RulesReference.gd`. Remaining dead-code is now TRACKED BY PERMANENT LINTS (see Testing): `lint_signal_wiring.py` (67 declared-never-emitted, 5 live dead-wires), `lint_autoload_lookups.py` (35 dead `/root/Name` lookups incl. `/root/CampaignManager` ×4 — "~8" was overstated), `lint_tscn_connections.py` (6 dead `[connection]`s, all in the legacy TravelPhaseUI.tscn). `EquipmentManager.apply_gun_mod()` still zero-caller (zero-caller backlog).
+- **Deleted dead files (Jul 2 2026 fixit sprint)**: CampaignSerializer.gd, CampaignFactory.gd (+`src/core/workflow/` dir), CampaignStateService.gd, GameSystemManager.gd, MissionIntegrator.gd, WorldPhaseUI.gd (the replaced monolith), `src/game/story/StoryQuestData.gd` (duplicate — live copy is `src/core/story/`), legacy CampaignManager.gd, EventManager.gd, SystemErrorIntegrator.gd, UIBackendIntegrationValidator.gd, ValidationErrorBoundary.gd, `src/core/systems/world` (extension-less orphan), `src/core/victory/VictoryConditionSelection.gd` (duplicate — live copy is `src/game/victory/`), the fabricated `BattleCalculations` species region, DeploymentManager `infer_*` methods, and the dead `Skill`/`Ability` enums from BOTH enum files, plus stale tests `test_ship_stash_persistence.gd`. Do NOT re-create; `tests/unit/test_enum_ordinal_sync.gd` + `test_species_rule_gates.gd` pin the invariants. Wiring-audit sprint (Jul 10 2026, branch `wiring-audit-sprint`) DELETED the orphans `src/game/combat/CombatResolver.gd` (the "nonexistent enum" reason was STALE — its `GameEnumsScript` alias resolves to GlobalEnums which HAS `SPECIAL_ABILITY`; the file was simply zero-referenced), `src/ui/screens/rules/RulesDisplay.gd`, `src/ui/screens/rules/RulesReference.gd`. Remaining dead-code is TRACKED BY PERMANENT LINTS (see Testing). **Those backlogs are now CLOSED — `lint_signal_wiring`, `lint_autoload_lookups` and `lint_tscn_connections` all report CLEAN (Aug 6 2026).** The historical counts they were opened with (67 declared-never-emitted / 35 dead `/root/Name` / 6 dead `[connection]`s) are kept here only so a future reader knows what was burned down, not as a current worklist. `EquipmentManager.apply_gun_mod()` still zero-caller (zero-caller backlog).
+- **Deleted orphan files (Aug 6 2026)**: `src/core/battle/BattlefieldManager.gd` (431 lines — generated terrain by density float across desert/urban/forest/space_station themes; the live generator is `FPCM_BattlefieldGenerator` with the FOUR BOOK themes only, so this contradicted the verified generator rather than extending it. Its consumers were already removed in the Battle Companion QA sprint — only the file was left behind) and `src/core/enemy/base/Enemy.gd` (366 lines, `extends CharacterBody2D` — real-time 2D physics in a turn-based companion app; its only reference repo-wide was a preload of itself). Do NOT re-create either.
 - **Deleted dead tutorial files (Aug 1 2026)**: `src/core/systems/tutorial` (an EXTENSIONLESS GDScript declaring `class_name TutorialActionTracker` — Godot never imported it, so the class did not exist), `src/ui/screens/campaign/NewCampaignTutorial.gd` (341 lines), `src/ui/screens/tutorial/TutorialSelection.tscn` + its README, the `tutorial_selection` SceneRouter route and `"tutorial"` category, the `MainMenu.tscn` `TutorialPopup` subtree with its 4 connections, and `MainMenu.gd`'s `_show_tutorial_popup` / `_connect_tutorial_signals` / `_on_tutorial_popup_button_pressed` / `_handle_tutorial_choice` / `_on_disable_tutorial_toggled`. The whole chain hung off `_show_tutorial_popup()`, which had ZERO callers, so none of it was reachable. Also deleted `src/ui/components/campaign/StoryTrackSection.{gd,tscn}` (301 lines, superseded by the inline dashboard card) and its two silently-skipping tests. Live onboarding is the coach-mark overlay (`TutorialUI` + `data/tutorials/`) plus the book's Introductory Campaign.
 - **Deleted dead UI files (Session 40)**: ConfigPanel.gd+.tscn, CampaignSetupScreen.gd, CampaignSetupDialog.gd+.tscn, DifficultyOption.gd, gameplay_options_menu.gd, QuickStartDialog.gd, CampaignLoadDialog.gd, CampaignSummaryPanel.gd, CampaignCreationManager.gd — all replaced by ExpandedConfigPanel/CampaignCreationCoordinator. Do NOT recreate
 - **Deprecated PostBattlePhase files (Session 47)**: `src/core/campaign/PostBattlePhase.gd` (old 5-step Control stub), `src/game/campaign/FiveParsecsPostBattlePhase.gd` (zero refs), `src/base/campaign/BasePostBattlePhase.gd` (only ref was dead file). CampaignPhaseManager now uses `src/core/campaign/phases/PostBattlePhase.gd` (14-step orchestrator). Safe to delete the 3 deprecated files

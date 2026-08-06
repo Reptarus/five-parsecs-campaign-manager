@@ -1,4 +1,10 @@
-# Compendium chapter trace — Aug 3 2026
+# Compendium chapter trace — Aug 3 2026 (revised Aug 6)
+
+> **This document has now been wrong four separate times, in four different ways.**
+> That is not a reason to distrust it — it is the reason to keep it. Each
+> correction is preserved below rather than edited away, because the FAILURE MODES
+> are the transferable knowledge, not the verdicts. If you are about to add a row,
+> read all four callouts first and ask which of them your evidence would miss.
 
 Every chapter of the Compendium, walked producer → key → consumer by hand against
 the TOC on pp.4-5 of `docs/rules/Five Parsecs From Home-Compendium.pdf`. No agents,
@@ -44,6 +50,43 @@ player this app has no surface for; AI Variations is a genuine wiring gap.
 > surface renders. The only audit that catches it is diffing the TEXT the player
 > sees against the PDF. And it is the worst of the four — a dead rule does
 > nothing; a fabricated rule misinforms play.
+
+<!-- -->
+
+> ### ⛔ FOUR rows were LIVE and still unreachable in campaign play (Aug 6, later)
+>
+> **A fifth failure mode, and this table demonstrated it rather than caught it.**
+> No-minis Combat (pp.66-73), Stealth Missions (pp.117-122), Street Fights
+> (pp.123-136) and Salvage Jobs (pp.137-147) are all marked LIVE below, and each
+> row cites its panel by name. Every one of those citations was accurate: the
+> generator, the resolver and the panel all existed, were correct, and were
+> correctly gated.
+>
+> **They were never BUILT on the campaign path.** `TacticalBattleUI.initialize_battle`
+> early-returned whenever `selected_tier` was stamped, and `CampaignTurnController`
+> stamps it on EVERY campaign battle — so the four `_setup_*_panel` calls at the
+> tail of that function never executed. A player in a real campaign got no panel
+> at all, at any tier. On the paths that DID build them (Battle Simulator), they
+> landed in the `tracking` drawer, whose opener is ASSISTED+ while the default
+> tier is LOG_ONLY — so all three routes to them were closed simultaneously.
+>
+> **Why the trace could not see it.** Every previous failure mode here was about
+> whether a path EXISTS. This one is about whether it RUNS. Producer, key,
+> consumer, flag and caller were all present and correct; a control-flow accident
+> upstream meant the constructor never fired. Tracing to the value is not enough
+> when the value is a UI node — you have to ask *what actually calls this, on the
+> path a real campaign takes*, and the answer is not visible from the chapter's
+> own files.
+>
+> Fixed Aug 6 (`0f10cbfcd`): the early return is gone, the stage skip moved to the
+> tail of the function, and the four panels now live in a dedicated `mission`
+> drawer with an opener at EVERY tier — a player running the whole fight by hand
+> needs the scenario procedure more than an assisted one, not less.
+>
+> Salvage carried a second, independent defect: the p.137 availability D6 had
+> never rolled in any campaign (`find_salvage_job()` held it and had zero callers),
+> so a job was offered every turn instead of five in six, the 2-credit acceptance
+> fee was never charged, and the illegal-job branch was unreachable.
 
 <!-- -->
 
@@ -105,7 +148,7 @@ getter.
 | Enemy Deployment Variables pp.44-45 | **LIVE (fixed Aug 3)** | the missing loader is `src/data/compendium_deployment_variables.gd`; the roll fires from `TacticalBattleUI._on_initiative_calculated`, the exact moment p.44 keys it to |
 | Escalating Battles p.46 | LIVE | `EscalatingBattlesManager` → `TacticalBattleUI:6091`, `BattleRoundHUD` |
 | Elite-level Enemies pp.48-65 | **LIVE (fixed Aug 3)** | was never loaded AND only 40% present. Data completed from the PDF (82 profiles, five tables, each spanning 1-100); `src/data/compendium_elite_enemies.gd` loads it and `EnemyGenerator._roll_enemy_in_category` performs the p.48 substitution. See "the incomplete table is worse than the dead one" below |
-| No-minis Combat pp.66-73 | LIVE | `NoMinisResolver`, `BattleResolverRouter:38`, `NoMinisCombatPanel`, `TacticalBattleUI:6741` |
+| No-minis Combat pp.66-73 | LIVE *(was unreachable in campaign play until Aug 6 — see the fifth-failure-mode callout)* | `NoMinisResolver`, `BattleResolverRouter:38`, `NoMinisCombatPanel`, `TacticalBattleUI:6741` |
 | Expanded Missions p.74 | LIVE | five roll functions consumed by `JobOfferComponent.gd:1649-1669` |
 | Expanded Quest Progression pp.78-80 | **LIVE (fixed Aug 3)** | data complete, readers correct, zero callers — the missing piece was STATE. A Quest step is a standing obligation ("until this has been done, you cannot progress the Quest"), which a stateless roller cannot express. New `src/core/campaign/ExpandedQuestProgression.gd` holds the p.78 gate (replacing the core p.120 mapping AND its p.119 travel roll at `RivalPatronResolver`), the pending step at `progress_data["expanded_quest"]`, a producer for each of the seven blocking rows, and the two permanent modifiers into `EnemyGenerator` / `BattleSetupRules`. See below |
 | Expanded Connections pp.80-86 | **LIVE (fixed Aug 3)** | same shape: 30 complete subtable scenarios, three correct readers, zero callers. New `src/core/campaign/ExpandedConnections.gd` runs the p.80 1D6 check in the Mission Prep step (the book's own "while establishing the objectives and parameters"), the D6 main table into one of five subtables, the automatic first-game Connection, the `*` decline, the one-turn expiry, and the no-roll / variety-swap variations as real settings. **`src/core/character/connections/CharacterConnections.gd` is a DIFFERENT system** — creation-time starting contacts — and is still referenced by nothing |
@@ -122,9 +165,9 @@ getter.
 | Introductory Campaign pp.104-109 | LIVE | `IntroductoryCampaignManager.gd:58/:77`, `JobOfferComponent.gd:1603` |
 | Expanded Factions pp.110-115 | LIVE | `FactionSystem` (autoload), 9 gate sites |
 | Mission Selection p.116 | LIVE | superseded by `JobOfferComponent`; the old `MissionSelectionUI` and its route were deleted with evidence (`WorldPhaseController.gd:2013-2018`) |
-| Stealth Missions pp.117-122 | LIVE | `StealthMissionGenerator` + `StealthResolver` + `StealthMissionPanel` |
-| Street Fights pp.123-136 | LIVE | `StreetFightGenerator` + `StreetFightResolver` + `StreetFightPanel` |
-| Salvage Jobs pp.137-147 | LIVE | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` |
+| Stealth Missions pp.117-122 | LIVE *(unreachable in campaign play until Aug 6)* | `StealthMissionGenerator` + `StealthResolver` + `StealthMissionPanel` |
+| Street Fights pp.123-136 | LIVE *(unreachable in campaign play until Aug 6)* | `StreetFightGenerator` + `StreetFightResolver` + `StreetFightPanel` |
+| Salvage Jobs pp.137-147 | LIVE *(unreachable in campaign play until Aug 6; the p.137 availability D6 had ALSO never rolled — no-job, the 2cr fee and `is_illegal` were all inert)* | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` |
 | Fringe World Strife pp.148-151 | **LIVE (fixed Aug 3)** | four independent faults at the one call site, and fixing all four would still not have produced the chapter — its engine, a per-world Instability score, did not exist. New `src/core/world/FringeWorldStrife.gd` holds the arrival 1D6, the accumulator, the ≥10 D100 and the "NA" stop-tracking rows. See below |
 | **Loans pp.152-156** | **PARTIAL** | Steps 1/3/4 live via `TradePhasePanel.gd:828-832`. **Step 2 is a hardcoded constant** — see below |
 | Name Generation pp.157-160 | LIVE | `compendium_world_options` name tables + `CharacterGeneration.gd:456`, `ContactManager.gd:311` |

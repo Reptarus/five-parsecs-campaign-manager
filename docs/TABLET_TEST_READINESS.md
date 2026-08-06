@@ -1,6 +1,12 @@
-# Tablet Test Readiness — verified Aug 3 2026
+# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6
 
-> **UPDATE, same day — §4 has been worked. See §8 at the bottom for what shipped,
+> **UPDATE Aug 6 — see §9 at the bottom.** A battle-phase DELIVERY audit shipped
+> and it changes what is worth testing: four Compendium chapters that this
+> document would have had a tester exercising were **unreachable in campaign play
+> at the time it was written**. There is a fresh APK. Read §9 before handing
+> anything to a tester.
+>
+> **UPDATE Aug 3, same day — §4 has been worked. See §8 for what shipped,
 > what is blocked and why, and the two items that got WORSE-looking because a
 > dark test suite started reporting.**
 
@@ -67,8 +73,13 @@ read skipping a rule, but a missing read silently *enforcing* one.
 ### 4a. Dead switches a tester will flip · ~½ session · **highest value on this page**
 
 Visible in Settings and the creation wizard, and they change nothing:
-Factions, Elite Enemies, Stealth/Street Fight/Salvage, Terrain Generation, the
+Factions, Elite Enemies, ~~Stealth/Street Fight/Salvage~~, Terrain Generation, the
 12 Compendium difficulty toggles.
+
+> **Stealth / Street Fight / Salvage came off this list Aug 6** — they now
+> generate (4b) AND surface a reachable panel at every tier (§9). Grid-based
+> Movement also became a real per-battle choice rather than a campaign-wide flag.
+> The rest of the list stands.
 
 Hide or label them. Hours against weeks, and it converts "this app is broken"
 into "that isn't in yet."
@@ -77,6 +88,18 @@ into "that isn't in yet."
 this list entirely.**
 
 ### 4b. Stealth / Street Fight / Salvage — one producer wire · ~1 session
+
+> **RESOLVED — but it was TWO failures in series, not one (Aug 6).** The producer
+> wire below is done: the live caller is now `JobOfferComponent.gd:217/225/232`,
+> not the dead `WorldPhase.gd`. That alone did **not** make the chapters playable,
+> because a second, independent blocker sat downstream — an early return in
+> `TacticalBattleUI.initialize_battle` meant the mission PANEL was never
+> constructed on the campaign path, so a correctly-generated stealth or salvage
+> mission still had no surface. Fixed `0f10cbfcd`; see §9.
+>
+> Worth keeping as a pattern: **fixing the producer proved nothing about the
+> feature.** Two dead links in the same chain look identical from the player's
+> seat, and closing one leaves the symptom exactly as it was.
 
 Traced by hand today. Data, loaders, generators, resolvers, panels and the
 `TacticalBattleUI` dispatch all exist and agree on the key — the generators stamp
@@ -144,9 +167,22 @@ suite that exercises nothing.
   instrument for the audit's defect family and it should replace hand-counted row
   tallies, but most entries are Planetfall (out of scope) or Compendium chapters.
   The 1 dead producer is `progress_data[fuel_credits]` in the dead `TravelPhase.gd`.
-- **`lint_data_ownership`**: 2 findings, both direct `campaign.credits` /
+- ~~**`lint_data_ownership`**: 2 findings, both direct `campaign.credits` /
   `campaign.story_points` writes in `TravelEventResolver.gd`. Real, small, not
-  player-visible.
+  player-visible.~~
+  > **WRONG on both counts (Aug 6). There were THREE findings, and one WAS
+  > player-visible.** The count was under-reported because the lint's own output
+  > got truncated when it was read. And the `story_points` write was not cosmetic:
+  > it was the ONE award site in the codebase bypassing `GameStateManager`, which
+  > is where the **Core Rules p.65 Insanity gate** lives — so an Insanity campaign,
+  > which must never earn story points, earned them from every pp.70-72 travel
+  > event. The third finding (`CampaignEventEffects._grant_credits`) had its
+  > ownership order inverted so the manager's mirror and `credits_changed` signal
+  > never fired on a p.126 grant, leaving the dashboard badge stale.
+  >
+  > All fixed `dbc33c70a`; lint now CLEAN. **The lesson is the dismissal, not the
+  > bug**: "style violation, not player-visible" was an assumption, and checking
+  > what the sanctioned API actually *does* would have shown it enforces a rule.
 
 ---
 
@@ -288,3 +324,87 @@ ceiling.
 2. The three blocked one-liners, the moment the Story Track branch lands (§8
    "Blocked").
 3. The phone-only layout fix — one autowrapping Label in an `HBoxContainer`.
+
+---
+
+## 9. Aug 6 re-verification — battle-phase delivery audit
+
+### Fresh artifact
+
+**`build/fpfh-0.9.7-aug06c.apk`** — 64.7 MB, 2,374 entries, built at HEAD
+`dbc33c70a`. The Aug 3 APK in §2 is superseded and should not be handed out.
+
+Verified by **unzipping**, not by reading the export config:
+
+| Check | Result |
+|---|---|
+| Leak (CLAUDE.md, docs/, tests/, Modiphius material) | **PASS** — none packed |
+| `.md` files | **PASS** — only the 4 legal docs |
+| Expected scripts present | **PASS** (7/7) |
+| Content matches HEAD | **PASS** — positive *and* negative |
+
+The negative half is what makes it proof of *this* build rather than "an APK
+exists": both files deleted in the final commit are confirmed **absent** from the
+archive, and two strings that did not exist in `TravelEventResolver` before that
+commit are **present**.
+
+> **Two probe traps, both of which faked a failure before the control test caught
+> them.** `.gdc` is **Zstd-compressed** (`GDSC` magic + `28 B5 2F FD`) — grep the
+> raw bytes and every string MISSes, including months-old ones. And a direct
+> static call to a global `class_name` does not retain the method name in the
+> constant pool; only string literals (the argument to `has_method()`) survive.
+> **Always probe with a control string known to be old.** If the control misses
+> too, the probe is broken, not the build.
+
+### What changed under the tester's feet
+
+Four Compendium chapters were **unreachable in campaign play** until this audit —
+No-Minis (pp.66-73), Stealth (pp.117-122), Street Fights (pp.123-136) and Salvage
+(pp.137-147). Each had a correct generator, resolver and panel; an early return in
+`initialize_battle` meant the panel was never constructed on the campaign path,
+and on the paths that did build it, it landed in a drawer with no opener at the
+default LOG_ONLY tier.
+
+This matters for test planning: **any Aug 3 test plan that had a tester exercising
+those chapters was asking them to find a screen that could not be opened.** They
+are reachable now, at every tier, via a dedicated `mission` drawer.
+
+Also newly live for a tester to hit:
+- **Mid-battle tier changes.** The badge was a `Label`; it is a Button now. Lower
+  tiers are greyed with a reason rather than silently no-opping.
+- **The p.137 salvage availability D6**, which had never rolled in any campaign —
+  so "no job this turn", the 2-credit acceptance fee and the illegal-job branch
+  are all reachable for the first time.
+- **Hold the Field no longer scores as a Win** in Rival/Invasion battles (p.91,
+  p.92), so XP is +2 not +3 and `battles_won` no longer inflates.
+
+### Green as of Aug 6
+
+| Check | Result |
+|---|---|
+| Script parse sweep (`--headless --import`) | **0 parse errors** project-wide |
+| `tests/unit` | **2254/2254**, 194 suites, 0 failures |
+| `verify_battle_ui` | **79/79** |
+| `verify_post_battle` | **46/46** — its first fully green run |
+| `lint_signal_wiring` / `lint_tscn_connections` / `lint_autoload_lookups` / `lint_data_ownership` | **all CLEAN (exit 0)** |
+| `lint_orphan_assets` | orphans **0** (41 test-only files remain, tracked) |
+
+> **§2's "Script parse sweep — 0 parse errors" was measured with the wrong tool.**
+> `--headless --quit` validates STARTUP scripts only. On Aug 6 it reported clean
+> while `PostBattleSequence.gd` failed to parse, which took the entire post-battle
+> wizard down. `--headless --import` loads every script and caught it. **Use
+> `--import` for this row from now on** — and note that 2254 passing unit cases
+> and a 46/46 backend harness both missed it too, because neither loads that UI
+> script.
+
+### Suggested first tablet session
+
+The fixes concentrate in one place, so start there rather than sweeping:
+
+1. **Campaign battle at the default Log Only tier** — the exact combination where
+   the four chapters were unreachable.
+2. Tap the **tier badge** mid-battle; confirm the chooser opens, Log Only is
+   greyed, and upgrading to Assisted actually adds the trackers.
+3. If a **salvage** job appears, play it through to the post-battle authorities
+   prompt (it is a mandatory 3-option choice, deliberately not dismissable).
+4. Anything in §4/§8 still marked open — those are unchanged by this audit.

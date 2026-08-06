@@ -1,5 +1,34 @@
 # Wiring / Dead-Code Cleanup Backlog
 
+> ## ▶ RESUME STATE (2026-08-06 — battle-phase delivery audit)
+>
+> - **All four wiring lints CLEAN (exit 0)**: `signal_wiring`, `tscn_connections`,
+>   `autoload_lookups`, `data_ownership`. `lint_orphan_assets` reports
+>   **`orphans=0`**.
+> - **2 orphans deleted**: `src/core/battle/BattlefieldManager.gd` (431 lines —
+>   density-float terrain across desert/urban/forest/space_station themes, which
+>   CONTRADICTS the live four-book-theme `FPCM_BattlefieldGenerator`; its consumers
+>   were already removed in the Battle Companion QA sprint, only the file was left)
+>   and `src/core/enemy/base/Enemy.gd` (366 lines, `extends CharacterBody2D` —
+>   real-time physics in a turn-based companion; sole reference was a preload of
+>   itself).
+> - **`lint_data_ownership` was reporting a real p.65 rules bug, not a style nit.**
+>   `TravelEventResolver` was the ONE story-point award site bypassing
+>   `GameStateManager`, where the Insanity gate lives — so Insanity campaigns
+>   earned story points from pp.70-72 travel events and nowhere else. A second
+>   finding (`CampaignEventEffects._grant_credits`) had its ownership order
+>   inverted, so the manager's mirror and `credits_changed` signal never fired on a
+>   p.126 grant. Fixed `dbc33c70a`.
+> - **⚠ This doc was RIGHT and CLAUDE.md was wrong** about the P1
+>   `get_deployable_crew` work below. CLAUDE.md claimed the deployment gate was
+>   UNENFORCED because that function has zero callers. It does — but it is a
+>   wrapper around `filter_deployable()`, which is live at four battle-path call
+>   sites. CLAUDE.md is corrected. **When two docs disagree, the one describing a
+>   commit usually beats the one describing a grep.**
+> - **PRODUCTION-DEAD is now 41 files** (was 39). Still NOT deleted, still a
+>   product decision — see tier 7. `lint_orphan_assets` exits 1 on this category
+>   alone, so a red exit no longer means "orphans exist".
+>
 > ## ▶ RESUME STATE (last updated 2026-07-30 — reachability sweep)
 > - **236 orphan files DELETED** (scripts + scenes, unreachable from product AND
 >   tests). Found by the new `scripts/lint_orphan_assets.py`, which walks the real

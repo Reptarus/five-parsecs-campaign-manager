@@ -1,16 +1,44 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: May 1, 2026 (added Alpha-1 docs section + Modiphius Apr 29 followups)
+**Last Updated**: Aug 6, 2026 (added the Active Audit Ledgers section — the Jul/Aug
+audit docs had been missing from this index entirely, so anyone following
+"read the index first" was routed past the most current material on the project)
 **Engine**: Godot 4.6-stable (pure GDScript)
 **Test Framework**: gdUnit4 v6.0.3
 
 ---
 
+## ⭐ Active audit ledgers (Jul-Aug 2026) — read these before any rules work
+
+These four are the live record of what actually reaches the player. **They
+supersede the older status docs below wherever they disagree**, and each carries
+its own correction history because each has been wrong at least once.
+
+- **[Compendium Chapter Trace](COMPENDIUM_CHAPTER_TRACE_2026-08.md)** — every
+  Compendium chapter walked producer → key → consumer by hand. Documents **five
+  distinct ways a chapter fails**, four of which this document itself demonstrated
+  before it caught them. Read the callouts before adding a row.
+- **[Rules Wiring Audit](RULES_WIRING_AUDIT_2026-08.md)** — 143-row ledger,
+  NEVER-FIRES / WRONG-VALUE / FABRICATED / PARTIAL. Counts are MEASURED, not
+  hand-maintained; the header has drifted three times. Route through
+  **[Closeout Plan](RULES_WIRING_CLOSEOUT_PLAN.md)** §0.
+  ⚠ A `FIXED` cell is a claim about a call site, not about what the player sees.
+- **[Tablet Test Readiness](TABLET_TEST_READINESS.md)** — the gate for handing an
+  APK to a tester. §9 has the current artifact and what changed under the tester's
+  feet.
+- **[Wiring / Dead-Code Cleanup Backlog](WIRING_CLEANUP_BACKLOG.md)** — orphans are
+  at 0; the remaining 41 entries are test-only files awaiting a wire-or-delete
+  product decision (tier 7).
+
+Institutional traps live in **[docs/sop/README.md](sop/README.md)** — the
+anti-regressions log. Read the relevant SOP before touching its subsystem, and
+update it in the same commit as the change that justifies it.
+
 ## Root Documents (Start Here)
 
 - **[Project Status](PROJECT_STATUS_2026.md)** - Current state, completed phases, risk areas
 - **[Quick Start Guide](QUICK_START.md)** - Developer setup and onboarding
-- **[Game Mechanics Map](GAME_MECHANICS_IMPLEMENTATION_MAP.md)** - 100% compliance (170/170)
+- **[Game Mechanics Map](GAME_MECHANICS_IMPLEMENTATION_MAP.md)** - 100% **implemented** (170/170). ⚠ Implemented ≠ delivered: that figure was true while Quests were unplayable end to end and four Compendium chapters could not be opened in a campaign. Cross-check against the audit ledgers above.
 - **[QA Status Dashboard](QA_STATUS_DASHBOARD.md)** - Consolidated QA health overview
 - **[QA Rules Accuracy Audit](QA_RULES_ACCURACY_AUDIT.md)** - Master data verification (925 values)
 - **[QOL Feature Candidates](QOL_FEATURE_CANDIDATES.md)** - Product backlog of 10 QOL items from May 22 fiveparsecs.online audit; per-item depth analysis, sequencing, sprint shapes. **Sprints 1+2 shipped 2026-05-22** (Shape A items 1, 2, 4, 5, 7 + Shape S2-A F1, F2, F3, Item 6, Item 9; commit 839524c6, 35 gdUnit4 tests). **RulesPopup popup-race hotfix shipped 2026-05-23**. See Sprint 3 Candidates section for remaining items.

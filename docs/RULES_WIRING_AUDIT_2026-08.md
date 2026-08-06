@@ -4,6 +4,26 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
+> ## ⛔ Aug 6 — this ledger cannot see the defect that closed four chapters
+>
+> A separate battle-phase **delivery** audit (`0f10cbfcd`, sweeps W1-W10 in
+> `review-the-core-rules-jazzy-harbor.md`) found four Compendium chapters
+> unreachable in campaign play. **None of them would ever appear as a row here**,
+> because this ledger's unit of analysis is *rule → producer → consumer*, and in
+> every case the producer AND the consumer existed and were correct. What was
+> missing was the CALL — an early return above four setup functions, a container
+> with no opener, a correct function nobody invoked.
+>
+> Two rows below were touched as a result, and one of them is the cautionary tale:
+> the **Deployment Conditions panel** row was marked `FIXED bf3f797c3` and the
+> panel still rendered blank in every campaign battle, because the fix wired a call
+> that ran before the panel existed. **A `FIXED` cell in this table is a claim
+> about a call site, not about what the player sees.** Verify at the surface.
+>
+> Also corrected: the "battle-setup: 8 open" domain standing was not reproducible
+> (filtering live OPEN battle-* rows yields 5, two of which were already fixed).
+> Re-count, per the note directly below — it has now drifted three times.
+
 **Status Aug 3 (late): 64 open / 71 fixed / 7 partial-or-blocked (+1 CORRECTED) of 143.**
 Counts are MEASURED, not maintained by hand — the header has drifted twice, in both
 directions. Re-count before trusting it; the command is in
@@ -49,7 +69,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | battle-setup | Unique Individuals — a Guardian-AI Unique must be attached to a figure in the enemy force | small | Roughly a third of the Unique Individual table has Guardian AI (Enemy Bruiser 1-6, Mutant Bruiser 57-61, Gene Dog 86-91, Sand Runner 92-96, Mk II Security Bot 97-100 — 27 of 100 results).... | OPEN |
 | battle-setup | Defend objective — force the enemy AI to Aggressive and add +1 enemy | small | On a Quest Defend objective (D10 5-6, so 20% of Quest missions) the player fights one fewer enemy than the rules require, and a Cautious/Defensive/Tactical force keeps its cautious AI — s... | FIXED 3aa8d0b88 |
 | battle-setup | Battle Events (optional) — Environmental hazard | small | Low severity for a companion app — the event's text does reach the player, who resolves the rolls on the table. The concrete loss is that the app offers a dice-rolling assist for every ot... | OPEN |
-| battle-setup | Determine Deployment Conditions — present the rolled condition in the battle UI | small | The dedicated Deployment Conditions panel in the tactical battle screen renders blank/placeholder for every battle, and its Acknowledge/Details buttons act on nothing. The player who goes... | FIXED bf3f797c3 — the panel had roll_condition() and display_condition() and NOTHING called either. The condition was never missing; CampaignTurnController stamps it and it simply never reached the one screen built to show it. Rehydrated by id, not re-rolled. |
+| battle-setup | Determine Deployment Conditions — present the rolled condition in the battle UI | small | The dedicated Deployment Conditions panel in the tactical battle screen renders blank/placeholder for every battle, and its Acknowledge/Details buttons act on nothing. The player who goes... | FIXED bf3f797c3 — the panel had roll_condition() and display_condition() and NOTHING called either. The condition was never missing; CampaignTurnController stamps it and it simply never reached the one screen built to show it. Rehydrated by id, not re-rolled. **RE-OPENED then RE-FIXED Aug 6 (`0f10cbfcd`): `bf3f797c3` was necessary but NOT sufficient.** `_populate_deployment_conditions()` was called from a point that ran BEFORE the panel it fills was constructed, and on the campaign path an early return in `initialize_battle` meant the panel was never constructed at all — so the panel still rendered blank in every campaign battle after the 'fix'. Moved into `_on_tier_selected`, after the panel exists. **A FIXED row is a claim about a call site, not about what the player sees.** |
 | patrons-rivals-quests | Quest finale: "Next time you pursue a Quest mission, it will be the finale… add +1 to the number of opponents… roll the die twice, pick the better score, and add +1… Crew completed the final stage of a Quest +1 XP" (Core Rules pp.120, 123) | medium | A Quest can never end. Reaching 7+ on the p.120 progress roll writes a flag the app never reads again: the finale battle never gets its extra enemy, never pays the double-roll +1 (so a fi... | FIXED 2c44839f0 |
 | patrons-rivals-quests | Quest missions exist as a battle type — "Continue a Quest / If you have an active Quest" (Core Rules p.85 Select Your Job) | medium | After the Resolve Rumors step hands the player a Quest, nothing in the app ever lets them go on it. The Quest objective table (p.89: Move Through/Search/Defend/Acquire/Fight Off), the Que... | FIXED 2c44839f0 |
 | patrons-rivals-quests | Benefits, Hazards and Conditions subtables — all 30 entries (Core Rules pp.83-84) | large | Every Patron job plays identically. A 'Dangerous Job' hazard fields the same number of enemies as a 'Security Team' benefit; a 'Small Squad' job still lets you deploy 6; a 'Vengeful' patr... | PARTIAL fab705684+cfbd4f91f (19 of 21 rows applied; Private Transport needs RivalEncounterCheck — another session's file — and Busy has an accessor with no caller) |
@@ -71,7 +91,7 @@ Status column is for tracking fixes: OPEN / FIXED (commit) / BLOCKED (reason) / 
 | missions-elites-zones | Black Job victory reward — 3 rolls on the Loot Table | one-line | Even if the Black Zone mission gap (finding 1) is fixed, a Black Zone victory yields 1 Loot roll instead of 3 — the player loses two of the three promised Loot Table items, while the jour... | OPEN |
 | missions-elites-zones | Black Job advantage — three free rolls on the Weapon Table | small | Accepting a Black Job grants zero free weapons. The player goes into the game's hardest fight with exactly the gear they already owned, losing three free Weapon Table items the book hands... | OPEN |
 | missions-elites-zones | Black Job advantage — immunity from Rival interference | small | On a Black Zone campaign turn a Rival can still roll to track the crew down and hijack the turn with a Rival battle, which the book explicitly forbids — the player loses their Black Job (... | OPEN |
-| missions-elites-zones | Salvage Jobs — Finding a Salvage Job (crew action + 1D6 availability table) | medium | There is no way to look for a Salvage job. The D6 availability table, the 2-credit Fee outcome and the Illegal-job outcome never occur, so a Salvage mission can never enter a campaign thr... | OPEN |
+| missions-elites-zones | Salvage Jobs — Finding a Salvage Job (crew action + 1D6 availability table) | medium | There is no way to look for a Salvage job. The D6 availability table, the 2-credit Fee outcome and the Illegal-job outcome never occur, so a Salvage mission can never enter a campaign thr... | FIXED `740db7e36` — the D6 lived in `SalvageJobGenerator.find_salvage_job()`, which had ZERO callers repo-wide; the live producer `generate_salvage_job()` never invoked it. Rolling it closed three rules at once: roll 1 'no job this campaign turn' (a job had been offered EVERY turn instead of 5 in 6), rolls 2-3 the 2-credit non-refundable acceptance fee, and roll 6 the illegal job — whose `is_illegal` flag had no producer anywhere, making the p.137 authorities consequence unreachable. That consequence is now a real mandatory 3-option prompt after the post-game Rivals roll, not a line of text to remember. |
 | missions-elites-zones | Salvage Jobs — Illegal Jobs post-game consequence | medium | Illegal salvage jobs never occur, and even if one did the panel would treat it as legal. The player is never fined, never has to forfeit Salvage, and never gains an Enforcer Rival — the e... | OPEN |
 | missions-elites-zones | Salvage — the Scrapper trade (post-battle Step 4) and salvage-as-currency | large | Salvage units collected in a mission evaporate at the end of the battle — they are never tallied at Get Paid, never buy anything from a Scrapper, and never offset ship-repair/module/bot-u... | OPEN |
 | missions-elites-zones | Compendium DLC battle-setup instructions (AI Variations, Difficulty Toggles, Escalating Battles, Dramatic Combat, Grid-based Movement) reaching the battle screen | medium | With the Freelancer's Handbook enabled, the battle screen's COMPENDIUM DIFFICULTY RULES, ESCALATING BATTLES, DRAMATIC COMBAT and GRID-BASED MOVEMENT setup sections never render, and the p... | FIXED 0eead4056 |
