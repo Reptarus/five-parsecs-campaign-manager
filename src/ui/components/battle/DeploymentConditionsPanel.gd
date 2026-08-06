@@ -165,11 +165,13 @@ func _update_display() -> void:
 func get_current_condition() -> DeploymentConditionsSystem.DeploymentCondition:
 	return current_condition
 
-## Get effects dictionary for battle state modification
-func get_condition_effects() -> Dictionary:
-	if current_condition:
-		return current_condition.effects
-	return {}
+## NO get_condition_effects() HERE. Deleted Aug 6 2026 with
+## DeploymentConditionsSystem.apply_condition(), the dead path it fed.
+##
+## It had zero callers, and its docstring ("for battle state modification") was
+## an invitation to wire the p.88 effects a SECOND time — they already reach the
+## table through BattleSetupRules._apply_deployment_condition. The panel's job is
+## to show the condition, not to modify battle state.
 
 func _get_mission_type_name(mission_type: DeploymentConditionsSystem.MissionType) -> String:
 	match mission_type:

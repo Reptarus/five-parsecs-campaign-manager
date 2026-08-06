@@ -93,7 +93,11 @@ func _get_res(key: String) -> Resource:
 @onready var return_button: Button = %ReturnButton
 @onready var auto_resolve_button: Button = %AutoResolveButton
 @onready var title_label: Label = %TitleLabel
-@onready var tier_badge: Label = %TierBadge
+## A BUTTON, not a Label. It was a Label, which is why the tracking tier was
+## frozen for the whole battle — see _on_tier_badge_pressed. Every existing use
+## is `.text`, which Button supports identically. Styled flat so the top bar
+## still reads as a badge rather than sprouting a chunky button.
+@onready var tier_badge: Button = %TierBadge
 @onready var phase_breadcrumb: HBoxContainer = %PhaseBreadcrumb
 
 # --- Map-Primary + Drawers frame (redesign) -------------------------------
@@ -260,6 +264,14 @@ var _current_terrain_theme: String = ""
 var _stored_mission_data: Variant = null
 var _terrain_section_start_index: int = -1
 var _terrain_section_end_index: int = -1
+## Per-battle movement system (Compendium p.90: "The movement system used can be
+## changed as often as you want, with different battles using different movement
+## systems"). The DLC flag says the option is available; THIS says it is in use
+## for this fight. Owned here rather than in the checklist because three surfaces
+## depend on it — the setup drawer, the p.91 flanking note, and the checklist —
+## and a per-battle rule with three readers needs exactly one writer.
+var _use_grid_movement: bool = false
+var _grid_setup_section: VBoxContainer = null
 ## Last BattlefieldGenerator result (sectors/combat_notes/visibility_limit) —
 ## drives the redesign's info-rail BATTLEFIELD card + TERRAIN KEY legend.
 var _battlefield_data: Dictionary = {}
@@ -406,6 +418,11 @@ func _connect_signals() -> void:
 		return_button.pressed.connect(_on_return_to_battle_resolution)
 	if auto_resolve_button:
 		auto_resolve_button.pressed.connect(_on_auto_resolve_battle)
+	# The tracking-tier badge is the mid-battle tier control (it was a Label, so
+	# the tier was frozen once the battle began). has_signal guards the case where
+	# an older .tscn still has it as a Label.
+	if tier_badge and tier_badge.has_signal("pressed"):
+		tier_badge.pressed.connect(_on_tier_badge_pressed)
 
 	# Battlefield signals removed — terrain is text-based via BattlefieldGenerator
 
@@ -504,6 +521,22 @@ func _build_redesign_frame() -> void:
 	_make_drawer("reference", "Battle Round Reference (Core Rules p.118)",
 		DrawerClass.Edge.RIGHT)
 	_make_drawer("tracking", "Tracking", DrawerClass.Edge.RIGHT, true)
+	# The SCENARIO's own rules surface (Compendium stealth / street fight /
+	# salvage / No-Minis). Deliberately NOT the "tracking" drawer.
+	#
+	# THE BUG THIS FIXES (Aug 6 battle-phase audit): these four panels were added to
+	# phase_content, which IS the tracking drawer body — and the tracking button is
+	# tier-gated to ASSISTED+. But the panels are gated on MISSION TYPE, not tier.
+	# So a LOG_ONLY player who drew a salvage mission got a fully-built, fully-
+	# seeded, signal-connected panel inside a drawer with no opener: no toolbar
+	# button, no portrait menu entry, no auto-open, and SlideOverDrawer has no
+	# swipe-to-open. For No-Minis, where the panel IS the battlefield, that is the
+	# entire game behind a door with no handle.
+	#
+	# Its button appears only when a panel was actually placed here, so an ordinary
+	# battle never advertises an empty drawer (the mistake the deleted "oracle"
+	# drawer made — see the note below).
+	_make_drawer("mission", "Mission Rules", DrawerClass.Edge.RIGHT, true)
 	# NO separate "oracle" drawer. One existed and NOTHING was ever added to its
 	# body, so the FULL_ORACLE toolbar button opened a blank panel. The AI oracle
 	# is deliberately an intent layer sitting above the per-figure enemy cards
@@ -552,6 +585,27 @@ func _make_drawer(id: String, title: String, edge: int,
 	d.set_content(body)
 	_drawers[id] = d
 	_drawer_bodies[id] = body
+
+
+## True once a scenario panel has been placed in the "mission" drawer.
+var _mission_drawer_used: bool = false
+
+
+func _mission_panel_host() -> Node:
+	## Host for the scenario's own rules panel, and the ONLY place that marks the
+	## mission drawer live. Falls back to phase_content if the drawer is somehow
+	## missing, so a panel is never silently dropped on the floor.
+	var body = _drawer_bodies.get("mission")
+	if body == null:
+		return phase_content
+	_mission_drawer_used = true
+	# The toolbar is built during tier selection, which runs BEFORE these panels
+	# are created at the tail of initialize_battle — so it has to be rebuilt once
+	# the drawer actually has content or the button never appears. Rebuilding is
+	# idempotent (it frees and re-adds the bar's children).
+	if _toolbar_built and tier_controller:
+		_rebuild_drawer_toolbar(tier_controller.current_tier)
+	return body
 
 
 func _open_drawer(id: String) -> void:
@@ -2324,6 +2378,15 @@ func _on_tier_selected(tier: int) -> void:
 	# configuration calls there were no-ops. enemy_units, _stored_mission_data and
 	# the crew are all populated by now.
 	_seed_morale_tracker()
+	# Core Rules p.88 Deployment Condition — populate the panel now that
+	# _instance_assisted_components() has actually created it. Relocated here from
+	# initialize_battle, where it was a guaranteed no-op on BOTH paths (see the note
+	# at its old site). Reads the condition already stamped on _stored_mission_data
+	# rather than re-rolling: a second roll would show the player a DIFFERENT
+	# condition from the one the battle is actually being fought under.
+	# No-op at LOG_ONLY by design — the panel is an ASSISTED+ component.
+	_populate_deployment_conditions(
+		_stored_mission_data if _stored_mission_data is Dictionary else {})
 	if initiative_calculator and is_instance_valid(initiative_calculator) \
 			and initiative_calculator.has_method("set_crew"):
 		var crew_for_init: Array = []
@@ -2341,6 +2404,103 @@ func _on_tier_selected(tier: int) -> void:
 	# Pre-battle checklist: a CENTERED MODAL on the existing OverlayLayer
 	# (approved plan ModalLayer role), not the deleted Setup tab.
 	_show_pre_battle_checklist(tier)
+
+
+## ── Mid-battle tracking-tier change (Aug 6 battle-phase audit) ──────────────
+##
+## THE GAP THIS FILLS: set_tier() had exactly ONE caller — _on_tier_selected,
+## above, passing force = true "at battle start" — and TierBadge was a Label. So
+## the tracking level was frozen for the whole battle: a player who picked
+## LOG_ONLY and then wanted help, or picked FULL_ORACLE and found it noisy, could
+## only abandon the battle and restart, discarding in-battle state.
+##
+## BattleTierController proves this was designed for and never built: it guards
+## `if not force and tier < current_tier: push_warning("Cannot downgrade tier
+## mid-battle")`. A guard against mid-battle DOWNGRADE only makes sense if
+## mid-battle CHANGES were expected. This is the unforced caller it was written
+## for — the first one.
+
+func _on_tier_badge_pressed() -> void:
+	## TierBadge tapped — offer a tier change using the SAME panel as the
+	## pre-battle pick, re-dressed via configure_for_change().
+	if tier_controller == null:
+		# No tier chosen yet (shouldn't happen in-battle); fall back to the
+		# ordinary first-pick flow rather than doing nothing.
+		_show_tier_selection()
+		return
+	var panel: Control = _get_res("tier_selection").new()
+	panel.tier_selected.connect(_on_tier_change_requested)
+	if panel.has_signal("change_cancelled"):
+		panel.change_cancelled.connect(_hide_overlay)
+	if panel.has_method("configure_for_change"):
+		panel.configure_for_change(int(tier_controller.current_tier))
+	_show_overlay(panel)
+
+
+func _on_tier_change_requested(tier: int) -> void:
+	## Apply a MID-BATTLE tier change. Unlike _on_tier_selected this does NOT
+	## build a new BattleTierController — doing so would reset the battle's tier
+	## state and bypass the very downgrade guard we want enforced.
+	if tier_controller == null:
+		_on_tier_selected(tier)
+		return
+	var before: int = int(tier_controller.current_tier)
+	if tier == before:
+		_hide_overlay()
+		return
+
+	# UNFORCED — the controller is the authority on whether this is allowed.
+	tier_controller.set_tier(tier)
+	if int(tier_controller.current_tier) == before:
+		# Refused (a downgrade). The panel disables those options, so this is a
+		# belt-and-braces path; say so rather than closing as if it worked.
+		_log_message(
+			"Tracking level cannot be reduced mid-battle — still %s."
+				% _tier_label(before), UIColors.COLOR_WARNING)
+		_hide_overlay()
+		return
+
+	# Accepted. Build whatever the new tier needs. Every one of these is already
+	# guarded against double-instantiation, which is why the upgrade path was
+	# effectively complete before this control existed to invoke it.
+	_activate_tier_components(int(tier_controller.current_tier))
+	_apply_tier_visibility(int(tier_controller.current_tier))
+	_hide_overlay()
+	_log_message("Tracking level raised to %s."
+		% _tier_label(int(tier_controller.current_tier)), UIColors.COLOR_EMERALD)
+
+
+func _tier_label(tier: int) -> String:
+	match tier:
+		0: return "LOG ONLY"
+		1: return "ASSISTED"
+		2: return "FULL ORACLE"
+	return "UNKNOWN"
+
+
+func _activate_tier_components(tier: int) -> void:
+	## Instantiate + seed everything a given tier needs. Extracted from
+	## _on_tier_selected so a mid-battle upgrade runs the IDENTICAL path as the
+	## first pick — two copies would drift, and a tier upgrade that half-builds
+	## its components is worse than no upgrade control at all.
+	if tier >= 1 and victory_progress == null:
+		_instance_assisted_components()
+	if tier >= 2 and enemy_intent_panel == null:
+		_instance_oracle_components()
+	if tier >= 1 and (not crew_units.is_empty() or not enemy_units.is_empty()):
+		_create_character_cards([])
+	_seed_morale_tracker()
+	_populate_deployment_conditions(
+		_stored_mission_data if _stored_mission_data is Dictionary else {})
+	if initiative_calculator and is_instance_valid(initiative_calculator) \
+			and initiative_calculator.has_method("set_crew"):
+		var crew_for_init: Array = []
+		for unit in crew_units:
+			if unit.original_character:
+				crew_for_init.append(unit.original_character)
+		if not crew_for_init.is_empty():
+			initiative_calculator.set_crew(crew_for_init)
+	_apply_initiative_context()
 
 func _show_pre_battle_checklist(tier: int) -> void:
 	## Show the pre-battle checklist as a centered modal. The dense per-step
@@ -2382,9 +2542,16 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	var checklist: Control = _get_res("pre_battle_checklist").new()
 	checklist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	checklist.checklist_completed.connect(_on_checklist_completed)
+	if checklist.has_signal("movement_system_changed"):
+		checklist.movement_system_changed.connect(_on_movement_system_changed)
 	col.add_child(checklist)
 	# Set tier AFTER adding to tree so _ready() has built the UI
 	checklist.set_tier(tier)
+	# Seed the per-battle movement system (Compendium p.90) from the value the
+	# setup drawer already rendered with, so the two never disagree. AFTER
+	# add_child for the same reason as set_tier: _ready() builds the rows.
+	if checklist.has_method("set_grid_movement"):
+		checklist.set_grid_movement(_use_grid_movement)
 
 	# "Begin Battle" fixed footer (sibling of scroller, never clipped)
 	var begin_btn := Button.new()
@@ -2560,6 +2727,14 @@ func _on_checklist_dismissed() -> void:
 	_hide_overlay()
 	_apply_stage_visibility(BattleStage.DEPLOYMENT)
 	_update_action_buttons_for_deployment()
+	# Surface the scenario's own rules ONCE, here rather than at initialize time,
+	# so it does not fight the pre-battle checklist modal for the screen. A stealth
+	# or salvage mission's procedure is not optional context — it is the mission —
+	# so the player should not have to discover the drawer to find it. Deferred so
+	# the stage-visibility pass above settles first. Exclusive-open, so it closes
+	# whatever else was open; the player can close it like any other drawer.
+	if _mission_drawer_used and _drawers.has("mission"):
+		call_deferred("_open_drawer", "mission")
 	_log_message(
 		"Deploy your crew in the deployment zone",
 		UIColors.COLOR_CYAN
@@ -2729,6 +2904,16 @@ func _on_log_only_results_submitted(result: Dictionary) -> void:
 	## (on-device F10 walk, Test21: drawer stayed open atop PostBattle).
 	if _drawers.has("results") and is_instance_valid(_drawers["results"]):
 		_drawers["results"].close()
+	# p.91 / p.92 — the player declares the outcome on this form, and it happily
+	# accepts "we won" for a battle the book says cannot be won. Enforce the rule
+	# on the way out, and SAY SO, rather than silently overriding what they ticked.
+	# Their Hold the Field answer is untouched: that is the reward path here.
+	if _has_no_win_condition() and bool(result.get("success", false)):
+		result["success"] = false
+		_log_message(
+			"No Win condition in this battle (Core Rules p.91/p.92) — recorded as "
+			+ "survived without a Win. Holding the Field still counts.",
+			UIColors.COLOR_WARNING)
 	_log_message("Battle results recorded", UIColors.COLOR_EMERALD)
 	_apply_stage_visibility(BattleStage.RESOLUTION)
 	tactical_battle_completed.emit(result)
@@ -2777,11 +2962,26 @@ func _rebuild_drawer_toolbar(tier: int) -> void:
 		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		action_buttons.add_child(bar)
 		action_buttons.move_child(bar, 0)
+	# remove_child BEFORE queue_free. queue_free() DEFERS to the end of the frame,
+	# so the old buttons stay parented while the new ones are added below — the bar
+	# holds BOTH for the rest of the frame. Observed live on Aug 6 2026 via an MCP
+	# probe: a rebuild returned 14 buttons instead of 7, a full duplicate set. It
+	# self-corrects next frame, but HFlowContainer computes its minimum size from
+	# the children it has NOW, so the bottom bar reflows for a frame — and this is
+	# the bar the map row has to share height with. Rebuilds got more frequent when
+	# _mission_panel_host() gained a call site, which is what surfaced it.
 	for c in bar.get_children():
+		bar.remove_child(c)
 		c.queue_free()
 	var ids: Array = ["crew", "enemies", "intel", "dice", "reference"]
 	if tier >= 1:
 		ids.append("tracking")
+	# MISSION-TYPE gated, not tier gated. The scenario's own rules must be
+	# reachable at LOG_ONLY too — a player running the whole fight by hand needs
+	# the salvage/stealth/street-fight procedure MORE than an assisted one, not
+	# less. Only shown when a panel was actually placed there (_mission_panel_host).
+	if _mission_drawer_used:
+		ids.append("mission")
 	# No "oracle" button at tier 2: its drawer body was never populated, so it
 	# opened blank. The AI oracle is an intent layer on top of the per-figure
 	# enemy cards and lives in the "enemies" drawer (see _instance_oracle_components
@@ -4142,8 +4342,12 @@ func _apply_enemy_deployment_variable(seized: bool) -> void:
 	# than in the setup panel because the deployment type is not known until this
 	# roll — the setup tab is built during initialize_battle, before Seize the
 	# Initiative has happened. Returns "" for every other deployment.
-	var grid_flank: String = CompendiumGridMovementRef.get_flanking_instruction(
-		str(deployment.get("id", "")))
+	# Gated on the PER-BATTLE choice, not the flag: a player who picked Standard
+	# movement for this fight must not be told where the grid puts a flanker.
+	var grid_flank: String = ""
+	if _use_grid_movement:
+		grid_flank = CompendiumGridMovementRef.build_flanking_instruction(
+			str(deployment.get("id", "")))
 	if not grid_flank.is_empty():
 		_log_message(grid_flank, Color("#38BDF8"))
 	if unified_log:
@@ -4597,25 +4801,48 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
+	# Per-battle movement system (Compendium p.90) — resolved BEFORE the setup
+	# tab renders, because the tab prints the grid procedure. A scenario may
+	# stamp `use_grid_movement`; otherwise the DLC flag is the opt-in and the
+	# player can still switch it in the pre-battle checklist.
+	_resolve_grid_movement_choice(
+		mission_data if mission_data is Dictionary else {})
 	_populate_setup_tab(mission_data)
 
 	# Detect Bug Hunt mode from mission context
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
 
-	# Story Track Event 5 marker tracker (Core Rules p.157). MUST be set up above
-	# the pre-selected-tier early return below — that branch is the normal
-	# campaign path, so anything wired after it never runs in a real campaign.
+	# Story Track Event 5 marker tracker (Core Rules p.157). This was hoisted here
+	# to escape the pre-selected-tier EARLY RETURN that used to sit below it — the
+	# return is now gone (see the block below), so position is no longer load-
+	# bearing. Kept here because it must precede the tier adoption either way.
 	_setup_story_marker_panel(mission_dict)
 
-	# UX streamline: If tier was pre-selected in PreBattleUI, skip the
-	# TIER_SELECT overlay and go straight to COMBAT stage.
-	if mission_dict.has("selected_tier"):
-		var pre_tier: int = mission_dict.get("selected_tier", 0)
-		_on_tier_selected(pre_tier)
-		# Skip SETUP/DEPLOYMENT — player already reviewed everything in PreBattleUI
-		_on_auto_deploy_clicked()
-		_apply_stage_visibility(BattleStage.COMBAT)
-		return
+	# UX streamline: if the tier was pre-selected in PreBattleUI, adopt it now and
+	# skip the SETUP/DEPLOYMENT review at the BOTTOM of this function — the player
+	# already reviewed everything in the wizard.
+	#
+	# THE BUG THIS FIXES (Aug 6 battle-phase audit): this branch used to `return`
+	# right here. CampaignTurnController:2111 stamps `selected_tier` on EVERY
+	# campaign battle, so nothing below the return ever ran in a real campaign:
+	#   - _setup_no_minis_panel        → Compendium pp.66-73 unreachable
+	#   - _setup_stealth_panel         → Compendium stealth unreachable
+	#   - _setup_street_fight_panel    → Compendium pp.123-138 unreachable
+	#   - _setup_salvage_panel         → Compendium pp.137-147 unreachable
+	#   - _populate_deployment_conditions → p.88 panel blank in every battle
+	#   - _battle_mode_id / _is_bug_hunt_mode / _is_planetfall_mode never set
+	# Four Compendium chapters had no UI at all. The two adjacent lines in
+	# CampaignTurnController tell the whole story: it stamps `selected_tier`
+	# (triggering the return) and then stamps `representation_mode` "so it can
+	# show the No-Minis abstract panel when chosen" — the panel the return killed.
+	#
+	# The comment 7 lines above warned about exactly this hazard and four later
+	# additions landed below the line anyway, so the RETURN IS GONE rather than
+	# re-documented. Do not reintroduce an early exit here: append to the tail of
+	# this function instead.
+	var tier_pre_selected: bool = mission_dict.has("selected_tier")
+	if tier_pre_selected:
+		_on_tier_selected(int(mission_dict.get("selected_tier", 0)))
 
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
@@ -4631,20 +4858,14 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# DLC: Wire No-Minis Combat panel if enabled
 	_setup_no_minis_panel(crew_members.size(), enemies.size())
 
-	# Core Rules p.88 Deployment Conditions — show the condition that was ROLLED.
-	#
-	# THE BUG THIS FIXES: DeploymentConditionsPanel has roll_condition() and
-	# display_condition() and NOTHING called either, so the panel rendered blank
-	# for every battle while its Acknowledge/Details buttons sat wired to an
-	# empty panel. The condition itself was never missing — CampaignTurnController
-	# rolls it and stamps mission_data["deployment_condition"] — it simply never
-	# reached the one screen built to present it.
-	#
-	# The panel takes a DeploymentCondition OBJECT and the mission carries the
-	# flattened Dictionary, so it is rehydrated by id rather than re-rolled: a
-	# second roll here would show the player a different condition from the one
-	# the battle is actually being fought under.
-	_populate_deployment_conditions(mission_dict)
+	# Core Rules p.88 Deployment Conditions — the population call used to live HERE
+	# and has moved to _on_tier_selected(). It was inert at this site on BOTH paths:
+	# the campaign path never reached it (the early return above), and on the
+	# tier-overlay path it ran BEFORE the player picked a tier, so
+	# `deployment_conditions` was still null and the function returned at its own
+	# guard. The panel is created by _instance_assisted_components(), which only
+	# runs from _on_tier_selected, so that is the only site where it is guaranteed
+	# to exist. Same relocation, same reason, as _seed_morale_tracker().
 
 	# DLC: Wire mission-type-specific panels (Fixer's Guidebook).
 	#
@@ -4663,6 +4884,15 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		_setup_street_fight_panel(compendium_payload)
 	elif mission_type == "salvage":
 		_setup_salvage_panel(compendium_payload)
+
+	# Deferred from the pre-selected-tier branch at the top of this function. With
+	# the tier already chosen there is no TIER_SELECT overlay and no SETUP/
+	# DEPLOYMENT review to run, so deploy and jump straight to COMBAT — but only
+	# AFTER every panel above has been built. Doing this with a `return` up top is
+	# what stranded five wires; keep it here, at the tail.
+	if tier_pre_selected:
+		_on_auto_deploy_clicked()
+		_apply_stage_visibility(BattleStage.COMBAT)
 
 func _populate_deployment_conditions(mission_dict: Dictionary) -> void:
 	## Show the p.88 condition the battle funnel already rolled for THIS battle.
@@ -5454,6 +5684,28 @@ func _on_manual_round_reset() -> void:
 
 ## Legacy _check_victory_conditions() removed — VictoryProgressPanel handles this in END_PHASE
 
+func _has_no_win_condition() -> bool:
+	## Core Rules p.91 (Rivals): "There is no Win condition against Rivals, but if
+	## you Hold the Field, you have an increased chance of permanently chasing them
+	## off." p.92 (Invasion): "There is no Win condition."
+	##
+	## THE BUG THIS FIXES (Aug 6 battle-phase audit): BattleSetupRules computes
+	## `no_win_condition` at scenario setup (:196 Rival, :251 Invasion) and NOTHING
+	## in the victory path ever read it — its only reader was a PreBattleUI label.
+	## Meanwhile _resolve_battle sets victory = "all enemies down / outnumbering",
+	## which is exactly what happens when you see a Rival off. So `success` came
+	## out true and every survivor was paid p.123's "Survived and Won +3" instead
+	## of "Survived, but did not Win +2" (both verified against the PDF).
+	##
+	## NOTE it is `success` that must go false, NOT `held_field`: holding the field
+	## is the REWARD path for these battles (the p.119 Rival removal roll, the
+	## p.120 payment gate, the p.121 Loot/Finds gates) and must keep working.
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	var rules: Dictionary = md.get("setup_rules", {})
+	return bool(rules.get("no_win_condition", false))
+
+
 func _resolve_battle() -> void:
 	## Resolve the tactical battle — transition to RESOLUTION stage.
 	## Emits a rich Dictionary (not BattleResult class) so PostBattlePhase
@@ -5543,6 +5795,12 @@ func _resolve_battle() -> void:
 		obj_id = _objective_tracker.get_objective_id()
 		obj_met = _objective_tracker.is_complete()
 		obj_progress = _objective_tracker.get_panel_conditions()
+	# p.91 / p.92 — applied AFTER the objective block so it wins regardless of how
+	# success was derived, including the no-objective default above (which is the
+	# branch Rival and Invasion battles actually take, since p.89 rolls objectives
+	# only for Opportunity, Patron and Quest missions).
+	if _has_no_win_condition():
+		obj_success = false
 
 	var result_dict: Dictionary = {
 		"victory": victory,
@@ -5781,6 +6039,9 @@ func _on_auto_resolve_battle() -> void:
 		else:
 			obj_success = result.victory or held_field
 			obj_met = _objective_tracker.is_complete()
+	# p.91 / p.92, same rule as the played path above.
+	if _has_no_win_condition():
+		obj_success = false
 
 	# Emit rich Dictionary (same contract as _resolve_battle)
 	var md: Dictionary = _stored_mission_data \
@@ -5923,13 +6184,9 @@ func _populate_setup_tab(mission_data) -> void:
 				planet_type_id = planet.get("type",
 					planet.get("planet_type", 0))
 
-	# Table size: stored contract wins, else the player's setting (p.108)
-	var table_size_ft: float = float(bf_data.get("table_size_ft", 0.0))
-	if table_size_ft <= 0.0:
-		var settings_mgr = get_node_or_null("/root/SettingsManager")
-		table_size_ft = settings_mgr.get_table_size_ft() \
-			if settings_mgr and settings_mgr.has_method("get_table_size_ft") \
-			else 3.0
+	# Table size: stored contract wins, else the player's setting (p.108).
+	# Shared with the grid-section rebuild so the two cannot drift.
+	var table_size_ft: float = _setup_table_size_ft(bf_data)
 	var bf_dims: Dictionary = BattlefieldGridClass.dims_for_table(table_size_ft)
 
 	var stored_sectors: Array = []
@@ -6363,17 +6620,16 @@ func _populate_setup_tab(mission_data) -> void:
 	# are GENERATED at the consumer. Doing it upstream would mean replicating a
 	# producer in four controllers (campaign / simulator / Bug Hunt / Planetfall)
 	# for no gain. A stamped value still wins, so a scenario can override.
-	var grid_instructions: Array = mission_dict.get("grid_movement_instructions", [])
-	if grid_instructions.is_empty():
-		grid_instructions = CompendiumGridMovementRef.get_setup_instructions(
-			table_size_ft)
-	if not grid_instructions.is_empty():
-		_add_setup_section_header("GRID-BASED MOVEMENT")
-		for grid_inst in grid_instructions:
-			var inst_str: String = str(grid_inst)
-			if not inst_str.is_empty():
-				_add_setup_text(inst_str, Color("#38BDF8")) # Sky blue for grid
-		_add_setup_separator()
+	# The section lives in its own container so the pre-battle checklist's
+	# movement-system switch (p.90) can rebuild JUST this block. Re-running the
+	# whole of _populate_setup_tab would re-enter terrain generation, and in the
+	# standalone modes that regenerates the map the player has already laid out
+	# on their physical table.
+	_grid_setup_section = VBoxContainer.new()
+	_grid_setup_section.name = "GridMovementSection"
+	_grid_setup_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	setup_content.add_child(_grid_setup_section)
+	_rebuild_grid_setup_section(mission_dict, table_size_ft)
 
 	# Section 6: Regenerate button
 	var regen_button := Button.new()
@@ -6871,6 +7127,112 @@ func _create_setup_label(text: String, color: Color, font_size: int = 14) -> Lab
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return label
 
+
+## ============================================================================
+## PER-BATTLE MOVEMENT SYSTEM (Compendium p.90)
+## ============================================================================
+##
+## "You do not have to commit to using this system for every battle of a given
+## campaign. The movement system used can be changed as often as you want, with
+## different battles using different movement systems."
+##
+## Two different questions, and conflating them is what made this all-or-nothing:
+##   DLC flag  — is Grid-Based Movement part of my game at all
+##   THIS      — am I using it in the fight I am setting up right now
+##
+## The player answers the second in the pre-battle checklist. Three surfaces have
+## to agree on the answer: the checklist steps (deploy in an edge SQUARE, not a
+## deployment zone), the setup drawer procedure, and the p.91 flanking note. One
+## writer, three readers.
+
+## Table size for the setup drawer: the persisted battlefield contract wins,
+## else the player's p.108 setting. Shared so a later rebuild cannot drift from
+## the value the first render used.
+func _setup_table_size_ft(bf_data: Dictionary = {}) -> float:
+	var bf: Dictionary = bf_data
+	if bf.is_empty():
+		var game_state = get_node_or_null("/root/GameState")
+		if game_state and game_state.has_method("get_battlefield_data"):
+			bf = game_state.get_battlefield_data()
+	var ft: float = float(bf.get("table_size_ft", 0.0))
+	if ft > 0.0:
+		return ft
+	var settings_mgr = get_node_or_null("/root/SettingsManager")
+	if settings_mgr and settings_mgr.has_method("get_table_size_ft"):
+		return float(settings_mgr.get_table_size_ft())
+	return 3.0
+
+
+func _resolve_grid_movement_choice(mission_dict: Dictionary) -> void:
+	## A scenario may stamp the choice; otherwise the flag is the opt-in, so a
+	## player who enabled grid movement does not re-affirm it every battle — the
+	## selector exists to opt OUT of a single fight.
+	if mission_dict.has("use_grid_movement"):
+		_use_grid_movement = bool(mission_dict["use_grid_movement"])
+		return
+	_use_grid_movement = CompendiumGridMovementRef.is_enabled()
+
+
+func _rebuild_grid_setup_section(mission_dict: Dictionary,
+		table_size_ft: float) -> void:
+	if not is_instance_valid(_grid_setup_section):
+		return
+	# remove_child BEFORE queue_free: a freed-but-still-parented node would sit
+	# above the rows added on the next two lines.
+	for child in _grid_setup_section.get_children():
+		_grid_setup_section.remove_child(child)
+		child.queue_free()
+	if not _use_grid_movement:
+		return  # Standard movement this battle — contribute nothing.
+
+	# This read had ZERO producers repo-wide before Aug 6, so the section never
+	# rendered in any battle. The chapter needs no campaign state and no dice,
+	# only the flag and the table size, so the instructions are GENERATED at the
+	# consumer; a stamped value still wins so a scenario can override.
+	var grid_instructions: Array = mission_dict.get(
+		"grid_movement_instructions", [])
+	if grid_instructions.is_empty():
+		grid_instructions = CompendiumGridMovementRef.build_setup_instructions(
+			table_size_ft)
+	if grid_instructions.is_empty():
+		return
+
+	var header := Label.new()
+	header.text = "GRID-BASED MOVEMENT"
+	header.add_theme_font_size_override("font_size", _scaled_font(12))
+	header.add_theme_color_override("font_color", Color("#808080"))
+	header.uppercase = true
+	_grid_setup_section.add_child(header)
+	for grid_inst in grid_instructions:
+		var inst_str: String = str(grid_inst)
+		if not inst_str.is_empty():
+			_grid_setup_section.add_child(
+				_create_setup_label(inst_str, Color("#38BDF8")))
+	var sep := HSeparator.new()
+	sep.modulate = Color(0.216, 0.255, 0.318, 0.5)
+	_grid_setup_section.add_child(sep)
+
+
+func _on_movement_system_changed(use_grid: bool) -> void:
+	if use_grid == _use_grid_movement:
+		return
+	_use_grid_movement = use_grid
+	# Stamp it onto the mission so the choice travels with the battle instead of
+	# living only inside a modal the player is about to dismiss.
+	if _stored_mission_data is Dictionary:
+		_stored_mission_data["use_grid_movement"] = use_grid
+	_rebuild_grid_setup_section(
+		_stored_mission_data if _stored_mission_data is Dictionary else {},
+		_setup_table_size_ft())
+	if use_grid:
+		_log_message(
+			"Movement: GRID-BASED for this battle (Compendium pp.90-93).",
+			Color("#38BDF8"))
+	else:
+		_log_message(
+			"Movement: STANDARD for this battle (core rules, inches).",
+			Color("#38BDF8"))
+
 ## Build the Compendium GAME OPTIONS instruction lines for the battle-setup tab.
 ##
 ## Progressive Difficulty (Compendium pp.30-31) is a campaign-creation choice that
@@ -7011,9 +7373,11 @@ func _setup_no_minis_panel(crew_size: int, enemy_count: int) -> void:
 	no_minis_combat_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	no_minis_combat_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Battle Log" tab alongside the journal
-	if phase_content:
-		phase_content.add_child(no_minis_combat_panel)
+	# The No-Minis panel IS the battlefield — it belongs in the mission drawer,
+	# reachable at every tier, not the tier-gated tracking drawer.
+	var nm_host: Node = _mission_panel_host()
+	if nm_host:
+		nm_host.add_child(no_minis_combat_panel)
 
 	# Initialize the abstract battle
 	no_minis_combat_panel.setup_battle(crew_size, enemy_count)
@@ -7046,9 +7410,9 @@ func _setup_stealth_panel(mission_dict: Dictionary) -> void:
 	stealth_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stealth_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(stealth_mission_panel)
+	var st_host: Node = _mission_panel_host()
+	if st_host:
+		st_host.add_child(stealth_mission_panel)
 
 	# Initialize with mission data
 	stealth_mission_panel.setup_mission(mission_dict)
@@ -7083,9 +7447,9 @@ func _setup_street_fight_panel(mission_dict: Dictionary) -> void:
 	street_fight_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	street_fight_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(street_fight_panel)
+	var sf_host: Node = _mission_panel_host()
+	if sf_host:
+		sf_host.add_child(street_fight_panel)
 
 	# Initialize with mission data
 	street_fight_panel.setup_mission(mission_dict)
@@ -7118,9 +7482,9 @@ func _setup_salvage_panel(mission_dict: Dictionary) -> void:
 	salvage_mission_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	salvage_mission_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
 
-	# Add to center "Events" tab
-	if phase_content:
-		phase_content.add_child(salvage_mission_panel)
+	var sv_host: Node = _mission_panel_host()
+	if sv_host:
+		sv_host.add_child(salvage_mission_panel)
 
 	# Initialize with mission data
 	salvage_mission_panel.setup_mission(mission_dict)
@@ -7624,7 +7988,11 @@ func _build_evacuation_result_dict(via_star: bool) -> Dictionary:
 		"won": false,
 		# The objective still decides the mission (Core Rules p.90); leaving the
 		# table only forfeits Holding the Field.
-		"success": obj_met,
+		# p.91 / p.92: a battle with no Win condition cannot be recorded as won,
+		# however it ended. No-op in practice (these battles have no objective, so
+		# obj_met is already false) but stated explicitly — this codebase's
+		# recurring defect is rules that hold only by coincidence.
+		"success": obj_met and not _has_no_win_condition(),
 		"held_field": false,
 		"evacuated": true,
 		"evacuated_via_star": via_star,

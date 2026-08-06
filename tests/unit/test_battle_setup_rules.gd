@@ -260,3 +260,55 @@ func test_no_condition_bands_match_the_book() -> void:
 		return
 	assert_bool(false).override_failure_message(
 		"NO_CONDITION row is missing from deployment_conditions.json").is_true()
+
+
+# ── p.88: the hardcoded fallback must never drift from the JSON ─────────────
+
+## DeploymentConditionsSystem loads data/deployment_conditions.json and falls
+## back to a hardcoded registry only when that load FAILS (a missing or corrupt
+## data file in a shipped build). The fallback is kept deliberately — deleting it
+## would make a data-load failure resolve to an EMPTY registry, i.e. the p.88
+## table silently never firing, which is a worse outcome than a stale duplicate.
+##
+## But a duplicate that nobody compares is exactly how wrong values ship. This
+## pins the two together: change the JSON without changing the fallback (or vice
+## versa) and this fails immediately. All 44 range cells were identical when the
+## pin was written (Aug 6 2026 battle-phase audit); the JSON side is separately
+## verified byte-exact against the Core Rules PDF p.88.
+func test_hardcoded_fallback_matches_the_canonical_json() -> void:
+	var file := FileAccess.open("res://data/deployment_conditions.json", FileAccess.READ)
+	assert_object(file).is_not_null()
+	var json := JSON.new()
+	assert_int(json.parse(file.get_as_text())).is_equal(OK)
+	file.close()
+
+	var sys := FPCM_DeploymentConditionsSystem.new()
+	# _init() already loaded the JSON; rebuild from the fallback to compare.
+	sys.condition_registry.clear()
+	sys._initialize_condition_registry_fallback()
+	var fallback: Dictionary = {}
+	for cond in sys.condition_registry:
+		fallback[cond.condition_id] = cond.roll_ranges
+
+	var json_conditions: Array = json.data["conditions"]
+	assert_int(fallback.size()).override_failure_message(
+		"fallback has %d conditions, JSON has %d"
+		% [fallback.size(), json_conditions.size()]).is_equal(json_conditions.size())
+
+	for cond in json_conditions:
+		var cid: String = str(cond.get("id", ""))
+		assert_bool(fallback.has(cid)).override_failure_message(
+			"%s is in the JSON but missing from the hardcoded fallback" % cid).is_true()
+		if not fallback.has(cid):
+			continue
+		var fb_ranges: Dictionary = fallback[cid]
+		var js_ranges: Dictionary = cond.get("roll_ranges", {})
+		for column in ["opportunity", "patron", "rival", "quest"]:
+			var fb: Array = fb_ranges.get(column, [])
+			var js: Array = js_ranges.get(column, [])
+			assert_int(fb.size()).override_failure_message(
+				"%s/%s missing from the fallback" % [cid, column]).is_equal(js.size())
+			for i in range(js.size()):
+				assert_int(int(fb[i])).override_failure_message(
+					"%s/%s cell %d: fallback %s vs JSON %s"
+					% [cid, column, i, str(fb[i]), str(js[i])]).is_equal(int(js[i]))

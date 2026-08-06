@@ -939,10 +939,13 @@ func _initiate_battle_sequence() -> void:
 	var deploy_mission_type := _infer_deployment_mission_type(
 		mission_data)
 	# p.88, closing line of the table: "This table is ignored during an Invasion
-	# battle." Unimplemented — an Invasion could arrive Delayed or Caught off
-	# guard on top of its own p.92 structure (extra enemy, 6-round hold, no Win
-	# condition), which is the hardest scenario in the base game made harder by a
-	# rule the book explicitly switches off for it.
+	# battle." ENFORCED on the next line by the is_invasion guard. Without it an
+	# Invasion could arrive Delayed or Caught off guard on top of its own p.92
+	# structure (extra enemy, 6-round hold, no Win condition) — the hardest
+	# scenario in the base game made harder by a rule the book switches off for
+	# it. (This comment read "Unimplemented" until Aug 6 2026, describing the
+	# state before the line below it was written; comment drift of exactly this
+	# kind is what produced two wrong entries in the wiring ledger.)
 	var condition = null
 	if not suppress_condition and not bool(mission_data.get("is_invasion", false)):
 		condition = deploy_sys.roll_deployment_condition(deploy_mission_type)

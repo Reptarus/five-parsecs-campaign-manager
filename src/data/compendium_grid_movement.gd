@@ -136,11 +136,12 @@ static func _fmt_feet(feet: float) -> String:
 ## ============================================================================
 
 ## Book procedure for laying out and using the grid, as instruction lines.
-## Empty when the option is off — an off option must contribute nothing.
-static func get_setup_instructions(table_size_ft: float = 0.0) -> Array[String]:
+## UNGATED — answers "what does the grid procedure say", not "is it in use". See
+## the build_*/get_* note above build_checklist_step(): the DLC flag and the
+## per-battle choice are two different questions, and p.90 makes the second one
+## the player's to answer every battle.
+static func build_setup_instructions(table_size_ft: float = 0.0) -> Array[String]:
 	var out: Array[String] = []
-	if not is_enabled():
-		return out
 
 	var rec: Dictionary = recommended_grid(table_size_ft)
 	if rec.is_empty():
@@ -211,16 +212,102 @@ static func get_setup_instructions(table_size_ft: float = 0.0) -> Array[String]:
 	return out
 
 
+## Flag-gated wrapper. Empty when the option is off — an off option must
+## contribute nothing.
+static func get_setup_instructions(table_size_ft: float = 0.0) -> Array[String]:
+	var out: Array[String] = []
+	if not is_enabled():
+		return out
+	return build_setup_instructions(table_size_ft)
+
+
+## ============================================================================
+## PRE-BATTLE CHECKLIST (the moment the player lays out the table)
+## ============================================================================
+##
+## The setup drawer is not enough. Grid movement changes the PHYSICAL setup —
+## the table is divided into zones, and crew deploy in an edge square rather
+## than a core-rules deployment zone — and the checklist is where the player
+## actually performs that. Rule text generated into a closed drawer is not a
+## delivered rule.
+
+## p.90: "You do not have to commit to using this system for every battle of a
+## given campaign. The movement system used can be changed as often as you want."
+##
+## So the DLC flag ("this content is active in my game") and the choice for THIS
+## battle are two different questions. The `build_*` functions below are UNGATED
+## and answer the second; the `get_*` wrappers gate on the flag and answer the
+## first. The pre-battle checklist owns the per-battle choice and calls the
+## builders directly; everything else keeps the flag-gated form.
+static func build_checklist_step(table_size_ft: float = 0.0) -> Dictionary:
+	var hint: String = ("Divide the play area into a grid of 3 or 4 squares per "
+		+ "side, roughly 8-9\" across (Compendium p.90).")
+	var rec: Dictionary = recommended_grid(table_size_ft)
+	if not rec.is_empty():
+		hint = ("Divide the play area into a %s grid — %s squares, %d sectors "
+			+ "on your %s table. Beads, markers or scatter terrain, or just "
+			+ "eyeball it. Terrain may cross the boundaries (Compendium p.90).") % [
+				str(rec.get("id", "")),
+				_fmt(float(rec.get("width_in", 0.0))),
+				int(rec.get("sectors", 0)),
+				_fmt_feet(table_size_ft),
+			]
+	return {
+		"id": "grid_zones",
+		"label": "Mark the movement grid",
+		"hint": hint,
+		"tier": 0,
+	}
+
+
+## p.90 replaces the core-rules deployment zone with an edge square.
+static func build_deploy_crew_hint(table_size_ft: float = 0.0) -> String:
+	var limit: String = "no more than halfway into it"
+	var rec: Dictionary = recommended_grid(table_size_ft)
+	if not rec.is_empty():
+		limit = "within %s of the edge" % _fmt(
+			float(rec.get("width_in", 0.0)) / 2.0)
+	return ("Place each figure in a grid square TOUCHING your table edge, and "
+		+ "%s. Otherwise placement is free and figures need not share a square "
+		+ "(Compendium p.90).") % limit
+
+
+## p.91: with Half Flank or Bolstered Flank the enemy starts a square in. The
+## deployment type is not rolled until Seize the Initiative, so this is the
+## general form shown at setup; the exact note fires later.
+static func build_deploy_enemy_hint() -> String:
+	return ("Place enemy figures in a grid square touching THEIR table edge, "
+		+ "same halfway limit. If the mission uses Half Flank or Bolstered "
+		+ "Flank, the flanking force starts in the SECOND square from that "
+		+ "edge instead (Compendium pp.90-91).")
+
+
+## Flag-gated wrappers — "is this content active in my game at all".
+static func get_checklist_step(table_size_ft: float = 0.0) -> Dictionary:
+	return build_checklist_step(table_size_ft) if is_enabled() else {}
+
+
+static func get_deploy_crew_hint(table_size_ft: float = 0.0) -> String:
+	return build_deploy_crew_hint(table_size_ft) if is_enabled() else ""
+
+
+static func get_deploy_enemy_hint() -> String:
+	return build_deploy_enemy_hint() if is_enabled() else ""
+
+
 ## p.91 Flanking. Returns "" for any deployment that is not one of the two the
 ## rule names, so the note never appears where the book does not put it.
-static func get_flanking_instruction(deployment_id: String) -> String:
-	if not is_enabled():
-		return ""
+## UNGATED — the caller decides whether the grid is in use THIS battle.
+static func build_flanking_instruction(deployment_id: String) -> String:
 	if not (deployment_id.strip_edges().to_lower() in FLANKING_DEPLOYMENTS):
 		return ""
 	return ("GRID FLANKING — the flanking force sets up in the SECOND square counting "
 		+ "from the enemy table edge. Any figure a scenario requires to arrive from "
 		+ "the flank is placed the same way (Compendium p.91).")
+
+
+static func get_flanking_instruction(deployment_id: String) -> String:
+	return build_flanking_instruction(deployment_id) if is_enabled() else ""
 
 
 ## ============================================================================

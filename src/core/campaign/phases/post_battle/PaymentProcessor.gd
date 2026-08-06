@@ -254,6 +254,15 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 		credit_roll += 1
 
 	# Won objective: treat 1-2 as 3 (except Rival missions) (Core Rules p.120)
+	#
+	# DO NOT "simplify" this by dropping `is_rival_mission`. Since the Aug 6 audit
+	# TacticalBattleUI forces success = false whenever the scenario has no Win
+	# condition (p.91/p.92), so ctx.mission_successful is ALREADY false for Rival
+	# and Invasion battles and this clause looks redundant. It is not: p.120 states
+	# it as its own rule — "Rival missions do not award any bonus for Winning" —
+	# verified verbatim in the PDF. Two independent rules that happen to agree
+	# today; deleting either one because the other covers it is how a rule ends up
+	# holding by coincidence.
 	var is_rival_mission: bool = ctx.battle_result.get("is_rival_mission", false)
 	if ctx.mission_successful and not is_rival_mission and credit_roll < 3:
 		credit_roll = 3

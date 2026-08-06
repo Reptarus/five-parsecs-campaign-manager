@@ -393,6 +393,41 @@ func _row_xp_index_shift() -> void:
 #     1-15 fatal | 31-80 recovery>0 (Sick Bay) | 16-30 + 81-100 recovery 0.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+var _last_injuries: Array = []
+
+func _on_injuries_resolved(injuries: Array) -> void:
+	_last_injuries = injuries
+
+## Did an injury ever actually land on this crew member, even if a later step
+## legitimately healed it? apply_crew_injury() appends BOTH an `injuries` entry
+## and a `status_effects` entry; reduce_member_recovery() removes the former but
+## only zeroes the latter's duration. So the status effect is the durable trace.
+func _has_injury_trace(m: Dictionary) -> bool:
+	const INJURY_EFFECT_TYPES := [
+		"injury", "MINOR_INJURY", "SERIOUS_INJURY", "CRIPPLING_WOUND",
+		"KNOCKED_OUT", "EQUIPMENT_LOSS", "MIRACULOUS_ESCAPE",
+		"SCHOOL_OF_HARD_KNOCKS",
+	]
+	for eff_v in (m.get("status_effects", []) as Array):
+		if eff_v is Dictionary \
+				and str((eff_v as Dictionary).get("type", "")) in INJURY_EFFECT_TYPES:
+			return true
+	# The other durable trace: injury_recovery_turns is written alongside and is
+	# never erased, only lowered.
+	return int(m.get("injury_recovery_turns", 0)) > 0 or bool(m.get("is_wounded", false))
+
+func _injury_tag() -> String:
+	if _last_injuries.is_empty():
+		return "NO injury dict produced at all"
+	var out: Array[String] = []
+	for inj_v in _last_injuries:
+		var inj: Dictionary = inj_v if inj_v is Dictionary else {}
+		out.append("%s(rec=%s fatal=%s%s)" % [
+			str(inj.get("type", "?")), str(inj.get("recovery_turns", "?")),
+			str(inj.get("is_fatal", "?")),
+			" LUCKSAVE" if inj.get("luck_death_save", false) else ""])
+	return ", ".join(out)
+
 func _row_casualty_outcome() -> void:
 	_casualty_variant("casualty_outcome_origin_present", true)
 	_casualty_variant("casualty_outcome_origin_absent", false)
@@ -402,9 +437,19 @@ func _casualty_variant(name: String, with_origin: bool) -> void:
 	var dead := 0
 	var sickbay := 0
 	var logged_only := 0
+	var healed_by_event := 0
 	var nothing: Array[String] = []
 
+	# Capture what the processor actually decided. Without this an "unmutated"
+	# report is a mystery: you cannot tell a genuine silent no-op from a real
+	# book outcome the four fields below simply do not express.
+	var handler: Node = _cpm.get_phase_handler("post_battle")
+	if handler and handler.has_signal("injuries_resolved") \
+			and not handler.injuries_resolved.is_connected(_on_injuries_resolved):
+		handler.injuries_resolved.connect(_on_injuries_resolved)
+
 	for s in range(1, trials + 1):
+		_last_injuries = []
 		seed(s * 7919)
 		var campaign: Resource = _make_campaign(
 			"inj_%s_%d" % [str(with_origin), s], 5)
@@ -443,17 +488,31 @@ func _casualty_variant(name: String, with_origin: bool) -> void:
 			sickbay += 1
 		elif has_injury:
 			logged_only += 1
+		elif _has_injury_trace(m):
+			# NOT a silent no-op — a legitimate book outcome the four fields above
+			# cannot express. This row drives the FULL pipeline on purpose (to
+			# catch class-(b) silent aborts), and the pipeline includes the p.129
+			# Character Event 24-26: "If in Sick Bay, reduce your recovery time by
+			# one turn." A p.122 Minor injury is exactly 1 turn, so 1 - 1 = 0 and
+			# PostBattleContext.reduce_member_recovery() correctly REMOVES the
+			# injury entry, clears in_sick_bay and restores the status.
+			#
+			# What it does NOT remove is the status-effect entry — it only zeroes
+			# that duration (:872-877) — so a healed character still carries a
+			# MINOR_INJURY effect while a never-applied one carries nothing. That
+			# difference is the whole discriminator; keep it.
+			healed_by_event += 1
 		else:
-			nothing.append("seed %d: status=%s sick=%s rec=%s injuries=%d"
+			nothing.append("seed %d: status=%s sick=%s rec=%s injuries=%d | rolled: %s"
 				% [s, str(m.get("status")), str(m.get("in_sick_bay")),
 					str(m.get("recovery_turns")),
-					(m.get("injuries", []) as Array).size()])
+					(m.get("injuries", []) as Array).size(), _injury_tag()])
 
-	print("  [%s] dead=%d sick_bay=%d injury_logged=%d NOTHING=%d"
-		% [name, dead, sickbay, logged_only, nothing.size()])
+	print("  [%s] dead=%d sick_bay=%d injury_logged=%d healed_by_event=%d NOTHING=%d"
+		% [name, dead, sickbay, logged_only, healed_by_event, nothing.size()])
 	_check(name + "_no_silent_noop", nothing.is_empty(),
-		"0 of %d injury rolls leave the crew member unmutated" % trials,
-		"%d unmutated (%s)" % [nothing.size(), str(nothing.slice(0, 3))])
+		"0 of %d injury rolls leave the crew member with NO trace at all" % trials,
+		"%d untraceable (%s)" % [nothing.size(), str(nothing.slice(0, 3))])
 	_check(name + "_fatal_branch_live", dead > 0,
 		"at least 1 fatal roll writes status=DEAD across %d seeds (~15%%)" % trials,
 		"dead=%d" % dead)
@@ -583,8 +642,21 @@ func _row_loot_to_stash() -> void:
 #   NEVER assert on the returned int or the payment_received signal.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-func _payment_trial(tag: String, s: int, danger_pay: int, extra: Dictionary) -> Array:
+func _payment_trial(tag: String, s: int, danger_pay: int, extra: Dictionary,
+		source: String = "patron") -> Array:
 	## Returns [credits_delta, campaign]
+	##
+	## `source` defaults to "patron" because Danger Pay is a PATRON-job payment.
+	## Core Rules p.120 Step 4, verbatim: "If you did a Patron job, add the Pay
+	## bonus to the Danger Pay", and the p.83 Danger Pay Table sits under
+	## "3. Determine Job Offers — If you received a job offer from a Patron".
+	##
+	## This defaulted to "opportunity" until Aug 6 2026, which made the row below
+	## assert the PRE-FIX behaviour: PaymentProcessor.gd:286 zeroes Danger Pay on
+	## any non-patron/faction source precisely because JobOfferComponent rolls the
+	## p.83 table for Open Market offers too, so Opportunity missions were
+	## arriving with 1-3 credits they are not entitled to. The harness was failing
+	## on a fix, not on a defect — the code was right and the test was stale.
 	var campaign: Resource = _make_campaign("%s_%d" % [tag, s], 5)
 	campaign.credits = 0
 	_bind(campaign)
@@ -598,7 +670,7 @@ func _payment_trial(tag: String, s: int, danger_pay: int, extra: Dictionary) -> 
 		"defeated_enemies": [], "enemy_type": "Raiders",
 	}
 	raw.merge(extra, true)
-	var mission: Dictionary = {"mission_source": "opportunity",
+	var mission: Dictionary = {"mission_source": source,
 		"danger_pay": danger_pay}
 	var h: Node = _handler_with(campaign, raw, mission,
 		_participants(campaign, [0, 1, 2, 3, 4]))
@@ -640,7 +712,30 @@ func _row_payment_credits() -> void:
 			detail.append("seed %d: base %d outside 3..6" % [s, d0])
 	_check("payment_credits_applied_and_danger_pay_propagates", deltas_ok,
 		"campaign.credits(danger_pay=10) - campaign.credits(danger_pay=0) == 10 "
-		+ "at the same seed, base within 3..6", str(detail))
+		+ "at the same seed on a PATRON job, base within 3..6", str(detail))
+
+	# The other half of the same rule, and the one the stale row above used to
+	# contradict: Danger Pay belongs to Patron jobs ONLY (p.120 Step 4, p.83
+	# heading). An Opportunity mission — the default "nothing else presented
+	# itself" battle, and the most common one in the game — must receive none of
+	# it even when the offer carried a value, because JobOfferComponent rolls the
+	# p.83 table for Open Market offers too.
+	var opp_ok := true
+	var opp_detail: Array[String] = []
+	for s in [11, 22, 33]:
+		var a: Array = _payment_trial("oppay0", s, 0, {}, "opportunity")
+		var b: Array = _payment_trial("oppay10", s, 10, {}, "opportunity")
+		if a.is_empty() or b.is_empty():
+			opp_ok = false
+			opp_detail.append("seed %d: no handler" % s)
+			continue
+		if int(b[0]) - int(a[0]) != 0:
+			opp_ok = false
+			opp_detail.append("seed %d: d0=%d d10=%d (Danger Pay leaked)"
+				% [s, int(a[0]), int(b[0])])
+	_check("danger_pay_is_patron_only", opp_ok,
+		"an Opportunity mission credits the same with danger_pay=10 as with 0 "
+		+ "(Core Rules p.120 Step 4 / p.83)", str(opp_detail))
 
 	# Invasion: Core Rules p.120 grants no payment (PaymentProcessor.gd:21-22).
 	var inv_bad: Array[String] = []

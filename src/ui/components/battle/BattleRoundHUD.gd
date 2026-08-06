@@ -575,9 +575,18 @@ func _get_contextual_reminder() -> String:
 				return base + "\nReroll visibility: 1D6+8\" max range this round."
 			if cond_id == "DELAYED" and _current_round > 1:
 				return base + "\nDelayed crew: 1D6, on %d- they arrive." % _current_round
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Maximum visibility 9\"."
 		1: # QUICK_ACTIONS
 			if cond_id == "SLIPPERY_GROUND":
 				return base + "\nSLIPPERY: All ground movement -1 Speed."
+			# p.88 Gloomy, BOTH clauses. The second one inverts normal targeting,
+			# so it has to land in a shooting phase, not just pre-battle. Gloomy had
+			# NO in-battle reminder anywhere before the Aug 6 audit — the player saw
+			# it once on the setup screen and then never again.
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Max visibility 9\". A figure that FIRES " \
+					+ "can be shot at ANY range."
 		2: # ENEMY_ACTIONS
 			if cond_id == "SURPRISE_ENCOUNTER" and _current_round == 1:
 				return base + "\nSURPRISE: Enemies skip this round!"
@@ -589,7 +598,26 @@ func _get_contextual_reminder() -> String:
 				if not ai_brief.is_empty():
 					return base + "\n%s (%s)" % [
 						enemy_name, ai_brief]
+		3: # SLOW_ACTIONS — the other phase in which crew shoot.
+			if cond_id == "GLOOMY":
+				return base + "\nGLOOMY: Max visibility 9\". A figure that FIRES " \
+					+ "can be shot at ANY range."
 		4: # END_PHASE
+			# Core Rules p.92 (Invasion): "Any figure that leaves the table before
+			# Round 6 becomes a casualty." `early_leave_is_casualty` was computed by
+			# BattleSetupRules and had ZERO readers — the note appeared once on the
+			# pre-battle screen and never again, least of all here, at the point
+			# between rounds where the player actually decides whether to run.
+			# Takes precedence over the check-count line: losing a figure outright
+			# outranks "there are 2 checks to do".
+			var rules: Dictionary = _battle_context.get("setup_rules", {})
+			var hold_rounds: int = int(rules.get("hold_rounds", 0))
+			if bool(rules.get("early_leave_is_casualty", false)) \
+					and hold_rounds > 0 and _current_round < hold_rounds:
+				return base + "\nINVASION: leaving the table before Round %d makes " \
+					% hold_rounds + "that figure a CASUALTY. %d round%s to hold." % [
+						hold_rounds - _current_round,
+						"" if hold_rounds - _current_round == 1 else "s"]
 			var check_count: int = 1 # Morale always
 			if cond_id in [
 				"BRIEF_ENGAGEMENT", "DELAYED",

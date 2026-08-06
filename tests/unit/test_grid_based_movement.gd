@@ -17,6 +17,7 @@ const GridRef = preload("res://src/data/compendium_grid_movement.gd")
 
 const CHEAT_SHEET_PATH := "res://src/ui/components/battle/CheatSheetPanel.gd"
 const BATTLE_UI_PATH := "res://src/ui/screens/battle/TacticalBattleUI.gd"
+const CHECKLIST_PATH := "res://src/ui/components/battle/PreBattleChecklist.gd"
 const GRID_MODULE_PATH := "res://src/data/compendium_grid_movement.gd"
 
 
@@ -226,11 +227,135 @@ func test_battle_ui_generates_instructions_when_the_mission_carries_none() -> vo
 	# section never rendered. The consumer now falls back to the module.
 	var ui: String = _code_only(BATTLE_UI_PATH)
 	assert_str(ui).contains("grid_movement_instructions")
-	assert_str(ui).contains("CompendiumGridMovementRef.get_setup_instructions")
+	# build_* since the per-battle choice landed: the caller owns the gate now.
+	assert_str(ui).contains("CompendiumGridMovementRef.build_setup_instructions")
 
 
 func test_battle_ui_wires_flanking_to_the_deployment_roll() -> void:
 	# p.91 flanking depends on the p.44 deployment roll, which does not happen
 	# until Seize the Initiative — after the setup tab is built.
 	var ui: String = _code_only(BATTLE_UI_PATH)
-	assert_str(ui).contains("CompendiumGridMovementRef.get_flanking_instruction")
+	assert_str(ui).contains("CompendiumGridMovementRef.build_flanking_instruction")
+
+
+## ============================================================================
+## THE PRE-BATTLE CHECKLIST — the moment the player lays out the table
+## ============================================================================
+##
+## Generating instructions into the setup DRAWER was not enough: the drawer is
+## closed by default, and the checklist meanwhile told the player to "Place your
+## crew within your deployment zone" — the NON-grid procedure. Verified live in
+## a Battle Simulator run before this was wired.
+
+func test_checklist_step_and_hints_are_empty_while_disabled() -> void:
+	assert_dict(GridRef.get_checklist_step(3.0)).is_empty()
+	assert_str(GridRef.get_deploy_crew_hint(3.0)).is_empty()
+	assert_str(GridRef.get_deploy_enemy_hint()).is_empty()
+
+
+func test_checklist_loops_go_through_the_runtime_builder() -> void:
+	# Every loop must use _items(); a step appearing in the render pass but not
+	# the progress-count pass would make the checklist uncompletable. Exactly one
+	# CHECKLIST_ITEMS loop may remain — the one inside _items() itself.
+	var code: String = _code_only(CHECKLIST_PATH)
+	assert_int(code.count("in CHECKLIST_ITEMS:")).is_equal(1)
+	assert_bool(code.count("in _items():") >= 5).is_true()
+
+
+func test_checklist_builder_is_not_self_recursive() -> void:
+	# The regex that repointed the loops also rewrote the one INSIDE _items(),
+	# which recursed forever. Pin it: the builder iterates the const, not itself.
+	var code: String = _code_only(CHECKLIST_PATH)
+	var start: int = code.find("func _items()")
+	assert_int(start).is_greater(-1)
+	var body: String = code.substr(start, code.find("func _table_size_ft") - start)
+	assert_str(body).contains("in CHECKLIST_ITEMS:")
+	assert_str(body).not_contains("in _items():")
+
+
+func test_checklist_marks_the_grid_before_anything_deploys() -> void:
+	# Order matters physically: you cannot deploy into squares you have not
+	# marked. The builder inserts the grid step right after setup_terrain.
+	var code: String = _code_only(CHECKLIST_PATH)
+	assert_str(code).contains("setup_terrain")
+	assert_str(code).contains("build_checklist_step")
+	assert_str(code).contains("build_deploy_crew_hint")
+	assert_str(code).contains("build_deploy_enemy_hint")
+
+
+## ============================================================================
+## THE PER-BATTLE CHOICE — p.90
+## ============================================================================
+##
+## "You do not have to commit to using this system for every battle of a given
+## campaign. The movement system used can be changed as often as you want, with
+## different battles using different movement systems."
+##
+## THE BUG THESE PIN (Aug 6 battle-phase audit): every consumer gated on the DLC
+## FLAG, which makes the option all-or-nothing for the whole campaign — the one
+## thing the book explicitly says it is not. The three ungated build_* functions
+## existed for exactly this and had ZERO callers repo-wide, the fifth instance
+## that day of "the rule is implemented, the call is what went missing".
+
+func test_builders_answer_the_procedure_while_the_flag_is_off() -> void:
+	# The flag is OFF under test. The build_* family must STILL produce the
+	# procedure: they answer "what does the grid say", not "is it switched on".
+	# Without the split a per-battle choice is impossible — nothing could
+	# describe a system the campaign has enabled but this battle is not using.
+	assert_array(GridRef.build_setup_instructions(3.0)).is_not_empty()
+	assert_dict(GridRef.build_checklist_step(3.0)).is_not_empty()
+	assert_str(GridRef.build_deploy_crew_hint(3.0)).is_not_empty()
+	assert_str(GridRef.build_deploy_enemy_hint()).is_not_empty()
+	assert_str(GridRef.build_flanking_instruction("half_flank")).is_not_empty()
+
+
+func test_gated_wrappers_still_contribute_nothing_while_disabled() -> void:
+	# The other half of the split: adding build_* must not have opened a path
+	# for an unowned option to reach the player.
+	assert_array(GridRef.get_setup_instructions(3.0)).is_empty()
+	assert_str(GridRef.get_flanking_instruction("half_flank")).is_empty()
+
+
+func test_flanking_scope_survives_the_ungating() -> void:
+	# p.91 names exactly two p.45 deployment variables. Ungating must not widen
+	# the note to deployments the book does not put it on.
+	assert_str(GridRef.build_flanking_instruction("line")).is_empty()
+	assert_str(GridRef.build_flanking_instruction("bolstered_flank")).is_not_empty()
+
+
+func test_checklist_offers_the_choice_and_gates_the_offer_on_the_flag() -> void:
+	# The selector is what makes the choice reachable; is_enabled() decides
+	# whether the QUESTION applies, never what the answer is.
+	var code: String = _code_only(CHECKLIST_PATH)
+	assert_str(code).contains("_build_movement_selector")
+	assert_str(code).contains("movement_system_changed")
+	assert_str(code).contains("set_grid_movement")
+	assert_str(code).contains("CompendiumGridMovementRef.is_enabled()")
+	# The checklist must NOT reach for the flag-gated wrappers again — that is
+	# the regression that would silently restore all-or-nothing behaviour.
+	assert_str(code).not_contains("get_checklist_step")
+	assert_str(code).not_contains("get_deploy_crew_hint")
+	assert_str(code).not_contains("get_deploy_enemy_hint")
+
+
+func test_battle_ui_surfaces_follow_the_per_battle_choice() -> void:
+	# Three surfaces have to agree, or the player picks Standard and the setup
+	# drawer still tells them to divide the table into squares.
+	var ui: String = _code_only(BATTLE_UI_PATH)
+	assert_str(ui).contains("_use_grid_movement")
+	assert_str(ui).contains("_resolve_grid_movement_choice")
+	assert_str(ui).contains("_on_movement_system_changed")
+	assert_str(ui).contains("CompendiumGridMovementRef.build_setup_instructions")
+	assert_str(ui).contains("CompendiumGridMovementRef.build_flanking_instruction")
+
+
+func test_grid_section_rebuilds_alone_never_the_whole_setup_tab() -> void:
+	# _populate_setup_tab re-enters terrain generation, and in the standalone
+	# modes that REGENERATES the map the player has already laid out on their
+	# physical table. The switch must rebuild only its own container.
+	var ui: String = _code_only(BATTLE_UI_PATH)
+	assert_str(ui).contains("_rebuild_grid_setup_section")
+	var start: int = ui.find("func _on_movement_system_changed")
+	assert_int(start).is_greater(-1)
+	var body: String = ui.substr(start, 900)
+	assert_str(body).not_contains("_populate_setup_tab")

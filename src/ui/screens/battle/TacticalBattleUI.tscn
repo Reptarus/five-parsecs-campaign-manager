@@ -103,12 +103,15 @@ theme_override_colors/font_color = Color(0.878, 0.878, 0.878, 1)
 theme_override_font_sizes/font_size = 22
 text = "Tactical Companion"
 
-[node name="TierBadge" type="Label" parent="EdgeMargin/MainContainer/TopBar" unique_id=1714057206]
+[node name="TierBadge" type="Button" parent="EdgeMargin/MainContainer/TopBar" unique_id=1714057206]
 unique_name_in_owner = true
 layout_mode = 2
+focus_mode = 0
+tooltip_text = "Change tracking level"
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 theme_override_font_sizes/font_size = 14
 text = "[LOG ONLY]"
+flat = true
 
 [node name="PhaseBreadcrumb" type="HBoxContainer" parent="EdgeMargin/MainContainer/TopBar" unique_id=1716940600]
 unique_name_in_owner = true
