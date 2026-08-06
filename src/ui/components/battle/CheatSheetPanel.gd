@@ -8,6 +8,9 @@ extends PanelContainer
 ## All text references page numbers from the Five Parsecs Core Rulebook.
 
 
+const CompendiumGridMovementRef = preload(
+	"res://src/data/compendium_grid_movement.gd")
+
 # Design system constants
 const SPACING_SM: int = 8
 const SPACING_MD: int = UIColors.SPACING_MD
@@ -622,31 +625,17 @@ func _no_minis_text() -> String:
 [color=#D97706]NOT compatible with: AI Variations, Escalating Battles, Deployment Variables[/color]"""
 
 
+## Compendium pp.90-93, via the single source of truth.
+##
+## What used to live inline here was FABRICATED: "1 square = 2 inches", a
+## speed/range-to-squares conversion table, "1 square per activation (+1 if
+## Speed > 4\")" and "enter occupied square = automatic Brawl". A full-text
+## search of the Compendium finds no square/inch conversion at all, and p.93
+## says the opposite of two of them — ranged combat and proximity both stay on
+## the core rules, in inches. Only the Flanking block was correct. Do not
+## re-inline this text; extend CompendiumGridMovement instead.
 func _grid_movement_text() -> String:
-	return """[b]Grid-Based Movement (optional)[/b]
-1 square = 2" (all measurements convert)
-
-[b]Conversion Table:[/b]
-  4" speed = 2 squares  |  6" speed = 3 squares
-  8" speed = 4 squares  |  12" range = 6 squares
-  24" range = 12 squares | 36" range = 18 squares
-
-[b]Figure Status:[/b]
-  [color=#10B981]Open[/color] - No enemies in your square
-  [color=#DC2626]Close Quarters[/color] - Enemy in your square (auto-Brawl)
-
-[b]Movement Rules:[/b]
-  1 square per activation (+1 if Speed > 4")
-  Enter occupied square = automatic Brawl
-
-[b]Flanking (p.91) - deployment, not a combat bonus:[/b]
-  With the Half Flank or Bolstered Flank deployment
-  variables (p.45), the flanking force sets up in the
-  [color=#4FC3F7]second square[/color] counting from the enemy table edge.
-  Any figure required to arrive from the flank is
-  placed the same way. There is no flanking to-hit bonus.
-
-[b]Large Features:[/b] Span multiple squares. Enter any adjacent square."""
+	return CompendiumGridMovementRef.get_reference_text()
 
 
 func _difficulty_toggles_text() -> String:

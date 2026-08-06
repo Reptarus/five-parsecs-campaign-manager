@@ -13,19 +13,39 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 26 |
+| **LIVE** — a live path reaches the player | 27 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 0 |
-| **DEAD** — data + gated API exist, nothing reaches the player | 4 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 3 |
 
 Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
-on Aug 3. Each fix is described in its section below — and every one of them was
-a defect that **call-site tracing cannot see**, which is what the original pass
-did. Trace to the value.
+on Aug 3; Grid-based Movement on Aug 6. Each fix is described in its section
+below — and every one of them was a defect that **call-site tracing cannot see**,
+which is what the original pass did. Trace to the value.
 
-All 4 remaining dead chapters are **Freelancer's Handbook** — PvP (pp.35-38),
-Expanded Co-op (pp.39-41), AI Variations (p.42) and Grid-based Movement
-(pp.90-93). Three of those four need a second player or a movement layer this
-app does not have; only Grid-based Movement is a pure wiring gap.
+All 3 remaining dead chapters are **Freelancer's Handbook** — PvP (pp.35-38),
+Expanded Co-op (pp.39-41) and AI Variations (p.42). The first two need a second
+player this app has no surface for; AI Variations is a genuine wiring gap.
+
+> ### ⛔ The Grid-based Movement row was wrong in a NEW way (Aug 6)
+>
+> This table called it "a pure wiring gap" — `grid_movement_instructions` had
+> zero producers, which was true. But the chapter was not silent:
+> `CheatSheetPanel._grid_movement_text()` was live, correctly DLC-gated and
+> reachable (Reference drawer, F1), and it showed **fabricated rules** — a
+> "1 square = 2 inches" conversion, a speed/range-to-squares table, "1 square per
+> activation (+1 if Speed > 4")" and "enter occupied square = automatic Brawl".
+> A full-text sweep of the Compendium finds no square/inch conversion anywhere,
+> and p.93 says the OPPOSITE of two of them: ranged combat and every proximity
+> question stay on the core rules, in inches. Only the Flanking paragraph was
+> correct.
+>
+> **A fourth failure mode: the chapter is wired, and wrong.** A flag census, a
+> caller census and a producer/consumer census all pass it by, because the
+> surface renders. The only audit that catches it is diffing the TEXT the player
+> sees against the PDF. And it is the worst of the four — a dead rule does
+> nothing; a fabricated rule misinforms play.
+
+<!-- -->
 
 > ### ⛔ Two rows in the first version of this table were WRONG, in the same way
 >
@@ -90,7 +110,7 @@ getter.
 | Expanded Quest Progression pp.78-80 | **LIVE (fixed Aug 3)** | data complete, readers correct, zero callers — the missing piece was STATE. A Quest step is a standing obligation ("until this has been done, you cannot progress the Quest"), which a stateless roller cannot express. New `src/core/campaign/ExpandedQuestProgression.gd` holds the p.78 gate (replacing the core p.120 mapping AND its p.119 travel roll at `RivalPatronResolver`), the pending step at `progress_data["expanded_quest"]`, a producer for each of the seven blocking rows, and the two permanent modifiers into `EnemyGenerator` / `BattleSetupRules`. See below |
 | Expanded Connections pp.80-86 | **LIVE (fixed Aug 3)** | same shape: 30 complete subtable scenarios, three correct readers, zero callers. New `src/core/campaign/ExpandedConnections.gd` runs the p.80 1D6 check in the Mission Prep step (the book's own "while establishing the objectives and parameters"), the D6 main table into one of five subtables, the automatic first-game Connection, the `*` decline, the one-turn expiry, and the no-roll / variety-swap variations as real settings. **`src/core/character/connections/CharacterConnections.gd` is a DIFFERENT system** — creation-time starting contacts — and is still referenced by nothing |
 | **Dramatic Combat pp.87-89** | **PARTIAL** | Adjusted Shooting is applied by all four resolvers and the rule text renders (`TacticalBattleUI:6113`). The **Dramatic Weapons stat table pp.88-89** does not: `get_dramatic_weapon_stats()` and `get_dramatic_effect()` have zero callers |
-| **Grid-based Movement pp.90-93** | **DEAD** | `TacticalBattleUI.gd:6123` reads `mission_dict["grid_movement_instructions"]` — **zero producers.** `BattlefieldGrid.gd` is table geometry (p.108 sizes), not this chapter |
+| Grid-based Movement pp.90-93 | **LIVE (fixed Aug 6)** | was BOTH unwired and **fabricated**. `grid_movement_instructions` had zero producers, AND the live, correctly-gated `CheatSheetPanel._grid_movement_text()` shipped invented rules ("1 square = 2\"", a range-to-squares table, "1 square per activation", "enter occupied square = automatic Brawl") that appear nowhere in the Compendium. `src/data/compendium_grid_movement.gd` is now the single source; the setup panel generates the p.90-93 procedure from the flag + table size, and the p.91 flanking note fires from `_apply_enemy_deployment_variable` (where the deployment type first exists). 23 cases, detection-proven |
 | Terrain Generation pp.94-98 | LIVE | `FPCM_BattlefieldGenerator` + `data/battlefield/themes/compendium_terrain.json` |
 | Casualty Tables pp.99-100 | **LIVE (fixed Aug 3)** | `roll_casualty(category, is_boss)` now reads the real `casualty_tables` data. Auto-resolve applies it at `TacticalBattleUI:5488`; the played path gets the rules text from `CheatSheetPanel`, which is the correct delivery for a table the player rolls themselves |
 | Detailed Post-Battle Injuries pp.101-102 | **LIVE (fixed Aug 3)** | `roll_detailed_injury()` now rolls D100 against `roll_min`/`roll_max`, and `InjuryProcessor.process_single_injury` uses it **in place of** the Core Rules table for organic characters (bots stay on the p.122 Bot table, per p.101) |

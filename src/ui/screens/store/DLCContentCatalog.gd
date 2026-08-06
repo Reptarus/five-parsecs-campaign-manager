@@ -49,10 +49,17 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
 	# AI_VARIATION_TABLES getter — zero callers.
 	"AI_VARIATIONS",
-	# TacticalBattleUI reads mission_dict["grid_movement_instructions"] and no
-	# producer anywhere writes it. BattlefieldGrid.gd is p.108 table geometry,
-	# a different thing entirely.
-	"GRID_BASED_MOVEMENT",
+	#
+	# GRID_BASED_MOVEMENT was removed from this list on Aug 6 2026. It was listed
+	# as a pure wiring gap (`grid_movement_instructions` had zero producers) and
+	# that was true but not the whole defect: CheatSheetPanel WAS live and
+	# correctly gated, showing FABRICATED rules — a "1 square = 2 inches"
+	# conversion, a range-to-squares table, "1 square per activation" and
+	# "enter occupied square = automatic Brawl", none of which are in the
+	# Compendium. src/data/compendium_grid_movement.gd is now the single source;
+	# the setup panel generates its instructions and the p.91 flanking note fires
+	# from TacticalBattleUI._apply_enemy_deployment_variable, which is where the
+	# deployment type first exists. Pinned by tests/unit/test_grid_based_movement.gd.
 ]
 
 ## DIFFICULTY_TOGGLES was REMOVED from this list on Aug 3 2026. All 12 pp.32-34

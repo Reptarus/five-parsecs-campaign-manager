@@ -27,6 +27,8 @@ const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingB
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const CompendiumDeploymentVariablesRef = preload(
 	"res://src/data/compendium_deployment_variables.gd")
+const CompendiumGridMovementRef = preload(
+	"res://src/data/compendium_grid_movement.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const BattleResolverClass = preload("res://src/core/battle/BattleResolver.gd")
 const NoMinisResolverClass = preload("res://src/core/battle/NoMinisResolver.gd")
@@ -4135,6 +4137,15 @@ func _apply_enemy_deployment_variable(seized: bool) -> void:
 		_log_message(
 			CompendiumDeploymentVariablesRef.get_arrival_placement_note(),
 			UIColors.COLOR_TEXT_SECONDARY)
+	# Compendium p.91 amends where a flanking force stands when the grid is in
+	# use, and it names exactly the two p.45 variables. It belongs HERE rather
+	# than in the setup panel because the deployment type is not known until this
+	# roll — the setup tab is built during initialize_battle, before Seize the
+	# Initiative has happened. Returns "" for every other deployment.
+	var grid_flank: String = CompendiumGridMovementRef.get_flanking_instruction(
+		str(deployment.get("id", "")))
+	if not grid_flank.is_empty():
+		_log_message(grid_flank, Color("#38BDF8"))
 	if unified_log:
 		unified_log.add_entry("event", "Enemy deployment: %s"
 			% str(deployment.get("name", "Line")))
@@ -6343,8 +6354,19 @@ func _populate_setup_tab(mission_data) -> void:
 				_add_setup_text(effect_str, Color("#E879F9")) # Purple for dramatic
 		_add_setup_separator()
 
-	# Section 5c: Grid Movement instructions (Compendium DLC)
+	# Section 5c: Grid-Based Movement (Compendium pp.90-93).
+	#
+	# This read had ZERO producers repo-wide: nothing has ever written
+	# `grid_movement_instructions`, so the section never rendered in any battle
+	# of any campaign. The chapter needs no campaign state and no dice — only
+	# the flag and the table size, both known right here — so the instructions
+	# are GENERATED at the consumer. Doing it upstream would mean replicating a
+	# producer in four controllers (campaign / simulator / Bug Hunt / Planetfall)
+	# for no gain. A stamped value still wins, so a scenario can override.
 	var grid_instructions: Array = mission_dict.get("grid_movement_instructions", [])
+	if grid_instructions.is_empty():
+		grid_instructions = CompendiumGridMovementRef.get_setup_instructions(
+			table_size_ft)
 	if not grid_instructions.is_empty():
 		_add_setup_section_header("GRID-BASED MOVEMENT")
 		for grid_inst in grid_instructions:
