@@ -470,11 +470,25 @@ func _set_ship_debt(ctx: PostBattleContextClass, amount: int) -> void:
 
 
 func _grant_credits(ctx: PostBattleContextClass, amount: int) -> void:
+	## Ownership order was INVERTED here (fixed Aug 6 2026): the direct write came
+	## first and RETURNED, so `gsm.add_credits()` below was reachable only when the
+	## campaign had no `credits` field at all — i.e. never. GameStateManager's
+	## cached mirror and its credits_changed signal therefore never fired for a
+	## p.126 campaign-event credit grant, leaving the dashboard badge stale until
+	## something else happened to resync it. Flagged by lint_data_ownership.py.
 	if amount == 0:
 		return
-	if ctx.campaign and "credits" in ctx.campaign:
-		ctx.campaign.credits = maxi(0, int(ctx.campaign.credits) + amount)
-		return
 	var gsm: Variant = _gsm_or_autoload(ctx)
+	if gsm and gsm.has_method("add_credits") \
+			and gsm.game_state != null \
+			and gsm.game_state.current_campaign == ctx.campaign:
+		gsm.add_credits(amount)
+		return
+	# Fallback: the context may hold a campaign the manager does not own (tests,
+	# and the Campaign Editor's detached preview). Delegating anyway would apply
+	# the grant to the WRONG campaign, which is worse than bypassing the mirror.
+	if ctx.campaign and "credits" in ctx.campaign:
+		ctx.campaign.credits = maxi(0, int(ctx.campaign.credits) + amount) # lint:ignore
+		return
 	if gsm and gsm.has_method("add_credits"):
 		gsm.add_credits(amount)

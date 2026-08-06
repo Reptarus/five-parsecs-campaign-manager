@@ -56,9 +56,24 @@ static func _best_savvy(crew: Array):
 
 
 static func _add_credits(campaign, amount: int) -> void:
+	## Same ownership shape as _add_story_points below — see the long note there.
+	## Credits carry no difficulty gate, but GameStateManager still owns the
+	## cached mirror and the credits_changed signal, so bypassing it leaves the
+	## dashboard badge showing a stale number until something resyncs it.
 	if campaign == null or not ("credits" in campaign):
 		return
-	campaign.credits = maxi(0, int(campaign.credits) + amount)
+	var gsm: Node = null
+	if Engine.get_main_loop():
+		gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("add_credits") \
+			and gsm.game_state != null \
+			and gsm.game_state.current_campaign == campaign:
+		gsm.add_credits(amount)
+		return
+	# Parameterised by campaign (tests and the Campaign Editor drive a detached
+	# one), so delegating unconditionally to a singleton bound elsewhere would
+	# silently drop the award.
+	campaign.credits = maxi(0, int(campaign.credits) + amount) # lint:ignore
 
 
 static func _blank_report() -> Dictionary:
@@ -111,9 +126,47 @@ static func _status_effects(member) -> Array:
 
 
 static func _add_story_points(campaign, amount: int) -> void:
+	## Story points for the pp.70-72 travel events (+1 Time to Reflect, +1 the
+	## Precursor omen, +1 the rescue rumour, -1 Navigation Trouble).
+	##
+	## THE BUG THIS FIXES (Aug 6 2026): this wrote `campaign.story_points`
+	## directly, bypassing the ONLY place the p.65 Insanity rule is enforced.
+	## Every other award site in the codebase goes through
+	## GameStateManager.add_story_points / .modify_story_progress, which return
+	## early when DifficultyModifiers.are_story_points_disabled() — so an Insanity
+	## campaign earned story points from travel events and nowhere else. Flagged
+	## by scripts/lint_data_ownership.py, which was reporting a real defect rather
+	## than a style preference.
 	if campaign == null or not ("story_points" in campaign):
 		return
-	campaign.story_points = maxi(0, int(campaign.story_points) + amount)
+
+	# Core Rules p.65 — Insanity disables story points ENTIRELY: none earned,
+	# none spent. Checked here rather than only inside the manager, because the
+	# direct-write path below must obey the rule too. A rule that holds on one
+	# of two paths is the shape this whole audit exists to remove.
+	if "difficulty" in campaign \
+			and DifficultyModifiers.are_story_points_disabled(campaign.difficulty):
+		return
+
+	# Prefer the canonical mutator WHEN the manager owns this very campaign: it
+	# keeps GameStateManager's cached mirror and its story_progress_changed
+	# signal in step, without which the dashboard SP badge shows a stale number
+	# until something else happens to resync it.
+	var gsm: Node = null
+	if Engine.get_main_loop():
+		gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("modify_story_progress") \
+			and gsm.game_state != null \
+			and gsm.game_state.current_campaign == campaign:
+		gsm.modify_story_progress(amount)
+		return
+
+	# Fallback: this resolver is PARAMETERISED by campaign (tests drive a
+	# detached CampaignCore, and the Campaign Editor previews one that is not
+	# current), so it cannot unconditionally delegate to a singleton that owns a
+	# different object — that would silently drop the award. The p.65 gate above
+	# already applied, so this write cannot reintroduce the rule it enforces.
+	campaign.story_points = maxi(0, int(campaign.story_points) + amount) # lint:ignore
 
 
 static func _has_precursor(campaign) -> bool:
