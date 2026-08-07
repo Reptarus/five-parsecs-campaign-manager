@@ -17,6 +17,12 @@ const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggl
 ## Red Job Increased Opposition (Core Rules Appendix III p.150). Mirrors
 ## data/red_zone_jobs.json increased_opposition; kept as named constants so the
 ## generator reads as the book does.
+## Black Job Opposition (Core Rules p.151): "teams of 4 figures... set up 4
+## teams". Duplicated as named constants on BattleSetupRules so the setup notes
+## the player reads and the force actually generated cannot drift apart.
+const BLACK_ZONE_TEAM_SIZE := 4
+const BLACK_ZONE_INITIAL_TEAMS := 4
+
 const RED_ZONE_BASE_FIGURES := 7
 const RED_ZONE_SPECIALISTS := 3      # "3 Specialists, one of which is a Lieutenant"
 const RED_ZONE_UNIQUE_BONUS := 1     # "+1 to the roll to determine whether a Unique Individual is present"
@@ -36,8 +42,21 @@ var _pending_leadership_promotion: bool = false
 var enemy_data: Dictionary = {}
 var loot_tables: Dictionary = {}
 var spawn_rules: Dictionary = {}
-var bestiary_ref: Dictionary = {}  # RulesReference/Bestiary.json
-var elite_enemies_ref: Dictionary = {}  # RulesReference/EliteEnemies.json
+## `bestiary_ref` and `elite_enemies_ref` were DELETED (Aug 6 2026). Both were
+## assigned in _load_enemy_data() and read by NOTHING, repo-wide — ~25KB of JSON
+## re-parsed on every EnemyGenerator.new() (once per battle in
+## CampaignTurnController, once per World Phase in JobOfferComponent), because
+## DataManager.load_json_file() does not cache: it opens and parses the file on
+## every call.
+##
+## Deleted rather than made lazy, because neither is the live source. The elite
+## rules read `data/elite_enemy_types.json` through CompendiumEliteEnemies (which
+## has its own static, load-once cache), and the Core Rules encounter tables read
+## `data/enemy_types.json`. RulesReference/Bestiary.json and
+## RulesReference/EliteEnemies.json remain on disk as what `data/RulesReference/`
+## is FOR — verified PDF extractions to check values against — but a second copy
+## of the same tables held in memory beside the live one is a source-of-truth
+## hazard, not a spare.
 var data_manager: Node = null  # DataManager autoload
 
 # Legacy compatibility - fallback data
@@ -54,10 +73,6 @@ func _load_enemy_data() -> void:
 	
 	# Load main enemy types data
 	enemy_data = data_manager.load_json_file("res://data/enemy_types.json")
-
-	# Load RulesReference data for cross-validation and elite enemies
-	bestiary_ref = data_manager.load_json_file("res://data/RulesReference/Bestiary.json")
-	elite_enemies_ref = data_manager.load_json_file("res://data/RulesReference/EliteEnemies.json")
 
 	if enemy_data.is_empty():
 		push_error("Failed to load enemy data from res://data/enemy_types.json")
@@ -689,6 +704,23 @@ func generate_enemies_as_dicts(
 		# mission type that can produce it. A rule the book prints cannot mean
 		# nothing everywhere.
 		enemy_count += int(mission_data.get("red_zone_enemy_delta", 0))
+	elif is_black_zone:
+		# Black Job, Core Rules p.151, verbatim: "The opposition will operate in
+		# teams of 4 figures... When the battle begins, set up 4 teams at the
+		# midway line between their battlefield edge and the half-way point of the
+		# battlefield."
+		#
+		# Like the Red Job's base of 7 this REPLACES the rolled count rather than
+		# modifying it: the book prescribes the starting force outright, so the
+		# p.63 crew-size dice and the difficulty adjustment have nothing to act on.
+		# Only the initial 4 teams are generated — p.151's "at the end of each
+		# round, another team arrives" is an in-battle instruction the player
+		# executes, surfaced by FPCM_BattleFlowGuide.build_black_job_round_prompts.
+		#
+		# Was: an ordinary rolled force of 3-8. A near-suicide mission the book
+		# warns "is not intended to be even remotely fair" fielded fewer enemies
+		# than a Red Job.
+		enemy_count = BLACK_ZONE_INITIAL_TEAMS * BLACK_ZONE_TEAM_SIZE
 	else:
 		# Progressive Difficulty, Option 1 "Strength" (Compendium p.30): +1 basic
 		# enemy from turn 5, +2 from turn 10, +2 and a Lieutenant from 15, +2 with
@@ -700,6 +732,32 @@ func generate_enemies_as_dicts(
 		# "no other modifiers ... up or down", and that verbatim rule wins over the
 		# expansion's "each encounter" phrasing.
 		enemy_count += _progressive_strength_bonus(mission_data)
+
+	## ── Compendium pp.48-49 Elite-level Enemies ──────────────────────────
+	##
+	## p.48: these tables "TAKE THE PLACE OF the regular encounter tables in the
+	## core rulebook". That substitution already worked — `_roll_enemy_in_category`
+	## calls `CompendiumEliteEnemies.roll_enemy_in_category()` and stamps `elite`
+	## on the template it returns. So THIS force is elite exactly when the enemy
+	## really came off an elite table, which is a stricter and more honest signal
+	## than "the option is owned": a category with no elite table falls through to
+	## the core tables and must keep the core composition.
+	##
+	## Everything else in `compendium_elite_enemies.gd` was implemented, correct,
+	## and ZERO-CALLER: enforce_minimum_size(), get_composition(),
+	## unique_individual_threshold(), modified_panic_range() and
+	## rival_follows_to_new_world(). One of six entry points had a caller. A player
+	## who turned Elite Enemies on therefore faced elite PROFILES arranged by the
+	## Core Rules p.93 thresholds — no Captain ever, no minimum squad size, no
+	## Leadership morale, and the ordinary 9+ Unique Individual roll.
+	var is_elite_force: bool = bool(template.get("elite", false))
+	if is_elite_force:
+		# p.49: "roll up their size as normal. If the size would be less than 4
+		# figures, increase it to 4." A FLOOR on the finished number, not another
+		# modifier — which is why it may also apply to a Red Job without
+		# contradicting p.150's "no other modifiers are applied up or down". In
+		# practice the Red Job base of 7 is already above it.
+		enemy_count = CompendiumEliteEnemiesRef.enforce_minimum_size(enemy_count)
 
 	var cat_info: Dictionary = _category_info(category)
 
@@ -774,9 +832,41 @@ func generate_enemies_as_dicts(
 		# This replaces the p.93 thresholds rather than stacking with them.
 		if is_red_zone:
 			specialist_count = RED_ZONE_SPECIALISTS - 1
+		# Black Job (p.151): "The opposition will operate in teams of 4 figures.
+		# Enemies that have Specialists will have one in each team." One per team,
+		# so four across the four starting teams — also a replacement of the p.93
+		# thresholds, which would have given a 16-figure force only two.
+		if is_black_zone:
+			specialist_count = BLACK_ZONE_INITIAL_TEAMS
 		specialist_count = mini(specialist_count, maxi(0, enemy_count - 1))
 	# A Red Job always fields its Lieutenant, even below the p.93 count of 4.
 	var has_lieutenant: bool = (enemy_count >= 4) or is_red_zone
+
+	## Compendium p.49 Elite Composition REPLACES the p.93 thresholds:
+	##   SIZE  BASIC  SPECIALISTS  LIEUTENANTS  CAPTAIN
+	##     4     3         1            -          -
+	##     5     2         2            1          -
+	##     6     3         2            1          -
+	##    7+     3+        2            1          1
+	## The Captain rank does not exist anywhere in the Core Rules, so before this
+	## it could never appear no matter how large the elite force was.
+	##
+	## A Red Job keeps p.150's own "3 Specialists, one of which is a Lieutenant",
+	## which is stated for that mission type specifically and is not a general
+	## composition rule the expansion can override. Animals that carry only natural
+	## weapons keep the errata's no-Specialist rule for the same reason.
+	var captain_count: int = 0
+	if is_elite_force and uses_weapons and not is_red_zone:
+		var elite_comp: Dictionary = CompendiumEliteEnemiesRef.get_composition(
+			enemy_count)
+		specialist_count = mini(int(elite_comp.get("specialists", 0)),
+			maxi(0, enemy_count - 1))
+		has_lieutenant = int(elite_comp.get("lieutenants", 0)) > 0
+		captain_count = int(elite_comp.get("captain", 0))
+		# The Lieutenant takes index 0 and the Captain index 1, so a force must
+		# have room for both before the Captain slot is real.
+		if enemy_count - specialist_count < 2:
+			captain_count = 0
 
 	## Compendium p.33 "Hit Me Harder" — three of the four options act on
 	## individual figures as they are built. "The following options increase the
@@ -830,6 +920,18 @@ func generate_enemies_as_dicts(
 			# Otherwise p.93: "If the opponents encountered are animals that do
 			# not use weapons, the Lieutenant will be a pack leader; increase
 			# Combat Skill by +1, but MAKE NO OTHER CHANGES." No Blade.
+		elif captain_count > 0 and i == 1:
+			# Compendium p.49 Captain: "Armed with the basic weapon for their
+			# type, plus a Ripper Sword. Combat Skill is increased by +1."
+			# (Fearless, the Toughness floor of 5 and the Armor Saving Throw are
+			# applied with the other elite upgrades below.)
+			role = "captain"
+			combat_mod = 1
+			if going_medieval.is_empty():
+				weapons = resolve_basic_weapon(weapon_code)
+			else:
+				weapons = [str(going_medieval[0])]
+			extra_weapons = ["Ripper Sword"]
 		elif specialist_count > 0 and i >= (enemy_count - specialist_count):
 			role = "specialist"
 			weapons = specialist_weapons.duplicate()
@@ -843,6 +945,8 @@ func generate_enemies_as_dicts(
 		var display_name: String = enemy_name
 		if role == "lieutenant":
 			display_name = "%s Lieutenant" % enemy_name
+		elif role == "captain":
+			display_name = "%s Captain" % enemy_name
 		elif role == "specialist":
 			display_name = "%s Specialist" % enemy_name
 
@@ -877,6 +981,17 @@ func generate_enemies_as_dicts(
 		if tough_floor > 0:
 			figure_tough = maxi(figure_tough, tough_floor)
 
+		# Compendium p.49 per-rank upgrades. Stated as floors and increases, so
+		# maxi() is right throughout — an elite profile that already exceeds one
+		# keeps its own score.
+		if is_elite_force:
+			if role == "specialist":
+				# "If Combat Skill is +0, increase it to +1."
+				figure_combat = maxi(figure_combat, 1)
+			elif role == "captain":
+				# "If Toughness is less than 5, increase it to 5."
+				figure_tough = maxi(figure_tough, 5)
+
 		# Armored Leaders: "Lieutenants receive a 5+ Armor Saving Throw. Normal
 		# rules apply if they would already receive a Saving Throw." So it is
 		# granted only when the profile has none — a Lieutenant that already has
@@ -897,13 +1012,32 @@ func generate_enemies_as_dicts(
 			if not already_saves:
 				figure_rules.append("5+ Saving Throw (Armored Leaders, Compendium p.33)")
 
+		# Compendium p.49 Lieutenant and Captain, the two clauses that are not
+		# stats: "Fearless" and "If the character is normally armored, increase
+		# their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
+		if is_elite_force and (role == "lieutenant" or role == "captain"):
+			var has_fearless: bool = false
+			for rule in figure_rules:
+				if "fearless" in str(rule).to_lower():
+					has_fearless = true
+					break
+			if not has_fearless:
+				figure_rules.append("Fearless (Elite %s, Compendium p.49)"
+					% role.capitalize())
+			figure_rules = _upgrade_saving_throw(figure_rules, role)
+
 		enemies.append({
 			"type": enemy_name,
 			"name": display_name,
 			"role": role,
 			"combat_skill": figure_combat,
 			"toughness": figure_tough,
-			"reactions": 2 if role == "lieutenant" else 1,
+			"reactions": 2 if (role == "lieutenant" or role == "captain") else 1,
+			# Whether this force came off a Compendium pp.48-65 elite table. Read
+			# by the p.49 Leadership pass below and carried into `enemy_force` so
+			# the post-battle layer can apply the elite Rival rule (p.49) without
+			# re-deriving it from a DLC flag that may have been toggled since.
+			"elite": is_elite_force,
 			"speed": base_speed,
 			# p.104 + errata v1.06: Rampaging AI always carry a Blade; Aggressive
 			# AI do too unless Combat Skill is +0. Checked against THIS figure's
@@ -999,8 +1133,44 @@ func generate_enemies_as_dicts(
 	# explicit that the figure "is always in addition to those normally
 	# encountered" (Core Rules p.94) — it must not consume a Specialist or
 	# Lieutenant slot or change the counts already rolled.
+	## Compendium p.49 Leadership: "While Lieutenants or Captains are present,
+	## enemy Morale is improved according to the table below. USE THE HIGHEST RANK
+	## PRESENT... These bonuses only apply as long as the character in question is
+	## on the battlefield."
+	##
+	## Applied to the rank and file before the Unique Individual is appended: a
+	## Unique is Fearless in its own right (Core Rules p.105) and must not have its
+	## profile rewritten by a squad rule.
+	##
+	## The direction of this table is the reason it is quoted in CLAUDE.md — the
+	## Panic RANGE goes DOWN, because a smaller range panics less often. A range of
+	## 0 means Fearless.
+	if is_elite_force and not enemies.is_empty():
+		var highest_rank: String = ""
+		for figure: Dictionary in enemies:
+			var r: String = str(figure.get("role", ""))
+			if r == "captain":
+				highest_rank = "Captain"
+				break
+			if r == "lieutenant":
+				highest_rank = "Lieutenant"
+		if not highest_rank.is_empty():
+			var base_panic: String = str(template.get("panic", "1-2"))
+			var improved: String = CompendiumEliteEnemiesRef.modified_panic_range(
+				base_panic, highest_rank)
+			if improved != base_panic:
+				for figure: Dictionary in enemies:
+					figure["panic"] = improved
+					figure["panic_improved_by"] = highest_rank
+
+	# Compendium p.49 needs to know whether the CREW outnumbers the enemy, which
+	# only this scope knows. crew_in_field of 0 means the caller did not report it,
+	# so "outnumbers" is treated as false rather than assumed either way.
+	var crew_here: int = int(mission_data.get("crew_in_field", 0))
+	var crew_outnumbers: bool = crew_here > 0 and crew_here > enemy_count
 	for unique in roll_unique_individuals(
-			mission_data, category, difficulty_mode, template):
+			mission_data, category, difficulty_mode, template,
+			is_elite_force, crew_outnumbers):
 		enemies.append(unique)
 
 	# p.94 Guardian AI attachment, resolved here because it is the only point
@@ -1079,9 +1249,45 @@ func _attach_guardian_uniques(enemies: Array) -> void:
 		target["guardian_escorted_by"] = str(unique.get("name", "Unique Individual"))
 
 
+## Compendium p.49, Lieutenant and Captain: "If the character is normally armored,
+## increase their Armor Saving Throw by +1. Otherwise add a 5+ Armor Saving Throw."
+##
+## The existing rule string is REPLACED rather than a second one appended, because
+## `BattleResolver._extract_enemy_saving_throw()` returns on the FIRST entry
+## containing "saving throw" — appending an upgrade after the original would be
+## read as no upgrade at all.
+##
+## Floored at 3+ because that is the best tier the armor table represents
+## ("powered"); no enemy profile in either book carries a base 3+ save, so the
+## floor is unreachable in play rather than a silent cap on a real case.
+func _upgrade_saving_throw(figure_rules: Array, role: String) -> Array:
+	var out: Array = []
+	var upgraded: bool = false
+	for rule: Variant in figure_rules:
+		var text: String = str(rule)
+		if not upgraded and "saving throw" in text.to_lower():
+			var current: int = 0
+			for target in [3, 4, 5, 6]:
+				if ("%d+" % target) in text:
+					current = target
+					break
+			if current > 0:
+				var better: int = maxi(current - 1, 3)
+				out.append("%s (Elite %s, Compendium p.49)" % [
+					text.replace("%d+" % current, "%d+" % better),
+					role.capitalize()])
+				upgraded = true
+				continue
+		out.append(text)
+	if not upgraded:
+		out.append("5+ Saving Throw (Elite %s, Compendium p.49)" % role.capitalize())
+	return out
+
+
 func roll_unique_individuals(
 	mission_data: Dictionary, category: String, difficulty_mode: int = 0,
-	base_template: Dictionary = {}
+	base_template: Dictionary = {}, elite_force: bool = false,
+	crew_outnumbers_enemy: bool = false
 ) -> Array[Dictionary]:
 	## Core Rules pp.93-94. Returns the Unique Individual figures accompanying this
 	## force — usually none.
@@ -1123,6 +1329,25 @@ func roll_unique_individuals(
 	var better_leadership: bool = CompendiumTogglesRef.is_toggle_active("better_leadership")
 	var threshold: int = 7 if better_leadership else 9
 
+	## Compendium p.49 Unique Individuals: "If you outnumber the enemy, they are
+	## automatically accompanied by a Unique Individual. If you do not outnumber
+	## them, roll normally, but a 7+ is required instead of the usual 9+."
+	##
+	## The elite threshold is applied with mini() rather than assignment so it
+	## cannot UNDO Better Leadership, which already sets 7+ — two independent
+	## options that happen to name the same number must not fight each other.
+	## `unique_individual_threshold()` returns 0 for the outnumbering case, which
+	## a 2D6 roll always meets; that is how the automatic branch is expressed
+	## without a second code path.
+	var elite_auto: bool = false
+	if elite_force:
+		var elite_threshold: int = CompendiumEliteEnemiesRef \
+			.unique_individual_threshold(crew_outnumbers_enemy)
+		if elite_threshold <= 0:
+			elite_auto = true
+		else:
+			threshold = mini(threshold, elite_threshold)
+
 	var count: int = 0
 	if is_insanity:
 		# Always present, unmodified roll, 11-12 = two. Applies even to Roving
@@ -1132,6 +1357,12 @@ func roll_unique_individuals(
 		# Expanded Quest Conclusion (Compendium p.80): "the enemy is always
 		# accompanied by a Unique Individual." Stated without qualification, so it
 		# stands in place of the 2D6 roll rather than modifying it.
+		count = 1
+	elif elite_auto and not is_invasion:
+		# Compendium p.49: "If you outnumber the enemy, they are AUTOMATICALLY
+		# accompanied by a Unique Individual." No roll. The Invasion exclusion
+		# still stands — Core Rules p.93 forbids a Unique there outright, and the
+		# elite chapter modifies the Unique Individual ROLL, not that prohibition.
 		count = 1
 	else:
 		var cannot_have_unique: bool = is_invasion or category == "roving_threats"
@@ -1377,6 +1608,17 @@ func _roll_enemy_in_category(category_id: String) -> Dictionary:
 	## substitution happens here, at the one point every category roll passes
 	## through. Returns {} when the option is off or the category has no elite
 	## table, which falls straight through to the core tables below.
+	## Compendium p.31 Progressive Difficulty OPTION 2 turns that substitution into
+	## a per-encounter ROLL rather than a standing state: turn 14 "Encounters now
+	## use elite-level enemies on a D6 roll of 4+", turn 16 "on a 3+", turn 20
+	## "always". Before turn 14 Option 2 has not introduced elite enemies at all.
+	##
+	## Only applied when Option 2 is actually selected — a player who simply turned
+	## Elite Enemies on keeps p.48's unconditional substitution, which is what that
+	## page says on its own.
+	if _option_2_blocks_elite():
+		return _roll_core_enemy_in_category(category_id)
+
 	var elite: Dictionary = CompendiumEliteEnemiesRef.roll_enemy_in_category(category_id)
 	if not elite.is_empty():
 		return elite
@@ -1397,6 +1639,51 @@ func _roll_enemy_in_category(category_id: String) -> Dictionary:
 			return enemies.pick_random()
 
 	return {}
+
+## True when Compendium p.31 Option 2 is running and THIS encounter's D6 did not
+## reach the elite threshold for the current campaign turn.
+func _option_2_blocks_elite() -> bool:
+	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
+		if Engine.get_main_loop() else null
+	if gs == null or not ("current_campaign" in gs) or gs.current_campaign == null:
+		return false
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
+		return false
+	var pd: Dictionary = campaign.progress_data
+	var options: Variant = pd.get("progressive_difficulty_options", [])
+	if not (options is Array) or (options as Array).is_empty():
+		return false
+	var tracker := load("res://src/core/systems/ProgressiveDifficultyTracker.gd")
+	if tracker == null or not tracker.has_method("option_2_selected"):
+		return false
+	if not tracker.option_2_selected(options):
+		return false
+	var target: int = tracker.option_2_elite_target(int(pd.get("turns_played", 0)))
+	if target <= 1:
+		return false                      # turn 20+: "always"
+	if target >= tracker.OPTION_2_ELITE_NEVER:
+		return true                       # before turn 14: no elite enemies yet
+	return randi_range(1, 6) < target
+
+
+## The core-rulebook encounter tables, with the p.48 elite substitution skipped.
+## Split out so the Option 2 branch above can reach them without duplicating the
+## D100 walk — two copies of a table roll is how the two drift apart.
+func _roll_core_enemy_in_category(category_id: String) -> Dictionary:
+	for category_data in enemy_data.get("enemy_categories", []):
+		if category_data.get("id", "") == category_id:
+			var enemies: Array = category_data.get("enemies", [])
+			if enemies.is_empty():
+				return {}
+			var roll: int = randi_range(1, 100)
+			for enemy in enemies:
+				var r: Array = enemy.get("roll_range", [0, 0])
+				if r.size() >= 2 and roll >= r[0] and roll <= r[1]:
+					return enemy
+			return enemies.pick_random()
+	return {}
+
 
 func _find_enemy_template_by_name(enemy_name: String) -> Dictionary:
 	## Search all categories for an enemy matching the given name.

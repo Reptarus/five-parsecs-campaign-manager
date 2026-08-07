@@ -41,6 +41,13 @@ const RIVAL_FLEE_ROUND_THRESHOLD := 4
 ## before Round 6 becomes a casualty."
 const INVASION_HOLD_ROUNDS := 6
 
+## p.151: "The opposition will operate in teams of 4 figures... set up 4 teams at
+## the midway line". Mirrored in data/black_zone_jobs.json `opposition`; kept as
+## named constants here for the same reason as RED_ZONE_BASE_FIGURES, so the
+## setup notes and the enemy count cannot drift apart.
+const BLACK_ZONE_TEAM_SIZE := 4
+const BLACK_ZONE_INITIAL_TEAMS := 4
+
 
 static func _empty_bundle() -> Dictionary:
 	return {
@@ -83,7 +90,80 @@ static func compute(
 	_apply_deployment_condition(b, mission_data, enemy_count, crew_count)
 	_apply_patron_conditions(b, mission_data)
 	_apply_expanded_quest_step(b, mission_data)
+	_apply_black_zone(b, mission_data)
 	return b
+
+
+## Black Job set-up, opposition and ending (Core Rules Appendix III pp.150-151).
+##
+## THE GAP THIS FILLS: BlackZoneSystem exposed `get_setup_rules()`,
+## `get_opposition_rules()`, `get_active_passive_rules()` and `get_ending_rules()`
+## — all four byte-faithful to the book, all four with ZERO callers. So a Black
+## Job rolled its D10 "Your Day in Hell" objective, printed it once on the prep
+## screen, and then played out as an ordinary battle: normal Deployment
+## Conditions, a Notable Sight, an ordinary rolled enemy count, and fleeing cost
+## nothing.
+##
+## Applied LAST so its absolutes overwrite anything an earlier applier set. That
+## ordering is the rule, not a convenience: p.151 says "There are no Notable
+## Sights or Deployment Conditions in effect" without qualification.
+static func _apply_black_zone(b: Dictionary, mission_data: Dictionary) -> void:
+	if not bool(mission_data.get("is_black_zone", false)):
+		return
+
+	b["sources"].append("Black Job (Core Rules Appendix III pp.150-151)")
+
+	# p.151 Set-up, verbatim: "There are no Notable Sights or Deployment
+	# Conditions in effect. You may still roll to Seize the Initiative, and may
+	# even claim a +1 bonus."
+	b["can_seize_initiative"] = true
+	b["setup_notes"].append(
+		"Black Job: no Notable Sights and no Deployment Conditions. You may still "
+		+ "roll to Seize the Initiative, with a +1 bonus (p.151).")
+
+	# p.151 Ending, verbatim: "You can end the mission by fleeing normally, but any
+	# crew member that flees from the battlefield automatically becomes a casualty,
+	# and must test for post-battle Injuries."
+	#
+	# This reuses the flag the p.92 Invasion rule already owns — same rule, same
+	# consumer (the in-battle HUD reminder), so there is one enforcement site
+	# rather than two that can drift.
+	b["early_leave_is_casualty"] = true
+	b["setup_notes"].append(
+		"Black Job: any crew member who flees the battlefield automatically "
+		+ "becomes a casualty and must test for post-battle Injuries (p.151).")
+
+	# p.151 Opposition, verbatim: "The opposition will operate in teams of 4
+	# figures. Enemies that have Specialists will have one in each team. When the
+	# battle begins, set up 4 teams at the midway line between their battlefield
+	# edge and the half-way point of the battlefield. The teams should be
+	# equidistant."
+	b["setup_notes"].append(
+		"Black Job opposition: %d teams of %d, all Active, set up equidistant along "
+		% [BLACK_ZONE_INITIAL_TEAMS, BLACK_ZONE_TEAM_SIZE]
+		+ "the midway line between the enemy edge and the centre of the table. Each "
+		+ "team that has Specialists gets one (p.151).")
+	b["setup_notes"].append(
+		"Black Job: a further team of %d arrives at the END OF EVERY ROUND, "
+		% BLACK_ZONE_TEAM_SIZE
+		+ "entering Passive from a random neutral edge (p.151).")
+
+	# p.150-151, the D10 "Your Day in Hell" row that was rolled and then ignored.
+	# Only row 3-4 changes the setup bundle; the rest are objective text the
+	# objective tracker and the Battle Card carry.
+	var bz: Variant = mission_data.get("black_zone_mission", {})
+	if bz is Dictionary and not (bz as Dictionary).is_empty():
+		var row: Dictionary = bz
+		var mission_name: String = str(row.get("name", ""))
+		if not mission_name.is_empty():
+			b["setup_notes"].append("Your Day in Hell — %s: %s" % [
+				mission_name, str(row.get("description", ""))])
+		# "Hold against assault: You must hold out for 10 rounds. You Win at the
+		# end of Round 10." hold_rounds already has four consumers, so this is a
+		# wire rather than a new key.
+		var rounds: int = int(row.get("required_rounds", 0))
+		if rounds > 0:
+			b["hold_rounds"] = rounds
 
 
 ## Expanded Quest Progression (Compendium p.79) setup effects.

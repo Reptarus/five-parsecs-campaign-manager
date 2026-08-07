@@ -11,6 +11,7 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const CharacterRef = preload("res://src/core/character/Character.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
+const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
 
 # Autoload references (resolved by PostBattlePhase orchestrator in _ready())
 var dice_manager: Variant = null
@@ -1191,7 +1192,10 @@ func damage_random_equipment() -> String:
 	var candidates: Array = []
 	for i in range(items.size()):
 		var entry: Variant = items[i]
-		if entry is Dictionary and not bool(entry.get("damaged", false)):
+		# Shared predicate: p.131 Loot marks damage as `needs_repair` too, and
+		# reading only `damaged` here would let this event "break" an item the
+		# player already knows is broken — a no-op the player is told happened.
+		if entry is Dictionary and not EquipmentTransferService.is_item_damaged(entry):
 			candidates.append(i)
 	if candidates.is_empty():
 		return ""
@@ -1199,6 +1203,10 @@ func damage_random_equipment() -> String:
 	var item: Dictionary = items[idx]
 	item["damaged"] = true
 	item["damage_source"] = "Campaign Event: Equipment Malfunction (Core Rules p.127)"
+	# p.53: "If the weapon is damaged, any Sight attached also becomes damaged."
+	# A fitted Sight is no longer a separate item, so nothing else would ever
+	# reach it — the damage has to be propagated at the moment the weapon breaks.
+	WeaponModServiceRef.propagate_damage_to_sight(item)
 	return str(item.get("name", "an item"))
 
 func apply_permanent_stat_reduction(crew_id: String, stats: Array, amount: int) -> Dictionary:

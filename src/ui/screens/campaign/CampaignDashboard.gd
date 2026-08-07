@@ -1212,9 +1212,8 @@ func _build_world_section(campaign) -> void:
 					str(planet.missions_completed),
 					COLOR_EMERALD
 				))
-			# Exploration progress bar
-			if planet.exploration_progress > 0.0:
-				_add_exploration_bar(planet.exploration_progress)
+			# No exploration bar: `exploration_progress` was a fabricated statistic
+			# (see PlanetDetailBuilder). Removed Aug 2026; do not re-add.
 			# Special features
 			if not planet.special_features.is_empty():
 				right_vbox.add_child(_create_info_row(
@@ -1573,37 +1572,6 @@ func _build_narrative_status(campaign) -> void:
 
 # ── World Section Helpers ─────────────────────────────────────────
 
-func _add_exploration_bar(progress: float) -> void:
-	## Add a styled exploration progress bar to the world section.
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", SPACING_SM)
-	var lbl := Label.new()
-	lbl.text = "Explored"
-	lbl.custom_minimum_size.x = 90
-	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	lbl.add_theme_color_override("font_color", COLOR_TEXT_MUTED)
-	row.add_child(lbl)
-	var bar := ProgressBar.new()
-	bar.custom_minimum_size = Vector2(0, 16)
-	bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bar.max_value = 1.0
-	bar.value = progress
-	bar.show_percentage = false
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = COLOR_BORDER
-	bg.set_corner_radius_all(4)
-	bar.add_theme_stylebox_override("background", bg)
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = COLOR_EMERALD
-	fill.set_corner_radius_all(4)
-	bar.add_theme_stylebox_override("fill", fill)
-	row.add_child(bar)
-	var pct := Label.new()
-	pct.text = "%d%%" % int(progress * 100)
-	pct.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	pct.add_theme_color_override("font_color", COLOR_EMERALD)
-	row.add_child(pct)
-	right_vbox.add_child(row)
 
 func _on_event_7_play_now_pressed() -> void:
 	## Player chose to play Story Track Event 7 immediately (Core Rules p.159).
@@ -2871,6 +2839,11 @@ func _build_hof_panel() -> PanelContainer:
 			if victory:
 				status_lbl.text = "VICTORY — %d Story Points" % archive.get("story_points", 0)
 				status_lbl.add_theme_color_override("font_color", COLOR_EMERALD)
+			elif str(archive.get("ended_by", "")) == "retired":
+				# Core Rules p.8 — the crew "made it big and can retire". A chosen
+				# ending, not the same thing as a campaign that merely ran long.
+				status_lbl.text = "RETIRED — Turn %d" % archive.get("turns_survived", 0)
+				status_lbl.add_theme_color_override("font_color", COLOR_AMBER)
 			else:
 				status_lbl.text = "Ended — Turn %d" % archive.get("turns_survived", 0)
 				status_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)

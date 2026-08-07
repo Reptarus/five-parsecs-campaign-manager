@@ -14,9 +14,22 @@ const NewWorldArrivalClass = preload("res://src/core/campaign/NewWorldArrival.gd
 const TravelEventResolverClass = preload("res://src/core/world/TravelEventResolver.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
+## p.150 Black Job advantage: three immediate Military Weapon Table rolls into
+## the ship stash. The stash has ONE mutation API (data-ownership table).
+const EquipmentTransferServiceScript = preload(
+	"res://src/core/equipment/EquipmentTransferService.gd")
+const StartingEquipmentGeneratorScript = preload(
+	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const WorldGeneratorClass = preload("res://src/core/campaign/WorldGenerator.gd")
+const InterdictionRuleRef = preload("res://src/core/world/InterdictionRule.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
+const OnboardItemUseDialogScript = preload(
+	"res://src/ui/components/dialogs/OnboardItemUseDialog.gd")
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const InvasionFlightRef = preload("res://src/core/campaign/InvasionFlight.gd")
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
+const ShiplessSystemRef = preload("res://src/core/ship/ShiplessSystem.gd")
 
 # Five Parsecs dependencies
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
@@ -60,6 +73,7 @@ var _travel_event_depth: int = 0
 var _forced_travel_battle: Dictionary = {}
 ## p.60 Emergency Take-off — only present while the hull is damaged.
 var _emergency_button: Button = null
+var _onboard_button: Button = null
 ## Starship fuel (p.79) spent against the most recent trip, for the status line.
 var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
@@ -131,6 +145,11 @@ func initialize_upkeep_phase(ship: Dictionary, crew: Array) -> void:
 
 	# Reset state for new calculation
 	upkeep_completed = false
+	# On-board items that pay out "each campaign turn" (Core Rules p.58: Purifier,
+	# Lucky dice, Loaded dice) resolve BEFORE the upkeep figure is shown, so the
+	# credits they earn are part of what the player is deciding with.
+	_resolve_onboard_turn_income()
+	_ensure_onboard_items_button()
 	# Auto-calculate costs immediately so the player sees real values on entry
 	current_upkeep_data = calculate_upkeep_costs()
 	_update_ui_display()
@@ -141,6 +160,117 @@ func initialize_upkeep_phase(ship: Dictionary, crew: Array) -> void:
 			"ship_data": ship_data,
 			"crew_size": crew_data.size()
 		})
+
+## On-board Items that pay out "Each campaign turn" (Core Rules p.58).
+##
+## Purifier "generate clean water which can be sold off for 1 credit"; Lucky dice
+## "+1 credit"; Loaded dice "Roll 1D6. On a 1-4, earn that many credits..." — all
+## three were inert because `EquipmentManager.get_onboard_item_effect()`, the only
+## function that knew what they did, was called exclusively from the dead
+## `phases/TravelPhase.gd`.
+##
+## The service rolls and stamps the turn; the CREDITS are written here, through
+## GameStateManager, because credits are owned by the campaign (data-ownership
+## table) and a static service must not reach for a singleton.
+func _resolve_onboard_turn_income() -> void:
+	var campaign = _get_campaign_for_interdiction()
+	if campaign == null:
+		return
+	var turn: int = _current_campaign_turn()
+	var income: Dictionary = OnboardItemServiceRef.resolve_turn_income(campaign, turn)
+	var lines: Array = income.get("lines", [])
+	if lines.is_empty():
+		return
+
+	var credits: int = int(income.get("credits", 0))
+	if credits > 0:
+		GameStateManager.modify_credits(credits)
+
+	# p.58 Loaded dice on a 6: "the crew member must roll on the post-battle
+	# Injury Table." Surfaced as an instruction rather than rolled here — this is
+	# a companion app and the Injury Table lives in the post-battle sequence.
+	if bool(income.get("injury_roll_required", false)):
+		lines.append("A crew member must roll on the post-battle Injury Table (p.58).")
+
+	var text: String = "\n".join(PackedStringArray(lines))
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_info"):
+		notif.show_info("On-board items: +%d credits" % credits)
+	var jr: Node = get_node_or_null("/root/CampaignJournal")
+	if jr and jr.has_method("create_entry"):
+		jr.create_entry({
+			"type": "upkeep", "auto_generated": true,
+			"title": "On-board Items (+%d credits)" % credits,
+			"description": text,
+			"tags": ["onboard_items", "upkeep"],
+		})
+
+
+## Opener for the p.57-58 single-use On-board Items.
+##
+## Sits in the Upkeep step because that is the first World Phase step, so an item
+## the player uses here (Colonist Ration Packs waiving Upkeep, a Med-patch
+## freeing a crew member from Sick Bay before tasks are assigned) can still
+## affect the turn it is spent on. Built in code and appended to the existing
+## HFlowContainer, matching `_ensure_emergency_takeoff_button`.
+##
+## HIDDEN when the Stash holds no single-use on-board item — a button that always
+## opens an empty list trains the player to ignore it.
+func _ensure_onboard_items_button() -> void:
+	var usable: Array = OnboardItemServiceRef.usable_items(
+		_get_campaign_for_interdiction())
+	if _onboard_button and is_instance_valid(_onboard_button):
+		_onboard_button.visible = not usable.is_empty()
+		_onboard_button.text = "On-board Items (%d)" % usable.size()
+		return
+	if usable.is_empty():
+		return
+	var host: Node = get_node_or_null("%ManualCalculateButton")
+	if host == null or host.get_parent() == null:
+		return
+	_onboard_button = Button.new()
+	_onboard_button.text = "On-board Items (%d)" % usable.size()
+	_onboard_button.tooltip_text = (
+		"Use a single-use On-board Item (Core Rules pp.57-58)")
+	_onboard_button.accessibility_name = "Use an on-board item"
+	_onboard_button.custom_minimum_size = Vector2(0, 48)
+	_onboard_button.pressed.connect(_on_onboard_items_pressed)
+	host.get_parent().add_child(_onboard_button)
+
+
+func _on_onboard_items_pressed() -> void:
+	var campaign = _get_campaign_for_interdiction()
+	if campaign == null:
+		return
+	var dialog: Window = OnboardItemUseDialogScript.new()
+	get_tree().root.add_child(dialog)
+	dialog.item_used.connect(_on_onboard_item_used)
+	dialog.show_items(campaign, _live_crew_for_onboard(campaign))
+
+
+func _live_crew_for_onboard(campaign: Variant) -> Array:
+	## The LIVE crew array, not a copy — an XP award or a Med-patch written to a
+	## duplicate would be discarded silently. crew_data on this component is a
+	## `.duplicate()` (see initialize_upkeep_phase), which is exactly that trap.
+	if campaign != null and "crew_data" in campaign:
+		var cd: Variant = campaign.crew_data
+		if cd is Dictionary:
+			var members: Variant = (cd as Dictionary).get("members", null)
+			if members is Array:
+				return members
+	return []
+
+
+func _on_onboard_item_used(_item_id: String, summary: String) -> void:
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success(summary)
+	# The item may have waived Upkeep or changed who is in Sick Bay, so the
+	# figure on screen is stale the moment the dialog closes.
+	current_upkeep_data = calculate_upkeep_costs()
+	_update_ui_display()
+	_ensure_onboard_items_button()
+
 
 ## Core Five Parsecs upkeep calculation (Core Rules p.76)
 func calculate_upkeep_costs() -> Dictionary:
@@ -159,6 +289,18 @@ func calculate_upkeep_costs() -> Dictionary:
 		results.can_afford = true
 		results["zone_waiver"] = (
 			"Black Zone: Upkeep waived, ship loan frozen")
+		return results
+
+	# Colonist ration packs (Core Rules p.57): "Ignore Upkeep costs for one
+	# campaign turn." The packs are spent from the On-board Items dialog, which
+	# stamps the turn; this is the consumer. Same early-return shape as the Black
+	# Zone waiver directly above so both waivers behave identically.
+	if OnboardItemServiceRef.upkeep_is_waived(
+			_get_campaign_for_interdiction(), _current_campaign_turn()):
+		results.current_credits = GameStateManager.get_credits()
+		results.can_afford = true
+		results["zone_waiver"] = (
+			"Colonist Ration Packs: Upkeep ignored this campaign turn (p.57)")
 		return results
 
 	# Get current credits from campaign data
@@ -950,10 +1092,23 @@ func _update_travel_button_text(
 			return
 		_remove_emergency_takeoff_button()
 
+	# Core Rules p.69 draws a hard line between the two reasons a crew is short of
+	# fuel. On an ordinary turn: "If you do not have the money, you are stuck
+	# until you do" — the disabled button below IS that rule. While fleeing an
+	# Invasion the book instead hands out two escape routes ("you can sell off
+	# gear at a loss... or abandon the ship and take evacuation passage"), so
+	# leaving the button disabled there would strand the crew on a world the book
+	# says they must leave. _fund_invasion_flight() runs the routes on press.
+	var fleeing: bool = _invasion_pending() or bool(
+		_campaign_progress_data().get("invasion_flight_pending", false))
+
 	if has_ship:
 		if credits >= SHIP_TRAVEL_COST:
 			_travel_button.text = (
 				"Travel to New World (%d cr)" % SHIP_TRAVEL_COST)
+			_travel_button.disabled = false
+		elif fleeing:
+			_travel_button.text = "Flee the Invasion (sell gear or abandon ship)"
 			_travel_button.disabled = false
 		else:
 			_travel_button.text = (
@@ -964,6 +1119,9 @@ func _update_travel_button_text(
 		if credits >= cost:
 			_travel_button.text = (
 				"Commercial Passage (%d cr)" % cost)
+			_travel_button.disabled = false
+		elif fleeing:
+			_travel_button.text = "Flee the Invasion (evacuation passage)"
 			_travel_button.disabled = false
 		else:
 			_travel_button.text = (
@@ -996,15 +1154,54 @@ func _apply_story_forced_travel() -> void:
 
 func _on_stay_pressed() -> void:
 	## Handle stay in current location
+	#
+	# Interdiction (Core Rules p.75): "You are only approved to stay for 1D3
+	# campaign turns. To extend your stay, you must obtain a license. Roll 2D6,
+	# requiring an 8+." The roll is made HERE, at the moment the player tries to
+	# overstay — one attempt, and a refusal means the crew has to move on. Mirrors
+	# the Bureaucratic-mess check on the Travel button so the two restrictions sit
+	# symmetrically on the two buttons they each govern.
+	var stay_campaign = _get_campaign_for_interdiction()
+	var stay_turn: int = _current_campaign_turn()
+	if InterdictionRuleRef.blocks_stay(stay_campaign, stay_turn):
+		var attempt: Dictionary = InterdictionRuleRef.attempt_stay_license(
+			stay_campaign, _get_current_world_traits())
+		var line: String = str(attempt.get("line", ""))
+		if not bool(attempt.get("success", false)):
+			_travel_status_label.text = (
+				"Interdiction: your approved stay has expired. %s "
+				% line + "You must travel this campaign turn (p.75).")
+			_travel_status_label.add_theme_color_override(
+				"font_color", UIColors.COLOR_AMBER)
+			_travel_status_label.visible = true
+			return
+		_travel_status_label.text = "Interdiction: %s Stay extended." % line
+
 	selected_zone = 0
 	travel_decision_made = true
 	chose_to_travel = false
 	_update_travel_ui_after_decision()
-	_travel_status_label.text = "✓ Staying in current location"
+	if not str(_travel_status_label.text).begins_with("Interdiction:"):
+		_travel_status_label.text = "✓ Staying in current location"
 	_travel_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_EMERALD)
 	_travel_status_label.visible = true
 	_update_gating_state()
+
+
+func _get_campaign_for_interdiction():
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") \
+		else null
+
+
+func _current_campaign_turn() -> int:
+	var campaign = _get_campaign_for_interdiction()
+	if campaign == null or not ("progress_data" in campaign):
+		return 0
+	return int(campaign.progress_data.get("turns_played", 0))
 
 func _ensure_emergency_takeoff_button() -> void:
 	## Core Rules p.60. Offered only while the hull is damaged, and destructive
@@ -1076,8 +1273,19 @@ func _on_travel_pressed() -> void:
 
 	# Flee Invasion (Core Rules p.69) — resolved BEFORE anything is paid for or
 	# generated, because a failed roll means the crew does not leave at all.
-	if _invasion_pending() and not _attempt_invasion_escape():
+	#
+	# Captured BEFORE the attempt: _attempt_invasion_escape() clears the pending
+	# flag in both branches, so reading _invasion_pending() afterwards would say
+	# "ordinary departure" for the very trip the p.69 consequences govern.
+	var fleeing: bool = _invasion_pending()
+	if fleeing and not _attempt_invasion_escape():
 		return
+	# The other route out: a FAILED roll pins the crew here for a forced Invasion
+	# Battle, and p.69 continues "if you survive the Invasion Battle, you make it
+	# off the world". That departure is this handler on a LATER turn, so the debt
+	# is carried on the campaign rather than inferred from a flag that is gone.
+	if not fleeing:
+		fleeing = _consume_pending_invasion_flight()
 
 	# "Bureaucratic mess — When attempting to leave, you must roll 2D6. On a 2-4,
 	# you are delayed and cannot leave this campaign turn without a bribe equal
@@ -1140,7 +1348,23 @@ func _on_travel_pressed() -> void:
 
 	travel_cost = _apply_fuel_credits(travel_cost)
 
+	# p.69's two escape routes, which exist ONLY while fleeing an Invasion. On an
+	# ordinary turn the book is the opposite — "If you do not have the money, you
+	# are stuck until you do" — which is why the Travel button stays disabled then.
+	var _flight_note: String = ""
+	if fleeing:
+		var funding: Dictionary = _fund_invasion_flight(travel_cost)
+		travel_cost = int(funding.get("cost", travel_cost))
+		_flight_note = str(funding.get("note", ""))
+
 	GameStateManager.modify_credits(-travel_cost)
+
+	# "Regardless of how you leave, all Rivals, Patrons, and other people known to
+	# your crew on this world are lost." Applied AFTER the flight is funded, so a
+	# route that fails cannot strip the crew's contacts on a trip that never
+	# happened.
+	if fleeing:
+		_flight_note += _apply_invasion_contact_loss()
 
 	travel_decision_made = true
 	chose_to_travel = true
@@ -1148,6 +1372,7 @@ func _on_travel_pressed() -> void:
 	_travel_status_label.text = (
 		"✓ Traveling to new world (-%d cr)" % travel_cost
 		+ _trait_note
+		+ _flight_note
 		+ ("  [%d cr covered by fuel]" % _fuel_offset_last_trip
 			if _fuel_offset_last_trip > 0 else ""))
 	_travel_status_label.add_theme_color_override(
@@ -1227,6 +1452,17 @@ func _build_crew_management_entry(vbox: VBoxContainer) -> void:
 	vbox.add_child(row)
 
 const MEDICAL_CARE_COST := 4  # Core Rules p.76
+
+
+## Core Rules p.73, verbatim: "Medical science — The cost for accelerated medical
+## care is only 3 credits per character."
+##
+## `WorldTraitEffects.medical_care_cost()` implemented this and had ZERO callers,
+## so the trait was flavour text and every world charged 4. Read live rather than
+## cached: the crew can travel between builds of this panel.
+func _medical_care_cost() -> int:
+	return WorldTraitEffectsClass.medical_care_cost(
+		MEDICAL_CARE_COST, _get_current_world_traits())
 
 
 func _refresh_after_upkeep_payment() -> void:
@@ -1339,7 +1575,10 @@ func _build_medical_care_entry(vbox: VBoxContainer) -> void:
 	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
 
 	var header := Label.new()
-	header.text = "Medical Care — %d cr removes 1 turn of recovery (p.76)" % MEDICAL_CARE_COST
+	var med_cost: int = _medical_care_cost()
+	header.text = "Medical Care — %d cr removes 1 turn of recovery (p.76)%s" % [
+		med_cost,
+		"  [Medical science, p.73]" if med_cost != MEDICAL_CARE_COST else ""]
 	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(header)
 
@@ -1356,11 +1595,11 @@ func _build_medical_care_entry(vbox: VBoxContainer) -> void:
 		row.add_child(label)
 
 		var btn := Button.new()
-		btn.text = "Treat (%d cr)" % MEDICAL_CARE_COST
+		btn.text = "Treat (%d cr)" % med_cost
 		btn.accessibility_name = "Pay %d credits to speed %s's recovery by one turn" % [
-			MEDICAL_CARE_COST, str(entry.get("name", "this crew member"))]
+			med_cost, str(entry.get("name", "this crew member"))]
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-		btn.disabled = credits < MEDICAL_CARE_COST
+		btn.disabled = credits < med_cost
 		btn.pressed.connect(_on_pay_medical_care.bind(str(entry.get("id", ""))))
 		row.add_child(btn)
 
@@ -1419,7 +1658,8 @@ func _on_pay_medical_care(member_id: String) -> void:
 	if gsm == null or campaign == null or member_id.is_empty():
 		return
 	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
-	if credits < MEDICAL_CARE_COST:
+	var med_cost: int = _medical_care_cost()
+	if credits < med_cost:
 		return
 
 	var crew: Array = []
@@ -1440,12 +1680,12 @@ func _on_pay_medical_care(member_id: String) -> void:
 	if not treated:
 		return
 	if gsm.has_method("modify_credits"):
-		gsm.modify_credits(-MEDICAL_CARE_COST)
+		gsm.modify_credits(-med_cost)
 
 	var notif: Node = get_node_or_null("/root/NotificationManager")
 	if notif and notif.has_method("show_success"):
 		notif.show_success("Paid %d cr — %s recovers one turn sooner." % [
-			MEDICAL_CARE_COST, treated_name])
+			med_cost, treated_name])
 	_refresh_after_upkeep_payment()
 
 
@@ -1840,14 +2080,53 @@ func repair_hull_points(points: int) -> int:
 	if from_parts > 0 and not pd.is_empty():
 		pd["repair_part_credits"] = parts - from_parts
 
-	var from_credits: int = want - from_parts
+	# Compendium p.147, verbatim: "When purchasing any of the following, you may
+	# cash in Salvage to offset the cost in Credits. 1 unit of Salvage equals 1
+	# Credit ONLY when purchasing: Ship repairs / Ship modules / Bot upgrades."
+	#
+	# Spent after banked repair parts and BEFORE credits: parts are repair-only,
+	# salvage buys three things, credits buy everything and pay Upkeep — so this
+	# order always leaves the player with the most flexible currency.
+	var from_salvage: int = 0
+	var _campaign_for_salvage: Resource = _get_campaign_resource()
+	if _campaign_for_salvage != null:
+		var offset: Dictionary = SalvageLedgerRef.apply_offset(
+			_campaign_for_salvage, want - from_parts,
+			SalvageLedgerRef.PURPOSE_SHIP_REPAIR)
+		from_salvage = int(offset.get("salvage_applied", 0))
+
+	# Core Rules p.73, verbatim: "Lacks starship facilities — You cannot spend more
+	# than 3 credits per campaign turn on starship Repairs."
+	#
+	# `WorldTraitEffects.repair_credit_cap()` implemented this and had ZERO callers,
+	# so the trait was a paragraph of text and the world you landed on made no
+	# difference. The cap is on CREDITS specifically — banked repair parts (p.79)
+	# and cashed-in Salvage (Compendium p.147) are not credits, so they are
+	# deliberately outside it, which is also what makes the trait survivable.
+	var from_credits: int = want - from_parts - from_salvage
+	var repair_cap: int = WorldTraitEffectsClass.repair_credit_cap(
+		_get_current_world_traits())
+	if repair_cap >= 0 and from_credits > 0:
+		var already: int = int(_campaign_progress_data().get(
+			"repair_credits_spent_this_turn", 0))
+		from_credits = mini(from_credits, maxi(0, repair_cap - already))
+
 	if from_credits > 0:
 		var available: int = int(GameStateManager.get_credits())
 		from_credits = mini(from_credits, available)
 		if from_credits > 0:
 			GameStateManager.modify_credits(-from_credits)
+			# Tracked unconditionally, not only while the trait is active: the crew
+			# can repair, then travel to a Lacks-starship-facilities world in the
+			# same turn, and the cap must count what they already spent.
+			var pd_repair: Resource = _get_campaign_resource()
+			if pd_repair != null and "progress_data" in pd_repair \
+					and pd_repair.progress_data is Dictionary:
+				pd_repair.progress_data["repair_credits_spent_this_turn"] = int(
+					pd_repair.progress_data.get(
+						"repair_credits_spent_this_turn", 0)) + from_credits
 
-	var repaired: int = from_parts + from_credits
+	var repaired: int = from_parts + from_salvage + from_credits
 	if repaired > 0 and GameStateManager.has_method("repair_hull"):
 		GameStateManager.repair_hull(repaired)
 	return repaired
@@ -1922,6 +2201,16 @@ func _attempt_invasion_escape() -> bool:
 
 	# Failed: the crew is pinned here and must fight.
 	_clear_pending_invasion()
+	# p.69: "if you survive the Invasion Battle, you make it off the world and
+	# travel to a new planet". That departure is a later press of Travel, so the
+	# p.69 consequences ride on the campaign until it happens.
+	# Guarded on the CAMPAIGN, not on `pd.is_empty()`. An empty progress_data is a
+	# legal state, so an is_empty() guard would silently drop the write for exactly
+	# the campaigns that have not stored anything yet.
+	var _campaign_flight: Resource = _get_campaign_resource()
+	if _campaign_flight != null and "progress_data" in _campaign_flight \
+			and _campaign_flight.progress_data is Dictionary:
+		_campaign_flight.progress_data["invasion_flight_pending"] = true
 	_forced_invasion_mission = _build_invasion_mission()
 	_journal_invasion("Trapped by the invasion",
 		"Failed to get off-world — %s. An Invasion Battle is unavoidable (Core Rules p.69)." % detail)
@@ -1934,6 +2223,123 @@ func _attempt_invasion_escape() -> bool:
 		_travel_status_label.visible = true
 	_update_gating_state()
 	return false
+
+func _roll_freelancer_licence(campaign: Resource) -> void:
+	## Core Rules p.72 step 3. The requirement is PER WORLD and permanent, so the
+	## roll is keyed to the planet id and never repeated for a world already
+	## checked — otherwise a reload would let the player re-roll until the world
+	## came up unlicensed.
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not ("current_planet_id" in pdm):
+		return
+	var planet_id: String = str(pdm.current_planet_id)
+	if planet_id.is_empty():
+		return
+	var outcome: Dictionary = NewWorldArrivalClass.roll_licensing_requirement(
+		campaign, planet_id)
+	if not bool(outcome.get("applies", false)):
+		return
+	var line: String = ("This world licenses freelance work: a Freelancer License "
+		+ "costs %d credits and is required for Patron jobs (Core Rules p.72). "
+		% int(outcome.get("fee", 0))
+		+ "You may also try to forge one.")
+	var jr: Node = get_node_or_null("/root/CampaignJournal")
+	if jr and jr.has_method("create_entry"):
+		jr.create_entry({
+			"type": "travel", "auto_generated": true,
+			"title": "Freelancer License required", "description": line,
+			"tags": ["world", "patron", "license"],
+		})
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning("Freelancer License required here (%d cr)"
+			% int(outcome.get("fee", 0)))
+
+
+func _consume_pending_invasion_flight() -> bool:
+	## True exactly once, on the departure that follows a survived Invasion Battle.
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty() or not bool(pd.get("invasion_flight_pending", false)):
+		return false
+	pd.erase("invasion_flight_pending")
+	return true
+
+
+func _fund_invasion_flight(travel_cost: int) -> Dictionary:
+	## Core Rules p.69, the two escape routes, in the order the book lists them:
+	##   "If you don't have the 5 credits needed for fuel, you can sell off gear
+	##    at a loss (receiving 1 credit per two items sold), or abandon the ship
+	##    and take evacuation passage, as below.
+	##    If you lack a ship, you flee on an evacuation ship. You lose all credits
+	##    you do have, plus 1D6 items from your Stash and equipment."
+	##
+	## Returns {cost, note}. `cost` is what the caller should actually charge:
+	## evacuation passage is not bought with credits, it is paid for by losing
+	## everything, so it returns 0.
+	var out: Dictionary = {"cost": travel_cost, "note": ""}
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return out
+
+	var credits: int = int(GameStateManager.get_credits())
+	if credits >= travel_cost:
+		return out
+
+	# Route 1 — sell gear at a loss. Only offered to a crew that still has a ship;
+	# a shipless crew is already on the evacuation-ship clause.
+	if has_ship:
+		var shortfall: int = travel_cost - credits
+		var sale: Dictionary = InvasionFlightRef.sell_gear_for_fuel(
+			campaign, shortfall)
+		var raised: int = int(sale.get("credits_raised", 0))
+		if raised > 0:
+			GameStateManager.modify_credits(raised)
+			credits += raised
+			out["note"] += "  [sold %d items for %d cr (p.69)]" % [
+				(sale.get("items_sold", []) as Array).size(), raised]
+		if credits >= travel_cost:
+			return out
+
+	# Route 2 — evacuation passage. A crew that still owns a ship abandons it here;
+	# that is the book's own phrasing ("abandon the ship and take evacuation
+	# passage"), and ShiplessSystem is the canonical owner of that transition.
+	var evac: Dictionary = InvasionFlightRef.evacuation_passage(
+		campaign, credits)
+	if int(evac.get("credits_lost", 0)) > 0:
+		GameStateManager.modify_credits(-int(evac.get("credits_lost", 0)))
+	if has_ship:
+		ShiplessSystemRef.apply_ship_destruction(campaign)
+		has_ship = false
+	var lost_items: Array = evac.get("items_lost", [])
+	out["cost"] = 0
+	out["note"] += "  [evacuation passage: lost all %d cr and %d of 1D6=%d items (p.69)]" % [
+		int(evac.get("credits_lost", 0)), lost_items.size(),
+		int(evac.get("roll", 0))]
+	_journal_invasion("Took evacuation passage",
+		"Abandoned the ship and fled on an evacuation ship — lost %d credits and %s (Core Rules p.69)."
+			% [int(evac.get("credits_lost", 0)),
+				", ".join(PackedStringArray(lost_items)) if not lost_items.is_empty()
+					else "nothing left to give"])
+	return out
+
+
+func _apply_invasion_contact_loss() -> String:
+	## p.69: "Regardless of how you leave, all Rivals, Patrons, and other people
+	## known to your crew on this world are lost."
+	var campaign: Resource = _get_campaign_resource()
+	if campaign == null:
+		return ""
+	var lost: Dictionary = InvasionFlightRef.lose_local_contacts(campaign)
+	var rivals: Array = lost.get("rivals_lost", [])
+	var patrons: Array = lost.get("patrons_lost", [])
+	if rivals.is_empty() and patrons.is_empty():
+		return ""
+	_journal_invasion("Left everyone behind",
+		"Fleeing the invasion cost the crew every contact on this world: %d Rival(s) and %d Patron(s) (Core Rules p.69)."
+			% [rivals.size(), patrons.size()])
+	return "  [lost %d Rival(s), %d Patron(s) on the invaded world (p.69)]" % [
+		rivals.size(), patrons.size()]
+
 
 func _record_invaded_world() -> void:
 	## The single call that un-dead-ends Core Rules p.126 step 14.
@@ -1955,6 +2361,76 @@ func _record_invaded_world() -> void:
 	if planet_id.is_empty():
 		return
 	campaign.record_invaded_planet(planet_id, planet_name)
+	_resolve_faction_invasion_response(planet_id, planet_name)
+
+func _resolve_faction_invasion_response(planet_id: String, planet_name: String) -> void:
+	## Compendium p.114 "Invasion!?", verbatim: "If the world is invaded, Factions
+	## typically flee off-world or dissolve. Once you know where you are ending up,
+	## roll 1D6 for each Faction with a Power of 4 or less: if the roll is below
+	## their Power, they flee to the same world but suffer -1 Power and -1
+	## Influence (to a minimum of 1 each); if the roll is equal to or higher than
+	## their Power, the Faction is destroyed... If any Faction has a Power of 5+,
+	## they will instead help fight it out. EACH SUCH FACTION ADDS +1 TO THE
+	## GALACTIC WAR PROGRESS TABLE."
+	##
+	## `FactionSystem.process_invasion()` implements every clause correctly and had
+	## ZERO callers, so an invasion left the world's factions completely untouched:
+	## none fled, none were destroyed, and the Power 5+ defenders contributed
+	## nothing to the p.126 Galactic War roll. This is the one place in the codebase
+	## that knows a world just became invaded, so the call belongs here.
+	var faction_sys: Node = get_node_or_null("/root/FactionSystem")
+	if faction_sys == null or not faction_sys.has_method("process_invasion"):
+		return
+	var results: Array = faction_sys.process_invasion(planet_id)
+	if results.is_empty():
+		return
+
+	var war_bonus: int = 0
+	var fled: Array[String] = []
+	var lost: Array[String] = []
+	var fought: Array[String] = []
+	for r: Variant in results:
+		if not (r is Dictionary):
+			continue
+		var row: Dictionary = r
+		var fname: String = str(row.get("faction", ""))
+		match str(row.get("action", "")):
+			"fights":
+				fought.append(fname)
+				war_bonus += int(row.get("war_bonus", 0))
+			"flees":
+				fled.append(fname)
+			"destroyed":
+				lost.append(fname)
+
+	# "Each such Faction adds +1 to the Galactic War Progress table" — the Core
+	# Rules p.126 2D6 roll, made in post-battle step 14, a whole turn later.
+	#
+	# It goes onto the tracked planet's OWN `war_modifier`, the field
+	# record_invaded_planet() seeds at 0 and GalacticWarProcessor already reads
+	# (:39) and adds to the roll (:53). A new progress_data key would have been a
+	# second source of truth for the same number, needing a second consumer —
+	# which is how half the rows in this audit came to exist.
+	if war_bonus > 0:
+		var gs2 = get_node_or_null("/root/GameState")
+		if gs2 and gs2.current_campaign and "invaded_planets" in gs2.current_campaign:
+			for tracked: Variant in gs2.current_campaign.invaded_planets:
+				if tracked is Dictionary and str((tracked as Dictionary).get("id", "")) == planet_id:
+					tracked["war_modifier"] = int(tracked.get("war_modifier", 0)) + war_bonus
+					break
+
+	var parts: Array[String] = []
+	if not fought.is_empty():
+		parts.append("%s stayed to fight (+%d Galactic War Progress)"
+			% [", ".join(fought), war_bonus])
+	if not fled.is_empty():
+		parts.append("%s fled off-world (-1 Power, -1 Influence)" % ", ".join(fled))
+	if not lost.is_empty():
+		parts.append("%s were destroyed or scattered" % ", ".join(lost))
+	if not parts.is_empty():
+		_journal_invasion("Factions and the invasion of %s"
+			% (planet_name if planet_name != "" else planet_id),
+			"%s (Compendium p.114)." % "; ".join(parts))
 
 func _clear_pending_invasion() -> void:
 	var gsm = get_node_or_null("/root/GameStateManager")
@@ -2257,6 +2733,58 @@ func _on_black_zone_accepted() -> void:
 		return
 
 	_commit_zone_travel(2)
+	_grant_black_job_weapon_rolls(campaign)
+
+
+func _grant_black_job_weapon_rolls(campaign: Resource) -> void:
+	## Core Rules p.150 Black Job advantage, verbatim: "You may roll three times
+	## on the Weapon Table in the 'Loot' chapter, and CLAIM THE ITEMS
+	## IMMEDIATELY. You can keep them afterwards, too."
+	##
+	## Immediately, on acceptance — not a post-battle reward, and not contingent
+	## on winning. `BlackZoneSystem.get_turn_advantages()["free_weapon_rolls"]`
+	## has said 3 since the file was written and had zero callers, so the crew
+	## walked into the near-suicide mission with nothing extra.
+	##
+	## Routed through EquipmentTransferService because the ship stash has ONE
+	## mutation API (the data-ownership table); appending to
+	## equipment_data["equipment"] directly is banned and lint-flagged.
+	var advantages: Dictionary = BlackZoneSystem.get_turn_advantages()
+	var rolls: int = int(advantages.get("free_weapon_rolls", 3))
+	if rolls <= 0:
+		return
+
+	var dice: Node = get_node_or_null("/root/DiceManager")
+	var transfer = EquipmentTransferServiceScript.new(campaign)
+	var claimed: Array[String] = []
+	for _i in rolls:
+		var weapon_name: String = StartingEquipmentGeneratorScript.roll_on_weapon_table(
+			"military_weapon", dice)
+		if weapon_name.is_empty():
+			continue
+		transfer.add_loot_to_stash({
+			"name": weapon_name,
+			"type": "weapon",
+			"source": "Black Job advantage (Core Rules p.150)",
+		})
+		claimed.append(weapon_name)
+
+	if claimed.is_empty():
+		return
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("auto_create_milestone_entry"):
+		journal.auto_create_milestone_entry("black_job_accepted", {
+			"turn": int(campaign.progress_data.get("turns_played", 0)) \
+				if "progress_data" in campaign else 0,
+			"description": "Unity issued three weapons for the Black Job: %s"
+				% ", ".join(claimed),
+		})
+	_show_help_dialog(
+		"Unity Armory",
+		"Black Jobs come with Unity hardware (Core Rules p.150).\n\n"
+		+ "Three rolls on the Military Weapon Table, claimed immediately and"
+		+ " yours to keep:\n\n  • " + "\n  • ".join(claimed)
+		+ "\n\nThey are in the ship stash.")
 
 func _commit_zone_travel(zone: int) -> void:
 	## Finalize zone travel decision and update state
@@ -2573,6 +3101,29 @@ func _arrive_at_new_world() -> Dictionary:
 
 	_roll_psionic_legality_for_world(campaign, new_world)
 	_check_personal_trinkets(campaign)
+
+	# New World Arrival STEP 3 (Core Rules p.72): "Roll 1D6. On a 5-6 the world
+	# requires a Freelancer License to perform Patron jobs." Steps 1-2 were wired
+	# and step 3 did not exist, so no world ever licensed anything and the
+	# forged-licence gamble was unreachable. Rolled AFTER initialize_world so the
+	# planet id it is keyed to is the world just arrived at.
+	_roll_freelancer_licence(campaign)
+
+	# Interdiction (Core Rules p.75) — rolled AFTER initialize_world so the new
+	# world's traits are readable, and unconditionally so a licence granted on the
+	# world just left cannot carry forward to this one.
+	var interdiction: Dictionary = InterdictionRuleRef.apply_on_arrival(
+		campaign, _get_current_world_traits(), turn)
+	for line in interdiction.get("lines", []):
+		if _travel_status_label:
+			_travel_status_label.text = str(line)
+		var jr: Node = get_node_or_null("/root/CampaignJournal")
+		if jr and jr.has_method("create_entry"):
+			jr.create_entry({
+				"type": "travel", "auto_generated": true,
+				"title": "Interdiction", "description": str(line),
+				"tags": ["world_trait", "interdiction"],
+			})
 
 	# Mission-required travel (Core Rules p.119): traveling to a NEW world
 	# satisfies a Quest's "next step is on another world" requirement — clear it.

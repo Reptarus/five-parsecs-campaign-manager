@@ -60,12 +60,13 @@ static func build_into(vbox: VBoxContainer, planet: Object, owner: Node = null) 
 		"Missions Completed", str(planet.missions_completed),
 		UIColorsClass.COLOR_EMERALD
 	))
-	if planet.exploration_progress > 0.0:
-		vbox.add_child(_create_info_row(
-			"Exploration",
-			"%d%%" % int(planet.exploration_progress * 100),
-			UIColorsClass.COLOR_EMERALD
-		))
+	# NO "Exploration %" ROW. `exploration_progress` was a fabricated statistic —
+	# the phrase appears nowhere in the Core Rules or the Compendium, no rule
+	# consumed it, and its `exploration_progress_updated` signal had zero
+	# listeners. It accrued a flat 0.1 per mission (nothing ever wrote the
+	# `exploration_value` it read), so it showed a world reaching "100% explored"
+	# after ten missions and implied a completion mechanic that does not exist.
+	# Removed Aug 2026 under the fabricated-data rule. Do not re-add.
 
 	# Special features
 	if planet.special_features is Array and not planet.special_features.is_empty():

@@ -688,31 +688,44 @@ func _handle_roll_on_table() -> void:
 ## ── Loot Table Resolution (for ROLL_ON_TABLE) ────────────────────────
 
 const _LootConstants = preload("res://src/core/systems/LootSystemConstants.gd")
+const _LootRoller = preload("res://src/core/equipment/LootTableResolver.gd")
+## The pp.28-29 CREATION tables (Low-Tech Weapon / Gear / Gadget) live in
+## gear_database.json and are a different set from the p.131 Loot Table. Several
+## table entries cite them by page, and this dialog used to answer those cites
+## out of the Loot Table instead — see the two branches below.
+const _CreationTables = preload(
+	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 
 func _resolve_loot_roll(item_string: String) -> Array:
 	## Resolve a "(random)" item string into actual item names via loot subtables
 	if item_string.begins_with("Gear Loot") or item_string == "Gear (random)":
 		return [_roll_subtable(_LootConstants.get_gear_subtable_data())]
 	elif "Low Tech Weapon" in item_string:
-		# Melee weapons only
-		for entry in _LootConstants.get_weapon_subtable_data():
-			if entry is Dictionary and entry.get("category") == "melee_weapons":
-				var wpn_items: Array = entry.get("items", [])
-				if wpn_items.size() > 0:
-					return [wpn_items[randi() % wpn_items.size()]]
-		return [item_string]
+		# p.28 Low-Tech Weapon Table — Handgun, Scrap Pistol, Colony Rifle,
+		# Shotgun, Blade and friends. This used to pull from the LOOT table's
+		# melee_weapons subtable, handing over a Power Claw / Suppression Maul /
+		# Glare Sword / Ripper Sword: the wrong table, and far better gear than
+		# the book pays. Identical bug to CrewTaskComponent.gd, which was fixed
+		# in isolation while this copy kept shipping it.
+		return _roll_creation_table("low_tech_weapon", item_string)
 	elif "Gadget" in item_string:
-		# Gun mods + sights from gear subtable
-		var gadget_pool: Array = []
-		for entry in _LootConstants.get_gear_subtable_data():
-			if entry is Dictionary and entry.get("category", "") in ["gun_mods", "gun_sights"]:
-				gadget_pool.append_array(entry.get("items", []))
-		if gadget_pool.size() > 0:
-			return [gadget_pool[randi() % gadget_pool.size()]]
-		return [item_string]
+		# p.29 Gadget Table — its own 22-row D100 table, not gun mods + sights.
+		return _roll_creation_table("gadget", item_string)
 	else:
 		# Full main loot table roll
 		return _roll_main_loot()
+
+## Roll once on a pp.28-29 creation table via the shared generator, so there is
+## one roller per table rather than a private copy in every dialog.
+func _roll_creation_table(table_name: String, fallback: String) -> Array:
+	var dice_manager: Node = get_node_or_null("/root/DiceManager")
+	var rolled: Array = _CreationTables.generate_bonus_equipment([table_name], dice_manager)
+	var names: Array = []
+	for item: Variant in rolled:
+		var item_name: String = str(item.get("name", "")) if item is Dictionary else str(item)
+		if not item_name.is_empty():
+			names.append(item_name)
+	return names if not names.is_empty() else [fallback]
 
 func _roll_main_loot() -> Array:
 	## Roll D100 on main loot table, then resolve subtable (Core Rules pp.131-133)
@@ -747,15 +760,18 @@ func _roll_main_loot() -> Array:
 	return ["Unknown Loot"]
 
 func _roll_subtable(subtable_data: Array) -> String:
-	## Roll D100 on a subtable, pick a random item from the matched range
+	## Roll D100 to pick the subtable, then delegate the book's THIRD roll
+	## (p.131, "finally the exact item in question") to the canonical resolver.
+	## The random pick this replaced flattened every printed frequency on
+	## pp.131-134 to uniform.
 	var roll: int = randi_range(1, 100)
 	for entry in subtable_data:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
 			if roll >= r[0] and roll <= r[1]:
-				var sub_items: Array = entry.get("items", [])
-				if sub_items.size() > 0:
-					return str(sub_items[randi() % sub_items.size()])
+				var rolled: String = _LootRoller.roll_item_in(entry)
+				if not rolled.is_empty():
+					return rolled
 				return str(entry.get("item", "Unknown"))
 	return "Unknown Loot"
 

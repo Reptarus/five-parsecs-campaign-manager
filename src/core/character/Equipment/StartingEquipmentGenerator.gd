@@ -144,6 +144,18 @@ static func apply_equipment_condition(equipment: Dictionary, dice_manager: Node)
 				items[i]["condition"] = condition
 				items[i]["quality_modifier"] = _get_quality_modifier(condition)
 
+## Public D100 roll on one of the gear_database weapon_tables subtables.
+##
+## Exists because the Military Weapon Table is rolled OUTSIDE character creation
+## too — Core Rules p.125 step 11 "Purchase Items" and p.150 Black Jobs ("You may
+## roll three times on the Weapon Table in the 'Loot' chapter, and claim the
+## items immediately"). Those callers need the same table and the same D100, and
+## the alternative was a third hand-rolled copy of it; `gear_database.json` is
+## the single source of truth and this is the shared door to it.
+static func roll_on_weapon_table(table_name: String, dice_manager: Node = null) -> String:
+	_ensure_tables_loaded()
+	return _roll_on_subtable(table_name, dice_manager)
+
 ## Roll D100 on a named subtable from weapon_tables
 static func _roll_on_subtable(table_name: String, dice_manager: Node) -> String:
 	if not _weapon_tables.has(table_name):

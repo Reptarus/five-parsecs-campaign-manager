@@ -7,6 +7,10 @@ const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 ## portrait; browse/overview). Path preload avoids the stale class_name cache.
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 const ShipStashPanelClass = preload("res://src/ui/components/inventory/ShipStashPanel.gd")
+## Compendium p.147 — Ship modules are one of the three things Salvage may buy.
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
+## Core Rules p.74 "Shipyards — The cost of all Ship Components is reduced by 2".
+const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 
 signal ship_repaired(hull_points: int)
 signal debt_paid(amount: int)
@@ -308,7 +312,66 @@ func _get_component_cost(comp_name: String) -> int:
 		if "standard issue" in str(t).to_lower():
 			base_cost = maxi(0, base_cost - discount)
 			break
+	# Core Rules p.74, verbatim: "Shipyards — The cost of all Ship Components is
+	# reduced by 2 credits."
+	#
+	# `WorldTraitEffects.ship_component_cost()` implemented this and had ZERO
+	# callers, so the trait was a paragraph of text and a shipyard world sold
+	# components at list price. Applied here rather than at the purchase handler so
+	# the DISPLAYED price and the CHARGED price come from one expression — the two
+	# drifting apart is how a player gets billed a number they never saw.
+	base_cost = WorldTraitEffectsRef.ship_component_cost(
+		base_cost, _current_world_traits())
+
+	# Core Rules p.134 Rewards Subtable: "Discount your NEXT ship component
+	# purchase by 1D6 [or 1D6+2] credits." Shown in the price so the player can see
+	# the voucher before spending it; consumed in _on_upgrade_purchased().
+	base_cost = maxi(0, base_cost - _pending_component_discount())
 	return base_cost
+
+
+func _current_world_traits() -> Array:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or not ("current_campaign" in gs) or gs.current_campaign == null:
+		return []
+	return WorldTraitEffectsRef.traits_for_current_world(gs.current_campaign)
+
+
+## ── Core Rules p.134 ship-component discount vouchers ────────────────────
+##
+## Rolled and banked by `LootProcessor` at "establish value now" time into
+## `progress_data["ship_component_discounts"]`, a QUEUE — each Rewards row
+## discounts "your next" purchase, so two rewards are two vouchers rather than one
+## doubled discount. Before this the roll was made, thrown away, and 20% of
+## Rewards results produced a line of text and no benefit.
+func _campaign_progress_data() -> Dictionary:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or not ("current_campaign" in gs) or gs.current_campaign == null:
+		return {}
+	var campaign = gs.current_campaign
+	if not ("progress_data" in campaign):
+		return {}
+	return campaign.progress_data
+
+
+func _pending_component_discount() -> int:
+	var pd: Dictionary = _campaign_progress_data()
+	var queue: Variant = pd.get("ship_component_discounts", [])
+	if not (queue is Array) or (queue as Array).is_empty():
+		return 0
+	return maxi(0, int((queue as Array)[0]))
+
+
+func _consume_component_discount() -> int:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return 0
+	var queue: Variant = pd.get("ship_component_discounts", [])
+	if not (queue is Array) or (queue as Array).is_empty():
+		return 0
+	var used: int = maxi(0, int((queue as Array).pop_front()))
+	pd["ship_component_discounts"] = queue
+	return used
 
 func _calculate_travel_cost() -> int:
 	## Travel cost with trait + component modifiers (Core Rules pp.30, 61-62)
@@ -407,12 +470,39 @@ func _on_upgrade_purchased(comp_name: String) -> void:
 			comp_id = comp.get("id", "")
 			break
 
+	# Compendium p.147: "1 unit of Salvage equals 1 Credit ONLY when purchasing:
+	# Ship repairs / Ship modules / Bot upgrades." A Ship module is one of the
+	# three. Applied BEFORE the affordability check, so salvage can make an
+	# otherwise unaffordable module reachable — which is the entire point of
+	# hauling scrap off a derelict.
 	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("get_credits"):
+	var salvage_paid: int = 0
+	var campaign_for_salvage: Variant = game_state.current_campaign \
+		if game_state and "current_campaign" in game_state else null
+	if campaign_for_salvage != null:
+		var offset: Dictionary = SalvageLedgerRef.apply_offset(
+			campaign_for_salvage, cost, SalvageLedgerRef.PURPOSE_SHIP_MODULE)
+		salvage_paid = int(offset.get("salvage_applied", 0))
+	var credit_cost: int = maxi(0, cost - salvage_paid)
+
+	if credit_cost > 0 and game_state and game_state.has_method("get_credits"):
 		var current_credits: int = game_state.get_credits()
-		if current_credits < cost:
+		if current_credits < credit_cost:
+			# Hand the salvage back — the purchase did not happen, so it was never
+			# "cashed in". Silently keeping it would make a mis-click cost the
+			# player scrap for nothing.
+			if campaign_for_salvage != null and salvage_paid > 0:
+				SalvageLedgerRef.add_units(campaign_for_salvage, salvage_paid)
 			return
-		game_state.remove_credits(cost)
+		game_state.remove_credits(credit_cost)
+
+	# The p.134 voucher is spent only once the purchase actually goes through —
+	# above the affordability check it would be burned by a click the crew could
+	# not pay for. `cost` already had it deducted by _get_component_cost().
+	var voucher: int = _consume_component_discount()
+	if voucher > 0:
+		print_verbose("Ship component discount applied (Core Rules p.134): -%d cr"
+			% voucher)
 
 	if not ship_data.has("components"):
 		ship_data["components"] = []

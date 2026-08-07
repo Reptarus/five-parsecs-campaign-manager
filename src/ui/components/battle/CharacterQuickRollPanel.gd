@@ -20,6 +20,8 @@ signal roll_completed(character_name: String, roll_type: String, result: Diction
 
 enum RollType { HIT, BRAWL, DAMAGE, REACTION }
 
+const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
+
 # Design system constants
 const SPACING_SM: int = UIColors.SPACING_SM
 const SPACING_MD: int = UIColors.SPACING_MD
@@ -58,6 +60,10 @@ var _crew_list: VBoxContainer
 var _crew_scroll: ScrollContainer
 var _roll_type_option: OptionButton
 var _cover_check: CheckBox
+var _firer_moved_check: CheckBox
+var _firer_cover_check: CheckBox
+var _same_target_check: CheckBox
+var _attachment_label: Label
 var _range_spin: SpinBox
 var _roll_button: Button
 var _result_display: RichTextLabel
@@ -236,6 +242,50 @@ func _build_hit_inputs(parent: VBoxContainer) -> void:
 	_cover_check.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_cover_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	hit_section.add_child(_cover_check)
+
+	# THE FIRER'S OWN SITUATION. These two are not decoration — they are the
+	# conditions three real modifiers are gated on, and the panel had no way to
+	# express either, so all three were unreachable:
+	#   Heavy  "-1 to Hit if the firer moved this round"        (p.51)
+	#   Bipod  "+1 at ranges over 8" when Aiming or when firing
+	#           from Cover"                                     (p.53)
+	#   Seeker Sight "+1 to Hit if the shooter did not Move"    (p.53)
+	# The `modifiers` dictionary handed to BattleCalculations was literally `{}`,
+	# so even Heavy and Snap Shot — plain p.51 weapon traits — never applied here.
+	_firer_moved_check = CheckBox.new()
+	_firer_moved_check.text = "Firer moved this round"
+	_firer_moved_check.tooltip_text = (
+		"Heavy weapons take -1 to Hit if the firer moved (p.51). A Seeker Sight"
+		+ " grants +1 only if the shooter did NOT move (p.53).")
+	_firer_moved_check.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_firer_moved_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	hit_section.add_child(_firer_moved_check)
+
+	_firer_cover_check = CheckBox.new()
+	_firer_cover_check.text = "Firer Aiming or in Cover"
+	_firer_cover_check.tooltip_text = (
+		"A Bipod grants +1 to Hit at ranges over 8\" when Aiming or firing from"
+		+ " Cover (p.53). Non-Pistol only.")
+	_firer_cover_check.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_firer_cover_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	hit_section.add_child(_firer_cover_check)
+
+	_same_target_check = CheckBox.new()
+	_same_target_check.text = "Same target as last round"
+	_same_target_check.tooltip_text = (
+		"A Tracker Sight grants +1 to Hit if you fired at the same target during"
+		+ " your previous round (p.53).")
+	_same_target_check.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_same_target_check.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_same_target_check.visible = false  # only meaningful with a Tracker Sight
+	hit_section.add_child(_same_target_check)
+
+	_attachment_label = Label.new()
+	_attachment_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	_attachment_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_attachment_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_attachment_label.visible = false
+	hit_section.add_child(_attachment_label)
 
 	# NO "Attacker Elevated" CHECKBOX. Removed Aug 6 2026: it was read, printed in
 	# the breakdown as "Elevated"/"Ground", and changed no number — the parameter
@@ -504,6 +554,51 @@ func _rebuild_crew_list() -> void:
 func _on_crew_selected(char_data: Dictionary) -> void:
 	_selected_character = char_data
 	_update_character_display()
+	_refresh_attachment_readout()
+
+
+## The weapon the character is shooting with, WITH its p.53 attachments applied.
+##
+## Returns {} when no weapon dict can be found, in which case the caller falls
+## back to the flat `weapon_range` / `weapon_traits` keys the panel used before.
+func _equipped_weapon() -> Dictionary:
+	if _selected_character.is_empty():
+		return {}
+	for key in ["weapons", "equipment"]:
+		var raw: Variant = _selected_character.get(key, null)
+		if not (raw is Array):
+			continue
+		for entry in raw:
+			if not (entry is Dictionary):
+				continue
+			var d: Dictionary = entry
+			var kind: String = str(d.get("type", "")).to_lower()
+			# Weapon rows carry a range; that is the discriminator that works for
+			# both the equipment_database shape ("type": "Slug") and loot dicts
+			# ("type": "weapon"), without hardcoding a list of damage types.
+			if d.has("range") or kind == "weapon":
+				return WeaponModServiceRef.effective_weapon(d)
+	return {}
+
+
+## Show what is bolted to the weapon, and reveal the Tracker Sight question only
+## when a Tracker Sight is actually fitted — an always-visible checkbox that
+## changes nothing for 12 of the 13 attachments is the defect this audit is about.
+func _refresh_attachment_readout() -> void:
+	if _attachment_label == null:
+		return
+	var weapon: Dictionary = _equipped_weapon()
+	var notes: Array = weapon.get("attachment_notes", [])
+	if notes.is_empty():
+		_attachment_label.visible = false
+		if _same_target_check:
+			_same_target_check.visible = false
+		return
+	_attachment_label.text = "\n".join(PackedStringArray(notes))
+	_attachment_label.visible = true
+	if _same_target_check:
+		_same_target_check.visible = bool(
+			WeaponModServiceRef.hit_inputs(weapon).get("tracker_sight", false))
 
 func _update_character_display() -> void:
 	if _selected_character.is_empty():
@@ -575,9 +670,14 @@ func _execute_hit_roll() -> void:
 	var target_in_cover: bool = _cover_check.button_pressed
 	var range_inches: float = _range_spin.value
 
-	# Determine weapon range from character equipment (fallback to rifle)
-	var weapon_range: int = _selected_character.get("weapon_range",
-		BattleCalculations.RIFLE_RANGE)
+	# Determine weapon range from character equipment (fallback to rifle).
+	# effective_weapon() folds in the p.53 attachments, so an Upgrade Kit or a
+	# Quality Sight actually extends the range the threshold is measured against.
+	var weapon: Dictionary = _equipped_weapon()
+	var weapon_range: int = int(weapon.get("range", _selected_character.get(
+		"weapon_range", BattleCalculations.RIFLE_RANGE)))
+	var weapon_traits: Array = weapon.get("traits", _selected_character.get(
+		"weapon_traits", []))
 
 	# Core Rules p.44 is "roll 1D6, adding the Combat Skill of the firer" against
 	# a target number. Pass combat_skill as 0 here so the threshold stays the
@@ -589,7 +689,31 @@ func _execute_hit_roll() -> void:
 	# Skill was applied TWICE: a character with Combat Skill +2 was shooting at
 	# an effective +4. Likewise "has_aim_bonus" granted a fabricated flat +1 on
 	# top of the correct p.46 reroll-1s already implemented below.
-	var modifiers := {}
+	#
+	# THIS DICTIONARY USED TO BE `{}`. Every modifier BattleCalculations knows how
+	# to apply was therefore dead at the only live caller: Heavy's -1 for moving
+	# (p.51), Snap Shot's +1 within 6" (p.51), and the whole p.53 Bipod clause,
+	# which reads `has_bipod` — a key nothing in the repo ever set.
+	var attachment: Dictionary = WeaponModServiceRef.hit_inputs(weapon)
+	var firer_moved: bool = _firer_moved_check.button_pressed
+	var mod_bonus: int = int(attachment.get("flat_hit_bonus", 0))
+	# Seeker Sight: "+1 to Hit if the shooter did not Move this round." (p.53)
+	if bool(attachment.get("seeker_sight", false)) and not firer_moved:
+		mod_bonus += 1
+	# Tracker Sight: "+1 to Hit if you fired at the same target during your
+	# previous round." (p.53)
+	if bool(attachment.get("tracker_sight", false)) \
+			and _same_target_check.button_pressed:
+		mod_bonus += 1
+
+	var modifiers := {
+		"weapon_traits": weapon_traits,
+		"firer_moved": firer_moved,
+		"has_bipod": bool(attachment.get("has_bipod", false)),
+		"is_aiming": is_aiming,
+		"firer_in_cover": _firer_cover_check.button_pressed,
+		"mod_bonus": mod_bonus,
+	}
 
 	# Both elevation args are false: the parameters exist only to keep the four
 	# call sites uniform and are deliberately unused — no elevation rule exists.

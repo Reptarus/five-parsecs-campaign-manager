@@ -77,11 +77,19 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 	# builds the new Rival's id, name and type from it — so every Rival a crew
 	# ever gained was named "Unknown Vendetta". WorldPhaseController has always
 	# put the real enemy on mission_dict; it simply never crossed this chokepoint.
-	for key in ["faction_id", "faction_job_id", "rival_id", "is_invasion",
+	# `is_affiliated_patron_job` added 2026-08-06 with the faction cluster: it is
+	# the p.112 "a roll of a 6 earns +1 Loyalty" branch in roll_loyalty_gain, read
+	# by RivalPatronResolver:252 with no producer anywhere, so the harder branch
+	# was unreachable and every affiliated job used the easier direct-job odds.
+	# `enemy_is_elite` added 2026-08-06 with the Elite-level Enemies cluster: it is
+	# the p.49 "Elite-level Rivals ... on a 4+ they opt to follow you to the new
+	# world" tag, and only the generator knows an elite table produced this force.
+	for key in ["faction_id", "faction_job_id", "is_affiliated_patron_job",
+			"rival_id", "is_invasion", "enemy_is_elite",
 			"setup_rules", "rival_attack_type", "enemy_type",
 			"enemy_is_invasion_threat", "invasion_threat_modifier",
 			"enemy_category", "planet_id", "location",
-			"is_red_zone", "is_black_zone",
+			"is_red_zone", "is_black_zone", "black_zone_mission",
 			"is_story_battle", "story_event_id", "story_event_number",
 			"mercenary_captured", "captive_survived", "story_evidence_found",
 			"is_intro_battle", "is_training_battle",
@@ -128,7 +136,16 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# picking the higher die when rolling for mission pay after the
 			# battle". Rolled and advertised in the offer since forever, read by
 			# nobody — those jobs paid a single 1D6 like any other.
-			"double_roll_bonus"]:
+			"double_roll_bonus",
+			# salvage_units / is_illegal / mission_type added 2026-08-06 with the
+			# Compendium p.147 salvage cluster. All three were read post-battle with
+			# NO producer on battle_result: `_process_illegal_salvage_check` gated on
+			# `is_illegal`, which only ever reached SalvageMissionPanel, so the p.138
+			# authorities roll was unreachable even after its own fix; and the salvage
+			# TALLY that the whole chapter exists to earn never left the battle screen.
+			# mission_type rides along so "no Invasion checks after a Salvage battle"
+			# (p.147) can be decided on every exit, not just the played one.
+			"salvage_units", "is_illegal", "mission_type"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion

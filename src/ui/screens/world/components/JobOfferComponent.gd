@@ -17,6 +17,8 @@ const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgressi
 const StealthMissionGenerator = preload("res://src/core/mission/StealthMissionGenerator.gd")
 const StreetFightGenerator = preload("res://src/core/mission/StreetFightGenerator.gd")
 const SalvageJobGenerator = preload("res://src/core/mission/SalvageJobGenerator.gd")
+## Core Rules p.72 step 3 — the Freelancer License that gates Patron work.
+const NewWorldArrivalRef = preload("res://src/core/campaign/NewWorldArrival.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -128,15 +130,52 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	for held in patron_offers:
 		patrons_with_live_offers.append(str(held.get("patron_id", "")))
 
+	# ── p.77 gates whether a Patron job exists at all ─────────────────────────
+	# "To find a Patron, roll 1D6 and add the number of crew members who are
+	# LOOKING... If the result is a 5 or higher, you've found a Patron to hire you
+	# for a job." And p.83 opens: "IF YOU RECEIVED A JOB OFFER FROM A PATRON, you
+	# need to determine the details of the job."
+	#
+	# THE BUG THIS FIXES: this loop handed EVERY Patron on the list a fresh job
+	# every campaign turn, with no roll anywhere. So you never needed to send
+	# anyone to Find a Patron — the task gated nothing — and once the contact list
+	# reached 4-5 Patrons (they only lapse on travel, p.72) the board was a
+	# permanent wall of work. The p.77 roll, its crew-count bonus, its +1 per
+	# existing contact and its credit spend were all decoration.
+	#
+	# `patron_offers_owed` is written by CrewTaskComponent._grant_patron_job_offers
+	# on a successful roll and is SPENT here. Offers already on the table from
+	# earlier turns are untouched (they persist until their Time Frame expires).
+	var owed: int = _consume_patron_offers_owed()
+	var eligible_patrons: Array = []
 	for patron in patrons:
 		var p_data: Dictionary = patron if patron is Dictionary else {"patron_name": str(patron)}
 		var pid: String = _patron_identity(p_data, str(p_data.get("patron_name", "")))
 		if pid in patrons_with_live_offers:
 			continue
-		var patron_jobs: Array[Dictionary] = _generate_job_offers(p_data, location)
-		patron_offers.append_array(patron_jobs)
+		eligible_patrons.append(p_data)
 
-	# Always generate at least 1 open market opportunity
+	# "it will always be a RANDOM, existing Patron" — random, not first-in-list.
+	eligible_patrons.shuffle()
+	for i in range(mini(owed, eligible_patrons.size())):
+		patron_offers.append_array(_generate_job_offers(eligible_patrons[i], location))
+
+	# Core Rules p.84 Conditions 7-8, verbatim: "Busy — If the mission is a
+	# success, the Patron offers a new job NEXT CAMPAIGN TURN."
+	#
+	# Banked by RivalPatronResolver as a NAMED patron id, not folded into `owed`:
+	# the p.77 entitlement draws a random existing Patron, and Busy names the
+	# specific employer who was pleased with the work. Arrives whether or not the
+	# crew rolled Find a Patron this turn — the offer is the Patron's initiative,
+	# not the crew's search.
+	for followup: Dictionary in _consume_patron_followups(
+			eligible_patrons, patrons_with_live_offers):
+		patron_offers.append_array(_generate_job_offers(followup, location))
+
+	# p.85 Select Your Job: "Carry out an Opportunity mission — ALWAYS AVAILABLE".
+	# This is the one option the book guarantees every turn, and it is what makes
+	# gating Patron work above safe rather than a soft-lock: a crew that finds no
+	# Patron still has a battle to fight.
 	if patron_offers.is_empty():
 		var market_jobs: Array[Dictionary] = _generate_job_offers({}, location)
 		patron_offers.append_array(market_jobs)
@@ -772,6 +811,61 @@ func _store_offers(offers: Array) -> void:
 	campaign.progress_data["patron_job_offers"] = offers
 
 
+## How many Patron job offers the crew earned this turn on the p.77 roll, zeroing
+## the counter as it reads.
+##
+## SPENT, not merely read: this step is re-entered on back-navigation through the
+## World Phase wizard, and a counter that survived would mint a fresh job every
+## time the player stepped back and forward again — which is the same
+## unlimited-work bug this gate exists to close, just triggered differently.
+func _consume_patron_offers_owed() -> int:
+	var campaign = _campaign()
+	if not campaign or not ("progress_data" in campaign):
+		return 0
+	var owed: int = int(campaign.progress_data.get("patron_offers_owed", 0))
+	if owed > 0:
+		campaign.progress_data["patron_offers_owed"] = 0
+	return maxi(0, owed)
+
+
+## The p.84 "Busy" follow-up offers owed this turn, resolved to real Patron
+## records. Consumed on read — the Patron offers a new job NEXT campaign turn,
+## once, not every turn forever.
+##
+## A patron who already has a live offer is skipped rather than dropped: the
+## follow-up they owe would be indistinguishable from the offer already sitting
+## on the table, so it is carried to the turn they are free.
+func _consume_patron_followups(
+	eligible: Array, patrons_with_live_offers: Array
+) -> Array:
+	var out: Array = []
+	var campaign = _campaign()
+	if not campaign or not ("progress_data" in campaign):
+		return out
+	if not (campaign.progress_data is Dictionary):
+		return out
+	var raw: Variant = campaign.progress_data.get("patron_followup_offers", [])
+	if not (raw is Array) or (raw as Array).is_empty():
+		return out
+
+	var carried: Array = []
+	for pid: Variant in raw:
+		var wanted: String = str(pid)
+		if wanted in patrons_with_live_offers:
+			carried.append(wanted)
+			continue
+		# A Patron who has since been left behind (p.72) cannot offer anything, so
+		# an unmatched id is simply DROPPED — carrying it would leave a dead id in
+		# the list for the rest of the campaign.
+		for p: Variant in eligible:
+			var p_data: Dictionary = p
+			if _patron_identity(p_data, str(p_data.get("patron_name", ""))) == wanted:
+				out.append(p_data)
+				break
+	campaign.progress_data["patron_followup_offers"] = carried
+	return out
+
+
 ## Drop every held offer whose Time Frame has run out and report them, so the
 ## caller can apply the consequences of the failure the book declares.
 ##
@@ -828,6 +922,18 @@ func _apply_remembered_benefit(bhc: Dictionary, patron_id: String) -> void:
 ## "Reputation Required" could never even be satisfied because nothing recorded a
 ## completed Patron job per world.
 func _acceptance_block_reason(job: Dictionary) -> Dictionary:
+	# Core Rules p.72 New World Arrival step 3, verbatim: "On a 5-6 the world
+	# requires a Freelancer License TO PERFORM PATRON JOBS."
+	#
+	# Scoped to Patron work exactly as the book scopes it — an Opportunity mission
+	# needs no licence, so the p.85 fallback battle is always reachable and this
+	# can never soft-lock the turn.
+	if _is_patron_job(job) and _licence_required_here():
+		return {"reason": "Freelancer License required: this world licenses Patron "
+			+ "work (%d cr, Core Rules p.72). Buy or forge one below."
+				% _licence_fee_here(),
+			"licence": true}
+
 	var required: int = PatronJobEffectsClass.required_available_crew(job)
 	if required > 0:
 		var available: int = _available_crew_count()
@@ -857,6 +963,161 @@ func _acceptance_block_reason(job: Dictionary) -> Dictionary:
 			return {"reason": "Reputation Required: no prior Patron job completed on this world."}
 
 	return {}
+
+
+## ── Freelancer License (Core Rules p.72, New World Arrival step 3) ─────────
+##
+## The requirement is rolled on arrival by NewWorldArrival.roll_licensing_requirement();
+## this is the consumer that makes it mean something. Without it the roll would be
+## a key nothing reads.
+
+## The two routes p.72 gives out of a licensing requirement, offered next to the
+## Accept button because that is where the block is felt.
+var _licence_buy_button: Button = null
+var _licence_forge_button: Button = null
+
+
+func _refresh_licence_controls() -> void:
+	var bar: Node = accept_button.get_parent() if accept_button else null
+	if bar == null:
+		return
+	var needed: bool = _licence_required_here() and not job_accepted
+
+	if not needed:
+		for btn in [_licence_buy_button, _licence_forge_button]:
+			if btn != null and is_instance_valid(btn):
+				btn.get_parent().remove_child(btn)
+				btn.queue_free()
+		_licence_buy_button = null
+		_licence_forge_button = null
+		return
+
+	var fee: int = _licence_fee_here()
+	var credits: int = int(GameStateManager.get_credits())
+
+	if _licence_buy_button == null or not is_instance_valid(_licence_buy_button):
+		_licence_buy_button = Button.new()
+		_licence_buy_button.name = "BuyFreelancerLicenceButton"
+		_licence_buy_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+		_licence_buy_button.tooltip_text = (
+			"Core Rules p.72: this world requires a Freelancer License to perform "
+			+ "Patron jobs. Once purchased it remains in effect for perpetuity.")
+		_licence_buy_button.pressed.connect(_on_buy_licence)
+		bar.add_child(_licence_buy_button)
+	_licence_buy_button.text = "Buy Freelancer License (%d cr)" % fee
+	_licence_buy_button.disabled = credits < fee
+
+	var forged_used: bool = NewWorldArrivalRef.forgery_attempted(
+		_campaign(), _current_planet_id())
+	if forged_used:
+		if _licence_forge_button != null and is_instance_valid(_licence_forge_button):
+			_licence_forge_button.get_parent().remove_child(_licence_forge_button)
+			_licence_forge_button.queue_free()
+			_licence_forge_button = null
+		return
+	if _licence_forge_button == null or not is_instance_valid(_licence_forge_button):
+		_licence_forge_button = Button.new()
+		_licence_forge_button.name = "ForgeFreelancerLicenceButton"
+		_licence_forge_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+		_licence_forge_button.tooltip_text = (
+			"Core Rules p.72: roll 1D6+Savvy. On 6+ the forgery passes and the "
+			+ "License is free. On a NATURAL 1 you gain a Rival on this world. "
+			+ "Only one attempt is permitted.")
+		_licence_forge_button.pressed.connect(_on_forge_licence)
+		bar.add_child(_licence_forge_button)
+	_licence_forge_button.text = "Forge a License (1D6+Savvy, 6+)"
+
+
+func _on_buy_licence() -> void:
+	var fee: int = _licence_fee_here()
+	if int(GameStateManager.get_credits()) < fee:
+		return
+	GameStateManager.remove_credits(fee)
+	NewWorldArrivalRef.grant_licence(_campaign(), _current_planet_id())
+	if job_details_label:
+		job_details_label.text = ("Freelancer License purchased for %d credits. "
+			% fee + "It remains in effect on this world for perpetuity (p.72).")
+	_update_ui_display()
+
+
+func _on_forge_licence() -> void:
+	# "Select a crew member and roll 1D6+Savvy" — the book lets the player pick, and
+	# picking is trivially always the highest Savvy on the roster, so the best
+	# candidate is chosen rather than asked for. Recorded in the message so the
+	# player can see whose Savvy was used.
+	var best_savvy: int = 0
+	var best_name: String = "a crew member"
+	var campaign: Variant = _campaign()
+	var crew: Array = []
+	if campaign != null and campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	for member: Variant in crew:
+		var sv: int = 0
+		var nm: String = "Crew"
+		if member is Dictionary:
+			sv = int((member as Dictionary).get("savvy", 0))
+			nm = str((member as Dictionary).get("name",
+				(member as Dictionary).get("character_name", "Crew")))
+		elif member is Object and "savvy" in member:
+			sv = int(member.savvy)
+			nm = str(member.character_name) if "character_name" in member else "Crew"
+		if sv >= best_savvy:
+			best_savvy = sv
+			best_name = nm
+
+	var result: Dictionary = NewWorldArrivalRef.attempt_forged_licence(
+		campaign, _current_planet_id(), best_savvy)
+	var lines: Array[String] = []
+	if not str(result.get("reason", "")).is_empty():
+		lines.append(str(result["reason"]))
+	else:
+		lines.append("%s forges a License: 1D6 %d + Savvy %d = %d vs 6+." % [
+			best_name, int(result.get("roll", 0)), best_savvy,
+			int(result.get("total", 0))])
+		lines.append("The forgery passes — License obtained free (p.72)."
+			if bool(result.get("success", false))
+			else "The forgery does not hold up.")
+		if bool(result.get("adds_rival", false)):
+			# "you must add a Rival on this world, as local law enforcement, crime
+			# bosses, or business cartels take a dim view of your actions."
+			if campaign != null and "rivals" in campaign and campaign.rivals is Array:
+				campaign.rivals.append({
+					"id": "rival_forged_licence_%d" % (randi() % 100000),
+					"name": "Local Enforcers",
+					"type": "Enforcers",
+					"source": "forged_licence",
+				})
+			lines.append("A natural 1 — local enforcement takes a dim view. Rival added.")
+	if job_details_label:
+		job_details_label.text = "
+".join(lines)
+	_update_ui_display()
+
+
+func _current_planet_id() -> String:
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not ("current_planet_id" in pdm):
+		return ""
+	return str(pdm.current_planet_id)
+
+
+func _licence_required_here() -> bool:
+	return NewWorldArrivalRef.requires_freelancer_licence(
+		_campaign(), _current_planet_id())
+
+
+func _licence_fee_here() -> int:
+	return NewWorldArrivalRef.licence_fee(_campaign(), _current_planet_id())
+
+
+## "If you received a job offer from a Patron" (p.83) — the licence gates PATRON
+## work only. Open-market Opportunity offers carry no patron identity.
+func _is_patron_job(job: Dictionary) -> bool:
+	if not str(job.get("patron_id", "")).is_empty():
+		return true
+	if not str(job.get("patron_name", "")).is_empty():
+		return true
+	return str(job.get("mission_source", job.get("source", ""))).to_lower() == "patron"
 
 
 ## Crew who could actually take the field — the p.84 "Full Squad" Condition asks
@@ -1471,6 +1732,7 @@ func _update_ui_display() -> void:
 	var has_selection = selected_job_index >= 0 and selected_job_index < available_jobs.size()
 	if accept_button:
 		accept_button.disabled = not has_selection or job_accepted
+	_refresh_licence_controls()
 	# Lock reroll + job list after acceptance
 	if reroll_button:
 		reroll_button.disabled = job_accepted
@@ -1573,9 +1835,23 @@ func _update_job_details() -> void:
 	# limit."), so the fix is to print it and drop the duplicate heading rather
 	# than invent display names the table does not have.
 	var dlc_lines: Array[String] = []
-	for key in ["dlc_objective_instruction", "dlc_specific_instruction",
-			"dlc_time_instruction", "dlc_patron_instruction",
-			"dlc_extraction_instruction"]:
+	var overview_line: String = str(job.get("dlc_objective_instruction", "")).strip_edges()
+	if not overview_line.is_empty():
+		dlc_lines.append(overview_line)
+
+	# Compendium pp.74-76: a two-objective mission gets TWO objectives with TWO
+	# separate time constraints, so the briefing numbers them. A one-objective
+	# mission prints no number — there is nothing to distinguish.
+	var objectives: Array = job.get("dlc_objectives", [])
+	for i in range(objectives.size()):
+		var entry: Dictionary = objectives[i]
+		var prefix: String = "" if objectives.size() <= 1 else "[%d] " % (i + 1)
+		for key in ["instruction", "time_instruction"]:
+			var line: String = str(entry.get(key, "")).strip_edges()
+			if not line.is_empty():
+				dlc_lines.append(prefix + line)
+
+	for key in ["dlc_patron_instruction", "dlc_extraction_instruction"]:
 		var line: String = str(job.get(key, "")).strip_edges()
 		if not line.is_empty():
 			dlc_lines.append(line)
@@ -1699,9 +1975,66 @@ func _check_introductory_mission() -> Dictionary:
 
 ## ── Compendium Expanded Missions (DLC, pp.118-125) ──
 
+## Compendium p.112 Affiliated Patron jobs, verbatim: "Many Patron jobs will be
+## affiliated with a Faction either directly or indirectly. Whenever you receive a
+## job from a NEW Patron, roll a D6: 1-4 It is a normal job. 5-6 The patron is
+## affiliated with a randomly selected Faction."
+##
+## `FactionSystem.check_affiliated_patron()` implemented this roll and had ZERO
+## callers, so no job was ever flagged: `is_affiliated_patron_job` was permanently
+## false at RivalPatronResolver:252, which meant the harder p.112 Loyalty branch
+## ("a roll of a 6 earns +1 Loyalty") was unreachable and affiliated jobs — which
+## the book makes LESS rewarding — silently used the easier direct-job odds.
+##
+## "A NEW Patron" is the trigger, so the answer is remembered per patron identity
+## in progress_data. Re-rolling it every offer would let the same contact drift in
+## and out of a Faction between turns, and would give a frequently-seen Patron a
+## 1 - (2/3)^n chance of eventually being affiliated instead of the flat 1/3 the
+## book prints. An empty string is stored for "not affiliated" precisely so the
+## absence of a roll and a rolled 1-4 stay distinguishable.
+func _stamp_patron_affiliation(job: Dictionary) -> void:
+	if str(job.get("mission_source", "")) == "faction":
+		return  # a direct Faction job is not an affiliated PATRON job
+	var patron_id: String = str(job.get("patron_id", ""))
+	var patron_name: String = str(job.get("patron_name", ""))
+	if patron_id.is_empty() or patron_name == "Open Market":
+		return  # the open market is not a Patron
+
+	var campaign: Resource = _campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var memory: Dictionary = campaign.progress_data.get("patron_faction_affiliation", {})
+
+	var faction_id: String = ""
+	if memory.has(patron_id):
+		faction_id = str(memory[patron_id])
+	else:
+		var faction_sys: Node = get_node_or_null("/root/FactionSystem")
+		if faction_sys == null or not faction_sys.has_method("check_affiliated_patron"):
+			return
+		faction_id = str(faction_sys.check_affiliated_patron(job))
+		memory[patron_id] = faction_id
+		campaign.progress_data["patron_faction_affiliation"] = memory
+
+	if faction_id.is_empty():
+		return
+	job["faction_id"] = faction_id
+	job["is_affiliated_patron_job"] = true
+	# Display name for the offer summary, read off the real store. (`get_all_factions()`
+	# returns active_factions; there is no by-id name accessor and inventing a
+	# has_method() guard for one would be permanently false — the exact defect
+	# shape this cluster is full of.)
+	var fs: Node = get_node_or_null("/root/FactionSystem")
+	if fs and fs.has_method("get_all_factions"):
+		var all: Dictionary = fs.get_all_factions()
+		if all.has(faction_id):
+			job["faction_name"] = str((all[faction_id] as Dictionary).get("name", faction_id))
+
+
 func _enhance_job_with_compendium(job: Dictionary) -> void:
 	## Enhance a job offer with Compendium expanded mission data (pp.118-125).
 	## Self-gated: methods return {} if EXPANDED_MISSIONS DLC disabled.
+	_stamp_patron_affiliation(job)
 	##
 	## Stores `id` (a stable key for logic) and `instruction` (the book's own
 	## self-labelled line, which is what the briefing renders). It used to store
@@ -1709,24 +2042,70 @@ func _enhance_job_with_compendium(job: Dictionary) -> void:
 	## missions_expanded.json have NEVER had — so the briefing printed
 	## "OVERVIEW: " with nothing after the colon on every Expanded Missions job.
 	var objective_overview: Dictionary = CompendiumMissionsExpanded.roll_objective_overview()
+	var objective_count: int = 1
 	if not objective_overview.is_empty():
 		job["dlc_objective_overview"] = objective_overview.get("id", "")
 		job["dlc_objective_instruction"] = objective_overview.get("instruction", "")
+		objective_count = maxi(1, int(objective_overview.get("count", 1)))
 
-	var specific_obj: Dictionary = CompendiumMissionsExpanded.roll_specific_objective()
-	if not specific_obj.is_empty():
-		job["dlc_specific_objective"] = specific_obj.get("id", "")
-		job["dlc_specific_instruction"] = specific_obj.get("instruction", "")
+	## HOW MANY OBJECTIVES. Compendium p.74 rolls 61-85 and 86-100 both read
+	## "Generate two objectives, EACH WITH THEIR OWN TIME CONSTRAINTS"; p.75 says
+	## the specific-objective table is rolled "once for each objective"; p.76 says
+	## "If you have two objectives, a constraint is determined SEPARATELY FOR EACH
+	## OBJECTIVE."
+	##
+	## The overview row has carried `count: 2` since the table was extracted and
+	## NOTHING read it, so 40% of Expanded Missions rolls told the player "Two
+	## objectives, BOTH required" and then listed exactly one objective with one
+	## time limit — a briefing that contradicted itself on the same card.
+	##
+	## Duplicates are NOT rerolled. The book says only "roll once for each
+	## objective" and two of the same objective is a legal, playable outcome (two
+	## Search markers, two Secure points); inventing a reroll would be inventing a
+	## rule.
+	var dlc_objectives: Array[Dictionary] = []
+	for i in range(objective_count):
+		var entry: Dictionary = {}
+		var specific_obj: Dictionary = CompendiumMissionsExpanded.roll_specific_objective()
+		if not specific_obj.is_empty():
+			entry["id"] = specific_obj.get("id", "")
+			entry["instruction"] = specific_obj.get("instruction", "")
+		var time_constraint: Dictionary = CompendiumMissionsExpanded.roll_time_constraint()
+		if not time_constraint.is_empty():
+			entry["time_id"] = time_constraint.get("id", "")
+			entry["time_instruction"] = time_constraint.get("instruction", "")
+		if not entry.is_empty():
+			dlc_objectives.append(entry)
 
-	var time_constraint: Dictionary = CompendiumMissionsExpanded.roll_time_constraint()
-	if not time_constraint.is_empty():
-		job["dlc_time_constraint"] = time_constraint.get("id", "")
-		job["dlc_time_instruction"] = time_constraint.get("instruction", "")
+	if not dlc_objectives.is_empty():
+		job["dlc_objectives"] = dlc_objectives
+		# The singular keys stay as objective 1 so every existing reader keeps
+		# working; the briefing renders the full list from `dlc_objectives`.
+		var first: Dictionary = dlc_objectives[0]
+		job["dlc_specific_objective"] = first.get("id", "")
+		job["dlc_specific_instruction"] = first.get("instruction", "")
+		job["dlc_time_constraint"] = first.get("time_id", "")
+		job["dlc_time_instruction"] = first.get("time_instruction", "")
 
-	var patron_cond: Dictionary = CompendiumMissionsExpanded.roll_patron_condition()
-	if not patron_cond.is_empty():
-		job["dlc_patron_condition"] = patron_cond.get("id", "")
-		job["dlc_patron_instruction"] = patron_cond.get("instruction", "")
+	## PATRON JOBS ONLY. Compendium p.76 heads this table "Special Conditions:
+	## Patron Jobs Only" and opens it "IF UNDERTAKING A PATRON JOB, roll D100 on
+	## the table below to determine what special conditions apply."
+	##
+	## It was rolled for every offer, so an Open Market / Opportunity mission could
+	## arrive carrying "No Psionics may be deployed", "No Armor may be deployed" or
+	## "No more than 3 crew may fire a weapon each round" — restrictions the book
+	## justifies as "employer parameters", from an employer that does not exist.
+	##
+	## Same gate as Danger Pay above (:633), and for the same reason: these are
+	## both p.83/p.76 PATRON tables that the Open Market builder was running
+	## anyway. Faction jobs count as patron work here — they are contracted by an
+	## employer with parameters, which is exactly what the table models.
+	var job_source: String = str(job.get("mission_source", job.get("source", "")))
+	if job_source == "patron" or job_source == "faction":
+		var patron_cond: Dictionary = CompendiumMissionsExpanded.roll_patron_condition()
+		if not patron_cond.is_empty():
+			job["dlc_patron_condition"] = patron_cond.get("id", "")
+			job["dlc_patron_instruction"] = patron_cond.get("instruction", "")
 
 	var extraction: Dictionary = CompendiumMissionsExpanded.roll_extraction()
 	if not extraction.is_empty():

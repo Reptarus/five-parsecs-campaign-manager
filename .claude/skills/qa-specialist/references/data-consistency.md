@@ -305,12 +305,16 @@ MCP scripts for these checks are in `docs/QA_RULES_ACCURACY_AUDIT.md` Appendix D
 
 ### Data Source Authority Hierarchy
 
-When multiple sources disagree:
+> **Canonical definition: `CLAUDE.md` → "Data Integrity Rules" → "Data Source Authority Hierarchy
+> (absolute, no exceptions)". Read it there — do not maintain a second copy here.**
+>
+> This file previously restated it with **4** tiers and silently dropped
+> `data/RulesReference/*.json`, which is **tier 2** and the tier you are told to check FIRST. That
+> divergence is the exact failure this pointer exists to prevent.
 
-1. **Core Rules book** (ultimate authority)
-2. **Dedicated JSON data file** (canonical data source)
-3. **GDScript constants file** (should reference JSON, not duplicate it)
-4. **Inline hardcoded values** (should not exist; extract to JSON or constants)
+The one thing to remember without opening CLAUDE.md: **the PDFs outrank everything, and
+`data/RulesReference/*.json` outranks every other file in the repo** — including `data/*.json`,
+GDScript constants, and inline values, in that descending order.
 
 ### Prevention: New Data Checklist
 

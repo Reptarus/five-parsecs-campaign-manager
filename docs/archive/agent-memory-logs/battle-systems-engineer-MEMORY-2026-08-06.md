@@ -1,0 +1,439 @@
+# Battle Systems Engineer — Agent Memory
+
+<!-- This file is loaded into your system prompt. Keep it under 200 lines. -->
+
+## ABSOLUTE RULE: Core Rules & Compendium Are Word of God
+
+The Core Rules and Compendium PDFs at `docs/rules/` are the canonical authority for ALL combat mechanics, weapon stats, and battle rules. If code disagrees with the book, the code is wrong.
+
+---
+
+## Narrative+Combat sprint roadmap status (May 29 2026)
+
+`docs/SPRINT_ROADMAP_NARRATIVE_COMBAT.md`. Status across both workstreams:
+
+- **B0 + B1 (No-Minis foundation)**: SHIPPED May 27. `NoMinisResolver.gd` book-faithful round/firefight/morale-bail; routed in BattlePhase via `no_minis_combat` flag; Salvage fallback. 12/12 tests.
+- **B2 (Auto-resolve narrative bridge)**: SHIPPED May 29. `CampaignTurnController._on_battle_completed` branches on `results.auto_resolved + narrative-events flag` to wrap the outcome in `NarrativeScreen` before POST_MISSION. 8 gdUnit4 tests pin the producer/consumer dict contract. Two key bugs caught in retro and fixed: `briefing` → `briefing_text`, `held_the_field` → `held_field`.
+- **B3 (Dramatic Combat completion)**: SHIPPED May 29. `BattleCalculations.resolve_ranged_attack` Adjusted Shooting (5 open / 6 cover, Compendium p.87), 35-row `dramatic_weapons_stats` table (pp.88-89), rule instructions emit (Adjusted Shooting + Duck Back + Lunge). **CRITICAL**: the DLC flag is wired at the resolver level too — both `BattleResolver` and `NoMinisResolver` query `CompendiumDifficultyToggles.get_adjusted_shooting_thresholds()` once at the start of `resolve_battle`, stash on `battlefield_data`, inject into attacker dict before each `resolve_ranged_attack` call. Without this wiring (which was MISSING in the initial Sprint 4 ship), the math is dead code.
+- **B4 (Grid Movement)**: not started.
+
+## Played battle END path + objective authority (Jul 5-6 2026, F9/F10 — code done, on-device re-test + commit PENDING)
+
+- **A PLAYED battle at ANY tier had NO reachable control to end it or declare the objective.** `BattleRoundTracker.end_battle()` (→ `battle_ended` → `_resolve_battle`) has ZERO callers anywhere. LOG_ONLY has no victory check (VictoryProgressPanel is ASSISTED+); `_mark_casualty` never ends the battle. The pre-selected-tier fast path (`initialize_battle` ~L3446) forces COMBAT for every tier, so tier-0 never hits the `_on_checklist_dismissed` results-form skip. Only exits were top-bar **Auto Resolve** (simulate) / **Return** (abandon).
+- **Fix (user choice B):** always-reachable emerald **✔ Record Result** button in `_rebuild_drawer_toolbar` (landscape) + `_rebuild_panels_menu` (portrait ≡ menu). `_on_record_result_pressed()` → `_ensure_results_form_drawer()` (idempotent; prefilled by `_build_results_prefill()` from `_objective_tracker`) → `_open_drawer("results")` → submit → `tactical_battle_completed` → PostBattle. Removed the tier-0 skip in `_on_checklist_dismissed` (all tiers now get the full companion).
+- **`BattleResultsInputForm` is now objective-aware:** OBJECTIVE section + `_objective_met_check`; result carries `objective_id`/`objective_met`; mission **`success` = declared objective outcome (p.90), NOT the Won/Lost proxy**. (Matches what `_resolve_battle`/auto-resolve already did via `_objective_tracker.get_mission_success`.)
+- **F9 (device-only):** DOWN figures collapse to a compact control-free row (`_build_downed_unit_row`, branched in `_populate_unit_drawer`) — the SlideOverDrawer ScrollContainer won't touch-scroll on tablet, and full-height dead cards pushed the last live enemy's Mark-Down off-screen.
+- Regression: `test_battle_results_input_form.gd` (6), `test_tactical_downed_unit_row.gd` (3). 55 existing battle suites still green. See project memory `project_session_jul05_battle_companion_f9_f10`.
+
+Combat is a TWO-axis model (representation: full-minis/grid/no-minis/auto-resolve × Dramatic-Combat flavor toggle).
+
+- **Per-battle representation picker (the B-axis UI) SHIPPED Jun 3** (commit `9f2a7712`). `PreBattleUI` renders a 3-radio representation selector → `selected_representation_mode` ∈ {`play_on_table`, `no_minis`, `auto_resolve`}. `no_minis` gated on `dlc.is_feature_available(NO_MINIS_COMBAT)` + DLCUpsellBanner; `auto_resolve` ungated and greys the LOG/ASSISTED/FULL_ORACLE tracking radios (orthogonal axes). `CampaignTurnController._on_deployment_confirmed()` routes `auto_resolve` → `_on_auto_resolve_completed({})`, else injects `md["representation_mode"]` before `initialize_battle`; `TacticalBattleUI._setup_no_minis_panel` honors per-battle `no_minis` over the global toggle. Same commit: single-level Undo (snapshot/restore last Damage/Stun/Action/casualty) + casualty ConfirmationDialog + `?` rule popovers in TacticalBattleUI/CharacterStatusCard.
+
+---
+
+## Critical Gotchas — Must Remember
+
+1. **BattleResolver is static** (RefCounted) — use `BattleResolver.resolve_battle()`, never instantiate as Node.
+2. **TacticalBattleUI shared** between Standard and Bug Hunt — changes must not break either mode.
+3. **Godot 4.6 type inference**: `var x := dict["key"]` will NOT compile. Always use `var x: Type = dict["key"]`. Zero exceptions.
+4. **Per-figure SSOT (Phase 2)**: `TacticalUnit` is the model — `stun_markers`/`is_activated`/`react_slot` live there; `CharacterStatusCard`/rails/`ActivationTrackerPanel` are views. Parent calls down, child signals up via `_on_card_*` handlers. `_mark_casualty` is the single idempotent casualty chokepoint (guarded by `is_dead`); `feed_morale=false` is for bail-removal only.
+5. **Crew "Mark Down" = Out of Action, NOT confirmed dead**: `_resolve_battle()` routes ALL downed crew (`health<=0`) to `crew_injuries_data` → standard post-battle Injury Table (Core Rules p.122) decides dead/injured/recovered. The table is the arbiter, not the in-battle button. Enemies still die outright (feed End-Phase Morale, don't roll injury). DO NOT re-split by `is_dead` at resolve time.
+6. **SlideOverDrawer wide-drawer contract**: opt-in `@export var min_panel_width: float = 0.0` (default 0 = unchanged tight column, keeper gdUnit 10/10 stays green). Wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) request ~480px CONTENT-sized (`minf(min_panel_width, vp.x*0.5)`). NEVER size a content panel as a viewport fraction (`vp.x*0.42` balloons to 828px on wide monitors → half-screen takeover).
+7. **BattleRoundTracker `battle_event_triggered` requires UI to call `check_battle_event()` after overlay** (line ~186) to avoid modal double-fire. Bare `advance_phase()×5` does NOT auto-emit. A pre-existing test (`test_battle_event_triggers_on_round_2`) encodes the wrong expectation — kept out-of-scope.
+8. **DLC-gated MECHANICS must wire at BOTH the setup UI AND the runtime resolver.** May 29 caught: B3 Adjusted Shooting had a clean `if attacker.get("dramatic_combat", false)` branch in `BattleCalculations.resolve_ranged_attack` but NO resolver was setting the flag. Pure dead code despite "DRAMATIC COMBAT ACTIVE" appearing on the setup screen. Pattern: at the top of `resolve_battle`, call `CompendiumDifficultyTogglesRef.get_adjusted_shooting_thresholds()` (self-gating — returns `{}` when off), stash on `battlefield_data`, inject into attacker dict before each `BattleCalculations.resolve_ranged_attack` call. Both `BattleResolver` AND `NoMinisResolver` need this — they're separate code paths. Verify at runtime by MCP-flipping `DLCManager._enabled_flags[DRAMATIC_COMBAT] = true/false` and asserting the overlay is/isn't on `battlefield_data` after `resolve_battle`. Same pattern applies to any future DLC mechanic that affects per-shot/per-event math.
+
+---
+
+## PDF Rulebooks & Python Extraction Tools
+
+Source PDFs for verifying combat rules, weapon stats, and battle mechanics:
+- **Core Rules PDF**: `docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf`
+- **Compendium PDF**: `docs/rules/Five Parsecs From Home-Compendium.pdf`
+- **Text extractions**: `docs/rules/core_rulebook.txt` and `docs/rules/compendium_source.txt`
+- **Python (PyPDF2 ONLY)**: `py` launcher (NOT `python`). PyPDF2 3.0.1 is the only PDF tool — do NOT use PyMuPDF/fitz. Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('path'); print(r.pages[PAGE].extract_text())"`
+
+---
+
+## Battle Screen UX/UI Redesign (May 17–19, 2026) — Phase 0+1+2 COMPLETE
+
+Canonical doc: `docs/testing/BATTLE_UI_REDESIGN.md` (Map-Primary + Drawers,
+indexed). Plan: `~/.claude/plans/i-think-i-got-binary-comet.md`.
+
+### What shipped
+
+- **Frame port + keeper widget**: `TacticalBattleUI.tscn`/`.gd` restructured
+  to map-primary + thin crew/enemy rails + collapsible feed + persistent
+  drawer toolbar; keeper `src/ui/components/common/SlideOverDrawer.gd`
+  (gdUnit 10/10). All 3 tiers (LOG_ONLY/ASSISTED/FULL_ORACLE) + all 4
+  entry-point `battle_mode` branches (Battle Sim, Bug Hunt, Planetfall,
+  Tactics) MCP-verified.
+- **Phase 2 per-figure bookkeeping**: `TacticalUnit` gained `stun_markers`,
+  `is_activated`, `react_slot` (enemy=3 in `initialize_from_enemy`) +
+  `reset_for_new_round()` (KEEPS stun — Core Rules: removed only after
+  acting). Crew/Enemy drawers populated via `_populate_unit_drawer` (one
+  `CharacterStatusCard` + a red "✖ Mark Down" Button per `TacticalUnit`).
+  `ActivationTrackerPanel` populated via `add_unit` in the same loop;
+  `_on_tier_selected` re-populates after ASSISTED engines instance
+  (fixes initial null-tracker register skip). Reaction Roll =
+  `_assign_crew_reaction_slots()` at phase 0 (D6 vs `reactions` → 1/2);
+  End-Phase Morale = `_resolve_end_phase_morale()` (only if enemy lost
+  figures — Core Rules pp.114–115; `_mark_casualty(unit, false, false)`
+  removes bailed enemies without re-feeding morale).
+- **Rules-faithful crew injury routing** (user-confirmed): `_resolve_battle()`
+  sends ALL downed crew to `crew_injuries_data` → standard post-battle
+  Injury Table (Core Rules p.122). `is_dead` is retained ONLY as the
+  clean in-battle off-table flag (rail/Down-button/morale idempotency).
+- **Wide drawers**: opt-in `min_panel_width` on `SlideOverDrawer`; Crew /
+  Enemies / Dice / Tracking / Oracle / Results = 480px content-sized.
+- **Bug found & fixed during consistency verification** (NOT a Phase 2
+  regression — file untouched since 2026-04-02):
+  `src/core/services/InjurySystemService.gd:63` accessed `range_data.description`
+  but `INJURY_ROLL_RANGES` entries are `{min, max}` only → SCRIPT ERROR
+  spam + blank descriptions in every post-battle injury roll. Fixed →
+  `InjurySystemConstants.get_injury_description(injury_type)` (canonical
+  `INJURY_DESCRIPTIONS`, mirrors adjacent `type_name` lookup).
+
+### Verification
+
+gdUnit: keeper 10/10, activation_tracker 12/12, objective_tracker 14/14,
+post_battle_cascade 4/4, tier_controller 13/13, injury_determination 13/13,
+injury_recovery 15/15, post_battle_subsystems 10/10. ONE PRE-EXISTING
+out-of-scope fail (`test_battle_event_triggers_on_round_2` — see gotcha #7).
+Empirical d100 sweep of `determine_injury`: 15/100 fatal, 50/100 recovery,
+35/100 no-effect — confirming downed crew can still die or recover via the
+"Roll Injury" path. End-to-end empirical: card → model SSOT (stun/damage/
+action), round reset KEEPS stun, iter-3 morale bridge + bail removal,
+`crew_injuries=2 / crew_casualties=0` after 2 player-marked-down crew.
+
+### Files
+
+`src/ui/screens/battle/TacticalBattleUI.gd` (Phase 2 fields/methods + wide
+`_make_drawer` + crew injury routing in `_resolve_battle`),
+`src/ui/components/common/SlideOverDrawer.gd` (`min_panel_width` +
+`_lr_width`), `src/core/services/InjurySystemService.gd` (line ~63
+description fix). NEW: `docs/testing/BATTLE_UI_REDESIGN.md`. DELETED:
+`src/ui/screens/battle/prototype/` (untracked throwaway).
+
+---
+
+## Session 48c: Battle Phase Reconciliation (Apr 8, 2026)
+
+### CRITICAL: Dual Battle Paths — Only UI Path is Live
+- **LIVE:** `CampaignTurnController._initiate_battle_sequence()` (lines 631-762) → PreBattleUI → TacticalBattleUI
+- **DEAD:** `BattlePhase.gd` via CampaignPhaseManager (`battle_phase_handler = null`, line 43)
+- Session 48 SeizeInitiative/DeploymentConditions/MissionObjective work on BattlePhase.gd is on the dead path
+- Always enhance CampaignTurnController for production battle flow
+
+### InitiativeCalculator Already Exists
+- Full UI at `src/ui/components/battle/InitiativeCalculator.gd` (ASSISTED tier, REACTION_ROLL phase overlay)
+- Uses SeizeInitiativeSystem internally, has modifiers, crew auto-detection, Roll button
+- Needs pre-configuration from battle context (currently manual checkboxes)
+
+### Battle Result Data Contract Gap
+- TacticalBattleUI emits `BattleResult` with only 4 fields (victory, casualties, injuries, rounds)
+- PostBattlePhase needs 10+ fields (held_field, defeated_enemy_list, crew_participants, mission type flags)
+- Fix: emit rich Dictionary instead of thin BattleResult class
+
+### Dead Code Confirmed
+- `FPCM_BattleManager.gd` — zero refs, never instantiated
+- `BattleCoordinator.gd` — only in PreBattleLoop (not main flow)
+- `BattlefieldCompanion.gd` + `BattleSystemIntegration.gd` — parallel legacy stack
+
+### 4-Part Plan — COMPLETED (Session 48d)
+
+1. **Missing mechanics** — SeizeInitiativeSystem preload, rival attack type in mission_data, SMALL_ENCOUNTER enemy count -1/-2, quest finale +1, initiative_context dict for InitiativeCalculator auto-config
+2. **UX streamline** — BattleTransitionUI skipped (fake 2s loading), tier selector (3 radio buttons) moved into PreBattleUI, TacticalBattleUI skips TIER_SELECT/SETUP/DEPLOYMENT when `selected_tier` in mission_data
+3. **Terrain enhancement** — Enemy deployment markers by AI type (A/R/B=cluster, T=3 teams, C/D=2 groups, G=VIP guard), battle context header line on BattlefieldGridPanel
+4. **Battle result data contract** — Both `_resolve_battle()` and auto-resolve now emit rich Dictionary (20+ fields: held_field, crew_participants, defeated_enemies, mission flags, etc.)
+
+### Key Implementation Details
+
+- `_launch_pre_battle_directly()` in CampaignTurnController replaces BattleTransitionUI handoff
+- PreBattleUI.selected_tier (int, 0=LOG_ONLY/1=ASSISTED/2=FULL_ORACLE) passed via mission_data
+- BattlefieldGridPanel.set_battle_context(objective, condition, enemy_summary) sets header context line
+- `_compute_enemy_deploy_markers()` in TacticalBattleUI generates grid markers by AI type (Core Rules p.110)
+- signal `tactical_battle_completed` changed from `BattleResult` typed to untyped (accepts Dictionary)
+
+---
+
+## Session 50: Battlefield Terrain Generator Enhancement (Apr 8, 2026)
+
+### Shape Placement Fixes (BattlefieldMapView._rebuild_terrain_shapes)
+
+- **Root cause**: Sectors only ~104×48px available, but shapes after 1.5x scale could be 84×57px
+- **Adaptive scaling**: Dense sectors (3+ features) get 0.6x-0.75x local_scale
+- **Proportional rotation margins**: Based on actual max rotation (buildings ~6px vs old fixed 16px)
+- **Grid-distributed fallback**: Overflow shapes placed in even grid slots, not stacked at (0,0)
+- **Hard sector clamping**: fallback_y always clamped — no more grid escape
+- **Density-aware padding**: When total shape area > 40% of sector, padding halved (min 6px)
+
+### World Trait Terrain Modifications (BattlefieldGenerator)
+
+- 10 battlefield traits now handled (was 2): overgrown, warzone, haze, gloom, fog, barren, flat, crystals, frozen, reflective_dust, null_zone
+- `_apply_world_trait_modifications()` now returns `Array[String]` combat notes
+- `barren` removes all vegetation features post-generation
+- `flat` removes elevation features AND suppresses `_validate_terrain_minimums` elevated injection
+- Result dict includes `"combat_notes"` and `"seed"` keys
+
+### Presentation Enhancements
+
+- **Scatter visible**: Tiny 16×10px dots on map (was invisible). `show_scatter` toggle property
+- **Legend complete**: Crystal/Scatter/Notable added (12 entries). HFlowContainer wraps on mobile
+- **Rules badges**: Map labels show `[L]`/`[I]`/`[B]`/`[F]`/`[A]` (Linear/Interior/Block/Field/Area)
+- **Combat notes**: "WORLD TRAIT EFFECTS" section in setup tab (purple, #E879F9)
+- **Seeded RNG**: Optional `rng_seed` param, seed stored in result for reproducibility
+- **Size normalization**: Unprefixed features get "SMALL:" prefix via `_has_known_prefix()`
+
+---
+
+## Session 47: Equipment Pipeline — Battle Domain (Apr 8, 2026)
+
+### BattleCalculations.gd — Weapon Trait Effects Integrated
+- Fixed 4 fabricated traits: Focused, Heavy, Overheat, Stun — replaced with Core Rules trait system
+- New `get_weapon_trait_effects()` integrated into `resolve_ranged_attack()` and `resolve_brawl()`
+- Clumsy brawl penalty, stealth gear hit penalty, flak screen damage reduction, frag vest area bonus
+- Shrapnel override (area damage), consumable effects (grenades, stim-packs), 8 new utility devices
+
+### BattleResolver.gd — Armor/Screen + Protective Devices
+- Armor and screen saves now initialized from equipment + enemy `special_rules`
+- Protective device effects: deflector field, flex-armor, camo cloak
+- Overheat round tracking (weapon fires every other round)
+- `moved_this_turn` heuristic for movement-dependent traits
+- Consumed items pipeline: items used in battle tracked and passed to PostBattle
+- Stim-pack elimination prevention (prevents first fatal hit)
+
+### CoreSystems.WeaponTraitSystem Deprecated
+- Zero callers remain — all trait logic consolidated into BattleCalculations
+
+---
+
+## Session 40b: Legal Stack + Modiphius Ask List (Apr 7, 2026)
+
+No direct battle-domain changes. Context awareness:
+
+- Legal stack shipped (EULA screen, privacy policy, consent management, data export/delete) — 14 new files
+- Compendium library system added (10 categories, 340+ items)
+- `docs/MODIPHIUS_ASK_LIST.md` created — partnership blockers include art assets (miniature photography for faction tiles, 3D renders for character cards) which will affect battle UI visuals
+- Icon SOP: game-icons.net SVGs, white on transparent, `modulate` for color. Path: `assets/icons/{context}/`
+
+---
+
+## Session 40: Difficulty Audit — Battle Domain (Apr 7, 2026)
+
+### Seize Initiative Difficulty Modifier Fix
+- `BattleCalculations.check_seize_initiative()` now accepts `difficulty_modifier: int = 0` — Hardcore: -2, Insanity: -3 (Core Rules p.65)
+- Modifier flows: BattlePhase injects into `battlefield_data["seize_initiative_modifier"]` → BattleResolver reads it → passes to BattleCalculations
+- `SeizeInitiativeSystem.gd` (UI path) already handled this — the fix is for the automated resolution path in BattleResolver
+
+### Difficulty Enum Cleanup
+- HARD(3)/NIGHTMARE(5)/ELITE(7) are **DEPRECATED** — not in Core Rules or Compendium. Aliased to NORMAL/INSANITY/INSANITY in JSON
+- Fabricated keys removed from JSON: `enemy_strength_multiplier`, `loot_modifier`, `credit_modifier`, `rival_resistance_modifier`
+- Only 5 real modes: Easy, Normal, Challenging, Hardcore, Insanity
+
+### Progressive Difficulty (Compendium pp.30-31)
+- `ProgressiveDifficultyTracker.gd` already existed with JSON data
+- BattlePhase now reads `progress_data["progressive_difficulty_options"]` (array of ProgressionType ints) instead of hardcoding BASIC
+- Options combinable per Compendium (loops over array)
+
+---
+
+## Session 39: Crew Size Scaling — Battle Domain (Apr 7, 2026)
+
+### Key Distinction: `get_crew_size()` ≠ `get_campaign_crew_size()`
+- `get_crew_size()` = fluctuating roster count (for upkeep, travel)
+- `get_campaign_crew_size()` = fixed 4/5/6 setting (for enemy numbers, deployment, reaction dice)
+
+### EnemyGenerator Changes
+- **Numbers modifier** now applied: `_parse_numbers_modifier()` converts "+0"/"+2"/"+3" from enemy template → added to base dice count
+- **Order of operations** fixed: select enemy type FIRST (D100), THEN roll dice, THEN add Numbers modifier
+- **Quest reroll** (Core Rules p.99): during Quest missions, any die scoring 1 rerolled once
+- **Raided formula** (Core Rules p.70): NEW `calculate_raided_enemy_count(campaign_crew_size)` method
+  - Crew 6: 3D6 pick highest (one step UP from standard 2D6 pick highest)
+  - Crew 5: 2D6 pick highest
+  - Crew 4: 1D6
+
+### BattlePhase Changes
+- Uses `get_campaign_crew_size()` instead of `get_crew_size()` for enemy count
+- **Fielding-fewer reduction** (Core Rules p.93): if deploying 2+ fewer than campaign setting, -1 enemy
+
+### FiveParsecsCombatSystem Changes
+- Reaction dice now roll D6 matching campaign setting (not living crew count)
+
+### PreBattleUI Changes
+- Deployment cap enforced to `campaign_crew_size`
+- "Deploying X / Y max" label visible in crew selection
+
+### Tests Added (13 new in test_crew_size_enemy_calc.gd)
+- Numbers modifier parsing (5 tests)
+- Quest reroll (2 tests — P(1) drops from 16.7% to <2.8%)
+- Roster vs setting distinction (2 tests)
+- Raided formula (4 tests — crew 6/5/4 + statistical comparison)
+
+---
+
+## Session 35: Red & Black Zone Jobs Battle Integration (Apr 7, 2026)
+
+`BattlePhase.gd:280-411` already read `is_red_zone`/`is_black_zone` flags — now wired from upstream:
+
+- Zone flags injected by `WorldPhaseController._complete_world_phase()` into `progress_data["current_mission"]`
+- Red Zone: fixed 7 enemies + 3 specialists + 1 lieutenant, threat condition (D6), time constraint (Round 6 D6), +2 invasion, -1 galactic war
+- Black Zone: 4 teams of 4 from Roving Threats, reinforcement every round, Active/Passive system, 5 mission types (D10)
+- PostBattle: `PaymentProcessor.process_black_zone_rewards()` handles victory (clear rivals, +2 patrons, 5cr, loan payoff) and failure (1cr/casualty). `ExperienceTrainingProcessor` adds +1 XP all crew on BZ victory. `GalacticWarProcessor` applies RZ -1 modifier
+- Journal: battle entries tagged with `red_zone`/`black_zone`, enriched with threat/time/mission details
+- Key files: `RedZoneSystem.gd`, `BlackZoneSystem.gd` (RefCounted, static methods, JSON-backed)
+- Data: `data/red_zone_jobs.json`, `data/black_zone_jobs.json`
+
+---
+
+## Phase 31 QA Bug Fix Sprint (Mar 16, 2026)
+
+10 bugs + 3 UX issues fixed across 14 files, 0 compile errors. Key battle-domain fixes below.
+
+### Initiative Roll Crash (BUG-043 — FIXED)
+
+`TacticalBattleUI.gd` referenced `result.seized` but `InitiativeResult` uses `result.success`. Changed to `result.success` at the crash site (line ~741).
+
+### Phantom Equipment Modifiers (BUG-042 — FIXED)
+
+Initiative calculator showed phantom equipment bonuses (Motion Tracker, Scanner Bot) for crew with no equipment. Added `_auto_detect_equipment()` in `InitiativeCalculator.gd` that validates equipment references exist on crew members. Wired `set_crew()` call from `TacticalBattleUI.gd` to pass actual crew data.
+
+### Battlefield Theme Mismatch (BUG-038 — FIXED)
+
+Terrain theme data was spread at top level of `full_bf_data` in `CampaignTurnController.gd` but `TacticalBattleUI.gd` read from `terrain` sub-dict. Fixed by merging `terrain_guide` into `terrain` sub-dict in `CampaignTurnController.gd`, and adding fallback read in `TacticalBattleUI.gd`.
+
+### Terrain Feature Count (BUG-040 — FIXED)
+
+Map was generating ~15+ features, exceeding the 13-feature Core Rules cap. Added `is_scatter` flag in `BattlefieldShapeLibrary.gd` and skip scatter features in `BattlefieldMapView.gd` to stay within limits.
+
+### Terrain Size Prefixes (BUG-041 — FIXED)
+
+Terrain labels were missing LARGE/SMALL/LINEAR type prefixes. Added `size_category` property to shapes in `BattlefieldShapeLibrary.gd` and prefix rendering in `BattlefieldMapView.gd` labels.
+
+### Files Modified (Battle Domain)
+
+- `src/ui/screens/battle/TacticalBattleUI.gd` — initiative result property fix, terrain theme fallback, crew wiring
+- `src/ui/components/battle/InitiativeCalculator.gd` — `_auto_detect_equipment()`, `set_crew()`
+- `src/ui/components/battle/BattlefieldShapeLibrary.gd` — `is_scatter` flag, `size_category` property
+- `src/ui/components/battle/BattlefieldMapView.gd` — scatter skip, size prefix labels
+- `src/ui/screens/campaign/CampaignTurnController.gd` — terrain_guide merge into terrain sub-dict
+
+## Session 10: CombatResolver Interface Fix (Mar 26, 2026)
+
+CombatResolver.gd defines a 24-method + 10-property interface contract on `CharacterScript` (= `BaseCharacterResource`). Previously, 22 of 24 methods were completely missing — `_validate_character_interface()` in `_ready()` would crash via `assert()`.
+
+**Fix**: All 22 methods added to `src/core/character/Base/Character.gd`:
+- Equipment: `get_equipped_weapon()`, `get_combat_skill()`
+- Damage: `get_melee_damage()`, `get_ranged_damage()`, `get_armor_value()`, `apply_damage()`, `heal_damage()`
+- Actions: `add_action_points()`, `reduce_action_points()`, `can_perform_action()`, `get_speed()`
+- Abilities: `get_active_ability()`, `get_ability_cooldown()`, `is_ability_on_cooldown()`
+- Status: `is_mechanical()`, `is_suppressed()`, `is_pinned()`, `has_overwatch()`, `add_combat_modifier()`
+- Reactions: `can_counter_attack()`, `can_dodge()`, `can_suppress()`
+- Lifecycle: `reset_battle_state()`
+
+13 combat properties also added (transient state + aliases: `name`→`character_name`, `bot`→`is_bot`, `soulless`→`is_soulless`).
+
+TacticalBattleUI now hosts Battle Simulator flow too. Three modes: Standard 5PFH, Bug Hunt, Battle Simulator. All runtime-verified via MCP with zero errors.
+
+## Session 11-12: Hardcoded Data Cleanup (Mar 26, 2026)
+
+### BattlePhase.gd Fabricated Payment Removed (CRITICAL)
+Both tactical and auto-resolve paths had `base_payment=100 + difficulty*25 + success_bonus=50` — fabricated formula generating 150-200 credits per battle. `battle_setup_data` is rebuilt at line 323 without `base_payment`, so fallback always triggered. Fixed: `combat_results["payment"]` and `["credits_earned"]` now set to 0. Real payment handled by `PostBattlePaymentProcessor.process_payment()` (1D6 credits, Core Rules p.120).
+
+### BattleEventsSystem.gd Wired to JSON
+Added `_load_events_from_json()` loading 24 battle events from `data/event_tables.json["battle_events"]["entries"]`. Falls back to `_initialize_event_registry()` if JSON fails. Follows TravelPhase.gd pattern.
+
+### BattleCalculations.gd Constants — Verified Correct
+Hit thresholds (3+/5+/6+), range bands, armor/screen saves all properly annotated with Core Rules page citations. Appropriate as code constants — no JSON externalization needed. XP constants now derived from `data/injury_results.json` via static var getters (additive decomposition: PARTICIPATION + VICTORY_BONUS = survived_won_battle).
+
+### STUN_THRESHOLD Removed (Previous Session)
+`STUN_THRESHOLD := 8` was fabricated damage-based stun. Removed from both BattleCalculations.gd and CombatResolver.gd. Stun is now trait-based only per Core Rules p.40/51.
+
+## Session 13: Injury/XP/Unique Individual JSON Wiring (Mar 26, 2026)
+
+### injury_results.json — Verified & Wired (Core Rules p.122-123)
+
+Both human (9 entries) and bot (6 entries) injury tables verified against Core Rules p.122 — exact match. XP awards verified against p.123 (7 conditions). Two missing XP entries added: `easy_mode_bonus` and `quest_completion`. Page citation corrected from p.119 to p.122/123.
+
+**Wired to 3 consumers:**
+
+- `PostBattleProcessor.gd` — XP awards via static lazy loader + both injury table methods now data-driven from JSON (replaced ~75-line if/elif chains with `_match_injury_entry()` + `_resolve_dice_expression()`)
+- `ExperienceTrainingProcessor.gd` — `_calculate_crew_xp()` loads XP values from JSON
+- `BattleCalculations.gd` — XP constants derived from JSON via static var getters
+
+### unique_individual.json — Verified & Wired (Core Rules pp.64-65, 93-94)
+
+Removed fabricated `unique_individual_definition` (flat +1 bonuses don't exist). Added missing Interested Parties +1 modifier (Core Rules p.93), Invasion/Roving Threats exclusion rules.
+
+**Wired to BattlePhase.gd:**
+
+- `_determine_unique_individual()` loads threshold (9), double threshold (11), Interested Parties modifier from JSON
+- Added missing Interested Parties +1 check via `battle_setup_data.get("enemy_category", "")`
+
+### Dual injury JSON files
+
+- `data/injury_table.json` — older file, referenced by DataManager/GameDataManager
+- `data/injury_results.json` — newer file with XP awards + processing rules, now canonical source for PostBattleProcessor/ExperienceTrainingProcessor/BattleCalculations
+- Both contain identical injury table data; `injury_table.json` also has XP table in different format
+
+---
+
+## Mar 20-21 Runtime Verification
+
+### TacticalBattleUI Type Inference Fix
+
+Godot 4.6 type inference error in TacticalBattleUI.gd — `var panel := _get_res("tier_selection").new()` failed because `_get_res()` returns Variant. Fixed at 2 sites by changing to `var panel: Control = _get_res("tier_selection").new()`.
+
+### Battle Map / Auto-Resolve — Verified Through 3 Battle Cycles
+
+5-turn campaign playthrough (turns 3-5) included 3 battle cycles. All passed:
+
+- Battle map terrain rendering correct
+- Auto-resolve produces valid results with proper victory/defeat tracking
+- Post-battle results correctly propagated (BUG-033 confirmed fixed — reads from `self.battle_results`)
+- Counters after 5 turns: battles_won=4, battles_lost=1
+
+---
+
+## Battle UI QA Sprint (Mar 15, 2026)
+
+18 bugs found, 11 fixed, 7 won't fix (standalone-mode-only, not applicable to normal campaign flow).
+
+### Key Architecture Changes
+
+- `TacticalBattleUI.gd` now has `@onready var bottom_bar: PanelContainer = $MainContainer/BottomBar`
+- `_apply_stage_visibility()` controls: bottom_bar, phase_breadcrumb, battle_round_hud, action_buttons per stage
+  - TIER_SELECT: hides bottom_bar + breadcrumb
+  - RESOLUTION: hides battle_round_hud + action_buttons + breadcrumb, sets "Battle Complete" text
+  - COMBAT: sets "Round 1 - Combat" fallback text when no round_tracker
+- `BattlefieldShapeLibrary.get_rotation_range()` — static method for per-shape rotation angles
+- `BattlefieldMapView` — terrain rotation, objective marker (gold diamond + "OBJ"), measurement callouts
+- `BattlefieldGridPanel` — terrain legend with colored swatches
+- `BattlefieldGenerator` — cross-sector spanning terrain (0-2 features), density boost (0.6->0.75 + 30% cluster chance)
+- `compendium_terrain.json` — `regular_feature_per_sector_chance`: 0.6 -> 0.75
+- Quick dice log shows individual dice breakdown for multi-die rolls
+
+### Won't Fix Items (standalone-mode-only)
+
+B01 (tier overlay not shown without `initialize_battle()`), B03 (overlay dimming), B06 (setup tab empty), B15 (no result summary), B17 (no crew cards), B18 (no phase buttons) — all require `initialize_battle()` which is always called in normal campaign flow.
+
+### Bug Report
+
+Full details: `docs/BATTLE_UI_QA_BUGS.md`
+
+## Phase 29 Runtime Test (Mar 16, 2026)
+
+Full 2-turn demo path tested via MCP. Battle UI works correctly in campaign flow:
+
+- **PreBattleUI**: All crew pre-selected (BUG-021 fix confirmed), mission info + terrain guide displayed
+- **Tier Selector**: 3-tier companion level (Log Only / Assisted / Full Oracle) renders and selects correctly
+- **Battlefield Map**: Graph-paper terrain with Wilderness/Urban Settlement themes, coordinate labels, terrain shapes
+- **Auto-Resolve**: `_on_auto_resolve_battle()` works — transitions to Post-Battle cleanly
+- **Post-Battle 14 Steps**: All advance without crashes (ROLL-FIX verified for steps 12-14)
+
+### Issues Found (All Fixed in Phase 31)
+
+- **Initiative crash** (BUG-043) — `result.seized` → `result.success`
+- **Phantom equipment modifiers** (BUG-042) — auto-detect validates actual equipment
+- **Theme mismatch** (BUG-038) — terrain sub-dict merge
+- **Feature count exceeded** (BUG-040) — scatter flag filtering
+- **Missing size prefixes** (BUG-041) — size_category property

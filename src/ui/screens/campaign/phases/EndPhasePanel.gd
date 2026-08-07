@@ -7,11 +7,15 @@ const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
 
 signal cycle_completed
 signal campaign_saved
+## Emitted after the crew retires and the campaign has been archived, so a host
+## screen can leave the campaign rather than offer a next turn that cannot happen.
+signal campaign_retired
 
 @onready var summary_label: Label = $VBoxContainer/SummaryLabel
 @onready var stats_container: VBoxContainer = $VBoxContainer/StatsContainer
 @onready var save_button: Button = $VBoxContainer/SaveButton
 @onready var continue_button: Button = $VBoxContainer/ContinueButton
+@onready var retire_button: Button = $VBoxContainer/RetireButton
 @onready var _cpm: Node = get_node_or_null("/root/CampaignPhaseManager")
 
 var cycle_summary: Dictionary = {}
@@ -31,6 +35,19 @@ func _ready() -> void:
 		_setup_validation_hint(continue_button)
 		_show_validation_hint(
 			"Save your campaign before continuing")
+	# Core Rules p.8: a campaign may simply end when the players decide it has —
+	# "just play until they feel their crew is either forced to disband, or has
+	# made it big and can retire". The archival gate below has always read
+	# progress_data["crew_retired"], and NOTHING in the codebase ever wrote it, so
+	# a crew that retired was silently dropped instead of entering the Hall of
+	# Fame. This button is the missing writer.
+	if retire_button:
+		_style_phase_button(retire_button)
+		DialogStyles.style_danger_button(retire_button)
+		retire_button.tooltip_text = (
+			"End this campaign here and archive the crew to the Hall of Fame."
+			+ "\nThis cannot be undone.")
+		retire_button.pressed.connect(_on_retire_button_pressed)
 	# Remove bare HSeparators, wrap stats in a card
 	var vbox = $VBoxContainer
 	if vbox:
@@ -195,6 +212,56 @@ func _on_save_button_pressed() -> void:
 		continue_button.disabled = false
 		_hide_validation_hint()
 
+## Core Rules p.8 — the players decide the campaign is over. Confirmed, because it
+## is irreversible: the archive is written and the campaign stops taking turns.
+func _on_retire_button_pressed() -> void:
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Retire the Crew"
+	dialog.ok_button_text = "Retire"
+	dialog.cancel_button_text = "Keep Playing"
+	var turns: int = int(cycle_summary.get("turns_played", 0))
+	var crew: int = int(cycle_summary.get("crew_size", 0))
+	dialog.dialog_text = (
+		"End the campaign here?\n\n"
+		+ "%d crew retire after %d campaign turn(s). They are archived to the "
+		% [crew, turns]
+		+ "Hall of Fame\nand this campaign stops taking turns.\n\n"
+		+ "This cannot be undone.")
+	dialog.confirmed.connect(_retire_crew)
+	dialog.close_requested.connect(dialog.queue_free)
+	add_child(dialog)
+	dialog.popup_centered()
+
+
+func _retire_crew() -> void:
+	if not game_state or not game_state.campaign:
+		return
+	var campaign = game_state.campaign
+	if not ("progress_data" in campaign):
+		return
+	# The flag the archival gate has always read. Written on the campaign, which
+	# owns it, so it survives a save and a reload rather than living on the panel.
+	campaign.progress_data["crew_retired"] = true
+	if game_state.has_method("save_campaign"):
+		game_state.save_campaign()
+	_try_archive_campaign()
+	var journal_sys = get_node_or_null("/root/CampaignJournal")
+	if journal_sys and journal_sys.has_method("auto_create_milestone_entry"):
+		journal_sys.auto_create_milestone_entry("crew_retired", {
+			"turn": int(cycle_summary.get("turns_played", 0)),
+			"stats": {"crew_count": int(cycle_summary.get("crew_size", 0))},
+		})
+	if retire_button:
+		retire_button.disabled = true
+		_style_button_disabled(retire_button)
+	if continue_button:
+		continue_button.disabled = true
+		_style_button_disabled(continue_button)
+	if save_button:
+		save_button.disabled = true
+	campaign_retired.emit()
+
+
 func _try_archive_campaign() -> void:
 	if not game_state or not game_state.campaign:
 		return
@@ -225,9 +292,22 @@ func _try_archive_campaign() -> void:
 	if not is_victory and not crew_retired and turns < 20:
 		return
 
+	# ONCE per campaign. This function runs on every Save press, `setup_phase()`
+	# re-enables the Save button each turn, and the gate above stays true forever
+	# once it opens — so a campaign played past turn 20 was appending a fresh Hall
+	# of Fame entry EVERY turn, and `get_best_campaign()` / `get_legacy_bonus()`
+	# read that list. A campaign taken to turn 30 filed eleven copies of itself.
+	if bool(pd.get("campaign_archived", false)):
+		return
+
 	var legacy_sys = get_node_or_null("/root/LegacySystem")
 	if not legacy_sys or not legacy_sys.has_method("archive_campaign"):
 		return
+	# Claimed only once the archive is actually going to be written. Setting it
+	# above the autoload guard would consume the one chance on a null LegacySystem
+	# and lose the campaign permanently.
+	if "progress_data" in campaign:
+		campaign.progress_data["campaign_archived"] = true
 
 	var campaign_id: String = ""
 	if "campaign_id" in campaign:
@@ -243,12 +323,21 @@ func _try_archive_campaign() -> void:
 			elif m != null and m.has_method("to_dictionary"):
 				crew_dicts.append(m.to_dictionary())
 
+	# Victory wins the label when both are true: a crew that retires ON the turn it
+	# completes its Victory Condition still earned the Elite Rank above.
+	var ended_by := "ended"
+	if is_victory:
+		ended_by = "victory"
+	elif crew_retired:
+		ended_by = "retired"
+
 	legacy_sys.archive_campaign(campaign_id, {
 		"crew": crew_dicts,
 		"story_points": campaign.story_points if "story_points" in campaign else 0,
 		"turns_survived": turns,
 		"victory": is_victory,
 		"credits_earned": campaign.credits if "credits" in campaign else 0,
+		"ended_by": ended_by,
 	})
 
 	# Log campaign archive as milestone in CampaignJournal

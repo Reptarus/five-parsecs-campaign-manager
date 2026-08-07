@@ -97,7 +97,12 @@ static func roll_mission_type() -> Dictionary:
 				"required_rounds": mission.get("required_rounds", 0),
 				"required_exits": mission.get("required_exits", 0),
 				"savvy_check": mission.get("savvy_check", 0),
-				"target_toughness": mission.get("target_toughness", 0)
+				"target_toughness": mission.get("target_toughness", 0),
+				# p.151 Eliminate Priority Target: "cannot be fired upon at
+				# distances exceeding 20 inches". The JSON carried it and this
+				# factory dropped it, so the one clause that makes the target
+				# survivable never reached the battle card.
+				"max_fire_range": mission.get("max_fire_range", 0)
 			}
 
 	return {"roll": roll, "name": "Unknown Mission", "objective": "unknown"}

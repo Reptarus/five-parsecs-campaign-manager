@@ -116,6 +116,23 @@ func generate_starting_loadout(character_id: String, items: Array) -> int:
 			_emit_transfer("creation->character", str(item["id"]), character_id)
 	return added
 
+## Is this stash/carried item currently broken? (Core Rules p.131 damaged Loot,
+## p.127 Campaign Event 45-48, p.71 travel Accident — all the same condition.)
+##
+## STATIC ON PURPOSE: a pure predicate about one item dict, so it needs no
+## campaign and no instance. Call `EquipmentTransferService.is_item_damaged(x)`.
+##
+## Reads BOTH spellings. `damaged` is canonical and is what every rule site
+## checks; `needs_repair` was written by LootTableResolver alone and is already
+## persisted in save files, so ignoring it would silently un-break every damaged
+## item a player has already looted. New writes set both.
+static func is_item_damaged(item: Variant) -> bool:
+	if not (item is Dictionary):
+		return false
+	var d: Dictionary = item
+	return bool(d.get("damaged", false)) or bool(d.get("needs_repair", false))
+
+
 # ============================================================================
 # INTERNAL HELPERS — these are the ONLY places that mutate the two stores.
 # Every public method routes through these so the invariants hold.

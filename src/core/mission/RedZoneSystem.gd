@@ -11,6 +11,9 @@ extends RefCounted
 ##   var threat = RedZoneSystem.roll_threat_condition()
 ##   var rewards = RedZoneSystem.calculate_rewards(battle_result)
 
+const AdvancementSystemRef = preload(
+	"res://src/core/character/advancement/AdvancementSystem.gd")
+
 # Cached data from JSON
 static var _data: Dictionary = {}
 static var _data_loaded: bool = false
@@ -58,8 +61,13 @@ static func can_obtain_license(campaign: Resource) -> Dictionary:
 	if campaign.has_method("get_crew_members"):
 		for member in campaign.get_crew_members():
 			var has_broker: bool = false
-			# Check property (from AdvancementSystem training course)
-			if "has_broker_training" in member and member.has_broker_training:
+			# The purchased p.125 course. This used to read `has_broker_training`,
+			# a property Character does NOT declare, written only by
+			# `AdvancementSystem.purchase_training()` — which has zero callers, and
+			# whose `Object.set()` calls are silent no-ops even when reached. So a
+			# crew member who actually BOUGHT Broker training never got the
+			# discount; only a lucky creation trait below did.
+			if AdvancementSystemRef.member_has_training(member, "broker"):
 				has_broker = true
 			# Check traits array (from CharacterGeneration background)
 			elif "traits" in member:

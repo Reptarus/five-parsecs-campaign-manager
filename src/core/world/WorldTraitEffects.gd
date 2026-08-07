@@ -175,6 +175,26 @@ static func departure_is_blocked(roll: int, traits: Array) -> bool:
 		return false
 	return roll <= max_int(traits, "departure_blocked_max", 0)
 
+## "Interdiction — You are only approved to stay for 1D3 campaign turns. To
+## extend your stay, you must obtain a license. Roll 2D6, requiring an 8+."
+## (Core Rules p.75 World Trait.)
+##
+## This trait had ZERO consumers: the only file that even named "interdiction"
+## was the dead `phases/TravelPhase.gd`, so the stay limit never counted down and
+## the licence roll never happened. It is also the ONLY licence roll in the live
+## campaign, which is what made the two licence-related On-board Items (Fake ID
+## "+1 to all attempts to obtain a license", Sector Permit "roll 1D6, on a 4+ the
+## Sector Permit is accepted") inert by construction — there was no attempt to
+## add +1 to.
+static func requires_stay_license(traits: Array) -> bool:
+	return any_flag(traits, "requires_stay_license")
+
+## The 8+ target for the p.75 extend-your-stay roll. Falls back to 8 so a data
+## file missing the key still enforces the book number rather than 0 (which would
+## make every roll succeed — a silent removal of the rule).
+static func stay_license_target(traits: Array) -> int:
+	return max_int(traits, "stay_license_target", 8)
+
 ## "Travel restricted — No more than one crew member may take the Explore option
 ## each campaign turn." Returns -1 for "no cap".
 static func explore_task_cap(traits: Array) -> int:

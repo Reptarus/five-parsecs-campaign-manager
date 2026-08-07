@@ -5,6 +5,9 @@ class_name ResolveRumorsComponent
 ## Implements Core Rules p.85 - Resolve rumors to generate quests
 ## Roll D6 - if equal or below number of rumors, convert to Quest
 
+const OnboardItemServiceRef = preload(
+	"res://src/core/equipment/OnboardItemService.gd")
+
 # UI Components
 @onready var rumors_count_label: Label = %RumorsCountLabel
 @onready var rumors_list: ItemList = %RumorsList
@@ -123,17 +126,35 @@ func _on_roll_pressed() -> void:
 	last_roll = randi() % 6 + 1
 	var rumor_count = rumors.size()
 
+	# On-board item, Analyzer (Core Rules p.57): "Add +1 when rolling to see if
+	# Rumors result in a Quest and when rolling for Quest resolution."
+	#
+	# THE +1 GOES ON THE THRESHOLD HERE, NOT ON THE DIE — and that is a rules
+	# decision, not a coding convenience. p.85 succeeds on a roll "equal or below
+	# the number of Rumors", so adding 1 to the die would make the Analyzer a
+	# PENALTY: it would turn a rolled 3 against 3 Rumors from a success into a
+	# failure. An item the player spends a Loot slot on cannot make the outcome
+	# worse, so the only coherent reading is +1 to the number it is measured
+	# against. (Same shape as p.88 "Enemy Morale +1", where the +1 moves the
+	# Panic range DOWN — a "+1" is only meaningful once you know which direction
+	# is good.) The Quest-resolution half of the same sentence is the opposite
+	# polarity and is applied to the ROLL — see ExpandedQuestProgression.
+	var analyzer_bonus: int = OnboardItemServiceRef.quest_roll_bonus(_active_campaign())
+	var effective_target: int = rumor_count + analyzer_bonus
+	var analyzer_note: String = " (+1 Analyzer)" if analyzer_bonus > 0 else ""
 
-	if last_roll <= rumor_count:
+	if last_roll <= effective_target:
 		# Success! Convert rumors to quest
 		_generate_quest_from_rumors()
 		if result_label:
-			result_label.text = "Rolled %d ≤ %d rumors - QUEST GENERATED!" % [last_roll, rumor_count]
+			result_label.text = "Rolled %d ≤ %d rumors%s - QUEST GENERATED!" \
+				% [last_roll, effective_target, analyzer_note]
 			result_label.modulate = Color(0.5, 1.0, 0.5)
 	else:
 		# Failed - rumors remain
 		if result_label:
-			result_label.text = "Rolled %d > %d rumors - No quest this turn" % [last_roll, rumor_count]
+			result_label.text = "Rolled %d > %d rumors%s - No quest this turn" \
+				% [last_roll, effective_target, analyzer_note]
 			result_label.modulate = Color(1.0, 0.8, 0.5)
 
 	rumors_resolved = true
@@ -144,7 +165,7 @@ func _on_roll_pressed() -> void:
 			"phase_name": "resolve_rumors",
 			"roll": last_roll,
 			"rumor_count": rumor_count,
-			"quest_generated": last_roll <= rumor_count
+			"quest_generated": last_roll <= effective_target
 		})
 
 func _generate_quest_from_rumors() -> void:
@@ -263,7 +284,9 @@ func _update_ui_display() -> void:
 		elif rumors_resolved:
 			roll_button.text = "Already Resolved"
 		else:
-			roll_button.text = "Roll to Resolve (D6 ≤ %d)" % rumors.size()
+			var target: int = rumors.size() + OnboardItemServiceRef.quest_roll_bonus(
+				_active_campaign())
+			roll_button.text = "Roll to Resolve (D6 ≤ %d)" % target
 
 ## Event Handlers
 func _on_phase_started(data: Dictionary) -> void:
@@ -349,3 +372,15 @@ func reset_rumors_phase() -> void:
 	if result_label:
 		result_label.text = ""
 	_update_ui_display()
+
+
+func _active_campaign():
+	## GameState is an autoload, so this is an absolute-path lookup and ERRORS
+	## (unwinding the caller) from a detached node. Guarded for the same reason
+	## CrewTaskComponent._stash_items() is.
+	if not is_inside_tree():
+		return null
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") 		else null

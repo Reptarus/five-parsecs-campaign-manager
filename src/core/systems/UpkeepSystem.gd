@@ -11,7 +11,6 @@ signal upkeep_paid(remaining_credits: int)
 signal insufficient_funds(required: int, available: int)
 
 # Economy system reference for credit management
-var economy_system: Node = null
 
 # Upkeep costs loaded from res://data/campaign_config.json "economy" section
 # Canonical source: Five Parsecs Core Rules p.76
@@ -273,13 +272,14 @@ func _get_ship_data(campaign_data: Resource) -> Resource:
 	return null
 
 func _get_credits(campaign_data: Resource) -> int:
-	## Get current credits from EconomySystem or campaign data
-	# PRIORITY 1: Use EconomySystem if available (proper integration)
-	if economy_system and economy_system.has_method("get_resource"):
-		if GlobalEnums and "ResourceType" in GlobalEnums:
-			return economy_system.get_resource(GlobalEnums.ResourceType.CREDITS)
-
-	# FALLBACK: Try campaign_data for backwards compatibility
+	## Get current credits from campaign data.
+	##
+	## The "PRIORITY 1: use EconomySystem" branch that used to sit here was
+	## PERMANENTLY DEAD: `economy_system` is declared `= null` at the top of this
+	## file and is never assigned anywhere in the repo, so the guard could not be
+	## true and the FALLBACK below was always the real implementation. It made a
+	## fabricated 842-line supply/demand economy look like the credit authority
+	## when the actual authority is the campaign (see the Data Ownership table).
 	if not campaign_data:
 		return 0
 
@@ -298,14 +298,8 @@ func _get_credits(campaign_data: Resource) -> int:
 	return 0
 
 func _set_credits(campaign_data: Resource, credits: int) -> void:
-	## Set current credits via EconomySystem or campaign data
-	# PRIORITY 1: Use EconomySystem if available (proper integration)
-	if economy_system and economy_system.has_method("set_resource"):
-		if GlobalEnums and "ResourceType" in GlobalEnums:
-			economy_system.set_resource(GlobalEnums.ResourceType.CREDITS, credits, "upkeep_payment")
-			return
-
-	# FALLBACK: Update campaign_data directly for backwards compatibility
+	## Set current credits on campaign data. The dead EconomySystem branch that
+	## used to precede this is gone for the same reason as in _get_credits().
 	# Try direct property access first (works with MockCampaignData and similar)
 	if campaign_data and "credits" in campaign_data:
 		campaign_data.set("credits", credits)

@@ -184,11 +184,29 @@ static func clear_creation_toggles() -> void:
 
 
 ## The toggle ids active right now. Empty when the option pack is off.
+##
+## UNION of two sources: what the player picked, and what Compendium p.31
+## Progressive Difficulty OPTION 2 has unlocked by the current campaign turn
+## ("Campaign Turn 3: apply the Strength Adjusted Enemies difficulty toggle",
+## turn 5 Actually Specialized + Better Leadership, turn 8 Armored Leaders +
+## Veteran). Option 2's unlocks were rolled into an instruction STRING and
+## nothing else, so a player on Option 2 was told every battle to enable toggles
+## that stayed off.
+##
+## Merged HERE, at the one chokepoint every rule site reads, rather than at each
+## of the twelve `is_toggle_active()` call sites — the alternative is the
+## guard-applied-to-N-1-of-N shape, and it would recur with every new toggle.
 static func get_active_toggles() -> Array:
+	# Deliberately OUTSIDE the DIFFICULTY_TOGGLES flag check below. p.31 Option 2
+	# instructs the player to apply these toggles as part of Progressive
+	# Difficulty, so owning THAT is the authorization; requiring both flags would
+	# make a documented unlock silently do nothing.
+	var progressive: Array = _progressive_unlocks()
+
 	if not _is_flag_enabled("DIFFICULTY_TOGGLES"):
-		return []
+		return progressive
 	if _creation_override is Array:
-		return _creation_override
+		return _merge_ids(_creation_override, progressive)
 	var campaign: Variant = _current_campaign()
 	if campaign != null:
 		var pd: Variant = null
@@ -199,11 +217,11 @@ static func get_active_toggles() -> Array:
 		if pd is Dictionary:
 			var ids = pd.get(TOGGLE_STATE_KEY, [])
 			if ids is Array:
-				return ids
+				return _merge_ids(ids, progressive)
 		# A campaign with no toggle array selected none. Do NOT fall through to
 		# the cfg here: that would let a Settings screen silently re-arm options
 		# the player did not pick for THIS campaign.
-		return []
+		return progressive
 
 	# No campaign — Battle Simulator and other standalone paths.
 	var config := ConfigFile.new()
@@ -214,6 +232,45 @@ static func get_active_toggles() -> Array:
 		if bool(config.get_value("toggles", key, false)):
 			out.append(str(key))
 	return out
+
+
+static func _merge_ids(chosen: Array, unlocked: Array) -> Array:
+	if unlocked.is_empty():
+		return chosen
+	var out: Array = chosen.duplicate()
+	for id: Variant in unlocked:
+		if not (id in out):
+			out.append(id)
+	return out
+
+
+## The Compendium p.31 Option 2 toggle unlocks for the CURRENT campaign turn.
+##
+## Loaded by path rather than as a `const preload` because
+## ProgressiveDifficultyTracker is not needed on the vast majority of calls and
+## this file is reached from parse-order-sensitive places.
+static func _progressive_unlocks() -> Array:
+	var campaign: Variant = _current_campaign()
+	if campaign == null:
+		return []
+	var pd: Variant = null
+	if campaign is Dictionary:
+		pd = campaign.get("progress_data", {})
+	elif "progress_data" in campaign:
+		pd = campaign.progress_data
+	if not (pd is Dictionary):
+		return []
+	var options: Variant = (pd as Dictionary).get("progressive_difficulty_options", [])
+	if not (options is Array) or (options as Array).is_empty():
+		return []
+
+	var tracker := load("res://src/core/systems/ProgressiveDifficultyTracker.gd")
+	if tracker == null or not tracker.has_method("option_2_selected"):
+		return []
+	if not tracker.option_2_selected(options):
+		return []
+	return tracker.option_2_toggle_unlocks(
+		int((pd as Dictionary).get("turns_played", 0)))
 
 
 ## Is one pp.32-34 option in force? This is the single call every rule site uses.

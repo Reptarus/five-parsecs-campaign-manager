@@ -5,6 +5,8 @@ const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+## Compendium setup-sequence options, incl. the p.94 Terrain Generation opt-in.
+const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
@@ -209,6 +211,16 @@ func _process_turn_rollover() -> void:
 	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
 	_clear_upkeep_lockouts(campaign)
 
+	# --- Reset the PER-CAMPAIGN-TURN spend counters (Core Rules pp.73-74) ---
+	# "Lacks starship facilities — You cannot spend more than 3 credits PER
+	# CAMPAIGN TURN on starship Repairs" and "Busy markets — Each campaign turn,
+	# you may spend 2 credits ONCE to roll on the Trade Table". Both caps are
+	# meaningless without a reset, and a cap that never resets is worse than no
+	# cap: it silently becomes a once-per-CAMPAIGN limit.
+	if "progress_data" in campaign and campaign.progress_data is Dictionary:
+		campaign.progress_data.erase("repair_credits_spent_this_turn")
+		campaign.progress_data.erase("busy_markets_roll_used_turn")
+
 	# --- Clear last turn's Sick Bay releases (Core Rules p.76) ---
 	# Must run BEFORE the recovery countdown below, or a member released this
 	# turn would have their flag wiped in the same pass that set it and the
@@ -226,6 +238,13 @@ func _process_turn_rollover() -> void:
 	# any Explore or Trade crew actions during the NEXT campaign turn." Everything
 	# else on pp.149-151 persists until the player clears it.
 	_expire_fringe_strife_effects(campaign)
+
+	# --- Drop last turn's Black Job (Core Rules pp.150-151) ---
+	# "You may volunteer for a Black Job AT ANY TIME" — it is a per-turn decision,
+	# so the 'Your Day in Hell' roll must not survive into a turn where the crew
+	# did not volunteer, or the next Black Job would inherit the previous one's
+	# mission instead of rolling its own.
+	campaign.progress_data.erase("black_zone_mission")
 
 	# --- Expire a Connection nobody seized (Compendium p.81) ---
 	# "Seize any opportunity immediately next campaign turn, or the option
@@ -1359,9 +1378,25 @@ func _execute_post_mission_phase_start() -> void:
 ## This method previously did not exist, so PostBattleSequence's five
 ## has_method("get_phase_handler")-guarded delegation sites were all dead —
 ## silently dropping every character-event effect (credits, status effects, XP,
-## departures), which apply ONLY through this bridge. The interactive flow never
-## runs the orchestrator (CampaignTurnController skips POST_MISSION -> RETIREMENT),
-## so exposing the handler applies char-event effects exactly once (no double-apply).
+## departures), which apply ONLY through this bridge.
+##
+## ⚠ CORRECTED Aug 2026. This docblock used to end "The interactive flow never
+## runs the orchestrator (CampaignTurnController skips POST_MISSION ->
+## RETIREMENT), so exposing the handler applies char-event effects exactly once
+## (no double-apply)." That is FALSE and it is the kind of claim that makes a
+## real double-apply invisible: CampaignTurnController calls
+## `start_phase(POST_MISSION)` from SIX sites (`:1440 :1677 :1681 :1776 :1780
+## :2185`), and `start_phase` runs `_execute_phase_start()` -> the full 14-step
+## orchestrator, on the LIVE interactive path, every battle.
+##
+## What actually keeps each step single-applied is ORDERING, not absence.
+## `start_phase` emits `phase_changed` FIRST — so the wizard is shown and reset
+## to step 0 — and only then runs the backend, whose `post_battle_substep_changed`
+## drags the wizard's `current_step` along one card at a time. Each wizard step's
+## backend handler then fires while the player is looking at that step, and
+## disables the manual control for it. Break the emit order and the manual
+## controls stay live behind the backend, for a second independent roll on every
+## step that has one. Pinned by `tests/unit/test_post_battle_wizard_honesty.gd`.
 func get_phase_handler(phase_name: String):
 	if phase_name == "post_battle":
 		return post_battle_phase_handler
@@ -1952,10 +1987,29 @@ func _get_crew_ids() -> Array:
 func generate_battlefield(theme: String = "", world_traits: Array = [],
 		deployment_condition: Dictionary = {}, rng_seed: int = 0,
 		table_size_ft: float = 3.0) -> Dictionary:
-	# Compendium 5-step terrain generation (pp.94-98) — free for everyone.
-	# The old TERRAIN_THEMES DLC gate was removed 2026-07-02: the flag was
-	# never defined in DLCManager, so this returned {} for ALL players and
-	# the campaign path never generated a visual battlefield.
+	# Compendium 5-step terrain generation (pp.94-98).
+	#
+	# HISTORY, because the obvious fix here is wrong twice over. An earlier
+	# TERRAIN_THEMES gate was removed 2026-07-02 for a good reason: that flag was
+	# never defined in DLCManager, so it returned {} for ALL players and the
+	# campaign path never generated a visual battlefield at all.
+	#
+	# `TERRAIN_GENERATION` is a DIFFERENT flag — it is defined (DLCManager:62),
+	# listed in the store catalogue and the DLC dialog, has a real accessor, and
+	# had ZERO callers, so the option a player can see and switch off did nothing.
+	# p.94 is explicit that this is opt-in: "The following terrain generators are
+	# supplied for people who PREFER a randomly generated table setup... for
+	# players who prefer to have less direct control over aspects of the scenario."
+	#
+	# So the gate is reinstated on the correct flag — but it must NOT return {}
+	# and re-create the 2026-07-02 blank-battlefield bug. Switching the option off
+	# means "I will lay out my own table", not "I get no battlefield": the grid,
+	# the table size, the deployment zones, the objective and Notable Sight
+	# markers and the p.109 terrain-count guidance are all still owed. Only the
+	# random LAYOUT is withheld, as an empty sector list.
+	if not WorldOptionsRef.is_terrain_generation_enabled():
+		return _blank_table_contract(table_size_ft, deployment_condition)
+
 	var BattlefieldGeneratorClass = load(
 		"res://src/core/battle/BattlefieldGenerator.gd")
 	if not BattlefieldGeneratorClass:
@@ -1980,6 +2034,54 @@ func generate_battlefield(theme: String = "", world_traits: Array = [],
 
 	return gen.generate_terrain_suggestions(
 		theme, world_traits, deployment_condition, rng_seed, table_size_ft)
+
+
+## The battlefield contract for a player who lays out their own table (Compendium
+## p.94: the generators are "supplied for people who prefer a randomly generated
+## table setup" — an opt-in, not the default).
+##
+## Same SHAPE as generate_terrain_suggestions() so every downstream consumer —
+## PreBattleUI's preview, TacticalBattleUI, BattlefieldMapView, the post-battle
+## recap — needs no special case. Sixteen labelled but EMPTY sectors: the grid,
+## the quarters, the table size and the deployment condition all still apply,
+## because none of those are the terrain generator's to withhold. Only the random
+## feature placement is absent.
+func _blank_table_contract(table_size_ft: float,
+		deployment_condition: Dictionary) -> Dictionary:
+	var GridClass = load("res://src/core/battle/BattlefieldGrid.gd")
+	var size_ft: float = table_size_ft
+	if GridClass and GridClass.has_method("sanitize_table_size"):
+		size_ft = GridClass.sanitize_table_size(table_size_ft)
+
+	var sectors: Array = []
+	for quarter in ["NW", "NE", "SW", "SE"]:
+		for n in range(1, 5):
+			sectors.append({
+				"label": "%s%d" % [quarter, n],
+				"features": [],
+			})
+
+	var notes: Array = []
+	var condition_name: String = str(deployment_condition.get("name",
+		deployment_condition.get("condition_id", "")))
+	if condition_name != "":
+		notes.append("Deployment condition in effect: %s" % condition_name)
+
+	return {
+		"theme": "player_defined",
+		"theme_name": "Your Table",
+		"sectors": sectors,
+		"summary": "Terrain Generation is off — lay out the table as you like.\n"
+			+ "Core Rules p.109 suggests a Standard Terrain Set for a %.1f ft table."
+				% size_ft,
+		"notable_count": 0,
+		"feature_count": 0,
+		"terrain_set": {"notable": 1, "regular_per_quarter": 4,
+			"scatter_per_quarter": "1D6"},
+		"table_size_ft": size_ft,
+		"combat_notes": notes,
+		"player_defined_terrain": true,
+	}
 
 
 # Method to set the game state for testing purposes

@@ -48,6 +48,25 @@ var faction_relations: Dictionary = {} # faction_id:String -> Dictionary[other_f
 
 # Faction System Data
 var faction_data: Dictionary = {} # Loaded from JSON
+
+## Cross-turn flags set by the p.115 Faction Event table, consumed on the turn
+## AFTER the event. Neither row had a handler before Aug 2026 — "Truce" and
+## "Tensions rising" rolled, printed their text, and changed nothing.
+##   Truce (20-27)          — "Calm reigns. Next turn, no Faction activities occur."
+##   Tensions rising (15-19) — "Faction jobs next turn increase Danger Pay by +1 Credit."
+var _truce_this_turn: bool = false
+var _tensions_rising: bool = false
+
+## p.114 Fringe World Strife cross-references. A Crackdown blocks activities for
+## the turn it fires on; a Civil War holds them down "until the war is over", so
+## it is cleared by end_civil_war() rather than by a turn tick.
+var _activities_blocked_this_turn: bool = false
+var _factions_gone_to_ground: bool = false
+
+## Clear the p.114 Civil War suppression. Public because the war ending is a world
+## event, not a faction one.
+func end_civil_war() -> void:
+	_factions_gone_to_ground = false
 var faction_categories: Dictionary = {
 	"government": [],
 	"corporate": [],
@@ -432,17 +451,42 @@ func process_faction_activities(
 	if faction_ids.is_empty():
 		return results
 
-	# Step 1: Mandatory Faction Struggle if crew did a job
+	# Three separate rules that stop the whole step, not just one faction:
+	#   p.115 Truce (20-27)   "Calm reigns. Next turn, no Faction activities occur."
+	#   p.114 Crackdown       "prevents ALL Faction activities this turn."
+	#   p.114 Civil War       "Factions will go to ground until the war is over."
+	# Truce and Crackdown are single-turn and consumed here; the Civil War is
+	# cleared by end_civil_war().
+	if _truce_this_turn or _activities_blocked_this_turn or _factions_gone_to_ground:
+		_truce_this_turn = false
+		_activities_blocked_this_turn = false
+		return results
+
+	# Step 1: Mandatory Faction Struggle if crew did a job.
+	#
+	# p.113, verbatim: "If you did a job directly for a Faction, ALWAYS perform
+	# the Faction Struggle event." There is no Power requirement on this one —
+	# the Power 3+ requirement belongs to the D100 row 61-75 Faction struggle
+	# ACTIVITY, and it was being applied here too, so a job done for any faction
+	# below Power 3 produced nothing. Hence `force`.
 	if job_faction_id != "" and active_factions.has(job_faction_id):
 		var job_faction: Dictionary = active_factions[job_faction_id]
-		if job_faction.get("power", 0) >= 3:
-			_faction_struggle(job_faction)
-			results.append({
-				"faction": job_faction.get("name", ""),
-				"activity": "Faction struggle (mandatory)"
-			})
+		var struck: String = _faction_struggle(job_faction, true)
+		if struck != "":
+			# The crew's own job caused this strike, so they participated in it —
+			# the trigger for the p.115 "A little visit" Enforcer Rival.
+			record_crew_attack(struck)
+		results.append({
+			"faction": job_faction.get("name", ""),
+			"activity": "Faction struggle (mandatory)"
+		})
 
-	# Step 2: One random faction performs an activity
+	# Step 2: One random faction performs an activity. `faction_ids` is re-read
+	# because the mandatory struggle above can destroy a faction (p.115), and
+	# picking from the stale list would index a key that no longer exists.
+	faction_ids = active_factions.keys()
+	if faction_ids.is_empty():
+		return results
 	var random_id: String = faction_ids.pick_random()
 	var random_faction: Dictionary = active_factions[random_id]
 	if not random_faction.get("cannot_act_next_turn", false):
@@ -452,11 +496,18 @@ func process_faction_activities(
 			"activity": "D100 activity"
 		})
 
-	# Reset per-turn flags
-	for fid in faction_ids:
+	# Reset per-turn flags.
+	#
+	# `offers_job_next_turn` is NOT reset here. p.113 row 91-00 Day to day
+	# operations is "Crew offered a job NEXT turn" and p.115 New Faction is "It
+	# automatically offers you a job next turn" — clearing the flag in the same
+	# call that set it consumed the promise before the next turn could see it, so
+	# both rules were inert. It is cleared where it is CONSUMED
+	# (get_faction_mission_opportunities), which is what "next turn" means.
+	for fid in active_factions:
 		active_factions[fid]["successful_job_this_turn"] = false
 		active_factions[fid]["cannot_act_next_turn"] = false
-		active_factions[fid]["offers_job_next_turn"] = false
+		active_factions[fid]["temporary_defense"] = false
 
 	return results
 
@@ -922,18 +973,26 @@ func _defensive_posture(faction: Dictionary) -> void:
 	if faction.get("power", 0) >= 3:
 		faction.temporary_defense = true
 
-func _faction_struggle(faction: Dictionary) -> void:
-	## Faction struggle (Compendium p.115). Requires Power 3+.
-	## D6+Power each, +1 for successful job. Loser: -1 highest stat.
-	if faction.get("power", 0) < 3:
-		return
+func _faction_struggle(faction: Dictionary, force: bool = false) -> String:
+	## Faction struggle. Two callers, two different rules:
+	##  - p.113 D100 row 61-75 "Faction struggle" REQUIRES Power 3+ (force = false)
+	##  - p.113 "If you did a job directly for a Faction, ALWAYS perform the
+	##    Faction Struggle event" has no requirement at all (force = true)
+	## D6+Power each, +1 for a successful job this turn. Loser: -1 highest stat.
+	## Returns the id of the faction that was STRUCK AT, or "" if no struggle
+	## happened — the caller needs it for the p.115 "A little visit" trigger.
+	if not force and faction.get("power", 0) < 3:
+		return ""
 	var targets = _get_other_factions(faction)
 	if targets.is_empty():
-		return
+		return ""
 	var target = targets.pick_random()
+	var target_id: String = _faction_id_of(target)
 	if target.get("temporary_defense", false):
+		# p.113 Defensive posture: "negates any hostile action taken against it
+		# this campaign turn". Negated, so nothing was struck.
 		target["temporary_defense"] = false
-		return
+		return ""
 	var att_roll: int = randi_range(1, 6) + faction.get("power", 0)
 	var def_roll: int = randi_range(1, 6) + target.get("power", 0)
 	if faction.get("successful_job_this_turn", false):
@@ -941,44 +1000,221 @@ func _faction_struggle(faction: Dictionary) -> void:
 	if target.get("successful_job_this_turn", false):
 		def_roll += 1
 	if att_roll > def_roll:
-		_decrease_highest_stat(target)
+		_decrease_highest_stat(target, _faction_id_of(faction))
 	elif def_roll > att_roll:
-		_decrease_highest_stat(faction)
+		_decrease_highest_stat(faction, target_id)
+	return target_id
+
+## Resolve a faction DICT back to its key in active_factions. The activity
+## handlers are handed the dict, but every real API here is keyed by id, and
+## three of them were passing `faction["name"]` where an id was expected.
+func _faction_id_of(faction: Dictionary) -> String:
+	for fid in active_factions:
+		if active_factions[fid] == faction:
+			return fid
+	return ""
 
 func _office_party(faction: Dictionary) -> void:
-	## Faction throws office party
-	# Benefits crew members with loyalty to this faction. get_crew never existed;
-	# _game_state may be GameState (get_active_crew) OR GameStateManager
-	# (get_crew_members), so accept either real API.
-	var crew: Array = []
-	if _game_state and _game_state.has_method("get_active_crew"):
-		crew = _game_state.get_active_crew()
-	elif _game_state and _game_state.has_method("get_crew_members"):
-		crew = _game_state.get_crew_members()
-	if crew.size() > 0:
-		for character in crew:
-			if character and character.has_method("get_faction_loyalty"):
-				var loyalty = character.get_faction_loyalty(faction.get("name", ""))
-				if loyalty > 0:
-					if _game_state and _game_state.has_method("add_credits"):
-						_game_state.add_credits(loyalty)
+	## p.113 row 76-80, verbatim: "Crew gain Credits equal to their Loyalty rating".
+	##
+	## THE BUG THIS FIXES: Loyalty is a CREW-vs-FACTION score living on
+	## active_factions[fid]["loyalty"] — that is what get_faction_loyalty() reads
+	## and what roll_loyalty_gain() writes. This asked each crew CHARACTER for
+	## `get_faction_loyalty()`, a method Character does not have (the only
+	## definition repo-wide is on this class), so `has_method` was permanently
+	## false and the party paid 0 credits every time.
+	var fid: String = _faction_id_of(faction)
+	if fid.is_empty():
+		return
+	var loyalty: int = get_faction_loyalty(fid)
+	if loyalty <= 0:
+		return  # no relationship, no invitation
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("add_credits"):
+		gsm.add_credits(loyalty)
+	elif _game_state and _game_state.has_method("add_credits"):
+		_game_state.add_credits(loyalty)
 
 func _plans_within_plans(faction: Dictionary) -> void:
-	## Faction makes complex plans
-	if faction.get("influence", 0) >= 3:
-		# Generate a quest/mission from this faction
-		var mission = generate_faction_mission(faction.get("name", ""))
-		if not mission.is_empty() and _game_state:
-			if _game_state and _game_state.has_method("add_mission_opportunity"):
-				_game_state.add_mission_opportunity(mission)
+	## p.113 row 81-90, verbatim: "Plans within plans — Influence 3+ — Crew
+	## offered a Quest."
+	##
+	## A QUEST, not a job. This generated a faction MISSION and handed it to
+	## `_game_state.add_mission_opportunity()` — a method with ZERO definitions
+	## repo-wide, so the guard was permanently false — and it passed
+	## `faction["name"]` to generate_faction_mission(), which keys on the id, so
+	## the mission would have been {} even if the guard had held. Two independent
+	## reasons nothing happened.
+	if faction.get("influence", 0) < 3:
+		return  # the row's stated requirement; "the action does not take place"
+	_grant_quest_rumor()
 
 func _day_to_day_operations(faction: Dictionary) -> void:
-	## Faction performs normal operations
-	# Generate routine mission opportunity
-	var mission = generate_faction_mission(faction.get("name", ""))
-	if not mission.is_empty() and _game_state:
-		if _game_state and _game_state.has_method("add_mission_opportunity"):
-			_game_state.add_mission_opportunity(mission)
+	## p.113 row 91-00, verbatim: "Day to day operations — Crew offered a job
+	## next turn."
+	##
+	## NEXT turn, and it is a flag rather than an immediate mission — which is
+	## why process_faction_activities no longer clears `offers_job_next_turn` in
+	## the same call that sets it. Same dead `add_mission_opportunity()` guard and
+	## same name-for-id mistake as Plans within plans.
+	var fid: String = _faction_id_of(faction)
+	if fid.is_empty():
+		return
+	active_factions[fid]["offers_job_next_turn"] = true
+
+## Grant one Quest Rumor through the canonical owner.
+##
+## Used by the p.113 "Plans within plans" activity (Crew offered a Quest) and the
+## p.115 "Tip off" event (a Quest Clue) — both of which produced nothing before.
+## `GameStateManager.add_quest_rumor()` is the mutation API; it writes the
+## top-level `campaign.quest_rumors` property via set_quest_rumors(). Writing
+## progress_data["quest_rumors"] instead would be a data-ownership violation and
+## invisible to every reader.
+func _grant_quest_rumor() -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("add_quest_rumor"):
+		gsm.add_quest_rumor()
+
+
+## Factions the crew has taken part in attacking, keyed by the campaign turn.
+## Feeds the p.115 "A little visit" event ("If you participated in an attack on a
+## Faction this or last turn").
+var _crew_attacks: Dictionary = {}  # faction_id -> turn number
+
+## p.113 makes the crew's own job the CAUSE of the mandatory Faction Struggle
+## ("If you did a job directly for a Faction, always perform the Faction Struggle
+## event"), so the faction their employer struck is one the crew participated in
+## attacking. That is the only crew-caused attack the game models today; a mission
+## that names a faction as its objective target would be another, and there is no
+## such mission, so nothing else is recorded here rather than guessing at one.
+func record_crew_attack(faction_id: String) -> void:
+	if faction_id.is_empty():
+		return
+	_crew_attacks[faction_id] = _current_turn()
+
+func _current_turn() -> int:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and gs.get("current_campaign") != null:
+		var c: Resource = gs.current_campaign
+		if "progress_data" in c:
+			return int(c.progress_data.get("turns_played", 0))
+	return 0
+
+## "this or last turn" — a two-turn window, per the book.
+func _recent_crew_attack_target() -> String:
+	var now: int = _current_turn()
+	for fid in _crew_attacks:
+		if now - int(_crew_attacks[fid]) <= 1 and active_factions.has(fid):
+			return fid
+	return ""
+
+## p.115 Faction Destruction: "you receive a Rival (FROM THE HIRED MUSCLE TABLE)
+## as vengeful elements of the defeated Faction go after you."
+##
+## The book names the table, so it is rolled — `enemy_categories/hired_muscle` in
+## enemy_types.json, sixteen D100-weighted rows from Unknown Mercs (1-14) to Blood
+## Storm Mercs (96-100). Picking a name would have been fabrication when the
+## weighted table is right there.
+func _add_vengeance_rival(destroyed: Dictionary) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_rivals") or not gsm.has_method("set_rivals"):
+		return
+	var enemy_name: String = _roll_hired_muscle()
+	if enemy_name.is_empty():
+		return
+	var rivals: Array = gsm.get_rivals()
+	rivals.append({
+		"id": "rival_vengeance_%d_%d" % [_current_turn(), randi() % 100000],
+		"name": enemy_name,
+		"type": enemy_name,
+		"enemy_type": enemy_name,
+		"enemy_category": "hired_muscle",
+		"source": "faction_destroyed",
+		"origin_faction": str(destroyed.get("name", "")),
+	})
+	gsm.set_rivals(rivals)
+
+## D100 on the Hired Muscle category in enemy_types.json.
+func _roll_hired_muscle() -> String:
+	var f := FileAccess.open("res://data/enemy_types.json", FileAccess.READ)
+	if f == null:
+		return ""
+	var json := JSON.new()
+	var ok: int = json.parse(f.get_as_text())
+	f.close()
+	if ok != OK or not (json.data is Dictionary):
+		return ""
+	for cat: Variant in (json.data as Dictionary).get("enemy_categories", []):
+		if not (cat is Dictionary) or str((cat as Dictionary).get("id", "")) != "hired_muscle":
+			continue
+		var roll: int = randi() % 100 + 1
+		for row: Variant in (cat as Dictionary).get("enemies", []):
+			var r: Array = (row as Dictionary).get("roll_range", [])
+			if r.size() == 2 and roll >= int(r[0]) and roll <= int(r[1]):
+				return str((row as Dictionary).get("name", ""))
+	return ""
+
+## p.115: "they send an Enforcer Rival after you." Enforcers are a real Core Rules
+## enemy type, so the Rival is built as one rather than as a generic entry.
+func _add_enforcer_rival(faction_id: String) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_rivals") or not gsm.has_method("set_rivals"):
+		return
+	var faction_name: String = str(active_factions.get(faction_id, {}).get("name", "A Faction"))
+	var rivals: Array = gsm.get_rivals()
+	rivals.append({
+		"id": "rival_enforcer_%s_%d" % [faction_id, _current_turn()],
+		"name": "%s Enforcers" % faction_name,
+		"type": "Enforcers",
+		"enemy_type": "Enforcers",
+		"source": "faction_event",
+		"faction_id": faction_id,
+	})
+	gsm.set_rivals(rivals)
+
+## p.115 Dark secrets: the payoff (-1 Influence and -1 Power to the target, +2
+## Loyalty to the crew) is gated on COMPLETING the quest, so both ids are parked
+## on the campaign for the quest resolver. `resolve_dark_secrets_quest()` below is
+## the payoff half.
+func _record_dark_secrets_quest(giver_id: String, target_id: String) -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.get("current_campaign") == null:
+		return
+	var c: Resource = gs.current_campaign
+	if not ("progress_data" in c):
+		return
+	c.progress_data["dark_secrets_quest"] = {
+		"giver_faction": giver_id,
+		"target_faction": target_id,
+		"offered_turn": _current_turn(),
+	}
+
+## Apply the p.115 Dark secrets payoff. Public so the quest-completion path can
+## call it once that quest is playable; returns false when there is no such quest
+## outstanding, so calling it unconditionally is safe.
+func resolve_dark_secrets_quest(success: bool) -> bool:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null or gs.get("current_campaign") == null:
+		return false
+	var c: Resource = gs.current_campaign
+	if not ("progress_data" in c):
+		return false
+	var quest: Dictionary = c.progress_data.get("dark_secrets_quest", {})
+	if quest.is_empty():
+		return false
+	c.progress_data.erase("dark_secrets_quest")
+	if not success:
+		return false
+	var target_id: String = str(quest.get("target_faction", ""))
+	if active_factions.has(target_id):
+		var t: Dictionary = active_factions[target_id]
+		t["influence"] = t.get("influence", 1) - 1
+		t["power"] = t.get("power", 1) - 1
+		_check_faction_destruction(t)
+	var giver_id: String = str(quest.get("giver_faction", ""))
+	if active_factions.has(giver_id):
+		set_faction_loyalty(giver_id, get_faction_loyalty(giver_id) + 2)
+	return true
 
 func _get_other_factions(faction: Dictionary) -> Array[Dictionary]:
 	## Get other factions for interaction
@@ -1156,18 +1392,35 @@ func process_strife_effects(strife_type: int) -> void:
 			pass
 
 func process_strife_by_name(strife_name: String) -> void:
-	## Handle named strife effects from compendium_world_options.
+	## Compendium p.114 "Fringe World Strife (See page 148)", verbatim:
+	##   "A Crackdown prevents all Faction activities this turn."
+	##   "If an Economic Collapse takes place, all Factions suffer -1 Influence."
+	##   "If a Civil War breaks out, Factions will go to ground until the war is
+	##    over."
+	##
+	## Called from PaymentProcessor._apply_strife_event, the only place that knows
+	## a strife row fired. Before Aug 2026 this had zero callers.
+	##
+	## "ALL Faction activities" is a step-level block, not a per-faction one — the
+	## old `cannot_act_next_turn` loop only suppressed the ONE randomly chosen
+	## faction's D100 activity and left the mandatory p.113 Faction Struggle
+	## running straight through a Crackdown.
 	match strife_name.to_lower():
 		"crackdown":
-			for fid in active_factions:
-				active_factions[fid]["cannot_act_next_turn"] = true
+			_activities_blocked_this_turn = true
 		"economic_collapse":
-			for fid in active_factions:
+			# No floor: p.115 destruction applies, and an Economic Collapse that
+			# finishes off a faction already at Influence 1 is the rule working.
+			for fid in active_factions.keys():
+				if not active_factions.has(fid):
+					continue  # a previous iteration destroyed it
 				var f: Dictionary = active_factions[fid]
-				f["influence"] = max(1, f.get("influence", 1) - 1)
+				f["influence"] = f.get("influence", 1) - 1
+				_check_faction_destruction(f)
 		"civil_war":
-			for fid in active_factions:
-				active_factions[fid]["cannot_act_next_turn"] = true
+			# "until the war is over" — held until something clears it, unlike the
+			# single-turn Crackdown.
+			_factions_gone_to_ground = true
 
 # ── Faction Destruction (Compendium p.117) ────────────────────────
 
@@ -1183,10 +1436,26 @@ func _destroy_faction(
 
 	var destroyed: Dictionary = active_factions[faction_id]
 
-	# Remove faction
+	# p.115, verbatim: "If a Faction was destroyed by a Faction Struggle and you
+	# had Loyalty of 4+ to the winner, you receive a Rival (from the Hired Muscle
+	# table) as vengeful elements of the defeated Faction go after you to settle
+	# some scores. If you took a Faction job for the winner in the same battle
+	# round, add +2 Loyalty."
+	#
+	# Neither clause existed. The whole consequence half of a destruction was
+	# missing, which was academic while nothing could be destroyed.
+	if destroyer_id != "" and active_factions.has(destroyer_id):
+		if get_faction_loyalty(destroyer_id) >= 4:
+			_add_vengeance_rival(destroyed)
+		if bool(active_factions[destroyer_id].get("successful_job_this_turn", false)):
+			set_faction_loyalty(destroyer_id, get_faction_loyalty(destroyer_id) + 2)
+
+	# Remove faction. Loyalty lives on the faction dict, so erasing it IS the
+	# book's "All Loyalty is removed".
 	active_factions.erase(faction_id)
 	faction_standings.erase(faction_id)
 	faction_relations.erase(faction_id)
+	_crew_attacks.erase(faction_id)
 
 	# Remaining factions compete for influence
 	if not active_factions.is_empty():
@@ -1212,16 +1481,16 @@ func _destroy_faction(
 		"destroyer": destroyer_id,
 	})
 
-func _check_faction_destruction(faction: Dictionary) -> bool:
-	## Check if a faction should be destroyed (Power or Influence <= 0).
+func _check_faction_destruction(faction: Dictionary, destroyer_id: String = "") -> bool:
+	## Compendium p.115: "If either Power or Influence is reduced to 0, the
+	## Faction ceases to exist. All Loyalty is removed."
 	var infl: int = faction.get("influence", 1)
 	var power: int = faction.get("power", 1)
 	if infl <= 0 or power <= 0:
-		# Find faction_id
-		for fid in active_factions:
-			if active_factions[fid] == faction:
-				_destroy_faction(fid)
-				return true
+		var fid: String = _faction_id_of(faction)
+		if fid != "":
+			_destroy_faction(fid, destroyer_id)
+			return true
 	return false
 
 # ── Faction Events (Compendium pp.115-117) ────────────────────────
@@ -1300,10 +1569,32 @@ func _apply_faction_event(event: Dictionary) -> void:
 			var fid: String = faction_ids.pick_random()
 			var f: Dictionary = active_factions[fid]
 			_increase_lowest_stat(f)
+		"Tensions rising":
+			# "Faction jobs next turn increase Danger Pay by +1 Credit."
+			# Had NO handler at all — the row printed and did nothing.
+			_tensions_rising = true
+		"Truce":
+			# "Calm reigns. Next turn, no Faction activities occur."
+			# Also had no handler.
+			_truce_this_turn = true
 		"Tip off":
+			# "A random Faction grants you a Quest Clue in the hope of future
+			# favors." This set `grants_quest_clue` on the returned dict and the
+			# only consumer — PostBattlePhase — writes a journal line and reads
+			# none of these flags. Applied here instead, where the campaign is
+			# reachable, so the clue actually arrives.
 			event["grants_quest_clue"] = true
+			_grant_quest_rumor()
 		"Befriending the leadership":
+			# "The Faction you have the highest loyalty towards is getting chummy.
+			# Add +1 Story Point." Flag-only before, and doubly dead: Loyalty was
+			# permanently 0 (see the faction_id hand-off fix), so even a working
+			# consumer would have found no faction to be chummy with.
 			event["grants_story_point"] = true
+			if get_highest_loyalty_faction() != "":
+				var gsm_sp: Node = get_node_or_null("/root/GameStateManager")
+				if gsm_sp and gsm_sp.has_method("add_story_points"):
+					gsm_sp.add_story_points(1)
 		"New Leadership":
 			var fid: String = faction_ids.pick_random()
 			var f: Dictionary = active_factions[fid]
@@ -1337,20 +1628,75 @@ func _apply_faction_event(event: Dictionary) -> void:
 			var fid: String = faction_ids.pick_random()
 			active_factions[fid]["power"] = active_factions[fid].get("power", 2) + 1
 		"A little visit":
+			# "If you participated in an attack on a Faction this or last turn,
+			# they send an Enforcer Rival after you."
 			event["enforcer_rival"] = true
+			var attacked: String = _recent_crew_attack_target()
+			if attacked != "":
+				_add_enforcer_rival(attacked)
+				event["enforcer_rival_applied"] = true
 		"We thought we would do you a favor":
+			# "Do you have 3+ Loyalty? If so, a random Faction you are loyal to
+			# eliminates one of your Rivals." The 3+ gate is the whole condition,
+			# and it was unreachable while Loyalty could never leave 0.
 			event["eliminates_rival"] = true
+			var loyal_enough: bool = false
+			for fid in active_factions:
+				if int(active_factions[fid].get("loyalty", 0)) >= 3:
+					loyal_enough = true
+					break
+			if loyal_enough:
+				var gsm_r: Node = get_node_or_null("/root/GameStateManager")
+				if gsm_r and gsm_r.has_method("remove_random_rival"):
+					event["rival_eliminated"] = gsm_r.remove_random_rival()
 		"Dark secrets":
+			# "A random Faction sends you on a Quest targeting one of their
+			# enemies. If you complete it successfully, the target Faction suffers
+			# -1 Influence and -1 Power. You receive +2 Loyalty for completing the
+			# Quest." The Quest OFFER is the immediate half; the payoff is gated on
+			# completion, so both faction ids are recorded on the campaign for the
+			# quest resolver to find.
 			event["dark_secrets_quest"] = true
+			var patron_fid: String = (active_factions.keys() as Array).pick_random()
+			var enemies: Array = []
+			for fid2 in active_factions:
+				if fid2 != patron_fid:
+					enemies.append(fid2)
+			if not enemies.is_empty():
+				event["quest_giver_faction"] = patron_fid
+				event["quest_target_faction"] = enemies.pick_random()
+				_record_dark_secrets_quest(patron_fid, str(event["quest_target_faction"]))
+				_grant_quest_rumor()
 
-func _decrease_highest_stat(faction: Dictionary) -> void:
+func _decrease_highest_stat(faction: Dictionary, destroyer_id: String = "") -> void:
 	## Decrease the highest of Power or Influence by 1 (Power if equal).
+	## `destroyer_id` is the faction that inflicted it, when there is one — p.115
+	## conditions the vengeance Rival on the crew's Loyalty to the WINNER, so the
+	## destruction path needs to know who won.
+	##
+	## NO FLOOR, and then check for destruction. Compendium p.115, verbatim: "If
+	## either Power or Influence is reduced to 0, the Faction ceases to exist."
+	##
+	## THE BUG THIS FIXES, and it had TWO independent causes — fixing either alone
+	## changes nothing. (1) This clamped with `max(1, ...)`, so no stat could ever
+	## reach 0. (2) `_check_faction_destruction()` fires on `<= 0` and had ZERO
+	## callers. Together: factions were immortal. A faction ground down by repeated
+	## Struggles and Undermines sat at Power 1 / Influence 1 forever and kept
+	## acting, so the entire rise-and-fall arc of the subsystem — and the p.115
+	## vengeance Rival, the +2 Loyalty, and the survivors' influence scramble that
+	## hang off a destruction — never occurred in any campaign.
+	##
+	## The check goes HERE rather than at the seven call sites, because seven
+	## guards is seven chances to miss one. The p.114 invasion-flee rule keeps its
+	## own explicit "-1 ... to a minimum of 1 each" floor; that is a different rule
+	## with a floor the book actually states, and it does not route through here.
 	var infl: int = faction.get("influence", 0)
 	var power: int = faction.get("power", 0)
 	if power >= infl:
-		faction["power"] = max(1, power - 1)
+		faction["power"] = power - 1
 	else:
-		faction["influence"] = max(1, infl - 1)
+		faction["influence"] = infl - 1
+	_check_faction_destruction(faction, destroyer_id)
 
 func _increase_lowest_stat(faction: Dictionary) -> void:
 	## Increase the lowest of Power or Influence by 1 (random if equal).
@@ -1432,6 +1778,35 @@ func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Arr
 	## standing in for a decision with an obvious best answer. `preferred_faction_id`
 	## is the hook for that picker.
 	var opportunities: Array[Dictionary] = []
+
+	# "Faction jobs NEXT TURN increase Danger Pay by +1" (p.115 event 15-19).
+	# Read and cleared once per turn's job step, not once per mission, so it is
+	# spent whether or not a job actually turns up — otherwise a turn with no
+	# faction job would carry the bonus forward indefinitely.
+	var tensions: bool = _tensions_rising
+	_tensions_rising = false
+
+	# A promised job skips the D6 entirely and is CONSUMED here — this is the
+	# "next turn" half of p.113 row 91-00 ("Crew offered a job next turn") and of
+	# p.115 New Faction ("It automatically offers you a job next turn"). Both set
+	# the flag and nothing ever read it, while process_faction_activities cleared
+	# it in the same call that set it, so neither promise could survive to be kept.
+	var promised: String = ""
+	for faction_id in active_factions:
+		if bool(active_factions[faction_id].get("offers_job_next_turn", false)):
+			promised = faction_id
+			active_factions[faction_id]["offers_job_next_turn"] = false
+			break
+	if promised != "":
+		var promised_mission: Dictionary = generate_faction_mission(promised)
+		if not promised_mission.is_empty():
+			promised_mission["mission_source"] = "faction"
+			promised_mission["skip_danger_pay"] = true
+			promised_mission["skip_benefits"] = true
+			_apply_tensions_rising(promised_mission, tensions)
+			opportunities.append(promised_mission)
+			return opportunities
+
 	var chosen: String = preferred_faction_id
 	if chosen.is_empty() or not active_factions.has(chosen):
 		var best_influence: int = -1
@@ -1446,6 +1821,7 @@ func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Arr
 	if check_faction_job_available(chosen):
 		var mission: Dictionary = generate_faction_mission(chosen)
 		if not mission.is_empty():
+			_apply_tensions_rising(mission, tensions)
 			# "Faction jobs are treated as a Patron job, but do not roll for
 			# Danger Pay or Benefits." Stamped explicitly so the p.83 roller and
 			# the p.120 Step 4 payment path both skip them — PaymentProcessor
@@ -1456,6 +1832,21 @@ func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Arr
 			mission["skip_benefits"] = true
 			opportunities.append(mission)
 	return opportunities
+
+## p.115 Faction event 15-19 "Tensions rising", verbatim: "Faction jobs next turn
+## increase Danger Pay by +1 Credit." The event row had no handler at all, so the
+## D100 landed on it, the journal printed the text, and no job ever paid the extra
+## credit. Consumed once, on the turn after the event.
+func _apply_tensions_rising(mission: Dictionary, active: bool) -> void:
+	if not active:
+		return
+	# Faction jobs "do not roll for Danger Pay" (p.111), so this is the only
+	# Danger Pay a faction job ever carries — and it must survive
+	# PaymentProcessor's non-patron zeroing, hence the explicit override rather
+	# than relying on the skip flag.
+	mission["danger_pay"] = int(mission.get("danger_pay", 0)) + 1
+	mission["skip_danger_pay"] = false
+	mission["tensions_rising_bonus"] = true
 
 func check_affiliated_patron(patron: Dictionary) -> String:
 	## Check if a patron job is affiliated with a faction (Compendium p.114).

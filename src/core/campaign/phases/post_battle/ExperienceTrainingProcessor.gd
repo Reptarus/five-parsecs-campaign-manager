@@ -191,6 +191,49 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 			"stats": {"total_xp": total_xp, "crew_count": xp_awards.size()},
 		})
 
+	# Core Rules p.151 Black Job victory, verbatim: "Claim 1 bonus XP for every
+	# crew member you have, EVEN IF THEY DID NOT PARTICIPATE IN THE BATTLE."
+	#
+	# The +1 itself was already in _calculate_crew_xp — but that runs inside the
+	# loop above, which iterates ctx.crew_participants. So the one clause the
+	# book went out of its way to spell out was the one clause that never fired:
+	# the crew left on the ship got nothing.
+	#
+	# Placed AFTER the "Tough fight" block deliberately. That rule draws a random
+	# survivor from xp_awards, and its own comment defines that set as the
+	# surviving non-Bot PARTICIPANTS; appending non-participants first would let
+	# it land on someone who was never in the battle.
+	if ctx.battle_result.get("is_black_zone", false) \
+			and ctx.battle_result.get("success", false):
+		var already_paid: Dictionary = {}
+		for award in xp_awards:
+			already_paid[str(award.get("crew_id", ""))] = true
+		for member in ctx.get_crew_members():
+			if member == null:
+				continue
+			var absent_id: String = ""
+			if member is Dictionary:
+				absent_id = str(member.get("character_id", member.get("id", "")))
+			elif "character_id" in member:
+				absent_id = str(member.character_id)
+			if absent_id.is_empty() or already_paid.has(absent_id):
+				continue
+			# Bots cannot earn XP (errata v1.06), which the participant loop
+			# already enforces — the same gate has to hold here or a Black Job
+			# would be the one battle that pays them.
+			if ctx.is_crew_member_bot(absent_id):
+				continue
+			xp_awards.append({"crew_id": absent_id, "xp": 1})
+			ctx.add_character_xp(ctx.get_crew_member(absent_id), 1)
+			if ctx.campaign_journal and ctx.campaign_journal.has_method(
+					"auto_create_character_event"):
+				ctx.campaign_journal.auto_create_character_event(
+					absent_id, "bonus_xp", {
+						"turn": ctx.battle_result.get("turn", 0),
+						"description": "Black Job victory: +1 XP (Core Rules"
+							+ " p.151, awarded even to crew who did not fight)",
+					})
+
 	return xp_awards
 
 func process_training(_ctx: PostBattleContextClass) -> Array[Dictionary]:

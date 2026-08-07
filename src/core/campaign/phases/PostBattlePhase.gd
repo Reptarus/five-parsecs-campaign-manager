@@ -22,6 +22,9 @@ const GalacticWarProcessorClass = preload("res://src/core/campaign/phases/post_b
 const StoryTrackProcessorClass = preload("res://src/core/campaign/phases/post_battle/StoryTrackProcessor.gd")
 const PostBattleCompletionClass = preload("res://src/core/campaign/phases/post_battle/PostBattleCompletion.gd")
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
+## Compendium p.147 — salvage banked at Step 4, then spendable at the Scrapper
+## and against ship repairs / ship modules / bot upgrades.
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 
 # Autoload references (resolved in _ready())
 var dice_manager: Variant = null
@@ -50,6 +53,8 @@ signal fringe_strife_advanced(report: Dictionary)
 ## Rival Assault credit fine / Rival Raid Hull damage, charged on a failure to
 ## Hold the Field (Core Rules p.92). Each entry is {type, amount, reason}.
 signal scenario_penalties_applied(penalties: Array)
+## Compendium p.147 Step 4 salvage tally: (units_this_battle, campaign_total).
+signal salvage_banked_to_campaign(units: int, campaign_total: int)
 signal loot_gathered(loot: Array)
 signal injuries_resolved(injuries: Array)
 signal experience_awarded(xp_awards: Array)
@@ -273,6 +278,21 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 
 		# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
 		_payment.process_black_zone_rewards(_ctx)
+
+		# Step 4d: Salvage tally (Compendium p.147), verbatim: "In Post-battle
+		# Step 4. Get paid, tally up how many units of Salvage you have obtained."
+		#
+		# Runs AFTER _process_illegal_salvage_check() above, which can zero the
+		# units when the player hands them to the authorities (p.138). Banking
+		# first would let a caught crew keep salvage the book confiscates.
+		#
+		# Was: nothing. SalvageResolver counted units all battle, SalvageMissionPanel
+		# displayed them, and they were dropped on the floor at the end of the fight.
+		var salvage_banked: int = SalvageLedgerRef.bank_battle_salvage(
+			_ctx.campaign, battle_result)
+		if int(battle_result.get("salvage_units_banked", 0)) > 0:
+			salvage_banked_to_campaign.emit(
+				int(battle_result.get("salvage_units_banked", 0)), salvage_banked)
 
 	# Step 4c: Scenario loss penalties (Core Rules p.92) — the Rival Assault
 	# 1D3-credit fine and the Rival Raid 1D6+1 Hull damage, charged only when you

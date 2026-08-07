@@ -975,8 +975,16 @@ func _rival_ids(campaign: Resource) -> Array[String]:
 			out.append(str(r))
 	return out
 
-func _rival_trial(tag: String, s: int, with_enemy: bool) -> bool:
+func _rival_trial(
+	tag: String, s: int, with_enemy: bool, mission_is_rival: bool = true
+) -> bool:
 	## Returns true when the SEEDED rival is gone from campaign.rivals.
+	##
+	## `mission_is_rival` stamps `rival_id` on the MISSION — i.e. "the battle you
+	## just fought was against this Rival". It is a separate axis from
+	## `with_enemy`, which puts a Rival-flagged figure in `defeated_enemies`, and
+	## keeping them separate is the whole point: p.119 keys the removal roll on
+	## having FOUGHT the Rival, not on having killed one of their figures.
 	seed(s * 32452843)
 	var campaign: Resource = _make_campaign("%s_%d" % [tag, s], 5)
 	campaign.rivals = [{"id": "rival_test_1", "name": "Test Rival", "type": "Gang"}]
@@ -984,6 +992,9 @@ func _rival_trial(tag: String, s: int, with_enemy: bool) -> bool:
 	var enemies: Array = []
 	if with_enemy:
 		enemies = [{"name": "Test Rival", "type": "Gang", "is_unique": true}]
+	var mission: Dictionary = {"mission_source": "opportunity"}
+	if mission_is_rival:
+		mission["rival_id"] = "rival_test_1"
 	var ok: bool = _run_pipeline(campaign, {
 		"success": true, "victory": true, "won": true, "held_field": true,
 		"crew_participants": _participants(campaign, [0, 1, 2, 3, 4]),
@@ -991,7 +1002,7 @@ func _rival_trial(tag: String, s: int, with_enemy: bool) -> bool:
 		"defeated_enemies": enemies,
 		"enemies_defeated_count": enemies.size(),
 		"enemy_type": "Gang",
-	}, {"mission_source": "opportunity", "rival_id": "rival_test_1"})
+	}, mission)
 	if not ok:
 		return false
 	return not ("rival_test_1" in _rival_ids(campaign))
@@ -1064,15 +1075,49 @@ func _row_rival_removed() -> void:
 		">=1 of %d defeated-rival battles removes 'rival_test_1' from campaign.rivals"
 		% trials, "removed=%d" % removed)
 
-	# MUTATION CONTROL — no defeated_enemies means fought_existing_rival stays false
-	# (RivalPatronResolver.gd:24-26), so the seeded rival must NEVER be removed.
+	# ── CORRECTED Aug 6, and the correction IS the finding ────────────────────
+	#
+	# This control used to read: "no defeated_enemies means fought_existing_rival
+	# stays false (RivalPatronResolver.gd:24-26), so the seeded rival must NEVER
+	# be removed." That justification cites the IMPLEMENTATION, not the page — and
+	# the implementation it cited was the audit-row-229 defect.
+	#
+	# Core Rules p.119, verbatim: "If you just fought against an existing Rival
+	# and Held the Field, roll a 1D6, adding +1 if you Tracked them down ... On a
+	# 4 or better, they've had enough, and you can remove them from your Rivals
+	# list." The trigger is HAVING FOUGHT THEM AND HELD THE FIELD. Nothing on the
+	# page requires killing one of their figures — which matters because at
+	# LOG_ONLY, the DEFAULT tracking tier, the player counts casualties on their
+	# own table and `defeated_enemies` is empty in every single battle. The old
+	# control therefore pinned "a Rival can never be shaken off at the default
+	# tier" as if it were the rule.
+	#
+	# The control still has teeth, on the axis that actually matters: a battle
+	# that was NOT against the Rival, and killed none of their figures, must never
+	# remove them. Hardcoding fought_existing_rival = true fails this row.
 	var wrong := 0
 	for s in range(100, 100 + trials):
-		if _rival_trial("rivalctl", s, false):
+		if _rival_trial("rivalctl", s, false, false):
 			wrong += 1
-	_check("rival_not_removed_without_defeating_it", wrong == 0,
-		"0 of %d battles with no defeated enemies remove the rival" % trials,
+	_check("rival_not_removed_when_the_fight_was_not_against_them", wrong == 0,
+		"0 of %d non-Rival battles remove the seeded rival" % trials,
 		"removed=%d" % wrong)
+
+	# ...and the positive half of the same correction: fighting the Rival and
+	# holding the field DOES reach the p.119 roll with no defeated_enemies list,
+	# which is the LOG_ONLY case. Expect ~50% (a 4+ on 1D6); P(0 of 20 by chance)
+	# = 0.5^20 ~ 1e-6.
+	var log_only_removed := 0
+	for s in range(200, 200 + trials):
+		if _rival_trial("rivallogonly", s, false, true):
+			log_only_removed += 1
+	print("  [rival] LOG_ONLY removals in %d/%d trials (expect ~50%%)"
+		% [log_only_removed, trials])
+	_check("rival_removal_rolls_at_log_only_with_no_defeated_list",
+		log_only_removed >= 1,
+		">=1 of %d fought-the-Rival battles with an EMPTY defeated_enemies list "
+		% trials + "still reaches the p.119 removal roll",
+		"removed=%d" % log_only_removed)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # ROW 7 — auto-resolve fights a real enemy force (not an empty list)

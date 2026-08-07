@@ -8,6 +8,7 @@ extends RefCounted
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 
 ## Core Rules p.125 Advanced Training rerolls, resolved once per battle in
 ## process_injuries() and read by the roll sites below. Both courses were pure
@@ -278,6 +279,29 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 				"recovery_turns": 0,
 				"is_fatal": false
 			}
+
+	# On-board item, Nano-doc (Core Rules p.58): "Prevent one roll on the
+	# post-battle Injury Table, NO MATTER THE SOURCE of the injury. You must
+	# decide before rolling the dice. Single-use."
+	#
+	# Placed here, above the bot routing and above BOTH injury tables, because
+	# "no matter the source" is the whole point of the item — gating it inside
+	# the organic branch would silently exclude Bots and Soulless, and gating it
+	# after the detailed-injuries opt-in would make it depend on a DLC toggle.
+	# One site, all paths: this is the recurring "guard applied to N-1 of N
+	# sites" trap and the reason this sits where Feel Great sits.
+	#
+	# The player arms it from the On-board Items dialog, which is what satisfies
+	# "you must decide before rolling the dice" — consuming it here on demand
+	# would be deciding after seeing who got hurt.
+	if OnboardItemServiceRef.consume_armed_nano_doc(ctx.campaign):
+		return {
+			"crew_id": crew_id,
+			"type": "ignored",
+			"description": "Injury roll prevented (Nano-doc, p.58)",
+			"recovery_turns": 0,
+			"is_fatal": false
+		}
 
 	var is_bot_character := false
 	var crew_origin: String = injury_data.get("origin", "")

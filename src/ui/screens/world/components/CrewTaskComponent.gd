@@ -9,6 +9,11 @@ const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
 const GrenadeCombinationPopupScript = preload("res://src/ui/components/dialogs/GrenadeCombinationPopup.gd")
 const CrewTaskEventDialogScript = preload("res://src/ui/components/dialogs/CrewTaskEventDialog.gd")
+## p.78 Train: "resolve that immediately" — the picker that makes it immediate.
+const CharacterUpgradeDialogScript = preload(
+	"res://src/ui/components/dialogs/CharacterUpgradeDialog.gd")
+## Compendium p.112 "The Benefits of Loyalty" — the six Faction favors.
+const FactionFavorServiceRef = preload("res://src/core/systems/FactionFavorService.gd")
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 # Five Parsecs dependencies
@@ -18,10 +23,17 @@ const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 ## Trade Table entries cite by page. One roller, shared with campaign creation.
 const StartingEquipmentGeneratorClass = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+## The p.131 Loot Table's third roll ("finally the exact item in question").
+## Shared so the Trade Table's "Something interesting" (p.79 roll 45-48) rolls
+## the same distribution the post-battle path does.
+const LootTableResolverClass = preload("res://src/core/equipment/LootTableResolver.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const AdvancementSystemRef = preload(
+	"res://src/core/character/advancement/AdvancementSystem.gd")
 
 ## Compendium p.79 row 29-38: "A special Work on the Quest crew task becomes
 ## available. This has no effect other than to help complete this step." It is
@@ -96,7 +108,14 @@ func _load_crew_tasks() -> void:
 			"credit_bonus": int(task.get("credit_bonus_max", 0)),
 			"success_reward": task.get("success_reward", ""),
 			"failure_penalty": task.get("failure_penalty", "None"),
-			"resolution_type": task.get("resolution_type", "dice_roll")
+			"resolution_type": task.get("resolution_type", "dice_roll"),
+			# Compendium p.112 "Call In a Favor": "requires a crew task, and can
+			# ONLY BE DONE BY YOUR CAPTAIN", "once per campaign turn". Carried
+			# through here rather than special-cased by id at the gate — a rule
+			# keyed on a hardcoded string is one rename away from silently off.
+			"captain_only": bool(task.get("captain_only", false)),
+			"once_per_campaign_turn": bool(task.get("once_per_campaign_turn", false)),
+			"dlc_flag": str(task.get("dlc_flag", "")),
 		})
 
 # Track crew per task for multi-assignment
@@ -324,6 +343,11 @@ func _populate_available_tasks() -> void:
 	var strife_blocked: Array = _strife_blocked_tasks()
 	available_tasks_list.clear()
 	for task in available_crew_tasks:
+		# Compendium p.112: the favor task exists only where the crew has Loyalty
+		# to spend, and only once per campaign turn. Listing it otherwise would
+		# offer a task that can only ever report "nobody has time for you".
+		if not _favor_task_offerable(task):
+			continue
 		var task_text = task.name
 		var task_id = task.get("id", "")
 
@@ -337,6 +361,8 @@ func _populate_available_tasks() -> void:
 				task_text += " (Table)"
 			"repair":
 				task_text += " (Repair)"
+			"faction_favor":
+				task_text += " (Captain, D6 vs Loyalty %d)" % _best_faction_loyalty()
 
 		# Show current crew count and full indicator
 		var assigned_count = task_assignments.get(task_id, []).size()
@@ -445,6 +471,16 @@ func _on_assign_task_pressed() -> void:
 	if not assign_block.is_empty():
 		push_warning("CrewTaskComponent: %s cannot be assigned (%s)" % [
 			crew_member.get("character_name", "Crew"), assign_block])
+		return
+
+	# Compendium p.112, verbatim: calling in a favor "requires a crew task, and
+	# CAN ONLY BE DONE BY YOUR CAPTAIN". Refused at assignment as well as at
+	# resolution — the resolver's check is the rule, this one is so the player
+	# finds out before they have spent the assignment.
+	if bool(task.get("captain_only", false)) \
+			and not bool(_member_get(crew_member, "is_captain", false)):
+		push_warning("CrewTaskComponent: %s is captain-only (Compendium p.112)"
+			% task.get("name", task_id))
 		return
 
 	# Compendium pp.149-150 Fringe World Strife, the two rows that close crew
@@ -581,6 +617,19 @@ func _on_resolve_all_pressed() -> void:
 	for free_result in _resolve_free_trade_rolls():
 		resolution_results.append(free_result)
 
+	# The PAID extra rolls, bought before Resolve All was pressed. Same pipeline as
+	# the free ones for the same reason — one copy of the 100-row table.
+	for paid_result in _resolve_paid_trade_rolls():
+		resolution_results.append(paid_result)
+
+	# Core Rules p.125 Merchant school, verbatim: "When this crew member Trades,
+	# you may reroll one Trade roll each campaign turn. The new roll must be
+	# accepted and if the new roll offers a choice of whether to buy an item, you
+	# must accept. You may roll up ALL eligible Trade rolls BEFORE choosing what to
+	# reroll." This is exactly that moment: every Trade roll for the turn now
+	# exists and NOTHING has been paid out — the event queue below applies effects.
+	await _offer_merchant_reroll(resolution_results)
+
 	# Update completion state
 	all_tasks_resolved = _check_all_tasks_resolved()
 	completed_tasks = resolution_results
@@ -591,6 +640,122 @@ func _on_resolve_all_pressed() -> void:
 	# Build event queue — each result becomes an interactive dialog
 	_build_event_queue()
 	_process_event_queue()
+
+## ── Core Rules p.125 Merchant school ──────────────────────────────────────
+##
+## THE GAP THIS FILLS. `AdvancementSystem._apply_training_benefits()` recorded the
+## course as `character.set("has_merchant_training", true)` — a property Character
+## does not declare, so a silent no-op — and it was reached only from
+## `purchase_training()`, which has ZERO callers. Nothing anywhere read the flag.
+## Paying 10 XP for Merchant school bought literally nothing.
+##
+## The live grant path is `Character.add_training()`, whose SSOT is
+## `acquired_training`, so eligibility is read through
+## `AdvancementSystem.member_has_training()`.
+##
+## WHICH ROLLS ARE ELIGIBLE. "When this crew member Trades" is the trigger; "one
+## Trade roll" is the object; and "you may roll up all eligible Trade rolls before
+## choosing what to reroll" only makes sense if there is a CHOICE — so any Trade
+## roll made this campaign turn is a candidate, provided a Merchant-trained crew
+## member Traded. Recorded as a reading rather than chosen silently.
+const MERCHANT_REROLL_KEY := "merchant_reroll_used_turn"
+
+
+func _active_campaign():
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") \
+		else null
+
+
+func _merchant_traded_this_turn() -> bool:
+	for crew_id in assigned_tasks:
+		var task_data: Dictionary = assigned_tasks[crew_id]
+		if str(task_data.get("task_id", "")) != "trade":
+			continue
+		if AdvancementSystemRef.member_has_training(
+				task_data.get("crew_member", {}), "merchant"):
+			return true
+	return false
+
+
+func _merchant_reroll_available() -> bool:
+	if not _merchant_traded_this_turn():
+		return false
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return false
+	# "each campaign turn" — one per turn, not one per merchant.
+	var turn: int = int(campaign.progress_data.get("turns_played", 0))
+	return int(campaign.progress_data.get(MERCHANT_REROLL_KEY, -1)) != turn
+
+
+func _mark_merchant_reroll_used() -> void:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	campaign.progress_data[MERCHANT_REROLL_KEY] = int(
+		campaign.progress_data.get("turns_played", 0))
+
+
+func _offer_merchant_reroll(results: Array) -> void:
+	if not _merchant_reroll_available():
+		return
+	var trade_indices: Array[int] = []
+	for i in range(results.size()):
+		if str((results[i] as Dictionary).get("task_id", "")) == "trade":
+			trade_indices.append(i)
+	if trade_indices.is_empty():
+		return
+
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Merchant School — Reroll (Core Rules p.125)"
+	dialog.ok_button_text = "Reroll Selected"
+	dialog.cancel_button_text = "Keep All"
+	var vbox := VBoxContainer.new()
+	var note := Label.new()
+	note.text = ("Pick ONE Trade roll to reroll. The new roll MUST be accepted —"
+		+ "\nif it offers a choice of whether to buy, you must accept."
+		+ "\nOne reroll per campaign turn.")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(note)
+	var list := ItemList.new()
+	list.custom_minimum_size = Vector2(0, 200)
+	for idx in trade_indices:
+		var r: Dictionary = results[idx]
+		list.add_item("%s — %s" % [
+			str(r.get("crew_name", "Crew")), str(r.get("details", ""))])
+	list.select(0)
+	vbox.add_child(list)
+	dialog.add_child(vbox)
+	add_child(dialog)
+	dialog.popup_centered(Vector2i(560, 360))
+
+	var confirmed := false
+	dialog.confirmed.connect(func() -> void: confirmed = true)
+	await dialog.visibility_changed
+	while dialog.visible:
+		await dialog.visibility_changed
+
+	var chosen_rows: PackedInt32Array = list.get_selected_items()
+	var chosen: int = trade_indices[0] if chosen_rows.is_empty() \
+		else trade_indices[chosen_rows[0]]
+	dialog.queue_free()
+	if not confirmed:
+		return
+
+	# "The new roll must be accepted" — the old result is REPLACED outright, not
+	# compared. Re-resolved through _resolve_table_task so the reroll goes down the
+	# same 100-row path with the same sub-rolls as the original.
+	var target: Dictionary = results[chosen]
+	var before: String = str(target.get("details", ""))
+	_resolve_table_task(target, {"id": "trade", "name": "Trade"}, {})
+	target["merchant_rerolled"] = true
+	_mark_merchant_reroll_used()
+	print_verbose("Merchant school reroll (p.125): %s -> %s"
+		% [before, str(target.get("details", ""))])
+
 
 func _finalize_task_resolution() -> void:
 	## Complete task resolution — items/credits/effects already applied by event queue.
@@ -634,6 +799,8 @@ func _resolve_single_task(crew_id: String, task_data: Dictionary) -> Dictionary:
 			result = _resolve_table_task(result, task, crew_member)
 		"repair":
 			result = _resolve_repair_task(result, task, crew_member)
+		"faction_favor":
+			result = _resolve_faction_favor_task(result, crew_member)
 
 	var status = "SUCCESS" if result.success else "FAILED"
 	pass # Task resolved
@@ -647,8 +814,25 @@ func _resolve_automatic_task(result: Dictionary, task: Dictionary, crew_member: 
 
 	match task.id:
 		"train":
-			result.details = "+1 XP awarded"
-			_apply_xp_to_character(crew_member, 1, "train_task")
+			# On-board item, Teach-bot (Core Rules p.58): "A character engaging
+			# in the Train crew task will earn 1D6 additional XP. Single-use."
+			# Rolled and consumed in one call so the item cannot be spent twice
+			# or spent without paying out.
+			var bonus_xp: int = OnboardItemServiceRef.consume_teach_bot(_active_campaign())
+			var total_xp: int = 1 + bonus_xp
+			if bonus_xp > 0:
+				result.details = "+%d XP awarded (+1 Train, +%d Teach-bot 1D6 — bot used up)" \
+					% [total_xp, bonus_xp]
+			else:
+				result.details = "+1 XP awarded"
+			_apply_xp_to_character(crew_member, total_xp, "train_task")
+			# p.78, the clause that makes Train a decision rather than a deposit:
+			# "If this means they may make a Character Upgrade (see 'Experience and
+			# Character Upgrades', p.123), resolve that immediately." Without this
+			# the XP sat unspent until the player happened to open the post-battle
+			# advancement step, and "immediately" never happened.
+			if _offer_immediate_upgrade(crew_member):
+				result.details += " — Character Upgrade available now (p.78)"
 		"decoy":
 			result.details = "Crew unavailable for battle, -1 enemy deployment"
 		"work_on_the_quest":
@@ -678,11 +862,36 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 	var roll: int = randi() % 6 + 1
 	var modified_roll: int = roll
 
+	# On-board item, Mk II translator (Core Rules p.58): "When rolling to
+	# Recruit, you may roll an additional D6."
+	#
+	# An EXTRA DIE, not +1 — and the book means it. Against p.78's 6+ target the
+	# two are not interchangeable: a second die is a second chance at the whole
+	# roll. Keep the better of the dice; "you may" makes it optional and never
+	# taking the worse one is the only sensible exercise of that option.
+	var translator_note: String = ""
+	if task_id == "recruit":
+		var extra_dice: int = OnboardItemServiceRef.recruit_extra_dice(_active_campaign())
+		for _d in range(extra_dice):
+			var second: int = randi() % 6 + 1
+			if second > roll:
+				roll = second
+			modified_roll = roll
+		if extra_dice > 0:
+			translator_note = "Mk II Translator: extra D6, kept %d" % roll
+
 	# Apply crew count bonus (Core Rules: +N for N crew members on task)
+	#
+	# NOTE this is a plain ASSIGNMENT, not an append — anything written to
+	# result.details above it is destroyed. The translator note is therefore held
+	# in a local and appended below rather than set at its own site.
 	var crew_on_task = task_assignments.get(task_id, []).size()
 	if crew_on_task > 0:
 		modified_roll += crew_on_task
 		result.details = "+%d for %d crew" % [crew_on_task, crew_on_task]
+	if not translator_note.is_empty():
+		result.details = translator_note if str(result.details).is_empty() \
+			else str(result.details) + ", " + translator_note
 
 	# Credits spent for a bonus (Core Rules p.77 Find a Patron: "After rolling,
 	# you may opt to spend credits. Each credit earns a +1 bonus." p.78 Track and
@@ -815,16 +1024,30 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 			_apply_recruit()
 			result.reward = "New recruit joins the crew"
 
-	# Find Patron: 6+ means TWO patrons (Core Rules p.77)
+	# Find a Patron (Core Rules p.77), verbatim:
+	#   "If the result is a 5 or higher, you've found a Patron to hire you for a
+	#    JOB (see p.83). If the result is a 6 or higher, you've found two, and may
+	#    choose either job."
+	#   "If ONE job is offered, it will always be a random, EXISTING Patron. If
+	#    TWO jobs are offered, one will be a random, existing Patron, the other
+	#    will be from a NEW Patron."
+	#
+	# TWO things were wrong here. (1) Both branches created NEW Patrons — the 5+
+	# result is supposed to draw work from a contact you already have, and never
+	# creates anyone. (2) Neither branch produced a JOB OFFER; it added contacts
+	# and stopped. Meanwhile JobOfferComponent handed every Patron on the list a
+	# fresh job every single turn with no roll at all, so this task gated nothing
+	# and the whole p.77 roll was decoration. The entitlement recorded here is
+	# what JobOfferComponent now consumes.
 	if task.id == "find_patron":
 		if modified_roll >= 6:
 			result.success = true
-			result.reward = "Found 2 Patrons (choose one job)"
-			_generate_and_add_patron(2)
+			result.reward = "Found 2 job offers (one existing Patron, one new)"
+			_grant_patron_job_offers(2)
 		elif modified_roll >= 5:
 			result.success = true
-			result.reward = "Found 1 Patron"
-			_generate_and_add_patron(1)
+			result.reward = "Found 1 job offer (an existing Patron)"
+			_grant_patron_job_offers(1)
 
 	# Track: "6+ locates a Rival of your choice, allowing you to fight a battle
 	# against them this campaign turn" (Core Rules p.78). WHICH Rival is the
@@ -903,30 +1126,121 @@ func _story_turn_mods() -> Dictionary:
 		return {}
 	return cpm.get_story_turn_mods()
 
-func _generate_and_add_patron(count: int) -> void:
-	## Generate patron(s) using PatronJobManager and add to campaign
+## p.77 Find a Patron paid out as JOB OFFERS, which is what the book actually
+## awards ("you've found a Patron to hire you for a job").
+##
+## `count` is 1 (a 5+) or 2 (a 6+). Records an entitlement in progress_data that
+## JobOfferComponent consumes when it builds this turn's offer list, and creates
+## a NEW Patron only for the second of two offers — p.77 is explicit that the
+## first is always "a random, EXISTING Patron".
+##
+## DOCUMENTED READING, not an invention: if the crew has no existing Patrons at
+## all there is no "random existing Patron" to draw from, and the book does not
+## address that case. Taking it as a new Patron is the only reading under which a
+## successful roll still produces the job the same sentence promises; refusing to
+## produce anything would make the task fail after succeeding.
+## Add ONE Patron to the contact list, with no job offer attached.
+##
+## This is a different rule from p.77 Find a Patron below, and keeping them apart
+## matters: the Trade and Exploration tables have results that read "gain a
+## Patron" (the CrewTaskEventDialog GAIN_PATRON event), which grants a CONTACT.
+## Whether that contact ever offers work is then decided by the p.77 roll like
+## any other contact. Merging the two would hand out free jobs through the back
+## door and undo the gate.
+## Core Rules p.74, verbatim: "Corporate state — ... Failing a mission means being
+## BLACKLISTED and you cannot get Patrons here again."
+##
+## Written post-battle by RivalPatronResolver._apply_corporate_blacklist(); this is
+## the gate it exists for. Without a reader the blacklist would be a key nothing
+## consults — the exact producer/consumer half-wiring this audit is about.
+func _patron_blacklisted() -> bool:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return false
+	if not (campaign.progress_data is Dictionary):
+		return false
+	var listed: Variant = campaign.progress_data.get("patron_blacklist_planets", [])
+	if not (listed is Array) or (listed as Array).is_empty():
+		return false
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not ("current_planet_id" in pdm):
+		return false
+	return str(pdm.current_planet_id) in (listed as Array)
+
+
+## "Corporate state — Patrons are always Corporations" (p.74). Stamped on the
+## patron record at creation so every later reader — the offer summary, the
+## journal, the dashboard — agrees on what kind of employer this is.
+func _apply_forced_patron_type(patron_data: Dictionary) -> Dictionary:
+	var forced: String = WorldTraitEffectsClass.forced_patron_type(
+		_current_world_traits())
+	if forced.is_empty():
+		return patron_data
+	patron_data["type"] = forced
+	patron_data["patron_type"] = forced
+	return patron_data
+
+
+func _add_patron_contact() -> void:
+	var campaign = _active_campaign()
+	if campaign == null or not ("patrons" in campaign) or not (campaign.patrons is Array):
+		return
+	if _patron_blacklisted():
+		return
 	var pjm = PatronJobManager.new()
-	var gs = get_node_or_null("/root/GameState")
-	var campaign = gs.current_campaign if gs and gs.current_campaign else null
-	for i in range(count):
-		var contact_result: Dictionary = pjm.roll_patron_contact()
-		if contact_result.get("success", false):
-			var patron_data: Dictionary = contact_result.get("patron", {})
-			if not patron_data.is_empty() and campaign and "patrons" in campaign:
-				campaign.patrons.append(patron_data)
-				pass # Patron added
-		else:
-			# Fallback: generate a basic patron even if roll failed (task already succeeded)
-			var fallback: Dictionary = {
-				"id": "patron_" + str(randi() % 100000),
-				"name": "Local Contact",
-				"tier": "minor",
-				"relationship": 0,
-				"job": {"type": "DELIVERY", "description": "Transport goods", "pay": 4, "danger_level": 1},
-			}
-			if campaign and "patrons" in campaign:
-				campaign.patrons.append(fallback)
+	var contact_result: Dictionary = pjm.roll_patron_contact()
+	var patron_data: Dictionary = contact_result.get("patron", {})
+	if patron_data.is_empty():
+		patron_data = {
+			"id": "patron_" + str(randi() % 100000),
+			"name": "Local Contact",
+			"tier": "minor",
+			"relationship": 0,
+		}
+	campaign.patrons.append(_apply_forced_patron_type(patron_data))
 	pjm.free()
+
+
+func _grant_patron_job_offers(count: int) -> void:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	# p.74 Corporate state: a blacklisted crew "cannot get Patrons here again", so
+	# a successful p.77 roll finds nobody willing to hire them on this world.
+	if _patron_blacklisted():
+		return
+
+	var existing: Array = []
+	if "patrons" in campaign and campaign.patrons is Array:
+		existing = campaign.patrons
+
+	var new_patrons_needed: int = 0
+	if count >= 2:
+		new_patrons_needed = 1          # "the other will be from a new Patron"
+	if existing.is_empty():
+		new_patrons_needed = count      # nothing to draw an existing offer from
+
+	if new_patrons_needed > 0:
+		var pjm = PatronJobManager.new()
+		for _i in range(new_patrons_needed):
+			var contact_result: Dictionary = pjm.roll_patron_contact()
+			var patron_data: Dictionary = contact_result.get("patron", {})
+			if patron_data.is_empty():
+				patron_data = {
+					"id": "patron_" + str(randi() % 100000),
+					"name": "Local Contact",
+					"tier": "minor",
+					"relationship": 0,
+				}
+			if "patrons" in campaign and campaign.patrons is Array:
+				campaign.patrons.append(_apply_forced_patron_type(patron_data))
+		pjm.free()
+
+	# The entitlement. Accumulated rather than assigned: several crew members may
+	# be sent to Find a Patron and each resolves through this function, and the
+	# player may also re-enter the step. JobOfferComponent zeroes it once spent.
+	var pd: Dictionary = campaign.progress_data
+	pd["patron_offers_owed"] = int(pd.get("patron_offers_owed", 0)) + count
 
 ## Free Trade Table rolls owed to the crew this turn, resolved as ordinary Trade
 ## results so the event queue pays them out exactly like a crew-assigned Trade.
@@ -969,6 +1283,339 @@ func _resolve_free_trade_rolls() -> Array:
 	# Store benefit again every turn for the rest of the campaign.
 	campaign.progress_data["pending_free_trade_rolls"] = 0
 	return out
+
+
+## ── Paid extra Trade rolls (Core Rules p.78 + the p.74 Busy Markets trait) ──
+##
+## p.78, verbatim: "For each crew member Trading, roll once on the Trade Table
+## (see p.79) to see what presents itself. You can get additional rolls by
+## spending 3 credits each. AT LEAST ONE CREW MEMBER MUST BE TRADING to permit
+## this expenditure."
+##
+## p.73, verbatim: "Busy markets — Each campaign turn, you may spend 2 credits
+## ONCE to roll on the Trade Table (p.79)."
+##
+## THE GAP: credits could not buy anything in the World step. The p.78 clause had
+## no UI at all, and `WorldTraitEffects.extra_trade_roll_cost()` implemented Busy
+## Markets and had ZERO callers. Two separate purchases with different prices,
+## different limits and different preconditions, so they are counted separately —
+## merging them would silently let the Busy Markets roll bypass p.78's
+## someone-must-be-Trading gate.
+const EXTRA_TRADE_ROLL_COST := 3
+
+var _paid_trade_rolls: int = 0
+var _busy_market_roll_bought: bool = false
+var _buy_trade_button: Button = null
+var _busy_market_button: Button = null
+
+
+## p.78's precondition, checked rather than assumed: without a crew member on the
+## Trade task there is nothing to buy an ADDITIONAL roll in addition TO.
+func _someone_is_trading() -> bool:
+	for task_data: Variant in assigned_tasks.values():
+		if task_data is Dictionary \
+				and str((task_data as Dictionary).get("task_id", "")) == "trade":
+			return true
+	return false
+
+
+func _busy_market_cost() -> int:
+	return WorldTraitEffectsClass.extra_trade_roll_cost(_current_world_traits())
+
+
+func _busy_market_used_this_turn() -> bool:
+	if _busy_market_roll_bought:
+		return true
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return false
+	if not (campaign.progress_data is Dictionary):
+		return false
+	# Persisted as well as held in memory: the player can leave and re-enter the
+	# step, and "once per campaign turn" has to survive that.
+	return int(campaign.progress_data.get("busy_markets_roll_used_turn", -1)) \
+		== _campaign_turn_number()
+
+
+func _campaign_turn_number() -> int:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return 0
+	var pd: Variant = campaign.progress_data
+	return int((pd as Dictionary).get("turns_played", 0)) if pd is Dictionary else 0
+
+
+func _refresh_trade_purchase_buttons() -> void:
+	var bar: Node = resolve_all_button.get_parent() if resolve_all_button else null
+	if bar == null:
+		return
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	var credits: int = int(gsm.get_credits()) if gsm and gsm.has_method("get_credits") else 0
+
+	# p.78 — 3 credits each, unlimited, gated on someone Trading.
+	var can_buy: bool = not all_tasks_resolved and _someone_is_trading() \
+		and credits >= EXTRA_TRADE_ROLL_COST
+	if _buy_trade_button == null or not is_instance_valid(_buy_trade_button):
+		_buy_trade_button = Button.new()
+		_buy_trade_button.name = "BuyTradeRollButton"
+		_buy_trade_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+		_buy_trade_button.tooltip_text = (
+			"Core Rules p.78: additional Trade Table rolls cost 3 credits each. "
+			+ "At least one crew member must be Trading.")
+		_buy_trade_button.pressed.connect(_on_buy_trade_roll)
+		bar.add_child(_buy_trade_button)
+	_buy_trade_button.text = "Buy Trade Roll (%d cr)%s" % [
+		EXTRA_TRADE_ROLL_COST,
+		"  ×%d" % _paid_trade_rolls if _paid_trade_rolls > 0 else ""]
+	_buy_trade_button.disabled = not can_buy
+	_buy_trade_button.visible = _someone_is_trading() and not all_tasks_resolved
+
+	# p.73 Busy markets — a DIFFERENT price, once per turn, and the book does not
+	# tie it to the Trade task, so it is offered on its own terms.
+	var bm_cost: int = _busy_market_cost()
+	var bm_available: bool = bm_cost >= 0 and not all_tasks_resolved \
+		and not _busy_market_used_this_turn()
+	if bm_available:
+		if _busy_market_button == null or not is_instance_valid(_busy_market_button):
+			_busy_market_button = Button.new()
+			_busy_market_button.name = "BusyMarketRollButton"
+			_busy_market_button.custom_minimum_size.y = TOUCH_TARGET_MIN
+			_busy_market_button.tooltip_text = (
+				"Core Rules p.73 Busy markets: once per campaign turn you may spend "
+				+ "%d credits to roll on the Trade Table." % bm_cost)
+			_busy_market_button.pressed.connect(_on_buy_busy_market_roll)
+			bar.add_child(_busy_market_button)
+		_busy_market_button.text = "Busy Markets Roll (%d cr)" % bm_cost
+		_busy_market_button.disabled = credits < bm_cost
+	elif _busy_market_button != null and is_instance_valid(_busy_market_button):
+		_busy_market_button.get_parent().remove_child(_busy_market_button)
+		_busy_market_button.queue_free()
+		_busy_market_button = null
+
+
+func _on_buy_trade_roll() -> void:
+	if all_tasks_resolved or not _someone_is_trading():
+		return
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_credits"):
+		return
+	if int(gsm.get_credits()) < EXTRA_TRADE_ROLL_COST:
+		return
+	gsm.modify_credits(-EXTRA_TRADE_ROLL_COST)
+	_paid_trade_rolls += 1
+	_refresh_trade_purchase_buttons()
+
+
+func _on_buy_busy_market_roll() -> void:
+	var cost: int = _busy_market_cost()
+	if cost < 0 or all_tasks_resolved or _busy_market_used_this_turn():
+		return
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_credits"):
+		return
+	if int(gsm.get_credits()) < cost:
+		return
+	gsm.modify_credits(-cost)
+	_busy_market_roll_bought = true
+	var campaign = _active_campaign()
+	if campaign != null and "progress_data" in campaign \
+			and campaign.progress_data is Dictionary:
+		campaign.progress_data["busy_markets_roll_used_turn"] = _campaign_turn_number()
+	_refresh_trade_purchase_buttons()
+
+
+## Resolve the rolls the player paid for, through the SAME pipeline as the free
+## ones. Consumed here so a re-press of Resolve All cannot pay them out twice.
+func _resolve_paid_trade_rolls() -> Array:
+	var out: Array = []
+	var total: int = _paid_trade_rolls + (1 if _busy_market_roll_bought else 0)
+	if total <= 0:
+		return out
+
+	for i in range(total):
+		var source: String = "Extra Trade roll (p.78, 3 cr)" if i < _paid_trade_rolls \
+			else "Busy markets (p.73, %d cr)" % _busy_market_cost()
+		var result: Dictionary = {
+			"crew_id": "",
+			"crew_name": source,
+			"task_name": "Purchased Trade Roll",
+			"task_id": "trade",
+			"roll": 0,
+			"modified_roll": 0,
+			"success": true,
+			"details": "",
+			"reward": "",
+		}
+		_resolve_table_task(result, {"id": "trade", "name": "Trade"}, {})
+		out.append(result)
+
+	_paid_trade_rolls = 0
+	_busy_market_roll_bought = false
+	return out
+
+
+## ── Call In a Favor (Compendium p.112 "The Benefits of Loyalty") ────────────
+##
+## "Your captain may try to call in a favor once per campaign turn. This requires
+## a crew task, and can only be done by your captain."
+##
+## THE GAP: `FactionSystem.attempt_faction_favor()` was correct and complete and
+## had ZERO callers, because the crew task the book requires did not exist. Every
+## Loyalty point the crew earned was unspendable and all six favors unreachable.
+
+func _faction_system() -> Node:
+	return get_node_or_null("/root/FactionSystem")
+
+
+## The Faction with the most Loyalty — the one a favor call is worth making to.
+## Returns "" when there is none worth asking.
+func _best_faction_for_favor() -> String:
+	var fs: Node = _faction_system()
+	if fs == null or not fs.has_method("get_all_factions"):
+		return ""
+	var best_id: String = ""
+	var best_loyalty: int = 0
+	for fid: Variant in fs.get_all_factions().keys():
+		var loyalty: int = int(fs.get_faction_loyalty(str(fid)))
+		if loyalty > best_loyalty:
+			best_loyalty = loyalty
+			best_id = str(fid)
+	return best_id
+
+
+func _best_faction_loyalty() -> int:
+	var fid: String = _best_faction_for_favor()
+	if fid.is_empty():
+		return 0
+	var fs: Node = _faction_system()
+	return int(fs.get_faction_loyalty(fid)) if fs else 0
+
+
+## Should the favor task appear in the list at all? Non-favor tasks always pass.
+func _favor_task_offerable(task: Dictionary) -> bool:
+	if str(task.get("resolution_type", "")) != "faction_favor":
+		return true
+	# p.112 is inside the Compendium's Expanded Factions chapter.
+	var dlc: Node = get_node_or_null("/root/DLCManager")
+	if dlc and dlc.has_method("is_feature_enabled"):
+		var flag: int = int(dlc.ContentFlag.get(str(task.get("dlc_flag", "")), -1))
+		if flag < 0 or not dlc.is_feature_enabled(flag):
+			return false
+	if _best_faction_loyalty() <= 0:
+		return false
+	return not FactionFavorServiceRef.favor_used_this_turn(
+		_active_campaign(), _campaign_turn_number())
+
+
+func _resolve_faction_favor_task(
+	result: Dictionary, crew_member: Dictionary
+) -> Dictionary:
+	## p.112: "can only be done by your CAPTAIN." Enforced here as well as in the
+	## assignment UI — a gate that lives only in the widget is one rebuild away
+	## from being bypassed.
+	if not bool(_member_get(crew_member, "is_captain", false)):
+		result.success = false
+		result.details = "Only your captain can call in a favor (Compendium p.112)."
+		return result
+
+	var campaign = _active_campaign()
+	var turn: int = _campaign_turn_number()
+	if FactionFavorServiceRef.favor_used_this_turn(campaign, turn):
+		result.success = false
+		result.details = "A favor has already been called in this campaign turn (p.112)."
+		return result
+
+	var faction_id: String = _best_faction_for_favor()
+	var fs: Node = _faction_system()
+	if faction_id.is_empty() or fs == null or not fs.has_method("attempt_faction_favor"):
+		result.success = false
+		result.details = "No Faction owes you anything yet (p.112)."
+		return result
+
+	# The roll, the Loyalty spend and the six-favor list all live in FactionSystem;
+	# this only runs the task and applies the choice.
+	var outcome: Dictionary = fs.attempt_faction_favor(faction_id)
+	FactionFavorServiceRef.mark_favor_used(campaign, turn)
+	result.roll = int(outcome.get("roll", 0))
+	result.modified_roll = result.roll
+
+	if not bool(outcome.get("success", false)):
+		result.success = false
+		# "If the roll is higher than the Loyalty score, nobody has time for you
+		# ('...but we do appreciate your business!'). Your Loyalty score remains
+		# unchanged."
+		result.details = "Rolled %d — nobody has time for you, and your Loyalty is unchanged (p.112)." \
+			% result.roll
+		return result
+
+	result.success = true
+	result.reward = "Loyalty -%d; choose a favor" % int(outcome.get("loyalty_spent", 0))
+	result.details = "Rolled %d against Loyalty — a favor is owed (p.112)." % result.roll
+	# "You can choose the favor AFTER ROLLING" — so the picker opens now, not
+	# before the die.
+	_offer_faction_favor(faction_id, result.roll)
+	return result
+
+
+func _faction_influence(faction_id: String) -> int:
+	var fs: Node = _faction_system()
+	if fs == null or not fs.has_method("get_all_factions"):
+		return 0
+	var f: Variant = fs.get_all_factions().get(faction_id, {})
+	return int((f as Dictionary).get("influence", 0)) if f is Dictionary else 0
+
+
+func _offer_faction_favor(faction_id: String, roll: int) -> void:
+	var options: Array = FactionFavorServiceRef.favor_options(
+		roll, _faction_influence(faction_id))
+	var labels: Array = []
+	var id_by_label: Dictionary = {}
+	for opt: Dictionary in options:
+		labels.append(str(opt["label"]))
+		id_by_label[str(opt["label"])] = str(opt["id"])
+
+	var popup: Window = ItemChoicePopupScript.new()
+	if popup == null:
+		return
+	popup.title = "Call In a Favor (Compendium p.112)"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen: String) -> void:
+			_apply_faction_favor(str(id_by_label.get(chosen, "")), roll, faction_id))
+	popup.show_choices(
+		"Rolled %d — the Faction owes you. Choose your favor." % roll,
+		labels, "Call It In")
+
+
+func _apply_faction_favor(favor_id: String, roll: int, faction_id: String) -> void:
+	if favor_id.is_empty():
+		return
+	var campaign = _active_campaign()
+	var outcome: Dictionary = FactionFavorServiceRef.apply_favor(
+		campaign, favor_id, roll, _faction_influence(faction_id))
+
+	# Credits and Quest Rumors are owned by singletons, so the service returns
+	# them as data and they are applied here (the data-ownership table).
+	var credits: int = int(outcome.get("credits", 0))
+	if credits > 0:
+		var gsm: Node = get_node_or_null("/root/GameStateManager")
+		if gsm and gsm.has_method("modify_credits"):
+			gsm.modify_credits(credits)
+	var rumors: int = int(outcome.get("rumors", 0))
+	if rumors > 0:
+		var gs: Node = get_node_or_null("/root/GameState")
+		if gs and gs.has_method("add_quest_rumor"):
+			for _i in range(rumors):
+				gs.add_quest_rumor()
+	# "Arrange a meeting — Roll up a new crew member using the start-of-campaign
+	# process. They will assist you for one mission."
+	if bool(outcome.get("spawn_temp_crew", false)):
+		_apply_recruit()
+
+	_journal_note(str(outcome.get("detail", "")))
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success(str(outcome.get("detail", "Favor called in.")))
 
 
 func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
@@ -1052,6 +1699,10 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 		detail_parts.append("+1 Engineer")
 
 	# Credit spending for spare parts (+1 per credit)
+	#
+	# NOT the same rule as the Spare Parts on-board ITEM below. p.78 lets you buy
+	# spare parts with credits at +1 each; p.58 is a physical item in the Stash
+	# that also grants +1. Both exist and both apply — do not merge them.
 	var task_id: String = result.get("task_id", "repair_kit")
 	var credits_spent: int = credits_spent_on_tasks.get(task_id, 0)
 	if credits_spent > 0:
@@ -1060,6 +1711,17 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 		var gsm = get_node_or_null("/root/GameStateManager")
 		if gsm:
 			gsm.remove_credits(credits_spent)
+
+	# On-board items (Core Rules p.58): Repair Bot "+1 to all Repair attempts";
+	# Spare parts "Add +1 when making a Repair attempt. If the roll is a natural
+	# 1, the Spare Parts are used up and must be erased from your roster."
+	var repair_campaign = _active_campaign()
+	var onboard_repair: Dictionary = OnboardItemServiceRef.repair_bonus(repair_campaign)
+	var onboard_bonus: int = int(onboard_repair.get("value", 0))
+	if onboard_bonus != 0:
+		modified_roll += onboard_bonus
+		for src in onboard_repair.get("sources", []):
+			detail_parts.append(str(src))
 
 	result.roll = roll
 	result.modified_roll = modified_roll
@@ -1087,10 +1749,25 @@ func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dic
 		result.details = "%s — no damaged items on this character or in the stash" % roll_text
 		return result
 
-	# Natural 1 always fails AND item becomes unfixable (Core Rules p.78:
-	# "A natural 1 always fails and means the item is beyond fixing.")
+	# Natural 1 always fails AND the item becomes unfixable.
+	#
+	# DOCUMENTED READING, not a silent choice. p.78 bullet two reads verbatim:
+	# "A natural 1 always fails this roll. A failed roll means the item is beyond
+	# fixing." Taken literally the second sentence destroys the item on ANY
+	# failure, which would make Repair Your Kit a one-shot gamble rather than a
+	# retryable task. Read here as the natural-1 case only, because (a) the two
+	# sentences sit in ONE bullet and the second most plausibly restates the
+	# first, and (b) the designer FAQ has no entry on it, so the harsher reading
+	# would be inventing a rule. Revisit if errata ever addresses it.
 	if roll == 1:
 		_resolve_damaged_target(crew_member, target, false)
+		# p.58 Spare parts: "If the roll is a natural 1, the Spare Parts are used
+		# up and must be erased from your roster." Keyed on the natural roll, not
+		# the modified total.
+		if bool(onboard_repair.get("spare_parts", false)):
+			if OnboardItemServiceRef.consume(repair_campaign, "spare_parts"):
+				detail_parts.append("Spare Parts used up")
+				roll_text += " (Spare Parts used up)"
 		result.success = false
 		result.reward = "CRITICAL FAIL — %s is beyond repair" % damaged
 		result.details = "%s = %d vs 6. Natural 1: UNFIXABLE" % [roll_text, modified_roll]
@@ -1162,7 +1839,10 @@ func _first_damaged_target(crew_member) -> Dictionary:
 static func _first_damaged_in_stash(stash: Array) -> Dictionary:
 	for i in range(stash.size()):
 		var entry: Variant = stash[i]
-		if entry is Dictionary and bool(entry.get("damaged", false)):
+		# Was `entry.get("damaged")` only, so p.131 damaged Loot (which the
+		# resolver marked `needs_repair`) was invisible to Repair Your Kit —
+		# a fifth of all loot arrived broken and could never be fixed.
+		if EquipmentTransferService.is_item_damaged(entry):
 			var stash_name: String = str(entry.get("name", "")).strip_edges()
 			if not stash_name.is_empty():
 				return {"name": stash_name, "source": "stash", "index": i}
@@ -1190,14 +1870,22 @@ static func _resolve_damaged_stash_item(
 		idx = -1
 		for i in range(stash.size()):
 			if stash[i] is Dictionary and str(stash[i].get("name", "")) == item_name \
-					and bool(stash[i].get("damaged", false)):
+					and EquipmentTransferService.is_item_damaged(stash[i]):
 				idx = i
 				break
 	if idx < 0:
 		return
 	if repaired:
+		# p.78: "the item is repaired and is usable again." Both damage spellings
+		# must be cleared or the item stays broken to half its readers.
 		stash[idx]["damaged"] = false
+		stash[idx].erase("needs_repair")
 		stash[idx].erase("damage_source")
+		if str(stash[idx].get("quality", "")) == "damaged":
+			stash[idx]["quality"] = "standard"
+		var repaired_name: String = str(stash[idx].get("name", ""))
+		if str(stash[idx].get("description", "")).ends_with(" (needs Repair)"):
+			stash[idx]["description"] = repaired_name
 	else:
 		stash.remove_at(idx)
 
@@ -1506,6 +2194,11 @@ func _update_ui_state() -> void:
 			resolve_all_button.text = "All Tasks Resolved"
 		else:
 			resolve_all_button.text = "Resolve All Tasks (%d)" % assigned_tasks.size()
+
+	# p.78's paid extra Trade rolls and the p.73 Busy Markets roll. Refreshed from
+	# HERE rather than only at build time because both gates move as the player
+	# assigns tasks: the p.78 button must appear the moment someone is put on Trade.
+	_refresh_trade_purchase_buttons()
 
 	# Lock selection lists after resolution (no ItemList.disabled — use mouse_filter)
 	if crew_member_list:
@@ -1853,18 +2546,12 @@ func _resolve_random_loot(item_string: String) -> Array:
 	if item_string.begins_with("Gear Loot") or item_string == "Gear (random)":
 		return [_roll_on_subtable(all_tables.get("gear_subtable", []))]
 	elif item_string.begins_with("Gadget"):
-		# Gadgets are gun_mods + gun_sights from gear subtable
-		var gear_sub: Array = all_tables.get("gear_subtable", [])
-		var gadget_items: Array = []
-		for entry in gear_sub:
-			if entry is Dictionary:
-				var cat: String = str(entry.get("category", ""))
-				if cat in ["gun_mods", "gun_sights"]:
-					var items: Array = entry.get("items", [])
-					gadget_items.append_array(items)
-		if gadget_items.size() > 0:
-			return [gadget_items[randi() % gadget_items.size()]]
-		return [item_string]
+		# p.29 Gadget Table — its own 22-row D100 table in gear_database.json, and
+		# the only thing "Roll on the Gadget Table" (exploration_table.json) can
+		# mean. This used to merge the LOOT table's gun_mods + gun_sights lists
+		# and pick uniformly from the 13 results — the wrong table, and no D100
+		# on it either. Same mistake, same fix, as the two branches below.
+		return _roll_creation_table("gadget", item_string)
 	elif item_string.begins_with("Low Tech Weapon"):
 		# Core Rules p.28 has its OWN Low-Tech Weapon Table, and the Trade Table
 		# (p.79, roll 1-3) points at that one by page number. This used to pull a
@@ -1941,15 +2628,19 @@ func _roll_main_loot_table(all_tables: Dictionary) -> Array:
 	return results
 
 func _roll_on_subtable(subtable: Array) -> String:
-	## Roll D100 on a loot subtable and return a random item name
+	## Roll D100 to pick the subtable, then delegate the book's THIRD roll
+	## (p.131 "and finally the exact item in question") to the canonical
+	## resolver. This used to pick uniformly from the subtable's flat name list,
+	## which is the same defect LootTableResolver had — one rule, three
+	## implementations, all wrong the same way. There is one now.
 	var roll: int = randi() % 100 + 1
 	for entry in subtable:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
 			if r.size() >= 2 and roll >= (r[0] as int) and roll <= (r[1] as int):
-				var items: Array = entry.get("items", [])
-				if items.size() > 0:
-					return str(items[randi() % items.size()])
+				var rolled: String = LootTableResolverClass.roll_item_in(entry)
+				if not rolled.is_empty():
+					return rolled
 				var item: String = str(entry.get("item", ""))
 				if not item.is_empty():
 					return item
@@ -2103,6 +2794,64 @@ func spend_credits_on_task(task_id: String, amount: int) -> bool:
 	return true
 
 ## Helper function to apply XP to a character
+## Core Rules p.78, Train: "If this means they may make a Character Upgrade ...
+## resolve that immediately."
+##
+## Returns true when an upgrade is genuinely affordable, so the caller can say so
+## in the task result even if the dialog is dismissed. Returns false — and pops
+## nothing — otherwise: a single Train earns 1 XP and the cheapest p.123 upgrade
+## costs 5, so most turns cross no threshold at all, and a dialog that appeared
+## every turn to say "nothing affordable" would be worse than the bug this fixes.
+func _offer_immediate_upgrade(crew_member: Dictionary) -> bool:
+	var live: Dictionary = _live_crew_dict(crew_member)
+	if live.is_empty():
+		return false
+	if not CharacterUpgradeDialogScript.has_upgrade_available(live):
+		return false
+
+	var dialog = CharacterUpgradeDialogScript.new()
+	get_tree().root.add_child(dialog)
+	dialog.upgrade_resolved.connect(
+		func(_stat: String, summary: String) -> void:
+			var who: String = str(live.get("name", live.get("character_name", "Crew")))
+			_journal_note("%s trained: %s" % [who, summary]))
+	dialog.show_for(live)
+	return true
+
+
+## The crew entry the campaign actually owns.
+##
+## `crew_data` normally holds the SAME Dictionary references as
+## campaign.crew_data["members"], but _apply_xp_to_character deliberately re-looks
+## the character up by id rather than trusting that — so this does too. An entry
+## that resolves to a Character Resource returns {} rather than a converted copy:
+## CharacterAdvancementService.advance_stat() mutates a Dictionary in place, and
+## running it on a copy would show the player an upgrade that is thrown away.
+func _live_crew_dict(crew_member: Dictionary) -> Dictionary:
+	var character_id: String = str(crew_member.get("id",
+		crew_member.get("character_id", "")))
+	if character_id.is_empty():
+		return {}
+	var campaign = _active_campaign()
+	if campaign == null or not campaign.has_method("get_crew_member_by_id"):
+		return {}
+	var entry: Variant = campaign.get_crew_member_by_id(character_id)
+	return entry if entry is Dictionary else {}
+
+
+func _journal_note(text: String) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal == null or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"type": "character",
+		"auto_generated": true,
+		"title": "Character Upgrade",
+		"description": text,
+		"tags": ["training", "advancement"],
+	})
+
+
 func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String) -> void:
 	## Apply XP to a character and persist to GameStateManager
 	var character_id = crew_member.get("id", "")
@@ -2636,7 +3385,7 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 			_apply_rumor(event_data, outcome)
 
 		CrewTaskEventDialog.EventType.GAIN_PATRON:
-			_generate_and_add_patron(1)
+			_add_patron_contact()
 
 		CrewTaskEventDialog.EventType.RECRUIT:
 			if outcome.get("recruit", false):
@@ -2845,7 +3594,7 @@ func _auto_resolve_event(event_data: Dictionary) -> void:
 		CrewTaskEventDialog.EventType.GAIN_RUMOR:
 			_apply_rumor(event_data, {})
 		CrewTaskEventDialog.EventType.GAIN_PATRON:
-			_generate_and_add_patron(1)
+			_add_patron_contact()
 		CrewTaskEventDialog.EventType.SICK_BAY:
 			_apply_sick_bay(crew_member, event_data.get("sick_bay_turns", 1))
 		# Skip interactive types in auto mode (no selling, no discarding, no purchases)
@@ -3085,17 +3834,81 @@ func _apply_recruit() -> void:
 
 	# Generate new character via CharacterGeneration
 	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
-	if CharGen and CharGen.has_method("create_character"):
-		var new_char = CharGen.create_character({})
-		if new_char == null:
-			return
-		_strip_to_recruit_loadout(new_char)
-		if campaign.has_method("add_crew_member"):
-			if new_char.has_method("to_dictionary"):
-				campaign.add_crew_member(new_char.to_dictionary())
-			else:
-				campaign.add_crew_member(new_char)
-			_notify_recruit_joined(new_char)
+	if CharGen == null or not CharGen.has_method("create_character"):
+		return
+
+	# Core Rules p.74, verbatim: "Adventurous population — When successfully
+	# Recruiting, you may roll up one additional character and THEN CHOOSE WHO TO
+	# HIRE." `WorldTraitEffects.recruit_extra_candidates()` implemented this and
+	# had ZERO callers, so the trait was a paragraph of text.
+	#
+	# The book says "choose", so the extra candidates are generated and offered —
+	# auto-picking would turn a decision into a reroll.
+	var extra: int = WorldTraitEffectsClass.recruit_extra_candidates(
+		_current_world_traits())
+	var candidates: Array = []
+	for _i in range(1 + maxi(0, extra)):
+		var rolled = CharGen.create_character({})
+		if rolled == null:
+			continue
+		_strip_to_recruit_loadout(rolled)
+		candidates.append(rolled)
+	if candidates.is_empty():
+		return
+
+	if candidates.size() == 1:
+		_hire_recruit(campaign, candidates[0])
+		return
+	_offer_recruit_choice(campaign, candidates)
+
+
+## p.74 Adventurous population — present the rolled candidates and let the player
+## pick. Falls back to hiring the first if the popup cannot be built, because the
+## alternative is a successful Recruit task that silently hires nobody.
+func _offer_recruit_choice(campaign, candidates: Array) -> void:
+	var labels: Array = []
+	for c: Variant in candidates:
+		labels.append(_describe_recruit(c))
+	var popup: Window = ItemChoicePopupScript.new()
+	if popup == null:
+		_hire_recruit(campaign, candidates[0])
+		return
+	popup.title = "Adventurous Population (p.74)"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			var idx: int = labels.find(chosen_label)
+			_hire_recruit(campaign, candidates[maxi(0, idx)]))
+	popup.show_choices(
+		"This world's adventurous population turns up more than one willing hand. "
+			+ "Choose who to hire (Core Rules p.74).",
+		labels, "Hire")
+
+
+func _describe_recruit(new_char) -> String:
+	var who: String = "Recruit"
+	var species: String = ""
+	if new_char is Object:
+		if "character_name" in new_char:
+			who = str(new_char.character_name)
+		if "species_id" in new_char and str(new_char.species_id) != "":
+			species = str(new_char.species_id)
+		elif "origin" in new_char:
+			species = str(new_char.origin)
+	return "%s (%s)" % [who, species.capitalize().replace("_", " ")] if species != "" \
+		else who
+
+
+func _hire_recruit(campaign, new_char) -> void:
+	if campaign == null or new_char == null:
+		return
+	if not campaign.has_method("add_crew_member"):
+		return
+	if new_char.has_method("to_dictionary"):
+		campaign.add_crew_member(new_char.to_dictionary())
+	else:
+		campaign.add_crew_member(new_char)
+	_notify_recruit_joined(new_char)
 
 
 func _strip_to_recruit_loadout(new_char) -> void:

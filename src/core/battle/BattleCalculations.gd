@@ -169,7 +169,8 @@ static func calculate_hit_modifier(
 	firer_moved: bool = false,
 	has_bipod: bool = false,
 	is_aiming: bool = false,
-	firer_in_cover: bool = false
+	firer_in_cover: bool = false,
+	mod_bonus: int = 0
 ) -> int:
 	# Combat Skill is added to the roll (p.44).
 	var modifier := attacker_combat_skill
@@ -191,6 +192,19 @@ static func calculate_hit_modifier(
 	if has_bipod and range_inches > 8.0 and (is_aiming or firer_in_cover):
 		if not ("pistol" in traits_lower):
 			modifier += 1
+
+	# Other p.53 attachment bonuses, already resolved to a number by
+	# WeaponModService.hit_inputs(): Cyber-configurable Nano-sludge "+1 Hit
+	# bonus", Unity Battle Sight "+1 to all Hit rolls", plus the two conditional
+	# sights (Seeker "if the shooter did not Move this round", Tracker "if you
+	# fired at the same target during your previous round") whose CONDITION only
+	# the caller can answer.
+	#
+	# These are attachment modifiers, not table rows — the same standing as the
+	# Bipod above. The p.44 to-hit table still has exactly three rows and no
+	# elevation or generic over-range modifier; see the note at
+	# calculate_hit_threshold.
+	modifier += mod_bonus
 
 	return modifier
 
@@ -264,7 +278,8 @@ static func calculate_hit_threshold(
 		modifiers.get("firer_moved", false),
 		modifiers.get("has_bipod", false),
 		modifiers.get("is_aiming", false),
-		modifiers.get("firer_in_cover", false)
+		modifiers.get("firer_in_cover", false),
+		int(modifiers.get("mod_bonus", 0))
 	)
 
 	# threshold = base - modifiers

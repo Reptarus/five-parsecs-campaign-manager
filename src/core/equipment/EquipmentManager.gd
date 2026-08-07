@@ -423,7 +423,22 @@ func get_stash_consumables() -> Array:
 ## to apply at the table — and tracks depletion (single-use items are removed from the
 ## Stash; multi-use items decrement via use_consumable). Returns {used, name, effect, depleted}.
 func use_stash_consumable(item_id: String) -> Dictionary:
-	for eq in _equipment_storage:
+	## OWNER-BACKED, matching get_stash_consumables() one screen up.
+	##
+	## THE BUG THIS FIXES: the picker and the USE disagreed about where the stash
+	## lives. `get_stash_consumables()` reads the owner (`get_ship_stash()` ->
+	## `campaign.equipment_data["equipment"]`) while this iterated
+	## `_equipment_storage`, the cache populated ONLY at campaign load. So any
+	## consumable acquired mid-session — bought in the p.125 Purchase Items step,
+	## rolled off the p.133 Consumables subtable, taken as Battlefield Finds —
+	## appeared in the in-battle "Consumable" picker and returned `{"used": false}`
+	## when tapped. Nothing happened, and nothing said why. The Stim-pack is 30%
+	## of the Consumables subtable, so this was the single most likely item in the
+	## game to fail.
+	##
+	## Resolve against the owner; keep the cache in sync where the item is also
+	## cached, because `use_consumable()` decrements the dict it is handed.
+	for eq in get_ship_stash():
 		if not (eq is Dictionary) or str(eq.get("id", "")) != item_id:
 			continue
 		var effect: String = str(eq.get("description", eq.get("effect", "")))
@@ -432,8 +447,17 @@ func use_stash_consumable(item_id: String) -> Dictionary:
 		var depleted: bool = single_use
 		if not single_use and (eq.has("remaining_uses") or eq.has("uses")):
 			depleted = bool(use_consumable(eq).get("depleted", false))
+			# Mirror the decrement onto the cached copy, if there is one, so a
+			# later cache-backed read does not resurrect the spent use.
+			for cached in _equipment_storage:
+				if cached is Dictionary and str(cached.get("id", "")) == item_id:
+					for key in ["remaining_uses", "uses"]:
+						if eq.has(key):
+							cached[key] = eq[key]
+					break
 		if depleted:
 			remove_equipment(item_id)
+			_remove_from_campaign_stash(item_id)
 		equipment_list_updated.emit()
 		return {"used": true, "name": item_name, "effect": effect, "depleted": depleted}
 	return {"used": false}

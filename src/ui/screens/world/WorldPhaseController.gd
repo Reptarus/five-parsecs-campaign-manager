@@ -4,6 +4,7 @@ class_name WorldPhaseController
 ## Core Rules p.149 Red Job Threat Condition. Path-loaded rather than
 ## `class_name`-referenced to match this file's other data-layer imports.
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
+const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 
 ## WorldPhaseController - Orchestrator for Campaign Turn Workflow
 ## Replaces 3,910-line WorldPhaseUI monolith with focused component coordination
@@ -1426,6 +1427,33 @@ func _complete_world_phase() -> void:
 					"benefits": job_results.get("benefits", []),
 					"hazards": job_results.get("hazards", []),
 					"location": job_results.get("location", ""),
+					# THE FACTION'S IDENTITY. Same shape as `patron_id` above, and
+					# it was missing for exactly as long: FactionSystem stamps
+					# `faction_id` on every generated faction job, this literal
+					# copied ~20 named keys and that was not one of them, so the
+					# id died here. RivalPatronResolver reads
+					# `battle_result["faction_id"]` to run the p.112 Loyalty gain,
+					# and it was permanently "" — so Loyalty NEVER rose above 0 in
+					# any campaign, which in turn made every downstream rule inert:
+					# Faction Favors (D6 <= Loyalty), the p.113 Office party payout
+					# (Credits equal to Loyalty), the p.115 "Befriending the
+					# leadership" story point, and the 3+ Loyalty gate on "We
+					# thought we would do you a favor".
+					"faction_id": str(job_results.get("faction_id", "")),
+					# Compendium p.113, verbatim: "If you did a job DIRECTLY for a
+					# Faction, always perform the Faction Struggle event. THIS DOES
+					# NOT OCCUR FOR AFFILIATED JOBS." So this is deliberately NOT
+					# the same as `faction_id` — an affiliated Patron job carries a
+					# faction_id (for Loyalty) and must leave this empty.
+					# PostBattlePhase:554 has read it since the decomposition and
+					# no producer ever wrote it, so the mandatory Struggle has
+					# never fired.
+					"faction_job_id": str(job_results.get("faction_id", "")) \
+						if mission_source == "faction" else "",
+					# p.112: an affiliated job "is less likely to increase your
+					# Loyalty" — a roll of 6 rather than D6 >= Loyalty.
+					"is_affiliated_patron_job": bool(
+						job_results.get("is_affiliated_patron_job", false)),
 					# Mission source for Compendium battle type selection
 					"source": mission_source,
 					"mission_source": mission_source,
@@ -1467,6 +1495,7 @@ func _complete_world_phase() -> void:
 					_stamp_red_zone_threat(mission_dict)
 				elif selected_zone == 2:
 					mission_dict["is_black_zone"] = true
+					_stamp_black_zone_mission(mission_dict)
 
 				campaign.progress_data["current_mission"] = mission_dict
 
@@ -1639,6 +1668,7 @@ func _refresh_mission_prep() -> void:
 		_stamp_red_zone_threat(accepted_job)
 	elif _mp_zone == 2:
 		accepted_job["is_black_zone"] = true
+		_stamp_black_zone_mission(accepted_job)
 
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign:
@@ -2353,6 +2383,42 @@ func _setup_psionic_legality_badge() -> void:
 
 func _on_layout_class_changed(_cols: int = 0) -> void:
 	_apply_vertical_compaction()
+
+
+func _stamp_black_zone_mission(mission: Dictionary) -> void:
+	## Core Rules pp.150-151 "The Mission": "Roll to determine what you are here to
+	## do" — the D10 'Your Day in Hell' table. ONE roll, for this Black Job.
+	##
+	## THE GAP THIS FILLS, and it is two defects meeting in the middle:
+	##
+	## `BlackZoneSystem.roll_mission_type()`'s only caller was inside
+	## `MissionPrepComponent`'s card BUILDER, so it re-rolled on every panel
+	## rebuild — the briefing could say "Destroy strong point" one moment and
+	## "Penetrate the lines" the next, and the crew could not know which mission
+	## they were actually playing.
+	##
+	## Meanwhile `PostBattleCompletion.gd:161` reads
+	## `battle_result["black_zone_mission"]` to journal which Black Job was
+	## attempted, and `CampaignJournal.gd:204` renders it. Two live consumers on a
+	## key NO producer anywhere ever wrote.
+	##
+	## Rolled here, at the same point and in the same shape as the Red Job Threat
+	## Condition above, and PERSISTED on the campaign so it survives a panel
+	## rebuild, a save and a reload. `CampaignPhaseManager._clear_black_zone_mission()`
+	## drops it at turn rollover so the next Black Job rolls fresh.
+	var gs: Node = get_node_or_null("/root/GameState")
+	var campaign = gs.current_campaign if (gs and "current_campaign" in gs) else null
+	var has_pd: bool = campaign != null and "progress_data" in campaign
+
+	var stored: Variant = {}
+	if has_pd:
+		stored = campaign.progress_data.get("black_zone_mission", {})
+	if not (stored is Dictionary) or (stored as Dictionary).is_empty():
+		stored = BlackZoneSystemRef.roll_mission_type()
+		if has_pd:
+			campaign.progress_data["black_zone_mission"] = stored
+	if stored is Dictionary and not (stored as Dictionary).is_empty():
+		mission["black_zone_mission"] = stored
 
 
 func _stamp_red_zone_threat(mission: Dictionary) -> void:

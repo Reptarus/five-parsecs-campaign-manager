@@ -42,6 +42,20 @@ static func rival_name_of(rival: Variant) -> String:
 	return str(rival)
 
 
+## The ENEMY TYPE this Rival fights as (p.92: "Once a Rival has been established,
+## they will always be the same type"). `_append_rival` records it as `type`.
+##
+## Returns "" for a bare-String Rival, which predates the dict shape and carries
+## no type. "" is the right answer, not a guess: the generator treats an empty
+## preset as "roll normally", so a legacy Rival keeps today's behaviour instead of
+## being pinned to an invented type.
+static func rival_type_of(rival: Variant) -> String:
+	if rival is Dictionary:
+		var d: Dictionary = rival
+		return str(d.get("type", d.get("enemy_type", "")))
+	return ""
+
+
 ## Count the crew sent as Decoy this campaign turn from the resolved crew-task
 ## results. data/crew_tasks.json "decoy": "+1 to the roll when checking if Rivals
 ## track you down, per crew sent as Decoy" (Core Rules p.78).
@@ -123,6 +137,14 @@ static func check(
 	result["has_encounter"] = true
 	result["rival_id"] = rival_id_of(picked)
 	result["rival_name"] = rival_name_of(picked)
+	# p.92, verbatim: "Once a Rival has been established, they will always be the
+	# same type." The type is recorded on the Rival at birth
+	# (RivalPatronResolver._append_rival writes `type`), and without carrying it
+	# here the battle re-rolled the encounter table — so the Unity troops you made
+	# an enemy of last month could turn up as Roving Threats.
+	result["rival_type"] = rival_type_of(picked)
+	result["is_elite"] = picked is Dictionary and bool(
+		(picked as Dictionary).get("is_elite", false))
 	result["reason"] = "Rolled %d against %d Rival(s) — %s tracked you down (Core Rules p.85)." % [
 		roll, rivals.size(), result["rival_name"]]
 	return result

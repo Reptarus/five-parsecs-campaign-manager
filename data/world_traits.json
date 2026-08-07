@@ -577,7 +577,10 @@
       "category": "travel",
       "effect_type": "departure_restriction",
       "effects": {
-        "stay_limit_dice": "1D3"
+        "stay_limit_dice": "1D3",
+        "requires_stay_license": true,
+        "stay_license_dice": "2D6",
+        "stay_license_target": 8
       }
     },
     {

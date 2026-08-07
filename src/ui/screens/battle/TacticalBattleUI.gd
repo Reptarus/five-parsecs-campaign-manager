@@ -22,6 +22,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
@@ -2591,6 +2592,111 @@ func _active_condition_id() -> String:
 		return str(dc.get("condition_id", dc.get("id", "")))
 	return ""
 
+## ── Red Job Time Constraint (Core Rules p.149) ────────────────────────────
+##
+## "All Red Jobs are fought under a time constraint. AT THE END OF ROUND 6, roll
+## 1D6 on the table below." Round-bound, so unlike the Threat Condition it cannot
+## be stamped at mission acceptance — it needs the round loop, which is why
+## `RedZoneSystem.roll_time_constraint()` sat correct and zero-caller.
+##
+## Two of the six rows deny Hold the Field ("Count down" when the clock runs out,
+## and "Evac now!" outright), and that is the half with real campaign
+## consequences: Hold the Field gates the p.119 Rival removal roll, p.120
+## Battlefield Finds and p.121 Loot.
+var _red_job_tc: Dictionary = {}
+var _red_job_hold_denied: bool = false
+
+
+func _is_red_job_battle() -> bool:
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	return bool(md.get("is_red_zone", _battle_context.get("is_red_zone", false)))
+
+
+func _is_black_job_battle() -> bool:
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	return bool(md.get("is_black_zone", _battle_context.get("is_black_zone", false)))
+
+
+## Has the p.150-151 "Your Day in Hell" objective already been met? Drives the
+## p.151 ending clause ("you will be evac'ed out at the end of the FOLLOWING
+## round"), which is a round the crew still has to survive.
+## The method is `is_complete()`, NOT `is_objective_complete()` — checked against
+## BattleObjectiveTracker rather than guessed. A has_method() guard on a name with
+## zero definitions repo-wide is a permanently-false branch, which is how a rule
+## ends up shipping as dead code that reads like a safety net.
+func _black_job_objective_met() -> bool:
+	if _objective_tracker == null or not _objective_tracker.has_objective():
+		return false
+	return _objective_tracker.is_complete()
+
+
+func _current_round_number() -> int:
+	if round_tracker and round_tracker.has_method("get_current_round"):
+		return int(round_tracker.get_current_round())
+	return 0
+
+
+## Resolve the p.149 table at the end of Round 6, then escalate the Count Down
+## clock every round after. Called from the End Phase, once per round.
+func _resolve_red_job_time_constraint() -> void:
+	if not _is_red_job_battle():
+		return
+	var round_num: int = _current_round_number()
+
+	if not bool(_red_job_tc.get("rolled", false)):
+		if round_num < BattleFlowGuideClass.RED_JOB_CONSTRAINT_ROUND:
+			return
+		var tc: Dictionary = RedZoneSystemRef.roll_time_constraint()
+		if tc.is_empty():
+			return
+		_red_job_tc = {
+			"rolled": true,
+			"roll": int(tc.get("roll", 0)),
+			"name": str(tc.get("name", "")),
+			"description": str(tc.get("description", "")),
+			"effect": str(tc.get("effect", "none")),
+			# "On a 1, the Battle ends immediately. At the end of the next round
+			# the Battle ends on a 1-2, then 1-3, and so forth." The first check
+			# happens on the round AFTER the one that rolled it.
+			"countdown_at": 1,
+		}
+		_log_message("Red Job Time Constraint (p.149): %s — %s"
+			% [_red_job_tc["name"], _red_job_tc["description"]],
+			UIColors.COLOR_DANGER)
+		# "Evac now! The battle ends immediately. You do not Hold the Field."
+		if _red_job_tc["effect"] == "evac_now":
+			_red_job_hold_denied = true
+		return
+
+	# Already rolled — only Count Down has anything left to do.
+	if str(_red_job_tc.get("effect", "")) != "countdown":
+		return
+	var threshold: int = maxi(1, int(_red_job_tc.get("countdown_at", 1)))
+	var clock: int = randi_range(1, 6)
+	if clock <= threshold:
+		_red_job_hold_denied = true
+		_log_message(
+			"Count Down (p.149): rolled %d against 1-%d — the battle ends"
+			% [clock, threshold]
+			+ " immediately. You do NOT Hold the Field.", UIColors.COLOR_DANGER)
+	else:
+		_red_job_tc["countdown_at"] = threshold + 1
+		_log_message("Count Down (p.149): rolled %d against 1-%d — the clock"
+			% [clock, threshold]
+			+ " tightens to 1-%d next round." % (threshold + 1),
+			UIColors.COLOR_AMBER)
+
+
+## p.149 rows 4 and 5 both say "you do not Hold the Field". Hold the Field is read
+## by FOUR different result producers in this file, so the denial is resolved here
+## once rather than at each of them — a guard applied to N-1 of N sites is the
+## single most common defect shape in this codebase.
+func _apply_red_job_hold_denial(held: bool) -> bool:
+	return false if _red_job_hold_denied else held
+
+
 ## Battle Card (journey Moment 0). Only real rolled data — every line that
 ## has no data is simply omitted. Returns null when nothing is known.
 func _build_battle_card() -> Control:
@@ -2862,6 +2968,10 @@ func _build_results_prefill() -> Dictionary:
 			and crew_standing > 0
 	if not prefill.has("held_field"):
 		prefill["held_field"] = bool(prefill["victory"])
+	# p.149 Count Down / Evac Now: "you do not Hold the Field." Applied even to a
+	# player-declared result, because the book takes the field away regardless of
+	# how the battle was resolved.
+	prefill["held_field"] = _apply_red_job_hold_denial(bool(prefill["held_field"]))
 	return prefill
 
 func _defeated_enemy_records() -> Array:
@@ -3985,6 +4095,18 @@ func _show_end_phase_ui() -> void:
 	# (a Button, which sizes fine in the HFlow) goes in the action row.
 	var round_prompts: Array = BattleFlowGuideClass.build_round_end_prompts(
 		_active_condition_id())
+	# Core Rules p.149 Red Job Time Constraint — round-aware, so it cannot be
+	# stamped at mission acceptance the way the Threat Condition is. Resolved
+	# BEFORE the prompts are built so the banner reports the outcome rather than
+	# asking for a roll the app has already made.
+	_resolve_red_job_time_constraint()
+	round_prompts.append_array(BattleFlowGuideClass.build_red_job_round_prompts(
+		_current_round_number(), _is_red_job_battle(), _red_job_tc))
+	# Core Rules p.151 Black Job — a fresh 4-figure team every single round plus the
+	# Passive-team activation roll. Round-aware for the same reason as the Red Job
+	# constraint above, and the single most consequential thing about the mission.
+	round_prompts.append_array(BattleFlowGuideClass.build_black_job_round_prompts(
+		_current_round_number(), _is_black_job_battle(), _black_job_objective_met()))
 	var banner_lines: Array[String] = [
 		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check."]
 	for prompt in round_prompts:
@@ -5846,8 +5968,9 @@ func _resolve_battle() -> void:
 		if unit.original_character:
 			crew_participants.append(unit.original_character)
 
-	# Held field = victory + at least 1 crew alive at end
-	var held_field: bool = victory and crew_alive > 0
+	# Held field = victory + at least 1 crew alive at end, unless the p.149 Red Job
+	# clock took the field away (Count Down expiry / Evac Now).
+	var held_field: bool = _apply_red_job_hold_denial(victory and crew_alive > 0)
 
 	# Extract mission type flags from stored mission data
 	var md: Dictionary = _stored_mission_data \
@@ -6071,7 +6194,8 @@ func _on_auto_resolve_battle() -> void:
 	if crew_casualties_count > 0:
 		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
 
-	var held_field: bool = resolver_result.get("held_field", result.victory)
+	var held_field: bool = _apply_red_job_hold_denial(
+		resolver_result.get("held_field", result.victory))
 	if held_field:
 		_log_message("Crew holds the field — battlefield salvage available", UIColors.COLOR_EMERALD)
 
@@ -7560,6 +7684,22 @@ func _setup_salvage_panel(mission_dict: Dictionary) -> void:
 
 	# Initialize with mission data
 	salvage_mission_panel.setup_mission(mission_dict)
+
+	# Compendium p.147: "In Post-battle Step 4. Get paid, tally up how many units
+	# of Salvage you have obtained." The tally has to SURVIVE this screen, and it
+	# did not — the panel counted units all battle and `get_salvage_units()` had
+	# zero callers, so every unit picked up off the table was dropped on the floor
+	# when the battle ended.
+	#
+	# Stamped onto _stored_mission_data rather than into each result dict, because
+	# mission_data is the one thing BattleResultNormalizer carries across ALL FOUR
+	# exits (played, LOG_ONLY declared, in-battle auto-resolve, map auto-resolve).
+	# Wiring it into the played path alone is the guard-on-N-1-of-N shape.
+	salvage_mission_panel.salvage_collected.connect(
+		func(total: int) -> void:
+			if _stored_mission_data is Dictionary:
+				_stored_mission_data["salvage_units"] = total
+	)
 
 	# Connect signals to journal
 	if unified_log:

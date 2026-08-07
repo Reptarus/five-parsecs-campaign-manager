@@ -240,13 +240,26 @@ static func get_main_loot_category(roll: int) -> LootCategory:
 			return _CATEGORY_MAP.get(entry.get("category", ""), LootCategory.NOTHING)
 	return LootCategory.NOTHING
 
+## The book's THIRD roll, delegated (Core Rules p.131: category, then subtable,
+## then "finally the exact item in question"). These three helpers each used to
+## pick UNIFORMLY from the subtable's flat name list — the same defect the live
+## LootTableResolver had, in a third copy. `LootTableResolver.roll_item_in()` is
+## now the one implementation of the procedure.
+##
+## Their only caller today is the test-only FPCM_PostBattleProcessor, so this
+## fixes nothing a player can see. It is here because a dormant duplicate that
+## is WRONG is a live hazard: revive that processor, or copy these helpers into
+## something new, and the frequencies silently break again. `roll` still selects
+## the SUBTABLE, exactly as before — only the item pick changed.
+const _LootRoller := preload("res://src/core/equipment/LootTableResolver.gd")
+
 ## Get weapon from weapon subtable
 static func get_weapon_from_subtable(roll: int) -> String:
 	for entry in get_weapon_subtable_data():
 		var r: Array = entry.get("roll_range", [0, 0])
 		if roll >= r[0] and roll <= r[1]:
-			var items: Array = entry.get("items", [])
-			return items[randi() % items.size()] if items.size() > 0 else "Unknown Weapon"
+			var rolled: String = _LootRoller.roll_item_in(entry)
+			return rolled if not rolled.is_empty() else "Unknown Weapon"
 	return "Unknown Weapon"
 
 ## Get gear from gear subtable
@@ -254,8 +267,8 @@ static func get_gear_from_subtable(roll: int) -> String:
 	for entry in get_gear_subtable_data():
 		var r: Array = entry.get("roll_range", [0, 0])
 		if roll >= r[0] and roll <= r[1]:
-			var items: Array = entry.get("items", [])
-			return items[randi() % items.size()] if items.size() > 0 else "Unknown Gear"
+			var rolled: String = _LootRoller.roll_item_in(entry)
+			return rolled if not rolled.is_empty() else "Unknown Gear"
 	return "Unknown Gear"
 
 ## Get odds and ends item from subtable
@@ -263,8 +276,8 @@ static func get_odds_and_ends_from_subtable(roll: int) -> Dictionary:
 	for entry in get_odds_and_ends_data():
 		var r: Array = entry.get("roll_range", [0, 0])
 		if roll >= r[0] and roll <= r[1]:
-			var items: Array = entry.get("items", [])
-			var item_name: String = items[randi() % items.size()] if items.size() > 0 else "Unknown Item"
+			var rolled: String = _LootRoller.roll_item_in(entry)
+			var item_name: String = rolled if not rolled.is_empty() else "Unknown Item"
 			var uses: int = entry.get("uses", 0)
 			return {"item": item_name, "uses": uses, "category": entry.get("category", "unknown")}
 	return {"item": "Unknown Item", "uses": 0, "category": "unknown"}

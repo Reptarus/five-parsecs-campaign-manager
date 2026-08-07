@@ -163,6 +163,30 @@
       "special_rules": [
         "Passive effect: +1 to the roll when checking if Rivals track you down, per crew sent as Decoy"
       ]
+    },
+    {
+      "id": "call_in_a_favor",
+      "enum_key": "CALL_IN_A_FAVOR",
+      "name": "Call In a Favor",
+      "description": "Your captain leans on a Faction you have earned Loyalty with",
+      "page_reference": "Compendium p.112",
+      "roll_mechanic": "1D6 vs the Faction's Loyalty score (equal or below succeeds)",
+      "dice_target": 0,
+      "max_crew": 1,
+      "credit_bonus_max": 0,
+      "success_reward": "Reduce Loyalty by the die roll and choose one of six Faction favors",
+      "failure_penalty": "None - \"nobody has time for you\"; Loyalty is unchanged",
+      "resolution_type": "faction_favor",
+      "captain_only": true,
+      "once_per_campaign_turn": true,
+      "dlc_flag": "EXPANDED_FACTIONS",
+      "special_rules": [
+        "Requires a crew task and can only be done by your captain",
+        "Once per campaign turn",
+        "Roll a D6: equal to or below the current Loyalty score succeeds",
+        "On success, reduce Loyalty BY THE DIE ROLL and pick a favor after rolling",
+        "On a higher roll the Loyalty score remains unchanged"
+      ]
     }
   ]
 }

@@ -1,18 +1,5 @@
 {
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem@2026.1.14",
-        "C:\\Users\\admin\\SynologyDrive\\Godot\\five-parsecs-campaign-manager",
-        "C:\\Users\\admin\\SynologyDrive\\Godot"
-      ],
-      "env": {
-        "NODE_ENV": "production",
-        "MCP_TIMEOUT": "30000"
-      }
-    },
     "desktop-commander": {
       "command": "npx",
       "args": [

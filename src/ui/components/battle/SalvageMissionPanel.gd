@@ -20,6 +20,11 @@ const COLOR_BORDER := UIColors.COLOR_BORDER
 signal round_advanced(round_num: int)
 signal contact_revealed
 signal mission_completed
+## Compendium p.147 Step 4 needs the running total to survive the battle screen.
+## `get_salvage_units()` existed and had ZERO callers, so every unit the player
+## picked up died with the panel — emitting on change gives TacticalBattleUI a
+## chokepoint to stamp onto mission_data, which is what the normalizer carries.
+signal salvage_collected(total_units: int)
 
 var _mission_data: Dictionary = {}
 var _current_round: int = 0
@@ -228,6 +233,7 @@ func _on_advance_pressed() -> void:
 
 func _on_collect_salvage() -> void:
 	_salvage_units += 1
+	salvage_collected.emit(_salvage_units)
 	_update_salvage_display()
 	var text := _instruction_display.text
 	text += "\n\n[color=#4FC3F7][b]+1 SALVAGE[/b] collected. Total: %d units.[/color]" % _salvage_units

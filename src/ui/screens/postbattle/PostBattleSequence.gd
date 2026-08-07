@@ -6,6 +6,8 @@ const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.
 const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
 const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
+## The p.131 Loot Table's third roll ("finally the exact item in question").
+const LootTableResolverClass = preload("res://src/core/equipment/LootTableResolver.gd")
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
@@ -471,6 +473,10 @@ func _connect_backend_signals() -> void:
 		if not post_battle_phase.illegal_salvage_checked.is_connected(_on_backend_illegal_salvage):
 			post_battle_phase.illegal_salvage_checked.connect(_on_backend_illegal_salvage)
 
+	if post_battle_phase.has_signal("salvage_banked_to_campaign"):
+		if not post_battle_phase.salvage_banked_to_campaign.is_connected(_on_backend_salvage_banked):
+			post_battle_phase.salvage_banked_to_campaign.connect(_on_backend_salvage_banked)
+
 	if post_battle_phase.has_signal("traveler_event_occurred"):
 		if not post_battle_phase.traveler_event_occurred.is_connected(_on_backend_traveler_event):
 			post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
@@ -741,6 +747,19 @@ func _current_story_points() -> int:
 			and "story_points" in gs.current_campaign:
 		return int(gs.current_campaign.story_points)
 	return 0
+
+func _on_backend_salvage_banked(units: int, campaign_total: int) -> void:
+	## Compendium p.147: "In Post-battle Step 4. Get paid, tally up how many units
+	## of Salvage you have obtained." Before this, the units a player physically
+	## picked up off the table vanished with the battle screen.
+	_add_result_to_log(
+		"Salvage tallied: +%d unit(s), %d held (Compendium p.147 — spend at the "
+		% [units, campaign_total]
+		+ "Scrapper, or against ship repairs, ship modules and bot upgrades)")
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_success"):
+		nm.show_success("+%d Salvage (%d held)" % [units, campaign_total])
+
 
 func _on_backend_illegal_salvage(check: Dictionary) -> void:
 	## Compendium p.137 illegal salvage — the authorities check.
@@ -2011,11 +2030,20 @@ func _add_purchase_content() -> void:
 		var credits = _get_current_credits()
 		var stash = _get_ship_stash()
 
-		# Initialize component with campaign data
+		# ADD FIRST, SEED SECOND. `@onready` vars resolve when the node enters the
+		# tree, so on a freshly instantiate()'d component every one of them —
+		# including %SellItemsList — is still null. initialize_purchase_phase()
+		# used to run here, before add_child(), so its _populate_sell_items() hit
+		# the `if not sell_items_list: return` guard and bailed. Nothing else
+		# populates that list (_setup_initial_state does basic items only), so the
+		# Sell pane was EMPTY in every post-battle Purchase Items step and the
+		# p.125 "you may sell up to 3 items" rule had no reachable surface.
+		#
+		# Same shape as the battle audit's _populate_deployment_conditions defect:
+		# a correct seed call, made before the thing it seeds exists.
+		step_content.add_child(purchase_component)
 		if purchase_component.has_method("initialize_purchase_phase"):
 			purchase_component.initialize_purchase_phase(credits, stash)
-
-		step_content.add_child(purchase_component)
 	else:
 		# Fallback to simple label if component fails to load
 		var label: Label = Label.new()
@@ -3023,17 +3051,25 @@ func _resolve_main_loot(roll: int) -> Dictionary:
 	return {"source": "main_loot", "roll": roll, "category": "NOTHING",
 		"description": "Nothing of value"}
 
-## Roll on a subtable that has roll_range + items arrays.
-## Picks a random item from the matched range's items list.
+## Roll D100 to pick the subtable, then delegate the book's THIRD roll to the
+## canonical resolver — Core Rules p.131: "Roll to determine the category, then
+## the subtable, and finally the exact item in question."
+##
+## That third roll did not exist anywhere. This function, and four others like
+## it, picked UNIFORMLY from the subtable's name list, so every frequency on
+## pp.131-134 was flattened: a Blade is a 20% melee result and paid out at
+## 12.5%, a Suppression Maul is 5% and also paid 12.5%, grenades are 60/40 and
+## came out 50/50. `loot_tables.json` now carries the per-item ranges and
+## `LootTableResolver.roll_item_in()` is the one place they are rolled.
 func _roll_on_subtable(subtable_data: Array) -> String:
 	var sub_roll: int = randi_range(1, 100)
 	for entry in subtable_data:
 		var r: Array = entry.get("roll_range", [0, 0])
 		if sub_roll >= r[0] and sub_roll <= r[1]:
-			var items: Array = entry.get("items", [])
-			if items.is_empty():
-				return entry.get("item", "Unknown item")
-			return items[randi() % items.size()]
+			var rolled: String = LootTableResolverClass.roll_item_in(entry)
+			if not rolled.is_empty():
+				return rolled
+			return entry.get("item", "Unknown item")
 	return "Unknown item"
 
 ## Resolve the Rewards subtable (Core Rules p.133) — credits, rumors, story points

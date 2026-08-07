@@ -24,7 +24,6 @@ class PlanetData:
 	var visit_count: int = 0
 	var missions_completed: int = 0
 	var resources_extracted: int = 0
-	var exploration_progress: float = 0.0
 	
 	# Dynamic state
 	var active_modifiers: Array[Dictionary] = []
@@ -58,7 +57,6 @@ class PlanetData:
 			"visit_count": visit_count,
 			"missions_completed": missions_completed,
 			"resources_extracted": resources_extracted,
-			"exploration_progress": exploration_progress,
 			"active_modifiers": active_modifiers,
 			"temporary_effects": temporary_effects,
 			"world_events": world_events,
@@ -86,7 +84,6 @@ class PlanetData:
 		visit_count = data.get("visit_count", 0)
 		missions_completed = data.get("missions_completed", 0)
 		resources_extracted = data.get("resources_extracted", 0)
-		exploration_progress = data.get("exploration_progress", 0.0)
 		active_modifiers.assign(data.get("active_modifiers", []))
 		temporary_effects.assign(data.get("temporary_effects", []))
 		world_events.assign(data.get("world_events", []))
@@ -101,7 +98,6 @@ signal planet_discovered(planet_data: PlanetData)
 signal planet_visited(planet_id: String, visit_count: int)
 signal planet_data_updated(planet_id: String, update_type: String)
 signal world_event_occurred(planet_id: String, event: Dictionary)
-signal exploration_progress_updated(planet_id: String, progress: float)
 
 ## Data storage
 var visited_planets: Dictionary = {} # planet_id -> PlanetData
@@ -459,19 +455,21 @@ func complete_mission(planet_id: String, mission_data: Dictionary) -> void:
 	
 	var planet = visited_planets[planet_id]
 	planet.missions_completed += 1
-	
-	# Update exploration progress
-	var exploration_gain = mission_data.get("exploration_value", 0.1)
-	planet.exploration_progress = min(1.0, planet.exploration_progress + exploration_gain)
-	
+
+	# NO EXPLORATION ACCRUAL. "Exploration progress" is not a mechanic in the Core
+	# Rules or the Compendium — the term appears in neither book, no rule consumed
+	# the value, and `exploration_progress_updated` had zero listeners. It read
+	# `mission_data["exploration_value"]`, a key no producer anywhere ever wrote,
+	# so it defaulted to a flat 0.1 per mission and displayed a world as "100%
+	# explored" after ten missions: a completion bar for a completion mechanic
+	# that does not exist. Removed Aug 2026 under the fabricated-data rule along
+	# with both of its display sites. Do not re-add.
+
 	# Award resources if applicable
 	var resources_gained = mission_data.get("resources_gained", 0)
 	planet.resources_extracted += resources_gained
-	
+
 	self.planet_data_updated.emit(planet_id, "mission_completed")
-	
-	if exploration_gain > 0:
-		self.exploration_progress_updated.emit(planet_id, planet.exploration_progress)
 
 ## Add world event to planet
 func add_world_event(planet_id: String, event: Dictionary) -> void:
@@ -669,7 +667,6 @@ func get_planet_stats(planet_id: String) -> Dictionary:
 		"visit_count": planet.visit_count,
 		"missions_completed": planet.missions_completed,
 		"resources_extracted": planet.resources_extracted,
-		"exploration_progress": planet.exploration_progress,
 		"contact_count": planet.contact_ids.size(),
 		"active_effects": planet.temporary_effects.size(),
 		"trade_opportunities": planet.trade_opportunities.size()
