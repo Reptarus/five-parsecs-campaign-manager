@@ -1040,6 +1040,27 @@ func _process_world_arrival() -> void:
 					if not stored_factions.is_empty() and faction_sys.has_method("update_data"):
 						faction_sys.update_data(stored_factions)
 
+			# Compendium p.110: "When creating a new world, generate 1D3+1
+			# Factions as well." Step 4 above already stored the departing
+			# world's factions and cleared the state, and the return-visit branch
+			# has just restored this world's if it had any — so this runs AFTER
+			# both and self-skips when active_factions is already populated. That
+			# ordering is what makes one call correct for a first visit and a
+			# return visit alike; a first visit is simply the case where nothing
+			# was restored. Gated on EXPANDED_FACTIONS inside the generator.
+			if faction_sys and faction_sys.has_method("generate_world_factions"):
+				var new_factions: Array = faction_sys.generate_world_factions()
+				if not new_factions.is_empty() and journal \
+						and journal.has_method("auto_create_milestone_entry"):
+					var names: Array = []
+					for f in new_factions:
+						names.append(str(f.get("name", "Faction")))
+					journal.auto_create_milestone_entry("factions_generated", {
+						"turn": turn_number,
+						"planet_name": world_name,
+						"factions": names,
+					})
+
 	# Build world data dictionary
 	_last_world_data = {
 		"name": world_name,

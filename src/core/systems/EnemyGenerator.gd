@@ -673,6 +673,22 @@ func generate_enemies_as_dicts(
 	# outright — this replaces base_count rather than adding to it.
 	if is_red_zone:
 		enemy_count = maxi(1, RED_ZONE_BASE_FIGURES + numbers_mod)
+		# Core Rules p.149 Threat Condition 4, Heavy Opposition: "Increase the
+		# opposing force by +2 enemy."
+		#
+		# DOCUMENTED READING, because p.150 Increased Opposition says "No other
+		# modifiers are applied up or down" two paragraphs later. That sentence
+		# governs the number-DETERMINATION step it sits in — it is what discards
+		# the crew-size dice and the difficulty adjustment in favour of the flat
+		# base of 7. The Threat Condition is not a modifier to that roll; it is a
+		# separate factor the book introduces under "the following additional
+		# rules apply when undertaking any Red Job".
+		#
+		# What settles it: Threat Conditions occur ONLY on Red Jobs. If p.150
+		# suppressed them, roll 4 would be permanently dead text on the only
+		# mission type that can produce it. A rule the book prints cannot mean
+		# nothing everywhere.
+		enemy_count += int(mission_data.get("red_zone_enemy_delta", 0))
 	else:
 		# Progressive Difficulty, Option 1 "Strength" (Compendium p.30): +1 basic
 		# enemy from turn 5, +2 from turn 10, +2 and a Lieutenant from 15, +2 with
@@ -845,6 +861,22 @@ func generate_enemies_as_dicts(
 			figure_combat = maxi(figure_combat, 1)
 			figure_tough = maxi(figure_tough, 4)
 
+		# Core Rules p.149 Red Job Threat Conditions, rolled once per mission by
+		# WorldPhaseController._stamp_red_zone_threat():
+		#   2 Elite Opposition   "All opponents with +0 Combat Skill are
+		#                         upgraded to +1."
+		#   5 Armored Opponents  "All opponents with 3 Toughness are upgraded
+		#                         to 4."
+		# Both are FLOORS, never reductions, and the book says an inapplicable
+		# result "is simply ignored" — which maxi() gives for free: a profile
+		# already above the floor is untouched.
+		var cs_floor: int = int(mission_data.get("enemy_combat_skill_floor", -99))
+		if cs_floor > -99:
+			figure_combat = maxi(figure_combat, cs_floor)
+		var tough_floor: int = int(mission_data.get("enemy_toughness_floor", 0))
+		if tough_floor > 0:
+			figure_tough = maxi(figure_tough, tough_floor)
+
 		# Armored Leaders: "Lieutenants receive a 5+ Armor Saving Throw. Normal
 		# rules apply if they would already receive a Saving Throw." So it is
 		# granted only when the profile has none — a Lieutenant that already has
@@ -942,6 +974,27 @@ func generate_enemies_as_dicts(
 		vip["name"] = "%s (VIP)" % str(vip.get("name", enemy_name))
 		vip["is_vip"] = true
 
+	# Core Rules p.149 Threat Condition 6, Enemy Captain: "Add an ADDITIONAL
+	# Lieutenant with Combat Skill +2 and Toughness 5, regardless of the normal
+	# profile used." Appended like the Unique Individual below rather than
+	# promoting one of the rolled figures — "additional" is the book's word — and
+	# "regardless of the normal profile" means both scores are SET, not floored,
+	# so a tougher enemy type does not keep its higher Toughness.
+	var captain_spec: Dictionary = mission_data.get("extra_lieutenant", {})
+	if not captain_spec.is_empty():
+		enemies.append({
+			"type": enemy_name,
+			"name": "%s Captain" % enemy_name,
+			"role": "lieutenant",
+			"combat_skill": int(captain_spec.get("combat_skill", 2)),
+			"toughness": int(captain_spec.get("toughness", 5)),
+			"reactions": 2,
+			"speed": base_speed,
+			"weapons": [],
+			"special_rules": (template.get("special_rules", []) as Array).duplicate(),
+			"is_red_zone_captain": true,
+		})
+
 	# Unique Individuals are added AFTER the roster above, because the book is
 	# explicit that the figure "is always in addition to those normally
 	# encountered" (Core Rules p.94) — it must not consume a Specialist or
@@ -949,6 +1002,10 @@ func generate_enemies_as_dicts(
 	for unique in roll_unique_individuals(
 			mission_data, category, difficulty_mode, template):
 		enemies.append(unique)
+
+	# p.94 Guardian AI attachment, resolved here because it is the only point
+	# where both the finished roster and the Unique exist.
+	_attach_guardian_uniques(enemies)
 
 	# Compendium p.33 Better Leadership, second bullet: an enemy type that
 	# cannot be accompanied by a Unique Individual still makes the roll, and on a
@@ -964,6 +1021,62 @@ func generate_enemies_as_dicts(
 		promoted["better_leadership_promoted"] = true
 
 	return enemies
+
+
+func _attach_guardian_uniques(enemies: Array) -> void:
+	## Core Rules p.94, verbatim: "If the figure has Guardian AI, it must be
+	## attached to a figure in the enemy force. This will always be a Lieutenant,
+	## if one is present; otherwise just pick a random non-Specialist figure."
+	##
+	## Five of the 22 Unique Individual rows carry Guardian AI — Enemy Bruiser
+	## 1-6, Mutant Bruiser 57-61, Gene Dog 86-91, Sand Runner 92-96, Mk II
+	## Security Bot 97-100, so 26 of 100 results — and NOTHING chose the target.
+	##
+	## In a companion app that is not cosmetic: p.43 makes the figure's entire AI
+	## routine depend on the attachment. "Guardian enemies are attached to another
+	## figure, and must always remain within 3\" of that figure, if possible. They
+	## will move at the same pace and attack the same targets using the same
+	## methods." With no target named, the player cannot run the figure at all.
+	var lieutenant_index: int = -1
+	var non_specialists: Array[int] = []
+	var any_regular: Array[int] = []
+	for i in enemies.size():
+		var role: String = str(enemies[i].get("role", ""))
+		if role == "unique":
+			continue
+		any_regular.append(i)
+		if role == "lieutenant" and lieutenant_index < 0:
+			lieutenant_index = i
+		elif role != "specialist":
+			non_specialists.append(i)
+
+	for unique in enemies:
+		if str(unique.get("role", "")) != "unique":
+			continue
+		if str(unique.get("ai", "")).to_upper() != "G":
+			continue
+
+		var target_index: int = -1
+		if lieutenant_index >= 0:
+			# "This will ALWAYS be a Lieutenant, if one is present" — not a
+			# weighted preference, so no random pick when one exists.
+			target_index = lieutenant_index
+		elif not non_specialists.is_empty():
+			target_index = non_specialists[randi() % non_specialists.size()]
+		elif not any_regular.is_empty():
+			# Every remaining figure is a Specialist. The book states the
+			# attachment as mandatory ("it MUST be attached to a figure in the
+			# enemy force") and only expresses the non-Specialist preference for
+			# the random case, so honour the mandate rather than leaving the
+			# figure unplayable.
+			target_index = any_regular[randi() % any_regular.size()]
+		if target_index < 0:
+			continue  # a lone Unique with no force to attach to
+
+		var target: Dictionary = enemies[target_index]
+		unique["guardian_attached_to_index"] = target_index
+		unique["guardian_attached_to"] = str(target.get("name", target.get("type", "enemy")))
+		target["guardian_escorted_by"] = str(unique.get("name", "Unique Individual"))
 
 
 func roll_unique_individuals(

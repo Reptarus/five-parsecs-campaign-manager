@@ -237,6 +237,30 @@ func _generate_compendium_missions() -> Array[Dictionary]:
 		salvage["mission_source"] = "opportunity"
 		missions.append(salvage)
 
+	# Compendium p.111 Faction Jobs: "Before taking your crew tasks, each turn
+	# your captain may check for a Faction job... Select a Faction you would like
+	# to work for and roll 1D6. If the roll is equal to or below the Influence
+	# score of the Faction, they have a job available."
+	#
+	# THE FOURTH RULE THE SAME DEAD FILE HELD HOSTAGE. The only caller of
+	# get_faction_mission_opportunities() was WorldPhase.gd:939 — the zero-
+	# instantiation file this docblock already names for the other three. The
+	# check, the D6, the mission generator and the Loyalty payoff in
+	# RivalPatronResolver were all correct and all unreachable.
+	#
+	# The DLC gate and the "does the crew have any factions" question are both
+	# answered inside FactionSystem, so neither is repeated here.
+	var faction_sys: Node = get_node_or_null("/root/FactionSystem")
+	if faction_sys and faction_sys.has_method("get_faction_mission_opportunities"):
+		for faction_job in faction_sys.get_faction_mission_opportunities():
+			var job: Dictionary = faction_job
+			job["type"] = str(job.get("type", "faction_job"))
+			job["name"] = str(job.get("name", "Faction Job"))
+			# mission_source stays "faction" (stamped by the generator) so the
+			# p.120 Step 4 payment path and the post-battle Loyalty roll can both
+			# tell this apart from an Opportunity job.
+			missions.append(job)
+
 	return missions
 
 

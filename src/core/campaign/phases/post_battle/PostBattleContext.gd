@@ -351,12 +351,31 @@ func is_crew_member_bot(crew_id: String) -> bool:
 			return char_class == "Bot" or char_class == "BOT"
 	return false
 
+func _as_member(character: Variant) -> Variant:
+	## Callers pass EITHER a crew member or a crew_id, and both spellings are in
+	## the tree today. A bare String falls through every branch of the two
+	## methods below — `"origin" in "crew_1"` is a SUBSTRING test, not a property
+	## test, and a String is not a Dictionary — so an id silently answered
+	## "Human" and "not a Bot" for every character in the game.
+	##
+	## That is not cosmetic. It made the p.126 eligibility filter ("Select a
+	## random non-Bot, non-Soulless character") a no-op, so Bots and Soulless
+	## were eligible for Character Events the book excludes them from, and it
+	## made the Precursor double-roll unreachable. Resolve ids at the door so
+	## every consumer gets the same answer.
+	if character is String:
+		var resolved = get_crew_member(character)
+		if resolved != null:
+			return resolved
+	return character
+
 func get_character_origin(character: Variant) -> String:
 	## Get the origin/species of a character (Core Rules species: Human, K'Erin, Swift, Engineer, Soulless, Precursor, Feral, Bot)
-	if "origin" in character:
+	character = _as_member(character)
+	if character is Dictionary:
+		return str(character.get("origin", character.get("species", "Human")))
+	if character != null and "origin" in character:
 		return str(character.origin)
-	elif character is Dictionary:
-		return character.get("origin", character.get("species", "Human"))
 	return "Human"
 
 func has_crew_with_origin(origin_name: String) -> bool:
@@ -369,17 +388,20 @@ func has_crew_with_origin(origin_name: String) -> bool:
 
 func is_character_bot_or_soulless(character: Variant) -> bool:
 	## Check if character is Bot, Soulless, or Assault Bot
-	## (excluded from character events per Core Rules pp.15, 21, 128)
+	## (excluded from character events per Core Rules pp.15, 21, 126)
+	character = _as_member(character)
+	if character == null:
+		return false
 	var origin: String = get_character_origin(character).to_lower()
-	if origin in ["bot", "soulless", "assault bot"]:
+	if origin in ["bot", "soulless", "assault bot", "assault_bot"]:
 		return true
 	# Also check species_id for Strange Characters
 	var sid: String = ""
 	if character is Dictionary:
-		sid = character.get("species_id", "").to_lower()
+		sid = str(character.get("species_id", "")).to_lower()
 	elif "species_id" in character:
 		sid = str(character.species_id).to_lower()
-	return sid == "assault_bot"
+	return sid in ["bot", "soulless", "assault_bot", "assault bot"]
 
 func has_crew_with_class(character_class: String) -> bool:
 	var crew := get_crew_members()

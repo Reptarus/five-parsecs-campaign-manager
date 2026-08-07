@@ -328,7 +328,17 @@ func create_faction(faction_type: String, custom_name: String = "") -> Dictionar
 	if custom_name != "":
 		faction.name = custom_name
 
-	var faction_id = faction.name.replace(" ", "_").to_lower()
+	# The id is derived from the name, and names come from a 5x5 prefix/suffix
+	# pool per type — so two of a world's 1D3+1 factions CAN collide. Assigning
+	# on a colliding key silently overwrites, which would quietly hand the player
+	# 3 factions where the book rolled 4. Suffix instead of clobbering.
+	var base_id: String = faction.name.replace(" ", "_").to_lower()
+	var faction_id: String = base_id
+	var dedupe: int = 2
+	while active_factions.has(faction_id):
+		faction_id = "%s_%d" % [base_id, dedupe]
+		dedupe += 1
+	faction["id"] = faction_id
 	active_factions[faction_id] = faction
 	faction_standings[faction_id] = 0.0
 	faction_relations[faction_id] = {}
@@ -557,13 +567,78 @@ func _initialize_default_faction_data() -> void:
 		"alien": {"base_influence": 3, "mission_types": ["exploration", "research"]}
 	}
 
+func generate_world_factions(force: bool = false,
+		is_home_world: bool = false) -> Array[Dictionary]:
+	## Compendium p.110 "Generating Factions", verbatim: "When creating a new
+	## world, generate 1D3+1 Factions as well. These represent the dominant power
+	## groups that are at odds with each other on the world."
+	##
+	## THE GAP THIS FILLS: nothing in the game ever created a Faction, so a
+	## campaign ran its entire life with `active_factions` empty — and the whole
+	## chapter downstream of it (jobs p.111, Loyalty and Favors p.112, Activities
+	## p.113, Events pp.114-115, Destruction p.115) is correctly written, wired
+	## and gated, and could never fire. The per-world LIFECYCLE was even built:
+	## TravelPhase stores the departing world's factions, clears state on arrival
+	## and restores them on a return visit. It simply had nothing to store.
+	##
+	## `initialize()` was not the missing call either — it has no caller and no
+	## `_ready()`, and TravelPhase sets `_initialized = true` directly to skip it.
+	## That was right to do: the default it ran generated 8-16 factions, one to
+	## two per hardcoded category, none of which is a rule. The book's number is
+	## 1D3+1, i.e. 2-4, and the types come from its own D100 table.
+	##
+	## `force` bypasses the "already populated" guard for a deliberate re-roll.
+	var out: Array[Dictionary] = []
+	var dlc = Engine.get_main_loop().root.get_node_or_null(
+		"/root/DLCManager"
+	) if Engine.get_main_loop() else null
+	if dlc and not dlc.is_feature_enabled(dlc.ContentFlag.EXPANDED_FACTIONS):
+		return out
+	if not force and not active_factions.is_empty():
+		# A return visit restored this world's factions — do not re-roll them.
+		return out
+
+	if faction_data.is_empty():
+		_load_faction_data()
+
+	var count: int = randi_range(1, 3) + 1
+	for _i in count:
+		# create_faction() re-rolls the type from the p.110 D100 table, so the
+		# argument only seeds the fallback when the table is unavailable.
+		out.append(create_faction("independent"))
+
+	# Compendium p.111 Faction Loyalty, verbatim: "If you began the campaign on
+	# this world, you may CHOOSE ONE Faction to start at Loyalty 1. The rest
+	# begin at Loyalty 0. If you are off-worlders, all Loyalties begin at 0."
+	#
+	# So this applies to the STARTING world only — every world reached by travel
+	# is one the crew are off-worlders on. As with the p.111 job selection, the
+	# book gives the choice to the player; the highest-Influence faction is used
+	# until a picker exists, because a point of Loyalty is worth most where the
+	# job odds are best. Nothing is invented: the count (one) and the value (1)
+	# are the book's.
+	if is_home_world and not out.is_empty():
+		var best: Dictionary = out[0]
+		for faction in out:
+			if int(faction.get("influence", 0)) > int(best.get("influence", 0)):
+				best = faction
+		best["loyalty"] = 1
+		best["home_world_loyalty"] = true
+	return out
+
+
 func _initialize_default_data() -> void:
-	## Initialize system with default empty state
+	## Deliberately does NOT generate factions.
+	##
+	## This used to create 1-2 per hardcoded category — 8-16 factions with
+	## categories ("government", "corporate", "military", "pirate", "alien") that
+	## appear nowhere in the Compendium. The book generates 1D3+1 PER WORLD from
+	## its own seven types; see generate_world_factions(), which is the only
+	## sanctioned entry point. Do not reinstate a default population here: it
+	## would silently double every world's faction count.
 	for category in faction_categories.keys():
-		if faction_categories[category].is_empty():
-			# Generate 1-2 default factions per category
-			for i: int in range(randi_range(1, 2)):
-				create_faction(category)
+		if not faction_categories.has(category):
+			faction_categories[category] = []
 
 func _generate_faction_data(faction_type: String) -> Dictionary:
 	## Generate faction using Compendium D100 table (pp.112-113).
@@ -574,12 +649,15 @@ func _generate_faction_data(faction_type: String) -> Dictionary:
 	)
 	var type_table: Array = gen_data.get("type_table", [])
 
-	# Roll D100 on type table if available
+	# Roll D100 on the p.110 type table. The roll goes through DiceManager when
+	# it is available (so the roll is logged like every other), but NOT having it
+	# must not cost the player the book's table — it used to fall through to the
+	# caller's raw string, which is not one of the seven Faction types.
 	var faction_type_name: String = faction_type
 	var infl_mod: int = 0
 	var power_mod: int = 0
-	if not type_table.is_empty() and dice:
-		var roll: int = dice.roll_d100("Faction Type")
+	if not type_table.is_empty():
+		var roll: int = dice.roll_d100("Faction Type") if dice else randi_range(1, 100)
 		for entry in type_table:
 			var r: Array = _parse_roll_range(
 				entry.get("roll", "01-100")
@@ -610,10 +688,22 @@ func _generate_faction_data(faction_type: String) -> Dictionary:
 	}
 
 func _parse_roll_range(range_str: String) -> Array:
-	## Parse "01-10" style roll range into [min, max] array.
+	## Parse "01-10" style roll range into [min, max].
+	##
+	## D100 tables write the top of the range as "00", meaning 100 — the
+	## Compendium p.110 Faction type table's last row is literally "91-00". Read
+	## naively that becomes [91, 0], so `roll >= 91 and roll <= 0` is never true
+	## and **Secretive organization (10% of the table) could never be rolled**.
+	## A bare "0" lower bound is the same convention on a d100 wheel.
 	var parts: PackedStringArray = range_str.split("-")
 	if parts.size() >= 2:
-		return [int(parts[0]), int(parts[1])]
+		var lo: int = int(parts[0])
+		var hi: int = int(parts[1])
+		if hi == 0:
+			hi = 100
+		if lo == 0:
+			lo = 100
+		return [lo, hi]
 	return [1, 100]
 
 func _generate_rival_name() -> String:
@@ -1326,16 +1416,45 @@ func check_faction_job_available(faction_id: String) -> bool:
 	var roll: int = dice.roll_d6("Faction Job Check")
 	return roll <= influence
 
-func get_faction_mission_opportunities() -> Array[Dictionary]:
-	## Get available faction missions using Compendium D6<=Influence check.
+func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Array[Dictionary]:
+	## Compendium p.111 Faction Jobs, verbatim: "Before taking your crew tasks,
+	## each turn your captain may check for a Faction job... SELECT A FACTION you
+	## would like to work for and ROLL 1D6. If the roll is equal to or below the
+	## Influence score of the Faction, they have a job available."
+	##
+	## ONE check per turn against ONE chosen faction — not a check per faction.
+	## Looping every faction (what this used to do) compounds the odds: with four
+	## factions at Influence 3, "a job this turn" goes from 50% to 94%.
+	##
+	## The book gives the SELECTION to the player. Until a picker exists, the
+	## highest-Influence faction is used, because that is the choice any player
+	## optimising their odds would make — the app is not inventing a rule, it is
+	## standing in for a decision with an obvious best answer. `preferred_faction_id`
+	## is the hook for that picker.
 	var opportunities: Array[Dictionary] = []
-	for faction_id in active_factions:
-		if check_faction_job_available(faction_id):
-			var mission: Dictionary = generate_faction_mission(
-				faction_id
-			)
-			if not mission.is_empty():
-				opportunities.append(mission)
+	var chosen: String = preferred_faction_id
+	if chosen.is_empty() or not active_factions.has(chosen):
+		var best_influence: int = -1
+		for faction_id in active_factions:
+			var infl: int = int(active_factions[faction_id].get("influence", 0))
+			if infl > best_influence:
+				best_influence = infl
+				chosen = faction_id
+	if chosen.is_empty():
+		return opportunities
+
+	if check_faction_job_available(chosen):
+		var mission: Dictionary = generate_faction_mission(chosen)
+		if not mission.is_empty():
+			# "Faction jobs are treated as a Patron job, but do not roll for
+			# Danger Pay or Benefits." Stamped explicitly so the p.83 roller and
+			# the p.120 Step 4 payment path both skip them — PaymentProcessor
+			# already zeroes Danger Pay on a non-patron source, and this keeps
+			# the source honest rather than disguising the job as an Opportunity.
+			mission["mission_source"] = "faction"
+			mission["skip_danger_pay"] = true
+			mission["skip_benefits"] = true
+			opportunities.append(mission)
 	return opportunities
 
 func check_affiliated_patron(patron: Dictionary) -> String:

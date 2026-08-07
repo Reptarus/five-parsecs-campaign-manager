@@ -3353,6 +3353,42 @@ func _roll_paying_by_the_hour_limit() -> void:
 		"They are Paying us by the Hour: 2D6 = %d/%d, highest + 4 — the job runs for %d rounds."
 		% [a, b, _paying_by_hour_limit], UIColors.COLOR_AMBER)
 
+func _battle_event_roll_instructions(effects: Dictionary) -> String:
+	## Spell out the rolls a battle event demands, per figure.
+	##
+	## Core Rules p.117 roll 55-60 is the one row whose target number DIFFERS PER
+	## FIGURE — "must roll 1D6+Savvy and achieve a 5+ (enemies roll 1D6 and must
+	## roll a 4+)" — so a generic "make a save" line is not an assist. Each crew
+	## member's Savvy is known here, so each one's actual number is printed. The
+	## app cannot know which figures are within 1" of the feature (that is on the
+	## physical table), so it lists the roster and lets the player apply it.
+	if not effects.has("crew_save"):
+		return ""
+	var crew_target: int = FPCM_BattleEventsSystem.save_target_from(
+		effects.get("crew_save", "savvy_5plus"), 5)
+	var enemy_target: int = FPCM_BattleEventsSystem.save_target_from(
+		effects.get("enemy_save", "4plus"), 4)
+	var damage: int = int(effects.get("damage", 1))
+
+	var out: String = "\n\nAffected figures — in, on, or within 1\" of the feature:"
+	for unit in crew_units:
+		if unit == null or not is_instance_valid(unit) or unit.is_dead:
+			continue
+		var savvy: int = int(unit.savvy) if "savvy" in unit else 0
+		# 1D6 + Savvy >= target, so the die itself must show target - Savvy,
+		# floored at 1 (a natural 1 can still succeed with enough Savvy) and
+		# capped at 7 to say "impossible" honestly rather than printing "8+".
+		var needed: int = clampi(crew_target - savvy, 1, 7)
+		var needs_text: String = "%d+ on 1D6" % needed if needed <= 6 \
+			else "cannot pass — automatic hit"
+		out += "\n  • %s (Savvy +%d): %s" % [str(unit.node_name), savvy, needs_text]
+	out += "\n  • Each enemy figure: %d+ on 1D6 (no Savvy)." % enemy_target
+	out += "\n\nFailure = a Damage +%d Hit that IGNORES Armor Saving Throws." % damage
+	if bool(effects.get("one_time_only", false)):
+		out += " The feature is safe afterwards."
+	return out
+
+
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
 	_log_message(
@@ -3373,7 +3409,8 @@ func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 			var battle_event = triggered.back()
 			event_dict = {
 				"title": battle_event.title,
-				"description": battle_event.description,
+				"description": battle_event.description
+					+ _battle_event_roll_instructions(battle_event.effects),
 				"type": battle_event.target_type,
 				"effects": battle_event.effects,
 				"duration": battle_event.duration,
@@ -4094,6 +4131,32 @@ func _build_battle_briefing_content() -> Control:
 	vbox.add_child(rtl)
 	return vbox
 
+func _guardian_attachment_lines() -> Array[String]:
+	## Names the figure each Guardian-AI Unique is attached to (Core Rules p.94),
+	## and restates the p.43 routine that depends on it. Returns [] when no
+	## Guardian is present, so the card is unchanged in the common case.
+	var out: Array[String] = []
+	for unit in enemy_units:
+		if unit == null or not is_instance_valid(unit):
+			continue
+		var target: String = ""
+		if "guardian_attached_to" in unit:
+			target = str(unit.guardian_attached_to)
+		if target.is_empty():
+			continue
+		if out.is_empty():
+			out.append("")
+			out.append("[b][color=#D97706]Guardian attachment (p.94):[/color][/b]")
+		# TacticalUnit is a plain RefCounted whose name field is `node_name`;
+		# `unit.name` is an invalid property access that would abort this
+		# function silently and drop the whole enemy-activation card.
+		out.append("  [color=#D97706]%s is attached to %s[/color]"
+			% [str(unit.node_name), target])
+		out.append("  Stay within 3\" of it, move at its pace, and attack the"
+			+ " same target the same way (firing / Brawling).")
+	return out
+
+
 func _build_enemy_action_content() -> Control:
 	## Build structured enemy action card for ENEMY_ACTIONS phase.
 	var vbox := VBoxContainer.new()
@@ -4144,6 +4207,15 @@ func _build_enemy_action_content() -> Control:
 		lines.append("")
 		lines.append("[b]Order:[/b] nearest YOUR edge first, working away. "
 			+ "Ties: start on their left.")
+
+		# Core Rules p.94 + p.43. A Guardian-AI Unique Individual is attached to a
+		# named figure, and p.43 makes its ENTIRE routine depend on which one:
+		# "must always remain within 3\" of that figure ... will move at the same
+		# pace and attack the same targets using the same methods." The generator
+		# picks the target (Lieutenant if present, else a random non-Specialist);
+		# without printing it here the player has no way to run the figure, and
+		# 26 of 100 Unique Individual results carry Guardian AI.
+		lines.append_array(_guardian_attachment_lines())
 
 		# The book's actual AI instructions for this type (base condition + 1D6).
 		lines.append_array(_ai_reference_lines(ai_code))
@@ -7554,6 +7626,11 @@ class TacticalUnit:
 	var is_lieutenant: bool = false
 	var is_specialist: bool = false
 	var is_unique_individual: bool = false
+	## Core Rules p.94: a Guardian-AI Unique "must be attached to a figure in the
+	## enemy force". EnemyGenerator picks the target; this carries its NAME to the
+	## enemy-activation card, because p.43 makes the whole routine depend on it
+	## ("must always remain within 3\" of that figure ... attack the same targets").
+	var guardian_attached_to: String = ""
 
 	# Equipment
 	var _weapon_range: int = 12
@@ -7610,6 +7687,7 @@ class TacticalUnit:
 				or bool(enemy.get("is_specialist", false))
 			is_unique_individual = _role == "unique" \
 				or bool(enemy.get("is_unique_individual", false))
+			guardian_attached_to = str(enemy.get("guardian_attached_to", ""))
 		else:
 			var _name_val = enemy.get("name") if enemy else null
 			node_name = str(_name_val) if _name_val else "Enemy"

@@ -40,6 +40,7 @@ var _notable_sight_check: CheckBox
 var _first_casualty_btn: OptionButton
 var _unique_kill_btn: OptionButton
 var _reduced_lethality_btn: OptionButton
+var _medical_nominee_btn: OptionButton
 
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
@@ -362,6 +363,24 @@ func _build_ui() -> void:
 		_reduced_lethality_btn = _build_crew_picker(
 			xp_card, "Exempt from the injury roll")
 
+	# Core Rules p.125 Medical school: "you may nominate a casualty that will roll
+	# twice on the Injury Table, picking the better result." Asked here for the
+	# same reason as Reduced Lethality above — the nomination precedes the roll,
+	# and by the time the post-battle screen renders the Injury Table has already
+	# been rolled. Only shown when a crew member actually holds the course, so a
+	# crew without it never sees a control it cannot use.
+	if _crew_has_training("medical"):
+		var med_hint := Label.new()
+		med_hint.text = ("Medical school (p.125): your medic may nominate one"
+			+ " casualty to roll twice on the Injury Table and keep the better"
+			+ " result. Choose before the rolls are made.")
+		med_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		med_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		med_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		xp_card.add_child(med_hint)
+		_medical_nominee_btn = _build_crew_picker(
+			xp_card, "Nominate for the Medical school reroll")
+
 	vbox.add_child(xp_section[0])
 
 	# === SUBMIT BUTTON ===
@@ -420,6 +439,29 @@ func _apply_prefill() -> void:
 			var i: int = int(idx)
 			if i >= 0 and i < _injury_checks.size():
 				_injury_checks[i].button_pressed = true
+
+func _crew_has_training(course_id: String) -> bool:
+	## Mirrors InjuryProcessor._member_has_training: Dictionary branch FIRST,
+	## because has_method() on a Dictionary is an invalid call that unwinds the
+	## whole enclosing function. `bot_tech` is the legacy spelling of
+	## `bot_technician` (see Character._TRAINING_ID_ALIASES).
+	for member in _crew:
+		if member == null:
+			continue
+		var list: Array = []
+		if member is Dictionary:
+			list = (member as Dictionary).get("acquired_training", [])
+		elif member.has_method("has_training"):
+			if member.has_training(course_id):
+				return true
+			continue
+		elif "acquired_training" in member:
+			list = member.acquired_training
+		if course_id in list:
+			return true
+		if course_id == "bot_technician" and "bot_tech" in list:
+			return true
+	return false
 
 func _build_crew_picker(parent: VBoxContainer, label_text: String) -> OptionButton:
 	## A labelled "which crew member?" dropdown. Item 0 is always "Nobody" so the
@@ -642,6 +684,7 @@ func _on_submit() -> void:
 		# process_injuries(), which skips this crew member's roll entirely and
 		# records a complete recovery. "" means no exemption was chosen.
 		"reduced_lethality_exempt_crew_id": _picked_crew_id(_reduced_lethality_btn),
+		"medical_school_nominee_crew_id": _picked_crew_id(_medical_nominee_btn),
 		# Mission context passthrough
 		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),

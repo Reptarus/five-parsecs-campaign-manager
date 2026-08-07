@@ -646,6 +646,22 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 					wd["id"] = seeded_id
 					campaign.world_data = wd
 
+		# Compendium p.110: "When creating a new world, generate 1D3+1 Factions
+		# as well." The starting world is a new world, and it is the ONLY one
+		# TravelPhase never sees — that hook runs on arrival at a world you
+		# travelled TO. Without this an Expanded Factions campaign has no
+		# factions until the crew first leaves home.
+		#
+		# Placed after the reset block above (which calls FactionSystem.cleanup())
+		# so the new campaign's factions are not immediately wiped, and after
+		# upsert_current_world so there is a world to own them. The DLC gate lives
+		# inside the generator.
+		var faction_gen = root_for_pdm.get_node_or_null("/root/FactionSystem")
+		if faction_gen and faction_gen.has_method("generate_world_factions"):
+			# is_home_world = true: p.111 "If you began the campaign on this
+			# world, you may choose one Faction to start at Loyalty 1."
+			faction_gen.generate_world_factions(false, true)
+
 	# Transfer victory conditions from config
 	var victory_conditions = config.get("victory_conditions", {})
 	if not victory_conditions.is_empty():

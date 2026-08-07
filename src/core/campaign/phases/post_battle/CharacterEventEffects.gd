@@ -10,10 +10,23 @@ const PostBattleContextClass = preload("res://src/core/campaign/phases/post_batt
 const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
 const EquipmentTransferServiceClass = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
-# Precursor event state (Core Rules p.128: Precursors roll twice, pick either)
+# Precursor event state. The rule is stated twice and both statements are here,
+# on the CHARACTER Event — never on the Campaign Event (see CampaignEventEffects,
+# which used to implement a fabricated copy of it on step 12):
+#   p.126 (step 13): "If the selected character is a Precursor, you may roll
+#     twice and pick either score."
+#   p.17 (species):  "if a Precursor is the subject of a Character Event, you may
+#     roll for 2 events and pick which one you prefer. If you would prefer
+#     avoiding the event altogether, you may do so by spending 1 story point
+#     after rolling twice."
+# The species entry is the fuller statement: it adds a THIRD option (avoid for 1
+# story point) that p.126 omits, and it is only available AFTER rolling twice.
 var _pending_event1: Dictionary = {}
 var _pending_event2: Dictionary = {}
 var waiting_for_precursor_choice: bool = false
+
+## select_precursor_event() choice values.
+enum PrecursorChoice {FIRST = 1, SECOND = 2, AVOID = 3}
 
 func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	## Roll for a character event. Returns the event dict with crew_id and roll.
@@ -58,8 +71,18 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	character_event["crew_id"] = random_crew
 	character_event["roll"] = event_roll
 
-	# Precursor double-roll (Core Rules p.128)
-	var origin: String = ctx.get_character_origin(random_crew).to_lower()
+	# `eligible` holds crew_id STRINGS, and get_character_origin() takes the
+	# CHARACTER. Handed a String it falls through both branches — `"origin" in
+	# "crew_1"` is a substring test, not a property test — and returns "Human"
+	# for everyone. So the Precursor comparison below was permanently false and
+	# the species' signature advantage could never fire, no matter what the
+	# orchestrator did with the result. Resolve the member first.
+	var selected_member: Variant = ctx.get_crew_member(random_crew)
+	var origin: String = ""
+	if selected_member != null:
+		origin = ctx.get_character_origin(selected_member).to_lower()
+
+	# Precursor double-roll (Core Rules p.17 + p.126).
 	if origin == "precursor":
 		var second_roll: int = randi_range(1, 100)
 		var second_event: Dictionary = _get_character_event(second_roll)
@@ -69,11 +92,14 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 		_pending_event1 = character_event
 		_pending_event2 = second_event
 		waiting_for_precursor_choice = true
-		return {"precursor_choice": true, "event1": character_event, "event2": second_event, "crew_id": random_crew}
+		return {"precursor_choice": true, "event1": character_event,
+			"event2": second_event, "crew_id": random_crew}
 
-	# Add species_exceptions from JSON entry for downstream handling
-	character_event["character_origin"] = ctx.get_character_origin(
-		random_crew)
+	# Carried on the event so finalize_event() does not have to re-resolve it —
+	# its fallback path hands the crew_id to get_character_origin() and hits the
+	# same String trap described above. Every consumer lowercases, so the raw
+	# value is stored rather than a normalised one.
+	character_event["character_origin"] = origin if not origin.is_empty() else "Human"
 
 	# Emo-suppressed: may ignore events requiring fights (Core Rules p.22)
 	var crew_sid: String = ""
@@ -91,16 +117,58 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 
 	return character_event
 
-func select_precursor_event(choice: int) -> Dictionary:
-	## Select which precursor event to use (1 or 2).
+func select_precursor_event(choice: int,
+		ctx: PostBattleContextClass = null) -> Dictionary:
+	## Resolve the p.17 / p.126 Precursor choice. See PrecursorChoice.
+	## AVOID spends 1 story point and returns a type:"none" event, which the
+	## orchestrator does NOT finalize — that is the whole point of avoiding it.
 	if not waiting_for_precursor_choice:
 		push_warning("CharacterEventEffects: select_precursor_event called but not waiting for choice")
 		return {}
 	waiting_for_precursor_choice = false
-	var chosen: Dictionary = _pending_event2 if choice == 2 else _pending_event1
+	var crew_id: String = str(_pending_event1.get("crew_id", ""))
+	var chosen: Dictionary = _pending_event2 if choice == PrecursorChoice.SECOND \
+		else _pending_event1
+
+	if choice == PrecursorChoice.AVOID:
+		# "you may do so by spending 1 story point AFTER rolling twice" (p.17) —
+		# the cost is not optional, so a player who cannot pay does not get the
+		# option. Falling back to the first roll is the honest failure: the two
+		# rolls have already happened and cannot be un-rolled.
+		if _can_spend_story_point(ctx):
+			ctx.add_story_points(-1)
+			chosen = {
+				"type": "none",
+				"name": "Event Avoided",
+				"description": "Precursor foresight: the event was avoided by"
+					+ " spending 1 story point (Core Rules p.17).",
+				"crew_id": crew_id,
+				"precursor_avoided": true,
+			}
+		else:
+			push_warning("CharacterEventEffects: Precursor AVOID chosen with no"
+				+ " story point to spend; keeping the first roll")
+
 	_pending_event1 = {}
 	_pending_event2 = {}
 	return chosen
+
+func _can_spend_story_point(ctx: PostBattleContextClass) -> bool:
+	## The reader must mirror ctx.add_story_points(), which writes through the
+	## manager when it can and the campaign directly when it cannot. Reading only
+	## the manager would report 0 on any path where it is absent and silently
+	## withdraw an option the player has paid for.
+	## NOT ctx.get("story_points") — the accessor is get_runtime_state(); plain
+	## get() finds no such property and returns null, i.e. always "cannot afford".
+	if ctx == null or not ctx.has_method("add_story_points"):
+		return false
+	var from_manager: Variant = ctx.get_runtime_state("story_points", null)
+	if from_manager != null:
+		return int(from_manager) > 0
+	var campaign = ctx.campaign
+	if campaign != null and "story_points" in campaign:
+		return int(campaign.story_points) > 0
+	return false
 
 func _get_character_event(roll: int) -> Dictionary:
 	## Get character event based on D100 roll from JSON data file (Core Rules p.128-130)

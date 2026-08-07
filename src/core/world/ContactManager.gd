@@ -319,7 +319,10 @@ func _ensure_name_tables() -> void:
 	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
 	for entry in content:
 		var title: String = entry.get("title", "")
-		if title == "Corporate Names Generator":
+		# "Corporate PATRON Names Generator" is the book's title (Compendium
+		# p.160). The fabricated "Corporate Names Generator" this used to read
+		# shared not one entry with it. See CharacterGeneration for the detail.
+		if title == "Corporate Patron Names Generator":
 			_name_tables["corporate"] = entry.get("tables", [])
 		elif title == "Gang Names Generator":
 			_name_tables["gang"] = entry.get("tables", [])

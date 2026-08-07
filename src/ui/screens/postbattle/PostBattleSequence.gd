@@ -685,9 +685,62 @@ func _on_backend_training_result(training: Array) -> void:
 				_add_result_to_log("%s training application denied: %s" % [crew_name, reason])
 
 func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) -> void:
-	## Handle Precursor event choice available - auto-select first event for now
-	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
-	_handle_precursor_choice(1, event1, event2)
+	## Precursor CHARACTER Event choice (Core Rules p.17 + p.126).
+	##
+	## This used to auto-select event 1 behind a "Deferred" note, which made the
+	## species' signature advantage a pair of wasted rolls: rolling twice and
+	## always keeping the first is distributionally identical to rolling once.
+	## Step 13 is SUSPENDED until select_precursor_event() answers, so the popup
+	## must be one the player cannot dismiss — ItemChoicePopup refuses to close
+	## without a selection, the same reason the p.137 authorities prompt uses it.
+	var labels: Array = []
+	var choice_by_label: Dictionary = {}
+
+	var label1: String = "1. %s" % _precursor_event_label(event1)
+	var label2: String = "2. %s" % _precursor_event_label(event2)
+	labels.append(label1)
+	choice_by_label[label1] = 1
+	labels.append(label2)
+	choice_by_label[label2] = 2
+
+	# p.17: "If you would prefer avoiding the event altogether, you may do so by
+	# spending 1 story point after rolling twice." Offered only when there is a
+	# story point to spend — the cost is not optional.
+	if _current_story_points() > 0:
+		var avoid_label: String = "Avoid the event entirely (spend 1 story point)"
+		labels.append(avoid_label)
+		choice_by_label[avoid_label] = 3
+
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "Precursor Foresight"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			_handle_precursor_choice(
+				int(choice_by_label.get(chosen_label, 1)), event1, event2))
+	popup.show_choices(
+		"Your Precursor's long memory offers two possible futures"
+			+ " (Core Rules p.17).",
+		labels,
+		"Choose Which Path To Walk")
+
+
+func _precursor_event_label(event: Dictionary) -> String:
+	var nm: String = str(event.get("name", event.get("title", "")))
+	if nm.is_empty():
+		nm = "Unknown Event"
+	return "%s (rolled %d)" % [nm, int(event.get("roll", 0))]
+
+
+func _current_story_points() -> int:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_story_points"):
+		return int(gsm.get_story_points())
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and "current_campaign" in gs and gs.current_campaign != null \
+			and "story_points" in gs.current_campaign:
+		return int(gs.current_campaign.story_points)
+	return 0
 
 func _on_backend_illegal_salvage(check: Dictionary) -> void:
 	## Compendium p.137 illegal salvage — the authorities check.
@@ -820,18 +873,28 @@ func _on_backend_manipulator_bonus(bonus: int) -> void:
 		})
 
 func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionary) -> void:
+	## Step 13 is suspended until this answers, so resolving the handler matters
+	## more here than elsewhere: the member reference first, the phase-manager
+	## lookup only as a fallback. The reverse order silently missed the live
+	## handler once already in this file.
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp):
+		var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("get_phase_handler"):
+			pbp = phase_manager.get_phase_handler("post_battle")
 
-	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if phase_manager and phase_manager.has_method("get_phase_handler"):
-		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
-		if post_battle_phase and post_battle_phase.has_method("select_precursor_event"):
-			post_battle_phase.select_precursor_event(choice)
-		else:
-			push_warning("PostBattleSequence: PostBattlePhase missing select_precursor_event method")
-	else:
-		# Fallback: emit the chosen event directly
-		var chosen_event: Dictionary = event1 if choice == 1 else event2
-		_add_result_to_log("Precursor Vision: %s" % chosen_event.get("name", "Unknown Event"))
+	if pbp != null and pbp.has_method("select_precursor_event"):
+		pbp.select_precursor_event(choice)
+		return
+
+	push_warning("PostBattleSequence: no PostBattlePhase to answer the Precursor"
+		+ " choice; logging the pick only")
+	var chosen_event: Dictionary = event2 if choice == 2 else event1
+	if choice == 3:
+		_add_result_to_log("Precursor Foresight: event avoided (1 story point).")
+		return
+	_add_result_to_log("Precursor Foresight: %s"
+		% chosen_event.get("name", "Unknown Event"))
 
 func _on_backend_loot_generated(loot: Array) -> void:
 	## Handle loot generated from backend
@@ -901,6 +964,13 @@ func _injury_consequence_suffix(injury: Dictionary) -> String:
 	## simply stops working (p.122: damaged equipment "cannot be used until it
 	## has been Repaired") with no explanation anywhere in the app.
 	var parts: Array = []
+
+	# Core Rules p.125 Advanced Training. Empty unless a course actually changed
+	# this roll; shown so a 20-XP Medical school or 10-XP Bot technician purchase
+	# is visibly earning its cost instead of being an invisible statistical edge.
+	var reroll: String = str(injury.get("training_reroll", ""))
+	if not reroll.is_empty():
+		parts.append(reroll)
 
 	var lost: Array = injury.get("items_lost", [])
 	if not lost.is_empty():

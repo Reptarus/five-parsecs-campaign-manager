@@ -1,6 +1,10 @@
 extends Control
 class_name WorldPhaseController
 
+## Core Rules p.149 Red Job Threat Condition. Path-loaded rather than
+## `class_name`-referenced to match this file's other data-layer imports.
+const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
+
 ## WorldPhaseController - Orchestrator for Campaign Turn Workflow
 ## Replaces 3,910-line WorldPhaseUI monolith with focused component coordination
 ## Implements Mediator pattern for component interactions
@@ -1460,6 +1464,7 @@ func _complete_world_phase() -> void:
 					selected_zone = upkeep_component.get_selected_zone()
 				if selected_zone == 1:
 					mission_dict["is_red_zone"] = true
+					_stamp_red_zone_threat(mission_dict)
 				elif selected_zone == 2:
 					mission_dict["is_black_zone"] = true
 
@@ -1631,6 +1636,7 @@ func _refresh_mission_prep() -> void:
 		_mp_zone = upkeep_component.get_selected_zone()
 	if _mp_zone == 1:
 		accepted_job["is_red_zone"] = true
+		_stamp_red_zone_threat(accepted_job)
 	elif _mp_zone == 2:
 		accepted_job["is_black_zone"] = true
 
@@ -2347,3 +2353,42 @@ func _setup_psionic_legality_badge() -> void:
 
 func _on_layout_class_changed(_cols: int = 0) -> void:
 	_apply_vertical_compaction()
+
+
+func _stamp_red_zone_threat(mission: Dictionary) -> void:
+	## Core Rules p.149, verbatim: "You must roll for a Threat Condition. This is
+	## an additional factor that is applied to the mission, regardless of its
+	## type." One D6, rolled once when the Red Job is accepted.
+	##
+	## THE GAP THIS FILLS: `RedZoneSystem.roll_threat_condition()` was written,
+	## correct and had ZERO callers — its only mention anywhere was the usage
+	## example in its own docblock. Meanwhile `PostBattleCompletion.gd:149` reads
+	## `red_zone_threat` off the battle result to journal it, so the consumer was
+	## live and waiting on a producer that never ran. Every Red Job in every
+	## campaign was fought with no Threat Condition at all.
+	##
+	## Three of the six are mechanical and are applied through keys that already
+	## have consumers; the other three are table instructions the player applies,
+	## so they ride along as text. "Not all of these Threat Conditions may be
+	## applicable ... If so, the result is simply ignored" — so nothing here
+	## forces a profile change that the enemy type does not qualify for.
+	var threat: Dictionary = RedZoneSystemRef.roll_threat_condition()
+	if threat.is_empty():
+		return
+	mission["red_zone_threat"] = threat
+
+	match int(threat.get("roll", 0)):
+		2:
+			# "All opponents with +0 Combat Skill are upgraded to +1."
+			mission["enemy_combat_skill_floor"] = 1
+		4:
+			# "Increase the opposing force by +2 enemy." enemy_delta is the
+			# established bundle key with real readers in the battle funnel.
+			mission["red_zone_enemy_delta"] = 2
+		5:
+			# "All opponents with 3 Toughness are upgraded to 4."
+			mission["enemy_toughness_floor"] = 4
+		6:
+			# "Add an additional Lieutenant with Combat Skill +2 and Toughness 5,
+			# regardless of the normal profile used."
+			mission["extra_lieutenant"] = {"combat_skill": 2, "toughness": 5}

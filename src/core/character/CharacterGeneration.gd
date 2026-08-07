@@ -466,7 +466,14 @@ static func _ensure_name_tables_loaded() -> void:
 	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
 	for entry in content:
 		var title: String = entry.get("title", "")
-		if title == "Corporate Names Generator":
+		# The book's table is "Corporate PATRON Names Generator" (Compendium
+		# p.160). A fabricated "Corporate Names Generator" used to sit under this
+		# key with entirely invented contents — the book's Part 1 opens
+		# Interstellar / Agile / Calibrated / Synergistic, the fabricated one
+		# opened Unity / Stellar / Fringe / Core, sharing nothing. Every
+		# corporate patron the player met was named off a table that is in no
+		# rulebook.
+		if title == "Corporate Patron Names Generator":
 			_name_tables["corporate"] = entry.get("tables", [])
 		elif title == "Gang Names Generator":
 			_name_tables["gang"] = entry.get("tables", [])
