@@ -79,7 +79,7 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 > (filtering live OPEN battle-* rows yields 5, two of which were already fixed).
 > Re-count, per the note directly below — it has now drifted three times.
 
-**Status Aug 3 (late): 64 open / 71 fixed / 7 partial-or-blocked (+1 CORRECTED) of 143.**
+**Status Aug 3 (late), HISTORICAL: 64 open / 71 fixed / 7 partial-or-blocked (+1 CORRECTED) of 143.** Superseded — the ledger closed Aug 7 at 0 open / 0 partial / 136 fixed / 1 corrected. Kept for the drift record.
 Counts are MEASURED, not maintained by hand — the header has drifted twice, in both
 directions. Re-count before trusting it; the command is in
 `docs/RULES_WIRING_CLOSEOUT_PLAN.md` §0, which is also the route through what is left.
@@ -386,6 +386,9 @@ folded into the rows in this table.
 ---
 
 ## Handoff — state as of Aug 2 2026, end of the battle-resolution pass
+
+> **HISTORICAL.** Superseded Aug 7 2026 — the ledger closed at 0 open / 0 partial /
+> 136 fixed / 1 corrected. Kept for the route it describes, not as a worklist.
 
 **64 open / 79 resolved-or-partial of 143.** Branch `campaign-editor-and-fixits`.
 Route and phasing: `docs/RULES_WIRING_CLOSEOUT_PLAN.md`. The short version — 40 of the

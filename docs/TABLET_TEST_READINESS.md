@@ -1,4 +1,34 @@
-# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6
+# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6, gate cleared Aug 7
+
+> # ✅ UPDATE Aug 7 — THE PRE-TABLET GATE IS CLEAR
+>
+> **The rules-wiring ledger is closed: 0 open / 0 partial / 136 fixed / 1
+> corrected** (`docs/RULES_WIRING_AUDIT_2026-08.md`). §1's "five visible lies and
+> one class of dead switch" and the 73-row backlog it referenced are both gone,
+> and so is the 2-3 session estimate in §4.
+>
+> Green on this branch: `verify_post_battle` 47/47 · `verify_battle_ui` 79/79 ·
+> `lint_data_ownership` / `_signal_wiring` / `_tscn_connections` /
+> `_autoload_lookups` all CLEAN · headless `--import` parse-clean.
+>
+> **What a tester can now exercise that they could not before:** Black Jobs as a
+> real mission (16 enemies in 4 teams, per-round reinforcements, the D10 "Your Day
+> in Hell" objective); Salvage as a real economy (units bank at post-battle Step 4
+> and buy things at the Scrapper); fleeing an Invasion with actual consequences;
+> the Freelancer License and its forged-licence gamble; Faction favors; the paid
+> Trade rolls; and roughly fifteen World Traits that were previously a paragraph
+> of text on the world screen.
+>
+> ⚠ **Still open and NOT closed by this**: the APK content re-verification carried
+> in §9. The last artifact was packaged clean on Aug 3 but its CONTENT was stale at
+> Jul 29, and nothing since has re-checked it. **Build a fresh APK and verify it by
+> UNZIPPING** (`scripts/verify_apk.py`) before handing anything to a tester —
+> `--export-release` exits 0 on failure, so a green build command proves nothing.
+>
+> ⚠ **The ledger closing does not mean the rules are complete.** It means every row
+> someone wrote down has a call site and a test. Eight auditors walked eight
+> subsystems; nobody walked every page of both books. A tester finding a rule gap
+> is still a plausible and useful outcome.
 
 > **UPDATE Aug 6 — see §9 at the bottom.** A battle-phase DELIVERY audit shipped
 > and it changes what is worth testing: four Compendium chapters that this
@@ -17,6 +47,12 @@ is right and the older doc is stale.
 ---
 
 ## 1. Verdict
+
+> **Aug 7: §1 is now HISTORICAL.** The "five visible lies and one class of dead
+> switch" have been worked, the 73-row backlog it measures itself against is at
+> **0 open / 0 partial**, and the 2-3 session estimate is spent. The only thing
+> left before handing over an APK is re-verifying the ARTIFACT (see the header
+> block and §9) — not the app.
 
 **The build is tablet-testable now.** Nothing in the build, deploy, layout or
 runtime path blocks handing an APK to a tester.
@@ -160,8 +196,13 @@ suite that exercises nothing.
   `HBoxContainer` and collapses to 1×480 — the autowrap-in-a-horizontal-container
   trap already in memory. It cascades to 3 screens × 2 phone sizes. Fix it when
   phones matter; it does not block a tablet session.
-- **40 of the 73 open audit rows are DLC or endgame content** a tester cannot
-  reach in an evening (factions, Elite enemies, Red/Black Zone at 10+ turns).
+- ~~**40 of the 73 open audit rows are DLC or endgame content** a tester cannot
+  reach in an evening (factions, Elite enemies, Red/Black Zone at 10+ turns).~~
+  **STALE — the ledger closed Aug 7 at 0 open.** Those rows are now the *reason*
+  to hand over an APK rather than a reason not to: factions have spendable
+  Loyalty (Compendium p.112 favors), Elite enemies arrive on the p.31 Option 2
+  curve, and a Black Job is a real 16-enemy mission with per-round
+  reinforcements. A tester at 10+ turns now has content to reach.
 - **`lint_handoff_contracts` reports 100 rule-silencing findings** — 35
   orphan-reads, 64 uncalled rules, 1 dead producer. This is the best standing
   instrument for the audit's defect family and it should replace hand-counted row

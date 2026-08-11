@@ -61,6 +61,7 @@ var _sp_popover: StoryPointPopover
 
 # Mobile portrait chrome (slider-first hybrid de-clip)
 const MobileAppBarClass = preload("res://src/ui/components/common/MobileAppBar.gd")
+const QAScenarioDialogClass = preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
 var _app_bar: MobileAppBarClass = null
 var _help_button: Button = null
 
@@ -181,6 +182,7 @@ func _connect_signals() -> void:
 		quit_button.pressed.connect(_on_quit_pressed)
 	_add_sheets_button()
 	_add_edit_button()
+	_add_qa_scenarios_button()
 	pass  # Hub cards added in _update_ship_and_equipment
 
 
@@ -238,6 +240,48 @@ func _on_edit_campaign_pressed() -> void:
 		router.navigate_to("campaign_editor")
 	else:
 		push_warning("CampaignDashboard: SceneRouter unavailable for campaign_editor")
+
+
+## Add a "QA Scenarios" button — DEBUG BUILDS ONLY (Aug 8 2026, tablet sprint).
+##
+## Gated on OS.is_debug_build() rather than a hidden tap gesture. A release
+## export physically cannot reach it, so there is no unlock to discover and
+## nothing to remember to switch off before shipping; remote-deploy QA builds are
+## debug builds, so the tablet still gets it. Same programmatic sibling-insert as
+## Sheets and Edit, so the .tscn stays clean.
+##
+## It sits next to Edit deliberately: both mutate a loaded campaign through owner
+## setters, and Edit is where a tester already looks for "put the campaign in a
+## different state".
+func _add_qa_scenarios_button() -> void:
+	if not OS.is_debug_build():
+		return
+	if export_button == null or not is_instance_valid(export_button):
+		return
+	var parent: Node = export_button.get_parent()
+	if parent == null:
+		return
+	var qa_btn := Button.new()
+	qa_btn.text = "QA"
+	qa_btn.tooltip_text = ("Debug build only — jump this campaign to a seeded test state "
+		+ "(injuries, Compendium missions, rivals/quests, endgame)")
+	_style_button(qa_btn)
+	qa_btn.pressed.connect(_on_qa_scenarios_pressed)
+	parent.add_child(qa_btn)
+	parent.move_child(qa_btn, export_button.get_index() + 1)
+
+
+func _on_qa_scenarios_pressed() -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	var campaign: Variant = gs.current_campaign if gs and "current_campaign" in gs else null
+	if campaign == null:
+		AcknowledgeDialog.show_message(self,
+			"No campaign loaded — a QA scenario is a state delta, so there must be a "
+			+ "campaign to apply it to.")
+		return
+	var dlg: Window = QAScenarioDialogClass.open(self, campaign)
+	if dlg:
+		dlg.scenario_applied.connect(func(_id, _receipt): _update_all())
 
 func _add_help_button() -> void:
 	if not header_panel:
@@ -374,11 +418,39 @@ func _add_hub_cards() -> void:
 	)
 
 func _setup_phase_manager() -> void:
-	if phase_manager.has_method("setup"):
+	## T8-02. `setup()` is DESTRUCTIVE — it calls reset_phase_tracking(), which sets
+	## current_phase back to NONE. CampaignTurnController guards its own call behind
+	## exactly this condition (CampaignTurnController.gd:76) precisely for that
+	## reason; this one had no guard at all and ran on EVERY dashboard visit, so
+	## simply looking at the dashboard tore down the campaign's live phase state.
+	##
+	## The two start_phase() calls below were the repair for that self-inflicted
+	## reset, and they are not reliable: start_phase() returns false and leaves
+	## current_phase untouched when _can_transition_to_phase() rejects the move. Land
+	## on NONE and CampaignTurnController.gd:122 reads that as "no active phase" and
+	## fires a whole fresh turn rollover — p.76 debt interest, the p.59 free hull
+	## repair, the pp.73-74 per-turn spend caps and the upkeep lockouts, all again,
+	## on a turn that already had them.
+	##
+	## Observed on the tablet Aug 8 2026: ship_debt 43 -> 45 across two World Phase
+	## entries with the campaign turn unchanged, and TWO "Debt interest" journal
+	## entries at T8 where there should be one.
+	##
+	## The dashboard is the between-turns hub; it has no business re-initialising an
+	## autoload that is mid-turn. Only initialise when it is genuinely uninitialised.
+	##
+	## T9-04 (Aug 9 2026) — the forced SETUP -> UPKEEP walk that used to live here is
+	## GONE, and must not come back. start_phase() now PERSISTS the phase into the
+	## campaign, so forcing UPKEEP would overwrite the real phase of a save written
+	## mid-World-Phase and hand the player back a turn they had already part-played.
+	## bind_campaign() is the correct repair: it restores the phase the save was
+	## actually written in (and re-arms the turn-start latch), or leaves NONE when the
+	## previous turn genuinely completed so the next turn starts as it should.
+	if phase_manager.has_method("setup") and not phase_manager.game_state:
 		phase_manager.setup(_game_state)
-	var FPC = GameEnums.FiveParcsecsCampaignPhase
-	phase_manager.start_phase(FPC.SETUP)
-	phase_manager.start_phase(FPC.UPKEEP)
+		var campaign: Resource = _game_state.current_campaign if _game_state else null
+		if campaign and phase_manager.has_method("bind_campaign"):
+			phase_manager.bind_campaign(campaign)
 
 # ── Styling ────────────────────────────────────────────────────────
 
@@ -414,6 +486,14 @@ func _update_all() -> void:
 	_update_ship_and_equipment(campaign)
 	_update_intel_overview(campaign)
 	_update_progress_strip(campaign)
+	# D2-01: the primary action button's label is written ONLY by _update_phase_ui(),
+	# which this did not call — so it kept whatever turn it was built with. Observed
+	# on device after a QA scenario apply: every pill, the world card, patrons and
+	# rivals all read Turn 9 while the button still said "Begin Turn 2". It is a
+	# refresh of the same campaign state as everything above it, so it belongs here;
+	# the phase-change path at :1806 still calls it directly and is unaffected.
+	if phase_manager:
+		_update_phase_ui(phase_manager.current_phase)
 
 func _show_empty_state() -> void:
 	if campaign_name_label:
@@ -656,6 +736,46 @@ func _get_crew_members(campaign) -> Array:
 		return campaign.crew_data.get("members", [])
 	return []
 
+## The species' printed name, from the file that owns it.
+##
+## `data/character_species.json` carries a `name` for all 28 species ids and is
+## their canonical owner, so it is READ rather than reformatted. Falls back to
+## _enum_to_display for anything not in the JSON (classes, backgrounds, legacy
+## numeric origins).
+##
+## ⚠ Do NOT reformat the id instead. `_enum_to_display` string-formats, and it got
+## three of the 28 wrong on the crew cards — observed on device:
+##     kerin          -> "Kerin"          (book: K'Erin — apostrophe)
+##     genetic_uplift -> "GeneticUplift"  (book: Genetic Uplift — to_pascal_case
+##                                         eats the space it just inserted)
+##     de_converted   -> "DeConverted"    (book: De-converted)
+## Same defect and same fix as SheetDataContext._species_display_name(); the sheet
+## and the dashboard must not disagree about a crew member's species.
+## ⚠ Read `species_id` FIRST. It is the canonical String id on every post-migration
+## save; `origin` is the legacy field and carries a numeric enum as a FLOAT on
+## pre-migration saves (observed: `origin=7.0`), which only the enum path can read.
+## On new saves `origin` holds an already-formatted display string ("Genetic
+## Uplift") — and `_enum_to_display` then ran `to_pascal_case()` over it and ATE
+## the space, which is where "GeneticUplift" came from. It was mangling a value
+## that was already right.
+func _species_to_display(member_value, species_id_value = null) -> String:
+	if species_id_value is String and not (species_id_value as String).is_empty():
+		var by_id: Dictionary = SpeciesDataService.get_species(species_id_value)
+		var name_by_id: String = str(by_id.get("name", ""))
+		if not name_by_id.is_empty():
+			return name_by_id
+	if member_value is String and not (member_value as String).is_empty() \
+			and member_value != "Unknown":
+		# A display string that is ALREADY a known species name — hand it back
+		# untouched rather than reformatting it.
+		var by_name: Dictionary = SpeciesDataService.get_species(
+			str(member_value).to_lower().replace(" ", "_").replace("'", ""))
+		var name_by_name: String = str(by_name.get("name", ""))
+		if not name_by_name.is_empty():
+			return name_by_name
+	return _enum_to_display(member_value, GlobalEnums.Origin)
+
+
 func _enum_to_display(value, enum_dict: Dictionary) -> String:
 	## Convert an enum int (or string) to a readable display name.
 	## e.g. 6 → "Soulless", "WORKING_CLASS" → "Working Class"
@@ -683,9 +803,9 @@ func _build_crew_card(member) -> PanelContainer:
 		char_name = member.get(
 			"character_name", member.get("name", "Unknown")
 		)
-		species = _enum_to_display(
+		species = _species_to_display(
 			member.get("origin", member.get("species", "Unknown")),
-			GlobalEnums.Origin)
+			member.get("species_id", null))
 		char_class = _enum_to_display(
 			member.get("character_class", member.get("class", "Unknown")),
 			GlobalEnums.CharacterClass)
@@ -701,9 +821,9 @@ func _build_crew_card(member) -> PanelContainer:
 	else:
 		char_name = member.character_name \
 			if "character_name" in member else str(member)
-		species = _enum_to_display(
+		species = _species_to_display(
 			member.species if "species" in member else "Unknown",
-			GlobalEnums.Origin)
+			member.species_id if "species_id" in member else null)
 		char_class = _enum_to_display(
 			member.character_class if "character_class" in member else "Unknown",
 			GlobalEnums.CharacterClass)
@@ -1722,17 +1842,11 @@ func _update_progress_strip(campaign) -> void:
 				)
 			)
 
-	# Difficulty
-	var diff_names := {
-		GlobalEnums.DifficultyLevel.EASY: "Story",
-		GlobalEnums.DifficultyLevel.NORMAL: "Standard",
-		GlobalEnums.DifficultyLevel.CHALLENGING: "Challenging",
-		GlobalEnums.DifficultyLevel.HARDCORE: "Hardcore",
-		GlobalEnums.DifficultyLevel.INSANITY: "Nightmare"
-	}
-	var diff_name: String = diff_names.get(
-		int(campaign.difficulty), "Standard"
-	)
+	# Difficulty — book names only, via the SSOT (T9-05). This used to be a local map
+	# rendering "Story" / "Standard" / "Nightmare"; none of the three appear in the
+	# rulebook, and "Nightmare" is one of the deprecated fabricated enum labels
+	# CLAUDE.md forbids showing at all.
+	var diff_name: String = DifficultyModifiers.get_display_name(int(campaign.difficulty))
 	progress_hbox.add_child(
 		_create_progress_stat("Difficulty", diff_name)
 	)
@@ -1918,6 +2032,10 @@ func _on_export_pressed() -> void:
 	)
 	file_dialog.title = "Export Campaign Save"
 	file_dialog.size = Vector2i(800, 500)
+	# Android: routes to the Storage Access Framework, which needs no storage
+	# permission. Without it the write fails with error 13. Only works paired with
+	# ACCESS_FILESYSTEM above. Full rationale: PrintSheetScreen._on_save_pdf_pressed().
+	file_dialog.use_native_dialog = true
 	var cname: String = ""
 	if campaign.has_method("get_campaign_id"):
 		cname = campaign.get_campaign_id()
@@ -2005,6 +2123,9 @@ func _on_import_from_file(load_dialog: Node) -> void:
 	)
 	file_dialog.title = "Import Campaign File"
 	file_dialog.size = Vector2i(800, 500)
+	# Android: SAF picker — without it the player cannot reach a save file in shared
+	# storage at all. Pairs with ACCESS_FILESYSTEM. See PrintSheetScreen for the detail.
+	file_dialog.use_native_dialog = true
 	file_dialog.file_selected.connect(
 		_on_import_file_selected.bind(file_dialog)
 	)

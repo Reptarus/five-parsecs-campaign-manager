@@ -194,7 +194,7 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			_mark_departed(old_captain)
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 				ctx.campaign_journal.create_entry({
-					"type": "character_departure",
+					"type": "character_event",
 					"auto_generated": true,
 					"title": "New Captain",
 					"description": "%s took command; %s left the campaign with their gear (Core Rules p.127)" % [

@@ -225,3 +225,94 @@ func test_export_to_pdf_without_manifest_returns_unconfigured() -> void:
 	assert_int(err).is_equal(ERR_UNCONFIGURED) \
 		.override_failure_message(
 			"Export without manifest should return ERR_UNCONFIGURED, got %d" % err)
+
+
+# ============================================================================
+# _collect_text_layer — the PDF's invisible, searchable text layer
+#
+# The exported PDF embeds the sheet as a raster and lays an INVISIBLE text layer
+# over it (PDF render mode 3), so the document is searchable and selectable
+# without the printed pixels changing at all.
+#
+# The load-bearing property is WHERE the layer comes from: the nodes the
+# SubViewport actually rasterized, never a second pass over the manifest. Two
+# producers for one fact is the shape that has bitten this project repeatedly —
+# the layer would keep asserting a value the picture no longer shows, and nothing
+# would error. These build a SubViewport by hand (no rendering needed) so the
+# derivation is pinned without depending on a framebuffer.
+# ============================================================================
+
+func _fake_export_viewport(entries: Array) -> SubViewport:
+	# Mirrors what _render_offscreen() hands back: a SubViewport whose first
+	# child is the renderer clone, whose Control children carry the field meta.
+	var sub := SubViewport.new()
+	var clone := Control.new()
+	sub.add_child(clone)
+	for e in entries:
+		var lbl := Label.new()
+		lbl.text = str(e.get("text", ""))
+		lbl.horizontal_alignment = e.get("align", HORIZONTAL_ALIGNMENT_LEFT)
+		lbl.set_meta("sheet_src_rect", e.get("rect", Rect2(10, 20, 100, 30)))
+		lbl.set_meta("sheet_font_size", e.get("font_size", 22))
+		clone.add_child(lbl)
+	auto_free(sub)
+	return sub
+
+
+func test_collect_text_layer_reads_the_rasterized_nodes() -> void:
+	var r: SheetRenderer = _make_renderer()
+	var sub: SubViewport = _fake_export_viewport([
+		{"text": "Bryn Ito", "rect": Rect2(171, 712, 300, 62), "font_size": 26},
+	])
+	var layer: Array = r._collect_text_layer(sub)
+	assert_int(layer.size()).is_equal(1)
+	assert_str(layer[0]["text"]).is_equal("Bryn Ito")
+	assert_int(layer[0]["font_size"]).is_equal(26)
+	# SOURCE-pixel rect, so the router can map it onto any page size.
+	assert_vector(layer[0]["rect"].position).is_equal(Vector2(171, 712))
+
+
+func test_collect_text_layer_skips_empty_values() -> void:
+	# A blank weapon slot is correct output for an empty slot, but an empty
+	# search token is noise that makes the layer disagree with the picture.
+	var r: SheetRenderer = _make_renderer()
+	var layer: Array = r._collect_text_layer(_fake_export_viewport([
+		{"text": "Shotgun"}, {"text": ""}, {"text": "   "},
+	]))
+	assert_int(layer.size()).is_equal(1)
+	assert_str(layer[0]["text"]).is_equal("Shotgun")
+
+
+func test_collect_text_layer_carries_alignment_from_the_node() -> void:
+	# Read off the node rather than re-read the manifest — same single-source rule.
+	var r: SheetRenderer = _make_renderer()
+	var layer: Array = r._collect_text_layer(_fake_export_viewport([
+		{"text": "3", "align": HORIZONTAL_ALIGNMENT_CENTER},
+		{"text": "12", "align": HORIZONTAL_ALIGNMENT_RIGHT},
+		{"text": "Blade", "align": HORIZONTAL_ALIGNMENT_LEFT},
+	]))
+	assert_str(layer[0]["align"]).is_equal("center")
+	assert_str(layer[1]["align"]).is_equal("right")
+	assert_str(layer[2]["align"]).is_equal("left")
+
+
+func test_collect_text_layer_is_empty_in_blank_mode() -> void:
+	# "Print blank to fill in by hand" must not ship a HIDDEN copy of the data
+	# the player explicitly asked to leave off the page. Invisible text is still
+	# text: it survives copy-paste, search and text extraction.
+	var r: SheetRenderer = _make_renderer()
+	r.set_blank_mode(true)
+	var layer: Array = r._collect_text_layer(_fake_export_viewport([
+		{"text": "Bryn Ito"}, {"text": "Shotgun"},
+	]))
+	assert_int(layer.size()).is_equal(0) \
+		.override_failure_message(
+			"Blank mode leaked %d values into the PDF's hidden text layer" % layer.size())
+
+
+func test_collect_text_layer_tolerates_a_missing_clone() -> void:
+	var r: SheetRenderer = _make_renderer()
+	assert_int(r._collect_text_layer(null).size()).is_equal(0)
+	var empty := SubViewport.new()
+	auto_free(empty)
+	assert_int(r._collect_text_layer(empty).size()).is_equal(0)

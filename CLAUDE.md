@@ -1,10 +1,14 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-08-06 (agent/knowledge-base consolidation: 9 agents → 6; RULE 0, theme constants and audit narratives deduplicated to one home each)
+**Last Updated**: 2026-08-11 (real-hardware QA on the tablet, Aug 8-11 — see "Tablet QA" below. The rules-wiring ledger remains CLOSED at 0 open / 136 fixed.)
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 **Partnership / commercial**: see [docs/MODIPHIUS_PARTNERSHIP_STATUS.md](docs/MODIPHIUS_PARTNERSHIP_STATUS.md) — deal terms, the four agreed strategic theses (do NOT re-argue them), artifacts, and the ⚠ caveat that the correspondence journal stops at Jun 4 2026. None of it bears on writing code, so it is not loaded here.
-**Active plan**: `C:\Users\admin\.claude\plans\5pfh-4219-dtrpg-jiggly-charm.md` (post-meeting workback)
+**Active plan**: none. (This line pointed at `5pfh-4219-dtrpg-jiggly-charm.md` until 2026-08-11; that file does not exist. Plans live in `C:\Users\admin\.claude\plans\` — check the directory rather than trusting a path here.)
+
+> ⚠ **The working tree carries a large uncommitted body of work** (Aug 8-11 tablet QA
+> + sheet/PDF export). Last commit is `69cfd4d2b`, Aug 7, on `campaign-editor-and-fixits`.
+> Nothing here is committed until the user asks.
 
 ---
 
@@ -237,6 +241,57 @@ MainMenu → CampaignDashboard "Galaxy Log" button
 - **NEW JSON / data files**: zero. Reads exclusively from existing PlanetDataManager state.
 - **Pre-Jun-1 journal entries** still have `location="Unknown"` (pre-Phase-0). No backfill migration in v1.
 
+### Printable Sheets / PDF Export (May 2026; audited to the book Aug 9-11 2026)
+
+Renders campaign data onto the three official Modiphius sheet PNGs and exports PNG/PDF.
+**Read `docs/sop/sheet-export.md` before touching any of it.**
+
+```text
+MainMenu/CampaignDashboard → "Sheets" → PrintSheetScreen (tab bar + Save PNG/PDF)
+  └─ _build_data_context()          ← FETCHES campaign / world / journal entries
+       └─ SheetDataContext.build()  ← the VIEW-MODEL the manifests address
+            └─ SheetRenderer (Control)
+                 ├─ the official PNG + Labels placed per data/sheets/core/*_fields.json
+                 ├─ export_to_png  → SubViewport 2764×1843 + await frame_post_draw
+                 └─ export_to_pdf  → PdfExportRouter
+                      ├─ "godotharu"  GDExtension — DESKTOP ONLY (no Android binary)
+                      └─ "godotpdf"   vendored GDScript addon — the ANDROID path
+```
+
+- **Three sheets, all printed in the book**: Crew Log, Encounter Log, World Record Sheet —
+  **Core Rules Appendix X, PDF pp.180-181**. That is the authority on what every box
+  means; extract it with PyPDF2 before mapping a field. ⚠ Its TEXT LAYER is not a reading
+  order (it emits the licensing octagons "No Obtained Yes"; the artwork reads
+  **Yes | Obtained | No**) — crop the PNG for anything positional.
+- **`SheetDataContext` is the single view-model.** Manifests address
+  `campaign.crew[2].weapons[0].damage`; the raw campaign has `crew_data["members"]`.
+  Keep the view-model matching the manifests, never drift the manifests toward storage.
+- **BLANK IS A LEGITIMATE VALUE, null is a bug.** A print form is meant to have empty
+  boxes. Anything genuinely unmodelled is listed in `_EMPTY_UNTIL_MODELLED` with a reason,
+  and mirrored in the test's `blank_by_design` map. A non-null assertion therefore proves
+  nothing — `test_every_addressed_box_prints_something_on_a_populated_campaign` asserts
+  **non-blank**.
+- ⚠ **The world is a `PlanetData` OBJECT, not a Dictionary** —
+  `PlanetDataManager.get_current_planet()`. `_as_dictionary()` coerces via `serialize()`.
+- ⚠ **The Encounter Log's data lives in the journal entry's `stats`.**
+  `CampaignJournal.create_entry()` rebuilds every entry from a FIXED key set and DROPS
+  everything else, so a scenario fact outside `stats` is deleted at the chokepoint. The
+  producer chain is `mission_data` → `BattleResultNormalizer` → `auto_create_battle_entry`
+  stats → the sheet.
+- **Backends differ by platform, so a desktop probe is not a device test.** Make any probe
+  PRINT its branch (`tests/tools/emit_sheet_pdf.gd` emits both).
+
+### Tablet QA (real hardware, Aug 8-11 2026)
+
+Ledger: [docs/qa/TABLET_QA_SPRINT_2026-08.md](docs/qa/TABLET_QA_SPRINT_2026-08.md).
+Procedure: `docs/sop/android-runtime-testing.md`.
+
+First QA on a real device (Lenovo TB361FU). It found defect classes desktop testing is
+structurally incapable of seeing — soft-keyboard occlusion, touch-scroll swallowed by
+decorative chrome, legacy-save data loss — plus several that were simply never exercised
+because no test drove the SCREEN rather than the function it calls. **Two full days of
+findings; treat "the unit suite is green" as saying nothing about device behaviour.**
+
 ### Character Events System (Session 51, Core Rules pp.128-130)
 
 Post-battle D100 Character Events with persistent multi-turn status effects.
@@ -314,6 +369,12 @@ CampaignTurnController.)
 - **Systems**: `RedZoneSystem.gd`, `BlackZoneSystem.gd` — RefCounted, static methods, JSON-backed
 - **Persistence**: `FiveParsecsCampaignCore.red_zone_licensed` (bool), `.red_zone_turns_completed` (int) — serialized
 - **Black Zone step skip**: JOB_OFFERS + RESOLVE_RUMORS auto-skipped, upkeep waived
+- **The Black Job MISSION itself is wired (Aug 7 2026)** — pp.150-151, and it was the last big one. The rewards, the Roving Threats source and the D10 roll were all live while `BlackZoneSystem.get_setup_rules()` / `get_opposition_rules()` / `get_active_passive_rules()` / `get_ending_rules()` were byte-faithful and had **ZERO callers between them**. So a Black Job rolled a Deployment Condition and a Notable Sight the book forbids, forfeited its Seize the Initiative +1, fielded an ordinary 3-8 force, cost nothing to flee, and tracked an objective rolled off the p.89 Opportunity table while the briefing promised "kill 25 enemy". Now:
+  - `BattleSetupRules._apply_black_zone()` runs **LAST** in `compute()` so p.151's absolutes overwrite anything earlier — sets `early_leave_is_casualty` (reusing the p.92 Invasion flag: same rule, same consumer, one enforcement site) and `hold_rounds` from the D10 row
+  - `CampaignTurnController` suppresses the sight + condition, adds the +1, and `_stamp_black_zone_objective()` makes the "Your Day in Hell" row the tracked objective — stamped **BEFORE** the p.89 roll, whose `if not mission_data.has("objective_details")` guard then correctly leaves it alone
+  - `EnemyGenerator` fields **4 teams of 4 = 16** (a REPLACEMENT like the Red Job base of 7) with one Specialist per team
+  - `FPCM_BattleFlowGuide.build_black_job_round_prompts()` delivers the per-round reinforcement wave, the Passive-activation 1D6, and "evac'ed out at the end of the FOLLOWING round"
+  - ⚠ The prep card **READS `get_opposition_rules()`** now. It used to hardcode `"4 teams of 4 (16 initial enemies)"` — the only place those numbers existed anywhere in the app, describing a battle that was never generated. Do not put a mechanic's numbers in a UI literal.
 - **PostBattle**: `PaymentProcessor.process_black_zone_rewards()`, ExperienceTrainingProcessor BZ +1 XP, GalacticWarProcessor RZ -1 modifier
 - **Journal**: Battle entries tagged `red_zone`/`black_zone`, enriched with threat/time/mission details, BZ victory/failure milestone entries, license purchase milestone
 - **Broker discount**: License fee -2cr if crew has Broker training (checks `has_broker_training` property + `"Broker Training"` trait)
@@ -647,7 +708,7 @@ methods below.
 | `OverflowMenu` | Button | `add_item(id, label, count)`, `set_count(id, count)` → `signal item_selected(String)` |
 | `DialogStyles` | RefCounted | Static: `style_confirm_button(btn)`, `style_danger_button(btn)`, `style_primary_button(btn)` |
 | `RulesPopup` | Window | Static: `RulesPopup.show_rules(parent, title, body, requirements)` |
-| `BookFrame` | Control | Page-level chrome wrapper (chapter-bracket + page-corner ornaments). Page-chrome only — NOT for individual panels. `setup(content, color)`, `show_background` toggle for overlay mode, `show_ornaments` subset. See [project_book_frame_callout_card_shipped.md](memory) |
+| `BookFrame` | Control | Page-level chrome wrapper (chapter-bracket + page-corner ornaments). Page-chrome only — NOT for individual panels. `setup(content, color)`, `show_background` toggle for overlay mode, `show_ornaments` subset. See the `project_book_frame_callout_card_shipped` memory |
 | `CalloutCard` | PanelContainer | Sharp-corner Elite-Ranks-style callout (StyleBoxFlat + colored stroke + title inline upper-left). `setup(title, content, color)`. 5 semantic colors |
 | `OrnamentPanel` | Control | Rounded sci-fi callout chrome (StyleBoxFlat + colored stroke + procedural corner brackets via NinePatchRect). `accent_color`, `title_text`, `add_content_child()`. Auto-picks compact (32px) or standard (64px) atlas based on `custom_minimum_size`. See [docs/sop/ornament-panel-pattern.md](docs/sop/ornament-panel-pattern.md) |
 
@@ -677,6 +738,29 @@ tests/performance/   # Performance benchmarks
 tests/mobile/        # Mobile-specific tests
 tests/fixtures/      # Test helpers and factories
 ```
+
+### QA Scenarios (debug builds only — Aug 8 2026)
+
+Campaign Dashboard → **QA** button (gated on `OS.is_debug_build()`, so a release export
+cannot reach it). Jumps a loaded campaign to a state that is expensive to play to —
+injuries/Sick Bay, Compendium mission types, rivals+patrons+an active Quest, or the
+endgame/failure block. Built because two full turns on device produced zero injuries, zero
+XP spent, no Rival attacks and no Compendium mission.
+
+- `src/core/qa/QAScenarioLoader.gd` — ALL mutation. `src/ui/screens/dev/QAScenarioDialog.gd`
+  is presentation only.
+- Fixtures are **deltas, not save files**: `data/qa_scenarios/*.json`, applied through the
+  same owner setters the Campaign Editor uses (note `story_points` → `set_story_progress`;
+  salvage goes through `SalvageLedger` as a computed delta). They survive a `schema_version`
+  bump because they never touch the serialized shape.
+- **It deliberately does not jump the PHASE** — deep-linking builds states the real flow
+  never produces, which generates false findings. Scenarios set campaign state and hand back.
+- `apply()` returns a receipt (`applied` / `warnings`), never a bool: a scenario that
+  silently skipped half its setup is worse than none.
+- `tests/unit/test_qa_scenarios.gd` (13 cases) loads the byte-identical fixtures, so device
+  QA and CI cannot drift. Two guards are detection-proven: a fixture counter key with no
+  `GameStateManager` setter, and a crew field outside `_CREW_FIELDS`. Add a fixture key
+  without a consumer and they go red.
 
 ### Headless Verification (compile check)
 ```powershell
@@ -828,12 +912,78 @@ Example: `py -c "from PyPDF2 import PdfReader; r = PdfReader('docs/rules/Five Pa
 - `scripts/lint_data_ownership.py` — CI lint, run with `py scripts/lint_data_ownership.py`
 - **Wiring-audit lints (Jul 10 2026, `py scripts/<name>`)**: `lint_signal_wiring.py` (signals declared but never emitted — flags "live dead-wires" where a listener can never fire), `lint_tscn_connections.py` (`.tscn [connection method=]` must resolve to a real `func` on the target's script — catches dead buttons), `lint_autoload_lookups.py` (`/root/Name` must be a project.godot autoload or an evidence-allowlisted runtime node; `# lint:ignore` marks intentional test seams like the MockDiceSystem `/root/DiceSystem` injection). **All three are CLEAN (exit 0) as of Aug 6 2026** — the legacy backlog they were introduced to track (67 signals / 6 tscn / 35 autoload) is CLOSED. They are now a regression guard: a new finding means you just introduced one.
 - **`lint_data_ownership.py` is CLEAN (exit 0) as of Aug 6 2026.** It supports `# lint:ignore` as a TRAILING comment on the offending line (not the line above — it matches the same line). Use it only where the write is genuinely justified and say why at the site; the two current exemptions are in `TravelEventResolver` / `CampaignEventEffects`, which are parameterised by campaign and so cannot delegate to a singleton bound to a different one.
+- **`lint_journal_vocabulary.py` (sixth lint, Aug 8 2026)**: every `type` / `tags` value in a journal `create_entry()` call must exist in `JournalEntryTypes.STRING_TO_TYPE` / `.TAGS`. `validate_entry()` only `push_warning()`s, so a typo is invisible except as log noise — but a non-canonical type falls to `EntryType.CUSTOM` and drops out of type-filtered journal views, and a non-canonical tag renders unlabelled and uncoloured. Found 17 type + 27 tag uses on introduction (the QA row that prompted it named 2). **⚠ Scope it to `create_entry()` calls only** — matching `"type": "..."` anywhere in `src/` reports ~200 false hits, because weapon/terrain/mission/world/enemy taxonomies all use the same key name. Never tag a runtime value (an item id, a character name): a tag is a fixed vocabulary.
+- **`scripts/scan_dead_has_method_guards.py` (REPORT-ONLY, always exits 0 — NOT an eighth gating lint).** Finds `has_method("X")` guards where `func X` has ZERO definitions repo-wide, i.e. permanently-false branches. This trap has now bitten three times (`damage_hull()` Aug 1; `journal.get_entries()` Aug 9 — the printable sheet had never received a single journal entry on any platform). It reports ~91 names in `src/`, and **most are legitimate**: GDExtension / platform-plugin APIs that must be probed at runtime (GodotSteam, Google Billing, libharu). Triage before promoting it to a gating lint.
 - **`lint_orphan_assets.py` reports TWO categories and exits 1 on either.** `orphans` (unreachable from product AND tests) is **0**. `test_only` — files kept alive solely by their own tests — is **41** and is a deliberate wire-or-delete backlog (`docs/WIRING_CLEANUP_BACKLOG.md` tier 7); it includes components documented here as built-but-unwired (BookFrame, OrnamentPanel). Do not bulk-delete that list.
 - `tests/unit/test_equipment_persistence.gd` — 7 tests covering save/load round-trip, ownership rebuild, and tabletop invariants
 - `tests/unit/test_equipment_transfer_service.gd` — 10 tests covering the transfer service API
 
 ### Tabletop invariant: one item, one home
 An equipment item is like a physical card — it exists in exactly one location (a character's sheet OR the ship stash, never both, never neither). `EquipmentTransferService` enforces this via atomic remove-then-add transfers with rollback on failure. The invariant is verified at runtime by `GameState.verify_consistency()` CHECK 4.
+
+---
+
+## ✅ The rules-wiring ledger is CLOSED (Aug 7 2026)
+
+`docs/RULES_WIRING_AUDIT_2026-08.md`: **0 open / 0 partial / 136 fixed / 1 corrected.**
+`verify_post_battle` 47/47 · `verify_battle_ui` 79/79 · all four lints CLEAN ·
+headless `--import` parse-clean. Every fix detection-proven by isolated revert.
+
+**Read the zero correctly.** It means every row someone WROTE DOWN has a call site
+and a test. Eight auditors walked eight subsystems; nobody walked every page of
+both books. The going-forward guard is the four `scripts/lint_*.py` plus the
+per-row tests — never this count.
+
+### ⭐ The shape of nearly every closing row: correct code, no call site
+
+| Module | Accessors that were byte-faithful and had ZERO callers |
+|---|---|
+| `WorldTraitEffects` (SSOT for all 31 campaign-side traits) | **11** |
+| `BlackZoneSystem` | **4** |
+| `FactionSystem.attempt_faction_favor()` | complete — p.112 needs a crew task nobody built |
+| `PatronJobEffects` | `blocks_rival_tracking()`, `offers_new_job_on_success()` |
+| `SalvageMissionPanel.get_salvage_units()` | 1 — every salvage unit died with the battle screen |
+
+**The check that finds the whole class in one pass:** for a resolver or service
+module, enumerate its public accessors and grep each for an EXTERNAL caller.
+`tests/unit/test_final_partial_rows.gd::test_every_world_trait_accessor_has_a_live_consumer`
+does exactly that and now FAILS if a new accessor lands without one. Copy that
+shape to any other rules-resolver module you add.
+
+### Three traps to carry forward
+
+1. **A displayed number that exists nowhere else is a lie waiting to be found.**
+   Any UI literal describing a mechanic must READ the same data the mechanic does.
+2. **Check the price you charge against the price you check.** A modifier landing
+   on a cost must go through BOTH the affordability guard and the charge, or a
+   player can add what they cannot pay for.
+3. **A `contains()` assertion is not evidence a call runs.** Three times this audit
+   a source scan survived `if false and TheCall(`. Anchor on the exact enabling
+   form, and always RUN the mutation — a plausible revert that changes nothing is
+   how a dead control survives. See [[reference_a_red_harness_row_is_a_lead_not_a_verdict]].
+
+### New SSOT files from the closeout — use these, do not re-implement
+
+| File | Owns |
+|---|---|
+| `src/core/campaign/SalvageLedger.gd` | Compendium p.147 salvage units, the Scrapper, and the ONLY three purchases salvage may pay for (ship repairs / modules / bot upgrades) |
+| `src/core/campaign/InvasionFlight.gd` | Core Rules p.69 flee consequences — contact loss, sell-gear-at-a-loss, evacuation passage |
+| `src/core/systems/FactionFavorService.gd` | Compendium p.112 — the six Faction favors and the once-per-turn gate |
+| `src/core/world/InterdictionRule.gd` | Core Rules p.75 Interdiction (the only licence roll in live play besides p.72) |
+| `src/core/equipment/OnboardItemService.gd` | Core Rules pp.57-58, all 19 On-board Items |
+| `src/core/equipment/WeaponModService.gd` | Core Rules p.53 Gun Mods and Sights |
+
+**Empty-container trap, learned the hard way while writing `SalvageLedger`:**
+guarding on `pd.is_empty()` to mean "no campaign" silently disabled salvage for
+every fresh campaign — an empty `progress_data` is a LEGAL state. Guard on the
+OWNER (`campaign != null and "progress_data" in campaign and ... is Dictionary`),
+never on the container's emptiness. A unit test that constructs the emptiest legal
+object is worth writing for exactly this class.
+
+**One suppression chokepoint, four rules.** `CampaignTurnController._story_rival_suppression_reason()`
+now carries Story Events, Black Jobs (p.150), Private Transport (p.84) and Provide
+Cover (Compendium p.112). Add the fifth there too — a second place that can
+suppress the same roll is how the p.120 Rival payment rule ended up duplicated.
 
 ---
 
@@ -866,6 +1016,9 @@ An equipment item is like a physical card — it exists in exactly one location 
 ## Gotchas
 
 - **Godot's JSON parser returns every number as FLOAT — so `value is int` is ALWAYS false on loaded data (Aug 1 2026)**: `StoryEvent.load_from_json()` had `next_clock_ticks = clock_val if clock_val is int else 0`, which silently zeroed the next-clock for all seven Story Events. Nobody noticed for as long as the clock had no caller. Use `int(value)` with an explicit `== null` guard (events 5 and 7 legitimately carry `null` there), never an `is int` type test, on anything that came out of `JSON.parse`.
+- **A "rebuild from a fixed key literal" chokepoint silently DELETES every other key (Aug 9 2026)**: `CampaignJournal.create_entry()` assembles each entry from a literal `{id, turn_number, timestamp, type, auto_generated, title, description, mood, tags, characters_involved, location, photos, stats, player_notes}`. Anything else its caller passed is gone. Grepping the PRODUCER finds the key (the caller does pass it!) and tells you nothing — grep the chokepoint's literal. A hand-written test fixture of such an output is a shape the app **cannot produce**, so build fixtures with the real producer. This is how five of the Encounter Log's six boxes printed blank on every campaign with 28 green tests.
+- **Test the SCREEN, not just the builder it calls (Aug 9 2026)**: every sheet test called `SheetDataContext.build(a, b, c)` and *passed a, b, c in*, so nothing exercised the ~15 lines of `PrintSheetScreen._build_data_context()` that FETCH them — and both device-only defects lived exactly there (a dead `has_method` name, and an object-vs-Dictionary type check). Same shape as the T9-23 stash bug: a test of the callee is blind to a caller defect.
+- **When a symptom survives a correct fix, look for a SECOND cause before reverting (Aug 9 2026)**: the Encounter Log was blank for THREE independent reasons, each sufficient alone. "Still blank after your fix" was never evidence the fix was wrong.
 - **`damage_hull()` does not exist — the real API is `apply_ship_damage()` (Aug 1 2026)**: `func damage_hull` has ZERO definitions repo-wide, yet `CampaignEventEffects.gd` and `CharacterEventEffects.gd` both guarded on `gsm.has_method("damage_hull")` and returned a result string claiming the ship took damage. Permanently-false branches; the hull was never touched. `GameStateManager.apply_ship_damage(amount) -> int` is the live one and it applies ship traits (Armored -1, Improved Shielding -1, Dodgy Drive +2) and returns the damage actually dealt.
 - **A dead-code sweep can remove the seam instead of the corpse (Aug 1 2026)**: `c8fd7e07c` deleted `is_story_event_turn()` / `get_story_turn_mods()` / `get_story_battle_config()` from CampaignPhaseManager as "redundant zero-caller methods". They were zero-caller only because their one consumer, `phases/BattlePhase.gd`, had been deleted six weeks earlier. Before deleting a zero-caller **provider**, ask what used to call it — a missing consumer and genuine dead code look identical. Dead consumers are the dangerous ones; dead providers are usually a missing wire.
 - **Galactic War = the Core Rules p.126 2D6 table, nothing else (Jul 29 2026)**: step 14 is "If you are tracking any planets that were previously Invaded, roll 2D6" (2-4 Lost to Unity / 5-7 Contested / 8-9 Making Ground +1 to future rolls / 10+ Unity Victorious, world visitable again and future Invasion Threat at -2). `GalacticWarProcessor` implements it exactly. The tracked list lives on `FiveParsecsCampaignCore.invaded_planets` and is written ONLY via `record_invaded_planet()`, called from `TravelPhase._invasion_escape_result()`; the -2 aftermath is read via `get_invasion_threat_modifier()` in `PaymentProcessor.process_invasion_check()`. **`GalacticWarManager` and its "war track" system were DELETED** — the phrase appears in NEITHER rulebook (the Compendium index has one entry, `Galactic War Progress 126`) and the whole subsystem was inert. Do NOT re-add war tracks, `data/galactic_war/`, `GalacticWarPanel` or `GalacticWarProgressPanel`.
@@ -879,6 +1032,12 @@ An equipment item is like a physical card — it exists in exactly one location 
 - **Transfer snapshot + `_layer_planetfall_ending` layering (cross-mode transfer)**: an imported character carries a lossless `snapshot` of its canonical form; `export_to_canonical()` short-circuits on it so a round-trip is verbatim. Planetfall ending bonuses are layered on TOP of the snapshot-restored veteran via `_layer_planetfall_ending()` because the bonuses depend on the ENDING, not on stats. Don't "simplify" by recomputing stats from the Planetfall-side character — use the snapshot.
 - **KP→Luck is deliberately NOT converted on Planetfall export**: the book is silent on a KP→Luck export conversion (the p.27 "prefer the Luck system" note is an IMPORT-side option only). `convert_from_planetfall()` restores base Luck (1); imported veterans get their real Luck back losslessly via the snapshot. Inventing a KP→Luck export formula would violate data integrity — do NOT add one.
 - **Tactics character import = named veteran, NOT a squad unit (SHIPPED Jun 4)**: Tactics army lists stay species-profile-based. An imported character becomes a NAMED VETERAN (an "officer or hero" figure, Tactics p.185) stored in the serialized `veteran_characters[]` array on `TacticsCampaignCore` — NEVER injected into `campaign_units[]` (that would break points validation). Mutators: `add_veteran_character()` / `remove_veteran_character()` / `get_veteran_characters()`. `CampaignScreenBase._add_character_to_mode()` "tactics" case dispatches to `add_veteran_character()`. The `convert_to_tactics()` / `convert_from_tactics()` conversion is book-faithful (Tactics p.184): the invented `military_backgrounds` list is GONE (replaced with a "military"/"war-torn" substring check grounded in the real gear_database.json backgrounds — the book says only "+2 with a military-type background", no enumerated list); the `max(luck,1)` KP floor moved to the veteran layer as a tagged playability floor so the conversion stays exact ("1 Kill Point per Luck point"); equipment carries over as-is ("carry weapons over as they are"). The `military_backgrounds` GAME_BALANCE_ESTIMATE tag and "must replace first" prerequisite are GONE.
+- **`to_dictionary()` hands back the LIVE containers, so it is a SERIALIZER, not a snapshot (Aug 8 2026)**: `FiveParsecsCampaignCore.to_dictionary()` returns `"crew": crew_data`, `"progress": progress_data`, `"equipment": equipment_data` etc. as REFERENCES. That is correct for saving (the JSON writer only reads), and catastrophic for anything that stores the result and expects it to stay put. `CampaignPhaseManager._store_phase_checkpoint()` did exactly that and **aliased the campaign to itself** — every later mutation wrote through into the "snapshot", and `rollback_to_phase()` assigned the same object back. The failure was worse than no checkpoint: scalar `@var`s (credits, `quest_rumors`, turn) DID revert because ints copy by value while every Dictionary silently did not, so a rollback produced an incoherent hybrid (a Quest still active alongside the Rumors it should have spent). Any new consumer that PERSISTS a `to_dictionary()` result must `.duplicate(true)` it. Pinned by `tests/unit/test_destructive_actions_confirm.gd`.
+- **There is no soft-keyboard signal in Godot 4.6 — arm on focus, then POLL (Aug 8 2026)**: the whole API is `DisplayServer.virtual_keyboard_show/hide/get_height`, and `get_height()` returns 0 while hidden. The only trigger is `Viewport.gui_focus_changed`, and at the instant it fires the keyboard is still ANIMATING IN, so the height still reads 0 — a handler that samples once on focus measures zero every time and silently does nothing on every device. `src/autoload/KeyboardAvoidance.gd` is the SSOT: arm on focus, poll until the height is stable, apply once, disarm. Note `virtual_keyboard_get_height()` is in PHYSICAL px while Control rects are in the stretched design space (square-1080 `canvas_items`+`expand`, so the ratio differs per orientation) — convert via `to_logical_height()`, never compare directly. `ScrollContainer.follow_focus` exists but only scrolls into the scroll's own rect and knows nothing about the keyboard.
+  - **MEASURED on a Lenovo TB361FU (Aug 8 2026): the Godot Android window does NOT resize when the IME opens — the keyboard purely OVERLAYS.** Proven by pixel-diffing two screencaps: the app content above the keyboard line was byte-identical with the keyboard closed and open (0 of 2,048,000 px differed). This is the load-bearing fact for the whole feature — if the window resized, `get_visible_rect()` would already exclude the keyboard and any app-side adjustment would DOUBLE-COUNT. Godot's docs say nothing either way; do not re-derive this, and do not "simplify" the avoidance away on the assumption that Android handles it.
+  - **Scrolling alone is not enough.** On a page whose content already fits, the ScrollContainer's range is ZERO and `scroll_vertical += shift` clamps back to 0 — the feature silently no-ops. That is most single-screen forms, and it is how the Campaign Editor failed its first device test with the fix supposedly in. Headroom (a temporary spacer appended to the scroll's content) is what makes the range exist; it must be removed when the keyboard closes or it becomes permanent dead space.
+  - **VERIFIED against the engine source: the height is PHYSICAL (raw device) pixels.** The class reference says only "in pixels", so this was traced instead. `DisplayServerAndroid::virtual_keyboard_get_height()` is a straight pass-through of `godot_io_java->get_vk_height()` with no scaling ([display_server_android.cpp](https://github.com/godotengine/godot/blob/4.6/platform/android/display_server_android.cpp)), and the Java side derives it from `WindowInsetsCompat.Type.ime()` — **Android window insets are always raw device px**. So `to_logical_height()` converting by the stretch ratio is correct; do not "simplify" it away.
+  - **Engine history worth knowing: the nav bar used to be double-counted.** [godot#86663](https://github.com/godotengine/godot/issues/86663) (with [#41388](https://github.com/godotengine/godot/issues/41388)) reported the navigation-bar height being ADDED to the keyboard height on Android 11+ when the nav bar is permanently visible, giving a keyboard height that is too LARGE — i.e. over-scroll. Affected 4.2-4.3, closed via PR #108287 at **milestone 4.5**, so **4.6 (this project's engine) contains the fix**. It reportedly did not reproduce on every Android 11+ device, so the debug-build `print` in `_apply_avoidance()` (raw/window/logical/shift) is kept to confirm it on the specific test tablet rather than assumed: compare `raw` against the keyboard's measured height in a screencap (~762 of 1600 px on the TB361FU).
 - **`--headless --quit` is NOT comprehensive**: Only validates startup scripts. The Godot editor LSP loads ALL scripts. Always reboot editor after headless check
 - **`class_name` + autoload conflict**: If a script has `class_name Foo` AND is registered as autoload "Foo", Godot 4.6 errors "Class hides an autoload singleton." Fix: remove `class_name` from autoloaded scripts
 - **`Engine.has_singleton()` does NOT work for autoloads**: Autoloads are scene tree nodes at `/root/Name`, NOT engine singletons. For non-Node classes (Resource/RefCounted), use `Engine.get_main_loop().root.get_node_or_null("/root/AutoloadName")`
@@ -992,6 +1151,7 @@ Route by task difficulty — Opus for cross-system or verification-critical work
 
 ## Key Documentation
 
+- `docs/RULES_WIRING_AUDIT_2026-08.md` — **✅ CLOSED Aug 7 2026: 0 open / 0 partial / 136 fixed / 1 corrected.** The record. `docs/RULES_WIRING_CLOSEOUT_PLAN.md` is the route that was taken (complete; kept for its method, not as a worklist). **Do not read 0 open as "the rules are done"** — it means every row someone WROTE DOWN has a call site and a test; eight auditors walked eight subsystems, nobody walked every page of both books
 - `docs/DOCUMENTATION_INDEX.md` — Master documentation hub (all docs indexed here)
 - `docs/PROJECT_STATUS_2026.md` — Current project status
 - `docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md` — 100% compliance tracker (170/170)
@@ -1011,6 +1171,8 @@ Institutional knowledge. **Read the relevant SOP before touching its subsystem; 
 | `docs/sop/ornament-panel-pattern.md` | Before writing new rulebook-styled callout panels (rounded chrome + colored stroke + corner brackets via 9-slice atlas). Procedural bracket generator, compact/standard atlas variants, decision matrix vs CalloutCard/BookFrame |
 | `docs/sop/cross-mode-transfer.md` | Before adding/editing a character-transfer leg between gamemodes (5PFH/Bug Hunt/Planetfall/Tactics), the `user://transfers/` file-drop envelope, the lossless snapshot, the reward-suppression rule, or the mode-generic dashboard pickup. Canonical-hub + file-drop + snapshot pattern |
 | `docs/sop/responsive-adaptive-ui.md` | Before touching `ResponsiveManager`, adding a screen that must adapt to size/orientation (mobile/tablet/desktop), building a multi-pane screen (`AdaptivePanelGroup`), or changing `project.godot [display]`. DPI-aware breakpoints, `layout_class_changed` rotation signal, `get_effective_columns()`, base-class convergence, the square-base/portrait gotchas |
+| `docs/sop/sheet-export.md` | Before touching the printable sheets — `SheetRenderer`, `SheetDataContext`, `PdfExportRouter`, `PrintSheetScreen`, or any `data/sheets/**/*_fields.json`. Field-coordinate manifests, the CV extractor's known blind spots, the invisible searchable text layer, the two PDF backends, and the Appendix X caption audit |
+| `docs/sop/android-runtime-testing.md` | Before any responsive-UI merge (tier 1 minimum) or before distributing any Android APK (tier 2 required). Deploy routes, adb/logcat, remote-debugger profiling, performance thresholds |
 | `docs/sop/decision-log.md` | When tempted to second-guess a pattern, or before proposing to replace one. Append-only — supersede with new entries, never delete |
 
 **Rule for adding an SOP**: only document a pattern after you've used it *twice*. First time is experiment, second time is pattern, third is when you wish you'd written it down. Document at the second.

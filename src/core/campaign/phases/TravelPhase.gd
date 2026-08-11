@@ -1119,7 +1119,7 @@ func _complete_travel_phase() -> void:
 				"turns_played", 0)
 		journal.create_entry({
 			"turn_number": turn_num,
-			"type": "travel",
+			"type": "event",
 			"auto_generated": true,
 			"title": "Travel to %s" % destination,
 			"description": "Crew traveled to %s." % destination,

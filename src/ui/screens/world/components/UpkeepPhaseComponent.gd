@@ -199,7 +199,7 @@ func _resolve_onboard_turn_income() -> void:
 	var jr: Node = get_node_or_null("/root/CampaignJournal")
 	if jr and jr.has_method("create_entry"):
 		jr.create_entry({
-			"type": "upkeep", "auto_generated": true,
+			"type": "payment", "auto_generated": true,
 			"title": "On-board Items (+%d credits)" % credits,
 			"description": text,
 			"tags": ["onboard_items", "upkeep"],
@@ -446,7 +446,7 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 						effect.get("component", "")
 					).capitalize().replace("_", " ")
 					journal.create_entry({
-						"type": "upkeep",
+						"type": "payment",
 						"title": "Ship Component: %s" % comp_name,
 						"description": effect.get("description", ""),
 						"tags": [
@@ -567,6 +567,7 @@ func _show_sell_for_upkeep_dialog(
 
 		var name_lbl := Label.new()
 		name_lbl.text = item_name
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_lbl)
 
@@ -875,6 +876,13 @@ func _build_travel_section() -> void:
 	var world_name := _get_current_world_name_for_travel()
 	var world_label := Label.new()
 	world_label.text = "Current Location: %s" % world_name
+	# A Label's MINIMUM WIDTH IS ITS TEXT WIDTH when autowrap is off, so an
+	# unwrapped label holding a player- or generator-supplied name cannot shrink and
+	# pushes the whole card off a narrow screen. Caught by the layout sweep at phone
+	# portrait (338px) against a real save whose world is "Campaign_2026-03-07T22
+	# -39-47 Prime": 399px demanded in a 339px space, card off-screen by 69.5px.
+	# Any label rendering variable-length content needs this.
+	world_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	world_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	world_label.add_theme_color_override(
 		"font_color", Color(0.31, 0.765, 0.969, 1))
@@ -1396,6 +1404,14 @@ func _on_travel_pressed() -> void:
 
 	# Refresh upkeep display (credits changed)
 	current_upkeep_data = calculate_upkeep_costs()
+	# T7-01: rebuild the travel section too, or the card keeps announcing the world
+	# you just LEFT. Observed on device: "Current Location: <old world>" sat directly
+	# above "✓ Arrived: Delta II", with the World Briefing below still showing the old
+	# world's type, danger, traits and locations — one screen naming two places.
+	# _build_travel_section() frees and rebuilds its own panel, and the other two
+	# callers already use exactly this calculate → rebuild → update → gate sequence;
+	# arrival was the one mutation that skipped the rebuild.
+	_build_travel_section()
 	_update_ui_display()
 	_update_gating_state()
 
@@ -1494,18 +1510,35 @@ func _build_ship_debt_entry(vbox: VBoxContainer) -> void:
 	if gsm.has_method("get_credits"):
 		credits = int(gsm.get_credits())
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	# Label ABOVE the buttons, buttons in a FLOW row.
+	#
+	# This was one HBoxContainer holding the label and up to four "Pay N" buttons.
+	# Their combined minimum width does not fit a 310px phone (measured: the card
+	# went off-screen by 48px), and neither obvious repair works alone — an
+	# unwrapped Label's minimum width IS its text width, so it pushes the row wider;
+	# autowrap instead lets it collapse to ~1px and render as a 480px-tall slab.
+	# Both were observed by the layout sweep, in that order.
+	#
+	# Giving the label its own line removes it from the horizontal budget entirely
+	# (and lets it wrap, losing nothing to an ellipsis), and HFlowContainer wraps the
+	# buttons onto a second line instead of overflowing. HFlow, not Grid: a fixed
+	# column count would just move the problem. Only reachable when debt > 0, which
+	# is why the sweep passed for months — the fixture campaign carried none.
+	var block := VBoxContainer.new()
+	block.add_theme_constant_override("separation", 8)
 
 	var label := Label.new()
 	# p.76 interest ladder, shown so the player can weigh paying down below 31.
 	var interest: int = 2 if debt >= 31 else 1
 	label.text = "Ship debt: %d cr (+%d/turn)" % [debt, interest]
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if debt >= 60:
 		label.add_theme_color_override("font_color", UIColors.COLOR_RED)
-	row.add_child(label)
+	block.add_child(label)
+
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
 
 	for amount: int in [1, 5, 10]:
 		if credits < amount or debt < amount:
@@ -1526,7 +1559,8 @@ func _build_ship_debt_entry(vbox: VBoxContainer) -> void:
 		all_btn.pressed.connect(_on_pay_ship_debt.bind(payoff))
 		row.add_child(all_btn)
 
-	vbox.add_child(row)
+	block.add_child(row)
+	vbox.add_child(block)
 
 
 func _on_pay_ship_debt(amount: int) -> void:
@@ -2246,7 +2280,7 @@ func _roll_freelancer_licence(campaign: Resource) -> void:
 	var jr: Node = get_node_or_null("/root/CampaignJournal")
 	if jr and jr.has_method("create_entry"):
 		jr.create_entry({
-			"type": "travel", "auto_generated": true,
+			"type": "event", "auto_generated": true,
 			"title": "Freelancer License required", "description": line,
 			"tags": ["world", "patron", "license"],
 		})
@@ -3120,7 +3154,7 @@ func _arrive_at_new_world() -> Dictionary:
 		var jr: Node = get_node_or_null("/root/CampaignJournal")
 		if jr and jr.has_method("create_entry"):
 			jr.create_entry({
-				"type": "travel", "auto_generated": true,
+				"type": "event", "auto_generated": true,
 				"title": "Interdiction", "description": str(line),
 				"tags": ["world_trait", "interdiction"],
 			})
@@ -3179,7 +3213,7 @@ func _report_arrival_departures(departures: Dictionary) -> void:
 			detail.append("Patrons dismissed on departure: %s"
 				% ", ".join(patrons_left))
 		journal.create_entry({
-			"type": "travel",
+			"type": "event",
 			"title": "Departure",
 			"description": "\n".join(detail),
 		})
@@ -3341,6 +3375,7 @@ func _display_travel_event(
 
 	var title_label := Label.new()
 	title_label.text = event.get("title", "Unknown Event")
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_label.add_theme_font_size_override("font_size", _scaled_font(18))
 	title_label.add_theme_color_override(
 		"font_color", Color(0.953, 0.957, 0.965, 1))
@@ -3525,6 +3560,7 @@ func show_dismiss_crew_dialog() -> void:
 
 		var name_lbl := Label.new()
 		name_lbl.text = mname
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(name_lbl)
 
@@ -3659,7 +3695,7 @@ func _execute_crew_dismissal(
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "crew_departure",
+			"type": "character_event",
 			"auto_generated": true,
 			"title": "Crew Dismissed: %s" % mname,
 			"description": (

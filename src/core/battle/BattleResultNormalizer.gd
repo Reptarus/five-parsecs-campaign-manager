@@ -145,9 +145,32 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# TALLY that the whole chapter exists to earn never left the battle screen.
 			# mission_type rides along so "no Invasion checks after a Salvage battle"
 			# (p.147) can be decided on every exit, not just the played one.
-			"salvage_units", "is_illegal", "mission_type"]:
+			"salvage_units", "is_illegal", "mission_type",
+			# deployment_condition / notable_sight added 2026-08-09 with the
+			# Encounter Log (Core Rules Appendix X, p.180). Both are rolled onto
+			# mission_data by CampaignTurnController (the p.88 condition at :1112,
+			# the p.89 sight at :1027/:1032) and neither crossed this chokepoint,
+			# so the battle record could not name the scenario it was fought under.
+			# notable_sight ALSO repairs a first-choice read that was always
+			# missing: PostBattleCompletion.apply_notable_sight_reward() looks for
+			# it on the result and only then falls back to a nested mission_data
+			# copy that most paths do not carry.
+			"deployment_condition", "notable_sight"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
+	# 5c) enemy_count is DERIVED, not copied — same reason as is_invasion below.
+	#     mission_data carries a PRE-setup `enemy_count` from the generator, but
+	#     BattleSetupRules can still move the count afterwards (Invasion +1, Small
+	#     Encounter, the Red Job base of 7) and writes the result to
+	#     enemy_force.count (CampaignTurnController:1119). The Encounter Log's
+	#     "Number" column means the number actually FACED, so prefer the post-delta
+	#     value and fall back to the raw key only when there is no enemy_force.
+	if not results.has("enemy_count"):
+		var force: Variant = mission.get("enemy_force", null)
+		if force is Dictionary and (force as Dictionary).has("count"):
+			results["enemy_count"] = int((force as Dictionary)["count"])
+		elif mission.has("enemy_count"):
+			results["enemy_count"] = int(mission["enemy_count"])
 	# 5b) is_invasion is DERIVED, not merely copied. The only marker an Invasion
 	#     battle reliably carries is mission_source, and BattleSetupRules already
 	#     treats the two as equivalent at setup time (is_invasion()). Deriving it

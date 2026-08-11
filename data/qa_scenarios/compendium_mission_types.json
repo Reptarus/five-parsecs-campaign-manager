@@ -1,0 +1,23 @@
+{
+  "name": "Compendium mission types",
+  "summary": "Fixer's Guidebook + Freelancer's Handbook fully enabled, so Salvage / Stealth / Street Fight jobs appear in World Phase step 3.",
+  "unlocks": [
+    "Compendium pp.137-147 — Salvage Jobs",
+    "Compendium pp.117-122 — Stealth Missions",
+    "Compendium pp.123-136 — Street Fights",
+    "Compendium pp.66-73 — No-minis Combat"
+  ],
+  "note": "HIGHEST-RISK BLOCK. All four were LIVE in code and unreachable in campaign play until Aug 6 2026 (TacticalBattleUI.initialize_battle early-returned whenever selected_tier was stamped, which CampaignTurnController does on every campaign battle). That fix has never been confirmed on hardware. JobOfferComponent._generate_compendium_missions() injects the three job types into step 3 gated purely on these DLC flags, so enabling them is the whole setup — then accept one and check the mission-type panel actually builds in TacticalBattleUI.",
+  "campaign": {
+    "turns_played": 4,
+    "credits": 40,
+    "supplies": 3,
+    "story_points": 4
+  },
+  "dlc": {
+    "own": ["fixers_guidebook", "freelancers_handbook"]
+  },
+  "compendium_progress": {
+    "salvage_units": 6
+  }
+}

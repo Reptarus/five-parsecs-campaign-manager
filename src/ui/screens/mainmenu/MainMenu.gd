@@ -159,10 +159,51 @@ func setup_ui() -> void:
 	_enforce_touch_targets()
 	add_fade_in_animation()
 
+## Copy shown when an out-of-alpha-1 mode is tapped. Each mode says what it IS, so
+## the popup advertises the roadmap instead of just refusing — these are finished,
+## shipping subsystems held back from alpha 1, not vapour.
+const COMING_SOON_BLURBS := {
+	"coop": "Co-op Campaign\n\nShare a crew with another player across the full "
+		+ "campaign turn.\n\nNot in this alpha build — coming in a later release.",
+	"bug_hunt": "Bug Hunt\n\nThe Compendium's standalone military variant: a "
+		+ "3-stage turn, contact markers, and no ship or patrons.\n\nNot in this "
+		+ "alpha build — coming in a later release.",
+	"tactics": "Tactics\n\nPoints-based army building and an operational campaign, "
+		+ "with species army lists and vehicles.\n\nNot in this alpha build — "
+		+ "coming in a later release.",
+	"planetfall": "Planetfall\n\nColony-building campaign with an 18-step turn, "
+		+ "research, building and colony integrity.\n\nNot in this alpha build — "
+		+ "coming in a later release.",
+}
+
+
+## Show the mode's "coming soon" note instead of navigating.
+##
+## These buttons used to be HIDDEN (or, for Tactics/Planetfall, never created at
+## all), which reads as "this app does not have those modes" rather than "not
+## yet". Showing them dimmed and answering the tap is the honest version, and it
+## also puts the roadmap in front of an alpha tester at no cost.
+func _show_coming_soon(mode_key: String) -> void:
+	var text: String = str(COMING_SOON_BLURBS.get(mode_key, "Coming in a later release."))
+	AcknowledgeDialog.show_message(self, text)
+
+
+## Dim a button so it reads as unavailable while STAYING tappable — a `disabled`
+## Button emits no `pressed` at all, so it could never explain itself.
+func _mark_coming_soon(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.visible = true
+	btn.disabled = false
+	btn.modulate = Color(1, 1, 1, 0.55)
+	btn.tooltip_text = "Coming in a later release"
+
+
 func _inject_tactics_button() -> void:
-	# Dynamically add Tactics button after Bug Hunt
-	if A1_BUILD:
-		return # out of alpha-1 scope; every later use of tactics_button is null-guarded
+	# Dynamically add Tactics button after Bug Hunt. Created in EVERY build now:
+	# under A1_BUILD it exists but answers with the coming-soon note (see
+	# _apply_a1_scope), so the menu shows the full roadmap rather than implying
+	# the modes do not exist.
 	if not bug_hunt_button:
 		return
 	var menu_container := bug_hunt_button.get_parent()
@@ -177,9 +218,8 @@ func _inject_tactics_button() -> void:
 	menu_container.move_child(tactics_button, idx)
 
 func _inject_planetfall_button() -> void:
-	# Dynamically add Planetfall button after Tactics
-	if A1_BUILD:
-		return # out of alpha-1 scope; every later use of planetfall_button is null-guarded
+	# Dynamically add Planetfall button after Tactics. Created in every build — see
+	# _inject_tactics_button.
 	var anchor: Button = tactics_button if tactics_button else bug_hunt_button
 	if not anchor:
 		return
@@ -195,20 +235,44 @@ func _inject_planetfall_button() -> void:
 	menu_container.move_child(planetfall_button, idx)
 
 func _apply_a1_scope() -> void:
-	## Hide the scene-defined buttons for modes outside alpha-1 scope. Tactics and
-	## Planetfall are handled at their injection sites (never created at all), so
-	## only Co-op and Bug Hunt need hiding here.
+	## Present the out-of-alpha-1 modes as COMING SOON rather than hiding them.
 	##
-	## Runs AFTER _connect_buttons so the handlers stay wired: this is a visibility
-	## change, not a teardown, and flipping A1_BUILD restores the menu with no other
-	## edit. A hidden Control does not emit mouse_entered, so _wire_mode_hovers
-	## leaves the showcase card able to resolve only "standard".
+	## They used to be hidden outright (Co-op, Bug Hunt) or never created at all
+	## (Tactics, Planetfall), which tells an alpha tester the app does not have those
+	## modes — when in fact all four are built, tested and shipping later. It also
+	## made Test 8 (other-modes smoke) unrunnable from the menu.
+	##
+	## Runs AFTER _connect_buttons, so this REBINDS the four handlers to the
+	## coming-soon note. Flipping A1_BUILD to false restores real navigation with no
+	## other edit, exactly as before.
+	##
+	## The buttons stay ENABLED and are dimmed with `modulate` instead: a `disabled`
+	## Button emits no `pressed` signal, so it could never explain itself — which is
+	## the whole point of the change.
 	if not A1_BUILD:
 		return
-	if coop_campaign_button:
-		coop_campaign_button.visible = false
-	if bug_hunt_button:
-		bug_hunt_button.visible = false
+	var gated := {
+		"coop": coop_campaign_button,
+		"bug_hunt": bug_hunt_button,
+		"tactics": tactics_button,
+		"planetfall": planetfall_button,
+	}
+	for key: String in gated:
+		var btn: Button = gated[key]
+		if btn == null:
+			continue
+		_mark_coming_soon(btn)
+		# Drop the real navigation handler, then bind the note. Both are done by
+		# exact Callable so an unrelated listener on the same signal survives.
+		for cb: Callable in [
+			_on_coop_campaign_pressed, _on_bug_hunt_pressed,
+			_on_tactics_pressed, _on_planetfall_pressed,
+		]:
+			if btn.pressed.is_connected(cb):
+				btn.pressed.disconnect(cb)
+		var note := _show_coming_soon.bind(key)
+		if not btn.pressed.is_connected(note):
+			btn.pressed.connect(note)
 
 func _enforce_touch_targets() -> void:
 	# Ensure all menu buttons meet TOUCH_TARGET_MIN (48px)
@@ -723,6 +787,10 @@ func _on_import_from_file(load_dialog: Node) -> void:
 	file_dialog.filters = PackedStringArray(["*.save ; Campaign Save Files", "*.json ; JSON Files"])
 	file_dialog.title = "Import Campaign File"
 	file_dialog.size = Vector2i(800, 500)
+	# Android: SAF picker — without it the player cannot reach a save file in shared
+	# storage at all. Pairs with ACCESS_FILESYSTEM above.
+	# Full rationale: PrintSheetScreen._on_save_pdf_pressed().
+	file_dialog.use_native_dialog = true
 	file_dialog.file_selected.connect(_on_import_file_selected.bind(file_dialog))
 	file_dialog.canceled.connect(func():
 		file_dialog.queue_free()

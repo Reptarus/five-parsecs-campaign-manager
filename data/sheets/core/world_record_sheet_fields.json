@@ -2,80 +2,311 @@
   "sheet_id": "world_record_sheet",
   "book": "core",
   "source_png": "res://assets/sheets/core/world_record_sheet.png",
-  "source_size": [2764, 1843],
-  "_calibration_note": "Starter coordinates. Source values from PlanetDataManager.get_current_planet(). Use SheetRenderer debug overlay to calibrate.",
+  "source_size": [
+    2764,
+    1843
+  ],
+  "_calibration_note": "Re-authored 2026-08-09 against the artwork and re-audited against Core Rules Appendix X p.180, which PRINTS this sheet and is the authority on its captions. The previous manifest addressed World Type / Danger / Turns Visited, none of which this sheet prints, and three trait rows where there is one multi-line World Traits box. Licensing octagons read Yes | Obtained | No LEFT TO RIGHT on the artwork (the PDF text layer emits them in the reverse order - do not trust it); Yes and Obtained are joined by a connector rule, so a licensed world ticks both.",
   "fields": [
     {
       "id": "world_name",
       "type": "text",
-      "rect": [320, 200, 1200, 80],
-      "font_size": 48,
+      "rect": [
+        134,
+        254,
+        797,
+        109
+      ],
+      "font_size": 34,
       "align": "left",
-      "source": "world.name"
+      "source": "world.name",
+      "label_inset": 25,
+      "rule_offset": 113
     },
     {
-      "id": "world_type",
-      "type": "text",
-      "rect": [1720, 200, 720, 80],
-      "font_size": 36,
+      "id": "world_traits",
+      "type": "multiline_text",
+      "rect": [
+        963,
+        254,
+        796,
+        251
+      ],
+      "font_size": 28,
       "align": "left",
-      "source": "world.type"
+      "source": "world.traits_text",
+      "label_inset": 25,
+      "rule_offset": 255
     },
     {
-      "id": "danger_level",
-      "type": "text",
-      "rect": [320, 340, 600, 60],
-      "font_size": 32,
-      "align": "left",
-      "source": "world.danger"
-    },
-    {
-      "id": "license_required",
+      "id": "license_yes",
       "type": "checkbox",
-      "rect": [1080, 340, 60, 60],
-      "font_size": 32,
+      "rect": [
+        636,
+        445,
+        61,
+        36
+      ],
+      "font_size": 28,
       "align": "center",
-      "source": "world.license_required"
+      "source": "world.license_required",
+      "label_inset": 0,
+      "rule_offset": 40
     },
     {
-      "id": "trait_1",
-      "type": "text",
-      "rect": [320, 480, 1800, 60],
+      "id": "license_obtained",
+      "type": "checkbox",
+      "rect": [
+        728,
+        445,
+        62,
+        36
+      ],
       "font_size": 28,
-      "align": "left",
-      "source": "world.traits[0]"
+      "align": "center",
+      "source": "world.license_obtained",
+      "label_inset": 0,
+      "rule_offset": 40
     },
     {
-      "id": "trait_2",
-      "type": "text",
-      "rect": [320, 580, 1800, 60],
+      "id": "license_no",
+      "type": "checkbox",
+      "rect": [
+        846,
+        445,
+        61,
+        36
+      ],
       "font_size": 28,
-      "align": "left",
-      "source": "world.traits[1]"
+      "align": "center",
+      "source": "world.license_not_required",
+      "label_inset": 0,
+      "rule_offset": 40
     },
     {
-      "id": "trait_3",
-      "type": "text",
-      "rect": [320, 680, 1800, 60],
-      "font_size": 28,
+      "id": "invading_force",
+      "type": "multiline_text",
+      "rect": [
+        1875,
+        158,
+        755,
+        156
+      ],
+      "font_size": 26,
       "align": "left",
-      "source": "world.traits[2]"
+      "source": "world.invading_force",
+      "label_inset": 31,
+      "rule_offset": 161
     },
     {
-      "id": "turns_visited",
-      "type": "number",
-      "rect": [320, 820, 240, 60],
-      "font_size": 32,
-      "align": "right",
-      "source": "world.turns_visited"
+      "id": "war_progress",
+      "type": "multiline_text",
+      "rect": [
+        1875,
+        348,
+        755,
+        157
+      ],
+      "font_size": 26,
+      "align": "left",
+      "source": "world.war_progress",
+      "label_inset": 31,
+      "rule_offset": 161
     },
     {
       "id": "notes",
       "type": "multiline_text",
-      "rect": [320, 980, 2120, 600],
+      "rect": [
+        1875,
+        645,
+        755,
+        1064
+      ],
+      "font_size": 26,
+      "align": "left",
+      "source": "world.notes",
+      "label_inset": 16,
+      "rule_offset": 1067
+    },
+    {
+      "id": "patron_1_name",
+      "type": "text",
+      "rect": [
+        134,
+        645,
+        755,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.patron_rows[0].name",
+      "label_inset": 25,
+      "rule_offset": 160
+    },
+    {
+      "id": "patron_1_benefit",
+      "type": "multiline_text",
+      "rect": [
+        134,
+        810,
+        755,
+        163
+      ],
       "font_size": 24,
       "align": "left",
-      "source": "world.notes"
+      "source": "campaign.patron_rows[0].detail",
+      "label_inset": 31,
+      "rule_offset": 172
+    },
+    {
+      "id": "rival_1_name",
+      "type": "text",
+      "rect": [
+        1004,
+        645,
+        756,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.rival_rows[0].name",
+      "label_inset": 30,
+      "rule_offset": 160
+    },
+    {
+      "id": "rival_1_notes",
+      "type": "multiline_text",
+      "rect": [
+        1004,
+        810,
+        756,
+        163
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.rival_rows[0].detail",
+      "label_inset": 31,
+      "rule_offset": 172
+    },
+    {
+      "id": "patron_2_name",
+      "type": "text",
+      "rect": [
+        134,
+        1010,
+        755,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.patron_rows[1].name",
+      "label_inset": 26,
+      "rule_offset": 161
+    },
+    {
+      "id": "patron_2_benefit",
+      "type": "multiline_text",
+      "rect": [
+        134,
+        1175,
+        755,
+        163
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.patron_rows[1].detail",
+      "label_inset": 32,
+      "rule_offset": 172
+    },
+    {
+      "id": "rival_2_name",
+      "type": "text",
+      "rect": [
+        1004,
+        1010,
+        756,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.rival_rows[1].name",
+      "label_inset": 31,
+      "rule_offset": 161
+    },
+    {
+      "id": "rival_2_notes",
+      "type": "multiline_text",
+      "rect": [
+        1004,
+        1175,
+        756,
+        163
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.rival_rows[1].detail",
+      "label_inset": 32,
+      "rule_offset": 172
+    },
+    {
+      "id": "patron_3_name",
+      "type": "text",
+      "rect": [
+        134,
+        1376,
+        755,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.patron_rows[2].name",
+      "label_inset": 25,
+      "rule_offset": 160
+    },
+    {
+      "id": "patron_3_benefit",
+      "type": "multiline_text",
+      "rect": [
+        134,
+        1541,
+        755,
+        163
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.patron_rows[2].detail",
+      "label_inset": 31,
+      "rule_offset": 171
+    },
+    {
+      "id": "rival_3_name",
+      "type": "text",
+      "rect": [
+        1004,
+        1376,
+        756,
+        155
+      ],
+      "font_size": 30,
+      "align": "left",
+      "source": "campaign.rival_rows[2].name",
+      "label_inset": 30,
+      "rule_offset": 160
+    },
+    {
+      "id": "rival_3_notes",
+      "type": "multiline_text",
+      "rect": [
+        1004,
+        1541,
+        756,
+        163
+      ],
+      "font_size": 24,
+      "align": "left",
+      "source": "campaign.rival_rows[2].detail",
+      "label_inset": 31,
+      "rule_offset": 171
     }
   ]
 }

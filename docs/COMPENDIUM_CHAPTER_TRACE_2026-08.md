@@ -1,4 +1,4 @@
-# Compendium chapter trace — Aug 3 2026 (revised Aug 6)
+# Compendium chapter trace — Aug 3 2026 (revised Aug 6, closed Aug 7)
 
 > **This document has now been wrong four separate times, in four different ways.**
 > That is not a reason to distrust it — it is the reason to keep it. Each
@@ -163,15 +163,47 @@ getter.
 | Chapter | Verdict | Evidence |
 |---|---|---|
 | Introductory Campaign pp.104-109 | LIVE | `IntroductoryCampaignManager.gd:58/:77`, `JobOfferComponent.gd:1603` |
-| Expanded Factions pp.110-115 | LIVE | `FactionSystem` (autoload), 9 gate sites |
+| Expanded Factions pp.110-115 | LIVE *(complete Aug 7 — the p.112 favor call had no crew task, so Loyalty was unspendable)* | `FactionSystem` (autoload), 9 gate sites, + `FactionFavorService` and the `call_in_a_favor` crew task |
 | Mission Selection p.116 | LIVE | superseded by `JobOfferComponent`; the old `MissionSelectionUI` and its route were deleted with evidence (`WorldPhaseController.gd:2013-2018`) |
 | Stealth Missions pp.117-122 | LIVE *(unreachable in campaign play until Aug 6)* | `StealthMissionGenerator` + `StealthResolver` + `StealthMissionPanel` |
 | Street Fights pp.123-136 | LIVE *(unreachable in campaign play until Aug 6)* | `StreetFightGenerator` + `StreetFightResolver` + `StreetFightPanel` |
-| Salvage Jobs pp.137-147 | LIVE *(unreachable in campaign play until Aug 6; the p.137 availability D6 had ALSO never rolled — no-job, the 2cr fee and `is_illegal` were all inert)* | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` |
+| Salvage Jobs pp.137-147 | LIVE *(and now PAID — see the Aug 7 note below)* | `SalvageJobGenerator` + `SalvageResolver` + `SalvageMissionPanel` + `SalvageLedger` |
 | Fringe World Strife pp.148-151 | **LIVE (fixed Aug 3)** | four independent faults at the one call site, and fixing all four would still not have produced the chapter — its engine, a per-world Instability score, did not exist. New `src/core/world/FringeWorldStrife.gd` holds the arrival 1D6, the accumulator, the ≥10 D100 and the "NA" stop-tracking rows. See below |
-| **Loans pp.152-156** | **PARTIAL** | Steps 1/3/4 live via `TradePhasePanel.gd:828-832`. **Step 2 is a hardcoded constant** — see below |
+| **Loans pp.152-156** | **LIVE (fixed; re-verified Aug 7)** | Steps 1/3/4 live via `TradePhasePanel.gd:828-832`. Step 2 was `var loan_amount: int = 20`; it is now `base_cost + surcharge` off `_ship_cost_from_core_rules_p31()` and `CompendiumWorldOptions.loan_origin_surcharge()`, so a Unity loan (+5cr) and a Suspicious Character loan (+1D6cr) no longer cost the same. See below |
 | Name Generation pp.157-160 | LIVE | `compendium_world_options` name tables + `CharacterGeneration.gd:456`, `ContactManager.gd:311` |
 | Bug Hunt pp.161-223 | LIVE | full gamemode, separate architecture |
+
+---
+
+## ✅ Aug 7 2026 — the last chapter-level gaps closed
+
+Three chapters were LIVE by this document's own test — a live path reached the
+player — and were still not FINISHED, which is a distinction worth keeping:
+
+- **Salvage pp.137-147.** Reachable since Aug 6, but the units the player picked
+  up off the table **evaporated when the battle screen closed**. Nothing banked
+  them, `SalvageJobGenerator.get_salvage_credits()` had zero external callers, and
+  there was no Scrapper anywhere in the codebase — so the whole chapter produced a
+  currency that could not be spent on anything. Now: banked at post-battle Step 4
+  where p.147 puts it, spendable at the Scrapper (3 Loot rolls, 1D6 price with
+  "treat a 1 as a 2", once per campaign turn) and against the three purchases
+  p.147 names. **A second defect surfaced while wiring it**: `is_illegal` and
+  `salvage_units` had NO producer on `battle_result`, so the p.138 authorities
+  roll was unreachable *even after its own Aug 6 fix* — its test exercised the
+  generator directly and never crossed the funnel. Both now ride `mission_data`
+  through `BattleResultNormalizer`.
+- **Expanded Factions pp.110-115.** `attempt_faction_favor()` was correct and
+  complete and had ZERO callers, because p.112 says calling a favor in "requires a
+  crew task, and can only be done by your captain" and no such task existed. Every
+  Loyalty point the crew earned was unspendable and all six favors unreachable.
+- **Loans pp.152-156.** Step 2's hardcoded `20` is gone (row above).
+
+**The transferable line, and it is the fourth distinct failure mode this document
+has recorded: a chapter can be LIVE and still be an empty box.** "A live path
+reaches the player" was the right question for finding dead chapters and it does
+not detect a chapter whose OUTPUT has no consumer. When a chapter produces a
+resource — salvage units, Loyalty, Kill Points — trace the resource forward to
+something the player can spend it on, not just backward to the code that grants it.
 
 ---
 

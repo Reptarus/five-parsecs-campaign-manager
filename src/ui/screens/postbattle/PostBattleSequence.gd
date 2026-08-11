@@ -3267,8 +3267,9 @@ func _advance_to_next_step() -> void:
 	## Advance to next step (used by war panel and other components)
 	_on_next_pressed()
 
-func _get_current_crew() -> Array[Resource]:
-	## Get current crew members as Resource array for training dialog
+func _get_current_crew() -> Array:
+	## Get current crew members for the training dialog.
+	##
 	## UNTYPED, and unfiltered. crew_data["members"] holds Character RESOURCES on
 	## a fresh campaign and DICTIONARIES on every loaded save. The old
 	## `Array[Resource]` plus `if crew_member is Resource` dropped every member of
@@ -3276,6 +3277,18 @@ func _get_current_crew() -> Array[Resource]:
 	## character list for anyone who had saved and come back — which is precisely
 	## the crew that has accumulated enough XP to want it. The dialog reads both
 	## shapes through its own accessors.
+	##
+	## THE RETURN TYPE MUST STAY `Array`, NOT `Array[Resource]`. That earlier fix
+	## widened the BODY to an untyped array and left the SIGNATURE typed, so every
+	## call died on
+	##     "Trying to return an array of type "Array" where expected return type
+	##      is "Array[Resource]"."
+	## Godot ABORTS the function on that error and keeps the process alive, so the
+	## caller at :2011 never got its crew and the enclosing step build unwound
+	## silently — no crash, no visible message, just a post-battle sequence that
+	## did not appear. Found on the tablet 2026-08-08 submitting a battle result.
+	## Widening a container's element type is only half the change; the signature
+	## is the other half.
 	var crew_array: Array = []
 	var gsm_get_crew = get_node_or_null("/root/GameStateManager")
 

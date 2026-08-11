@@ -46,6 +46,24 @@ const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/Psionic
 const WorldBriefingBuilderScript = preload("res://src/core/world/WorldBriefingBuilder.gd")
 
 @onready var phase_container: Control = %PhaseContainer
+
+# PhaseContainer's and PhaseScroll's mouse_filter as the SCENE defines them, captured
+# before compaction first overrides them so the relaxed layout can be restored to those
+# rather than to a hard-coded guess. Negative means "not captured yet".
+# See _apply_vertical_compaction().
+var _phase_container_mouse_filter: int = -1
+var _phase_scroll_mouse_filter: int = -1
+
+# The layout currently ON SCREEN, as last decided by _apply_vertical_compaction().
+#
+# Everything that runs later reads this instead of re-deriving it. Re-asking _is_tight()
+# from a content-rebuild hook is not the same question: the briefing has just queue_free()d
+# its children at that point, so the column's minimums are momentarily tiny, the budget
+# reads huge, and the answer comes back "not tight" for a screen that is plainly tight.
+# Measured on the tablet — the sweep opened 33 controls and a later re-measure closed all
+# 33 again, leaving touch-drag exactly as dead as before the fix.
+var _is_tight_layout: bool = false
+
 @onready var step_navigation: Container = %StepNavigation  # HFlowContainer (wraps in portrait)
 @onready var current_step_label: Label = %CurrentStepLabel
 @onready var progress_bar: ProgressBar = %PhaseProgressBar
@@ -112,6 +130,30 @@ var step_indicators: Array = []
 # landscape has ~338 (see _apply_vertical_compaction), a 360x640 phone in portrait 551.
 const SHORT_VIEWPORT_DESIGN_PX := 620.0
 
+# The smallest step viewport that can actually be used: a list plus the buttons that
+# act on it. Below this the step is a caption with its controls off-screen.
+#
+# This exists because viewport HEIGHT alone is the wrong question. A 1280x800 tablet
+# in landscape measures 689 design px — comfortably over SHORT_VIEWPORT_DESIGN_PX, so
+# it was classed "tall" — but the fixed chrome costs 449 of those (margins 64, header
+# 75, the 134px Controls block, the 48px footer, two separators, four 24px gaps),
+# leaving 240. PhaseScroll then took 117px for 1130px of content, so World Phase Step 2
+# rendered as the "Crew Tasks" heading and nothing else: the crew list, the task list
+# and "Resolve All Tasks" were all below the fold. Verified on device Aug 8 2026 and
+# reproduced on desktop at the same geometry.
+#
+# A ScrollContainer reports ~0 minimum height, so PhaseContainer contributes 2px to the
+# column's minimum and absorbs the entire squeeze silently — nothing overflows and no
+# warning is printed, which is why a viewport-height rule could never catch it.
+const MIN_PHASE_VIEWPORT_DESIGN_PX := 320.0
+
+# The relaxed (non-compacted) spacing. Named because _phase_viewport_budget() has to
+# measure in these units even while the screen is already compacted — see its comment.
+const RELAXED_SEPARATION_PX := 24.0
+const TIGHT_SEPARATION_PX := 8.0
+const RELAXED_MARGIN_BOTTOM_PX := 32.0
+const TIGHT_MARGIN_BOTTOM_PX := 8.0
+
 # Name of the code-inserted scroll that holds everything below the Header.
 const CONTENT_SCROLL_NAME := "ContentScroll"
 
@@ -164,7 +206,6 @@ func _ready() -> void:
 		# at index 0 was freed" on every rotation for the rest of the session.
 		_rm.layout_class_changed.connect(_on_layout_class_changed)
 	get_viewport().size_changed.connect(_apply_vertical_compaction)
-
 
 ## Wrap everything below the Header in one scroll view, so a short screen can reach
 ## the parts of the chrome that do not fit.
@@ -228,17 +269,97 @@ func _ensure_content_scroll() -> void:
 ## here and is NOT the orientation-detection trap from
 ## docs/sop/responsive-adaptive-ui.md: the design-space height IS the layout budget
 ## being spent, whereas deciding "is this device portrait" needs physical pixels.
+## Design px left for the step area once the fixed chrome has been paid for.
+##
+## Deliberately built from get_combined_minimum_size(), NOT from live sizes: the live
+## height of PhaseScroll is an OUTPUT of the tight/not-tight decision, so feeding it
+## back in oscillates (going tight makes the step area tall, which then reads as
+## "plenty of room", which flips it back). Minimums are stable across both branches.
+##
+## PhaseContainer is excluded because it is the thing being budgeted for.
+##
+## MEASURED IN RELAXED UNITS ON PURPOSE. Compaction itself edits four of the inputs
+## this sum would otherwise read — both separations, margin_bottom, and the Title's
+## visibility — so reading them live makes the answer depend on the answer: the same
+## 1280x800 tablet measures 240 while relaxed and 384 while tight, which straddles the
+## threshold and flip-flops the layout between resizes. Asking the question in fixed
+## relaxed units keeps it monotonic, and it is also the question worth asking: "with
+## nothing given back yet, is the step area usable?"
+func _phase_viewport_budget() -> float:
+	var vp := get_viewport()
+	if vp == null:
+		return INF
+	var budget: float = vp.get_visible_rect().size.y
+	var mc := get_node_or_null("MarginContainer")
+	if mc is MarginContainer:
+		# margin_top belongs to the SettingsOverlay band reservation, not to
+		# compaction, so it is read live. margin_bottom is compaction's, so it is not.
+		budget -= float(mc.get_theme_constant("margin_top"))
+		budget -= RELAXED_MARGIN_BOTTOM_PX
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if not (vbox is VBoxContainer):
+		return budget
+	var header := vbox.get_node_or_null("Header")
+	if header is Control:
+		budget -= (header as Control).get_combined_minimum_size().y + RELAXED_SEPARATION_PX
+		# The Title is chrome compaction is allowed to reclaim, so it must not count in
+		# EITHER state — otherwise the tight reading sits permanently below the relaxed
+		# one and the first evaluation latches the layout for good. The header's minimum
+		# already excludes the Title once hidden, so add it back only while visible.
+		var title := header.get_node_or_null("Title")
+		if title is Control and (title as Control).visible:
+			budget += (title as Control).get_combined_minimum_size().y
+	var scroll := vbox.get_node_or_null(CONTENT_SCROLL_NAME)
+	var column: Node = scroll.get_node_or_null("ContentColumn") if scroll else null
+	if column is VBoxContainer:
+		for child in column.get_children():
+			if child is Control and (child as Control).visible \
+					and str(child.name) != "PhaseContainer":
+				budget -= (child as Control).get_combined_minimum_size().y \
+					+ RELAXED_SEPARATION_PX
+	return budget
+
+
+## Two independent ways to be short on height, and BOTH have to hand space back. The
+## first is a small screen. The second is a screen that is tall enough overall but whose
+## chrome has eaten the step area anyway — a landscape tablet, which the height test
+## alone waves through. See MIN_PHASE_VIEWPORT_DESIGN_PX.
+##
+## Its own function because the content sweep re-runs on rebuilds, long after compaction
+## last ran, and the two must never disagree about which layout is on screen.
+func _is_tight() -> bool:
+	var vp := get_viewport()
+	if vp == null:
+		return false
+	return vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX \
+		or _phase_viewport_budget() < MIN_PHASE_VIEWPORT_DESIGN_PX
+
+
 func _apply_vertical_compaction() -> void:
 	var vp := get_viewport()
 	if vp == null:
 		return
-	var tight: bool = vp.get_visible_rect().size.y < SHORT_VIEWPORT_DESIGN_PX
+	_apply_layout_for(_is_tight())
+
+
+## Apply a layout, without deciding which one.
+##
+## Split from the decision so both branches can be driven directly. Asking the question
+## and acting on it in one function made the regression tests depend on the harness
+## landing in the branch they wanted to check: they were green run alone and failed in a
+## multi-suite run, because an earlier suite left the window in a state where BOTH sizes
+## measured relaxed. An order-dependent test is worse than a failing one — it goes green
+## on the run that matters and hides the bug.
+func _apply_layout_for(tight: bool) -> void:
+	_is_tight_layout = tight
 	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
 	if vbox is VBoxContainer:
-		(vbox as VBoxContainer).add_theme_constant_override("separation", 8 if tight else 24)
+		(vbox as VBoxContainer).add_theme_constant_override("separation",
+			int(TIGHT_SEPARATION_PX if tight else RELAXED_SEPARATION_PX))
 	var mc := get_node_or_null("MarginContainer")
 	if mc is MarginContainer:
-		(mc as MarginContainer).add_theme_constant_override("margin_bottom", 8 if tight else 32)
+		(mc as MarginContainer).add_theme_constant_override("margin_bottom",
+			int(TIGHT_MARGIN_BOTTOM_PX if tight else RELAXED_MARGIN_BOTTOM_PX))
 
 	# The screen title repeats what the step label underneath it already says
 	# ("Step 2 of 6: Crew Tasks"), so it is the first thing to go when 35px matters.
@@ -252,12 +373,23 @@ func _apply_vertical_compaction() -> void:
 	# step area scrolls as it always has.
 	var scroll := get_node_or_null("MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
 	if scroll is ScrollContainer:
-		(scroll as ScrollContainer).vertical_scroll_mode = \
-			ScrollContainer.SCROLL_MODE_AUTO if tight else ScrollContainer.SCROLL_MODE_DISABLED
+		# AUTO in BOTH layouts, never DISABLED.
+		#
+		# The comment above wants the outer scroll "inert" when relaxed, and AUTO already
+		# means exactly that: a ScrollContainer set to AUTO shows no bar and consumes no
+		# gesture while its content fits. DISABLED means something stronger and wrong —
+		# it cannot scroll EVEN WHEN THE CONTENT OVERFLOWS.
+		#
+		# StepNavigation and the footer live inside this container, so DISABLED made them
+		# permanently unreachable whenever the page was taller than the viewport.
+		# Measured at the tablet's portrait geometry (800x1280 design px) on World Phase
+		# step 1: NextButton at y=1609 and BackToDashboardButton at y=1685, i.e. the
+		# primary navigation 329px below the fold with no way to bring it up.
+		(scroll as ScrollContainer).vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 		var column := scroll.get_node_or_null("ContentColumn")
 		if column is VBoxContainer:
-			(column as VBoxContainer).add_theme_constant_override(
-				"separation", 8 if tight else 24)
+			(column as VBoxContainer).add_theme_constant_override("separation",
+				int(TIGHT_SEPARATION_PX if tight else RELAXED_SEPARATION_PX))
 	# Resolve through the cached node, NOT "%PhaseContainer/PhaseScroll": a %-unique
 	# name only resolves as the FIRST element of a path, so that lookup returned null
 	# and the step area silently stayed scrollable — which is exactly the two-pixel
@@ -266,8 +398,125 @@ func _apply_vertical_compaction() -> void:
 	if phase_container and is_instance_valid(phase_container):
 		phase_scroll = phase_container.get_node_or_null("PhaseScroll")
 	if phase_scroll is ScrollContainer:
+		# ONE gesture model, in every layout: the OUTER scroll owns scrolling and the
+		# step area never scrolls independently.
+		#
+		# This used to hand ownership back and forth (outer when tight, inner when
+		# relaxed), and the relaxed half was broken in two ways measured on the tablet:
+		#
+		#   1. The chrome inside PhaseScroll (cards, separators) is MOUSE_FILTER_STOP and
+		#      is DEEPER than PhaseScroll, so it was offered the drag first and marked it
+		#      handled. PhaseScroll — the container that supposedly owned scrolling —
+		#      never saw a single touch-drag. The source comment argued the opposite
+		#      ("PhaseScroll is a child and so is offered the drag first"), which is true
+		#      of PhaseContainer ABOVE it and false of everything INSIDE it.
+		#   2. StepNavigation and the footer live in the OUTER scroll, so disabling that
+		#      one put Next Step permanently out of reach on any page taller than the
+		#      viewport (measured: y=1609 in a 1280 viewport).
+		#
+		# Unifying keeps every invariant the two-mode design existed to protect — exactly
+		# one scrollbar, never zero, and the gesture always reaching the owner — while
+		# removing the branch where the owner could not receive it.
 		(phase_scroll as ScrollContainer).vertical_scroll_mode = \
-			ScrollContainer.SCROLL_MODE_DISABLED if tight else ScrollContainer.SCROLL_MODE_AUTO
+			ScrollContainer.SCROLL_MODE_DISABLED
+		# Turning the scrolling off does NOT stop it CLAIMING the gesture. A
+		# ScrollContainer starts a drag the moment it sees the touch-press, and an event
+		# a child has claimed never reaches an ancestor — so while tight, PhaseScroll ate
+		# every touch-drag over the step area and the outer scroll, which owns scrolling
+		# there, saw nothing. Measured on the tablet: swipes inside the card left
+		# pixel-identical screenshots, while one on the strip above it (the only place
+		# outside PhaseScroll) scrolled correctly. IGNORE is what actually stops it — its
+		# mouse_filter is already PASS by default, so relaxing the filter changes nothing.
+		# Per the Godot 4.6 Control.MouseFilter docs IGNORE does not block other controls,
+		# so the step's own buttons and lists stay live.
+		if _phase_scroll_mouse_filter < 0:
+			_phase_scroll_mouse_filter = (phase_scroll as Control).mouse_filter
+		# IGNORE in every layout, for the same reason: PhaseScroll must never CLAIM a
+		# drag it no longer acts on. Per the Godot 4.6 Control.MouseFilter docs IGNORE
+		# does not block other controls, so the step's own buttons and lists stay live.
+		(phase_scroll as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	# ...and clear the panel above it as well.
+	# PhaseContainer is a PanelContainer, and PanelContainer defaults to
+	# MOUSE_FILTER_STOP, which per the Godot 4.6 Control.MouseFilter docs marks the
+	# event handled and stops it propagating. So while tight, a touch-drag anywhere over
+	# the step area died at PhaseContainer and the outer scroll — the container that now
+	# owns scrolling — never saw it. Observed on the tablet: every swipe inside the card
+	# left a pixel-identical screenshot, while a swipe on the thin strip just above it
+	# (outside PhaseContainer) scrolled the screen correctly.
+	#
+	# PhaseScroll itself needs nothing here: ScrollContainer already defaults to PASS.
+	# Confirm a filter before "fixing" it — the obvious suspect was not the STOP one.
+	#
+	# Restores the scene's own value rather than a hard-coded STOP, and only while
+	# relaxed, where the default is right: PhaseScroll is a child and so is offered the
+	# drag first, accepts it, and PhaseContainer never comes up.
+	if phase_container and is_instance_valid(phase_container):
+		if _phase_container_mouse_filter < 0:
+			_phase_container_mouse_filter = phase_container.mouse_filter
+		# PASS in every layout. PhaseContainer is a PanelContainer (default STOP) sitting
+		# between the step area and the outer scroll that now always owns the gesture, so
+		# it must always let the drag past.
+		phase_container.mouse_filter = Control.MOUSE_FILTER_PASS
+
+	_open_content_to_scroll_gesture(tight)
+
+
+## Let a touch-drag over the content reach whichever scroll owns it.
+##
+## Clearing the two containers above is not enough, because the finger does not land on
+## them — it lands on whatever decorative chrome is drawn under it, and PanelContainer
+## and HSeparator both default to MOUSE_FILTER_STOP, which Godot 4.6 marks handled and
+## does not propagate. The chain measured on the tablet, deepest first, was:
+##
+##     @HSeparator@1533   HSeparator      STOP    <- finger here
+##     WorldBriefingCard  PanelContainer  STOP
+##     PhaseContentVBox   VBoxContainer   PASS
+##     PhaseScroll        ScrollContainer IGNORE  <- already cleared, never reached
+##     PhaseContainer     PanelContainer  PASS    <- already cleared, never reached
+##     ContentScroll      ScrollContainer PASS    <- the one that needed the drag
+##
+## So this is a whole CLASS of blocker, not two nodes: every card and rule the briefing
+## draws is another one, and the briefing rebuilds them on each refresh. Hence a sweep
+## rather than a fix at any one creation site.
+##
+## Only NON-FOCUSABLE controls are opened. That is the line between chrome and controls:
+## panels, separators and layout boxes take no focus, while buttons, lists and text
+## fields do and must keep claiming their own gestures — dragging over a list should
+## still scroll THAT list. STOP -> PASS, never IGNORE, so the chrome still receives its
+## own mouse_entered/exited and only stops SWALLOWING what it does not handle.
+func _open_content_to_scroll_gesture(tight: bool) -> void:
+	var scroll := get_node_or_null("MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
+	if not (scroll is ScrollContainer):
+		return
+	_open_subtree(scroll, tight)
+
+
+func _open_subtree(node: Node, tight: bool) -> void:
+	for child in node.get_children():
+		if child is Control:
+			var c := child as Control
+			# Leave anything interactive alone, and leave PhaseScroll to the caller,
+			# which has to IGNORE it outright rather than merely open it.
+			if c.focus_mode == Control.FOCUS_NONE and not (c is ScrollContainer):
+				# Opened in BOTH layouts. This used to run only while tight, and the
+				# relaxed branch actively put STOP back — which left touch-drag dead on
+				# every tall screen, the tablet in landscape included.
+				#
+				# The original reasoning was correct about the wrong node. It argued the
+				# chrome could keep STOP when relaxed because "PhaseScroll is a child and
+				# so is offered the drag first" — true of PhaseContainer, which sits
+				# ABOVE PhaseScroll. But the cards and separators are INSIDE PhaseScroll,
+				# so they are deeper than it, are offered the event first, and STOP marks
+				# it handled before PhaseScroll can start a drag.
+				#
+				# Whichever container owns scrolling in a given layout, it is always an
+				# ANCESTOR of the chrome, so the chrome must always let the event past.
+				# Measured on the tablet: swipes over the step area left pixel-identical
+				# screenshots while the scrollbar scrolled fine.
+				if c.mouse_filter == Control.MOUSE_FILTER_STOP:
+					c.mouse_filter = Control.MOUSE_FILTER_PASS
+		_open_subtree(child, tight)
 
 
 ## Fill the World-Phase empty space with a persistent "World Briefing" of the
@@ -312,6 +561,47 @@ func _setup_world_briefing() -> void:
 	_refresh_world_briefing.call_deferred()
 
 
+## Repaint the briefing the moment the campaign's world actually changes.
+##
+## T8-03 (tablet QA, Aug 8 2026). The aggregate rebuild above is guarded on the
+## TURN number, which is right for the bug it was added for (the screen is SHOWN
+## each turn rather than re-created, so it went stale between turns) — but travel
+## changes the world DURING a turn, so the guard blocks the refresh and the
+## briefing keeps describing the world you just left.
+##
+## Observed on device: after "Travel to New World" the dashboard and the persisted
+## save both read high_cost / danger 3 / Research Station + Mining Facility, while
+## this screen still showed Imminent Invasion / danger 2 / Military Base + Ruins.
+## The travel card itself rebuilt correctly (the Pay buttons re-costed), which is
+## what made it look fine at a glance.
+##
+## The fix is NOT to drop the turn guard: _fetch_campaign_data() ends in
+## _initialize_components_with_data(), which has side effects — JobOfferComponent
+## ._fail_expired_job() writes journal entries — so an unguarded call double-fires
+## them. `world_changed` is the campaign's own arrival chokepoint (emitted by
+## initialize_world(), the single world_data writer), and _refresh_world_briefing()
+## re-reads PlanetDataManager live, so repainting on that signal is both targeted
+## and side-effect free.
+func _ensure_world_changed_subscription() -> void:
+	var gs := get_node_or_null("/root/GameState")
+	if gs == null or gs.current_campaign == null:
+		return
+	var c: Resource = gs.current_campaign
+	if not c.has_signal("world_changed"):
+		return
+	# Idempotent: initialize_world_phase() runs every turn, and the autoloaded
+	# campaign outlives this screen, so a plain connect() would stack duplicates.
+	if c.is_connected("world_changed", _on_campaign_world_arrived):
+		return
+	c.connect("world_changed", _on_campaign_world_arrived)
+
+
+func _on_campaign_world_arrived(_world_data: Dictionary) -> void:
+	if not is_inside_tree():
+		return
+	_refresh_world_briefing()
+
+
 ## Repopulate the briefing from the current planet. Safe to call anytime.
 func _refresh_world_briefing() -> void:
 	if not is_instance_valid(_world_briefing_vbox):
@@ -330,6 +620,11 @@ func _refresh_world_briefing() -> void:
 	if not planet:
 		return
 	WorldBriefingBuilderScript.build_into(_world_briefing_vbox, planet)
+	# The builder makes fresh PanelContainers and HSeparators every refresh, and every
+	# one of them defaults to MOUSE_FILTER_STOP — so without re-sweeping here the newly
+	# built chrome starts swallowing touch-drags again. See
+	# _open_content_to_scroll_gesture().
+	_open_content_to_scroll_gesture(_is_tight_layout)
 
 
 func _initialize_event_bus() -> void:
@@ -435,34 +730,9 @@ func _setup_initial_state() -> void:
 	# Previously only "all steps complete" was detected as stale, but partially
 	# complete checkpoints from a PREVIOUS turn leaked step_completed state
 	# (e.g., step 5 checkmark appearing on Turn 2's Upkeep).
-	if not _checkpoint_data.is_empty():
-		var stale_checkpoint := false
-		# Check turn number mismatch
-		var cp_turn: int = _checkpoint_data.get("turn_number", -1)
-		var current_turn: int = -1
-		var gs = get_node_or_null("/root/GameState")
-		if gs and "current_campaign" in gs and gs.current_campaign:
-			if "progress_data" in gs.current_campaign:
-				current_turn = gs.current_campaign.progress_data.get(
-					"turns_played", 0)
-		if cp_turn >= 0 and current_turn >= 0 and cp_turn != current_turn:
-			stale_checkpoint = true
-		# Also check: if ALL steps are complete, it's stale regardless
-		if not stale_checkpoint:
-			var all_done := true
-			var cp_steps: Dictionary = _checkpoint_data.get(
-				"step_completed", {})
-			for step_key in cp_steps:
-				if not cp_steps[step_key]:
-					all_done = false
-					break
-			if cp_steps.is_empty():
-				all_done = false
-			if all_done:
-				stale_checkpoint = true
-		if stale_checkpoint:
-			_checkpoint_data = {}
-			clear_checkpoint()
+	if is_checkpoint_stale(_checkpoint_data, _current_campaign_turn()):
+		_checkpoint_data = {}
+		clear_checkpoint()
 
 	# Check for existing checkpoint (BUG-030: preserve progress on Back to Dashboard)
 	if has_checkpoint():
@@ -504,11 +774,29 @@ func _setup_initial_state() -> void:
 	# Check for deferred events at start of turn
 	check_deferred_events("NEXT_TURN")
 
+## The campaign turn `world_phase_data` was last built for. -1 = never built.
+## Used by initialize_world_phase() to re-fetch exactly once per turn; see the
+## comment there for what a stale aggregate costs.
+##
+## Public (no leading underscore) on purpose: tests/unit/test_world_phase_data_merge.gd
+## forces a stale value to prove the per-turn rebuild actually happens. A guard nobody
+## can drive from a test is a guard nobody knows is working.
+var aggregate_built_for_turn: int = -1
+
+
+func _current_campaign_turn() -> int:
+	var gs := get_node_or_null("/root/GameState")
+	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
+		return int(gs.current_campaign.progress_data.get("turns_played", 0))
+	return -1
+
+
 func _fetch_campaign_data() -> void:
 	## Fetch crew and ship data from GameState autoload for self-initialization
 	var game_state_node = get_node_or_null("/root/GameState")
 	if not game_state_node:
 		return
+	aggregate_built_for_turn = _current_campaign_turn()
 
 	# Get crew data via GameState.get_active_crew()
 	crew_data = game_state_node.get_active_crew() if game_state_node.has_method("get_active_crew") else []
@@ -602,8 +890,55 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	## Initialize world phase with campaign data - orchestrator entry point
 	ship_data = ship.duplicate()
 	crew_data = crew.duplicate()
-	world_phase_data = world_data.duplicate()
-	
+
+	# REBUILD the aggregate first, once per campaign turn.
+	#
+	# _fetch_campaign_data() is otherwise called only from _setup_initial_state()
+	# (a _ready() hook) and the checkpoint-restore branch. CampaignTurnController
+	# SHOWS this controller each turn rather than re-creating it
+	# (CampaignTurnController.gd:700-714), so _ready() fires once per app session —
+	# and world_phase_data (rumors, quest, patrons, stash, location) stayed frozen
+	# at whatever the campaign looked like on the turn the screen was first built.
+	#
+	# Measured on device Aug 8 2026, turn 2, same screen either side of a process
+	# restart: briefing "Foch II" vs Gamma Prime, traits Corporate State vs Imminent
+	# Invasion, danger 4 vs 2, Rumors 5 vs 6, roll target D6<=5 vs D6<=6. The
+	# dashboard (which reads live state) agreed with the post-restart values, so the
+	# campaign was right and only this screen was wrong. Worst of it: the briefing
+	# advertised the departed world's "+2 to find a Patron" while the roll correctly
+	# applied none, and the accepted job read "LOCATION: Foch II".
+	#
+	# Guarded on the turn number rather than called unconditionally because
+	# _fetch_campaign_data() ends in _initialize_components_with_data(), which has
+	# side effects (JobOfferComponent._fail_expired_job writes journal entries). On
+	# turn 1 this function runs moments after _ready() already fetched, so an
+	# unguarded call would double-fire them.
+	if _current_campaign_turn() != aggregate_built_for_turn:
+		_fetch_campaign_data()
+
+	_ensure_world_changed_subscription()
+
+	# MERGE the planet data in; do NOT replace the dictionary.
+	#
+	# world_phase_data carries two different things under one name: the PLANET (name,
+	# government, traits, locations...) and the PHASE's own aggregate (rumors, quest,
+	# patrons, stash). _fetch_campaign_data() builds the second during _ready(); the
+	# turn controller then calls this immediately afterwards, and a plain assignment
+	# threw all of it away — leaving only planet keys.
+	#
+	# What that cost: Step 5 reads world_phase_data["rumors"], so it always saw an empty
+	# array and reported "Rumors: 0" against a campaign holding 5. The Core Rules p.85
+	# roll is "D6, if equal or below the number of rumors, convert to a Quest" — at zero
+	# it can never succeed, so Quests were unreachable through the World Phase.
+	# Confirmed on device Aug 8 2026: screen said 0, resources.quest_rumors said 5, and
+	# the persisted checkpoint's world_phase_data was a pure planet dict with no rumors
+	# or quest key at all.
+	#
+	# Merging keeps both producers' work. The planet still wins on its own keys, which
+	# is the existing behaviour for everything this function was actually meant to set.
+	for _k in world_data:
+		world_phase_data[_k] = world_data[_k]
+
 	# Generate world event for current planet
 	_generate_turn_world_event()
 
@@ -631,8 +966,28 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 		reset_world_phase()
 		_show_current_step()
 
+## The turn a world event was last rolled for, keyed by planet. -1 = never.
+var _world_event_rolled: Dictionary = {}
+
+
 func _generate_turn_world_event() -> void:
-	## Roll a world event for the current planet at start of World Phase
+	## Roll a world event for the current planet — ONCE per turn, per planet.
+	##
+	## T4-02: this used to re-roll on every call, and `PlanetDataManager
+	## .generate_world_event()` is not a pure query — it rolls a D6 and calls
+	## `add_world_event()`, MUTATING the planet's persistent state. The caller then
+	## discarded the return value (`if not event.is_empty(): pass`), which is what
+	## made it look harmless.
+	##
+	## So the world's Current Event changed every time this ran: four different
+	## values were observed inside one campaign turn on device. That is not
+	## cosmetic — the rolled row carries a live modifier the rules use (Civil Unrest
+	## is -1 to ALL crew tasks, Labor Shortage is +1 to recruitment, Market Surge is
+	## a 20% price change), so the penalty a player planned their turn around could
+	## be a different one by the time they resolved it.
+	##
+	## Keyed by planet as well as turn: travelling mid-turn arrives at a DIFFERENT
+	## world, and that world is entitled to its own event on the same turn.
 	var pdm = get_node_or_null("/root/PlanetDataManager")
 	if not pdm or not pdm.has_method("generate_world_event"):
 		return
@@ -643,9 +998,12 @@ func _generate_turn_world_event() -> void:
 		planet_id = world_phase_data.get("planet_id", "")
 	if planet_id.is_empty():
 		return
-	var event: Dictionary = pdm.generate_world_event(planet_id)
-	if not event.is_empty():
-		pass
+
+	var turn := _current_campaign_turn()
+	if int(_world_event_rolled.get(planet_id, -1)) == turn:
+		return
+	_world_event_rolled[planet_id] = turn
+	pdm.generate_world_event(planet_id)
 
 func _check_compendium_world_strife() -> void:
 	## Compendium p.148 arrival roll: "when arriving on a new world, roll 1D6.
@@ -766,6 +1124,35 @@ func _initialize_components_with_data() -> void:
 	# Note: Post-battle components (PurchaseItems, CampaignEvent, CharacterEvent) now initialized in PostBattleSequence
 
 ## Step Navigation - coordinated component management
+## The step the content scroll was last rewound for. -1 so the first step also
+## rewinds (a checkpoint restore can land on a step other than UPKEEP).
+var _scroll_reset_for_step: int = -1
+
+
+## Rewind the page to the top when the step actually CHANGES (W2-05).
+##
+## The scroll offset used to survive a step change, so arriving at a short step
+## from a long one landed you partway down a page whose content ended above the
+## fold — the new step's heading was scrolled off and the visible remainder was
+## blank. On the tablet this read as "Crew Tasks shows only 1 of 6 crew", and it
+## cost real time chasing a data bug through _get_eligible_crew() and
+## _populate_crew_list() before scrolling the page revealed all six were there.
+##
+## Guarded on a step stamp rather than reset unconditionally: _show_current_step()
+## has seven call sites and none is a mid-interaction refresh TODAY, but an
+## unconditional rewind would yank a player to the top the first time someone adds
+## one. Same shape as the W2-01 turn stamp.
+func _reset_scroll_on_step_change() -> void:
+	if current_step == _scroll_reset_for_step:
+		return
+	_scroll_reset_for_step = current_step
+	# Only the outer ContentScroll needs rewinding: PhaseScroll is SCROLL_MODE_DISABLED
+	# in every layout since the W2-03 fix, so it cannot hold a non-zero offset.
+	var scroll := get_node_or_null("MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
+	if scroll is ScrollContainer:
+		(scroll as ScrollContainer).scroll_vertical = 0
+
+
 func _show_current_step() -> void:
 	## Show current step component and hide others
 
@@ -804,6 +1191,13 @@ func _show_current_step() -> void:
 
 	# Update UI
 	_update_ui_display()
+
+	# Each step's own chrome is built by its component, so a step that has just become
+	# visible brings in a fresh crop of MOUSE_FILTER_STOP panels that would swallow
+	# touch-drags. See _open_content_to_scroll_gesture().
+	_open_content_to_scroll_gesture(_is_tight_layout)
+
+	_reset_scroll_on_step_change()
 
 	# Fade-in on step transition
 	var _containers := [
@@ -1156,21 +1550,81 @@ func _get_current_step_blocker() -> String:
 func _on_back_button_pressed() -> void:
 	## Handle back button navigation - Sprint 10.2: Uses phase rollback for bidirectional navigation
 	if current_step == WorldPhaseStep.UPKEEP:
-		# At first step, try to rollback to Travel phase
-		var cpm = get_node_or_null("/root/CampaignPhaseManager")
-		if cpm and cpm.has_method("rollback_to_phase"):
-			# Try to rollback to Travel phase (assumes GlobalEnums.FiveParsecsCampaignPhase.TRAVEL = 0)
-			var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-			if GlobalEnums and cpm.rollback_to_phase(GlobalEnums.FiveParsecsCampaignPhase.TRAVEL):
-				return_to_travel.emit()
-				return
-
-		# Fallback: Navigate back to campaign dashboard
-		return_to_dashboard.emit()
-		SceneRouter.navigate_to("campaign_turn_controller")
+		_confirm_rollback_to_travel()
 	elif current_step > WorldPhaseStep.UPKEEP:
 		current_step = current_step - 1
 		_show_current_step()
+
+
+## Back-at-step-1 means rollback_to_phase(TRAVEL), and that is NOT navigation — it
+## calls campaign.from_dictionary() on the snapshot taken when TRAVEL was entered,
+## replacing the ENTIRE campaign. Everything done since is gone: upkeep paid, crew
+## tasks resolved, the job taken, and any Quest generated at step 5.
+##
+## W2-02 is that loss observed from the outside. The device generated a Quest on
+## Turn 1 and the end-of-turn save had NO `active_quest` key at all and
+## quest_rumors back at 5(+1). A snapshot predating step 5 explains both exactly —
+## and the key being ABSENT rather than `{}` is what rules out the p.120 post-battle
+## clear_active_quest(), which assigns an empty dict and leaves the key in place.
+## (The generation step itself is correct and round-trips; pinned by
+## tests/unit/test_quest_generation_persistence.gd.)
+##
+## The rollback is kept — deliberately re-doing Travel is a legitimate thing to
+## want — but it now announces itself. Same defect class as W2-04: a single tap
+## irreversibly destroying a turn's work with no confirm.
+func _confirm_rollback_to_travel() -> void:
+	var cpm = get_node_or_null("/root/CampaignPhaseManager")
+	var enums = load("res://src/core/systems/GlobalEnums.gd")
+	var travel_phase: int = enums.FiveParsecsCampaignPhase.TRAVEL if enums else -1
+
+	var destructive: bool = (
+		cpm != null
+		and travel_phase >= 0
+		and cpm.has_method("has_phase_checkpoint")
+		and cpm.has_phase_checkpoint(travel_phase)
+		and cpm.has_method("rollback_to_phase")
+	)
+	if not destructive:
+		# No snapshot to restore, so nothing can be lost — plain navigation.
+		return_to_dashboard.emit()
+		SceneRouter.navigate_to("campaign_turn_controller")
+		return
+
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Go back to Travel?"
+	dialog.ok_button_text = "Discard and go back"
+	dialog.cancel_button_text = "Stay here"
+	var note := Label.new()
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.text = ("Going back to Travel REWINDS the campaign to how it was before this"
+		+ " World Phase began.\n\n" + _describe_world_phase_progress()
+		+ "\n\nThis cannot be undone.")
+	dialog.add_child(note)
+	add_child(dialog)
+	dialog.confirmed.connect(func() -> void:
+		if cpm.rollback_to_phase(travel_phase):
+			return_to_travel.emit()
+		else:
+			return_to_dashboard.emit()
+			SceneRouter.navigate_to("campaign_turn_controller")
+	)
+	dialog.close_requested.connect(dialog.queue_free)
+	# No fixed size: a hard-coded Vector2i clipped both controls off a portrait
+	# tablet the last time this codebase used one.
+	dialog.popup_centered()
+
+
+## Name what the rollback would actually throw away, so the confirm is a decision
+## rather than a speed bump. A confirm that says only "are you sure?" trains people
+## to tap through it.
+func _describe_world_phase_progress() -> String:
+	var done: Array[String] = []
+	for step_key in step_completed:
+		if bool(step_completed[step_key]) and int(step_key) < step_names.size():
+			done.append(str(step_names[int(step_key)]))
+	if done.is_empty():
+		return "Nothing has been completed this World Phase yet."
+	return "You will lose: " + ", ".join(done) + "."
 
 func _on_next_button_pressed() -> void:
 	## Handle next button navigation
@@ -2252,9 +2706,52 @@ func restore_from_checkpoint() -> void:
 		automation_toggle.button_pressed = automation_enabled
 
 
+## Whether a checkpoint belongs to a turn other than `current_turn`, or is already
+## finished. Pure and static so the staleness rule is testable and, more
+## importantly, so it has exactly ONE definition.
+##
+## T2-06: this logic already existed — inline in _setup_initial_state(), with a
+## comment naming the precise symptom it was written to stop ("step 5 checkmark
+## appearing on Turn 2's Upkeep"). It was correct. It just sat on a path the live
+## flow does not take: CampaignTurnController REUSES this controller in place on
+## Turn 2+, which fires neither _ready() nor _setup_initial_state(), so on every
+## auto-advanced turn the only consulted gate was has_checkpoint() — and that asked
+## nothing but `is_empty()`. Last turn's `step_completed` therefore survived into
+## the new turn and the strip rendered `1 2 3 4 ✓ 6` on a fresh Step 1.
+##
+## Same shape as W2-01: a correct guard, on a path the real flow skips. Producers
+## wrote `turn_number` for this exact purpose (see save_checkpoint) and no consumer
+## ever read it.
+static func is_checkpoint_stale(cp: Dictionary, current_turn: int) -> bool:
+	if cp.is_empty():
+		return false          # nothing to be stale
+	var cp_turn: int = int(cp.get("turn_number", -1))
+	if cp_turn >= 0 and current_turn >= 0 and cp_turn != current_turn:
+		return true
+	# A checkpoint whose every step is done describes a FINISHED world phase;
+	# restoring it would drop the player into a turn with nothing left to do.
+	var cp_steps: Dictionary = cp.get("step_completed", {})
+	if cp_steps.is_empty():
+		return false
+	for step_key: Variant in cp_steps:
+		if not cp_steps[step_key]:
+			return false
+	return true
+
+
 func has_checkpoint() -> bool:
-	## Sprint 26.4: Check if a checkpoint exists
-	return not _checkpoint_data.is_empty()
+	## True only for a checkpoint belonging to the CURRENT turn and not already
+	## finished. A stale one is discarded here rather than reported, so the single
+	## caller that matters — initialize_world_phase(), which skips
+	## reset_world_phase() when this returns true — cannot restore last turn's
+	## completion flags on an in-place turn advance.
+	if _checkpoint_data.is_empty():
+		return false
+	if is_checkpoint_stale(_checkpoint_data, _current_campaign_turn()):
+		_checkpoint_data = {}
+		clear_checkpoint()
+		return false
+	return true
 
 func clear_checkpoint() -> void:
 	## Sprint 26.4: Clear saved checkpoint data (both local and campaign storage)

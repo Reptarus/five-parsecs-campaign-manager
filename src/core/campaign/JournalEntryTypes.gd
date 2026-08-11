@@ -169,6 +169,11 @@ const TAGS: Dictionary = {
 	"rival": {"label": "Rival", "color": UIColors.COLOR_RED},
 	"patron": {"label": "Patron", "color": UIColors.COLOR_EMERALD},
 	"ship": {"label": "Ship", "color": UIColors.COLOR_BLUE},
+	# Ship debt is a named Core Rules p.76 mechanic with its own interest and
+	# seizure rules, so it earns a tag rather than being folded into "finance".
+	# Emitted by CampaignPhaseManager._process_ship_debt(); it warned on every
+	# debt-bearing turn because this sweep predated that producer.
+	"debt": {"label": "Debt", "color": UIColors.COLOR_TERTIARY},
 	"advancement": {"label": "Advancement", "color": Color("#34D399")},
 	"kill": {"label": "Kill", "color": UIColors.COLOR_RED},
 	"death": {"label": "Death", "color": UIColors.COLOR_TERTIARY},
@@ -192,6 +197,32 @@ const TAGS: Dictionary = {
 	"quest": {"label": "Quest", "color": UIColors.COLOR_PURPLE},
 	"story_points": {"label": "Story Points", "color": UIColors.COLOR_PURPLE},
 	"upkeep": {"label": "Upkeep", "color": UIColors.COLOR_EMERALD},
+	# Second sweep (Aug 8 2026). The first sweep extracted tags from `"tags": [...]`
+	# literals ANYWHERE in src/, which over-matches — most such literals are weapon,
+	# terrain and mission taxonomies with nothing to do with the journal. Narrowing
+	# to dicts actually passed to create_entry() found 19 names still missing, each
+	# push_warning()ing on every entry that used it. `scripts/lint_journal_vocabulary.py`
+	# now guards this set so the next one is caught before it ships.
+	"captain": {"label": "Captain", "color": UIColors.COLOR_AMBER},
+	"connection": {"label": "Connection", "color": UIColors.COLOR_CYAN},
+	"expanded_connections": {"label": "Expanded Connections", "color": UIColors.COLOR_CYAN},
+	"expanded_quests": {"label": "Expanded Quests", "color": UIColors.COLOR_PURPLE},
+	"crew": {"label": "Crew", "color": UIColors.COLOR_EMERALD},
+	"recruit": {"label": "Recruit", "color": UIColors.COLOR_EMERALD},
+	"training": {"label": "Training", "color": Color("#34D399")},
+	"illegal": {"label": "Illegal", "color": UIColors.COLOR_RED},
+	"interdiction": {"label": "Interdiction", "color": UIColors.COLOR_RED},
+	"license": {"label": "License", "color": UIColors.COLOR_AMBER},
+	"notable_sight": {"label": "Notable Sight", "color": Color("#FBBF24")},
+	"onboard_items": {"label": "On-board Items", "color": UIColors.COLOR_BLUE},
+	"penalty": {"label": "Penalty", "color": UIColors.COLOR_RED},
+	"reward": {"label": "Reward", "color": UIColors.COLOR_EMERALD},
+	"rumor": {"label": "Rumor", "color": UIColors.COLOR_PURPLE},
+	"salvage": {"label": "Salvage", "color": Color("#FBBF24")},
+	"scrapper": {"label": "Scrapper", "color": Color("#FBBF24")},
+	"world": {"label": "World", "color": Color("#34D399")},
+	"world_trait": {"label": "World Trait", "color": Color("#34D399")},
+
 	"trading": {"label": "Trading", "color": UIColors.COLOR_EMERALD},
 	"departure": {"label": "Departure", "color": UIColors.COLOR_TEXT_MUTED},
 	"return": {"label": "Return", "color": UIColors.COLOR_CYAN},

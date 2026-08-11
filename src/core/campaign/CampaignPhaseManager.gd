@@ -53,6 +53,10 @@ var previous_sub_phase: CampaignSubPhase = CampaignSubPhase.NONE
 
 # Turn tracking
 var turn_number: int = 0
+## Re-entrancy latch for start_new_turn(). See the long note there for why this is
+## session-scoped rather than persisted, and why no turn-counter key works.
+## Set at a turn start, cleared by complete_current_turn() / bind_campaign().
+var _turn_start_in_flight: bool = false
 var post_battle_phase_handler = null  # Placeholder for future post-battle handler
 ## battle_phase_handler removed (Session 50) — was always null.
 ## Battle mechanics run through CampaignTurnController._initiate_battle_sequence().
@@ -136,7 +140,16 @@ func bind_campaign(campaign: Resource) -> void:
 	_bound_campaign_id = cid
 
 	turn_number = 0
+	# A different campaign is a different turn; never carry A's in-flight latch into B.
+	_turn_start_in_flight = false
 	reset_phase_tracking()
+
+	# ...then put back the phase THIS campaign was saved in (T9-04). reset_phase_tracking()
+	# above leaves current_phase at NONE, which CampaignTurnController.gd:122 reads as
+	# "start a fresh turn" — so without this every app launch replayed a turn rollover on
+	# a turn that already had one. Must stay AFTER the reset and BEFORE the controller's
+	# phase check at :121, which this function is called from (:108).
+	_restore_phase_from_campaign(campaign)
 
 	# The post-battle handler caches its own campaign reference, and
 	# PostBattleContext._get_current_campaign() PREFERS that cached value over
@@ -173,6 +186,54 @@ func set_campaign(campaign: Resource) -> void:
 	pass
 
 func start_new_turn() -> void:
+	# ONE TURN START PER CAMPAIGN TURN — T8-02/T9-01/T9-02 (tablet QA, Aug 8-9 2026).
+	#
+	# EVERYTHING below this guard mutates persistent rules state: p.76 debt interest,
+	# the p.59 free hull repair, the pp.73-74 per-turn spend caps, the p.76 upkeep
+	# lockouts, and BOTH per-turn narrative hooks — StoryTrackSystem.begin_campaign_turn()
+	# rolls the p.157 Evidence search, decrements the p.159 Event-7 delay window, and
+	# consumes `pending_story_event` (a second call skips the Story briefing entirely
+	# and leaves is_story_event_turn false, so the p.153 turn restrictions never bind).
+	#
+	# It DID run twice: ship_debt 43 -> 45 on an unchanged campaign turn, with two
+	# "Debt interest" entries at T8 in the World Log.
+	#
+	# WHY A SESSION LATCH AND NOT A PERSISTED COUNTER. The first attempt keyed a
+	# persisted marker on progress_data["turns_played"]. That is UNUSABLE as a turn
+	# identity here, proven by tests/unit/test_rollover_guard_key_ordering.gd:
+	#   * turns_played is written by CampaignTurnController._on_campaign_turn_started()
+	#     (:638) as max(current, turn_number - 1) — a listener on the signal this very
+	#     function emits at the BOTTOM. The key is therefore written downstream of the
+	#     read, and lags one turn at the boundary: turn 2 of EVERY campaign collided
+	#     with turn 1's marker and had its whole rollover swallowed.
+	#   * Worse, it did not even do its job. A spurious call bumps turn_number, the
+	#     listener ratchets turns_played off turn_number, so the SECOND spurious call
+	#     presents a fresh key and gets through (measured: 21 -> 22 credits of interest).
+	# Any key computed from turn_number inherits the corruption it was meant to detect.
+	#
+	# The only fact that distinguishes "already started" from "new turn" is whether the
+	# previous turn was COMPLETED, so the latch is cleared by complete_current_turn()
+	# and by bind_campaign() (campaign identity change). It is deliberately NOT
+	# persisted: a turn that never completes normally would otherwise latch the flag on
+	# disk and silently stop every future rollover — far worse than the bug it fixes.
+	# Session scope caps the worst case at the pre-existing behaviour (see below).
+	#
+	# ⚠ RESIDUAL, by design not oversight: the turn phase is NOT persisted (the save's
+	# only phase field is meta.game_phase = "active", a LIFECYCLE marker). So every app
+	# launch comes up at NONE and CampaignTurnController:122 reads NONE as "start a
+	# fresh turn". That first spurious start per launch is structural and this latch
+	# cannot see it. Closing it needs the phase itself persisted and restored — a turn
+	# flow change, tracked separately as T9-04.
+	if _turn_start_in_flight:
+		# Spurious re-entry inside a turn already underway. Mutate NOTHING — but the
+		# caller reached here because current_phase was NONE, so leave the UI on a
+		# real phase or the turn screen has nothing to draw. NONE -> UPKEEP is an
+		# allowed transition (_can_transition_to_phase, :1272).
+		if current_phase == FiveParcsecsCampaignPhase.NONE:
+			start_phase(FiveParcsecsCampaignPhase.UPKEEP)
+		return
+	_turn_start_in_flight = true
+
 	turn_number += 1
 
 	# === TURN ROLLOVER: Core Rules mechanics that trigger at turn boundary ===
@@ -207,6 +268,15 @@ func _process_turn_rollover() -> void:
 		return
 
 	var campaign: Resource = game_state.current_campaign
+
+	# ONCE PER CAMPAIGN TURN. The once-per-turn guard is NOT here — it is at the top of
+	# start_new_turn(), our only caller, where it also covers the two per-turn narrative
+	# hooks (Story Track / Introductory Campaign) that sit below this call and mutate
+	# just as much state. See that comment for why a persisted turn-counter key was
+	# tried, measured, and rejected. Do not re-add a key-based guard in this function.
+	#
+	# Legacy note: saves written between Aug 8 and Aug 9 2026 may carry a stale
+	# progress_data["rollover_applied_for_turn"]. It is inert and simply ignored.
 
 	# --- Clear Upkeep Lockouts from Previous Turn (Core Rules p.76) ---
 	_clear_upkeep_lockouts(campaign)
@@ -726,7 +796,7 @@ func _log_unity_agent_event(char_name: String, roll: int, outcome: String) -> vo
 	if roll > 0:
 		desc += " (rolled 2D6=%d)" % roll
 	journal.create_entry({
-		"type": "species_ability",
+		"type": "character_event",
 		"auto_generated": true,
 		"title": "Unity Agent: Call in a Favor",
 		"description": desc,
@@ -952,7 +1022,57 @@ func start_new_campaign_turn() -> void:
 	start_new_turn()
 
 func complete_current_turn() -> void:
+	# Releases the start_new_turn() re-entrancy latch. A turn having COMPLETED is the
+	# only fact that reliably says the next start_new_turn() is a real new turn —
+	# every turn COUNTER is mutated by the spurious path itself.
+	_turn_start_in_flight = false
+	# NONE is the honest between-turns state, and it is what makes the persisted phase
+	# a correct discriminator on the next launch (T9-04): a save written mid-turn
+	# restores its real phase and resumes; a save written after the turn finished
+	# restores NONE and correctly starts the next turn.
+	current_phase = FiveParcsecsCampaignPhase.NONE
+	_persist_phase()
 	campaign_turn_completed.emit(turn_number)
+
+
+## Mirror `current_phase` into the campaign so it survives an app restart (T9-04).
+##
+## progress_data is already serialised wholesale as the save's "progress" block, so this
+## needs no change to the serialiser. It is deliberately NOT `meta.game_phase` — that
+## field is the campaign LIFECYCLE marker ("active"), not the turn phase, which is why
+## the data-ownership table's claim that the phase "persists to campaign.game_phase" was
+## never true in the save on disk.
+func _persist_phase() -> void:
+	if not game_state or not game_state.current_campaign:
+		return
+	var c: Resource = game_state.current_campaign
+	if "progress_data" in c and c.progress_data is Dictionary:
+		c.progress_data["current_turn_phase"] = int(current_phase)
+
+
+## Restore the turn phase a save was written in. Called from bind_campaign().
+##
+## THE BUG THIS CLOSES. The phase was never persisted, so every app launch came up at
+## NONE and CampaignTurnController.gd:122 read NONE as "start a fresh turn". That ran a
+## full turn rollover on a turn that had already had one — measured on the tablet as
+## ship_debt 45 -> 47 on an unchanged campaign turn, i.e. the player was charged another
+## turn of p.76 interest, had a p.76 upkeep lockout cleared and their pp.73-74 spend caps
+## reset EVERY TIME THEY OPENED THE APP mid-turn.
+func _restore_phase_from_campaign(campaign: Resource) -> void:
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	if not (campaign.progress_data is Dictionary):
+		return
+	# Absent on pre-Aug-9 saves. Defaulting to NONE keeps the old behaviour for them —
+	# one turn start on first load, after which the phase is written and they are fixed.
+	var stored: int = int(campaign.progress_data.get("current_turn_phase", 0))
+	if stored <= 0 or stored >= FiveParcsecsCampaignPhase.size():
+		return
+	current_phase = stored as FiveParcsecsCampaignPhase
+	# A save holding a real phase was written mid-turn, so that turn is still in flight.
+	# Without this the latch would be clear and the first dashboard visit could still
+	# walk into start_new_turn() before any phase transition re-armed it.
+	_turn_start_in_flight = true
 
 func complete_current_phase() -> void:
 	## Complete the current phase and advance to the next one
@@ -1117,6 +1237,7 @@ func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 	
 	previous_phase = current_phase
 	current_phase = new_phase
+	_persist_phase()
 
 	# Snapshot campaign state on entry so a later rollback_to_phase() can restore it.
 	_store_phase_checkpoint(new_phase)
@@ -1145,7 +1266,32 @@ func start_phase(new_phase: FiveParcsecsCampaignPhase) -> bool:
 func _store_phase_checkpoint(phase: int) -> void:
 	var campaign: Resource = game_state.current_campaign if game_state else null
 	if campaign and campaign.has_method("to_dictionary"):
-		_phase_checkpoints[phase] = campaign.to_dictionary()
+		# duplicate(true) is LOAD-BEARING, not defensive tidiness.
+		#
+		# to_dictionary() hands back the LIVE containers — `"crew": crew_data`,
+		# `"progress": progress_data`, `"equipment": equipment_data` and the rest are
+		# references, not copies (FiveParsecsCampaignCore.to_dictionary(), which is
+		# correct for the save path since the JSON writer only reads). Storing that
+		# as a "snapshot" aliased the campaign to itself: every later mutation wrote
+		# straight through into the checkpoint, and rollback_to_phase() then assigned
+		# the very same object back.
+		#
+		# The result was worse than no checkpoint. Scalar @vars (credits,
+		# quest_rumors, turn) DID revert because ints copy by value, while every
+		# Dictionary silently did not — so a rollback produced an incoherent hybrid,
+		# e.g. a Quest still active alongside the Rumors it was supposed to have
+		# spent. The docstring above promised "every canonical owner ... in one
+		# consistent shot"; until this line it captured only the scalars.
+		_phase_checkpoints[phase] = campaign.to_dictionary().duplicate(true)
+
+
+## Whether a rollback to `phase` would actually RESTORE state (as opposed to just
+## moving the phase pointer). Exists so a caller can tell a harmless navigation from
+## a destructive undo BEFORE performing it — rollback_to_phase() replaces the entire
+## campaign from the snapshot, so a UI that offers it without warning silently
+## discards everything the player did since that phase was entered.
+func has_phase_checkpoint(phase: int) -> bool:
+	return _phase_checkpoints.has(phase)
 
 
 ## Roll the campaign turn back to an EARLIER phase (the player stepped back). Returns
@@ -1843,7 +1989,7 @@ func _on_intro_phase_unlocked(phase_name: String) -> void:
 		return
 	journal.create_entry({
 		"turn_number": turn_number,
-		"type": "info",
+		"type": "milestone",
 		"title": "New Mechanic Unlocked: %s" % phase_name,
 		"description": "The %s phase is now available." % phase_name,
 		"mood": "informative",

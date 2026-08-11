@@ -247,6 +247,53 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 	if not zone_type.is_empty():
 		stats["zone_type"] = zone_type
 
+	# The scenario the battle was fought under (Core Rules Appendix X, p.180 —
+	# the Encounter Log prints Encounter Type / Mission / Deployment Conditions /
+	# Shiny Bits). create_entry() builds each entry from a FIXED key set, so a key
+	# that is not inside `stats` is DROPPED at the chokepoint: the printable sheet
+	# read mission_type / deployment_condition / enemy_count off the entry's top
+	# level, where a journal entry has never had them, and five of the Encounter
+	# Log's six boxes printed blank on every campaign. Recorded here, alongside
+	# the enemy, because this is the entry the sheet reads.
+	#
+	# Each is written only when the battle actually knows it, matching enemy_type
+	# above — a blank box on a print form is correct, an invented value is not.
+	var mission_type: String = str(battle_result.get("mission_type", ""))
+	if not mission_type.is_empty():
+		stats["mission_type"] = mission_type
+	# The sheet's "Encounter Type" box means which Encounter Table the opposition
+	# was drawn from — Criminal Elements / Hired Muscle / Interested Parties /
+	# Roving Threats (Core Rules pp.94-103). The individual enemy's name belongs
+	# in the "Enemy Types" table's Name/Type column, which is `enemy_type` above.
+	var enemy_category: String = str(battle_result.get("enemy_category", ""))
+	if not enemy_category.is_empty() and enemy_category.to_lower() != "unknown":
+		stats["enemy_category"] = enemy_category
+	# The p.89 objective, already shown in the description; recorded as data so
+	# the Encounter Log can print it beside the mission without parsing prose.
+	var objective_key: String = str(battle_result.get("objective_id", ""))
+	if not objective_key.is_empty():
+		stats["objective"] = objective_key.capitalize()
+	# p.88 condition. Carried as the {condition_id, title, ...} Dictionary that
+	# CampaignTurnController builds, so take the human-readable title.
+	var condition: Variant = battle_result.get("deployment_condition", null)
+	var condition_name: String = ""
+	if condition is Dictionary:
+		condition_name = str((condition as Dictionary).get("title", ""))
+	elif condition != null:
+		condition_name = str(condition)
+	if not condition_name.is_empty():
+		stats["deployment_condition"] = condition_name
+	if battle_result.has("enemy_count"):
+		stats["enemy_count"] = int(battle_result.get("enemy_count", 0))
+	# p.89 Notable Sight — {type, effect, roll}. "Shiny Bits" is the sheet's
+	# shorthand for this box; SHINY_BITS is one of the nine results it can hold.
+	var sight: Variant = battle_result.get("notable_sight", null)
+	if sight is Dictionary and not (sight as Dictionary).is_empty():
+		var sight_type: String = str((sight as Dictionary).get("type", ""))
+		if not sight_type.is_empty():
+			stats["notable_sight"] = sight_type
+			stats["notable_sight_effect"] = str((sight as Dictionary).get("effect", ""))
+
 	# Battle Notes carryback (Sprint 1 QOL Item 5) — player jots from the
 	# TacticalBattleUI floating notes textbox arrive via GameStateManager
 	# temp-data. Append to description and clear after read so the next

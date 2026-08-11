@@ -642,7 +642,7 @@ func _apply_strife_event(ctx: PostBattleContextClass, planet_id: String,
 	# turn 0, which is exactly why the derivation moved into the autoload).
 	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 		ctx.campaign_journal.create_entry({
-			"type": "world",
+			"type": "campaign_event",
 			"title": "Fringe World Strife: %s" % str(event.get("name", "")),
 			"content": str(event.get("instruction", "")),
 		})

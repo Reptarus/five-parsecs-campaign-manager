@@ -564,9 +564,72 @@ func _on_assign_task_pressed() -> void:
 			"crew_on_task": task_assignments[task_id].size()
 		})
 
+## Crew who COULD still take a task but have not been given one. Resolving now
+## burns their turn: the step locks to "All Tasks Resolved" and Assign Task goes
+## disabled, so there is no way back. Core Rules pp.77-78 give each crew member one
+## task per turn, and the panel's own subtitle says so.
+func _unassigned_eligible_crew() -> Array[String]:
+	var names: Array[String] = []
+	for crew_member in _get_eligible_crew():
+		var crew_id := str(_member_get(crew_member, "id",
+			_member_get(crew_member, "character_id", "")))
+		if crew_id.is_empty() or crew_id in assigned_tasks:
+			continue
+		names.append(str(_member_get(crew_member, "name",
+			_member_get(crew_member, "character_name", "Crew"))))
+	return names
+
+
+## Whether resolving now must ASK first. Pure decision seam, so the gate can be
+## pinned without standing up the whole resolution pipeline (which touches credits,
+## the event queue and the journal, and whose fixture requirements have nothing to
+## do with the question being asked).
+##
+## NEVER prompt on an automated path. Both automated callers
+## (_on_automation_toggled, complete_crew_task_phase) set _auto_resolve_mode, call
+## the handler, and clear it on the NEXT LINE — so a dialog there would return
+## immediately, the flag would be false again by the time the player answered, and
+## the eventual resolution would silently run in interactive mode picking different
+## outcomes. Force-completing a phase is also not a moment when a modal can be
+## answered.
+static func should_confirm_resolve_all(auto_mode: bool, stranded_count: int) -> bool:
+	return not auto_mode and stranded_count > 0
+
+
 ## Task Resolution - Five Parsecs dice mechanics
 func _on_resolve_all_pressed() -> void:
 	## Resolve all assigned crew tasks using Five Parsecs rules
+	if assigned_tasks.is_empty():
+		return
+
+	# W2-04: on device, three of six crew were still unassigned when the step
+	# resolved, and it locked immediately — Mars Stark, Finn Mendez and Nyx Ward
+	# each permanently lost a turn action to one tap, with no warning and no undo.
+	# Ask first. Gate is here rather than inside _resolve_all_tasks() so every other
+	# caller of the resolution path (auto-processing included) is unaffected.
+	var stranded := _unassigned_eligible_crew()
+	if not should_confirm_resolve_all(_auto_resolve_mode, stranded.size()):
+		_resolve_all_tasks()
+		return
+
+	var dialog := ConfirmationDialog.new()
+	dialog.title = "Resolve without them?"
+	dialog.ok_button_text = "Resolve anyway"
+	dialog.cancel_button_text = "Go back and assign"
+	var note := Label.new()
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.text = ("%d crew have no task and will lose their action for this turn:\n\n%s"
+		+ "\n\nEach crew member can perform one task per turn (Core Rules pp.77-78)."
+		+ " Once tasks resolve, this cannot be undone.") % [
+			stranded.size(), "  • " + "\n  • ".join(stranded)]
+	dialog.add_child(note)
+	add_child(dialog)
+	dialog.confirmed.connect(_resolve_all_tasks)
+	dialog.close_requested.connect(dialog.queue_free)
+	dialog.popup_centered()
+
+
+func _resolve_all_tasks() -> void:
 	if assigned_tasks.is_empty():
 		return
 
@@ -2844,7 +2907,7 @@ func _journal_note(text: String) -> void:
 	if journal == null or not journal.has_method("create_entry"):
 		return
 	journal.create_entry({
-		"type": "character",
+		"type": "character_event",
 		"auto_generated": true,
 		"title": "Character Upgrade",
 		"description": text,

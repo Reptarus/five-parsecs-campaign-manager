@@ -1,0 +1,32 @@
+{
+  "name": "Endgame + failure states",
+  "summary": "Broke, one interest tick from ship seizure, Red Zone licensed with 10 turns done, and two Invaded worlds on the board.",
+  "unlocks": [
+    "Core Rules p.76 — upkeep FAILURE: crew lockout ('for each credit you are short, one crew member will refuse to do any jobs'), sell-for-upkeep, dismiss crew",
+    "Core Rules p.75 — ship debt seizure (ShiplessSystem fires at >= 75) and shipless play",
+    "Core Rules p.126 — Galactic War: the 2D6 table only rolls when Invaded planets are tracked; on device it has only ever declined to roll",
+    "Core Rules Appendix III pp.148-151 — Red Zone and Black Zone jobs (licence + 10 completed Red Zone turns)",
+    "Compendium p.147 — the Scrapper and what Salvage may be spent on"
+  ],
+  "note": "credits 0 against a 6-crew upkeep of 1 credit (p.76) forces the failure branch on the very next World Phase. Ship debt 74 with the standard +2/turn interest crosses the >= 75 seizure threshold next rollover, so both failure paths arrive together rather than needing separate runs.",
+  "campaign": {
+    "turns_played": 20,
+    "credits": 0,
+    "supplies": 0,
+    "story_points": 1,
+    "reputation": 6,
+    "ship_debt": 74
+  },
+  "compendium_progress": {
+    "red_zone_licensed": true,
+    "red_zone_turns_completed": 10,
+    "salvage_units": 30
+  },
+  "narrative": {
+    "rivals": 2,
+    "invaded_planets": [
+      { "id": "qa_invaded_1", "name": "Kepler's Rest" },
+      { "id": "qa_invaded_2", "name": "Tharsis Gate" }
+    ]
+  }
+}

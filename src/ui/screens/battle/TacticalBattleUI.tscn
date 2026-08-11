@@ -106,8 +106,8 @@ text = "Tactical Companion"
 [node name="TierBadge" type="Button" parent="EdgeMargin/MainContainer/TopBar" unique_id=1714057206]
 unique_name_in_owner = true
 layout_mode = 2
-focus_mode = 0
 tooltip_text = "Change tracking level"
+focus_mode = 0
 theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
 theme_override_font_sizes/font_size = 14
 text = "[LOG ONLY]"
@@ -201,8 +201,8 @@ theme_override_constants/separation = 8
 [node name="FeedStrip" type="PanelContainer" parent="EdgeMargin/MainContainer" unique_id=1579137282]
 unique_name_in_owner = true
 visible = false
-custom_minimum_size = Vector2(0, 150)
 clip_contents = true
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_1")
 
@@ -284,5 +284,4 @@ grow_horizontal = 2
 grow_vertical = 2
 
 [node name="OverlayContent" type="VBoxContainer" parent="OverlayLayer/OverlayCenter" unique_id=1245618321]
-custom_minimum_size = Vector2(0, 0)
 layout_mode = 2

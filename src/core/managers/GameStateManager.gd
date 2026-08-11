@@ -549,7 +549,7 @@ func apply_ship_damage(amount: int, in_space: bool = false) -> int:
 				"/root/CampaignJournal") if Engine.get_main_loop() else null
 			if journal and journal.has_method("create_entry"):
 				journal.create_entry({
-					"type": "ship",
+					"type": "event",
 					"title": "Shields Absorbed Impact",
 					"description": (
 						"Improved Shielding reduced hull damage"
@@ -616,7 +616,7 @@ func _wreck_ship(campaign, in_space: bool) -> void:
 		"/root/CampaignJournal") if Engine.get_main_loop() else null
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "ship",
+			"type": "event",
 			"title": "Ship destroyed",
 			"description": message + " Core Rules p.59.",
 			"tags": ["ship"],

@@ -2,6 +2,114 @@
 
 ---
 
+## 🔴 § Tablet QA on real hardware (Aug 8-11 2026) — IN PROGRESS
+
+**Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md)** (~3,700
+lines, appended as we test). Device: Lenovo TB361FU. Branch
+`campaign-editor-and-fixits`, uncommitted.
+
+⚠ **This supersedes the "Tablet-test / APK gate: clear" row below**, which was written
+on Aug 7 before any real device had run the build. It was never a device result.
+
+| Gate | State |
+|---|---|
+| Unit suites touched this sprint | **152/152 across 14 suites** |
+| Six gating lints | **all CLEAN** |
+| `lint_orphan_assets` | `orphans=0`, `test_only=40` (tier-7 backlog) |
+| Headless `--import` parse | **clean** |
+| **Device verification** | **INCOMPLETE — deploy #6 outstanding** |
+
+### What real hardware found that the desk never could
+
+Two full days of findings. The classes worth remembering:
+
+- **Physically impossible to see on desktop** — soft-keyboard occlusion (no signal
+  exists in Godot 4.6; you must arm on focus then POLL), touch-scroll swallowed by
+  `PanelContainer`/`HSeparator` defaults, a `ScrollContainer` absorbing a squeeze
+  silently so it looked like missing DATA.
+- **Never exercised, because no test drove the SCREEN** — the printable sheet had
+  **never received a single journal entry on any platform** (`has_method("get_entries")`,
+  a method with zero definitions), and the World block was blank on every campaign
+  (`world is Dictionary` against a `PlanetData` OBJECT). Every test called the builder
+  directly and passed its arguments in.
+- **Data loss only a real save exposes** — a legacy-save stash DOUBLED on load, and then
+  my own fix for that destroyed 5 items per load until the caller ordering was corrected.
+
+### Open
+
+- **Deploy #6**: the two sheet fixes above are unconfirmed on hardware.
+- The Encounter Log's scenario boxes need a battle fought **under the new build** —
+  journal entries written before it carry no `stats` scenario keys and there is no
+  backfill. Old blanks are expected, not a regression.
+- `scripts/scan_dead_has_method_guards.py` reports ~91 permanently-false-guard
+  candidates in `src/` (REPORT-ONLY, exits 0). Most are legitimate plugin probes; the
+  list needs triage before it can gate.
+
+---
+
+## ✅ § Rules-Wiring Ledger CLOSED (Aug 7 2026) — branch `campaign-editor-and-fixits`
+
+**`docs/RULES_WIRING_AUDIT_2026-08.md`: 0 open / 0 partial / 136 fixed / 1 corrected.**
+Uncommitted. Solo, no agent fan-out.
+
+| Gate | State |
+|---|---|
+| Rules-wiring ledger | **0 open, 0 partial** |
+| `verify_post_battle` | **47/47** |
+| `verify_battle_ui` | **79/79** |
+| `lint_data_ownership` / `_signal_wiring` / `_tscn_connections` / `_autoload_lookups` | **all CLEAN** |
+| Headless `--import` parse | **clean** |
+| Tablet-test / APK gate | ~~clear~~ — **superseded, see the tablet-QA section above.** This row meant "no known blocker on Aug 7"; no device had run the build. Real hardware found defects on Aug 8-11. |
+
+### The last eleven rows were one defect, eleven times
+
+Almost nothing was a missing RULE. Every closing row was a **correct,
+byte-faithful implementation with no call site**:
+
+| Module | Zero-caller accessors |
+|---|---|
+| `WorldTraitEffects` (the SSOT for all 31 campaign-side traits) | **11** |
+| `BlackZoneSystem` | **4** — `get_setup_rules`, `get_opposition_rules`, `get_active_passive_rules`, `get_ending_rules` |
+| `FactionSystem.attempt_faction_favor()` | complete, unreachable — p.112 requires a crew task nobody built |
+| `PatronJobEffects` | `blocks_rival_tracking()`, `offers_new_job_on_success()` |
+| `SalvageMissionPanel.get_salvage_units()` | 1 — so every salvage unit died with the battle screen |
+
+> **The check that finds this whole class in one pass:** for a resolver or service
+> module, enumerate its public accessors and grep each for an EXTERNAL caller.
+> `test_every_world_trait_accessor_has_a_live_consumer` does exactly that and now
+> fails if a new accessor is added without one. Worth copying to any other
+> rules-resolver module.
+
+### Two traps worth carrying into future QA
+
+- **A displayed number that exists nowhere else is a lie waiting to be found.**
+  The Black Job prep card printed a hardcoded `"4 teams of 4 (16 initial enemies)"`
+  — the only place those numbers appeared anywhere in the app. The generator rolled
+  an ordinary 3-8. The card described a battle that was never generated. Any UI
+  literal describing a mechanic should READ the same data the mechanic does.
+- **Check the price you charge against the price you check.** Weapon Licensing
+  (+1cr, p.74) made the Military table roll cost 4 while the affordability guard
+  still read the base 3 — a 3-credit crew could add an item they could not pay for.
+
+### A containment assertion is not evidence — third occurrence
+
+Reverting a fix to `if false and SomeService.some_call(` **passed** an assertion
+written as `assert_str(src).contains("SomeService.some_call(")`. Three times in
+this one audit a `contains()` check survived the call being disabled. Anchor
+source scans on the exact ENABLING form, and always run the mutation — a plausible
+revert that changes nothing is how a dead control survives. (My first teeth-proof
+for the rival-removal control hardcoded a flag the loop does not even read.)
+
+> **Read the zero correctly.** It means every row someone wrote down has a call
+> site and a test. Eight auditors walked eight subsystems; nobody walked every page
+> of both books. The guard going forward is the four lints plus the per-row tests,
+> never this count.
+
+New suites: `test_final_open_rows.gd` (33), `test_final_partial_rows.gd` (23),
+`test_faction_favors.gd` (16). Every fix detection-proven by isolated revert.
+
+---
+
 ## § Battle-Phase DELIVERY Audit (Aug 6 2026) — branch `campaign-editor-and-fixits`
 
 Commits `740db7e36`, `0f10cbfcd`, `e32445c9b`, `dbc33c70a`. Solo, no agent fan-out.

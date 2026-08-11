@@ -18,11 +18,29 @@ its own correction history because each has been wrong at least once.
   Compendium chapter walked producer → key → consumer by hand. Documents **five
   distinct ways a chapter fails**, four of which this document itself demonstrated
   before it caught them. Read the callouts before adding a row.
-- **[Rules Wiring Audit](RULES_WIRING_AUDIT_2026-08.md)** — 143-row ledger,
-  NEVER-FIRES / WRONG-VALUE / FABRICATED / PARTIAL. Counts are MEASURED, not
-  hand-maintained; the header has drifted three times. Route through
-  **[Closeout Plan](RULES_WIRING_CLOSEOUT_PLAN.md)** §0.
+- **[Rules Wiring Audit](RULES_WIRING_AUDIT_2026-08.md)** — **✅ CLOSED Aug 7 2026:
+  0 open / 0 partial / 136 fixed / 1 corrected.** NEVER-FIRES / WRONG-VALUE /
+  FABRICATED / PARTIAL. Counts are MEASURED, not hand-maintained; the header
+  drifted three times before it closed, so re-measure with
+  **[Closeout Plan](RULES_WIRING_CLOSEOUT_PLAN.md)** §0 rather than quoting it.
   ⚠ A `FIXED` cell is a claim about a call site, not about what the player sees.
+  ⚠⚠ **0 open ≠ "the rules are done."** It means every row someone wrote down has
+  a call site and a test. Eight auditors walked eight subsystems; nobody walked
+  every page of both books. The going-forward guard is the four `scripts/lint_*.py`
+  plus the per-row tests.
+  **The shape almost every closing row turned out to be:** a correct, byte-faithful
+  implementation with NO CALL SITE — eleven zero-caller accessors on
+  `WorldTraitEffects` alone, four on `BlackZoneSystem`. The cheap check that finds
+  the whole class: enumerate a resolver's public accessors and grep each for an
+  external caller (`test_every_world_trait_accessor_has_a_live_consumer` does this
+  and now fails if a new accessor lands without one).
+- **[Tablet QA Sprint, Aug 2026](qa/TABLET_QA_SPRINT_2026-08.md)** — the live record
+  of the FIRST real-hardware QA (Lenovo TB361FU, Aug 8-11). ~3,700 lines, appended as
+  we test: screen / expected / observed / severity per finding. It is the evidence that
+  a green unit suite says nothing about device behaviour — it found soft-keyboard
+  occlusion, touch-scroll swallowed by decorative chrome, legacy-save data loss, and a
+  printable sheet that had never received a journal entry on any platform.
+  ⚠ Deploy #6 is outstanding: two sheet fixes are unconfirmed on hardware.
 - **[Tablet Test Readiness](TABLET_TEST_READINESS.md)** — the gate for handing an
   APK to a tester. §9 has the current artifact and what changed under the tester's
   feet.
@@ -58,6 +76,8 @@ update it in the same commit as the change that justifies it.
 - **[Data Contracts](technical/DATA_CONTRACTS.md)** - Data structure contracts
 - **[Screen Map](technical/SCREEN_MAP.md)** - Scene/screen inventory
 - **[Cross-Mode Character Transfer SOP](sop/cross-mode-transfer.md)** - Canonical-hub transfer between gamemodes (5PFH/Bug Hunt/Planetfall/Tactics): route matrix, reward-suppression, lossless snapshot, `user://transfers/` file-drop, mode-generic pickup, corrected Planetfall ending matrix
+- **[Sheet / PDF Export SOP](sop/sheet-export.md)** - The three printable Modiphius sheets: field-coordinate manifests, the `SheetDataContext` view-model, the two platform PDF backends, the invisible searchable text layer, the CV extractor's blind spots, and the **Core Rules Appendix X (pp.180-181) caption audit** — the book prints these sheets, so it is the authority on what each box means
+- **[Android Runtime Testing SOP](sop/android-runtime-testing.md)** - Two-tier Android strategy: desktop window-resize simulation, then on-device. Deploy routes, adb/logcat, remote-debugger profiling, performance thresholds
 - **[Codebase Optimization Audit](technical/CODEBASE_OPTIMIZATION_AUDIT.md)** - Optimization opportunities
 - **[Connection Validation Template](technical/UNIVERSAL_CONNECTION_VALIDATION_TEMPLATE.md)** - Signal validation patterns
 

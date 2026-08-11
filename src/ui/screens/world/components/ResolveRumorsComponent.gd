@@ -60,14 +60,43 @@ func initialize_rumors_phase(rumor_list: Array, active_quest: Dictionary) -> voi
 	rumors_resolved = false
 	last_roll = 0
 
+	# CLEAR THE RESULT LABEL. This function resets every state VARIABLE above but
+	# used to leave the label alone, and the label is the only part of this screen
+	# the player actually reads. The step is initialized twice in a real run (once
+	# before the campaign aggregate is built, once after), so a first pass with 0
+	# rumors stamped "No rumors to resolve" and the second pass — holding a real
+	# 5-rumor list — rendered that sentence directly beside the populated list.
+	# Observed on the tablet 2026-08-08. Anything a previous initialize wrote must
+	# die with the state it described.
+	if result_label:
+		result_label.text = ""
+		result_label.modulate = Color(1, 1, 1)
+	if quest_description_label:
+		quest_description_label.visible = has_active_quest
+
 	_populate_rumors_list()
 	_update_ui_display()
 
-	# AUTO-COMPLETE: If no rumors to resolve, mark as complete
-	if rumors.size() == 0:
+	# AUTO-COMPLETE. Two cases, and the SECOND one is a soft-lock fix.
+	#
+	# p.85 opens with "If you are not currently on a Quest, roll a D6 at this
+	# stage." So an active Quest means this step has nothing to do — it is a
+	# no-op, not a blocked action. But is_rumors_resolved() returns `rumors_
+	# resolved` alone, and the has_active_quest branch of _on_roll_pressed()
+	# returns WITHOUT setting it. So a crew on a Quest that also held a Quest
+	# Rumor (p.85: "any time you would receive a Rumor, you receive a Quest Rumor
+	# instead") skipped the 0-rumor branch below, could not roll, and could never
+	# satisfy _can_advance_to_next_step() — Next Step disabled forever, mid-World
+	# Phase, with no way out but abandoning the turn.
+	#
+	# That path was unreachable until 2026-08-08 because initialize_world_phase()
+	# was wiping the rumor list, so no Quest could ever be generated. Fixing that
+	# opened this. Completing the dead gate armed the landmine behind it.
+	if rumors.size() == 0 or has_active_quest:
 		rumors_resolved = true
 		if result_label:
-			result_label.text = "No rumors to resolve"
+			result_label.text = "Quest already active - nothing to resolve" \
+				if has_active_quest else "No rumors to resolve"
 			result_label.modulate = Color(0.7, 0.7, 0.7)
 		_update_ui_display()
 		# Emit completion (deferred so PHASE_STARTED fires first below)
@@ -81,12 +110,29 @@ func initialize_rumors_phase(rumor_list: Array, active_quest: Dictionary) -> voi
 		})
 
 func _emit_auto_complete() -> void:
-	## Emit PHASE_COMPLETED event for auto-complete (0 rumors case)
+	## Emit PHASE_COMPLETED event for auto-complete (0 rumors / active Quest case)
+	##
+	## RE-VALIDATE. This is a deferred callback, so a full frame passes between
+	## queueing and firing, and initialize_rumors_phase() runs twice in a real
+	## campaign — first against an empty aggregate, then against the real one. The
+	## empty pass queued this, the real pass reset rumors_resolved to false, and
+	## then this fired anyway and told the controller a step holding 5 unresolved
+	## rumors was complete. _on_phase_completed() writes that straight into
+	## step_completed[RESOLVE_RUMORS], which is CHECKPOINTED to disk and drives the
+	## step chips — the tablet showed a green tick on step 5 before the D6 was
+	## rolled (2026-08-08).
+	##
+	## The Next button survived only because _can_advance_to_next_step() asks the
+	## component (is_rumors_resolved()) and falls back to step_completed only when
+	## the component is missing — so the lie was contained rather than harmless.
+	## A deferred callback must re-check the condition that justified queueing it.
+	if not (rumors.is_empty() or has_active_quest):
+		return
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.PHASE_COMPLETED, {
 			"phase_name": "resolve_rumors",
 			"roll": 0,
-			"rumor_count": 0,
+			"rumor_count": rumors.size(),
 			"quest_generated": false
 		})
 

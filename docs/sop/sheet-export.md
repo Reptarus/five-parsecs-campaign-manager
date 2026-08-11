@@ -144,6 +144,23 @@ For Crew Log this produces 144 fields (16 header + 8 character slots ×
 `.claude/skills/ui-development/references/sheet-export.md` for the full
 Sprint 2.5 design + tuning guide.
 
+⚠ **THE EXTRACTOR IS A LEAD, NOT AN ANSWER — verified twice on 2026-08-09.**
+Rendering the artwork with every detected box numbered is a mandatory step, not a
+nicety. On the two secondary sheets that render showed:
+
+- **the sheet TITLE's letterforms are detected as boxes** (indices 0-16 on the
+  World Record sheet, 0-11 on the Encounter Log). Every one is a false positive.
+- **a real box was MISSED entirely** — "Invading Force" on the World Record sheet.
+  It had to be measured by hand (cyan rules at y=154/318, sides at x=1870/2633).
+- **an index does not mean what you assume**: extracted box 19 is *War Progress*,
+  the box BELOW Invading Force, which only a crop of that region revealed.
+
+And when a manifest's existing rects are wrong, do NOT "snap" them to the nearest
+detected cell. Tried and rejected: a centre-based snap moved `trait_3` from x=320
+to x=1003, away from its sibling rows, because the centre of an arbitrarily wrong
+rect is arbitrary too. That produces a *differently* wrong rect which no longer
+trips the divider test — worse than the original, because it now looks calibrated.
+
 **FALLBACK (legacy path)**: if the extractor misbehaves on a new sheet
 or the cyan border color drifts, fall back to manual debug-overlay loop:
 
@@ -327,15 +344,48 @@ on mobile. Save to `user://exports/<sheet>_<timestamp>.png` on Android
 and iOS, then toast the path. A share-intent integration is Phase 2;
 for MVP a path toast is sufficient.
 
-**GodotPDF page size is hardcoded at 612×792 (US letter portrait)**. The
-`_pageSize` member var on `addons/godotpdf/PDF.gd` is set at construction
-and not exposed. Our 3:2 landscape sheets letterbox into the portrait
-page with vertical margins when the GodotPDF backend handles the export.
-GodotHaru DOES support arbitrary per-page sizing via libharu, so the
-GodotHaru path (preferred on Steam Win/Linux) renders edge-to-edge at
-the requested `page_size_inches`. If we ever need true landscape via
-GodotPDF, fork the addon and expose a setter — but that creates a fork
-to maintain, so weigh against the upside before doing it.
+**Page size — RESOLVED Aug 9 2026, both backends now agree.** This section
+used to say GodotPDF was locked to 612×792 portrait "and GodotHaru renders
+edge-to-edge at the requested size". Both halves were problems:
+
+- GodotPDF's `_pageSize` really was fixed and unexposed. It now has a
+  `setPageSize()` local patch, so it honours `page_size_inches`.
+- **"Edge-to-edge" was the libharu BUG, not its feature.** US Letter landscape
+  is 792×612 (1.294:1) and the sheet is 2764×1843 (1.4998:1) — they never
+  matched, so drawing edge-to-edge STRETCHED the sheet vertically by 15.9%.
+  Measured on the artifact as **251 × 217 DPI**, against a correct 251 × 251
+  from the mobile path. Circles printed as ovals and every glyph was 16% too
+  tall, and nothing in the code or on screen showed it.
+
+Both paths now call `PdfExportRouter._fit_rect()`, which letterboxes to the
+source aspect. Do not "reclaim" the letterbox bands by stretching — the sheet
+is 3:2 and Letter is not.
+
+### The safe print margin (`PRINT_MARGIN_PT = 18`)
+
+`_fit_rect()` insets by 0.25in per side before fitting, giving **756×504pt at
+(18, 54)**.
+
+MEASURED, not chosen. `crew_log.png`'s ink spans x 46..2703 of 2764. Fitted
+edge-to-edge across the full 792pt page that left **0.183in** of clear paper on
+the left and 0.239in on the right — inside the ~0.25in unprintable border of a
+typical consumer printer. Printing at "Actual size" clipped the outer box borders
+off the form. It only ever looked survivable because most print dialogs default
+to shrink-to-fit, which was silently rescuing the output.
+
+After the inset: 0.425 / 0.478 / 0.985 / 0.970in of clear paper. And because the
+same 2764 pixels now span 10.5in instead of 11in, **effective resolution goes UP:
+251 -> 263 DPI.**
+
+Pinned by `test_fit_rect_keeps_the_sheets_ink_clear_of_the_unprintable_border`,
+which carries the measured ink bbox so it fails if the margin is reduced.
+
+⚠ A new sheet whose ink sits closer to its own edge needs this RE-MEASURED
+against the artwork, not assumed.
+
+⚠ **The general rule this taught**: two backends implementing one behaviour will
+diverge, and a divergence in OUTPUT geometry is invisible from the call site.
+Put the shared decision in ONE function both call, and verify the artifact.
 
 **GodotPDF `newImage()` requires `FORMAT_RGB8` or `FORMAT_RGBA8`**.
 SubViewport textures usually return RGBA8 already, but the router's
@@ -392,44 +442,251 @@ the test for whether the abstraction is paying its rent.
 - **Don't add sheet-specific code to SheetRenderer.** If a sheet needs
   custom behavior, extend the field-type system. The renderer should
   stay generic across all sheets and all books.
+- **Don't hand-write a journal entry in a fixture or probe.** Build it with
+  `CampaignJournal.auto_create_battle_entry()`. `create_entry()` assembles
+  every entry from a FIXED key set and silently drops everything else, so a
+  hand-written entry is a shape the app can never produce — and a test or
+  render probe built on one is validating fiction. This is what let five of
+  the Encounter Log's six boxes print blank on every campaign while the suite
+  was green. See "The Appendix X audit" below.
+- **Don't test only `SheetDataContext.build()`.** Every unit test calls it directly
+  and PASSES the campaign, world and entries in — so it is structurally blind to
+  how `PrintSheetScreen._build_data_context()` OBTAINS them. Two device-only bugs
+  lived exactly there: a `has_method("get_entries")` guard on a method with zero
+  definitions (real name `get_all_entries`), so the sheet received no journal
+  entries at all; and `world is Dictionary` against a `PlanetData` OBJECT, so the
+  whole World block printed blank. Assert on the screen's own resolution step.
+- **Don't assume the world is a Dictionary.**
+  `PlanetDataManager.get_current_planet()` returns a **`PlanetData` object**;
+  `SheetDataContext._as_dictionary()` coerces it via `serialize()`. Fixtures must
+  pass the object, because that is what the app passes.
+- **Don't decide a field is unmodelled without grepping the OWNER.** Two
+  blocks on the World Record Sheet were marked blank-until-modelled on
+  plausible-sounding reasoning ("Interdiction is a per-roll check, not planet
+  state"), and both were wrong: `InterdictionRule` persists the licence record
+  and the Galactic War keeps three tracked planet lists. Writing the reason
+  down is good; it is not the same as checking.
+- **Don't read a PDF's text layer as a reading order.** Extraction emits
+  glyph runs in content-stream order, which for a form built in a layout tool
+  reflects object creation, not position. Appendix X emits the licensing
+  octagons as "No Obtained Yes"; the artwork reads **Yes | Obtained | No**.
+  Crop the PNG and look.
 - **Don't call `pdf.free()` on a GodotHaru `PDF_DOC` or `PDF_PAGE`.**
   Both are RefCounted (auto-free on scope exit) even though `free`
   appears in their ClassDB method lists (inherited from Object).
   Calling `.free()` throws `"Can't free a RefCounted object."` This
   bit us during Sprint 2 runtime testing.
 
-## Sprint 3 (researched, deferred) — PDF-native text overlay
+## Searchable text — SHIPPED Aug 9 2026 (as an INVISIBLE layer)
 
-Current PDF export rasterizes the full SheetRenderer output (background +
-Label overlays) into a single embedded image. Text is therefore baked
-pixels: not selectable, not searchable, not scalable. Sprint 3 emits
-the **background PNG only** as the image layer, then overlays **native
-PDF text elements** per field — producing selectable, searchable,
-infinitely-scalable text with smaller file sizes.
+The exported PDF is searchable, selectable and copy-pasteable. The picture is
+unchanged: the sheet is still one embedded raster, with an **invisible text
+layer** (PDF render mode `3 Tr`) laid over it — the technique a scanner's OCR
+layer uses.
 
-**Status**: researched and documented; deferred pending alpha-tester
-feedback on whether the current rasterized output is sufficient.
+### Why invisible, and not the "native text" redesign this section used to plan
 
-**Where the research lives**:
+The old plan was to emit the **blank** sheet as the image and re-typeset every
+field as visible PDF text (est. 11-13h). That buys the same searchability but
+requires the PDF's typesetter to agree with Godot's on font, wrap and alignment
+— three independent ways for the printed page to stop matching the app.
 
-- Architectural design and decisions: `.claude/skills/ui-development/references/sheet-export.md` (long-form, ~10KB) — includes per-backend dispatch matrix, font handling options, PDF escape rules, coordinate transform math, renderer refactor sketch, test plan, open decisions, effort estimate
-- Plan-file pickup point: `C:\Users\admin\.claude\plans\staged-noodling-wilkes.md` Sprint 3 stub
-- Project memory cold-start: `memory/project_sheet_export_pdf_text_overlay_design.md`
+Mode 3 gets the searchability with none of that risk, because the visible text
+is still the exact render the app produced. Font choice, wrap behaviour and
+alignment in the hidden layer are then *cosmetic*: they move the selection
+highlight, never a printed glyph. That is also why GodotPDF's missing
+`text_width` stopped being a blocker — a width ESTIMATE is fine for a layer
+nobody can see.
 
-**Key facts confirmed during Sprint 2 introspection** (won't change):
+**Do not "upgrade" this to visible native text without a reason** the invisible
+layer cannot serve. Infinite-zoom crispness on the *values* is the only real
+one, and it costs pixel parity with the app.
 
-- Both backends expose text APIs: GodotHaru has `PDF_PAGE.text_out / text_rect / show_text / set_font_and_size / begin_text / end_text / text_width / measure_text`; GodotPDF has `pdf.newLabel(pageNum, position, text, size, font)`
-- GodotHaru ships PDF 14 built-in fonts via `pdf.get_font("Helvetica" | "Times-Roman" | ...)`; custom TTF via `load_tt_font_from_file`
-- GodotPDF supports only Helvetica built-in; custom TTF via `newFont()` requires `importer="keep"` on the TTF's `.import` sidecar for exported builds
-- PDF text strings must escape `(`, `)`, `\` — GodotHaru handles this internally (libharu-backed), GodotPDF does NOT (line 389 of PDF.gd concatenates raw text). Sprint 3 must pre-escape at the SheetRenderer layer
-- Coordinate origin asymmetry: GodotPDF flips Y internally (top-left input), GodotHaru does not (caller must flip for PDF bottom-left native). Normalize at the router boundary
-- Estimated effort: 11-13h of focused work (one sprint)
+### The rule that makes it trustworthy
 
-**Open decisions** for Sprint 3 kickoff (do not prematurely commit):
+`SheetRenderer._collect_text_layer(sub_viewport)` reads the text off **the nodes
+the SubViewport actually rasterized** — NOT a second pass over the manifest.
 
-1. Font strategy — built-in Helvetica only (zero shipping) vs ship Montserrat for on-screen parity vs hybrid
-2. Multi-line handling on GodotPDF (no native wrap) — truncate (MVP) vs fork to add wrap
-3. Coordinate normalization — keep asymmetry vs unify at the router seam
-4. Keep the existing rasterized-only export path as a legacy option, or remove?
+Two producers for one fact is the shape that has bitten this project repeatedly:
+a manifest-driven second pass would keep asserting a value the picture no longer
+shows, and nothing would error. Derived from the clone, the two cannot disagree
+because there is only one source. Pinned by
+`test_collect_text_layer_reads_the_rasterized_nodes`.
 
-See the skill reference for full discussion of each.
+**Blank mode yields an empty layer.** "Print blank to fill in by hand" must not
+ship a hidden copy of the data the player asked to leave off the page — invisible
+text still survives search, copy-paste and extraction.
+
+### Escaping: the two backends need OPPOSITE treatment
+
+⚠ This section previously said "GodotHaru handles escaping internally … Sprint 3
+must pre-escape at the SheetRenderer layer". **Those two clauses contradict each
+other and the second is wrong.**
+
+| Backend | Escaping | Consequence of getting it wrong |
+|---|---|---|
+| GodotHaru | escapes internally (`HPDF_Stream_WriteEscapeText`) | pre-escaping DOUBLE-escapes: "Vance (Doc) Ryu" reads back as `Vance \(Doc\) Ryu` |
+| GodotPDF | concatenated raw into `(text) Tj` | one unbalanced `)` ends the string early → **unopenable file, and `export()` still returns OK** |
+
+Resolution: escape at the point the string enters the content stream.
+`PDF.gd.escapePdfText()` does it for GodotPDF; the router only *flattens*
+newlines (`flatten_field_text`) and escapes nothing. Backslash must be replaced
+FIRST or it re-escapes the escapes. Verified by round-tripping 8 hostile names
+through both backends; reverting the addon half makes PyPDF2 refuse the file.
+
+### Facts still true (re-verified Aug 9 2026 by live introspection)
+
+- `PDF_PAGE` exposes 75 methods including `begin_text / end_text / text_out /
+  text_rect / text_width / set_font_and_size / set_text_rendering_mode`
+- `PDF_DOC` exposes `get_font("Helvetica")`, `load_tt_font_from_file`,
+  `set_title / set_author / set_subject / set_keywords / set_creation_date`
+- GodotPDF supports only built-in Helvetica; custom TTF via `newFont()` still
+  requires `importer="keep"` on the TTF's `.import` sidecar for exported builds
+- Coordinate asymmetry is real and is handled inside each backend's placement
+  helper: `newLabel` takes a TOP-DOWN y and emits the baseline at
+  `(_pageSize.y - y) - fontSize`, so the router back-solves; libharu's
+  `text_out` takes the PDF-native baseline directly
+
+### Measured cost
+
+| | before | after |
+|---|---|---|
+| extractable text | **0 chars** | 322-325 chars, 15/15 expected values |
+| file size (libharu) | 223,255 B | 224,300 B (+0.5%) |
+| libharu export time | 215 ms | **141 ms** (see below) |
+| file size (GodotPDF) | 223,109 B | 225,669 B (+1.1%) |
+| printed pixels | — | **unchanged** |
+
+### The libharu image handoff: raw bytes, not PNG
+
+The GodotHaru path used to call `img.save_png_to_buffer()` then
+`load_png_image_from_mem()`. That makes the pipeline **Godot PNG-ENCODES 15 MB ->
+libharu PNG-DECODES it -> libharu re-compresses it with flate**. The encode and
+the decode are both pure waste; the PDF never contains a PNG.
+
+MEASURED: `save_png_to_buffer()` on a 2764×1843 RGB8 image costs **~84 ms**;
+`get_data()` costs ~0 (it returns the buffer that already exists). That is why the
+C++ backend was benchmarking **215 ms against the pure-GDScript backend's 65 ms**
+— the "slow" one simply was not doing an encode.
+
+Now uses `load_raw_image_from_mem(bytes, w, h, 1, 8)` (color space 1 =
+`HPDF_CS_DEVICE_RGB`), falling back to the PNG round-trip if an older GodotHaru
+lacks the entry point. **215 -> 141 ms**, and the stream is still `/FlateDecode`
+because `set_compression_mode(0x0F)` includes `HPDF_COMP_IMAGE`.
+
+⚠ Verified beyond the byte count — a wrong colour space produces the same LENGTH
+— by inflating BOTH backends' image streams and comparing: **identical SHA256**,
+with `#5CBADE` (low red, high blue) intact, so no channel swap.
+
+### Things MEASURED and deliberately NOT done
+
+Recorded so nobody re-derives them:
+
+- **PNG predictors** (`/DecodeParms /Predictor`). Conventional wisdom says they
+  help line art. Measured here they HURT: Sub +8.4%, Average +30.8%, Up −4.8%
+  — all worse than plain deflate. The sheet is 80.6% flat `#FFFFFF` and 10.9%
+  flat `#EBEBEB`, so LZ77 already matches those runs and predictors destroy the
+  run structure.
+- **`/Indexed` colour.** The sheet has 1,342 distinct colours and the top 256
+  cover 99.75% of pixels — so an 8-bit palette is LOSSY for ~13k pixels, all of
+  them text antialiasing. Fringing on glyphs to save ~150KB is a bad trade.
+- **deflate level 9** would save 9.2%, and it is NOT reachable. Godot's
+  `PackedByteArray.compress()` takes only a mode, and the obvious lever —
+  ProjectSettings `compression/formats/zlib/compression_level` — does NOT feed
+  it. TESTED: with the setting reading back as `9`, `compress(COMPRESSION_DEFLATE)`
+  returned a byte-identical 17,937. The 4.6 docs word it as affecting
+  "compressed scenes and resources", and that is literally all it affects.
+  (`COMPRESSION_ZSTD` compresses this data 5x better than deflate, but PDF has
+  no zstd filter — the `/Filter` set is Flate/LZW/RunLength/DCT/JPX/CCITT/JBIG2.)
+- **Higher render DPI.** The artwork is natively 2764px across an 11in page =
+  251 DPI, so rendering larger upscales the ART for no gain.
+- **The 10.9% grey.** Verified to be IN THE ARTWORK (10.85% of the source PNG
+  vs 10.86% of the render), not something the exporter adds.
+- **VRAM texture compression** is not a risk: `crew_log.png.import` has
+  `compress/mode=0` (Lossless) and `"vram_texture": false`, so the printed sheet
+  carries no block-compression artifacts. ⚠ `detect_3d/compress_to=1` would flip
+  it to VRAM-compressed if the texture were ever used in a 3D material — it never
+  is, but that is the one edit that would silently degrade print output.
+- **`/ViewerPreferences /PrintScaling /None`.** Looks right for a print form — it
+  stops the dialog shrinking the page. **Do NOT add it.** Forcing 100% scale is
+  exactly what makes the sheet clip; see the print-margin section above.
+
+## The Appendix X audit — Aug 9 2026 (the two secondary sheets)
+
+**The books PRINT these sheets.** Core Rules Appendix X, PDF pp.180-181, contains
+the Crew Log, the Encounter Log and the World Record Sheet in full. That is the
+authority on what every box means, and it is extractable:
+
+```powershell
+py -c "from PyPDF2 import PdfReader; r=PdfReader('docs/rules/pdfcoffee_com_muh052042_five_parsecs_from_home_3e_rulebook_2021.pdf'); print(r.pages[179].extract_text())"
+```
+
+Read it BEFORE mapping a field. It settles caption questions in seconds that are
+otherwise guesswork — but see the anti-pattern above: its text ORDER is not the
+visual order, so crop the PNG for anything positional.
+
+### What the captions actually mean
+
+| Box | Means | Source of truth |
+|---|---|---|
+| Encounter Type | which Encounter Table the opposition came from (Criminal Elements / Hired Muscle / Interested Parties / Roving Threats) | Core Rules pp.94-103 |
+| Mission | the job + its objective | p.89 objective tables |
+| Deployment Conditions | the p.88 condition | `data/deployment_conditions.json` (11 titles, max 18 chars) |
+| **Shiny Bits** | **the p.89 NOTABLE SIGHT** — "Shiny bits: Gain 1 credit" is one of its nine results | p.89 Notable Sights |
+| Outcome/Notable Events | free text | journal `description` |
+| Enemy Types / Enemy Weapons | hand-filled during play; only row 1 Name/Type + Number are app-known | — |
+| Licensing Required | Yes / Obtained / No, **Yes+Obtained joined by a connector rule** so a licensed world ticks both | `InterdictionRule`, p.75 |
+| Invading Force | **the book never defines it** — the phrase appears ONLY on the printed sheet, nowhere in the rules text | free-text box |
+| War Progress | the p.126 Galactic War result, in the book's own words | `invaded_planets` / `lost_planets` / `liberated_planets` |
+
+Two of those were previously written off as unmodelled and were not. `Shiny Bits`
+was mapped to credits earned, which is the wrong mechanic entirely.
+
+### The defect underneath all of it
+
+`CampaignJournal.create_entry()` builds every entry from a **fixed key set** and
+drops the rest. The Encounter Log read `mission_type`, `deployment_condition`,
+`enemy_count` off the entry's TOP LEVEL, where a journal entry has never had them.
+They resolved to `""` — a legal blank on a print form, not null — so the T9-09
+non-null sweep and 28 green tests all passed while five of six boxes printed empty.
+
+The fix is the project's standard funnel rule, applied end to end:
+
+1. `BattleResultNormalizer` — the one chokepoint every battle path crosses — now
+   passes `deployment_condition` and `notable_sight` through, and DERIVES
+   `enemy_count` from `enemy_force.count` (post-setup-delta) rather than copying
+   the generator's pre-delta value.
+2. `CampaignJournal.auto_create_battle_entry()` records the scenario in `stats`,
+   next to the enemy: mission type, condition title, enemy count, category,
+   objective, notable sight + effect.
+3. `SheetDataContext._build_journal()` reads `stats` first, top level as fallback.
+
+**Anything the printed sheet needs must exist in `stats`.** A key outside it is
+not "missing from the sheet", it is deleted at the chokepoint.
+
+### The guard
+
+`test_every_addressed_box_prints_something_on_a_populated_campaign` asserts every
+manifest source renders NON-BLANK against a populated campaign, with an explicit
+`blank_by_design` map (each entry carrying its reason) and a stale-exemption check
+so a fixed field cannot silently lose coverage. Detection-proven: reverting the
+journal producer turns it red.
+
+Its fixture is built by `CampaignJournal.auto_create_battle_entry()`, and so is
+`tests/tools/emit_sheet_png.gd`'s. Both used to hand-write entries.
+
+### Verifying a mapping
+
+Render at source resolution and READ THE ARTIFACT — this is the only step that
+catches a caption collision or a value under the wrong heading:
+
+```powershell
+$env:SHEET="world_record_sheet"
+Godot_console.exe --path <project> --script tests/tools/emit_sheet_png.gd
+# writes user://sheet_alignment_probe.png at 2764x1843; crop and look
+```
+
+⚠ The CV extractor misses **wide** cells. It found the five narrow stat columns of
+the Enemy Types table and not the Name/Type column beside them, and missed
+"Invading Force" entirely. Both were measured from the cyan rules by hand. Treat
+`*_fields_extracted.json` as a lead, never as the field list.

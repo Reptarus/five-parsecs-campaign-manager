@@ -25,7 +25,12 @@ func _card_min_width() -> float:
 	if vp == null:
 		return 360.0
 	var avail: float = vp.get_visible_rect().size.x - float(UIColors.SPACING_XL) * 2.0
-	return minf(360.0, maxf(240.0, avail))
+	# T1-03: 360 was a small-screen FLOOR written as a CEILING, so a tablet got the
+	# same narrow column as a phone — measured on device as a 464x386 dp card on a
+	# 1280x800 dp screen. Scale with the viewport instead, bounded at both ends:
+	# 240 keeps a phone usable, and 720 stops legal prose reaching the unreadable
+	# line lengths a full-width column would give on a landscape tablet.
+	return clampf(avail * 0.55, 240.0, minf(720.0, maxf(240.0, avail)))
 
 
 ## Minimum height for the EULA scroll. Kept to a fraction of the viewport so a
@@ -35,7 +40,14 @@ func _scroll_min_height() -> float:
 	var vp := get_viewport()
 	if vp == null:
 		return 250.0
-	return minf(250.0, maxf(120.0, vp.get_visible_rect().size.y * 0.35))
+	# Same ceiling-vs-floor mistake as _card_min_width(): 250 was there to stop a
+	# LANDSCAPE PHONE being asked for more height than it owns, but it also capped a
+	# tablet at 250 of the 1080 design px it has — about five lines of legal text,
+	# clipped mid-sentence, which is what T1-03 recorded. The 120 floor still
+	# protects the phone; the upper bound now scales and only stops the card growing
+	# past what the surrounding chrome (title, subtitle, checkbox, link, two buttons)
+	# leaves room for.
+	return clampf(vp.get_visible_rect().size.y * 0.45, 120.0, 640.0)
 
 
 ## True when vertical space is tight enough that decorative padding costs the user

@@ -24,6 +24,12 @@ run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://assets/iconnew.png"
+; Android Back must NAVIGATE, not quit. Default is true, which made the system Back
+; button kill the app outright from any screen -- no prompt, process gone (verified on a
+; Lenovo TB361FU, Aug 8 2026: `ps -A | grep fiveparsecs` empty afterwards). Every handler
+; below is inert while this is true, because SceneTree quits before anything can react.
+; SceneRouter._notification() owns the behaviour now. See SceneRouter._handle_go_back().
+config/quit_on_go_back=false
 
 [autoload]
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
@@ -48,6 +54,7 @@ CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
 EquipmentManager="*res://src/core/equipment/EquipmentManager.gd"
 PlanetDataManager="*res://src/core/world/PlanetDataManager.gd"
 ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
+KeyboardAvoidance="*res://src/autoload/KeyboardAvoidance.gd"
 ThemeManager="*res://src/ui/themes/ThemeManager.gd"
 TransitionManager="res://src/autoload/TransitionManager.gd"
 SettingsOverlay="*res://src/autoload/SettingsOverlay.gd"

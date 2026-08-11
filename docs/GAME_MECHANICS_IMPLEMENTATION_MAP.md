@@ -1,11 +1,31 @@
 ﻿# Five Parsecs Campaign Manager - Complete Data Flow & Implementation Map
 
 **Created**: 2025-11-29
-**Last Updated**: 2026-04-08
+**Last Updated**: 2026-04-08 (caveat block added 2026-08-07)
 **Source**: Parallel agent analysis of core_rules.md vs codebase, Sprint 1-10 completions, Battle Phase Manager sprints, Tech Debt + Feature Gaps 12 sprints, Phase 5 Script Consolidation, Phase 16-22J Battle+UI sprints, Sessions 35-52 (Red/Black Zones, Story Track, Equipment Pipeline, Battle Reconciliation, Terrain Generator, Character Events, Strange Characters, Upkeep Failure)
 **Purpose**: Map every functional mechanic to implementation status
 
 ---
+
+> # ⚠ READ THIS BEFORE QUOTING ANY NUMBER BELOW (added Aug 7 2026)
+>
+> **These are IMPLEMENTATION counts. Implementation is NOT delivery.**
+>
+> This table read "100% (170/170)" at the same time as: Quests being unplayable
+> end to end, four Compendium chapters being unreachable in campaign play, the
+> p.137 salvage table having never rolled, `WorldTraitEffects` carrying **eleven**
+> byte-faithful accessors that nothing called, and every salvage unit a player
+> picked up evaporating when the battle screen closed. Every one of those
+> mechanics counted as "Complete" here, because the code existed.
+>
+> A row is Complete if the code exists. It says nothing about whether a live path
+> reaches the player, and nothing about whether the output has a consumer.
+>
+> **The maintained ground truth is `docs/RULES_WIRING_AUDIT_2026-08.md`**, which
+> asked the delivery question instead and is now CLOSED (0 open / 0 partial / 136
+> fixed / 1 corrected, Aug 7 2026). Cross-check it and
+> `docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md` before treating any row below as
+> evidence a feature works. Treat every row here as a LEAD to verify.
 
 ## MASTER STATUS SUMMARY
 

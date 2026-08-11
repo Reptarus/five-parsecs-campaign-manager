@@ -349,8 +349,18 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 ## Get available advancements for a character
 
 func get_available_advancements(character: Resource) -> Array[Dictionary]:
-	## Get list of available advancements for a character
-	var advancements: Array = []
+	## Get list of available advancements for a character.
+	##
+	## The element type MUST match the signature. A bare `Array` here returns fine to
+	## the compiler and then dies at runtime on
+	##     "Trying to return an array of type "Array" where expected return type is
+	##      "Array[Dictionary]"."
+	## which ABORTS the function silently — the caller gets nothing and the process
+	## keeps running. Narrowed rather than widening the signature because callers of
+	## the sibling CharacterAdvancementService assign straight into
+	## `var options: Array[Dictionary]` (PostBattleSequence :1800,
+	## CharacterUpgradeDialog :133), and only Dictionary literals are appended below.
+	var advancements: Array[Dictionary] = []
 	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 
 	# Stat advancements

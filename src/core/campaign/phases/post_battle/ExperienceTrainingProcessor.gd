@@ -138,7 +138,21 @@ func process_experience(ctx: PostBattleContextClass) -> Array[Dictionary]:
 							})
 
 		if xp_earned > 0:
-			xp_awards.append({"crew_id": crew_id, "xp": xp_earned})
+			# T5-08: `crew_name` was never written here, while PostBattleSequence
+			# reads award.get("crew_name", "Unknown") — so every XP line in the
+			# post-battle log read "Unknown gained 3 XP", six times a battle. The XP
+			# itself landed correctly; only the name was lost, which is worse than a
+			# crash because it looks like the app does not know who its crew are.
+			#
+			# Stamped at the PRODUCER, not patched at the one consumer that showed
+			# it: the signal is public (PostBattlePhase.experience_awarded) and any
+			# future listener would hit the same hole. get_char_name() already
+			# handles Resource / Dictionary / either key spelling.
+			var award_name: String = "Unknown"
+			if crew_member != null and ctx.has_method("get_char_name"):
+				award_name = ctx.get_char_name(crew_member)
+			xp_awards.append({
+				"crew_id": crew_id, "xp": xp_earned, "crew_name": award_name})
 			# Write through the context, which HAS a working mutator.
 			#
 			# THE BUG THIS FIXES: this was the only XP write, and it was gated on

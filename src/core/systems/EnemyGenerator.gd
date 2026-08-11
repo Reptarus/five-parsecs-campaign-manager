@@ -482,15 +482,11 @@ func _apply_json_difficulty_modifiers(
 
 	return modified
 
-func _get_difficulty_name(difficulty: int) -> String:
-	## Convert difficulty number to name used in spawn rules
-	match difficulty:
-		1: return "EASY"
-		2: return "NORMAL"
-		3: return "HARD"
-		4: return "VETERAN"
-		5: return "ELITE"
-		_: return "NORMAL"
+# DELETED Aug 9 2026 (T9-05): _get_difficulty_name() — ZERO callers, and it encoded a
+# fabricated contiguous 1..5 scale ("VETERAN" is in NEITHER enum file and in no data
+# JSON). GlobalEnums.DifficultyLevel is EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6,
+# INSANITY=8 with deprecated aliases interleaved at 3/5/7. If a difficulty NAME is ever
+# needed for display, call DifficultyModifiers.get_display_name() — the single source.
 
 func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
 	## Apply difficulty modifiers to enemy stats

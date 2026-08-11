@@ -761,7 +761,10 @@ func _apply_negotiable_reroll(job: Dictionary) -> void:
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "campaign",
+			# "campaign_event", not "campaign" — STRING_TO_TYPE has no "campaign",
+			# so validate_entry() push_warning()s on every one of these and the
+			# entry falls out of any type-filtered view.
+			"type": "campaign_event",
 			"title": "Negotiated a better rate",
 			"content": "Danger Pay rerolled: %d credits instead of %d (Core Rules p.84)."
 				% [new_credits, old_credits],
@@ -1212,7 +1215,10 @@ func _fail_expired_job(job: Dictionary, current_turn: int) -> void:
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
 		journal.create_entry({
-			"type": "campaign",
+			# "campaign_event", not "campaign" — STRING_TO_TYPE has no "campaign",
+			# so validate_entry() push_warning()s on every one of these and the
+			# entry falls out of any type-filtered view.
+			"type": "campaign_event",
 			"title": "Patron job expired",
 			"content": summary,
 			"turn": current_turn,

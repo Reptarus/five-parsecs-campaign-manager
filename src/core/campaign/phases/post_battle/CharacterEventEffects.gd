@@ -82,12 +82,25 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	if selected_member != null:
 		origin = ctx.get_character_origin(selected_member).to_lower()
 
+	# T5-08: stamp WHO this happened to. PostBattleSequence displays
+	# event.get("character_name", "Unknown"), and nothing ever wrote that key — so
+	# every step 13 line read "Unknown: Overhear Something Useful". A Character
+	# Event names a specific crew member by design (p.126 picks exactly one), so a
+	# nameless one is not a cosmetic loss: it is the whole point of the step.
+	# Stamped once here where the member is already resolved, and onto BOTH
+	# Precursor branches below, since either can be the one that surfaces.
+	var event_char_name: String = "Unknown"
+	if selected_member != null and ctx.has_method("get_char_name"):
+		event_char_name = ctx.get_char_name(selected_member)
+	character_event["character_name"] = event_char_name
+
 	# Precursor double-roll (Core Rules p.17 + p.126).
 	if origin == "precursor":
 		var second_roll: int = randi_range(1, 100)
 		var second_event: Dictionary = _get_character_event(second_roll)
 		second_event["crew_id"] = random_crew
 		second_event["roll"] = second_roll
+		second_event["character_name"] = event_char_name
 
 		_pending_event1 = character_event
 		_pending_event2 = second_event
@@ -196,7 +209,35 @@ func _get_character_event(roll: int) -> Dictionary:
 func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 	## Apply the character event effects after rolling.
 	if event.has("type") and event.type != "none":
-		var crew: Variant = event.get("crew_id", ctx.get_random_crew_member())
+		# RESOLVE THE ID TO THE ACTUAL CREW MEMBER.
+		#
+		# This used to be a bare
+		#     var crew = event.get("crew_id", ctx.get_random_crew_member())
+		# which returns two INCOMPATIBLE shapes: `crew_id` is a String id, while the
+		# fallback returns a Character/Dictionary. Everything downstream treats the
+		# value as a character, so on any event that carried a crew_id the post-battle
+		# run hit
+		#     Invalid call. Nonexistent function 'set' in base 'String'.
+		# inside PostBattleContext._set_character_stat (a non-empty String is TRUTHY,
+		# so the `elif character:` branch accepted it). That ABORTS the function, which
+		# unwound step 13 and took the whole 14-step post-battle sequence with it —
+		# submitting a battle result tore down the battle screen and nothing replaced
+		# it. Measured on the tablet 2026-08-08 via Personal Breakthrough (p.129).
+		#
+		# The dual shape was half-known: the journal line below already read
+		# `crew if crew is String else str(crew)`. Handling a type split at ONE of its
+		# consumers leaves the rest to find it at runtime — normalize at the boundary
+		# instead, which is also what makes get_character_origin() work (`"origin" in
+		# some_string` is a SUBSTRING test, so it quietly returned "" for every
+		# id-carrying event).
+		var crew_ref: Variant = event.get("crew_id", null)
+		var crew: Variant = null
+		if crew_ref is String:
+			crew = ctx.get_crew_member(crew_ref)
+		elif crew_ref != null:
+			crew = crew_ref
+		if crew == null:
+			crew = ctx.get_random_crew_member()
 		var event_name: String = event.get("name", event.get("title", "Unknown"))
 		var origin: String = event.get("character_origin", "")
 		if origin.is_empty() and crew:
@@ -207,13 +248,26 @@ func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 			# Journal: log character event
 			if ctx.campaign_journal \
 					and ctx.campaign_journal.has_method("auto_create_character_event"):
-				var crew_id: String = crew if crew is String else str(crew)
+				var crew_id: String = _crew_id_of(crew, crew_ref)
 				ctx.campaign_journal.auto_create_character_event(
 					crew_id, "character_event", {
 						"turn": ctx.battle_result.get("turn", 0),
 						"event_name": event_name,
 						"description": event.get("description", ""),
 					})
+
+func _crew_id_of(crew: Variant, original_ref: Variant) -> String:
+	## The journal wants the id. Prefer the id the event carried; otherwise read it off
+	## the resolved member. Never str() a Resource — that yields "<Resource#123>", which
+	## is what the old `str(crew)` wrote into the journal for every non-String crew.
+	if original_ref is String and not (original_ref as String).is_empty():
+		return original_ref
+	if crew is Dictionary:
+		return str(crew.get("character_id", crew.get("id", "")))
+	if crew != null and "character_id" in crew:
+		return str(crew.character_id)
+	return ""
+
 
 func apply_effect(event_title: String, character: Variant, ctx: PostBattleContextClass, character_origin: String = "", species_exceptions: Dictionary = {}) -> String:
 	## Apply character event effects based on event title (Core Rules p.128-130)
@@ -321,7 +375,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			_mark_departed(character)
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 				ctx.campaign_journal.create_entry({
-					"type": "character_departure",
+					"type": "character_event",
 					"auto_generated": true,
 					"title": "Time to Move On",
 					"description": "%s left the crew from Sick Bay (rolled %d vs %d turns remaining, Core Rules p.128)" % [
@@ -358,7 +412,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				# Log departure to journal
 				if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 					ctx.campaign_journal.create_entry({
-						"type": "character_departure",
+						"type": "character_event",
 						"auto_generated": true,
 						"title": "Feeler Mental Breakdown",
 						"description": "%s suffered a mental breakdown from a crew fight and left permanently (Core Rules p.22)" % char_name,

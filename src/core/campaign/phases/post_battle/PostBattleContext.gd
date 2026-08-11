@@ -771,22 +771,47 @@ func apply_character_status_effect(character: Variant, effect: Dictionary) -> vo
 # Ability maximums (Core Rules p.123 Ability Increase Table). Luck handled separately.
 const ABILITY_MAX := {"reaction": 6, "combat": 5, "speed": 8, "savvy": 5, "toughness": 6}
 
+## A crew member is a Character Resource or a Dictionary — NEVER a String id.
+##
+## A non-empty String is TRUTHY in GDScript, so a bare `elif character:` accepted an
+## id and then died on `character.set(...)` with "Nonexistent function 'set' in base
+## 'String'." Godot ABORTS the function on that, so a single mis-shaped argument in
+## step 13 unwound the entire 14-step post-battle sequence and the player saw the
+## battle screen tear down with nothing replacing it (tablet, 2026-08-08).
+##
+## Callers must resolve ids via get_crew_member() — CharacterEventEffects.finalize_event
+## now does. This guard exists so that a future caller that forgets loses ONE stat
+## write with a visible error, instead of the whole post-battle run silently.
+func _is_character_like(character: Variant) -> bool:
+	if character is Dictionary:
+		return true
+	if character is Object:
+		return true
+	if character != null:
+		push_error(
+			"PostBattleContext: expected a crew member (Resource or Dictionary), got %s "
+			% type_string(typeof(character))
+			+ "(%s). Resolve ids through get_crew_member() first." % str(character))
+	return false
+
 func _get_character_stat(character: Variant, stat: String) -> int:
 	if character is Dictionary:
 		return int(character.get(stat, 0))
-	if character and stat in character:
+	if _is_character_like(character) and stat in character:
 		return int(character.get(stat))
 	return 0
 
 func _set_character_stat(character: Variant, stat: String, value: int) -> void:
 	if character is Dictionary:
 		character[stat] = value
-	elif character:
+	elif _is_character_like(character):
 		character.set(stat, value)
 
 func apply_luck_increase(character: Variant, amount: int = 1) -> bool:
 	## Core Rules p.123: Luck max is 1 (3 for Humans). Used by Charmed Existence (p.129).
-	if not character:
+	## Guard on the SHAPE, not on truthiness — a crew-id String is truthy and would
+	## otherwise report success while writing nothing (see _is_character_like).
+	if not _is_character_like(character):
 		return false
 	var current: int = _get_character_stat(character, "luck")
 	var origin: String = ""
@@ -803,7 +828,12 @@ func apply_luck_increase(character: Variant, amount: int = 1) -> bool:
 func apply_random_ability_increase(character: Variant) -> String:
 	## Core Rules p.129 Personal Breakthrough: +1 to one ability not yet at its max.
 	## Returns the ability raised (empty string if all abilities are maxed).
-	if not character:
+	##
+	## Guard on the SHAPE, not on truthiness. A crew-id String is truthy, so the old
+	## `if not character` let it through and this returned an ability NAME while the
+	## write below silently did nothing — the player was told "+1 Reaction" for a stat
+	## that never moved. Empty string is the honest answer for "nothing was raised".
+	if not _is_character_like(character):
 		return ""
 	var origin: String = ""
 	if character is Dictionary:

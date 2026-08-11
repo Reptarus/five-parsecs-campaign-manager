@@ -1,20 +1,38 @@
 {
+  "rules_wiring_ledger_closed_2026_08_07": {
+    "status": "CLOSED - 0 open / 0 partial / 136 fixed / 1 corrected",
+    "ledger": "docs/RULES_WIRING_AUDIT_2026-08.md",
+    "route": "docs/RULES_WIRING_CLOSEOUT_PLAN.md (complete; kept for its method, not as a worklist)",
+    "branch": "campaign-editor-and-fixits (uncommitted)",
+    "green": "verify_post_battle 47/47; verify_battle_ui 79/79; lint_data_ownership + lint_signal_wiring + lint_tscn_connections + lint_autoload_lookups all CLEAN; headless --import parse-clean",
+    "final_rows_closed": "Aug 6: 125 Black Jobs (the mission, not the rewards), 136 Salvage + Scrapper, 241 Flee Invasion consequences, 243 Train's immediate upgrade. Aug 7: 96 Progressive Difficulty Option 2, 115 Private Transport + Busy, 119/157 paid Trade rolls, 153 Freelancer License, 162/239 eleven zero-caller WorldTraitEffects accessors, 87 Faction Favors.",
+    "dominant_defect_shape": "A correct, byte-faithful implementation with NO CALL SITE. WorldTraitEffects had 11 zero-caller accessors; BlackZoneSystem had 4; FactionSystem.attempt_faction_favor() was complete but p.112 requires a crew task nobody built; SalvageMissionPanel.get_salvage_units() had 1, so every salvage unit died with the battle screen.",
+    "reusable_check": "For a resolver/service module, enumerate its public accessors and grep each for an EXTERNAL caller. tests/unit/test_final_partial_rows.gd::test_every_world_trait_accessor_has_a_live_consumer does this and fails if a new accessor lands without one.",
+    "do_not_misread": "0 open does NOT mean the rules are done. It means every row someone WROTE DOWN has a call site and a test. Eight auditors walked eight subsystems; nobody walked every page of both books. The going-forward guard is the four lints plus the per-row tests, never this count.",
+    "new_ssot_files": [
+      "src/core/campaign/SalvageLedger.gd - Compendium p.147 salvage units, the Scrapper, and the only three purchases salvage may pay for",
+      "src/core/campaign/InvasionFlight.gd - Core Rules p.69 flee consequences",
+      "src/core/systems/FactionFavorService.gd - Compendium p.112 six Faction favors"
+    ],
+    "new_test_suites": "tests/unit/test_final_open_rows.gd (33), test_final_partial_rows.gd (23), test_faction_favors.gd (16). Every fix detection-proven by isolated revert.",
+    "still_open": "APK content re-verification. The Aug 3 artifact packaged clean but its CONTENT was stale at Jul 29 and nothing since has re-checked it. Build fresh and verify by UNZIPPING (scripts/verify_apk.py) - --export-release exits 0 on failure."
+  },
   "battle_phase_delivery_audit_2026_08_06": {
     "date": "2026-08-06",
-    "status": "SHIPPED — 5 commits on branch campaign-editor-and-fixits (740db7e36, 0f10cbfcd, e32445c9b, dbc33c70a, 64aa28011). Working tree clean.",
+    "status": "SHIPPED \u2014 5 commits on branch campaign-editor-and-fixits (740db7e36, 0f10cbfcd, e32445c9b, dbc33c70a, 64aa28011). Working tree clean.",
     "summary": "Battle-phase DELIVERY audit. Prior audits asked 'is the rule implemented correctly?' and the answer was almost always yes. This one asked 'does the player ever reach it?' and found FOUR Compendium chapters unreachable in campaign play: No-Minis pp.66-73, Stealth pp.117-122, Street Fights pp.123-136, Salvage pp.137-147. Cause was an early return in TacticalBattleUI.initialize_battle keyed on selected_tier, which CampaignTurnController stamps on EVERY campaign battle. Also fixed: Hold the Field scored as a Win in Rival/Invasion battles (p.91/p.92 say there is no Win condition) at all four success producers; the p.137 salvage availability D6 which had never rolled in any campaign; the tracking tier being locked for the whole battle; grid movement being campaign-wide contra p.90; Insanity campaigns earning story points contra p.65.",
-    "generalization": "When a rule appears missing, check whether a function implementing it already exists WITH NO CALLER. That was the answer five separate times in one day. No key census finds this class — both halves exist and are correct; only execution order is wrong.",
+    "generalization": "When a rule appears missing, check whether a function implementing it already exists WITH NO CALLER. That was the answer five separate times in one day. No key census finds this class \u2014 both halves exist and are correct; only execution order is wrong.",
     "verification": {
       "tests_unit": "2254/2254 across 194 suites",
       "verify_battle_ui": "79/79 (grown from 49 checks)",
-      "verify_post_battle": "46/46 — first fully green run",
+      "verify_post_battle": "46/46 \u2014 first fully green run",
       "parse_sweep": "0 errors via --headless --import (--quit misses non-startup scripts)",
       "lints": "signal_wiring / tscn_connections / autoload_lookups / data_ownership all CLEAN; orphan_assets orphans=0",
-      "apk": "build/fpfh-0.9.7-aug06c.apk — verified by unzip AND decompressed-bytecode content match"
+      "apk": "build/fpfh-0.9.7-aug06c.apk \u2014 verified by unzip AND decompressed-bytecode content match"
     },
     "notes_for_routing": "Two of three long-standing verify_post_battle failures were TEST defects, not code. A red harness row is a lead, not a verdict. Also: --headless --quit reported clean while a script failed to parse and took the whole post-battle wizard down; use --import."
   },
-  "last_updated": "2026-08-06",
+  "last_updated": "2026-08-11",
   "battle_companion_f9_f10": {
     "date": "2026-07-06",
     "status": "CODE+TESTS DONE; on-device re-test (Test18 APK) + git COMMIT PENDING",
@@ -112,9 +130,9 @@
       "data/story_track_missions/event_01..07.json (art_tag field added)"
     ],
     "runtime_bugs_fixed": [
-      "First MCP screenshot showed MainMenu, not overlay — Control extension rendered behind MainMenu's CanvasLayers L80/L90. Fixed: extends CanvasLayer, layer = 95, UI wrapped in _root Control.",
-      "Resource file not found: res://assets/portraits/default.png — SpeciesPortraitRegistry.DEFAULT_PORTRAIT points at unshipped art. Fixed: ResourceLoader.exists(pp) guard before load(pp) in _apply_advisor_portrait.",
-      "Can't use get_node() with absolute paths from outside the active scene tree — tree_exited fires AFTER detachment, breaking /root/PersistentResourceBar restore. Fixed: override _exit_tree() instead, fires while still in tree."
+      "First MCP screenshot showed MainMenu, not overlay \u2014 Control extension rendered behind MainMenu's CanvasLayers L80/L90. Fixed: extends CanvasLayer, layer = 95, UI wrapped in _root Control.",
+      "Resource file not found: res://assets/portraits/default.png \u2014 SpeciesPortraitRegistry.DEFAULT_PORTRAIT points at unshipped art. Fixed: ResourceLoader.exists(pp) guard before load(pp) in _apply_advisor_portrait.",
+      "Can't use get_node() with absolute paths from outside the active scene tree \u2014 tree_exited fires AFTER detachment, breaking /root/PersistentResourceBar restore. Fixed: override _exit_tree() instead, fires while still in tree."
     ],
     "deferred_to_phase_2_plus": [
       "Settings UI checkbox for the toggle (currently .cfg only)",
@@ -131,24 +149,24 @@
   },
   "recent_engineering_qa": {
     "date": "2026-05-17 to 2026-05-19",
-    "summary": "Battle Screen UX/UI Redesign (Map-Primary + Drawers) — Phase 0 prototype + Phase 1 frame port + Phase 2 per-figure bookkeeping ALL COMPLETE & runtime-verified across all 3 tiers and 4 entry points (Battle Sim, Bug Hunt, Planetfall, Tactics). Plan: C:\\Users\\admin\\.claude\\plans\\i-think-i-got-binary-comet.md. Design-spec/QA reference: docs/testing/BATTLE_UI_REDESIGN.md (indexed). Keeper widget: src/ui/components/common/SlideOverDrawer.gd (gdUnit 10/10). Phase 2 wired per-figure SSOT: TacticalUnit gained stun_markers/is_activated/react_slot + reset_for_new_round() (enemies react_slot=3); Crew/Enemy SlideOverDrawers ARE the per-figure tracker (CharacterStatusCard + Mark-Down per TacticalUnit); card buttons → _on_card_damage/stun/action → mutate model + log + ActivationTrackerPanel; _mark_casualty is single idempotent chokepoint with iter-3 morale bridge; rails got stun pips/Q-S chip/activated-recede/casualty styling + live ACTIVATED a/M · Q · S header + ↺ Round reset + this-round-casualties line; round machine: _reset_all_unit_reactions keeps Stun (Core Rules: removed only after acting), _assign_crew_reaction_slots at REACTION_ROLL (D6 vs Reactions → Q/S), _resolve_end_phase_morale at END_PHASE (Core Rules pp.114-115). User-confirmed RULES-FAITHFUL crew injury routing (Core Rules p.122): _resolve_battle() now routes ALL downed crew to crew_injuries_data → standard post-battle Injury Table decides dead/injured/recovered (was forced harsh Severity sub-path); enemies still die outright + feed morale. SlideOverDrawer wide-drawer pattern: opt-in @export min_panel_width (default 0 = unchanged keeper contract), wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) = 480px CONTENT-sized (minf(min_panel_width, vp.x*0.5)) NOT viewport fraction (initial vp.x*0.42 attempt ballooned to 828px on 1972 screen = half-takeover; corrected). Post-battle + turn-rollover consistency VERIFIED end-to-end after the routing change.",
+    "summary": "Battle Screen UX/UI Redesign (Map-Primary + Drawers) \u2014 Phase 0 prototype + Phase 1 frame port + Phase 2 per-figure bookkeeping ALL COMPLETE & runtime-verified across all 3 tiers and 4 entry points (Battle Sim, Bug Hunt, Planetfall, Tactics). Plan: C:\\Users\\admin\\.claude\\plans\\i-think-i-got-binary-comet.md. Design-spec/QA reference: docs/testing/BATTLE_UI_REDESIGN.md (indexed). Keeper widget: src/ui/components/common/SlideOverDrawer.gd (gdUnit 10/10). Phase 2 wired per-figure SSOT: TacticalUnit gained stun_markers/is_activated/react_slot + reset_for_new_round() (enemies react_slot=3); Crew/Enemy SlideOverDrawers ARE the per-figure tracker (CharacterStatusCard + Mark-Down per TacticalUnit); card buttons \u2192 _on_card_damage/stun/action \u2192 mutate model + log + ActivationTrackerPanel; _mark_casualty is single idempotent chokepoint with iter-3 morale bridge; rails got stun pips/Q-S chip/activated-recede/casualty styling + live ACTIVATED a/M \u00b7 Q \u00b7 S header + \u21ba Round reset + this-round-casualties line; round machine: _reset_all_unit_reactions keeps Stun (Core Rules: removed only after acting), _assign_crew_reaction_slots at REACTION_ROLL (D6 vs Reactions \u2192 Q/S), _resolve_end_phase_morale at END_PHASE (Core Rules pp.114-115). User-confirmed RULES-FAITHFUL crew injury routing (Core Rules p.122): _resolve_battle() now routes ALL downed crew to crew_injuries_data \u2192 standard post-battle Injury Table decides dead/injured/recovered (was forced harsh Severity sub-path); enemies still die outright + feed morale. SlideOverDrawer wide-drawer pattern: opt-in @export min_panel_width (default 0 = unchanged keeper contract), wide drawers (Crew/Enemies/Dice/Tracking/Oracle/Results) = 480px CONTENT-sized (minf(min_panel_width, vp.x*0.5)) NOT viewport fraction (initial vp.x*0.42 attempt ballooned to 828px on 1972 screen = half-takeover; corrected). Post-battle + turn-rollover consistency VERIFIED end-to-end after the routing change.",
     "found_and_fixed_bugs": [
-      "Phase 2 ordering: drawers built in initialize_battle BEFORE tier pick → activation_tracker null → units never registered (set_unit_defeated push_warning). Fixed by repopulating in _on_tier_selected after ASSISTED engines instance.",
-      "Pre-existing InjurySystemService.gd:63 (untouched since 2026-04-02, NOT a Phase 2 regression): result.description = range_data.description but INJURY_ROLL_RANGES entries are {min, max} only → SCRIPT ERROR spam + blank injury descriptions on every post-battle injury roll (NOT a hard crash — Godot continues past Dictionary missing-key; is_fatal/recovery_turns stayed correct; debugger-break was MCP run_script debug-mode artifact). Fixed → InjurySystemConstants.get_injury_description(injury_type), mirroring adjacent type_name lookup, no fabricated data. Surfaced BECAUSE rules-faithful routing now sends 100% downed crew through this path."
+      "Phase 2 ordering: drawers built in initialize_battle BEFORE tier pick \u2192 activation_tracker null \u2192 units never registered (set_unit_defeated push_warning). Fixed by repopulating in _on_tier_selected after ASSISTED engines instance.",
+      "Pre-existing InjurySystemService.gd:63 (untouched since 2026-04-02, NOT a Phase 2 regression): result.description = range_data.description but INJURY_ROLL_RANGES entries are {min, max} only \u2192 SCRIPT ERROR spam + blank injury descriptions on every post-battle injury roll (NOT a hard crash \u2014 Godot continues past Dictionary missing-key; is_fatal/recovery_turns stayed correct; debugger-break was MCP run_script debug-mode artifact). Fixed \u2192 InjurySystemConstants.get_injury_description(injury_type), mirroring adjacent type_name lookup, no fabricated data. Surfaced BECAUSE rules-faithful routing now sends 100% downed crew through this path."
     ],
-    "tests": "Battle UI suites all pass: keeper SlideOverDrawer 10/10 (unchanged default contract); test_activation_tracker 12/12; test_battle_objective_tracker 14/14; test_post_battle_success_cascade 4/4; test_battle_tier_controller 13/13; test_injury_determination 13/13; test_injury_recovery 15/15; test_post_battle_subsystems 10/10. ONE PRE-EXISTING FAIL OUT OF SCOPE: test_battle_round_tracker::test_battle_event_triggers_on_round_2 — BattleRoundTracker.gd unchanged by this plan (commit dbf9980d), stale test expects bare advance_phase()×5 to auto-emit but tracker requires UI check_battle_event() after overlay (line ~186) to avoid modal double-fire. Track separately. MCP empirical: card→model SSOT (stun/damage/action), Reaction Roll Q/S (15/100 fatal, 50/100 recovery, 35/100 no-effect via determine_injury sweep), round reset KEEPS stun, iter-3 morale bridge + bail removal, all 4 entry-point battle_mode branches load+populate.",
+    "tests": "Battle UI suites all pass: keeper SlideOverDrawer 10/10 (unchanged default contract); test_activation_tracker 12/12; test_battle_objective_tracker 14/14; test_post_battle_success_cascade 4/4; test_battle_tier_controller 13/13; test_injury_determination 13/13; test_injury_recovery 15/15; test_post_battle_subsystems 10/10. ONE PRE-EXISTING FAIL OUT OF SCOPE: test_battle_round_tracker::test_battle_event_triggers_on_round_2 \u2014 BattleRoundTracker.gd unchanged by this plan (commit dbf9980d), stale test expects bare advance_phase()\u00d75 to auto-emit but tracker requires UI check_battle_event() after overlay (line ~186) to avoid modal double-fire. Track separately. MCP empirical: card\u2192model SSOT (stun/damage/action), Reaction Roll Q/S (15/100 fatal, 50/100 recovery, 35/100 no-effect via determine_injury sweep), round reset KEEPS stun, iter-3 morale bridge + bail removal, all 4 entry-point battle_mode branches load+populate.",
     "files_modified": "src/ui/screens/battle/TacticalBattleUI.gd (Phase 2 fields/methods + wide _make_drawer + crew injury routing in _resolve_battle), src/ui/components/common/SlideOverDrawer.gd (min_panel_width @export + _lr_width helper), src/core/services/InjurySystemService.gd (line ~63 description fix). Created: docs/testing/BATTLE_UI_REDESIGN.md (indexed in docs/DOCUMENTATION_INDEX.md). Deleted: src/ui/screens/battle/prototype/ (untracked throwaway, never committed).",
-    "lessons_recorded": "(1) GDScript does NOT hot-reload in a running Godot instance — must stop_project+run_project after .gd edit or MCP verifies stale bytecode (first re-probe showed stale 828px width). (2) Content-driven widgets size to CONTENT not viewport — fraction-of-screen sizing balloons on wide monitors. (3) Green unit tests ≠ exercised runtime path — gdUnit injury_determination 13/13 passed before AND after the InjurySystemService:63 fix because the test doesn't trip the SCRIPT-ERROR line; only the empirical d100 sweep caught it. (4) Plan-listed steps can already be SATISFIED by existing code (Seize Initiative was already a one-time pre-computed briefing affordance — adding a new button would have duplicated). (5) Context7-verify Godot built-in API surface (not project-internal components) before claiming engine-level coverage.",
-    "uncommitted": "Tree clean — commit 1305d22d swept up the Phase 2 + follow-up work mid-session. Only .claude/skills/campaign-systems/references/save-load-persistence.md modified (stale from May 17, not this session).",
+    "lessons_recorded": "(1) GDScript does NOT hot-reload in a running Godot instance \u2014 must stop_project+run_project after .gd edit or MCP verifies stale bytecode (first re-probe showed stale 828px width). (2) Content-driven widgets size to CONTENT not viewport \u2014 fraction-of-screen sizing balloons on wide monitors. (3) Green unit tests \u2260 exercised runtime path \u2014 gdUnit injury_determination 13/13 passed before AND after the InjurySystemService:63 fix because the test doesn't trip the SCRIPT-ERROR line; only the empirical d100 sweep caught it. (4) Plan-listed steps can already be SATISFIED by existing code (Seize Initiative was already a one-time pre-computed briefing affordance \u2014 adding a new button would have duplicated). (5) Context7-verify Godot built-in API surface (not project-internal components) before claiming engine-level coverage.",
+    "uncommitted": "Tree clean \u2014 commit 1305d22d swept up the Phase 2 + follow-up work mid-session. Only .claude/skills/campaign-systems/references/save-load-persistence.md modified (stale from May 17, not this session).",
     "cross_mode": "All 4 entry-point battle_mode branches MCP-verified (Bug Hunt/Planetfall/Tactics via preserved _try_auto_init_from_temp_data delegation; standalone Battle Sim direct). _is_bug_hunt_mode/_is_planetfall_mode flags set correctly per mode, drawers populate identically across all four."
   },
-  "current_phase": "Pre-tablet hardening on branch campaign-editor-and-fixits. PARTNERSHIP (Jul 27 2026 call outcome, supersedes the Apr 29/30 frame previously recorded here): $9.99 one-time base + per-book unlocks APPROVED, no subscription; taper accepted pending his team; Five Parsecs own-IP scope adopted (Traveller out); LOI moving to Modiphius letterhead — diff it against the agreed Google Doc before signing. Alpha kickoff date deliberately DEFERRED for social coordination; do not re-propose one unprompted. The four strategic theses T1-T4 still stand. ⚠ MODIPHIUS_CORRESPONDENCE_JOURNAL.md stops at Jun 4 2026 — for anything later, pull Gmail + Google Doc comments, NOT the repo.",
+  "current_phase": "Real-hardware tablet QA on branch campaign-editor-and-fixits (Aug 8-11 2026), uncommitted. See tablet_qa_sprint_2026_08. Pre-tablet hardening on branch campaign-editor-and-fixits. PARTNERSHIP (Jul 27 2026 call outcome, supersedes the Apr 29/30 frame previously recorded here): $9.99 one-time base + per-book unlocks APPROVED, no subscription; taper accepted pending his team; Five Parsecs own-IP scope adopted (Traveller out); LOI moving to Modiphius letterhead \u2014 diff it against the agreed Google Doc before signing. Alpha kickoff date deliberately DEFERRED for social coordination; do not re-propose one unprompted. The four strategic theses T1-T4 still stand. \u26a0 MODIPHIUS_CORRESPONDENCE_JOURNAL.md stops at Jun 4 2026 \u2014 for anything later, pull Gmail + Google Doc comments, NOT the repo.",
   "key_metrics": {
-    "game_mechanics_compliance": "100% IMPLEMENTED (170/170) — ⚠ implemented is NOT delivered. This figure was true while Quests were unplayable end to end and four Compendium chapters could not be opened in a campaign. Cross-check docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md and docs/RULES_WIRING_AUDIT_2026-08.md before quoting it.",
+    "game_mechanics_compliance": "100% IMPLEMENTED (170/170) \u2014 \u26a0 implemented is NOT delivered. This figure was true while Quests were unplayable end to end and four Compendium chapters could not be opened in a campaign. Cross-check docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md and docs/RULES_WIRING_AUDIT_2026-08.md before quoting it.",
     "core_rules_systems": "11/11 verified",
     "campaign_turn_phases": "9/9 fully wired",
     "campaign_creation": "7-phase coordinator system",
-    "bug_hunt_gamemode": "COMPLETE — 15 JSON verified vs Compendium, UI modernized (BugHuntScreenBase), transfer system wired (3-step flow + inbox + stash persistence), 0 compile errors",
+    "bug_hunt_gamemode": "COMPLETE \u2014 15 JSON verified vs Compendium, UI modernized (BugHuntScreenBase), transfer system wired (3-step flow + inbox + stash persistence), 0 compile errors",
     "store_paywall_system": "Tri-platform (Steam/Android/iOS)",
     "compile_errors": 0,
     "gdscript_files": "~900 (excl. addons)",
@@ -167,41 +185,41 @@
     "test_suite_2026_08_06": "2254/2254 unit across 194 suites; verify_battle_ui 79/79; verify_post_battle 46/46"
   },
   "phase_48_verification": {
-    "status": "COMPLETE — 8 domains verified against core_rulebook.txt",
+    "status": "COMPLETE \u2014 8 domains verified against core_rulebook.txt",
     "description": "Cross-reference verification of all BOOK_VERIFICATION_NEEDED items + unverified domains",
     "fixes_applied": [
       "motivation_table.json: 13 errors FIXED (equipment roll shifts, resource errors, name cascade 80-100, entry 96-100 resolved as Freedom)",
       "character_species.json: 3 missing Strange Characters ADDED (Traveler, Empath, Bio-upgrade)",
       "weapons.json: Dazzle Grenade 'Heavy' trait REMOVED (not in Core Rules p.50), 6 non-Core weapons retagged",
-      "WorldEconomyManager._init(): 1000 → 0 (set by campaign creation, Core Rules p.28: 1 credit/crew)",
-      "campaign_rules.json: starting_credits 100 → starting_credits_per_crew 1 (Core Rules p.28)"
+      "WorldEconomyManager._init(): 1000 \u2192 0 (set by campaign creation, Core Rules p.28: 1 credit/crew)",
+      "campaign_rules.json: starting_credits 100 \u2192 starting_credits_per_crew 1 (Core Rules p.28)"
     ],
     "verified_clean": [
-      "All 8 primary species base stats (40 values) — CORRECT",
-      "All 15 Strange Characters base stats — CORRECT",
-      "Background Table (25 entries) — CORRECT",
-      "Class Table (23 entries) — CORRECT",
-      "World Traits D100 (41 entries) — CORRECT",
-      "Campaign Events D100 (28 entries) — CORRECT",
-      "Character Events D100 (30 entries) — CORRECT",
-      "Patron Type D10 (6 entries) — CORRECT",
-      "Danger Pay D10 (4 entries) — CORRECT",
-      "Time Frame D10 (4 entries) — CORRECT",
-      "BHC Thresholds (6 patron types × 3 categories) — CORRECT",
-      "Benefits/Hazards/Conditions subtables — CORRECT",
-      "Victory Conditions (17 entries) — CORRECT",
-      "36 Core Rules weapons (all stats + traits) — CORRECT (1 Dazzle Grenade fix)"
+      "All 8 primary species base stats (40 values) \u2014 CORRECT",
+      "All 15 Strange Characters base stats \u2014 CORRECT",
+      "Background Table (25 entries) \u2014 CORRECT",
+      "Class Table (23 entries) \u2014 CORRECT",
+      "World Traits D100 (41 entries) \u2014 CORRECT",
+      "Campaign Events D100 (28 entries) \u2014 CORRECT",
+      "Character Events D100 (30 entries) \u2014 CORRECT",
+      "Patron Type D10 (6 entries) \u2014 CORRECT",
+      "Danger Pay D10 (4 entries) \u2014 CORRECT",
+      "Time Frame D10 (4 entries) \u2014 CORRECT",
+      "BHC Thresholds (6 patron types \u00d7 3 categories) \u2014 CORRECT",
+      "Benefits/Hazards/Conditions subtables \u2014 CORRECT",
+      "Victory Conditions (17 entries) \u2014 CORRECT",
+      "36 Core Rules weapons (all stats + traits) \u2014 CORRECT (1 Dazzle Grenade fix)"
     ],
     "remaining": [
-      "Compendium/DLC domain (~100 values in compendium_*.gd static arrays) — need physical Compendium book for full verification",
-      "Carbine VERIFIED. 5 other 'non-Core weapons' (Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) confirmed PHANTOM — no data entries exist, not found in compendium_source.txt",
+      "Compendium/DLC domain (~100 values in compendium_*.gd static arrays) \u2014 need physical Compendium book for full verification",
+      "Carbine VERIFIED. 5 other 'non-Core weapons' (Laser Rifle, Plasma Pistol, Auto Cannon, Missile Launcher, Shock Grenade) confirmed PHANTOM \u2014 no data entries exist, not found in compendium_source.txt",
       "RulesReference/SpeciesList.json: 6 starting_bonus values CORRECTED (Mar 23) to match character_creation_bonuses.json (Core Rules pp.15-18)"
     ]
   },
   "completed_phases": [
     {
       "phase": "1-4",
-      "description": "Godot 4.5.1 → 4.6 Migration"
+      "description": "Godot 4.5.1 \u2192 4.6 Migration"
     },
     {
       "phase": "5",
@@ -237,7 +255,7 @@
     },
     {
       "phase": "21",
-      "description": "World→Battle Data Flow (3 sub-phases)"
+      "description": "World\u2192Battle Data Flow (3 sub-phases)"
     },
     {
       "phase": "22",
@@ -341,17 +359,17 @@
     }
   ],
   "roadmap": {
-    "next_priority": "Phase A.2 (May 5-11): first weekly Gavin sync, partnership-on-paper conversation (LOI), contractor scope discussion (Frames A/B/C — lead with Frame B retainer per §9.5), asset delivery begins, telemetry scaffolding code, Van Westendorp Prolific recruitment, T4 discount-code sizing coordination with Modiphius (15-20% placeholder), T4 newsletter API endpoint coordination, Steam wishlist target setting (10K-20K by EA per §11.2). Phase A.3 (May 12-24): cut alpha branch, A0 sanity-check, tester onboarding, T4 mechanism mock-ups in build, category-perception probe questions finalized. Alpha kickoff Mon May 25.",
-    "modiphius_partnership_status": "DEAL FRAME LOCKED 2026-04-29: 50/50 net split after platform fees. Steam-first launch (Apr 30 refocus): Phase 1 EA + 1.0 on Steam exclusively, mobile pocket edition is Phase 2 post-1.0. FOUR MUTUALLY AGREED STRATEGIC THESES (T1-T4) baseline: T1 companion app not digital port, T2 establishing a category not entering one, T3 multi-project platform R&D investment, T4 active digital→physical conversion strategy. Contractor structures on table (Frames A/B/C in MODIPHIUS_DIGITAL_FORECAST.md §9.5 — recommended pitch sequence leads with Frame B retainer, then Frame C hybrid, Frame A intro fee as max ask, pure 50/50 as fallback). Partnership-on-paper progression: LOI in Phase A.2 → MOU during alpha + refinement → Definitive Agreement before Steam EA. 5x system positioned as foundation for Modiphius's wider digital strategy across other licensed IPs (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune).",
+    "next_priority": "Phase A.2 (May 5-11): first weekly Gavin sync, partnership-on-paper conversation (LOI), contractor scope discussion (Frames A/B/C \u2014 lead with Frame B retainer per \u00a79.5), asset delivery begins, telemetry scaffolding code, Van Westendorp Prolific recruitment, T4 discount-code sizing coordination with Modiphius (15-20% placeholder), T4 newsletter API endpoint coordination, Steam wishlist target setting (10K-20K by EA per \u00a711.2). Phase A.3 (May 12-24): cut alpha branch, A0 sanity-check, tester onboarding, T4 mechanism mock-ups in build, category-perception probe questions finalized. Alpha kickoff Mon May 25.",
+    "modiphius_partnership_status": "DEAL FRAME LOCKED 2026-04-29: 50/50 net split after platform fees. Steam-first launch (Apr 30 refocus): Phase 1 EA + 1.0 on Steam exclusively, mobile pocket edition is Phase 2 post-1.0. FOUR MUTUALLY AGREED STRATEGIC THESES (T1-T4) baseline: T1 companion app not digital port, T2 establishing a category not entering one, T3 multi-project platform R&D investment, T4 active digital\u2192physical conversion strategy. Contractor structures on table (Frames A/B/C in MODIPHIUS_DIGITAL_FORECAST.md \u00a79.5 \u2014 recommended pitch sequence leads with Frame B retainer, then Frame C hybrid, Frame A intro fee as max ask, pure 50/50 as fallback). Partnership-on-paper progression: LOI in Phase A.2 \u2192 MOU during alpha + refinement \u2192 Definitive Agreement before Steam EA. 5x system positioned as foundation for Modiphius's wider digital strategy across other licensed IPs (Star Trek Adventures, Achtung Cthulhu, Fallout, Dune).",
     "strategic_theses": {
-      "T1_companion_not_port": "App complements physical book, doesn't replace it. Different evaluation lens than Gloomhaven-style digital replacements. See MODIPHIUS_DIGITAL_FORECAST.md §11.5.",
-      "T2_category_establishment": "Solo-RPG/wargame digital companion apps essentially absent on Steam. 5PFH builds the precedent. Empty-Steam-category = both moat AND discovery risk. See forecast §11.1d. Validated via closed alpha category-perception probe (CLOSED_ALPHA_PLAN.md §6.1).",
-      "T3_platform_RnD_investment": "Build is foundation for Modiphius's digital strategy across other licensed IPs. Reframes contractor scope from per-product cost to platform investment. See forecast §9.5 multi-project reframe.",
-      "T4_digital_to_physical_strategy": "5 in-app conversion mechanisms drive Steam users to physical book purchases (discount code, Get-the-Physical-Edition CTA, bundled-PDF reminder, expansion pre-order incentives, newsletter capture). Inverts the standard cannibalization concern. Modiphius keeps 100% physical margin. See forecast §11.5a + CLOSED_ALPHA_PLAN.md §6.5 (Phase B alpha deliverables)."
+      "T1_companion_not_port": "App complements physical book, doesn't replace it. Different evaluation lens than Gloomhaven-style digital replacements. See MODIPHIUS_DIGITAL_FORECAST.md \u00a711.5.",
+      "T2_category_establishment": "Solo-RPG/wargame digital companion apps essentially absent on Steam. 5PFH builds the precedent. Empty-Steam-category = both moat AND discovery risk. See forecast \u00a711.1d. Validated via closed alpha category-perception probe (CLOSED_ALPHA_PLAN.md \u00a76.1).",
+      "T3_platform_RnD_investment": "Build is foundation for Modiphius's digital strategy across other licensed IPs. Reframes contractor scope from per-product cost to platform investment. See forecast \u00a79.5 multi-project reframe.",
+      "T4_digital_to_physical_strategy": "5 in-app conversion mechanisms drive Steam users to physical book purchases (discount code, Get-the-Physical-Edition CTA, bundled-PDF reminder, expansion pre-order incentives, newsletter capture). Inverts the standard cannibalization concern. Modiphius keeps 100% physical margin. See forecast \u00a711.5a + CLOSED_ALPHA_PLAN.md \u00a76.5 (Phase B alpha deliverables)."
     },
     "phase_B_alpha_deliverables_apr30": {
-      "category_perception_probe": "CLOSED_ALPHA_PLAN.md §6.1 — open-ended language probe + forced-choice category labels + Steam discovery hypothetical. Output: docs/CATEGORY_PERCEPTION_REPORT.md at end of alpha. Feeds Phase C Steam-store-positioning brief.",
-      "digital_to_physical_mechanism_specs": "CLOSED_ALPHA_PLAN.md §6.5 — design and prototype 5 mechanisms before alpha kickoff so testers can react. Coordination needed with Modiphius: discount sizing, redemption mechanism, co-branded landing page, newsletter API endpoint."
+      "category_perception_probe": "CLOSED_ALPHA_PLAN.md \u00a76.1 \u2014 open-ended language probe + forced-choice category labels + Steam discovery hypothetical. Output: docs/CATEGORY_PERCEPTION_REPORT.md at end of alpha. Feeds Phase C Steam-store-positioning brief.",
+      "digital_to_physical_mechanism_specs": "CLOSED_ALPHA_PLAN.md \u00a76.5 \u2014 design and prototype 5 mechanisms before alpha kickoff so testers can react. Coordination needed with Modiphius: discount sizing, redemption mechanism, co-branded landing page, newsletter API endpoint."
     },
     "active_workback_phases": "A.1 COMPLETE / A.2 next week / A.3 alpha prep / B closed alpha (May 25-Jul 6) / C refinement (Jul 7-20) / D beta + Steam Playtest (Jul 21-Sep 1) / E marketing lock (Sep 2-22) / F EA launch (Sep 23-30 target) / G post-EA toward 1.0",
     "remaining_pdf_verification": "~100 Compendium/DLC values in 11 compendium_*.gd files (Core Rules domains 100% complete)",
@@ -361,17 +379,28 @@
       "PvP/Co-op modes",
       "5 phantom non-Core weapons confirmed non-existent"
     ],
-    "store_ids": "Placeholder — need real IDs from Modiphius",
+    "store_ids": "Placeholder \u2014 need real IDs from Modiphius",
     "public_beta": "Beta = Steam Playtest cohort 100-200 testers, Phase D (Jul 21-Sep 1)"
   },
   "architecture_notes": {
-    "game_modes": "Standard 5PFH (9-phase) + Bug Hunt (3-stage) — incompatible data models",
-    "enum_systems": "Two must stay in sync: GlobalEnums, GameEnums. (FiveParsecsGameEnums deleted Sprint A Bug 3 2026-05-24 along with legacy FiveParsecsCampaign family — see project_sprint_a_consolidation_shipped memory.)",
-    "store_pattern": "StoreManager → SteamStore/AndroidStore/iOSStore/OfflineStore",
-    "battle_mode": "Tabletop companion — text instructions, not automated simulation",
+    "game_modes": "Standard 5PFH (9-phase) + Bug Hunt (3-stage) \u2014 incompatible data models",
+    "enum_systems": "Two must stay in sync: GlobalEnums, GameEnums. (FiveParsecsGameEnums deleted Sprint A Bug 3 2026-05-24 along with legacy FiveParsecsCampaign family \u2014 see project_sprint_a_consolidation_shipped memory.)",
+    "store_pattern": "StoreManager \u2192 SteamStore/AndroidStore/iOSStore/OfflineStore",
+    "battle_mode": "Tabletop companion \u2014 text instructions, not automated simulation",
     "dlc_gating": "compendium_*.gd classes check ContentFlags internally",
     "injury_system": "GRUESOME_FATE(1-5) + FATAL(6-15) + 7 other types. TreatmentType: SICK_BAY/SURGERY/NATURAL",
     "payment_system": "D6 + danger_pay (1-3 from patron_generation.json). Single-digit credit scale.",
     "starting_credits": "1 credit per crew member (Core Rules p.28). FiveParsecsConstants.starting_credits_per_crew = 1."
+  },
+  "tablet_qa_sprint_2026_08": {
+    "status": "IN PROGRESS - first QA on real hardware (Lenovo TB361FU), Aug 8-11 2026",
+    "ledger": "docs/qa/TABLET_QA_SPRINT_2026-08.md (~3700 lines, appended as we test)",
+    "sop": "docs/sop/android-runtime-testing.md",
+    "branch": "campaign-editor-and-fixits (uncommitted; last commit 69cfd4d2b, Aug 7)",
+    "green": "152/152 across 14 suites touched this sprint; six gating lints CLEAN; lint_orphan_assets orphans=0 test_only=40; headless --import parse-clean",
+    "defect_classes_desktop_cannot_see": "soft-keyboard occlusion (no signal exists in Godot 4.6 - arm on focus then POLL); touch-scroll swallowed by PanelContainer/HSeparator defaults; a ScrollContainer absorbing a squeeze silently so it read as missing DATA; legacy-save stash DOUBLING on load",
+    "defect_classes_no_test_could_see": "the printable sheet had NEVER received a journal entry on any platform (has_method(\"get_entries\") - zero definitions repo-wide) and the World block was blank on every campaign (world is Dictionary vs a PlanetData OBJECT). Every test called SheetDataContext.build() directly and PASSED its arguments in, so none exercised PrintSheetScreen._build_data_context(), where both bugs lived.",
+    "sheet_audit": "Core Rules Appendix X (PDF pp.180-181) PRINTS all three sheets and is the authority on their captions. 'Shiny Bits' is the p.89 Notable Sight, not credits. 'Encounter Type' is the Encounter Table (pp.94-103), not the enemy name. world.license_* and war_progress were wrongly written off as unmodelled.",
+    "open": "DEPLOY #6 outstanding - two sheet fixes unconfirmed on hardware. The Encounter Log's scenario boxes need a battle fought UNDER the new build (no backfill; pre-fix journal entries carry no stats scenario keys, so their blanks are expected). scripts/scan_dead_has_method_guards.py reports ~91 candidates in src/ (REPORT-ONLY, exits 0) - most are legitimate plugin probes, needs triage before it can gate."
   }
 }

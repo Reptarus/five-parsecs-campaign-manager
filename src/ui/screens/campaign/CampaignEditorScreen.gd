@@ -20,6 +20,7 @@ const CharacterCreatorScene := preload("res://src/ui/screens/character/Character
 const CharacterCreatorScript := preload("res://src/core/character/Generation/CharacterCreator.gd")
 const AdaptivePanelGroupScript := preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
 const CharacterScript := preload("res://src/core/character/Character.gd")
+const SalvageLedgerRef := preload("res://src/core/campaign/SalvageLedger.gd")
 
 # The 5 canonical Core Rules difficulty modes (p.63). The deprecated HARD/NIGHTMARE/
 # ELITE values in GlobalEnums.DifficultyLevel are intentionally omitted (CLAUDE.md).
@@ -48,6 +49,11 @@ var _story_spin: SpinBox
 var _rep_spin: SpinBox
 var _debt_spin: SpinBox
 var _difficulty_opt: OptionButton
+
+# Compendium-progress controls
+var _rz_licensed_check: CheckBox
+var _rz_turns_spin: SpinBox
+var _salvage_spin: SpinBox
 
 
 func _ready() -> void:
@@ -124,7 +130,8 @@ func _build_ui() -> void:
 	# --- Onboarding banner ---
 	if _onboarding:
 		var banner := Label.new()
-		banner.text = "Set your current campaign state — turn, credits, story points, and each crew member's real stats."
+		banner.text = ("Set your current campaign state — turn, credits, story points, "
+			+ "Red Zone and Salvage progress, and each crew member's real stats.")
 		banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		banner.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 		banner.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
@@ -141,6 +148,13 @@ func _build_ui() -> void:
 	var group := AdaptivePanelGroupScript.new()
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# TABS, not the AUTO->STACK default. Overview and Crew are two independent
+	# editing surfaces you switch between (master-detail), not one overview read
+	# top to bottom. STACK shows BOTH panes at once and splits the height, which
+	# in portrait left the Overview scroll region 414px for 849px of content —
+	# Ship Debt, Difficulty and the whole Compendium Progress group sat below the
+	# fold. Measured live at 800x1280 (the tablet's portrait dp) before the fix.
+	group.portrait_mode = AdaptivePanelGroupScript.PortraitMode.TABS
 	_body.add_child(group)
 	group.add_pane(_build_overview_pane(), "Overview")
 	group.add_pane(_build_crew_pane(), "Crew")
@@ -186,11 +200,22 @@ func _build_overview_pane() -> Control:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var vbox := VBoxContainer.new()
-	vbox.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	# XS, not SM. Each labelled row is already a 70px stack (22 label + 48 input),
+	# so with ten rows the INTER-ROW GAPS are the second-largest thing on the pane
+	# (88px at SM) — bigger than any single control. Measured at the tablet's
+	# portrait dp (800x1280): SM overflowed the 783px viewport by 66px, and the
+	# gaps were where that came from. XS is still a Deep Space grid value.
+	vbox.add_theme_constant_override("separation", UIColors.SPACING_XS)
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(vbox)
 
-	_turn_spin = _add_spin_row(vbox, "Turn #", 0, 9999, 1)
+	# T9-03: this control edits progress_data["turns_played"], which is turns COMPLETED
+	# — one less than the turn the dashboard header calls "Turn N". Labelled "Turn #" it
+	# read 8 on a campaign the dashboard showed as Turn 9, so a player onboarding a
+	# physical game they are on turn 9 of would type 9 and land on turn 10. This screen
+	# exists FOR that onboarding, so it now speaks the dashboard's language: the spin
+	# shows and accepts the CURRENT turn, and _set_turn converts back.
+	_turn_spin = _add_spin_row(vbox, "Current turn #", 1, 9999, 1)
 	_turn_spin.value_changed.connect(func(v): _set_turn(int(v)))
 	_credits_spin = _add_spin_row(vbox, "Credits", 0, 99999, 1)
 	_credits_spin.value_changed.connect(func(v): _gsm_call("set_credits", int(v)))
@@ -212,7 +237,56 @@ func _build_overview_pane() -> Control:
 	_difficulty_opt.item_selected.connect(_on_difficulty_selected)
 	vbox.add_child(_create_labeled_input("Difficulty", _difficulty_opt))
 
+	# --- Compendium progress ---
+	# Real campaign state, not a debug hatch: a tabletop crew being onboarded may
+	# already hold a Red Zone licence and a pile of Salvage, and this screen exists
+	# to capture exactly that. It is also the ONLY state that gates the deepest
+	# Compendium content, so without these three a campaign started here can never
+	# reach a Black Job or the Scrapper.
+	vbox.add_child(_section_heading("Compendium Progress"))
+
+	_rz_licensed_check = CheckBox.new()
+	_rz_licensed_check.text = "Red Zone licensed"
+	_rz_licensed_check.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	_rz_licensed_check.toggled.connect(_on_rz_licensed_toggled)
+	vbox.add_child(_rz_licensed_check)
+
+	_rz_turns_spin = _add_spin_row(vbox, "Red Zone turns completed", 0, 999, 1)
+	_rz_turns_spin.value_changed.connect(func(v): _set_red_zone_turns(int(v)))
+
+	_salvage_spin = _add_spin_row(vbox, "Salvage units", 0, 9999, 1)
+	_salvage_spin.value_changed.connect(func(v): _set_salvage_units(int(v)))
+
+	# One sentence, and deliberately only ONE of the two rules. The threshold 10 is
+	# the fact a player cannot guess and that gates a whole chapter; what Salvage
+	# may be spent on is enforced by SalvageLedger and stated where it is spent, so
+	# repeating it here bought two extra wrapped lines and nothing else.
+	vbox.add_child(_hint(
+		"Black Zone jobs need a licence and 10 completed Red Zone turns "
+		+ "(Core Rules p.150)."))
+
 	return scroll
+
+
+func _section_heading(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_ACCENT)
+	return lbl
+
+
+func _hint(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	# Safe to autowrap here: the parent is a VBox inside a ScrollContainer with
+	# horizontal scrolling DISABLED, so the label's width is bounded by the pane.
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+	return lbl
 
 
 func _add_spin_row(parent: VBoxContainer, label_text: String, mn: int, mx: int, stp: int) -> SpinBox:
@@ -227,8 +301,9 @@ func _add_spin_row(parent: VBoxContainer, label_text: String, mn: int, mx: int, 
 
 func _set_turn(n: int) -> void:
 	# turns_played has no per-field setter on GameStateManager other than the new
-	# set_turns_played; route through it (clamps >= 0).
-	_gsm_call("set_turns_played", n)
+	# set_turns_played; route through it (clamps >= 0). `n` is the CURRENT turn as the
+	# dashboard names it (see the spin row); turns_played is turns COMPLETED = n - 1.
+	_gsm_call("set_turns_played", max(0, n - 1))
 
 
 func _on_difficulty_selected(idx: int) -> void:
@@ -238,6 +313,35 @@ func _on_difficulty_selected(idx: int) -> void:
 	# progress_data/crew_data key, so a direct set is the sanctioned write here.
 	if "difficulty" in _campaign:
 		_campaign.difficulty = int(DIFFICULTY_MODES[idx]["value"])
+
+
+func _on_rz_licensed_toggled(on: bool) -> void:
+	if _campaign == null:
+		return
+	# Same ownership class as difficulty above: a top-level field on the core with
+	# no setter. The live game writes it exactly this way (RedZoneSystem.gd:120).
+	if "red_zone_licensed" in _campaign:
+		_campaign.red_zone_licensed = on
+
+
+func _set_red_zone_turns(n: int) -> void:
+	if _campaign == null:
+		return
+	# WorldPhaseController.gd:1550 increments this field directly; it has no setter.
+	if "red_zone_turns_completed" in _campaign:
+		_campaign.red_zone_turns_completed = maxi(0, n)
+
+
+func _set_salvage_units(n: int) -> void:
+	# NOT the same as the two above. Salvage units live on progress_data and
+	# SalvageLedger is their declared owner, so writing the key here would be the
+	# raw progress_data write this screen's header bans. Its API takes a DELTA and
+	# a SpinBox reports an ABSOLUTE, so convert rather than reaching past it.
+	if _campaign == null:
+		return
+	var delta: int = maxi(0, n) - SalvageLedgerRef.get_units(_campaign)
+	if delta != 0:
+		SalvageLedgerRef.add_units(_campaign, delta)
 
 
 # ============================================================================
@@ -401,13 +505,35 @@ func _load_from_campaign() -> void:
 		return
 	# Populate with set_value_no_signal so loading does NOT fire value_changed and
 	# write straight back (SpinBox extends Range — a code-set fires the signal).
-	_turn_spin.set_value_no_signal(int(_campaign.progress_data.get("turns_played", 0)) if "progress_data" in _campaign else 0)
+	# +1: the spin speaks CURRENT turn, progress_data stores turns COMPLETED (T9-03).
+	_turn_spin.set_value_no_signal(
+		(int(_campaign.progress_data.get("turns_played", 0)) + 1)
+		if "progress_data" in _campaign else 1)
 	_credits_spin.set_value_no_signal(int(_campaign.credits) if "credits" in _campaign else 0)
 	_supplies_spin.set_value_no_signal(int(_campaign.supplies) if "supplies" in _campaign else 0)
 	_story_spin.set_value_no_signal(int(_campaign.story_points) if "story_points" in _campaign else 0)
 	_rep_spin.set_value_no_signal(int(_campaign.reputation) if "reputation" in _campaign else 0)
+	# T8-01: READ THROUGH THE OWNER ACCESSOR, not the nested display mirror.
+	#
+	# `campaign.ship_debt` is the owner (GameStateManager.gd:675); `ship_data["debt"]`
+	# is a display mirror kept in sync ONLY by set_ship_debt(). Nine sites write the
+	# owner directly and bypass that setter — ShiplessSystem.gd:170 (`ship_debt +=
+	# interest`) is the per-turn one, so the mirror freezes at its creation value
+	# while the rules keep charging interest against the real figure.
+	#
+	# Measured on the tablet Aug 8 2026: the live save carried ship_debt=45 and
+	# ship.debt=25.0 — a 20-credit split, persisted. This row displayed 25 while the
+	# World Phase (which uses get_ship_debt()) showed 45.
+	#
+	# Reading the mirror was not merely cosmetic: _debt_spin writes back through
+	# set_ship_debt() (:223), so touching this control at all would have pushed the
+	# stale 25 onto the owner and ERASED 20 credits of accrued interest — and the
+	# p.76 seizure threshold (75) with it.
 	var debt := 0
-	if "ship_data" in _campaign and _campaign.ship_data is Dictionary:
+	var _gsm := get_node_or_null("/root/GameStateManager")
+	if _gsm and _gsm.has_method("get_ship_debt"):
+		debt = int(_gsm.get_ship_debt())
+	elif "ship_data" in _campaign and _campaign.ship_data is Dictionary:
 		debt = int(_campaign.ship_data.get("debt", 0))
 	_debt_spin.set_value_no_signal(debt)
 
@@ -416,6 +542,16 @@ func _load_from_campaign() -> void:
 		if int(DIFFICULTY_MODES[i]["value"]) == cur_diff:
 			_difficulty_opt.select(i)
 			break
+
+	# set_pressed_no_signal is the CheckBox counterpart to the SpinBox rule above:
+	# BaseButton emits `toggled` on a code-driven press too, so populating without
+	# it would write straight back into the campaign on load.
+	_rz_licensed_check.set_pressed_no_signal(
+		bool(_campaign.red_zone_licensed) if "red_zone_licensed" in _campaign else false)
+	_rz_turns_spin.set_value_no_signal(
+		int(_campaign.red_zone_turns_completed)
+		if "red_zone_turns_completed" in _campaign else 0)
+	_salvage_spin.set_value_no_signal(SalvageLedgerRef.get_units(_campaign))
 
 	_refresh_crew_list()
 

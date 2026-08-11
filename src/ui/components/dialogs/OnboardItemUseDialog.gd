@@ -322,10 +322,14 @@ func _journal(summary: String, item_id: String) -> void:
 	var jr: Node = get_node_or_null("/root/CampaignJournal")
 	if jr and jr.has_method("create_entry"):
 		jr.create_entry({
-			"type": "equipment", "auto_generated": true,
-			"title": "On-board Item used",
+			"type": "event", "auto_generated": true,
+			# Which item it was belongs in the title, NOT in the tags. A tag is drawn
+			# from a fixed vocabulary that JournalEntryTypes.TAGS gives a label and a
+			# colour to; a runtime item_id can never be in that set, so it warned on
+			# every use and rendered as an unlabelled, uncoloured chip.
+			"title": "On-board Item used: %s" % item_id,
 			"description": summary,
-			"tags": ["onboard_items", item_id],
+			"tags": ["onboard_items"],
 		})
 
 
