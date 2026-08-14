@@ -188,10 +188,11 @@ update it in the same commit as the change that justifies it.
 
 - **[Modiphius Ask List](MODIPHIUS_ASK_LIST.md)** - Partnership blockers, asset needs, monetization, multi-IP vision
 - **[Modiphius Progress Demo](MODIPHIUS_PROGRESS_DEMO.md)** - Demo walkthrough for Modiphius pitch
-- **[Store Submission Checklist](legal/STORE_SUBMISSION_CHECKLIST.md)** - Pre-filled Data Safety + Nutrition Label answers
+- **[Post-LOI Legal Checklist](legal/POST_LOI_LEGAL_CHECKLIST.md)** - ⭐ The master list of everything that unblocks when the LOI is signed: the 7 deliberate placeholders in the shipped EULA/privacy policy (license scope, revenue share, governing law), the contact email, the TWO copies of each legal doc that have already diverged, and the version bump required to re-prompt existing users
+- **[Store Submission Checklist](legal/STORE_SUBMISSION_CHECKLIST.md)** - Pre-filled Data Safety + Nutrition Label answers. ⚠ **STALE**: written when the app transmitted nothing; Talo analytics and the bug reporter have since shipped, so its own "update when analytics ships" trigger has fired
 - **[Steam Research](archive/modiphius-steam-research.md)** - Modiphius digital platform analysis
 - Legal documents: `data/legal/eula.md`, `privacy_policy.md`, `third_party_licenses.md`, `credits.md`
-- GitHub Pages: `docs/legal/gh-pages/` (privacy.html, eula.html, index.html)
+- GitHub Pages: `docs/legal/gh-pages/` (privacy.html, eula.html, index.html) — ⚠ a SECOND copy of each legal document. Currently privacy.html is v1.0 while the in-app policy is v1.1; both must be updated together
 
 ## Other
 

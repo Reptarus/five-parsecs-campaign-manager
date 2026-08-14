@@ -62,6 +62,7 @@ var _sp_popover: StoryPointPopover
 # Mobile portrait chrome (slider-first hybrid de-clip)
 const MobileAppBarClass = preload("res://src/ui/components/common/MobileAppBar.gd")
 const QAScenarioDialogClass = preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
+const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 var _app_bar: MobileAppBarClass = null
 var _help_button: Button = null
 
@@ -1285,12 +1286,16 @@ func _build_world_section(campaign) -> void:
 		_create_info_row("Type", wd.get("type_name", wd.get("type", "Unknown")))
 	)
 
-	# Traits
+	# Traits. capitalize() used to stand in for the book name here; it agrees with all
+	# 42 by luck, and the printed sheet's copy of the same guess did not even have the
+	# capitalize(). One table, three readers — see WorldTraitEffects.display_name().
 	var traits: Array = wd.get("traits", [])
 	if not traits.is_empty():
 		right_vbox.add_child(
 			_create_info_row(
-				"Traits", ", ".join(traits.map(func(t): return str(t).capitalize())), COLOR_PURPLE
+				"Traits",
+				", ".join(traits.map(func(t): return WorldTraitEffectsClass.display_name(str(t)))),
+				COLOR_PURPLE
 			)
 		)
 

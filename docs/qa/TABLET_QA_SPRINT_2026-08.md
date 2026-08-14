@@ -3692,3 +3692,1299 @@ read the CASE COUNT, never the exit code.
 - The Encounter Log's scenario boxes will stay blank for battles fought BEFORE this
   build — the journal entries predate `stats` carrying them and there is no backfill.
   A post-deploy battle is required to see them populated.
+
+---
+
+## Aug 13 2026 — DEPLOY #6: the consent gate could not be scrolled (T9-36)
+
+Predicted the expected output before opening anything, per the deploy #5 lesson.
+
+### PASS — the legal re-consent mechanism works
+
+Stored consent was `privacy version="1.0"`; `PRIVACY_VERSION` is now `1.1`, and the
+EULA/consent screen re-prompted on launch exactly as intended. **Version 1.1 of the
+policy is live on device**, so a material change to a legal document does reach
+existing testers. `analytics consent=false` on device, the correct opt-in default.
+
+### 🔴 T9-36 — neither legal document can be scrolled by touch
+
+On the consent gate, the FIRST screen any new tester sees:
+
+- six swipes on the privacy popup: **zero changed pixels**
+- a slow 900ms drag: **zero changed pixels**
+- a drag on the scrollbar itself: **zero changed pixels**
+- the EULA body behind it: **zero changed pixels**
+
+A tester can read as far as "1.1 Data Stored Locally on Your Device" and no
+further, then must accept documents they are physically unable to read. That is a
+consent problem, not just a UX one.
+
+Taps work fine (the link opened the popup, OK closed it), which is exactly why the
+screen looks healthy. Only the gesture is dead.
+
+**Cause.** `Control.mouse_filter` defaults to `MOUSE_FILTER_STOP`, so a
+RichTextLabel, a plain CenterContainer, or a decorative PanelContainer sitting
+inside a ScrollContainer eats the drag before the ScrollContainer can interpret it.
+Five such controls across three separate constructions:
+
+| Site | Swallower |
+|---|---|
+| `EULAScreen` EULA body | `_eula_text` (RichTextLabel) |
+| `EULAScreen` outer scroll | the card `PanelContainer` (pure chrome) |
+| `EULAScreen` privacy popup | its local `rtl` |
+| `LegalTextViewer` | `center` (CenterContainer) + `_rtl` |
+
+⚠ **This is the SAME class as T4-01, which was fixed and device-verified on Aug 8**,
+and the regression test for it already existed. It did not catch this because
+`test_decorative_chrome_does_not_swallow_the_drag` is scoped to
+`WorldPhaseController`. The rule was known, the fix was known, the test was
+written, and the first screen in the app was still never covered by it.
+
+**The transferable point:** a per-screen regression test protects that screen and
+nothing else. When a trap is a DEFAULT of the toolkit rather than a mistake in one
+file, the guard has to be applied per screen or made global.
+
+Fixed at all five sites. New suite `tests/unit/test_legal_screens_scroll.gd` walks
+every ScrollContainer on the three legal screens and fails on any non-interactive
+`STOP` descendant. Detection-proven: reverting all five fixes produces 4 failures.
+
+⚠ Its first run found a real sixth item and one of MY OWN false positives: the
+privacy `LinkButton` was flagged because `node is Button` is false for
+`LinkButton`, which extends `BaseButton` without extending `Button`. The check now
+tests `BaseButton`.
+
+### Verified
+
+`verify_legal_docs` PASS (4 docs) · `test_legal_screens_scroll` 3/3 ·
+`test_world_phase_step_viewport` 18/18 (the original T4-01 suite, no regression) ·
+7 lints CLEAN · `--headless --import` parse clean.
+
+### Open
+
+- **T9-36 is fixed but NOT device-verified.** The next deploy must repeat the swipe
+  test on both documents.
+- **Placeholders are visible to testers**, confirmed on screen in the first
+  paragraph: "Last Updated: [DATE OF RELEASE]" and "contact us at [CONTACT EMAIL -
+  TO BE ADDED BEFORE RELEASE]". Present in the EULA too.
+- The sheet fixes from deploy #5 were not re-checked this pass; the consent gate
+  took the session.
+
+---
+
+## Aug 13 2026 — DEPLOY #7 on hardware: T9-36/T9-37 verified, T9-38 found (sheets)
+
+Build `lastUpdateTime=2026-08-13 10:54:33`, device TB361FU, `versionName=0.9.7`,
+menu shows `v0.9.7-alpha1`.
+
+### PASS — T9-36, both documents now scroll
+
+Measured by pixel-diffing a screencap before and after a swipe, not by eye:
+
+| Surface | Before the fix | After |
+|---|---|---|
+| EULA body | 0 px changed | changed region (853,436)–(1707,1155) |
+| Privacy popup | 0 px changed | changed region (853,518)–(1617,1272) |
+
+The `PRIVACY_VERSION` bump to 1.1 re-prompted correctly on launch — the consent
+gate appeared for a device that had already accepted 1.0, which is the whole point
+of the version gate. Accepting both then routed to MainMenu.
+
+### PASS — T9-37, bulleted bold no longer prints its markers
+
+Section 1.1's six bullets render as intended:
+
+```
+ • Campaign save files — your campaign progress, crew data, and game state
+ • App settings — display, audio, gameplay, and accessibility preferences
+```
+
+Previously every one of them printed `• **Campaign save files** — ...` with the
+asterisks showing. Bold is real, the cyan bullet glyph survived, and §1.2's
+non-bullet bold (which always worked, being the `else` branch) is unchanged.
+
+Placeholders confirmed still visible and intact: "Version 1.1", "Last Updated:
+[DATE OF RELEASE]", "contact us at [CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]".
+
+### 🟠 T9-38 — the World Record Sheet printed a raw storage id (FIXED)
+
+**Screen**: Print Sheet → World Record, campaign `22222222` on Joffre VI.
+**Expected**: World Traits box reads "Adventurous Population" (Core Rules pp.72-75,
+D100 75-76, `data/world_traits.json`).
+**Observed**: it read `adventurous_population` — the raw snake_case id, on the
+artifact the player prints and keeps. The Campaign Dashboard, two taps away, showed
+"Adventurous Population" for the same world in the same session.
+
+**Cause.** `SheetDataContext` passed trait ids through `_join_names()`, which
+returns a String unchanged. There was no humanisation step at all on the sheet path.
+
+**What made it survive.** Three surfaces each re-derived the display name
+independently and *none* read the file that owns it:
+
+| Surface | What it did |
+|---|---|
+| `CampaignDashboard` | `str(t).capitalize()` |
+| `PlanetDetailBuilder` (dashboard overlay + Galaxy Log popup) | `str(t).capitalize()` |
+| `SheetDataContext` (printed sheet) | nothing — raw id |
+
+`capitalize()` agrees with all 42 book names **today**. That is a coincidence, not
+a contract: a trait carrying an apostrophe, a hyphen or a numeral would print
+something the book does not say, silently, on three surfaces at once. This is the
+CLAUDE.md trap "a displayed value that exists nowhere else is a lie waiting to be
+found" — the name was being *computed* rather than *read*.
+
+**Fix.** `WorldTraitEffects.display_name(id)` — that file already parses
+`world_traits.json` and was discarding the `name` field. All three surfaces now
+call it. Unknown ids (a Compendium trait, a hand-written save) fall back to the old
+transform rather than printing an empty box.
+
+### The fixture was fabricated in the same way as the journal one
+
+`_world()` in `test_sheet_source_paths_resolve.gd` stored
+`["High Cost", "Booming Trade", "Fringe"]` — *display names*, when the producer
+stores *ids*; and two of those three are not traits in the book at all. So the
+suite asserted against a shape the app cannot produce and could not have caught
+this. Corrected to real ids (`high_cost`, `booming_economy`,
+`adventurous_population`), confirmed against the device's own save
+(`world.traits == ["adventurous_population"]`).
+
+Same failure as the `create_entry()` fixture on Aug 9. **Build fixtures from the
+real producer, or from real device data — never by hand.**
+
+### Not defects (checked, correct as-is)
+
+- **Encounter Log blank.** The loaded campaign has zero journal entries; its 3W/0L
+  came from editor-set counters, not played battles. Predicted from the pulled save
+  *before* looking at the screen, and the screen matched. The re-authored geometry
+  IS verified: every caption sits above its own box, nothing spans a divider.
+- **All three Licensing octagons blank.** `progress_data` carries no `interdiction`
+  record, so `_licensing()` correctly returns blank and the player circles one by
+  hand. (Lead, not a verdict: the record is written on every *arrival*, and this
+  campaign was built in the editor rather than travelled into. Worth confirming on
+  a campaign that has actually travelled.)
+- **Crew Log weapon/gear rows blank.** All 13 items are in the ship stash and none
+  are assigned; the stash box lists all 13. Consistent with the campaign.
+
+### Verified
+
+`test_sheet_source_paths_resolve` 26/26 (was 23, +3 new) ·
+`test_world_trait_effects` 19/19 · `test_final_partial_rows` 23/23 (the accessor
+must-have-a-live-consumer guard still passes with the new accessor) ·
+`test_legal_screens_scroll` 3/3 · **71/71 total** · 6 gating lints CLEAN ·
+`lint_orphan_assets` orphans=0 / test_only=40 (the known tier-7 backlog) ·
+`--headless --import` parse clean.
+
+**Detection-proven**: reverting only the two `_trait_names` call sites fails
+`test_world_traits_print_the_book_name_not_the_storage_id` on all four assertions.
+`test_every_world_trait_id_resolves_to_its_book_name` is driven BY the JSON, so it
+grows teeth the moment a trait lands whose printed name is not its title-cased id.
+
+### Open
+
+- **T9-38 is fixed but NOT device-verified.** Next deploy: reopen World Record on
+  Joffre VI and confirm the box reads "Adventurous Population".
+- **The Encounter Log has still never been seen with real data.** It needs a battle
+  recorded *on a build carrying the Aug 9 `auto_create_battle_entry()` fix* — the
+  only battle entry on the device predates it and carries just the four legacy
+  stats keys. Play one battle to completion on device.
+
+---
+
+## Aug 13 2026 — DEPLOY #8: a full campaign turn played on device (T9-39..T9-45)
+
+Build `lastUpdateTime=2026-08-13 11:56:24`. First time a complete turn has been
+played end to end on hardware: World Phase 6 steps → Patron job → PreBattle →
+TacticalBattleUI → Record Result → the 14-step post-battle → turn rollover to Turn 3.
+
+### PASS — T9-38 verified
+
+World Record Sheet now prints **"Adventurous Population"** where deploy #7 printed
+`adventurous_population`. Dashboard unchanged (it reads the same SSOT now). The
+Licensing octagons print **Yes — Obtained | No** with the connector, matching the
+artwork rather than the PDF text layer's misleading order.
+
+### PASS — the engine question CLAUDE.md left open is answered
+
+```
+[KeyboardAvoidance] raw=760 window_h=1600 logical_vp_h=1379.3 -> kb_logical=655.2 | field_bottom=894.0 shift=181.9
+```
+
+`raw=760` matches the keyboard's measured height on this tablet (~762 of 1600 px),
+so **the nav-bar double-count of godot#86663 is confirmed ABSENT in 4.6** — it was
+fixed at milestone 4.5, and this is the direct measurement CLAUDE.md asked for
+rather than an assumption.
+
+### PASS — other things that worked
+
+- The 14-step post-battle sequence ran to completion, every step ✓.
+- **The Notable Sight's +2 XP flowed all the way through**: Zephyr Flynn gained
+  4 XP where every other crew member gained 2, from a checkbox ticked in the
+  Record drawer (p.89).
+- Loot ("Shock Attachment"), a Campaign Event adding a Patron, and a Character
+  Event ("Drew Thorne: Melancholy") all fired.
+- Turn rollover Turn 2 → Turn 3; "Continue to Next Cycle" correctly gated behind
+  "Save your campaign before continuing".
+- The crew-task gate explains itself ("Assign at least one crew task, then Resolve
+  All Tasks") instead of just disabling the button.
+
+---
+
+### 🔴 T9-39 (BLOCKER on touch) — the resolve-tasks confirmation has no reachable buttons
+
+**Screen**: World Phase → Crew Tasks → "Resolve All Tasks".
+**Observed**: the `ConfirmationDialog` in `CrewTaskComponent._on_resolve_all_pressed()`
+renders taller than the 1600px viewport. Measured: its background runs from y=5 to
+y=1600 with no bottom edge, and the region below the text is empty grey to the
+screen edge. **"Resolve anyway" and "Go back and assign" are off-screen.**
+
+I only got past it by sending a hardware `KEYCODE_ENTER` over adb — which a tablet
+user does not have. The ✕ dismisses, so the step cannot be completed at all: the
+World Phase is unadvanceable, which blocks the entire campaign turn.
+
+Cause: a `Label` with `AUTOWRAP_WORD_SMART` added directly to the dialog, sized by
+`popup_centered()` with no size cap against the viewport.
+
+**Made universal by T9-40** — the stranded list is never empty, so this dialog
+fires on EVERY resolve, not just when crew are genuinely unassigned.
+
+### 🔴 T9-40 (HIGH, legacy saves) — three different derivations of the same crew id
+
+`CrewTaskComponent` derives `crew_id` three incompatible ways:
+
+| Line | Path | Derivation |
+|---|---|---|
+| `:214`, `:464` | populate + **assign** | `character_id` then fallback `"crew_%d"` (POSITIONAL) |
+| `:574` | `_unassigned_eligible_crew()` | `id` then `character_id` then `""` |
+| `:1706` | a third consumer | `id` then `character_name` then `"unknown"` |
+
+The device's loaded campaign carries `id` but **no `character_id`**, so assign keys
+`assigned_tasks["crew_0"]` while the stranded check looks up `"2873092675"`. Every
+crew member is therefore always reported as having no task.
+
+**Observed**: the dialog said *"6 crew have no task"* and listed Zephyr Flynn — while
+the list behind it read **"Zephyr Flynn [EXPLORE]"**.
+
+### 🔴 T9-41 (HIGH, legacy saves, silent data loss) — equipment "assigned" but not persisted
+
+`AssignEquipmentComponent._do_transfer_to_crew()` (`:371`) reads
+`member.character_id`; absent on a legacy save, so `_persist_to_character("")` fails.
+It pushes a warning — and then `:378-381` **remove the item from the stash and add it
+to the character anyway**. The UI shows "Zephyr Flynn (1 item)" and the stash shrinks,
+while the campaign records neither.
+
+Device log, one per item assigned:
+
+```
+WARNING: AssignEquipmentComponent: crew transfer not persisted (military_rifle_3495_...)
+WARNING: AssignEquipmentComponent: crew transfer not persisted (rattle_gun_3495_...)
+WARNING: AssignEquipmentComponent: crew transfer not persisted (infantry_laser_3495_...)
+```
+
+This violates the tabletop invariant "one item, one home" in the view while leaving
+the model untouched.
+
+### Scoping T9-40/T9-41 — it is a LEGACY-SAVE class, and the evidence is on the device
+
+Both hinge on `character_id`. `Character.to_dictionary()` (`Character.gd:1374-1379`)
+emits BOTH `id` and `character_id` and says so in its docblock, so the natural
+assumption is "this cannot happen". The two saves on the tablet settle it:
+
+| Save | Created | `character_id` | `equipment` | `status` | `species_backfilled` |
+|---|---|---|---|---|---|
+| `tablet_qa_run` | **2026-08-08** | yes | yes | yes | — |
+| `22222222` (the one loaded) | **2026-04-03** | **no** | no | no | **true** |
+
+The April save predates those keys and was migrated in (hence the backfill marker).
+So a fresh campaign is fine and **every alpha tester carrying a pre-May save is not**.
+Same family as [[reference_legacy_save_origin_is_float]].
+
+### 🟠 T9-42 (MEDIUM, rules) — "Pay 1 story point" is offered, and free, at 0 SP
+
+Explore result 97-100 fired. The dialog offered "Pay 1 story point" with the campaign
+at **SP: 0**, accepted it, and printed **"Paid the cost"**.
+`CrewTaskComponent.gd:3494-3497` charges with no affordability guard, and
+`GameStateManager.modify_story_progress()` clamps at `max(0, ...)` — so the player
+keeps the crew member for nothing. Textbook "check the price you charge against the
+price you check".
+
+**The rule is also implemented at the wrong TIME.** Core Rules p.82, verbatim:
+
+> "This place is rather nice, really. **When you are ready to leave this world, unless
+> it is being Invaded, you must pay 1 story point or this crew member will decide to
+> stay behind. If they do, you can keep their equipment, though.**"
+
+Three deviations: the payment is due **on departure**, not immediately; there is an
+**Invasion exemption**; and the crew member's **equipment is retained**. The JSON
+paraphrase (`data/exploration_table.json`) flattens all three to "Pay 1 story point or
+one crew member leaves the crew" — and says "one crew member" where the book says
+"this crew member".
+
+### 🔴 T9-43 (HIGH) — the Aug 9 Encounter Log fix reads keys nothing writes
+
+The Aug 9 fix taught `CampaignJournal.auto_create_battle_entry()` to record
+`mission_type` / `enemy_category` / `deployment_condition` / `enemy_count` /
+`notable_sight` into `stats`. It works — **when the dict it is handed carries them.**
+
+`PostBattleCompletion.create_battle_journal_entry()` (`:130-139`) builds that dict as
+**another explicit key literal**:
+
+```gdscript
+var entry_data: Dictionary = {
+    "turn":..., "location":..., "outcome":..., "casualties":...,
+    "loot":..., "xp":..., "crew_ids":..., "enemy_type":...,
+}
+```
+
+None of the five new keys are in it. So the SECOND fixed-key-set chokepoint was fixed
+while the FIRST one, one level upstream, still drops them — the very defect shape the
+Aug 9 entry above documents, committed one level above where the fix was aimed.
+
+**Why the test did not catch it**: `test_sheet_source_paths_resolve` builds its fixture
+by calling `auto_create_battle_entry()` directly and passing the keys IN. That is the
+callee. The defect is in the caller. Exactly
+[[reference_test_the_screen_not_just_the_builder]], repeated.
+
+Measured on the real entry written by a real battle:
+
+```
+battle_result 'defeat'   casualties 0   loot_earned 0
+enemy_type 'Mutants'     objective 'Move Through'   xp_gained 0
+```
+
+`xp_gained 0` and `loot_earned 0` are also wrong — 14 XP was awarded and a Shock
+Attachment was found in the same sequence.
+
+**And the sheet shows the consequence.** With the intended keys absent, the fallback
+chain fills the wrong boxes:
+
+| Box | Printed | Should be |
+|---|---|---|
+| Encounter Type | `Mutants` | `Interested Parties` (the p.94-103 table) |
+| Mission | `Move Through` | `Patron` |
+| Deployment Conditions | *blank* | `Small Encounter` |
+| Shiny Bits | *blank* | `Peculiar Item` |
+
+A fallback that silently promotes a different field into a labelled box is worse than
+a blank one: the sheet is confidently wrong rather than honestly empty.
+
+### 🔴 T9-44 (HIGH, rules + presentation) — a Rival attack MERGED with a Patron job
+
+The saved mission carries both identities at once:
+
+```
+mission_source     rival             rival_name         Fringe Syndicate
+source             rival             rival_attack_type  BROUGHT_FRIENDS
+patron             Regional Agent    patron_type        regular      pay  5
+enemy_type         Mutants           enemy_category     interested_parties
+```
+
+Consequence chain, all observed:
+
+1. Job Offers presented "Secure (regular) - +5 cr" from Regional Agent; I accepted it.
+2. Mission Prep briefed "Pay: 5 credits".
+3. PreBattleUI printed **"HOW YOU WIN: There is no Win condition against Rivals (p.91)"**
+   on that Patron job, and applied Brought Friends (+1 enemy).
+4. The Battle Card still rolled and displayed a p.89 objective (Move Through).
+5. The Record drawer stated **"Recorded as a WIN — to win the battle you must achieve
+   the objective (Core Rules p.89)"** and I ticked Objective achieved + Held the field.
+6. `BattleSetupRules._apply_rival_attack()` had set `no_win_condition = true`, so
+   `TacticalBattleUI._has_no_win_condition()` forced `success = false`.
+7. `PostBattlePhase.mission_successful` = false → **journal outcome 'defeat'**, and
+   **payment 1 credit** instead of 5 + 1 danger pay.
+8. The printed sheet reads **"Battle vs Mutants - Defeat | Objective: Move Through
+   (achieved)"** — self-contradicting on the artifact the player keeps.
+
+⚠ **Step 6 is book-CORRECT in isolation** (p.91 really does say there is no Win
+condition against Rivals). The defect is that a Rival attack (p.85) should have
+*superseded* the job rather than being merged into it — and that five surfaces went on
+presenting it as a winnable 5-credit Patron mission after the engine had decided it
+was not. Do not "fix" this by deleting the `no_win_condition` override.
+
+### 🟠 T9-45 (MEDIUM, touch) — two more screens cannot be touch-drag scrolled
+
+Same class as T4-01. Both are scrollable only by grabbing the thin scrollbar at the
+screen edge:
+
+- **Record Battle Result drawer** — its content is wall-to-wall `CheckBox` / `SpinBox` /
+  `OptionButton`, all `MOUSE_FILTER_STOP`, so a drag finds a STOP child almost
+  everywhere. The "Submit Battle Results" button sits below the fold.
+- **World Phase page** — drags over the Travel/Upkeep panels do nothing; the scrollbar
+  works.
+
+Measured both ways: swipes at x=2280 and x=2080 changed nothing; a drag on the
+scrollbar at x=2538 scrolled normally.
+
+### Verified this pass
+
+T9-38 on device · KeyboardAvoidance `raw=760` · post-battle 14/14 · Notable Sight XP
+(4 vs 2) · turn rollover · save gate · Encounter Log printing real data for the first
+time (3 of 7 boxes, 2 of them fallbacks in the wrong slot).
+
+### Open
+
+- T9-39 blocks the campaign turn on touch. Highest priority.
+- T9-40 / T9-41 hit every legacy save. T9-41 is silent.
+- T9-43 needs the five keys added to `create_battle_journal_entry`'s literal, plus a
+  test that drives THAT function rather than `auto_create_battle_entry`.
+- T9-44 needs a decision on p.85 supersede-vs-merge before any code change.
+- T9-42 needs the affordability guard AND the p.82 timing/exemption/equipment clauses.
+
+### FIXED Aug 13 2026 — T9-39 + T9-40 + T9-41 (one root cause and one sizing bug)
+
+T9-40 and T9-41 turned out to be the same defect in two panels: **a crew member's
+id resolved by a different rule at every site**, on a save shape that carries `id`
+and no `character_id`. T9-39 is separate but was made universal by T9-40, so the
+three ship together.
+
+**`CrewTaskComponent.crew_key(member)`** is now the only way to key
+`assigned_tasks`. All three old derivations (`:214`, `:464`, `:574`, `:1706`) route
+through it: `character_id` → `id` → `name:<name>`.
+
+The positional `"crew_%d"` fallback is gone, and it was the worse half.
+`_get_eligible_crew()` is a FILTERED subset of `crew_data`, so with one crew member
+in Sick Bay `crew_data[2]` and `eligible[2]` are different characters — `"crew_2"`
+addressed whoever the caller happened to be holding. **A key into a shared
+Dictionary must never depend on position.** `test_the_key_does_not_depend_on_position_in_the_list`
+pins exactly that.
+
+**`AssignEquipmentComponent._character_key(member)`** does the same for both
+transfer directions. `EquipmentTransferService._find_crew_member()` already matched
+on `character_id` OR `id` (`:183`), so the service could always have found these
+members — the caller simply never handed it anything to look up.
+
+Both transfer paths now also **refuse the move when a live campaign rejects the
+write**, instead of mirroring it locally regardless. The old code removed the item
+from the stash and showed it on the character after the persist failed, so the
+screen stated an outcome the model did not hold. With no campaign (creation
+preview, tests) the local mirror IS the model, so `_has_live_campaign()` keeps that
+path working rather than making the panel inert.
+
+**`CrewTaskComponent.confirm_dialog_size(viewport)`** caps the resolve-tasks dialog
+at 80% of the viewport with 280x200 floors, and its Label now sits in a
+`ScrollContainer` with a small minimum width so a long name list overflows instead
+of growing the frame. Kept static and pure so the invariant is assertable without
+standing up a Window.
+
+#### Detection-proven, each fix reverted in isolation
+
+| Reverted | Result |
+|---|---|
+| `crew_key`'s `id` fallback | 2 failures |
+| `confirm_dialog_size`'s viewport cap | 3 failures |
+| `_character_key`'s `id` fallback | 2 failures |
+
+⚠ The first proof initially reported ANCHOR MISSING and looked like a passing
+revert. It was neither: `CrewTaskComponent.gd` is **CRLF** while
+`AssignEquipmentComponent.gd` is **LF**, so an `\n` anchor could not match the
+former. A revert harness that silently fails to apply is indistinguishable from a
+test that cannot detect — normalise line endings before matching, and always
+confirm the revert actually applied before reading the result.
+
+#### Gates
+
+`test_crew_task_legacy_save_keys` 10/10 (new) · `test_world_phase_step_viewport`
+18/18 · `test_equipment_transfer_service` 10/10 · `test_equipment_persistence` 9/9 ·
+**47/47** · 6 gating lints CLEAN · `orphans=0` / `test_only=40` (unchanged) ·
+`--headless --import` parse clean.
+
+#### The fixture is the device's own save
+
+`tests/unit/test_crew_task_legacy_save_keys.gd` builds its crew from the exact key
+set read off the tablet with `adb run-as … cat files/saves/22222222_*.save`, and
+keeps a modern member alongside so the fix cannot regress current campaigns.
+Hand-writing it from `to_dictionary()`'s key list would have reproduced the exact
+blindness that let all three ship: that function DOES emit `character_id`, so
+reasoning from the producer says the defect is impossible.
+
+#### Still open from deploy #8
+
+T9-42, T9-43, T9-44, T9-45 are untouched. T9-44 needs the p.85 supersede-vs-merge
+decision before any code changes.
+
+### FIXED Aug 13 2026 — T9-44, the Rival ambush now REPLACES the job (p.85)
+
+The ordering was already right: `_check_rival_encounter_backend()` runs before the
+enemy force, objective and Notable Sight are generated, and
+`_apply_rival_ambush_override()` existed with a docblock quoting the rule. The
+override was simply **incomplete in three ways**, and each one was a key mismatch
+rather than missing logic.
+
+#### 1. The erase list named keys the producer does not write
+
+It erased `patron_name`. `JobOfferComponent` writes **`patron`** (`:729`). Nothing
+erased `pay` (`:703`), `patron_type`, `job_type` or `objective_description`
+(`:696`). So the mission reached the battle still carrying
+`patron: "Regional Agent"`, `pay: 5`, `title: "Secure Mission"`, and Mission Prep
+briefed a five-credit Secure contract for a grudge match the crew was ambushed
+into.
+
+The list is now written **against JobOfferComponent.gd:688-731**, the accepted-job
+builder, rather than from memory — writing it from memory is exactly how it went
+wrong the first time.
+
+#### 2. The displaced job's enemy fought the Rival battle
+
+`enemy_type` is not blank on arrival: the Patron job put its own enemy there, and
+`EnemyGenerator` honours **any** non-empty preset (`:576-580`), taking the category
+from that template. So the ambush was fought against the Patron's **Mutants** off
+the **Interested Parties** column, and `_roll_encounter_category("rival")` — which
+already maps correctly to the p.94 **Unknown Rival** column — never ran.
+
+That column difference is a real mechanic, not flavour: the Unknown Rival column
+has no Roving Threats entry at all, and p.101 says why — "Enemies from this list
+never become Rivals."
+
+`enemy_type` is now pinned when the Rival has an established type (p.92) and
+**erased** when it does not, so the correct column is rolled. `enemy_category` is
+always dropped.
+
+⚠ A starting Rival's `type` is a FACTION CATEGORY (`"Corporate"`), not an enemy
+type — verified against `data/enemy_types.json`, which has `Mutants` and `Gangers`
+but no `Corporate`. Those crews have never been fought, so p.92 has nothing to keep
+the same and rolling is correct. Only battle-created Rivals
+(`RivalPatronResolver._append_rival`, which writes a real enemy type) get pinned.
+
+#### 3. p.92 could not reach the mission, because of a THIRD key literal
+
+`RivalEncounterCheck.check()` computes `rival_type` and `is_elite` (`:145-147`).
+The inline `encounter_data` literal in `_check_rival_encounter_backend` did not name
+them, so both were dropped between producer and consumer and the override read
+`rival_type` as `""` forever.
+
+Extracted to **`build_encounter_data(check, attack)`** — static and pure, matching
+the `should_confirm_resolve_all()` seam pattern — so the handoff itself is
+assertable.
+
+#### ⚠ The test I wrote first could not detect defect 3
+
+The consumer tests hand `_apply_rival_ambush_override` an encounter dict that
+already contains `rival_type`, so they exercise the CONSUMER and are blind to the
+producer dropping it. **Reverting the carry produced 0 failures.** That is the same
+blindness as T9-43 one day earlier, reproduced while fixing its sibling.
+
+`test_the_encounter_handoff_carries_everything_the_override_reads` now drives the
+real producer against real `RivalEncounterCheck` output. Re-proven: reverting the
+carry fails it with "p.92 needs the established type to survive the handoff".
+
+The fixture uses **six** Rivals so the p.85 D6 always lands at or below the count —
+the encounter is guaranteed by the rule, not by a lucky seed. The first version
+seeded one Rival and failed because the roll has to be exactly 1.
+
+#### Detection-proven, each half reverted alone
+
+| Reverted | Failures |
+|---|---|
+| erase list back to `patron_name`-only | 1 |
+| `enemy_type` clear | 2 |
+| `rival_type` carry | 1 (was **0** before the handoff test existed) |
+| briefing strings | 2 |
+
+#### Gates
+
+`test_rival_ambush_replaces_the_job` 8/8 (new) · `test_patron_gate_and_rival_ambush`
+12/12 · `test_crew_task_legacy_save_keys` 10/10 · `test_zone_job_opposition` 7/7 ·
+**37/37** · 6 gating lints CLEAN · `orphans=0` · `--headless --import` parse clean.
+
+#### What is deliberately NOT changed
+
+The player is still offered and can still accept a job in World Phase step 3, and
+the Rival check still happens at battle time. p.85 puts the check first *within*
+step 6, so the ideal flow gates job selection behind it. That is a UI-ordering
+change across JobOfferComponent and the step sequencer, and it is not what makes
+the OUTCOME wrong — the outcome is now book-correct either way. Filed as a separate
+item rather than smuggled in here.
+
+Also unchanged: the accepted offer is **not** cancelled. p.85 is explicit — "Quests
+and Rumors remain, but a Patron job will fail if the time to complete it has
+expired" — so detaching this battle from the job must leave the offer and its Time
+Frame ticking, which is what `progress_data["patron_job_offers"]` already does.
+
+
+### CORRECTION Aug 13 2026 — the T9-44 entry above named the WRONG PRODUCER
+
+The section above says the erase list was "written against JobOfferComponent.gd:688-731,
+the accepted-job builder, rather than from memory". **That was still the wrong file**, and
+the entry is left in place with this correction under it because the mistake is the point.
+
+`JobOfferComponent` builds the OFFER. `mission_data` is built by a second, separate
+literal — `WorldPhaseController._on_world_phase_completed` (`:1842-1941`) — which
+reshapes the accepted job, renames some keys and **adds keys of its own**. Reading only
+the first producer missed four:
+
+| Key | Written | Consumer | What a Rival ambush inherited |
+|---|---|---|---|
+| `compendium_mission` | `:1940` | `TacticalBattleUI:5074` | `job_results.duplicate(true)` — **the whole job dict**, patron and pay included |
+| `type` | `:1939` | `TacticalBattleUI:5073-5080` | a displaced Salvage/Stealth/Street Fight job opened ITS panel on the grudge match |
+| `battle_type` | `:1917` | `CTC:1435` (has-guard), `BattleSetupData:72` | the displaced job's answer, kept because the stamp only fires when the key is absent |
+| `danger_level` | `:1856` | none in `core/battle` (checked) | inert, but still job identity |
+
+`compendium_mission` is the one that mattered: erasing the top-level `patron`/`pay` while
+leaving a deep copy of the entire job nested one key down **moves** the payload rather
+than removing it.
+
+**The transferable rule: "I read the producer" is only true if you read the producer of
+the DICT YOU ARE EDITING.** Two literals in series, and the second is the one whose keys
+reach the consumer. Follow the value forward from the field you can see on the device to
+the literal that last wrote it, rather than backward from the name that sounds right.
+
+#### The list is no longer maintained by hand
+
+`test_the_erase_list_covers_the_real_producer` reads `WorldPhaseController.gd`, collects
+every key its `mission_dict` literal writes, builds a mission carrying all of them, runs
+the real override, and requires each key to be **either erased or named in `KEEP` with a
+reason**. Add a key to the flattener without deciding what a Rival ambush does with it
+and the test goes red. The reverse is asserted too, so the list cannot be "fixed" by
+erasing everything.
+
+`KEEP` currently holds `location`, the four overwritten keys, `enemy_type` (conditional,
+p.92), and `is_red_zone`/`is_black_zone` — **the zone is a TRAVEL decision taken at World
+Step 0** (`UpkeepPhaseComponent.get_selected_zone`), not part of the job, so the crew is
+still in that zone when the Rival finds them. p.149 on the Threat Condition: "applied to
+the mission, regardless of its type." Flagged as a judgment call, not a certainty.
+
+Detection-proven, each half reverted alone against a **file backup**: erase list 2 ·
+`enemy_type` clear 2 · `rival_type` carry 1 · briefing strings 2 · compendium pair 3 ·
+`battle_type` 1 · `danger_level` 1. Gates: 44/44, parse clean.
+
+⚠ **I destroyed this fix mid-review by using `git checkout -- <file>` to undo a revert.**
+Nothing was staged, so it restored from HEAD and took the whole uncommitted change with
+it. Rebuilt from the verbatim region read earlier in the session and re-verified 44/44.
+**A revert harness must restore from a backup copy, never from git, while the work is
+uncommitted.**
+
+#### Five `%r` format specifiers removed from three test files
+
+`%r` is Python. GDScript raises "String formatting error: unsupported format character"
+and renders nothing — in all five cases inside `override_failure_message`, so the message
+was garbage **exactly when the test fired**. The suite was green and printing six errors
+per run. Fixed in `test_rival_ambush_replaces_the_job`, `test_sheet_source_paths_resolve`,
+`test_species_display_names`.
+
+---
+
+## Aug 13 2026 — pre-deploy review of the still-open rows (no code changed)
+
+Each row below was re-read against the actual source. Two ledger claims did not survive.
+
+### T9-42 — VERIFIED against the PDF, and it is FOUR defects, not one
+
+Book text confirmed from the PDF itself (page index 81 = printed p.82), not from
+`docs/core_rules.md`:
+
+> "97-100 This place is rather nice, really. When you are ready to leave this world,
+> unless it is being Invaded, you must pay 1 story point or this crew member will decide
+> to stay behind. If they do, you can keep their equipment, though."
+
+⚠ It does not extract with a naive substring search — `extract_text()` breaks the line, so
+`"rather nice"` matches only the p.129 Character Events row. Normalise whitespace first.
+
+1. **No affordability guard.** `CrewTaskComponent.gd:3565-3568` calls
+   `modify_story_progress(-1)`, and `GameStateManager.gd:354` clamps
+   `set_story_progress(max(0, ...))`. At 0 SP the charge is a silent no-op and the dialog
+   prints "Paid the cost".
+2. **Wrong time.** Due "when you are ready to leave this world"; charged immediately. The
+   JSON schema already supports `deferred_trigger` and this row does not use it.
+3. **No Invasion exemption.**
+4. **Equipment not retained.** `_remove_crew_member` (`:4085`) drops the member; their
+   `Character.equipment` goes with them. The book grants it to the player.
+
+The data file is where the rule is lost, not just the UI — `data/exploration_table.json`
+[97,100] reads `"Pay 1 story point or one crew member leaves the crew"`, which drops all
+three clauses and says "one crew member" where the book says "this crew member" (the one
+who explored).
+
+**Bonus finding:** `_remove_crew_member` bypasses the sanctioned chokepoint.
+`FiveParsecsCampaignCore.remove_crew_member()` (`:184`) exists precisely for this and
+rebuilds `_crew_id_index`; the component instead calls `members.remove_at(i)` on the live
+array, leaving the index stale.
+
+### T9-43 — CONFIRMED, and the cause is bigger than the key literal
+
+The literal in `create_battle_journal_entry` (`:130-139`) omitting the five scenario keys
+is real. But two of the keys it DOES carry are structurally zero:
+
+- **`loot` is always 0.** `PostBattlePhase:329` does
+  `var gathered_loot: Array = _loot.process_loot_gathering(_ctx)` then emits it — and
+  **never assigns `loot_earned`**. The field is declared (`:100`), synced to the context
+  (`:200`) and read (`:477`, and `ctx.loot_earned.size()` in the journal), and written
+  nowhere. `get_results()["loot_earned"]` is `[]` on every battle ever played.
+- **`xp` is always 0.** The literal reads `battle_result["xp_earned"]`; the only writer of
+  that key repo-wide is `BattleResults.gd:190`, which is not on the live post-battle path.
+  `ExperienceTrainingProcessor` returns `xp_awards` (`{crew_id, xp}`), which
+  `PostBattlePhase:343-344` emits and discards the same way.
+
+Contrast injuries, which is handled correctly: `injuries_sustained` is assigned from the
+battle data (`:228`) and `_processed_injuries` from the processor's return (`:336`).
+
+**So it is one shape twice: the orchestrator emits a subsystem's return value and drops it
+on the floor, and a later step reads a field nobody filled.** The fix is to assign the
+returns, not to add keys to the literal.
+
+### T9-45 — the World Phase fix EXISTS and is skipping these widgets on purpose
+
+`WorldPhaseController._open_content_to_scroll_gesture()` / `_open_subtree()` (`:488-519`)
+already sweep the subtree turning `MOUSE_FILTER_STOP` into `PASS`. It is not missing.
+
+`:501` guards on `c.focus_mode == Control.FOCUS_NONE` — the deliberate line between
+"chrome" and "controls", so that dragging over a list still scrolls THAT list. **CheckBox,
+SpinBox and OptionButton are all focusable, so the sweep skips them by design** — and the
+Record Battle Result drawer is wall-to-wall exactly those.
+
+Checked before assuming a deadzone fix: `project.godot:104` already sets
+`common/default_scroll_deadzone=16` project-wide, and `BaseCampaignPanel.tscn:50` sets it
+too. Per the Godot 4.6 docs, `Control.mouse_force_pass_scroll_events` (default true) is
+**scroll-wheel only**; there is no documented path by which a STOP child lets a touch drag
+reach the parent. So the deadzone cannot help until the event arrives, and relaxing
+`mouse_filter` is the only lever.
+
+The real distinction is not focusability but **"does this widget consume a DRAG?"** A
+CheckBox consumes a click and has no drag gesture of its own, so swallowing one is pure
+loss; a LineEdit or ItemList genuinely needs its own. Any fix needs that allowlist
+decision, which is why nothing was changed here.
+
+
+## Aug 13 2026 — T9-42, T9-43 and T9-45 FIXED (the review's three open rows)
+
+All three turned out to be the same defect family as T9-44: a value produced
+correctly and then dropped, or a rule implemented at the wrong point in the flow.
+
+### FIXED — T9-43, the Encounter Log recorded 0 XP and 0 loot
+
+Three independent causes, each sufficient on its own.
+
+**1. `loot_earned` was never assigned.** `PostBattlePhase:329` called
+`_loot.process_loot_gathering(_ctx)`, emitted the return and dropped it. The field
+was declared (`:100`), synced into the context (`:200`) and read by two consumers
+— the journal's loot box and `get_results()["loot_earned"]` — and written by
+nothing. **Every battle ever played reported zero loot.**
+
+⚠ The fix MUTATES the array (`loot_earned.assign(...)`) rather than rebinding it.
+`_sync_context()` runs ONCE (`:230`) and binds `_ctx.loot_earned` to that array
+OBJECT, so `loot_earned = gathered_loot` would hand the orchestrator a new array
+while the context kept the old empty one — a fix that looks right and changes
+nothing. Pinned: the `lootrebind` revert case fails.
+
+**2. `xp_earned` had no producer.** The entry reads
+`battle_result["xp_earned"]`; the only writer of that key repo-wide is
+`BattleResults.gd:190`, which is not on this path. `ExperienceTrainingProcessor`
+returns per-crew `{crew_id, xp}` awards which `:343` emitted and discarded. The
+orchestrator now totals them at the one place that has them all.
+
+**3. The five scenario keys.** The Aug 9 fix taught
+`auto_create_battle_entry()` to record mission_type / enemy_category /
+deployment_condition / enemy_count / notable_sight into `stats` for the printable
+Encounter Log — but only on the dict it is HANDED, and
+`create_battle_journal_entry`'s literal named none of them.
+
+Contrast injuries, which was always right: `injuries_sustained` is assigned from
+the battle data (`:228`) and `_processed_injuries` from the processor's return
+(`:336`). The correct pattern was sitting two lines away from both bugs.
+
+Detection-proven: loot 1 · loot-rebind 1 · xp 1 · scenario 5.
+
+⚠ **My first XP test could not detect its own defect (0 failures).** It set
+`xp_earned` on the battle result and handed it in — testing the journal while the
+bug sat in the orchestrator. That is the THIRD time in this session I wrote a
+test that passes the missing key in itself. Replaced with one that runs the real
+pipeline and asserts the orchestrator recorded a total at all.
+
+### FIXED — T9-42, "Pay 1 story point" was offered, and free, at 0 SP
+
+New SSOT: **`src/core/world/DepartureObligation.gd`**. All four p.82 rules, none
+of which were honoured:
+
+| Book | Was | Now |
+|---|---|---|
+| "you must pay 1 story point" | `modify_story_progress(-1)` clamps at `max(0,…)`, so at 0 SP the charge was a silent no-op and the dialog printed "Paid the cost" | `can_pay()` checked BEFORE charging; no story point, no deal |
+| "when you are ready to leave this world" | charged the instant the Explore result came up | recorded, settled at `UpkeepPhaseComponent._on_travel_pressed()` |
+| "unless it is being Invaded" | no exemption | waived entirely when `fleeing` |
+| "you can keep their equipment, though" | gear deleted with the character | moved to the ship stash via EquipmentTransferService before removal |
+
+Also carries the **p.65 Insanity gate** (story points entirely disabled), which I
+had missed and picked up by mirroring `TravelEventResolver._add_story_points` —
+that file already solved the identical "parameterised by campaign, cannot
+delegate to a singleton bound to a different one" problem, including the
+`# lint:ignore` on the fallback write. `lint_data_ownership` caught my first
+version, correctly.
+
+**`CrewTaskComponent._remove_crew_member()` DELETED.** Its only caller was the
+PAY_OR_LOSE handler, so it was genuinely dead rather than a missing wire — and it
+was the buggy version: `members.remove_at()` on the live array, bypassing
+`FiveParsecsCampaignCore.remove_crew_member()`, and no equipment retention.
+
+Both data files corrected to the book's wording. They had flattened the rule to
+"Pay 1 story point or one crew member leaves the crew" — dropping all three
+qualifiers and saying "one crew member" where the book says "this crew member".
+
+⚠ **Stated deviation:** the player's pay/decline answer is taken when the Explore
+result comes up and carried forward as a `pay_intent`; departure decides whether
+they CAN pay. The book implies the choice is made at departure. Every OUTCOME is
+book-correct; what is missing is the ability to change your mind after earning a
+story point in between. Deliberately not restructured — making `_on_travel_pressed`
+await a dialog would rework a critical path right before a deploy.
+
+Detection-proven: affordability 7 · equipment 2 · Invasion exemption 2.
+
+### FIXED — T9-45, two screens could only be scrolled by the scrollbar
+
+New shared helper: **`src/ui/components/common/TouchScrollOpener.gd`**.
+
+The World Phase sweep already existed and was **skipping these widgets on
+purpose**: `_open_subtree` guarded on `focus_mode == Control.FOCUS_NONE` to avoid
+competing with widgets that scroll themselves. CheckBox, SpinBox and OptionButton
+are all focusable — and the Record Battle Result drawer is wall-to-wall exactly
+those three.
+
+Relaxing them is safe because **PASS still delivers the event to the control
+FIRST**; a widget that genuinely handles a drag keeps handling it, and only
+unhandled events propagate. Containers with their own inner scroll
+(ScrollContainer / Tree / ItemList / TextEdit / RichTextLabel / GraphEdit) are
+still skipped outright.
+
+Checked before assuming, rather than reaching for the obvious lever:
+`project.godot:104` already sets `common/default_scroll_deadzone=16` project-wide,
+and per the Godot 4.6 docs `Control.mouse_force_pass_scroll_events` (default true)
+covers **scroll wheel only**. A deadzone cannot help with an event that never
+arrives, so `mouse_filter` is the only lever.
+
+**`BattleResultsInputForm.gd:97-102` is the receipt for this being the right
+fix.** A July session recorded that "the drawer's ScrollContainer does NOT
+vertical-touch-scroll on the tablet" and worked around it by tightening the form's
+spacing so everything would FIT. T9-45 is that height budget finally overrunning
+when the Mission Objective section landed. Fixing the scroll retires the
+workaround.
+
+Applied in `SlideOverDrawer.set_content()` (so EVERY drawer benefits, not just
+this one) — **deferred one frame**, because children built in the content's own
+`_ready()` do not exist at `add_child` time and a sweep that runs before them is
+a fix that silently does nothing.
+
+`WorldPhaseController._open_subtree` now delegates to the shared helper; the old
+narrow implementation is deleted rather than kept "for reference".
+
+Detection-proven: focus-mode rule 5 · skip list 4.
+
+### Gates
+
+123/123 across 12 suites · all 6 gating lints exit 0 · `orphans=0` /
+`test_only=40` · `--headless --import` parse clean.
+
+### Still open after this
+
+- The p.85 job-selection ORDERING (offer a job before the Rival check). Outcome
+  is book-correct either way since T9-44; this is UI sequencing.
+- T9-42's pay/decline timing, above.
+- Everything here is DESKTOP-verified only. The three device-facing claims —
+  the drawer drag-scrolls, the World Phase page drag-scrolls, and a Rival ambush
+  briefs as itself — need the next deploy. **Treat a green suite as saying
+  nothing about device behaviour** (the standing lesson from this whole sprint).
+
+
+## Aug 13 2026 — DEPLOY #9 on hardware (build `lastUpdateTime=2026-08-13 15:01:39`)
+
+Device TB361FU, 2560x1600 landscape. A full World Phase played end to end on the
+new build, plus a battle opened to the Record Result drawer.
+
+### VERIFIED — T9-45, both screens, by pixel diff
+
+| Screen | Gesture | Aug 13 deploy #8 | Deploy #9 |
+|---|---|---|---|
+| World Phase page | swipe mid-content | 0 px changed | **2,743,062 px** |
+| World Phase page | swipe STARTING ON a focusable Button (the Upkeep "?") | — | **2,743,062 px**, no dialog opened |
+| Record Battle Result drawer | swipe STARTING ON a CheckBox | scrollbar only | **299,722 px** in the drawer region |
+
+The drawer now reveals CREW INJURIES, the p.123 XP CREDIT block and — the point of
+the whole row — **"Submit Battle Results", previously below an unreachable fold**.
+
+**The PASS semantics behaved exactly as the docs predicted.** After the drag the
+"?" button showed focus styling and every casualty CheckBox was still UNCHECKED:
+the control received the event first, declined to handle a drag, and the
+ScrollContainer took it. That is what makes widening the sweep safe, and it is now
+observed rather than argued.
+
+This also retires the workaround at `BattleResultsInputForm.gd:97-102`, where a
+July session tightened the form's spacing on-device because "the drawer's
+ScrollContainer does NOT vertical-touch-scroll on the tablet".
+
+### VERIFIED — T9-39 and T9-40, in one screenshot
+
+The resolve-all confirmation renders with **both buttons on-screen** ("Go back and
+assign" / "Resolve anyway"), and it named exactly the four crew with no task —
+Lieutenant Casey Flynn, Doctor Indigo Ashford, Officer Kai Ashford, Drew Thorne —
+correctly excluding Zephyr [EXPLORE] and Dex [TRADE].
+
+That exclusion is the real T9-40 evidence: the list is built from the same
+`crew_key()` the assignments are stored under, so naming the right people proves
+the key resolves per-character rather than by position.
+
+### VERIFIED — T9-41, on disk
+
+Gave Zephyr Flynn the Military Rifle at World Phase step 4, then pulled the save:
+
+```
+Zephyr Flynn -> ['Military Rifle']
+stash count: 14   stash has Military Rifle: False
+```
+
+T9-41 was a SILENT failure — the panel showed the item while the model never got
+it — so the UI showing "1 item" proves nothing and the save file is the only real
+evidence. The item moved; it was not copied.
+
+### 🔴 NEW — T9-46: a starting Rival's faction category was pinned as the enemy
+
+Found by reading the device's actual save rather than by any test. The campaign's
+only Rival is, verbatim:
+
+```json
+{"hostility": 5.0, "id": "starting_rival_1775243676_0", "is_starting_rival": true,
+ "name": "Fringe Syndicate", "source_character": "Zephyr Flynn",
+ "strength": 1.0, "type": "Corporate"}
+```
+
+`RivalEncounterCheck.rival_type_of()` forwards `type` verbatim, and yesterday's
+T9-44 fix pinned any NON-EMPTY value as `mission_data["enemy_type"]`. But
+"Corporate" is a FACTION category — it is not one of the 60 names in
+`data/enemy_types.json` (checked, not assumed).
+
+Consequences, and they split:
+- The FIGHT was still correct. `EnemyGenerator._find_enemy_template_by_name()`
+  finds nothing, the template stays empty, and it falls through to
+  `_roll_encounter_category("rival")` → the p.94 Unknown Rival column.
+- The RECORD was wrong. `enemy_type` is what the briefing prints and what
+  `create_battle_journal_entry` now forwards into the Encounter Log, so the sheet
+  would name an enemy that never existed. Same class as T9-38: a displayed value
+  that is not the one the mechanic used.
+
+Fixed with `EnemyGenerator.is_known_enemy_type()` — a static, load-once name set
+built from the same JSON the generator reads — so the type is pinned only when it
+is a real enemy. Detection-proven: reverting to the non-empty check fails 1.
+
+⚠ **MY FIXTURE WAS WRONG AND ONLY THE DEVICE KNEW.**
+`test_a_starting_rival_with_no_established_type_rolls_normally` passed an EMPTY
+`rival_type`, because I assumed a starting Rival carries none. It carries a faction
+category. The test passed for a case that does not occur while the real case went
+unchecked. I had built the T9-40 fixture from the device's real crew keys for
+exactly this reason and then did not do the same for the rival record. The fixture
+now uses the save's real shape.
+
+### NOT VERIFIED — the T9-44 ambush itself
+
+The p.85 check is `D6 <= rival count`, and this campaign has ONE Rival, so the
+ambush fires 1 turn in 6. It did not fire this turn. What was confirmed is the
+CONTROL case: the Patron job reached the battle intact and correct — "Fight Off",
+Sand Runners, Roving Threats, pay 7 — which is the un-ambushed path behaving
+properly, and it demonstrates the preset-honouring behaviour at
+`EnemyGenerator:576-580` that T9-44 exists to interrupt.
+
+⚠ A stale `current_mission` in the save nearly read as a live defect: it still held
+the PREVIOUS session's ambushed mission (`mission_source: rival` alongside
+`patron: Regional Agent`, `pay: 5`, `title: Secure Mission`), which is the deploy
+#8 record, not this build's output. The save was written at turn rollover, before
+the new mission was persisted. **Stale data is not a failed fix** — the same trap
+as the Aug 9 sheet session.
+
+To verify T9-44 on hardware, the campaign needs several Rivals so the D6 cannot
+miss. Cheapest route: add rivals via the Campaign Editor, or edit `/crew/rivals`
+in the pulled save and push it back.
+
+### Gates after the T9-46 fix
+
+125/125 across 12 suites · all 6 gating lints exit 0 · `orphans=0` /
+`test_only=40` · `--headless --import` parse clean.
+
+
+### VERIFIED ON DEVICE — T9-44, the Rival ambush REPLACES the job (p.85)
+
+The 1-in-6 roll was the only thing standing between the fix and a verification, so
+the roll was removed rather than waited on: the pulled save was edited to carry SIX
+Rivals (`/crew/rivals` + `/resources/rivals`), pushed back with
+`adb push` + `run-as cp`, and the campaign reloaded. `D6 <= 6` cannot miss.
+
+Accepted a real Patron job first, so there was a payload to strip — "Protect",
+Patron **Reputable Contractor**, Pay 7, Danger Pay +3, enemy **Isolationists**,
+Hot Job hazard. Then Proceed to Battle. PreBattleUI, verbatim:
+
+```
+Mission Info
+  Rival Attack: QA Rival 2
+  QA Rival 2 has tracked you down (Core Rules p.85). Straight-up fight.
+  No modifications.
+  Battle Type: STANDARD
+
+Before You Deploy
+  HOW YOU WIN: There is no Win condition against Rivals — Hold the Field to
+  improve your chance of chasing them off (p.91).
+  Deployment: Caught Off Guard
+
+Enemy Forces
+  Skulker Brigands  ×6   Category: Criminal Elements
+```
+
+Every one of the job's keys is GONE from the briefing: no Protect objective, no
+Isolationists, no Pay 7, no Patron, no Danger Pay, no Hot Job. The p.91 no-win
+rule is stated. The enemy was rolled fresh rather than inherited.
+
+Compare the CONTROL case captured an hour earlier on the same build, where the
+ambush did not fire: "Fight Off Mission … Enemy: Sand Runners … Pay: 7 credits".
+Same code path, same session — the difference is entirely the p.85 check.
+
+### T9-46 on the same screen: mechanism confirmed, record impact still inferred
+
+The Rival the check picked, **QA Rival 2**, carries `type: "Corporate"` — one of the
+faction categories deliberately seeded into the test save precisely to exercise
+this. On this build (which predates the validator) the override pins any non-empty
+type, so `mission_data["enemy_type"] == "Corporate"` at that moment.
+
+What the screen proves: the FIGHT was unaffected — the opposition is Skulker
+Brigands off **Criminal Elements**, i.e. rolled from the p.94 column rather than
+from a template named "Corporate", exactly as predicted. The briefing never prints
+`enemy_type` for a Rival attack, so nothing user-visible is wrong HERE.
+
+What remains unobserved: the RECORD. `enemy_type` is what
+`create_battle_journal_entry` now forwards into `stats`, so the Encounter Log would
+name "Corporate". That needs a build carrying both the T9-43 journal fix and the
+T9-46 validator, then a completed post-battle. **Labelled INFERRED, not verified.**
+
+### Method notes worth keeping
+
+- **Editing the save is the cheap way to make a probabilistic rule fire.** A 1-in-6
+  gate turns an hour of replaying turns into a coin flip; six rivals turns it into a
+  single deterministic run. Pull → edit JSON → `adb push` to `/data/local/tmp` →
+  `run-as cp` into `files/saves/` → force-stop → relaunch.
+- Seed the fixture to exercise the EDGE: the six rivals were given a deliberate mix
+  of `Corporate` / `Gangers` / `Mutants` so whichever the check picked would test
+  either the validated-pin or the erase branch.
+- `dev_6rivals.save` is kept in the session scratchpad; re-pushing it is a one-liner
+  whenever an ambush needs to be forced again. The device was restored to its real
+  save afterwards so no doctored rival list is left behind.
+- ⚠ `current_mission` is written to the save at turn rollover, NOT mid-battle, so a
+  mission cannot be read back off disk while its battle is still open. The
+  screenshot is the evidence at that point in the flow, not the save file.
+
+
+## Aug 13 2026 — CLOSE-OUT before the next deploy
+
+The session had drifted into a perpetual bug hunt: every fix spawned a fresh
+investigation and the tablet kept receding. This pass closes the list. A binding
+**stop rule** applied: anything newly discovered is written down as a row, not worked.
+
+### Gate 0 — API assumptions checked against the Godot 4.6 docs, not memory
+
+Three of the day's fixes leaned on APIs that had been assumed. Checked before anything
+else so the close-out could not introduce new problems of its own.
+
+| Assumption | Docs | Outcome |
+|---|---|---|
+| `Array.assign()` mutates in place rather than rebinding | "Unlike the `=` operator, the `assign()` method copies the **contents** of the array, not the reference"; "Resizes the array to match" | **CONFIRMED** — `loot_earned.assign(gathered_loot)` is correct and its code comment is accurate |
+| `static var` on an ordinary class | Documented GDScript 4 feature (`static var max_id = 0`) | **CONFIRMED** — `EnemyGenerator._known_enemy_names` is fine; lazy-load kept over `_static_init()` to dodge load-order surprises |
+| `SomeClass.static_method.call_deferred(arg)` | **Not documented.** The Callable docs only cover instance methods | **CHANGED** — `SlideOverDrawer.set_content()` now defers `_open_content_to_touch_scroll()`, a one-line instance method, matching the `_check_pending_transfers.call_deferred()` idiom used elsewhere. An unverified deferred call that silently no-ops would have left the drawer as broken as before while looking fixed |
+
+### Gate A — the `test_ui_backend_bridge` failures are PRE-EXISTING
+
+`tests/integration/test_ui_backend_bridge.gd` fails 3 tests (`turn_number` not
+advancing — the `CampaignPhaseManager._turn_start_in_flight` latch at `:227`).
+
+**The first attempt to attribute them was measured with a broken instrument, and very
+nearly got a correct fix reverted.** The control was written with
+`git show HEAD:$f | Set-Content -NoNewline`, and in PowerShell `git show` yields an
+ARRAY OF LINES which `-NoNewline` concatenates with no separator — a single-line,
+unparseable file. With `PostBattlePhase.gd` failing to parse,
+`post_battle_phase_handler` was never created and this suite's many `has_method()`
+guards took different paths and PASSED. That produced a confident, entirely false
+"HEAD passes, your change broke it", and a bisect that inherited the flaw and returned
+a self-contradictory answer (either edit alone failed; both reverted passed).
+
+Redone with a byte-exact `git show … > file` Bash redirect **and an explicit assertion
+that the control parses** (890 lines, not 1): **HEAD fails the same 3 tests.**
+Pre-existing. Accepted.
+
+⚠ **The transferable rule: a control that does not parse is not a control.** Any
+revert-comparison must assert the reverted file is still a valid program before its
+result means anything — line count and a parse check, every time.
+
+### Accepted pre-existing failures (do NOT re-chase these)
+
+Full sweep: **2,827 unit cases / 10 failures**, **379 integration cases**. Every failure
+below predates today's work — confirmed by the target files being unmodified and, for
+the bridge, by failing identically at HEAD.
+
+| Suite | Fails | Note |
+|---|---|---|
+| `test_main_menu_coming_soon` | 6 | `MainMenu.gd` untouched |
+| `test_patron_job_effects` | 1 | `test_every_crew_task_allows_two_characters` |
+| `test_training_and_reward_wiring` | 2 | one scans `ShipManager.gd` (untouched); the other is a **false positive by construction** — `src.substr(find("func _offer_merchant_reroll"))` takes everything to EOF then forbids `maxi(`, so it flags recruiting code 3,000 lines later. Zero `maxi(` were added to that file |
+| `test_expanded_quest_progression` | 1 | files untouched |
+| `test_ui_backend_bridge` | 3 | proven identical at HEAD (Gate A) |
+| `test_job_offer_component` | flaky | passes 17/17 alone; batch-order pollution only |
+
+**Tooling, not product:** running all of `tests/unit` in one process crashes at ~97
+suites (resource exhaustion). Batches of 40 complete cleanly — use batches.
+
+**Deferred by decision, not oversight:** the p.85 job-selection ORDERING (outcome is
+already book-correct since T9-44; this is UI sequencing); the p.82 pay/decline timing
+deviation (every outcome book-correct, only "change your mind later" is missing); and
+the two fragile tests above.
+
+**Rules call recorded:** `is_red_zone` / `is_black_zone` are KEPT through a Rival
+ambush. The zone is a travel decision taken at World Step 0
+(`UpkeepPhaseComponent.get_selected_zone`), not job payload, and p.149 says the Threat
+Condition is "applied to the mission, regardless of its type".
+
+### Gates at close-out
+
+Targeted 14 suites **161/161** · unit 2,827 cases / 10 accepted failures · integration
+379 cases (bridge 3 accepted; batch 0 clean at 167/167 on an unpolluted run) · all six
+gating lints exit 0 · `orphans=0` / `test_only=40` · `--headless --import` parse clean.
+
+### Still to verify on hardware (one battle, then stop)
+
+1. **T9-46** — a Rival ambush must never record "Corporate" (or any faction category)
+   as the enemy; the Encounter Log should name the *generated* opposition.
+2. **T9-43** — that same battle's journal entry must carry real XP and loot counts
+   rather than 0, plus mission_type / enemy_category / deployment_condition /
+   enemy_count / notable_sight.
+3. **T9-42** — only if an Explore 97-100 turns up on its own (4%). Not worth grinding
+   for; otherwise it stands as desk-verified.
+
+Force the ambush rather than waiting on the 1-in-6: re-push `dev_6rivals.save` from the
+session scratchpad (`adb push` → `run-as cp` → force-stop → relaunch), pick a
+`Corporate` Rival, and play the battle through Record Result and the 14-step
+post-battle. Restore the real save afterwards.
+
+---
+
+## Aug 13 2026 — DEPLOY #10 on hardware: Gate C answered, plus one self-inflicted regression
+
+Build `0.9.7`, `lastUpdateTime 2026-08-13 18:33:58` (the 15:01:39 build predates the
+T9-46 validator and the T9-43 journal forwarding, so freshness was checked first, not
+assumed). Device TB361FU, landscape 2560x1600.
+
+**Both Gate C rows answered, and a third defect found IN MY OWN FIX and closed.**
+
+### T9-46 — VERIFIED, on the branch that actually discriminates the fix
+
+A Rival ambush must never record a faction category as the enemy.
+
+The first ambush of the session fired on **QA Rival 1, type `Mutants`** and rendered
+`Enemy: Mutants` correctly — but that run proves nothing: `Mutants` IS one of the 93
+names in `data/enemy_types.json`, so the validator takes the PASS-THROUGH branch and a
+build without the fix renders the identical screen. *A check that behaves the same with
+and without the fix verifies nothing.*
+
+So the fixture was rewritten to make all six Rivals `type: "Corporate"` — confirmed
+absent from `enemy_types.json` while Mutants / Gangers / Isolationists are present —
+forcing the REJECT branch. Two independent ambushes followed:
+
+| Ambusher (type) | Enemy generated | Where seen |
+|---|---|---|
+| QA Rival 2 (`Corporate`) | **Colonial Militia** | pre-battle table (+1 numbers, Panic 1-2, Spd 4", CMB +1, TGH 3, AI Cautious, Military Rifle/Blade, "Home field advantage" rule), battle card, all 4 unit names |
+| QA Rival 1 (`Corporate`) | **Skulker Brigands** | pre-battle table (Criminal Elements, Count 7, Seize Init -1), battle card, all 7 unit names |
+
+Never "Corporate" anywhere, a DIFFERENT real enemy each time (so the generator is
+genuinely rolling, not falling back to a constant), and each with real stats, weapons
+and special rules. The p.85 sub-table also rolled a different condition per ambush
+("Add 1 additional enemy / set up in or adjacent to a building", "Deploy one fewer crew,
+cannot Seize the Initiative", "Small Encounter"), matching the p.91 Ambush line rendered
+beneath it.
+
+T9-44 re-confirmed in the same runs: briefing titled `Rival Attack: QA Rival 2`, and the
+accepted job's whole payload gone — no "Reputable Contractor", no 7-credit pay, no +3
+danger pay, no "Hot Job" hazard, enemy no longer Isolationists.
+
+### T9-46b — the fix was half a fix, and the device caught it (FIXED, detection-proven)
+
+The battle above generated Skulker Brigands. Its journal entry recorded:
+
+```
+"description": "Battle vs Unknown - Defeat\n | Objective: Access (achieved)"
+```
+
+`CampaignJournal.create_battle_journal_entry` reads
+`battle_result.get("enemy_type", "Unknown")` (`CampaignJournal.gd:768-772`). The T9-46
+guard ERASES `enemy_type` when it is not a real enemy name — correct for the FIGHT,
+because `EnemyGenerator` honours any non-empty `enemy_type` as a preset — but nothing
+put the rolled name back, so the permanent record lost the enemy entirely.
+
+**This was a REGRESSION I introduced, not a pre-existing gap**, and the same save proves
+it: the campaign's previous battle, written by the build before the guard landed, reads
+`"Battle vs Mutants - Defeat"`. Same journal writer, same ambush path, a name before and
+no name after.
+
+Fixed by `CampaignTurnController.stamp_rolled_enemy_type()` — a pure static seam called
+from `_initiate_battle_sequence` immediately after `generate_enemies_as_dicts()`, which
+stamps `first_enemy["type"]` back onto the mission when `enemy_type` is absent or blank.
+Fills only when empty, so a Patron job or a Rival whose type IS a real enemy name keeps
+its own, and re-entering a battle stays on the same opponent instead of rerolling one.
+
+⚠ **The transferable rule: REMOVING A WRONG VALUE IS NOT THE SAME AS SUPPLYING THE RIGHT
+ONE.** A guard that erases a key owes an answer to "who else reads it?" — here the
+briefing, the journal and the Encounter Log all did. My own code comment at
+`CampaignTurnController.gd:629-631` had *named* the journal as a consumer and I still
+shipped the erase alone.
+
+6 new cases in `tests/unit/test_rival_ambush_replaces_the_job.gd` (18 total, all green).
+Detection-proven: neutering `stamp_rolled_enemy_type` to a bare `return` fails exactly
+`test_the_rolled_enemy_is_stamped_back_for_the_record`,
+`test_the_journal_never_falls_back_to_unknown_after_an_ambush` and
+`test_a_blank_enemy_type_is_treated_as_absent`, with the case count still 18/18 (so it is
+a real failure, not a parse error). Reverted from a `Copy-Item` backup, never
+`git checkout --`.
+
+### T9-43 — VERIFIED
+
+Same battle, played through Record Result and all 14 post-battle steps. On-screen Battle
+Results: payment 6 credits, +2 scrap, **Loot found: Seeker Sight**, and XP to every crew
+member (Zephyr Flynn +4; Casey Flynn / Dex Jones / Indigo Ashford / Kai Ashford / Drew
+Thorne +2 each = **14**). The journal entry's `stats`:
+
+```json
+"loot_earned": 1,          "xp_gained": 14,
+"deployment_condition": "Small Encounter",
+"enemy_category": "criminal_elements",
+"enemy_count": 7,
+"notable_sight": "NOTHING",
+"objective": "Access"
+```
+
+Real counts, not zeros, and `xp_gained` matches the on-screen award exactly. All five
+scenario keys forwarded through `PostBattleCompletion`.
+
+### T9-42 — not exercised; stands desk-verified
+
+Both Explore rolls (the task caps at 2 crew, `[FULL 2/2]`) came up "Arms dealer",
+"Package delivered" and "Get in a bad fight" across two runs — no 97-100. Per plan, not
+ground for.
+
+### New rows found on the way (NOT worked — stop rule)
+
+| # | Finding |
+|---|---|
+| **T9-47** | The Crew Task Event **item-discard dialog** renders raw serialized Dictionaries: the OptionButton label reads `{ "condition": "damaged", "id": "military_rif…` and the result line reads `Discarded: { …, "name": "Military Rifle", … }`. The dict carries `"name"` right there. Its confirm button also renders **blank**, and the dialog has a horizontal scrollbar because content overflows its width. The mechanic itself is correct (the item is discarded). Same family as T9-38 — a raw value displayed where the owning field holds the real name. |
+| **T9-48** | A p.85 ambush whose condition is "**Cannot** Seize the Initiative" still shows a live Seize the Initiative panel offering a roll; the requirement moves 7+ to 8+ (58% to 42%), i.e. a **-1 modifier where the text states a prohibition**. Needs p.85/p.91 adjudication before touching. |
+| **T9-49** | A battle recorded as a **WIN** (objective achieved, `Won`, Held the field) is journalled `"battle_result": "defeat"` / `"mood": "defeat"`, while the same entry's description says `Objective: Access (achieved)`. **PRE-EXISTING** — the turn-2 entry written by the previous build has the identical contradiction (`"Battle vs Mutants - Defeat … Objective: Move Through (achieved)"`). |
+| **T9-50** | Resuming a `world_phase_checkpoint` at Step 6/6 lands on Mission Prep with a **blank briefing** (Objective/Enemy/Location `Unknown`, Pay 0) even though `progress.world_phase_results.mission_data` holds the full job. Confirmed by contrast: a clean Step 1 to 6 walk of the same save renders the real briefing. Only the checkpoint path is affected. |
+
+### Two false alarms worth recording, because both cost real time
+
+1. **"The app hangs on Ready for Battle."** It does not.
+   `MissionPrepComponent._on_ready_for_battle_pressed()` (`:257-275`) only sets
+   `prep_completed`, publishes `MISSION_PREPARED` and calls `_update_ui_display()`,
+   which DISABLES the buttons. The phase still advances via a separate
+   **"Proceed to Battle"** control below the fold. I read the greyed-out controls as a
+   stuck full-screen transition overlay — twice.
+   **What settled it was measuring instead of looking**: a pixel diff showed the
+   background byte-identical before and after (`(10,13,20)` both) with changes confined
+   to `y=739..1406`. A real overlay dims every pixel. *If a screen looks "dimmed", diff
+   it before diagnosing it.*
+2. **`adb shell input keyevent KEYCODE_BACK` to dismiss the soft keyboard propagates into
+   the app's back handler** and abandoned a battle in progress, losing it. Commit SpinBox
+   edits with `KEYCODE_ENTER` alone. Also: swiping to scroll over a focused SpinBox types
+   the gesture into it (the field became `4pp pp`) — scroll on the drawer's left edge,
+   away from inputs.
+
+### Gates after the T9-46b fix
+
+`test_rival_ambush_replaces_the_job` **18/18** · `test_battle_journal_handoff` 8/8 ·
+`test_zone_job_opposition` 7/7 · `test_departure_obligation_p82` 12/12 ·
+`test_touch_scroll_opener` 7/7 (**52 cases, 0 failures**) · all six gating lints exit 0 ·
+`--headless --import` parse clean.
+

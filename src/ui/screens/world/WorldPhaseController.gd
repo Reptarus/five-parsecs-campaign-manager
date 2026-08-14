@@ -33,6 +33,8 @@ const JobOfferComponent = preload("res://src/ui/screens/world/components/JobOffe
 const MissionPrepComponent = preload("res://src/ui/screens/world/components/MissionPrepComponent.gd")
 const CompendiumWorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 const AssignEquipmentComponent = preload("res://src/ui/screens/world/components/AssignEquipmentComponent.gd")
 const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/ResolveRumorsComponent.gd")
 # Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
@@ -492,31 +494,21 @@ func _open_content_to_scroll_gesture(tight: bool) -> void:
 	_open_subtree(scroll, tight)
 
 
-func _open_subtree(node: Node, tight: bool) -> void:
-	for child in node.get_children():
-		if child is Control:
-			var c := child as Control
-			# Leave anything interactive alone, and leave PhaseScroll to the caller,
-			# which has to IGNORE it outright rather than merely open it.
-			if c.focus_mode == Control.FOCUS_NONE and not (c is ScrollContainer):
-				# Opened in BOTH layouts. This used to run only while tight, and the
-				# relaxed branch actively put STOP back — which left touch-drag dead on
-				# every tall screen, the tablet in landscape included.
-				#
-				# The original reasoning was correct about the wrong node. It argued the
-				# chrome could keep STOP when relaxed because "PhaseScroll is a child and
-				# so is offered the drag first" — true of PhaseContainer, which sits
-				# ABOVE PhaseScroll. But the cards and separators are INSIDE PhaseScroll,
-				# so they are deeper than it, are offered the event first, and STOP marks
-				# it handled before PhaseScroll can start a drag.
-				#
-				# Whichever container owns scrolling in a given layout, it is always an
-				# ANCESTOR of the chrome, so the chrome must always let the event past.
-				# Measured on the tablet: swipes over the step area left pixel-identical
-				# screenshots while the scrollbar scrolled fine.
-				if c.mouse_filter == Control.MOUSE_FILTER_STOP:
-					c.mouse_filter = Control.MOUSE_FILTER_PASS
-		_open_subtree(child, tight)
+## T9-45: this now delegates to the shared opener, which relaxes EVERY STOP
+## descendant rather than only the non-focusable ones.
+##
+## The `focus_mode == FOCUS_NONE` rule below was too strict and that is why the
+## World Phase step area still would not drag-scroll on the tablet after the
+## T4-01 fix: the Travel and Upkeep panels are built from CheckBox, SpinBox and
+## OptionButton, all of which take focus, so the sweep walked straight past the
+## exact controls under the player's finger.
+##
+## Relaxing them is safe because PASS still offers the event to the control
+## FIRST — a widget that genuinely handles a drag keeps handling it, and only
+## unhandled events travel on. Containers with their own inner scroll are still
+## skipped outright by TouchScrollOpener._SKIP.
+func _open_subtree(node: Node, _tight: bool) -> void:
+	TouchScrollOpenerRef.open_subtree(node)
 
 
 ## Fill the World-Phase empty space with a persistent "World Briefing" of the

@@ -327,6 +327,17 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	if _intro_allows("gather_loot"):
 		_emit_substep(GlobalEnums.PostBattleSubPhase.GATHER_LOOT)
 		var gathered_loot: Array = _loot.process_loot_gathering(_ctx)
+		# T9-43: the return was emitted and DROPPED. `loot_earned` was declared,
+		# synced to the context and read by two consumers — the Encounter Log's
+		# "loot" box (PostBattleCompletion:135, `ctx.loot_earned.size()`) and
+		# `get_results()["loot_earned"]` — and written by nothing, so both were
+		# empty on every battle ever played.
+		#
+		# ⚠ MUTATE, do not rebind. `_sync_context()` runs ONCE (:230) and binds
+		# `_ctx.loot_earned` to this array OBJECT; `loot_earned = gathered_loot`
+		# would hand the orchestrator a new array while the context kept pointing
+		# at the old empty one — the fix would look right and change nothing.
+		loot_earned.assign(gathered_loot)
 		loot_gathered.emit(gathered_loot)
 
 	# Step 8: Determine Injuries
@@ -341,6 +352,21 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	if _intro_allows("experience"):
 		_emit_substep(GlobalEnums.PostBattleSubPhase.EXPERIENCE)
 		var xp_awards: Array = _experience.process_experience(_ctx)
+		# T9-43, same shape as the loot above: the journal entry reads
+		# `battle_result["xp_earned"]` (PostBattleCompletion:136) and the only
+		# writer of that key repo-wide is BattleResults.gd:190, which is not on
+		# this path. So the Crew Log recorded 0 XP for a battle that had just
+		# awarded 14. The awards are per-crew ({crew_id, xp}); the entry wants the
+		# battle total, so total it here at the one place that has them all.
+		#
+		# battle_result is the carrier the journal reads every other scenario fact
+		# off, and _ctx.battle_result is a reference to this same Dictionary, so
+		# writing it here is what makes it visible downstream.
+		var total_xp: int = 0
+		for award in xp_awards:
+			if award is Dictionary:
+				total_xp += int((award as Dictionary).get("xp", 0))
+		battle_result["xp_earned"] = total_xp
 		experience_awarded.emit(xp_awards)
 
 		_emit_substep(GlobalEnums.PostBattleSubPhase.TRAINING)

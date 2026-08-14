@@ -4,6 +4,7 @@
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 **Partnership / commercial**: see [docs/MODIPHIUS_PARTNERSHIP_STATUS.md](docs/MODIPHIUS_PARTNERSHIP_STATUS.md) — deal terms, the four agreed strategic theses (do NOT re-argue them), artifacts, and the ⚠ caveat that the correspondence journal stops at Jun 4 2026. None of it bears on writing code, so it is not loaded here.
+**Legal placeholders are DELIBERATE**: the shipped EULA and privacy policy carry 7 bracketed placeholders (license grant scope, revenue share, governing law, contact email, release date). They mark terms the LOI settles and are visible to testers ON PURPOSE. Do NOT invent values. Master list: [docs/legal/POST_LOI_LEGAL_CHECKLIST.md](docs/legal/POST_LOI_LEGAL_CHECKLIST.md).
 **Active plan**: none. (This line pointed at `5pfh-4219-dtrpg-jiggly-charm.md` until 2026-08-11; that file does not exist. Plans live in `C:\Users\admin\.claude\plans\` — check the directory rather than trusting a path here.)
 
 > ⚠ **The working tree carries a large uncommitted body of work** (Aug 8-11 tablet QA

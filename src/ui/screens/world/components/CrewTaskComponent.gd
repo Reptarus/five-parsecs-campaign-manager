@@ -29,6 +29,7 @@ const StartingEquipmentGeneratorClass = preload(
 const LootTableResolverClass = preload("res://src/core/equipment/LootTableResolver.gd")
 const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const DepartureObligationClass = preload("res://src/core/world/DepartureObligation.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
@@ -211,7 +212,7 @@ func _populate_crew_list() -> void:
 			continue
 
 		var task_status = ""
-		var crew_id = _member_get(crew_member, "character_id", "crew_%d" % i)
+		var crew_id: String = crew_key(crew_member)  # see crew_key(): T9-40
 
 		if crew_id in assigned_tasks:
 			var assigned_task = assigned_tasks[crew_id]
@@ -285,7 +286,58 @@ func _get_eligible_crew() -> Array:
 			eligible.append(crew_member)
 	return eligible
 
-func _member_get(member, key: String, default = null):
+## THE key for `assigned_tasks`. Every site that reads or writes that Dictionary
+## must go through here.
+##
+## T9-40 (tablet, Aug 13 2026): three sites derived it three incompatible ways —
+## `character_id` else `"crew_%d"` (assign, :214/:464), `id` else `character_id`
+## (the stranded check), and `id` else `character_name` (deferred events). On a
+## campaign created before `character_id` was serialised — the April save on the
+## test tablet, and every alpha tester carrying one — assign keyed `"crew_0"`
+## while the stranded check looked up `"2873092675"`, so EVERY crew member was
+## always reported as having no task. That made the confirm dialog fire on every
+## single resolve, which is what turned T9-39 from an edge case into a blocker.
+##
+## The positional fallback was the worse half: `_get_eligible_crew()` is a
+## FILTERED subset of `crew_data`, so with one crew member in Sick Bay
+## `crew_data[2]` and `eligible[2]` are different people and `"crew_2"` silently
+## means two different characters depending on which list you came from. A key
+## into a shared Dictionary must never depend on position.
+##
+## Order: character_id, then id, then a name-derived key so a member carrying
+## neither is still assignable. The `name:` prefix keeps that last case from
+## colliding with a real id.
+static func crew_key(member) -> String:
+	var cid: String = str(_member_get(member, "character_id", ""))
+	if not cid.is_empty():
+		return cid
+	var mid: String = str(_member_get(member, "id", ""))
+	if not mid.is_empty():
+		return mid
+	var nm: String = str(_member_get(member, "character_name",
+		_member_get(member, "name", "")))
+	return "name:%s" % nm if not nm.is_empty() else ""
+
+
+## Largest a modal may be on this viewport, and the fix for T9-39.
+##
+## The resolve-tasks ConfirmationDialog was built with a bare autowrapping Label
+## and `popup_centered()` with no size, so it sized to content: measured on the
+## tablet at taller than the whole 1600px screen, with "Resolve anyway" and
+## "Go back and assign" off the bottom edge. The World Phase could not be
+## advanced at all by touch — the only way through was a hardware ENTER key,
+## which a tablet does not have.
+##
+## Kept static and pure so it can be asserted without standing up a Window.
+static func confirm_dialog_size(viewport: Vector2) -> Vector2i:
+	# 0.8 leaves the dialog visibly inside the screen on every device tested;
+	# the floors keep it usable if the viewport is reported as tiny.
+	var w: float = maxf(280.0, viewport.x * 0.8)
+	var h: float = maxf(200.0, viewport.y * 0.8)
+	return Vector2i(int(w), int(h))
+
+
+static func _member_get(member, key: String, default = null):
 	## Type-safe crew-member field access. Crew members are canonically Dictionaries
 	## (crew_data["members"]), but a stray Character Resource must never silently abort
 	## this panel: Dictionary.get(key, default) is a 2-arg call, while Object.get(key)
@@ -461,7 +513,7 @@ func _on_assign_task_pressed() -> void:
 
 	var crew_member = crew_data[crew_index]
 	var task = available_crew_tasks[task_index]
-	var crew_id = crew_member.get("character_id", "crew_%d" % crew_index)
+	var crew_id: String = crew_key(crew_member)  # see crew_key(): T9-40
 	var task_id = task.get("id", "task_%d" % task_index)
 
 	# Sick Bay (p.76), the upkeep lockout (p.76) and the Character Event blocks
@@ -571,8 +623,7 @@ func _on_assign_task_pressed() -> void:
 func _unassigned_eligible_crew() -> Array[String]:
 	var names: Array[String] = []
 	for crew_member in _get_eligible_crew():
-		var crew_id := str(_member_get(crew_member, "id",
-			_member_get(crew_member, "character_id", "")))
+		var crew_id: String = crew_key(crew_member)  # see crew_key(): T9-40
 		if crew_id.is_empty() or crew_id in assigned_tasks:
 			continue
 		names.append(str(_member_get(crew_member, "name",
@@ -616,17 +667,38 @@ func _on_resolve_all_pressed() -> void:
 	dialog.title = "Resolve without them?"
 	dialog.ok_button_text = "Resolve anyway"
 	dialog.cancel_button_text = "Go back and assign"
+
 	var note := Label.new()
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# An autowrapping Label reports its minimum height at its CURRENT width, so
+	# without a small minimum width it demands one long line and the dialog grows
+	# to fit. This is the other half of the T9-39 fix.
+	note.custom_minimum_size.x = 240
 	note.text = ("%d crew have no task and will lose their action for this turn:\n\n%s"
 		+ "\n\nEach crew member can perform one task per turn (Core Rules pp.77-78)."
 		+ " Once tasks resolve, this cannot be undone.") % [
 			stranded.size(), "  • " + "\n  • ".join(stranded)]
-	dialog.add_child(note)
+
+	# T9-39: the Label used to be added straight to the dialog, which then sized
+	# itself to the text. With a six-name list that came out TALLER THAN THE
+	# SCREEN on the tablet and both buttons sat off the bottom edge, so the World
+	# Phase could not be advanced by touch at all. The scroll gives the text
+	# somewhere to overflow to, and the explicit size keeps the frame — and
+	# therefore the buttons — inside the viewport however long the list gets.
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.add_child(note)
+	dialog.add_child(scroll)
+
 	add_child(dialog)
 	dialog.confirmed.connect(_resolve_all_tasks)
 	dialog.close_requested.connect(dialog.queue_free)
-	dialog.popup_centered()
+	var vp: Viewport = get_viewport()
+	dialog.popup_centered(confirm_dialog_size(
+		vp.get_visible_rect().size if vp != null else Vector2(800, 600)))
 
 
 func _resolve_all_tasks() -> void:
@@ -1703,7 +1775,7 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 
 	# Cache deferred events if result has a trigger
 	if table_result.has("deferred_trigger") and table_result.deferred_trigger != "":
-		var crew_id = crew_member.get("id", crew_member.get("character_name", "unknown"))
+		var crew_id: String = crew_key(crew_member)  # see crew_key(): T9-40
 		_cache_deferred_event(
 			table_result.deferred_trigger,
 			table_result.name,
@@ -3492,11 +3564,36 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 					gsm.add_credits(credits)
 
 		CrewTaskEventDialog.EventType.PAY_OR_LOSE:
-			if outcome.get("paid", false):
-				if gsm and gsm.has_method("modify_story_progress"):
-					gsm.modify_story_progress(-1)
-			elif outcome.get("crew_lost", false):
-				_remove_crew_member(crew_member, event_data.get("crew_id", ""))
+			# Core Rules p.82, 97-100 "This place is rather nice, really":
+			# "WHEN YOU ARE READY TO LEAVE THIS WORLD, unless it is being
+			# Invaded, you must pay 1 story point or this crew member will decide
+			# to stay behind. If they do, you can keep their equipment, though."
+			#
+			# T9-42: none of that happened here. `modify_story_progress(-1)`
+			# clamps at 0, so at 0 story points the charge was a silent no-op and
+			# the dialog still reported "Paid the cost" — the crew member was kept
+			# for free. It was also charged NOW rather than at departure, with no
+			# Invasion exemption, and `_remove_crew_member()` took the character's
+			# equipment with them.
+			#
+			# The obligation is now recorded and settled at the single departure
+			# chokepoint (UpkeepPhaseComponent._on_travel_pressed), where the
+			# Invasion state is actually known. The player's answer here is a
+			# PRE-COMMITMENT: it decides whether they intend to pay, and departure
+			# decides whether they can.
+			var obligation_id: String = str(event_data.get("crew_id", ""))
+			if obligation_id.is_empty():
+				obligation_id = crew_key(crew_member)  # see crew_key(): T9-40
+			var obligation_name: String = str(_member_get(
+				crew_member, "character_name", _member_get(
+					crew_member, "name", "Crew member")))
+			var gs_for_p82 = get_node_or_null("/root/GameState")
+			var campaign_for_p82 = (gs_for_p82.current_campaign
+				if gs_for_p82 else null)
+			if campaign_for_p82:
+				DepartureObligationClass.record(
+					campaign_for_p82, obligation_id, obligation_name,
+					bool(outcome.get("paid", false)))
 
 		CrewTaskEventDialog.EventType.TECH_FANATIC:
 			if outcome.get("engineer_bonus", false):
@@ -4011,24 +4108,14 @@ func _notify_recruit_joined(new_char) -> void:
 			"tags": ["crew", "recruit"],
 		})
 
-func _remove_crew_member(crew_member, crew_id: String) -> void:
-	## Remove a crew member from the campaign (for pay_or_lose penalty)
-	var gs = get_node_or_null("/root/GameState")
-	if not gs or not gs.current_campaign:
-		return
-	var campaign = gs.current_campaign
-	if campaign.has_method("get_crew_members"):
-		var members = campaign.get_crew_members()
-		for i in range(members.size() - 1, -1, -1):
-			var m = members[i]
-			var mid: String = ""
-			if m is Dictionary:
-				mid = str(m.get("character_id", m.get("id", "")))
-			elif m is Object and "character_id" in m:
-				mid = str(m.character_id)
-			if mid == crew_id:
-				members.remove_at(i)
-				break
+# `_remove_crew_member()` DELETED (T9-42). Its only caller was the PAY_OR_LOSE
+# handler above, which now records a p.82 departure obligation instead, so this
+# was genuinely dead rather than a missing wire — and it was the buggy version:
+# it reached into the live members array with `remove_at()`, bypassing
+# `FiveParsecsCampaignCore.remove_crew_member()` (the chokepoint that exists for
+# this and rebuilds `_crew_id_index`), and it dropped the character without
+# moving their equipment to the stash, which p.82 explicitly grants the player.
+# Removal now happens in DepartureObligation, through the chokepoint.
 
 func _roll_on_military_weapons_table() -> String:
 	## Roll D100 on the Military Weapons table (Core Rules p.28).

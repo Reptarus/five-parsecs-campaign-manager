@@ -38,6 +38,48 @@ signal enemy_data_loaded(categories_count: int)
 ## the top of every roll so it can never leak into the next generation.
 var _pending_leadership_promotion: bool = false
 
+## Every enemy NAME in data/enemy_types.json, loaded once.
+##
+## The authority on "is this string an enemy type at all". Needed because a
+## Rival's `type` is NOT guaranteed to be one: a STARTING Rival records a faction
+## category ("Corporate"), while a Rival established in battle records a real
+## enemy name ("Gangers"). Both arrive at `_apply_rival_ambush_override` through
+## the same key, and pinning the former produced a mission whose recorded enemy
+## did not exist — measured on the tablet Aug 13 2026, where the campaign's only
+## Rival is `{name: "Fringe Syndicate", type: "Corporate", is_starting_rival: true}`.
+##
+## Static + load-once, matching CompendiumEliteEnemies / SpeciesDataService:
+## DataManager.load_json_file() re-parses on every call, and this is consulted
+## once per battle.
+static var _known_enemy_names: Dictionary = {}
+
+
+## True when `name` is one of the 60 enemy names the encounter tables can roll.
+## An empty or unknown name means "roll normally" — never pin it as a preset,
+## because EnemyGenerator honours ANY non-empty `enemy_type` as a preset (:576).
+static func is_known_enemy_type(enemy_name: String) -> bool:
+	var probe: String = enemy_name.strip_edges()
+	if probe.is_empty():
+		return false
+	if _known_enemy_names.is_empty():
+		var file := FileAccess.open("res://data/enemy_types.json", FileAccess.READ)
+		if file == null:
+			return false
+		var parsed: Variant = JSON.parse_string(file.get_as_text())
+		file.close()
+		if not (parsed is Dictionary):
+			return false
+		for category in (parsed as Dictionary).get("enemy_categories", []):
+			if not (category is Dictionary):
+				continue
+			for enemy in (category as Dictionary).get("enemies", []):
+				if enemy is Dictionary:
+					var n: String = str((enemy as Dictionary).get("name", ""))
+					if not n.is_empty():
+						_known_enemy_names[n] = true
+	return _known_enemy_names.has(probe)
+
+
 # JSON data loaded from files
 var enemy_data: Dictionary = {}
 var loot_tables: Dictionary = {}

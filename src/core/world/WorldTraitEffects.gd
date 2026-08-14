@@ -28,6 +28,7 @@ extends RefCounted
 const TRAITS_PATH := "res://data/world_traits.json"
 
 static var _effects_by_id: Dictionary = {}
+static var _name_by_id: Dictionary = {}
 static var _loaded: bool = false
 
 
@@ -48,6 +49,7 @@ static func _ensure_loaded() -> void:
 	for entry in json.data.get("world_traits", []):
 		if entry is Dictionary and entry.has("id"):
 			_effects_by_id[str(entry["id"])] = entry.get("effects", {})
+			_name_by_id[str(entry["id"])] = str(entry.get("name", ""))
 
 
 ## The effects block for one trait id ({} for battlefield traits and unknowns).
@@ -55,6 +57,26 @@ static func effects_for(trait_id: String) -> Dictionary:
 	_ensure_loaded()
 	var e: Variant = _effects_by_id.get(_normalize(trait_id), {})
 	return e if e is Dictionary else {}
+
+
+## The trait's name AS PRINTED IN THE BOOK (Core Rules pp.72-75), for any surface
+## that shows a trait to the player.
+##
+## Every caller used to re-derive this with `str(id).capitalize()`. That happens to
+## agree with all 42 book names TODAY, which is a coincidence and not a contract —
+## a trait carrying an apostrophe, a numeral or a hyphen would silently print
+## something the book does not say. Found on the tablet Aug 13 2026: the World
+## Record Sheet had no capitalize() call at all, so it printed the raw id
+## `adventurous_population` onto a sheet the player keeps, while the dashboard two
+## taps away printed "Adventurous Population" for the same world.
+##
+## Unknown ids (a Compendium trait, a hand-written save) fall back to the old
+## transform rather than printing an empty box.
+static func display_name(trait_id: String) -> String:
+	_ensure_loaded()
+	var id: String = _normalize(trait_id)
+	var found: String = str(_name_by_id.get(id, ""))
+	return found if not found.is_empty() else trait_id.strip_edges().capitalize()
 
 
 ## Trait ids are stored lowercase-with-underscores. Older saves and a few

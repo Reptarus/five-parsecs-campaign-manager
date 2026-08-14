@@ -20,6 +20,7 @@ extends RefCounted
 ##     to fetching via Engine main loop if not given.
 
 const UIColorsClass := preload("res://src/ui/components/base/UIColors.gd")
+const WorldTraitEffectsClass := preload("res://src/core/world/WorldTraitEffects.gd")
 
 
 ## Append a full planet-detail view to `vbox`. Mirrors the layout of the
@@ -38,7 +39,8 @@ static func build_into(vbox: VBoxContainer, planet: Object, owner: Node = null) 
 	if planet.traits is Array and not planet.traits.is_empty():
 		var trait_names: Array = []
 		for t in planet.traits:
-			trait_names.append(str(t).capitalize())
+			# Book name, not a string transform — see WorldTraitEffects.display_name().
+			trait_names.append(WorldTraitEffectsClass.display_name(str(t)))
 		vbox.add_child(_create_info_row(
 			"Traits",
 			", ".join(trait_names),

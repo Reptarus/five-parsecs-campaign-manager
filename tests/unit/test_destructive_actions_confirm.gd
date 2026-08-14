@@ -126,13 +126,29 @@ func test_the_confirmation_names_the_crew_who_would_lose_their_turn() -> void:
 
 	var dialog := _pending_confirm(c)
 	assert_that(dialog).is_not_null()
-	var text := ""
-	for child in dialog.get_children():
-		if child is Label:
-			text = (child as Label).text
-	assert_str(text).contains("Finn Mendez")
+	# Searched RECURSIVELY, not over direct children. T9-39 wrapped this Label in
+	# a ScrollContainer so a long crew list overflows instead of growing the
+	# dialog past the screen edge (which put both buttons off the bottom on the
+	# tablet). The Label is now a grandchild, and a direct-child walk found
+	# nothing and asserted against "" — a test failing on the dialog's SHAPE
+	# while the thing it exists to check, the names, was still correct.
+	var text := _all_label_text(dialog)
+	assert_str(text).override_failure_message(
+		"the confirmation must name the crew about to lose their turn; found: %s"
+		% text).contains("Finn Mendez")
 	assert_str(text).contains("Nyx Ward")
 	dialog.free()
+
+
+## Every Label's text anywhere under `node`, joined. Structure-agnostic on
+## purpose: this suite cares what the dialog SAYS, not how it is nested.
+func _all_label_text(node: Node) -> String:
+	var out: String = ""
+	for child in node.get_children():
+		if child is Label:
+			out += (child as Label).text + "\n"
+		out += _all_label_text(child)
+	return out
 
 
 func test_an_automated_resolve_is_never_gated_by_a_modal() -> void:

@@ -138,6 +138,24 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 		"enemy_type": ctx.battle_result.get("enemy_type", "Unknown"),
 	}
 
+	# T9-43: THE SCENARIO KEYS. `auto_create_battle_entry()` was taught on Aug 9 to
+	# record mission_type / enemy_category / deployment_condition / enemy_count /
+	# notable_sight into `stats`, which is what the printable Encounter Log reads
+	# (Core Rules Appendix X, p.180). It works — but only on the dict it is HANDED,
+	# and this literal is that dict. It named none of them, so the Aug 9 fix could
+	# never fire on the campaign path and the Encounter Log stayed blank.
+	#
+	# Only forwarded when present, matching how auto_create_battle_entry itself
+	# records them: a blank box on a print form is correct, an invented value is
+	# not. objective_met / threat_condition / time_constraint are NOT in this list
+	# on purpose — the blocks below already derive them with more context.
+	for scenario_key: String in [
+		"mission_type", "enemy_category", "deployment_condition", "enemy_count",
+		"notable_sight",
+	]:
+		if ctx.battle_result.has(scenario_key):
+			entry_data[scenario_key] = ctx.battle_result[scenario_key]
+
 	# Enrich with zone context
 	if not zone_type.is_empty():
 		entry_data["zone_type"] = zone_type

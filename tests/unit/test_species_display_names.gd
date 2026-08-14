@@ -35,7 +35,7 @@ func test_the_species_json_is_still_the_owner_of_these_names() -> void:
 	for id: String in BOOK_NAMES:
 		var got: String = str(SpeciesDataService.get_species(id).get("name", ""))
 		if got != BOOK_NAMES[id]:
-			wrong.append("%s -> %r (JSON should say %r)" % [id, got, BOOK_NAMES[id]])
+			wrong.append("%s -> '%s' (JSON should say '%s')" % [id, got, BOOK_NAMES[id]])
 	assert_array(wrong).override_failure_message(
 		"data/character_species.json disagrees:\n  " + "\n  ".join(wrong)).is_empty()
 
@@ -45,7 +45,7 @@ func test_the_sheet_prints_the_book_name() -> void:
 	for id: String in BOOK_NAMES:
 		var got: String = SheetDataContext._species_display_name(id)
 		if got != BOOK_NAMES[id]:
-			wrong.append("%s -> %r (expected %r)" % [id, got, BOOK_NAMES[id]])
+			wrong.append("%s -> '%s' (expected '%s')" % [id, got, BOOK_NAMES[id]])
 	assert_array(wrong).override_failure_message(
 		"sheet species names:\n  " + "\n  ".join(wrong)).is_empty()
 
@@ -57,7 +57,7 @@ func test_the_dashboard_crew_pill_prints_the_book_name() -> void:
 		# How a post-migration save actually looks: species_id is the id.
 		var got: String = dash._species_to_display("Unknown", id)
 		if got != BOOK_NAMES[id]:
-			wrong.append("%s -> %r (expected %r)" % [id, got, BOOK_NAMES[id]])
+			wrong.append("%s -> '%s' (expected '%s')" % [id, got, BOOK_NAMES[id]])
 	assert_array(wrong).override_failure_message(
 		"dashboard species pills:\n  " + "\n  ".join(wrong)).is_empty()
 

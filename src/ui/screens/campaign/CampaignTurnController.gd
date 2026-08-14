@@ -540,7 +540,62 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 
 	var table_mgr := MissionTableManagerClass.new()
 	var attack: Dictionary = table_mgr.roll_rival_attack_type(was_tracked_by_crew)
-	var encounter_data: Dictionary = {
+	var encounter_data: Dictionary = build_encounter_data(check, attack)
+	battle_results["rival_encounter"] = encounter_data
+	if battle_transition_ui and battle_transition_ui.has_method(
+			"set_rival_encounter_data"):
+		battle_transition_ui.set_rival_encounter_data(
+			encounter_data)
+
+## The handoff from the p.85 check to the mission override, as a pure function.
+##
+## This was an inline Dictionary literal, and being a literal is what broke it:
+## `RivalEncounterCheck.check()` computes `rival_type` and `is_elite` (:145-147)
+## and this dict simply did not name them, so both were dropped between the two
+## halves and p.92's "always the same type" could never reach the mission. Third
+## time this session that a fixed key literal silently ate a downstream consumer's
+## input — and a test that calls the CONSUMER cannot see it, because such a test
+## passes the keys in itself.
+##
+## Extracted static and pure so the handoff itself is assertable, matching
+## `CrewTaskComponent.should_confirm_resolve_all()` / `confirm_dialog_size()`.
+## If the override learns to read another key, add it here and
+## `test_the_encounter_handoff_carries_everything_the_override_reads` stays honest.
+## Stamp the enemy the generator actually ROLLED onto the mission, when the
+## mission does not already name one.
+##
+## ⚠ The other half of the Rival-ambush `enemy_type` guard below (:636-640).
+## That guard ERASES a Rival `type` which is not a real enemy name — a STARTING
+## Rival records a faction category ("Corporate"), and EnemyGenerator honours
+## ANY non-empty `enemy_type` as a preset, so leaving it pinned fields an enemy
+## that does not exist. Correct for the FIGHT.
+##
+## But `enemy_type` is ALSO what `CampaignJournal.create_battle_journal_entry`
+## reads (`battle_result.get("enemy_type", "Unknown")`, CampaignJournal.gd:768)
+## and what the Encounter Log prints. Erasing it without substituting the rolled
+## name made the permanent record say "Battle vs Unknown" — measured on the
+## tablet Aug 13 2026, where a Corporate Rival ambush correctly generated
+## Skulker Brigands and then journalled Unknown. Erasing the wrong name and
+## supplying no name is not a fix: the record has to carry what was fought.
+##
+## Fills only when absent/blank, so a mission that legitimately pinned its enemy
+## (a Patron job, or a Rival whose type IS a real enemy name and so survived the
+## guard) keeps it, and a re-entered battle stays on the same opponent.
+##
+## Static and pure so the stamp is assertable without standing up a battle,
+## matching `build_encounter_data()` below.
+static func stamp_rolled_enemy_type(
+	mission_data: Dictionary, first_enemy: Dictionary
+) -> void:
+	if not str(mission_data.get("enemy_type", "")).strip_edges().is_empty():
+		return
+	var rolled_enemy: String = str(first_enemy.get("type", "")).strip_edges()
+	if not rolled_enemy.is_empty():
+		mission_data["enemy_type"] = rolled_enemy
+
+
+static func build_encounter_data(check: Dictionary, attack: Dictionary) -> Dictionary:
+	return {
 		"has_encounter": true,
 		"rival_id": str(check.get("rival_id", "")),
 		"rival_name": str(check.get("rival_name", "")),
@@ -550,12 +605,12 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 		"rival_count": check.get("rival_count", 0),
 		"decoy_bonus": check.get("decoy_bonus", 0),
 		"reason": str(check.get("reason", "")),
+		# p.92 "Once a Rival has been established, they will always be the same
+		# type", and the Compendium p.49 Elite tag. Both consumed by
+		# _apply_rival_ambush_override.
+		"rival_type": str(check.get("rival_type", "")),
+		"is_elite": bool(check.get("is_elite", false)),
 	}
-	battle_results["rival_encounter"] = encounter_data
-	if battle_transition_ui and battle_transition_ui.has_method(
-			"set_rival_encounter_data"):
-		battle_transition_ui.set_rival_encounter_data(
-			encounter_data)
 
 ## A Rival tracked the crew down (Core Rules p.85 Step 6), so the battle they had
 ## planned does not happen. Rewrites `mission_data` in place, BEFORE the enemy
@@ -580,12 +635,45 @@ func _apply_rival_ambush_override(mission_data: Dictionary, rival_enc: Dictionar
 	# consumed by BattleSetupRules to build the setup bundle.
 	mission_data["rival_attack_type"] = str(rival_enc.get("attack_type", "SHOWDOWN"))
 
-	# p.92 — the same type, every time. Empty for a legacy String-shaped Rival,
-	# which the generator correctly treats as "roll normally" rather than pinning
-	# an invented type.
+	# p.92 — the same type, every time. Empty for a legacy String-shaped Rival and
+	# for a STARTING Rival, whose `type` is a faction category ("Corporate") rather
+	# than an established enemy type: those crews were never fought, so the book has
+	# no type to keep the same.
+	#
+	# T9-44: `enemy_type` MUST be erased when there is nothing to pin. It is not
+	# blank on arrival — the displaced job put its own enemy there
+	# (JobOfferComponent `_determine_enemy_type`), and EnemyGenerator honours any
+	# non-empty preset (:576-580), taking the CATEGORY from that template. So a
+	# Rival ambush was fought against the Patron's Mutants off the Interested
+	# Parties column, and `_roll_encounter_category("rival")` — which already maps
+	# correctly to the p.94 Unknown Rival column — never got to run. Measured on
+	# the tablet: enemy_type "Mutants", enemy_category "interested_parties", on a
+	# grudge match with the Fringe Syndicate.
+	# ⚠ VALIDATED, not merely non-empty. Measured on the tablet Aug 13 2026: the
+	# campaign's only Rival is
+	#   {name: "Fringe Syndicate", type: "Corporate", is_starting_rival: true}
+	# and `RivalEncounterCheck.rival_type_of()` forwards `type` verbatim. But
+	# "Corporate" is a FACTION CATEGORY, not one of the 60 names in
+	# data/enemy_types.json — a starting Rival has never been fought, so p.92 has
+	# no established type to keep the same.
+	#
+	# Pinning it anyway was harmless for the FIGHT (EnemyGenerator fails to find
+	# the template and falls through to the p.94 column roll) and wrong for the
+	# RECORD: `enemy_type` is what the briefing shows and what
+	# create_battle_journal_entry now forwards into the Encounter Log, so the
+	# sheet would name an enemy that never existed. Same class as T9-38 — a
+	# displayed value that is not the one the mechanic used.
+	#
+	# My unit fixture missed this by assuming a starting Rival carries an EMPTY
+	# type. The device's save says otherwise; the fixture now uses the real shape.
 	var rival_type: String = str(rival_enc.get("rival_type", ""))
-	if not rival_type.is_empty():
+	if EnemyGenerator.is_known_enemy_type(rival_type):
 		mission_data["enemy_type"] = rival_type
+	else:
+		mission_data.erase("enemy_type")
+	# Always dropped: it belongs to whatever template the old enemy came from, and
+	# the generator re-derives it from the Unknown Rival column.
+	mission_data.erase("enemy_category")
 	if bool(rival_enc.get("is_elite", false)):
 		mission_data["enemy_is_elite"] = true
 
@@ -597,14 +685,72 @@ func _apply_rival_ambush_override(mission_data: Dictionary, rival_enc: Dictionar
 	#   notable_sight — same, p.89 uses a different column per mission type.
 	#   danger_pay / benefits / hazards / conditions / patron_id / time_frame —
 	#     the p.83 Patron payload. PaymentProcessor reads danger_pay directly.
+	#
+	# T9-44: this list NAMED KEYS THE PRODUCER DOES NOT WRITE. `patron_name` is
+	# erased, but the job carries `patron` (JobOfferComponent.gd:682-732); nothing
+	# erased `pay`, `patron_type`, `job_type`, `objective_description` or the
+	# display strings. So on the tablet the mission arrived at the battle still
+	# carrying `patron: "Regional Agent"`, `pay: 5` and `title: "Secure Mission"`,
+	# and Mission Prep briefed a five-credit Secure job for a grudge match the
+	# crew was ambushed into.
+	#
+	# ⚠ THE PRODUCER OF `mission_data` IS NOT JobOfferComponent. It is the
+	# flattening literal in `WorldPhaseController._on_world_phase_completed`
+	# (:1842-1941), which reshapes the accepted job and adds keys of its own. The
+	# first version of this list was written against the job builder and missed
+	# four of them — see `test_the_erase_list_covers_the_real_producer`, which
+	# reads that literal and fails when a key is added there without a decision
+	# being made here. THE LIST IS NOT MAINTAINED BY HAND; the test maintains it.
 	for key in [
 		"objective_details", "victory_condition", "placement_rules", "objective",
 		"notable_sight",
-		"danger_pay", "benefits", "hazards", "conditions", "patron_id",
-		"patron_name", "time_frame", "job_id", "faction_id", "faction_job_id",
+		# The p.83 Patron payload. PaymentProcessor reads danger_pay directly, and
+		# `pay` is the composite estimate the offer was advertised with.
+		"danger_pay", "pay", "benefits", "hazards", "conditions",
+		"patron_id", "patron_name", "patron", "patron_type",
+		"is_affiliated_patron_job",
+		# Time Frame bookkeeping. The OFFER keeps its own copy and keeps ticking —
+		# p.85 is explicit that "a Patron job will fail if the time to complete it
+		# has expired" — so detaching this battle from it must not cancel it.
+		"time_frame", "time_frame_turns", "offered_on_turn", "deadline_turn",
+		# Job identity and the strings the UI briefs from.
+		"job_id", "job_type", "objective_description", "mission_objective",
+		"requirements", "double_roll_bonus", "selected_tier",
+		"faction_id", "faction_job_id",
 		"quest_step_id", "is_quest_finale", "quest_final_stage",
+		# The Fixer's Guidebook pair (WorldPhaseController:1937-1941), and the
+		# reason the keys above were not enough on their own.
+		#
+		# `type` is what TacticalBattleUI branches on to open the Stealth / Street
+		# Fight / Salvage panel (:5073-5080), so a displaced Salvage job opened the
+		# salvage panel ON THE GRUDGE MATCH. `compendium_mission` is
+		# `job_results.duplicate(true)` — the ENTIRE job dict, patron and pay
+		# included — handed to that panel as its payload, so erasing the top-level
+		# keys while leaving this nested copy in place would have moved the payload
+		# rather than removed it.
+		"type", "compendium_mission",
+		# Derived from the DISPLACED job's objective (:1917) and left in place by
+		# the `has()` guard at :1435, which only stamps when the key is absent.
+		# Low impact — _get_battle_type_for_objective returns STANDARD for every
+		# objective except "special" — but it is the displaced job's answer to a
+		# question about this battle. Erasing lets :1435 re-derive it.
+		"battle_type",
+		# Job identity with no consumer in core/battle or post-battle (checked, not
+		# assumed). Erased because it describes the Patron's job, not this fight.
+		"danger_level",
 	]:
 		mission_data.erase(key)
+
+	# Say what this battle IS. The briefing strings are not optional decoration —
+	# PreBattleUI, MissionPrepComponent and the battle header all read them, and
+	# leaving the displaced job's "Secure Mission" there is what let five separate
+	# surfaces go on presenting a Rival ambush as a winnable Patron contract.
+	var rival_label: String = str(rival_enc.get("rival_name", "Rival"))
+	mission_data["title"] = "Rival Attack: %s" % rival_label
+	var attack_desc: String = str(rival_enc.get("attack_description", ""))
+	mission_data["description"] = (
+		"%s has tracked you down (Core Rules p.85). %s" % [rival_label, attack_desc]
+	).strip_edges()
 
 	# The Quest/Patron the crew MEANT to do is not lost — p.85 is explicit that
 	# "Quests and Rumors remain, but a Patron job will fail if the time to
@@ -919,6 +1065,12 @@ func _initiate_battle_sequence() -> void:
 	# Add enemy_force to mission_data for PreBattleUI
 	# Extract type-level stats from first unit (single type per battle, Core Rules pp.91-94)
 	var first_enemy: Dictionary = enemies[0] if not enemies.is_empty() else {}
+
+	# The record has to carry what was actually fought — see
+	# stamp_rolled_enemy_type(). Runs BEFORE the enemy_force hoist so a later
+	# reader sees a consistent mission.
+	stamp_rolled_enemy_type(mission_data, first_enemy)
+
 	mission_data["enemy_force"] = {
 		"type": first_enemy.get("type", "Unknown"),
 		"numbers": first_enemy.get("numbers", ""),

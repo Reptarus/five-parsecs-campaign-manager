@@ -30,6 +30,7 @@ const SheetDataContextScript = preload("res://src/core/export/SheetDataContext.g
 const PdfExportRouterScript = preload("res://src/core/export/PdfExportRouter.gd")
 const CampaignJournalScript = preload("res://src/core/campaign/CampaignJournal.gd")
 const PlanetDataManagerScript = preload("res://src/core/world/PlanetDataManager.gd")
+const WorldTraitEffectsScript = preload("res://src/core/world/WorldTraitEffects.gd")
 
 const MANIFEST_PATHS: Array[String] = [
 	"res://data/sheets/core/crew_log_fields.json",
@@ -107,7 +108,15 @@ func _world() -> Object:
 	p.type_name = "High Cost"
 	p.danger_level = 3
 	# traits is Array[String]; a plain `=` from an untyped literal aborts in Godot 4.6.
-	p.traits.assign(["High Cost", "Booming Trade", "Fringe"])
+	#
+	# These are trait IDS, which is what the producer stores — confirmed against the
+	# tablet's own save Aug 13 2026 (`world.traits == ["adventurous_population"]`).
+	# This fixture used to hold ["High Cost", "Booming Trade", "Fringe"]: display
+	# names, and two of the three are not traits in the book at all. So the suite was
+	# asserting against a shape the app cannot produce, and the raw-id defect it would
+	# have caught printed `adventurous_population` onto the World Record Sheet instead.
+	# All three below are real ids from data/world_traits.json (Core Rules pp.72-75).
+	p.traits.assign(["high_cost", "booming_economy", "adventurous_population"])
 	return p
 
 
@@ -323,7 +332,8 @@ func test_the_resolved_values_are_the_campaigns_actual_values() -> void:
 		"campaign.stash_items_text": "Handgun",
 		"world.name": "Gamma Prime",
 		"world.danger": 3,
-		"world.traits[1]": "Booming Trade",
+		# Stored as the id `booming_economy`; the sheet must print the book's name.
+		"world.traits[1]": "Booming Economy",
 		"journal.last_battle.result": "Victory",
 		"journal.last_battle.enemy_count": 7,
 		# Encounter Log, Core Rules Appendix X p.180. Every one of these comes out of
@@ -908,13 +918,14 @@ func test_the_current_world_resolves_whether_object_or_dictionary() -> void:
 			"a PlanetData OBJECT must resolve — this is the type the app actually passes") \
 		.is_equal("Gamma Prime")
 	assert_str(str(r._resolve_source("world.traits_text", from_object))) \
-		.contains("Booming Trade")
+		.contains("Booming Economy")
 
 	SheetDataContextScript.reset_cache()
 	var from_dict: Dictionary = SheetDataContextScript.build(
 		_make_campaign(),
 		{"id": "gamma_prime", "name": "Gamma Prime", "type_name": "High Cost",
-			"danger_level": 3, "traits": ["High Cost", "Booming Trade", "Fringe"]},
+			"danger_level": 3,
+			"traits": ["high_cost", "booming_economy", "adventurous_population"]},
 		_battle_entries())
 	assert_str(str(r._resolve_source("world.name", from_dict))).is_equal("Gamma Prime")
 
@@ -961,3 +972,71 @@ func test_the_journal_accessor_the_print_screen_calls_actually_exists() -> void:
 	var got: Variant = journal.call(accessor)
 	assert_int((got as Array).size()).override_failure_message(
 		"%s() returned no entries after one was created" % accessor).is_greater(0)
+
+
+## The World Record Sheet must print the trait's BOOK NAME, not its storage id.
+##
+## Measured on the tablet Aug 13 2026: the sheet printed `adventurous_population`
+## into the World Traits box while the Campaign Dashboard, two taps away, printed
+## "Adventurous Population" for the same world. The sheet is the artifact the
+## player keeps, so it was the one surface getting it wrong.
+##
+## Three of the codebase's surfaces re-derived this name independently and none
+## read the file that owns it. WorldTraitEffects.display_name() is now the single
+## reader; this asserts through the sheet's own resolver, which is the consumer
+## that was broken.
+func test_world_traits_print_the_book_name_not_the_storage_id() -> void:
+	SheetDataContextScript.reset_cache()
+	var ctx: Dictionary = SheetDataContextScript.build(
+		_make_campaign(), _world(), _battle_entries())
+	var text: String = str(_renderer()._resolve_source("world.traits_text", ctx))
+	for expected: String in ["High Cost", "Booming Economy", "Adventurous Population"]:
+		assert_str(text).override_failure_message(
+			"World Traits printed \"%s\"; expected the book name \"%s\". The planet "
+			% [text, expected]
+			+ "stores ids; resolve them via WorldTraitEffects.display_name() against "
+			+ "data/world_traits.json — do NOT print the raw id.").contains(expected)
+	assert_str(text).override_failure_message(
+		"a raw snake_case id survived onto the printed sheet: \"%s\"" % text).not_contains("_")
+
+
+## Every id in data/world_traits.json must resolve to the `name` that file carries.
+##
+## Naive `capitalize()` agrees with all 42 book names TODAY, which is why three
+## surfaces got away with it for months. This test is driven BY the data file, so
+## the moment a trait lands whose printed name is not its title-cased id — an
+## apostrophe, a numeral, a hyphen, a Compendium addition — a formatting-based
+## implementation goes red here instead of shipping a wrong name onto a print form.
+func test_every_world_trait_id_resolves_to_its_book_name() -> void:
+	var file := FileAccess.open("res://data/world_traits.json", FileAccess.READ)
+	assert_object(file).override_failure_message(
+		"data/world_traits.json must be readable — it is the trait name SSOT").is_not_null()
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	file.close()
+	assert_bool(parsed is Dictionary).is_true()
+
+	var rows: Array = (parsed as Dictionary).get("world_traits", [])
+	assert_int(rows.size()).override_failure_message(
+		"world_traits.json is the D100 table from Core Rules pp.72-75 and must not "
+		+ "be empty").is_greater(40)
+
+	var wrong: Array[String] = []
+	for row: Variant in rows:
+		if not (row is Dictionary) or not (row as Dictionary).has("id"):
+			continue
+		var id: String = str((row as Dictionary)["id"])
+		var book_name: String = str((row as Dictionary).get("name", ""))
+		var got: String = WorldTraitEffectsScript.display_name(id)
+		if got != book_name:
+			wrong.append("%s -> '%s' (book says '%s')" % [id, got, book_name])
+	assert_array(wrong).override_failure_message(
+		"trait ids resolved to a name the book does not print:\n  "
+		+ "\n  ".join(wrong)).is_empty()
+
+
+## A trait id with no JSON row must still print SOMETHING. A blank box on a printed
+## form reads as "this world has no traits", which is a different and wrong claim.
+func test_an_unknown_world_trait_id_still_prints_a_value() -> void:
+	var got: String = WorldTraitEffectsScript.display_name("some_compendium_trait")
+	assert_str(got).is_not_empty()
+	assert_str(got).is_equal("Some Compendium Trait")

@@ -31,6 +31,7 @@ const _EQUIPMENT_DB_PATH := "res://data/equipment_database.json"
 ## Owner of the Interdiction record the Licensing Required block reads. Preloaded
 ## by path, not by class_name, per the project's stale-global-cache gotcha.
 const InterdictionRuleRef = preload("res://src/core/world/InterdictionRule.gd")
+const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 
 ## Trait rows printed on the World Record Sheet (manifest addresses world.traits[0..2]).
 const _WORLD_TRAIT_ROWS := 3
@@ -445,11 +446,11 @@ static func _build_world(world: Variant, campaign: Object = null) -> Dictionary:
 		# traits[1] and traits[2] to a blank box rather than null. The view-model is
 		# allowed to mirror the form here — if the sheet ever gains a fourth trait row,
 		# bump _WORLD_TRAIT_ROWS (test_an_empty_campaign_... will catch it if you don't).
-		"traits": _string_list(w.get("traits", []), _WORLD_TRAIT_ROWS),
+		"traits": _trait_names(w.get("traits", []), _WORLD_TRAIT_ROWS),
 		# The artwork prints ONE multi-line "World Traits" box, not three rows —
 		# measured on assets/sheets/core/world_record_sheet.png. `traits[0..2]` is
 		# kept because other consumers use it; the sheet reads this.
-		"traits_text": _join_names(w.get("traits", [])),
+		"traits_text": ", ".join(_trait_names(w.get("traits", []))),
 		# Licensing Required prints three octagons — Yes | Obtained | No, left to
 		# right on the artwork, with Yes and Obtained joined by a connector rule, so
 		# a licensed world ticks BOTH of those and never "No".
@@ -691,6 +692,25 @@ static func _join_names(value: Variant) -> String:
 		if not n.is_empty():
 			out.append(n)
 	return ", ".join(out)
+
+
+## World traits resolved to the names the BOOK prints (Core Rules pp.72-75), padded
+## to `min_rows` so a one-trait world still resolves every printed row to a blank
+## box rather than null.
+##
+## The planet stores ids (`adventurous_population`). Printing the id onto a sheet
+## the player keeps is what this used to do — measured on the tablet Aug 13 2026,
+## with the dashboard showing the correct name for the same world two taps away.
+## WorldTraitEffects owns the id -> name table because it already reads the file.
+static func _trait_names(value: Variant, min_rows: int = 0) -> Array:
+	var out: Array = []
+	if value is Array:
+		for item in (value as Array):
+			var raw: String = _item_name(item)
+			out.append(WorldTraitEffectsRef.display_name(raw) if not raw.is_empty() else "")
+	while out.size() < min_rows:
+		out.append("")
+	return out
 
 
 ## Always returns an Array of Strings so `world.traits[0]` resolves to printable text

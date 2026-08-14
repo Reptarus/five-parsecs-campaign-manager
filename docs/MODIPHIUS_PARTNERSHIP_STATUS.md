@@ -17,6 +17,15 @@ partnership terms have no bearing on writing code, so they live here and are lin
 - Alpha kickoff date deliberately **DEFERRED** for social coordination — do not re-propose one
   unprompted.
 
+> 📋 **When the LOI is signed, work
+> [legal/POST_LOI_LEGAL_CHECKLIST.md](legal/POST_LOI_LEGAL_CHECKLIST.md) top to bottom.**
+> The shipped EULA and privacy policy carry **7 deliberate placeholders** whose values are
+> exactly the terms the LOI settles: license grant scope, revenue share, and governing law
+> jurisdiction. They are visible to testers today (confirmed on device Aug 13 2026) and stay
+> that way on purpose until the terms exist. The checklist also covers the contact email
+> (needed regardless of the LOI), the fact that each legal document has TWO copies which have
+> already diverged, and the version bump required to re-prompt existing users.
+
 **Underlying deal frame**: 50/50 net split post-recoupment, with a quarterly
 maintenance/support/development fee carve-out to dev BEFORE the split. Phase 1 = prove the thesis
 (this deal); the Phase 2 lock-in conversation arrives later, if Phase 1 succeeds.

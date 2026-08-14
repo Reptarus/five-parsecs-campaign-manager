@@ -242,6 +242,40 @@ func _persist_to_stash(character_id: String, equipment_id: String) -> bool:
 		return false
 	return svc.transfer_to_stash(equipment_id, character_id)
 
+## The id the EquipmentTransferService will match this member on.
+##
+## T9-41 (tablet, Aug 13 2026): both transfer paths read
+## `member.character_id if "character_id" in member else ""`. A campaign created
+## before `character_id` was serialised — the April save on the test tablet, and
+## every alpha tester carrying one — has `id` and no `character_id`, so this came
+## out "" and `_persist_to_character()` returned false on its own empty-id guard.
+## The item was then still removed from the stash and shown on the character, so
+## the screen reported a transfer the campaign never recorded.
+##
+## `EquipmentTransferService._find_crew_member()` already matches on
+## `character_id` OR `id` (:183), so the service was always able to find these
+## members — the caller simply never handed it anything to look up.
+static func _character_key(member) -> String:
+	if member is Dictionary:
+		var d: Dictionary = member
+		var cid: String = str(d.get("character_id", ""))
+		return cid if not cid.is_empty() else str(d.get("id", ""))
+	if member is Object:
+		if "character_id" in member and not str(member.character_id).is_empty():
+			return str(member.character_id)
+		if "id" in member:
+			return str(member.id)
+	return ""
+
+
+## True when there is a campaign for a transfer to be written to. With no
+## campaign (creation preview, tests) the local mirror IS the whole model, so a
+## failed persist there is expected and must not block the move.
+func _has_live_campaign() -> bool:
+	var gs = get_node_or_null("/root/GameState")
+	return gs != null and gs.current_campaign != null
+
+
 func _persist_to_character(character_id: String, equipment_id: String) -> bool:
 	if character_id.is_empty() or equipment_id.is_empty():
 		return false
@@ -320,9 +354,9 @@ func _on_transfer_to_stash_pressed() -> void:
 		var item = equipment[item_index]
 
 		# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
-		var character_id: String = member.character_id if "character_id" in member else ""
+		var character_id: String = _character_key(member)  # see _character_key(): T9-41
 		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
-		
+
 		# Persist to the LIVE campaign, then mirror into the local copies so the
 		# lists redraw. The old code asked EquipmentManager for
 		# `transfer_to_ship_stash`, a method with ZERO definitions repo-wide, so
@@ -330,8 +364,14 @@ func _on_transfer_to_stash_pressed() -> void:
 		# fallback below — mutating deep copies that were thrown away when the
 		# player left the step. Reassigning gear in the World Phase therefore
 		# changed nothing: the crew went into battle with their old loadout.
-		if not _persist_to_stash(character_id, equipment_id):
+		#
+		# T9-41: same mirror-anyway bug as _do_transfer_to_crew(). Refuse the move
+		# when a live campaign rejected the write, so the list cannot show an item
+		# in a place the campaign does not have it.
+		if not _persist_to_stash(character_id, equipment_id) and _has_live_campaign():
 			push_warning("AssignEquipmentComponent: stash transfer not persisted (%s)" % equipment_id)
+			_show_notification("Could not return that item — it stays with the crew member.")
+			return
 		equipment.remove_at(item_index)
 		_set_member_equipment(member, equipment)
 		stash_items.append(item)
@@ -368,13 +408,22 @@ func _on_transfer_to_crew_pressed() -> void:
 
 func _do_transfer_to_crew(member, item, item_index: int) -> void:
 	# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
-	var character_id: String = member.character_id if "character_id" in member else ""
+	var character_id: String = _character_key(member)  # see _character_key(): T9-41
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
 	# Persist to the LIVE campaign first (see _on_transfer_to_stash_pressed for
 	# why the old EquipmentManager guard could never fire), then mirror locally.
-	if not _persist_to_character(character_id, equipment_id):
+	#
+	# T9-41: the mirror below used to run even when this returned false, so the
+	# item vanished from the stash and appeared on the character while the
+	# campaign recorded neither — the screen stating an outcome the model does
+	# not hold. When there IS a campaign and it refused the write, refuse the
+	# move too and say so; with no campaign the mirror is the whole model and
+	# the move is correct.
+	if not _persist_to_character(character_id, equipment_id) and _has_live_campaign():
 		push_warning("AssignEquipmentComponent: crew transfer not persisted (%s)" % equipment_id)
+		_show_notification("Could not assign that item — it stays in the stash.")
+		return
 	stash_items.remove_at(item_index)
 	var equipment = _get_member_equipment(member)
 	equipment.append(item)

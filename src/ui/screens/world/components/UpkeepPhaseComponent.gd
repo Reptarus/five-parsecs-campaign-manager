@@ -28,6 +28,7 @@ const OnboardItemUseDialogScript = preload(
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const InvasionFlightRef = preload("res://src/core/campaign/InvasionFlight.gd")
+const DepartureObligationRef = preload("res://src/core/world/DepartureObligation.gd")
 const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 const ShiplessSystemRef = preload("res://src/core/ship/ShiplessSystem.gd")
 
@@ -1321,6 +1322,19 @@ func _on_travel_pressed() -> void:
 					"font_color", UIColors.COLOR_AMBER)
 				return
 
+	# "This place is rather nice, really" (Core Rules p.82, Exploration 97-100):
+	# "WHEN YOU ARE READY TO LEAVE THIS WORLD, unless it is being Invaded, you
+	# must pay 1 story point or this crew member will decide to stay behind. If
+	# they do, you can keep their equipment, though."
+	#
+	# This is the moment the rule names, and `fleeing` is the Invasion state it
+	# depends on — which is why it settles here rather than at the Explore roll
+	# that created it (T9-42: it used to be charged immediately, with no
+	# exemption, no affordability check, and the departing crew member's gear
+	# deleted along with them). Same shape as the p.73 Bureaucratic mess check
+	# above: a departure-time rule reported through _travel_status_label.
+	_settle_departure_obligations(fleeing)
+
 	var travel_cost: int
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
@@ -2164,6 +2178,42 @@ func repair_hull_points(points: int) -> int:
 	if repaired > 0 and GameStateManager.has_method("repair_hull"):
 		GameStateManager.repair_hull(repaired)
 	return repaired
+
+## Settle the Core Rules p.82 "rather nice, really" obligations for this world.
+##
+## Reports through _travel_status_label like the p.73 bureaucracy check, and
+## never BLOCKS departure — p.82 has no failure branch that keeps the crew here,
+## only a choice between a story point and a crew member.
+func _settle_departure_obligations(world_is_invaded: bool) -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	var campaign = gs.current_campaign if (gs and "current_campaign" in gs) else null
+	if campaign == null or not DepartureObligationRef.has_pending(campaign):
+		return
+
+	var receipt: Dictionary = DepartureObligationRef.resolve_on_departure(
+		campaign, world_is_invaded)
+	var departed: Array = receipt.get("departed", [])
+	var paid: int = int(receipt.get("paid", 0))
+
+	var message: String = ""
+	if bool(receipt.get("waived", false)):
+		message = ("This world is being Invaded, so nobody stays behind "
+			+ "(Core Rules p.82).")
+	elif not departed.is_empty():
+		message = ("%s decided to stay behind on this world. Their equipment "
+			% ", ".join(PackedStringArray(departed))
+			+ "went to the ship stash (Core Rules p.82).")
+		if paid > 0:
+			message += " %d story point spent to keep the others." % paid
+	elif paid > 0:
+		message = ("Paid %d story point so the crew stays together "
+			% paid + "(Core Rules p.82).")
+
+	if not message.is_empty() and _travel_status_label:
+		_travel_status_label.text = message
+		_travel_status_label.add_theme_color_override(
+			"font_color", UIColors.COLOR_AMBER)
+
 
 func _apply_fuel_credits(travel_cost: int) -> int:
 	## Spend banked starship fuel against this trip (Core Rules p.79).

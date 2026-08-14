@@ -1,6 +1,16 @@
-# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6, gate cleared Aug 7
+# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6, desk gate cleared Aug 7, **first real-hardware pass Aug 8-11 (see §10)**
 
-> # ✅ UPDATE Aug 7 — THE PRE-TABLET GATE IS CLEAR
+> # ⚠ READ §10 FIRST (Aug 11 2026)
+>
+> The Aug 7 banner below says the pre-tablet gate is CLEAR. That was a **desk**
+> result: suites, harnesses, lints, headless parse. It was accurate about
+> everything it measured, and no device had run the build.
+>
+> The first real-hardware pass (Aug 8-11) produced **35 findings**. **Deploy #6 is
+> outstanding**, so device verification is INCOMPLETE. Do not hand an APK to a
+> tester on the strength of the banner below.
+
+> # ✅ UPDATE Aug 7 — THE PRE-TABLET *DESK* GATE IS CLEAR
 >
 > **The rules-wiring ledger is closed: 0 open / 0 partial / 136 fixed / 1
 > corrected** (`docs/RULES_WIRING_AUDIT_2026-08.md`). §1's "five visible lies and
@@ -449,3 +459,63 @@ The fixes concentrate in one place, so start there rather than sweeping:
 3. If a **salvage** job appears, play it through to the post-battle authorities
    prompt (it is a mandatory 3-option choice, deliberately not dismissable).
 4. Anything in §4/§8 still marked open — those are unchanged by this audit.
+
+---
+
+## 10. Aug 8-11 2026 — the gate was cleared on a build no device had run
+
+⚠ **§1 and the Aug 7 header block above are now HISTORICAL in a specific way.**
+They say the only thing left before handing over an APK is re-verifying the
+ARTIFACT, not the app. That was written from desk verification: unit suites,
+harnesses, lints, headless parse. It was accurate about everything it measured.
+It was not a device result, because no device had run the build.
+
+The first real-hardware pass (Lenovo TB361FU, Aug 8-11) produced **35 findings**,
+T9-01 through T9-35. Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md).
+
+### Why a clean desk gate could not predict this
+
+Three groups, and none of them is a gap in the Aug 7 checking:
+
+1. **Physically unobservable on desktop.** The soft keyboard covers any input
+   below the midline, and Godot 4.6 has no keyboard signal at all. Touch scroll
+   was swallowed by `PanelContainer` / `HSeparator` mouse-filter defaults. A
+   `ScrollContainer` absorbed a layout squeeze silently, which reads as missing
+   DATA rather than a layout fault.
+2. **Never exercised, because no test drove a SCREEN.** The printable sheet had
+   never received a single journal entry on any platform, and its World block was
+   blank on every campaign. Both faults sat in the ~15 lines that FETCH the
+   builder's arguments; every test called the builder directly and passed the
+   arguments in.
+3. **Only a real save exposes it.** A legacy-save stash doubled on load. The first
+   fix for that then destroyed items on load until the caller ordering was
+   corrected.
+
+### The rule this establishes
+
+**A desk gate can certify that the code is right. It cannot certify that the app
+works.** Those are different claims, and this document previously ran them
+together. Any future "cleared" verdict here must name which of the two it means,
+and an APK does not go to a tester on the first kind alone.
+
+### Current state
+
+| Gate | State |
+|---|---|
+| Unit suites touched in this sprint | **152/152 across 14 suites** |
+| Six gating lints | **all CLEAN** |
+| `lint_orphan_assets` | `orphans=0`, `test_only=40` (tier-7 backlog) |
+| Headless `--import` parse | **clean** |
+| Device verification | **INCOMPLETE, deploy #6 outstanding** |
+
+### Outstanding before an APK goes to anyone
+
+1. **Deploy #6 and confirm the two sheet fixes on hardware** (the World block, and
+   the journal accessor). Both are desk-verified and detection-proven; neither has
+   been seen working on the device.
+2. **Fight one battle under the new build**, then open the Encounter Log. Journal
+   entries written before this build carry no `stats` scenario keys and there is no
+   backfill, so their boxes are correctly blank. Only a post-fix battle proves the
+   producer chain.
+3. **Commit.** As of Aug 11 the sprint is ~290 uncommitted files on
+   `campaign-editor-and-fixits`, last commit `69cfd4d2b` (Aug 7).

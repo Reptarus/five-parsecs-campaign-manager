@@ -72,12 +72,18 @@ func _build_ui() -> void:
 	var center := CenterContainer.new()
 	center.size_flags_horizontal = SIZE_EXPAND_FILL
 	center.size_flags_vertical = SIZE_EXPAND_FILL
+	# Both this container and the RichTextLabel below default to MOUSE_FILTER_STOP,
+	# and either one alone eats the touch drag before the ScrollContainer sees it.
+	# Measured on the tablet Aug 13 2026 on the sibling EULA screen, which uses the
+	# same construction and could not be scrolled at all. Same class as T4-01.
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll.add_child(center)
 
 	_rtl = RichTextLabel.new()
 	_rtl.bbcode_enabled = true
 	_rtl.fit_content = true
 	_rtl.size_flags_horizontal = SIZE_EXPAND_FILL
+	_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # see the note on `center`
 	_rtl.custom_minimum_size.x = 300
 	_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
@@ -104,10 +110,14 @@ func _load_from_context() -> void:
 	if not router:
 		return
 
+	# `router.has_method("get_context")` used to be tried first. `func get_context`
+	# has ZERO definitions repo-wide, so that branch was permanently false and this
+	# only ever worked via the fallback. Harmless here, but it is the same shape as
+	# the two defects found on device on Aug 9 (`journal.get_entries()`), so it is
+	# not left lying around. SceneRouter stores the payload passed to
+	# navigate_to("legal_viewer", {...}) in `scene_contexts` (SceneRouter.gd:172).
 	var context: Dictionary = {}
-	if router.has_method("get_context"):
-		context = router.get_context()
-	elif "scene_contexts" in router:
+	if "scene_contexts" in router:
 		context = router.scene_contexts.get("legal_viewer", {})
 
 	var title: String = context.get("title", "Legal Document")
@@ -144,7 +154,7 @@ func _markdown_to_bbcode(md: String) -> String:
 		elif trimmed.begins_with("### "):
 			result += "\n[b]%s[/b]\n\n" % trimmed.substr(4)
 		elif trimmed.begins_with("- "):
-			result += "  [color=#06b6d4]\u2022[/color] %s\n" % trimmed.substr(2)
+			result += "  [color=#06b6d4]\u2022[/color] %s\n" % _inline_bold(trimmed.substr(2))
 		elif trimmed.begins_with("**") and trimmed.ends_with("**"):
 			result += "[b]%s[/b]\n" % trimmed.trim_prefix("**").trim_suffix("**")
 		elif trimmed.begins_with("[PENDING"):
@@ -154,17 +164,28 @@ func _markdown_to_bbcode(md: String) -> String:
 		elif trimmed == "":
 			result += "\n"
 		else:
-			var processed := trimmed
-			while processed.find("**") != -1:
-				var start := processed.find("**")
-				var end := processed.find("**", start + 2)
-				if end == -1:
-					break
-				var bold_text := processed.substr(start + 2, end - start - 2)
-				processed = processed.substr(0, start) + "[b]" + bold_text + "[/b]" + processed.substr(end + 2)
-			result += processed + "\n"
+			result += _inline_bold(trimmed) + "\n"
 
 	return result
+
+
+## `**bold**` -> `[b]bold[/b]`, anywhere in a line.
+##
+## This used to live inline in the `else` branch ONLY, so a bulleted line kept its
+## literal asterisks. Measured on the tablet Aug 13 2026: the privacy policy has 25
+## bulleted-bold lines and every one printed `• **Campaign save files** — ...` to
+## the reader. Shared so every branch emitting body text gets the same treatment.
+func _inline_bold(text: String) -> String:
+	var processed := text
+	while processed.find("**") != -1:
+		var start := processed.find("**")
+		var end := processed.find("**", start + 2)
+		if end == -1:
+			break
+		var bold_text := processed.substr(start + 2, end - start - 2)
+		processed = processed.substr(0, start) + "[b]" + bold_text + "[/b]" \
+			+ processed.substr(end + 2)
+	return processed
 
 
 func _on_back_pressed() -> void:
