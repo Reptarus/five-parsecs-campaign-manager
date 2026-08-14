@@ -409,6 +409,32 @@ func _build_grenade_picker() -> void:
 	confirm.pressed.connect(_on_grenades_confirmed)
 	_interactive_area.add_child(confirm)
 
+## The printable name of an equipment entry, whichever shape it arrives in.
+##
+## ⚠ An equipment array holds EITHER plain names (the `Array[String]` shape
+## `Character.to_dictionary()` produces) OR full item Dictionaries — a live save
+## pulled off the tablet Aug 13 2026 carries the latter:
+##   {"condition":"damaged","id":"military_rifle_3495_8386","name":"Military Rifle",
+##    "owner":"Zephyr Flynn","quality_modifier":-1.0,...}
+## so a bare `str(entry)` renders that entire dictionary into a button label.
+##
+## THAT WAS NOT COSMETIC. The stringified dict was also bound as the selection and
+## handed to `CrewTaskComponent._remove_from_crew_equipment()`, which matches with
+## `if item_name in equip` — a String tested against Dictionaries, so it can never
+## match and the erase never runs. MEASURED: Zephyr Flynn's equipment is
+## byte-identical before and after a "Bad fight - lose one item" event. The p.82
+## penalty was unenforceable through this dialog.
+##
+## The two-shape rule was already known at :725 (the loot summary) and nowhere
+## else; this is that one correct line promoted to the single source every list
+## uses. Static so the consumer can resolve the same name the player clicked.
+static func item_display_name(entry: Variant) -> String:
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		return str(d.get("name", d.get("id", "Unknown Item")))
+	return str(entry)
+
+
 func _build_discard_list() -> void:
 	var equipment: Array = _event_data.get("equipment", [])
 	if equipment.is_empty():
@@ -426,13 +452,14 @@ func _build_discard_list() -> void:
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
-	for item_name in equipment:
+	for entry in equipment:
+		var label: String = item_display_name(entry)
 		var btn := Button.new()
-		btn.text = str(item_name)
+		btn.text = label
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(btn, COLOR_ELEVATED)
-		btn.pressed.connect(_on_discard_selected.bind(str(item_name)))
+		btn.pressed.connect(_on_discard_selected.bind(label))
 		_interactive_area.add_child(btn)
 
 func _build_sell_list() -> void:
@@ -454,9 +481,11 @@ func _build_sell_list() -> void:
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
-	for item_name in equipment:
+	for entry in equipment:
 		var cb := CheckBox.new()
-		cb.text = str(item_name)
+		# `_on_sell_confirmed` collects `cb.text` into `sold_items`, which
+		# CrewTaskComponent then removes by name — so the label IS the identifier.
+		cb.text = item_display_name(entry)
 		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		cb.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
@@ -676,8 +705,8 @@ func _handle_roll_on_table() -> void:
 		_show_outcome("No loot found", COLOR_TEXT_SECONDARY)
 	else:
 		_show_outcome("Loot rolled:", COLOR_TEXT_GOLD)
-		for item_name in resolved_items:
-			_add_outcome_line("  → %s" % str(item_name), COLOR_SUCCESS)
+		for entry in resolved_items:
+			_add_outcome_line("  → %s" % item_display_name(entry), COLOR_SUCCESS)
 
 	# Update event data with resolved names so completion callback uses them
 	_event_data["items_to_resolve"] = resolved_items
@@ -966,13 +995,14 @@ func _on_trade_accepted() -> void:
 	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
-	for item_name in equipment:
+	for entry in equipment:
+		var label: String = item_display_name(entry)
 		var btn := Button.new()
-		btn.text = str(item_name)
+		btn.text = label
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(btn, COLOR_ELEVATED)
-		btn.pressed.connect(_on_trade_item_selected.bind(str(item_name)))
+		btn.pressed.connect(_on_trade_item_selected.bind(label))
 		_interactive_area.add_child(btn)
 
 func _on_trade_declined() -> void:

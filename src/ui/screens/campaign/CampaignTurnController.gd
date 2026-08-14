@@ -2102,6 +2102,23 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 	# processing results which don't carry the victory flag.
 	var victory: bool = battle_results.get("victory", false) or battle_results.get("won", false)
 
+	# Core Rules p.91 (Rivals) / p.92 (Invasion): "There is no Win condition."
+	# Such a battle is neither won NOR lost, so it must move NEITHER counter.
+	#
+	# ⚠ `battles_won` is RULES-BEARING, not decoration: VictoryChecker reads it for
+	# the p.64 conditions "Win 20 / 50 / 100 tabletop battles" (verbatim). Counting
+	# an unwinnable battle there advances a victory condition the player did not
+	# earn.
+	#
+	# TacticalBattleUI applies this gate to `success` (:5997) but NOT to
+	# `victory`/`won` (:6001-6002), which is what this line reads — so the two
+	# "did you win" keys disagreed on exactly these battles. MEASURED on the tablet
+	# Aug 13 2026: one Rival ambush moved the dashboard from 4W to 5W while its own
+	# journal entry recorded "defeat" for the same fight. `missions_completed` still
+	# increments below — the battle WAS fought, it just has no W/L to record.
+	var no_win_condition: bool = bool(
+		battle_results.get("setup_rules", {}).get("no_win_condition", false))
+
 	# Store final post-battle results
 	game_state.set_battle_results(results)
 
@@ -2110,7 +2127,9 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 	if gsm:
 		if gsm.has_method("increment_missions_completed"):
 			gsm.increment_missions_completed()
-		if victory:
+		if no_win_condition:
+			pass  # p.91/p.92 — neither a win nor a loss.
+		elif victory:
 			if gsm.has_method("increment_battles_won"):
 				gsm.increment_battles_won()
 		else:

@@ -1915,6 +1915,44 @@ func get_step_results() -> Dictionary:
 		"selected_job_index": selected_job_index
 	}
 
+func restore_step_results(data: Dictionary) -> void:
+	## Re-adopt the state `get_step_results()` produced. The inverse of that
+	## function, and it must stay the inverse — the two are a pair.
+	##
+	## ⚠ WHY THIS EXISTS. The accepted job lived ONLY here, in memory. The World
+	## Phase checkpoint (`WorldPhaseController.save_checkpoint()`) persists
+	## `current_step` / `step_completed` / `world_phase_data` and nothing about the
+	## job, so resuming a checkpoint rebuilt this component empty:
+	## `get_accepted_job()` returned {} and `_refresh_mission_prep()` — which reads
+	## the mission from exactly that call — rendered the briefing as
+	## "Objective: Unknown / Enemy: Unknown / Pay: 0".
+	##
+	## MEASURED on the tablet Aug 13 2026: a save resumed at Step 6/6 showed that
+	## blank briefing while `progress.world_phase_results.mission_data` still held
+	## the full job (patron "Regional Contractor", "Move Through", enemy
+	## "Gun Slingers", pay 6). Walking the same save cleanly from Step 1 rendered
+	## the real briefing — so the data was never lost, only the live component's
+	## copy of it.
+	##
+	## NOTE the fix is NOT "fall back to world_phase_results.mission_data": that
+	## key is written at PHASE COMPLETION, so on a turn-3 resume it holds turn 2's
+	## job. A stale mission presented as the current one is worse than a blank one.
+	var restored: Array[Dictionary] = []
+	for entry: Variant in data.get("available_jobs", []):
+		if entry is Dictionary:
+			restored.append(entry)
+	available_jobs = restored
+	selected_job_index = int(data.get("selected_job_index", -1))
+	# Only meaningful with a job actually in range — a checkpoint written before
+	# any offer was accepted must not resurrect one.
+	job_accepted = bool(data.get("job_accepted", false)) \
+		and selected_job_index >= 0 \
+		and selected_job_index < available_jobs.size()
+	if not job_accepted:
+		selected_job_index = -1 if available_jobs.is_empty() else selected_job_index
+	_update_ui_display()
+
+
 func reset_job_phase() -> void:
 	## Reset job phase for new turn
 	job_accepted = false

@@ -3858,16 +3858,35 @@ func _get_crew_stat(crew_member, stat_name: String) -> int:
 	return 0
 
 func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
-	## Remove an item by name from crew member's equipment array
-	if crew_member == null:
+	## Remove an item by NAME from a crew member's equipment array.
+	##
+	## ⚠ The array holds EITHER plain names (the `Array[String]` shape
+	## `Character.to_dictionary()` produces) OR full item Dictionaries. A live save
+	## pulled off the tablet Aug 13 2026 carries the latter, so the old
+	## `if item_name in equip: equip.erase(item_name)` compared a String against
+	## Dictionaries — never equal, so the erase never ran and the caller's penalty
+	## silently did nothing.
+	##
+	## MEASURED: a "Bad fight - 2 turns in Sick Bay, lose one item" event announced
+	## "Discarded: Military Rifle" and Zephyr Flynn's equipment was byte-identical
+	## before and after. Every p.82 item loss routed through here was unenforced.
+	##
+	## Matching goes through the same `item_display_name()` the dialog labelled the
+	## button with, so the thing removed is exactly the thing the player clicked.
+	## Removes ONE entry — "lose one item" means one, even with duplicates.
+	if crew_member == null or item_name.is_empty():
 		return
+	var equip: Array = []
 	if crew_member is Dictionary:
-		var equip: Array = crew_member.get("equipment", [])
-		if item_name in equip:
-			equip.erase(item_name)
+		equip = crew_member.get("equipment", [])
 	elif crew_member is Object and "equipment" in crew_member:
-		if item_name in crew_member.equipment:
-			crew_member.equipment.erase(item_name)
+		equip = crew_member.equipment
+	else:
+		return
+	for i in range(equip.size()):
+		if CrewTaskEventDialogScript.item_display_name(equip[i]) == item_name:
+			equip.remove_at(i)
+			return
 
 func _apply_sick_bay(crew_member, turns: int) -> void:
 	## Place crew member in sick bay for `turns` campaign turns.

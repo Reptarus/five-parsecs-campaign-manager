@@ -734,6 +734,17 @@ func _setup_initial_state() -> void:
 		if proceed_to_battle_button:
 			proceed_to_battle_button.visible = false
 		_fetch_campaign_data()
+		# ⚠ ORDER IS LOAD-BEARING. This MUST run after _fetch_campaign_data(),
+		# which reaches _initialize_components_with_data() ->
+		# `job_offer_component.initialize_job_offers(world_phase_data)` and
+		# rebuilds that component from scratch. Restoring the accepted job inside
+		# restore_from_checkpoint() (two lines earlier) is silently undone by that
+		# call, and the symptom is identical to having no fix at all: the resumed
+		# Mission Prep briefing reads "Objective: Unknown / Pay: 0", because
+		# _refresh_mission_prep() sources the mission from get_accepted_job().
+		# MEASURED on the tablet Aug 13 2026 — the job WAS in the checkpoint on
+		# disk and the briefing was still blank.
+		_restore_job_offers_from_checkpoint()
 		_update_ui_display()
 		_show_current_step()
 		return
@@ -957,6 +968,33 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	if not has_checkpoint():
 		reset_world_phase()
 		_show_current_step()
+		return
+
+	# ⚠ A VALID CHECKPOINT MEANS THE LINE ABOVE JUST DESTROYED THE RESTORE.
+	#
+	# This function is the orchestrator entry point and CampaignTurnController calls
+	# it AFTER _ready() has already run _setup_initial_state() -> the checkpoint
+	# branch -> _restore_job_offers_from_checkpoint(). `_initialize_components_with_data()`
+	# then re-runs UNCONDITIONALLY and undoes it twice over:
+	#   - `initialize_job_offers()` sets job_accepted = false (JobOfferComponent:200)
+	#   - `initialize_mission_prep(world_phase_data.get("mission", {}))` passes {},
+	#     because the mission lives in job_offer_component.get_accepted_job() and was
+	#     never a world_phase_data key
+	# and the `if not has_checkpoint()` guard above means _show_current_step() does
+	# NOT run, so nothing re-renders and the blanked briefing is what the player sees.
+	#
+	# MEASURED on the tablet Aug 14 2026: a checkpoint holding "Reputable Contractor"
+	# / Protect / Isolationists / 7cr resumed to "Objective: Unknown / Pay: 0". The
+	# giveaway was the world's Current Event changing across the resume ("A supply
+	# glut drops market prices by 20%" -> "Nothing notable happens this turn"), which
+	# only _generate_turn_world_event() (:946) does — proving THIS function ran after
+	# the restore.
+	#
+	# Two earlier fixes ordered the restore against the other two callers of
+	# `initialize_job_offers()` and both still failed on device, because this third
+	# one is on a path _ready() cannot see.
+	_restore_job_offers_from_checkpoint()
+	_show_current_step()
 
 ## The turn a world event was last rolled for, keyed by planet. -1 = never.
 var _world_event_rolled: Dictionary = {}
@@ -2087,6 +2125,26 @@ func _refresh_resolve_rumors() -> void:
 func _refresh_job_offers() -> void:
 	## Re-fetch patron data from campaign and re-initialize job offer component
 	## Called when advancing to JOB_OFFERS step, since crew tasks may have found new patrons
+	##
+	## ⚠ NOT ONCE THE PLAYER HAS TAKEN A JOB. `initialize_job_offers()` re-rolls the
+	## board and resets `job_accepted = false` (JobOfferComponent.gd:200), so running
+	## it again DISCARDS the player's choice. Same guard, same reason, as
+	## `_refresh_rumors()` directly above.
+	##
+	## MEASURED on the tablet Aug 14 2026. `_show_current_step()` calls this on every
+	## arrival at JOB_OFFERS (:1177), which makes it a SECOND producer after the one
+	## in `_initialize_components_with_data()`, and it runs AFTER
+	## `_restore_job_offers_from_checkpoint()` in `_setup_initial_state()`. Resuming a
+	## checkpoint whose accepted job was verifiably on disk ("Reputable Contractor" /
+	## Protect / Isolationists / 7cr) re-rolled it into two unrelated offers with the
+	## step's checkmark cleared. Ordering the restore against ONE producer was not
+	## enough; this guard is what makes it hold against both.
+	##
+	## It also fixes a plain back-navigation bug needing no restart: accept a job,
+	## step forward, press Back, and the acceptance was silently re-rolled away.
+	if job_offer_component and job_offer_component.has_method("get_accepted_job") \
+			and not job_offer_component.get_accepted_job().is_empty():
+		return
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign:
 		var campaign = gs.current_campaign
@@ -2621,11 +2679,28 @@ func save_checkpoint() -> void:
 	if gs_ref and gs_ref.current_campaign and "progress_data" in gs_ref.current_campaign:
 		current_turn = gs_ref.current_campaign.progress_data.get(
 			"turns_played", 0)
+	# ⚠ THIS IS A FIXED KEY LITERAL, so anything not named here is simply not in
+	# the checkpoint. The accepted job was not: it lives in JobOfferComponent's
+	# memory, and `_refresh_mission_prep()` (:2104-2106) reads the mission from
+	# `job_offer_component.get_accepted_job()` and nowhere else. A resumed
+	# checkpoint therefore rebuilt that component empty and rendered the Mission
+	# Prep briefing as "Objective: Unknown / Enemy: Unknown / Pay: 0" — measured on
+	# the tablet Aug 13 2026, on a save whose accepted job was intact everywhere
+	# else. The player had accepted a job and the resume lost it.
+	#
+	# `get_step_results()` is the component's own serialization and
+	# `restore_step_results()` its inverse; keep using the pair rather than
+	# re-listing its fields here, or this literal will drift the same way again.
+	var job_offers_state: Dictionary = {}
+	if job_offer_component and job_offer_component.has_method("get_step_results"):
+		job_offers_state = job_offer_component.get_step_results()
+
 	_checkpoint_data = {
 		"current_step": current_step,
 		"step_completed": step_completed.duplicate(),
 		"world_phase_data": world_phase_data.duplicate(),
 		"automation_enabled": automation_enabled,
+		"job_offers": job_offers_state,
 		"turn_number": current_turn,
 		"timestamp": Time.get_datetime_string_from_system()
 	}
@@ -2646,6 +2721,22 @@ func save_checkpoint() -> void:
 		gs.save_campaign()
 
 
+func _restore_job_offers_from_checkpoint() -> void:
+	## Re-adopt the accepted job saved by save_checkpoint().
+	##
+	## Split out of restore_from_checkpoint() ON PURPOSE: it has to run AFTER
+	## `_fetch_campaign_data()`, which rebuilds JobOfferComponent via
+	## `initialize_job_offers()`. Called earlier, the restore is overwritten and
+	## the resumed Mission Prep briefing is blank exactly as if nothing had been
+	## saved at all.
+	##
+	## Pre-fix checkpoints carry no "job_offers" key, restore to {}, and behave
+	## as they do today.
+	if job_offer_component and job_offer_component.has_method("restore_step_results"):
+		job_offer_component.restore_step_results(
+			_checkpoint_data.get("job_offers", {}))
+
+
 func restore_from_checkpoint() -> void:
 	if _checkpoint_data.is_empty():
 		return
@@ -2654,6 +2745,10 @@ func restore_from_checkpoint() -> void:
 	step_completed = _checkpoint_data.get("step_completed", {}).duplicate()
 	world_phase_data = _checkpoint_data.get("world_phase_data", {}).duplicate()
 	automation_enabled = _checkpoint_data.get("automation_enabled", false)
+
+	# NOTE the accepted job is deliberately NOT restored here — see
+	# `_restore_job_offers_from_checkpoint()`, which the caller invokes AFTER
+	# component initialization. Restoring it at this point is silently undone.
 
 	# RE-DERIVE the stash instead of trusting the checkpoint's copy.
 	#

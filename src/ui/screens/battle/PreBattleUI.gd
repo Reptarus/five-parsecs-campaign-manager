@@ -373,16 +373,41 @@ func _setup_mission_info(data: Dictionary) -> void:
 		init_header.add_theme_font_size_override("font_size", _scaled_font(16))
 		mission_info_panel.add_child(init_header)
 		var init_info := Label.new()
-		# success_probability from SeizeInitiativeSystem is ALREADY a percentage
-		# (success_count / 36.0 * 100.0), matching InitiativeCalculator's usage.
-		# The old `prob * 100.0` double-scaled it (e.g. 41.67 -> "4167%").
-		var prob: float = init_ctx.get("success_probability", 0.0)
-		init_info.text = "Need %d+ on 2D6 (Savvy +%d) — %.0f%% chance" % [
-			init_ctx.get("required_roll", 10),
-			init_ctx.get("highest_savvy", 0),
-			prob]
+		# Core Rules p.91, verbatim: a Rival "Ambush" means "you can deploy one
+		# crew member less than standard ... and cannot roll to Seize the
+		# Initiative". A PROHIBITION, not a modifier.
+		#
+		# ⚠ This block already received the answer and threw it away. The rule is
+		# computed in BattleSetupRules (`can_seize_initiative = false`, :288) and
+		# carried into this very dict by CampaignTurnController alongside a
+		# ready-made reason string (:1371-1373) — and `InitiativeCalculator`
+		# honours it (`_set_seize_forbidden`, :218-236). This surface read only
+		# required_roll / highest_savvy / success_probability from the same
+		# dictionary, so it advertised a roll the scenario forbids.
+		#
+		# MEASURED on the tablet Aug 13 2026: an Ambush whose own briefing line
+		# said "cannot roll to Seize the Initiative (p.91)" was rendered two
+		# blocks above as "Need 8+ on 2D6 (Savvy +2) — 42% chance". The 8+ is the
+		# normal 7+ with the Rival -1 applied, so it read as a harder roll rather
+		# than no roll — the most convincing possible wrong answer.
+		#
+		# Same mechanic, second surface: whenever two views show one rule, BOTH
+		# have to read the flag that gates it.
+		if init_ctx.has("can_seize") and not bool(init_ctx["can_seize"]):
+			init_info.text = str(init_ctx.get("cannot_seize_reason",
+				"This scenario does not allow a Seize the Initiative roll."))
+			init_info.add_theme_color_override("font_color", Color("#D97706"))
+		else:
+			# success_probability from SeizeInitiativeSystem is ALREADY a percentage
+			# (success_count / 36.0 * 100.0), matching InitiativeCalculator's usage.
+			# The old `prob * 100.0` double-scaled it (e.g. 41.67 -> "4167%").
+			var prob: float = init_ctx.get("success_probability", 0.0)
+			init_info.text = "Need %d+ on 2D6 (Savvy +%d) — %.0f%% chance" % [
+				init_ctx.get("required_roll", 10),
+				init_ctx.get("highest_savvy", 0),
+				prob]
+			init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
 		init_info.add_theme_font_size_override("font_size", _scaled_font(14))
-		init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
 		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mission_info_panel.add_child(init_info)
 

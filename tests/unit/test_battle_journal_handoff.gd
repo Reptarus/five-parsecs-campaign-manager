@@ -264,3 +264,129 @@ func test_no_scenario_key_is_read_that_the_producer_cannot_forward() -> void:
 		+ "create_battle_journal_entry — the only campaign-path caller — never "
 		+ "names them, so they can only ever arrive empty:\n  "
 		+ "\n  ".join(unforwarded)).is_empty()
+
+
+# ── T9-49: "There is no Win condition against Rivals" (Core Rules p.91) ───────
+#
+# p.91 verbatim: "There is no Win condition against Rivals, but if you Hold the
+# Field, you have an increased chance of permanently chasing them off." p.92 says
+# the same of an Invasion.
+#
+# `ctx.mission_successful` is CORRECTLY false for these battles — TacticalBattleUI
+# forces it (`_has_no_win_condition()`, :5997) and PaymentProcessor depends on it
+# for the p.120 payment gate. The defect was the `else` branch: a bare
+# `"victory" if mission_successful else "defeat"` stamped DEFEAT on every Rival and
+# Invasion battle however well it went.
+#
+# ⚠ MEASURED ON THE TABLET, Aug 13 2026. A Rival ambush recorded with the objective
+# achieved, "Won" selected and Held the Field produced this entry:
+#     "description": "Battle vs Unknown - Defeat\n | Objective: Access (achieved)"
+#     "mood": "defeat",  "stats": { "battle_result": "defeat", ... }
+# — a single entry contradicting itself. The dashboard simultaneously moved 4W->5W,
+# because the W/L counter reads `victory`/`won` while the journal reads `success`:
+# TWO KEYS ANSWERING "DID YOU WIN", and p.91's gate had only been applied to one.
+
+func _run_completion_with(battle_result: Dictionary,
+		mission_successful: bool, journal: Node) -> Dictionary:
+	var ctx = PostBattleContextScript.new()
+	ctx.battle_result = battle_result
+	ctx.campaign_journal = journal
+	ctx.loot_earned = []
+	ctx.mission_successful = mission_successful
+	ctx.crew_participants = []
+	ctx.injuries_sustained = []
+	var completion = PostBattleCompletionScript.new()
+	completion.create_battle_journal_entry(ctx)
+	assert_int(journal.entries.size()).override_failure_message(
+		"create_battle_journal_entry wrote no entry at all").is_equal(1)
+	return journal.entries[0]
+
+
+## The real shape: TacticalBattleUI reads no_win_condition out of
+## mission_data["setup_rules"], and CampaignTurnController stamps that same bundle
+## onto the battle result (:1289), so it survives BattleResultNormalizer (:89).
+func _no_win_result(held_field: bool) -> Dictionary:
+	var r: Dictionary = _battle_result()
+	r["success"] = false          # correctly forced false by p.91
+	r["setup_rules"] = {"no_win_condition": true}
+	r["held_field"] = held_field
+	return r
+
+
+func test_a_rival_battle_is_never_recorded_as_a_defeat() -> void:
+	var entry: Dictionary = _run_completion_with(
+		_no_win_result(true), false, _journal())
+	var word: String = str(entry.get("stats", {}).get("battle_result", ""))
+	assert_str(word).override_failure_message(
+		"p.91 says there is no Win condition against Rivals — it does NOT say you "
+		+ "lost. Recording 'defeat' puts a loss in the permanent record and prints "
+		+ "it into the Encounter Log's result box.").is_not_equal("defeat")
+	assert_str(word).is_equal("held the field")
+
+
+func test_holding_the_field_is_the_books_own_word_for_the_good_outcome() -> void:
+	var entry: Dictionary = _run_completion_with(
+		_no_win_result(true), false, _journal())
+	# p.91 offers exactly one thing to achieve in these battles, and the entry
+	# should say which way it went.
+	assert_str(str(entry.get("description", ""))).contains("Held The Field")
+	# _determine_battle_mood matches only victory/defeat, so anything else falls
+	# through to neutral — correct here, and asserted so a future edit to that
+	# match statement cannot quietly re-introduce a "defeat" mood.
+	assert_str(str(entry.get("mood", ""))).override_failure_message(
+		"a battle that cannot be lost must not carry a defeat mood").is_not_equal(
+		"defeat")
+
+
+func test_leaving_a_no_win_battle_early_records_withdrawal_not_defeat() -> void:
+	var entry: Dictionary = _run_completion_with(
+		_no_win_result(false), false, _journal())
+	var word: String = str(entry.get("stats", {}).get("battle_result", ""))
+	assert_str(word).is_equal("withdrew")
+	assert_str(word).is_not_equal("defeat")
+
+
+## The ordinary path must be untouched — this is the regression guard on the fix.
+func test_an_ordinary_mission_still_records_victory_and_defeat() -> void:
+	var won: Dictionary = _run_completion_with(_battle_result(), true, _journal())
+	assert_str(str(won.get("stats", {}).get("battle_result", ""))).is_equal(
+		"victory")
+
+	var lost_result: Dictionary = _battle_result()
+	lost_result["success"] = false
+	var lost: Dictionary = _run_completion_with(lost_result, false, _journal())
+	assert_str(str(lost.get("stats", {}).get("battle_result", ""))).override_failure_message(
+		"a normal mission that failed its objective IS a defeat — the p.91 carve-out "
+		+ "must not swallow the ordinary case").is_equal("defeat")
+
+
+## A mission whose setup_rules exist but do NOT set the flag is an ordinary
+## mission. Guarding on the bundle's presence rather than the flag would silently
+## reclassify every battle that carries setup rules at all.
+func test_setup_rules_without_the_flag_is_an_ordinary_mission() -> void:
+	var r: Dictionary = _battle_result()
+	r["setup_rules"] = {"flee_before_round": 4, "crew_cap_delta": -1}
+	var entry: Dictionary = _run_completion_with(r, true, _journal())
+	assert_str(str(entry.get("stats", {}).get("battle_result", ""))).is_equal(
+		"victory")
+
+
+## The OTHER half of T9-49, and the one that reaches a rules-bearing counter:
+## VictoryChecker reads `battles_won` for the p.64 conditions "Win 20 / 50 / 100
+## tabletop battles". A battle that cannot be won must move neither counter.
+## The increment is inline in a Node method with autoload dependencies, so this
+## anchors on the gate itself rather than the mere presence of the call.
+func test_the_win_loss_counter_skips_a_battle_that_cannot_be_won() -> void:
+	var src: String = FileAccess.get_file_as_string(
+		"res://src/ui/screens/campaign/CampaignTurnController.gd")
+	assert_bool(src.contains("no_win_condition")).override_failure_message(
+		"CampaignTurnController must read the p.91/p.92 flag before touching the "
+		+ "W/L tally").is_true()
+	var gate_at: int = src.find("if no_win_condition:")
+	assert_int(gate_at).override_failure_message(
+		"the increment block must be GATED on no_win_condition, not merely aware "
+		+ "of it").is_greater(-1)
+	var won_at: int = src.find("increment_battles_won")
+	assert_int(gate_at).override_failure_message(
+		"the gate has to come BEFORE the win increment or it changes nothing"
+		).is_less(won_at)

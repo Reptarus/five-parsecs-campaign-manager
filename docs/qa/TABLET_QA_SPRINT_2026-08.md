@@ -4988,3 +4988,753 @@ ground for.
 `test_touch_scroll_opener` 7/7 (**52 cases, 0 failures**) · all six gating lints exit 0 ·
 `--headless --import` parse clean.
 
+
+---
+
+## Aug 13 2026 — T9-47/48/49/50 worked (the deploy-#10 backlog, closed)
+
+All four rows logged during deploy #10, investigated and fixed. Three turned out to be
+more serious than the screenshots suggested; one changed shape entirely once the book
+was consulted.
+
+### T9-47 — the discard dialog was a DATA bug, not a display bug (FIXED)
+
+The item-discard dialog labelled its button with a whole serialized Dictionary, which
+read as cosmetic. It was not: **the label IS the identifier.** It is bound into the
+button's callback, becomes `_outcome["discarded_item"]`, and is handed to
+`CrewTaskComponent._remove_from_crew_equipment()`, which matched with
+`if item_name in equip` — a String tested against Dictionaries. Never equal, so the
+erase never ran.
+
+**PROVEN AGAINST THE PULLED SAVE, not inferred.** Zephyr Flynn's `equipment` array is
+byte-identical before and after a "Bad fight - lose one item" event:
+
+```json
+[{"condition":"damaged","id":"military_rifle_3495_8386","name":"Military Rifle",
+  "owner":"Zephyr Flynn","quality_modifier":-1.0,"source":"shared_pool",
+  "source_table":"crew_base","type":"Weapon"}]
+```
+
+Every p.82 item loss routed through this dialog was unenforceable. The array legitimately
+holds EITHER shape — plain names (what `Character.to_dictionary()` emits) or full item
+Dictionaries (what a live save carries) — and the two-shape rule was already written
+correctly at ONE site (`CrewTaskEventDialog.gd:725`, the loot summary) and nowhere else.
+That line is now `CrewTaskEventDialog.item_display_name()`, the single source used by the
+discard, sell, trade and loot lists, and by the matcher — so the item removed is exactly
+the one the player clicked.
+
+Fixed sites: discard list, sell list (its checkbox text IS what `sold_items` collects),
+trade list, loot outcome lines, and `_remove_from_crew_equipment` (now index-based, and
+removes ONE entry — "lose one item" means one, even with duplicates).
+
+`tests/unit/test_crew_task_item_loss_applies.gd`, 8 cases, built on the verbatim device
+item. Detection-proven: restoring the old `in`/`erase` matcher fails exactly the three
+Dictionary-shaped removal cases while the plain-String case still passes — which is
+precisely why this survived so long.
+
+### T9-48 — a prohibition rendered as a modifier (FIXED)
+
+Core Rules p.91 verbatim: "**Ambush** — You can deploy one crew member less than standard
+(5 in a typical campaign) for this fight, **and cannot roll to Seize the Initiative**."
+
+The device showed the header "Cannot Seize the Initiative" and, two blocks above, a live
+"Need 8+ on 2D6 (Savvy +2) — 42% chance". The 8+ is the normal 7+ with the Rival -1
+applied, so it read as a HARDER roll rather than NO roll — the most convincing possible
+wrong answer.
+
+The rule was never missing. `BattleSetupRules` computes `can_seize_initiative = false`
+(:288) with the p.91 citation, `CampaignTurnController` carries it into
+`mission_data["initiative_context"]` alongside a ready-made reason string (:1371-1373),
+and `InitiativeCalculator` honours it (`_set_seize_forbidden`, :218-236). **`PreBattleUI`
+read `required_roll` / `highest_savvy` / `success_probability` out of that same
+dictionary and never looked at `can_seize`.** Fixed to render the reason instead of a
+roll, in the screen's own warning amber.
+
+⚠ **The rule: whenever two surfaces show one mechanic, BOTH have to read the flag that
+gates it.** One consumer honouring it is not coverage.
+
+### T9-49 — TWO keys answering "did you win", and p.91 applied to only one (FIXED)
+
+Filed as "a win journalled as a defeat". The book reframed it. Core Rules p.91:
+"**There is no Win condition against Rivals**, but if you Hold the Field, you have an
+increased chance of permanently chasing them off." p.92 says the same of an Invasion.
+
+So `success = false` on a Rival battle is **correct and deliberate** — `TacticalBattleUI`
+forces it (`_has_no_win_condition()`, :5997) and `PaymentProcessor` depends on it for the
+p.120 payment gate. Two real defects sat on top of that:
+
+1. **The record called it a defeat.** `"victory" if mission_successful else "defeat"` has
+   no third branch, so every Rival and Invasion battle was stamped `defeat` however well
+   it went — the observed entry said `"battle_result": "defeat"`, mood `defeat`, and
+   `"Battle vs ... - Defeat | Objective: Access (achieved)"`, contradicting itself inside
+   one entry. Now `PostBattleCompletion._outcome_word()` returns the book's own
+   vocabulary: **"held the field"** or **"withdrew"**. Values stay human-readable because
+   they print raw into the Encounter Log's result box (`SheetDataContext.gd:622`) and,
+   via `.capitalize()`, into the description. `_determine_battle_mood` matches only
+   victory/defeat and correctly falls through to `neutral`.
+2. **The W/L tally counted it as a WIN.** `CampaignTurnController:2103` reads
+   `battle_results["victory"] or ["won"]` — which `TacticalBattleUI` writes UNGATED at
+   :6001-6002, right beside the gated `success`. Measured: one Rival ambush moved the
+   dashboard 4W→5W while its own journal said defeat.
+   ⚠ **`battles_won` is RULES-BEARING**: `VictoryChecker` reads it for the p.64
+   conditions "**Win 20 / 50 / 100 tabletop battles**" (verbatim, PDF p.64). Counting an
+   unwinnable battle advances a victory condition the player did not earn. Such a battle
+   now moves NEITHER counter; `missions_completed` still increments, because the battle
+   WAS fought — it simply has no W/L to record.
+
+6 cases added to `tests/unit/test_battle_journal_handoff.gd` (14 total). Detection-proven:
+restoring the two-branch expression fails exactly the three no-win-condition cases while
+the ordinary victory/defeat guards keep passing.
+
+### T9-50 — the resume lost the player's accepted job (FIXED)
+
+Resuming a checkpoint at Step 6/6 rendered "Objective: Unknown / Enemy: Unknown / Pay: 0"
+while the save still held the whole job elsewhere. `_refresh_mission_prep()` reads the
+mission from `job_offer_component.get_accepted_job()` **and nowhere else** — pure
+in-memory state — and `save_checkpoint()` builds `_checkpoint_data` from a FIXED KEY
+LITERAL (`current_step` / `step_completed` / `world_phase_data` / `automation_enabled` /
+`turn_number` / `timestamp`) that never named the job. So the resume rebuilt the
+component empty. Not merely a blank briefing: the accepted job was gone.
+
+⚠ **The tempting fix is wrong.** Falling back to `world_phase_results.mission_data` would
+show TURN 2's job on a turn-3 resume, because that key is written at phase COMPLETION. A
+stale mission presented as the current one is worse than a blank one. The job has to be
+in the checkpoint.
+
+`JobOfferComponent.restore_step_results()` is now the inverse of the existing
+`get_step_results()`, and the checkpoint stores that bundle rather than re-listing its
+fields (which is how the literal drifted in the first place). Pre-fix saves carry no
+`job_offers` key, restore to `{}`, and are no worse off than today.
+
+`tests/unit/test_world_phase_checkpoint_keeps_the_job.gd`, 6 cases. Detection-proven:
+neutering `restore_step_results` fails the round-trip case.
+
+### Gates
+
+`test_world_phase_checkpoint_keeps_the_job` 6/6 · `test_crew_task_item_loss_applies` 8/8 ·
+`test_battle_journal_handoff` 14/14 · `test_rival_ambush_replaces_the_job` 18/18 ·
+`test_crew_task_legacy_save_keys` 10/10 · `test_job_offer_component` 17/17 —
+**73 cases, 0 failures**. All six gating lints exit 0. `--headless --import` parse clean.
+
+⚠ Tooling note: `-a tests/unit/test_job_offer_component.gd` produced NO OUTPUT AT ALL —
+the suite lives in `tests/integration/phase4_world/`. A wrong `-a` path is a silent skip,
+not an error. Always reconcile the number of `Statistics:` lines against the number of
+suites requested.
+
+### Still open from deploy #10
+
+Nothing. T9-42 remains desk-verified (no 97-100 Explore roll came up in four attempts).
+None of these four fixes has been exercised on hardware yet — they want a deploy #11 pass:
+a Rival ambush (journal must read "held the field"/"withdrew", W/L must not move, the
+Seize panel must state the prohibition), a "lose one item" event (the crew member must
+actually lose it), and a mid-World-Phase quit/resume (the briefing must survive).
+
+
+---
+
+## Aug 13 2026 — T9-51: swept for the T9-47 CLASS downstream, found two dead p.130 events
+
+Rather than hunt at random before the next deploy, the two defect classes proven on
+hardware today were each swept as a class. Both sweeps were bounded and both are now
+closed.
+
+### Sweep 1 — "a rule computed into a bundle that nothing reads" (T9-48's shape): CLEAN
+
+Census of all 21 keys `BattleSetupRules` writes, counting consumers OUTSIDE that file.
+**Every key has at least one**, and each of the eight single-consumer keys resolves to a
+real enforcement site, not a label:
+
+| key | sole consumer |
+|---|---|
+| `crew_cap_delta` / `crew_cap_max` | `CampaignTurnController:1695` / `:1699` (deploy cap) |
+| `early_leave_is_casualty` | `BattleRoundHUD:615` |
+| `flee_before_round` | `PaymentProcessor:57` |
+| `force_enemy_ai` | `CampaignTurnController:1277` — and it IS applied (:1278-1286); the `_ai_override` underscore is naming style, not a dead assignment |
+| `panic_range_delta` | `TacticalBattleUI:5674` |
+| `round_one` | `TacticalBattleUI:3720` |
+| `setup_notes` | `PreBattleUI:255` — legitimately a display |
+
+No further instances. T9-48 was the only one.
+
+### Sweep 2 — "a name matched against an array that may hold Dictionaries" (T9-47's shape)
+
+Checked and cleared first, so the finding below is not a guess:
+
+- `Character.equipment` is `@export var equipment: Array[String]` (Character.gd:129) —
+  **typed**, so a Dictionary cannot land there and the `weapons` / `items` getters
+  (:230-246, which call `.to_lower()` per element) are safe.
+- `EquipmentTransferService._set_member_equipment` already guards the typed case with
+  `.assign(_as_string_array(...))` and documents why (:204-211).
+
+So the class is confined to the SERIALIZED crew-member Dictionary, whose `equipment`
+holds full item Dictionaries — which is what a save actually carries.
+
+### T9-51 — two p.130 Character Events were dead on any saved campaign (FIXED)
+
+`CharacterEventEffects._get_character_equipment()` returns both shapes. Two handlers
+assigned an element straight into a String:
+
+```gdscript
+var damaged_item: String = equip_list[dmg_idx]     # :614  "Don't Make Them Like They Used To"
+lost_item_name           = equip_for_loss[loss_idx] # :635  "Where Did It Go"
+```
+
+In Godot that is a runtime type error, which **ABORTS the enclosing function**. Silently —
+the app keeps running, the event simply never happens: no status effect applied, no item
+removed, no return text. For "Where Did It Go" the abort lands BEFORE the removal on the
+following lines, so the item is neither lost nor recoverable and the p.130 "next turn
+D6+Savvy 5+ = returns" roll never exists.
+
+Crew members are canonically Dictionaries, so this is the COMMON case, not an edge:
+**two of the thirty pp.128-130 Character Events did nothing on any campaign that had been
+saved and loaded.**
+
+Fixed with `_equipment_entry_name()`, the core-side sibling of the UI's
+`CrewTaskEventDialog.item_display_name()` (deliberately not imported — core must not
+depend on a UI dialog).
+
+`tests/unit/test_character_event_item_effects.gd`, 7 cases, driving the real dispatcher
+with the verbatim device item. Detection-proven: restoring the raw assignments fails
+exactly the two dictionary-shape event tests **and reports 2 ERRORS** — the aborts
+themselves — while the Array[String] regression guard keeps passing.
+
+⚠ **The transferable rule: a typed local is an assertion about a shape you did not
+check.** `var x: String = some_array[i]` reads as harmless and is a silent whole-function
+abort the moment that array holds anything else. Grep
+`: String = <array>[` before trusting any handler that touches equipment.
+
+### Gates
+
+`test_character_event_item_effects` 7/7 · `test_crew_task_item_loss_applies` 8/8 ·
+`test_world_phase_checkpoint_keeps_the_job` 6/6 · `test_battle_journal_handoff` 14/14 ·
+`test_rival_ambush_replaces_the_job` 18/18 · `test_character_event_effects_wiring` 14/14 ·
+`test_character_event_crew_resolution` 3/3 — **70 cases, 0 failures**. Six gating lints
+exit 0. `--headless --import` parse clean.
+
+
+---
+
+## Aug 13 2026 — DEPLOY #11: T9-50 was still broken on device, and the fix was mine
+
+Build `0.9.7`, `lastUpdateTime 2026-08-13 20:44:59`. Verification pass over the six
+fixes queued from deploy #10. **One genuine device finding, one book-verified non-bug,
+and four fixes that this pass could not reach.**
+
+### T9-50 — FAILED on device, root-caused, re-fixed (needs one more build)
+
+The checkpoint half worked. Pulled from the device mid-World-Phase, the save contained
+what the previous fix added:
+
+```
+checkpoint keys: [automation_enabled, current_step, job_offers, step_completed,
+                  timestamp, turn_number, world_phase_data]
+job_offers.job_accepted: True | selected_job_index: 0
+job_offers.accepted_job.patron_name: "Reputable Contractor"  enemy: "Isolationists"  pay: 7.0
+```
+
+And the resumed briefing STILL read `Objective: Unknown / Enemy: Unknown / Danger Level:
+0 / Location: Unknown / Pay: 0 credits`, on a cold force-stop + relaunch.
+
+**Cause — ordering, and it was my own fix that was wrong.** `_setup_initial_state()`
+runs, in this order:
+
+```gdscript
+restore_from_checkpoint()      # restored the accepted job (my fix)
+_create_step_indicators()
+_fetch_campaign_data()         # -> _initialize_components_with_data()
+                               #    -> job_offer_component.initialize_job_offers(...)
+                               #       REBUILDS the component, discarding it
+_show_current_step()           # -> _refresh_mission_prep() -> get_accepted_job() -> {}
+```
+
+The restore was silently undone two lines later, and the symptom is **indistinguishable
+from having no fix at all** — which is exactly why the data-layer check (job present in
+the save) was not sufficient evidence.
+
+Re-fixed by splitting the restore into `_restore_job_offers_from_checkpoint()` and
+calling it AFTER `_fetch_campaign_data()`. The test now asserts the ORDER inside the
+checkpoint branch (`_fetch_campaign_data` < restore < `_show_current_step`) rather than
+the mere presence of the call — the previous anchor test passed while the feature was
+broken, because presence was all it checked.
+
+⚠ **Transferable: "the data is persisted" is not "the feature works."** A restore that
+runs before re-initialization is worse than no restore, because it looks correct in the
+save file.
+
+### "Make a new friend" cannot be declined — NOT A BUG (book-verified)
+
+Twice this pass the app appeared to hang on a Crew Task Event whose Continue button did
+nothing. It was neither a hang nor a defect:
+
+- `_on_continue_pressed()` returns early on `not _action_taken` ("Must take action
+  first"), and only the simple event types auto-set that flag (:213-243).
+- `EventType.RECRUIT` builds ONLY a "Recruit New Crew Member" button — no decline.
+- Core Rules p.82 verbatim (PDF idx 80): *"19-21 **Make a new friend** — Roll up a new
+  character and **add them to the crew**. If your character is Feral, the new character
+  is also Feral."*
+
+Mandatory in the book, so forcing the action is correct. **I did not "fix" the app out of
+rules compliance**, which was the live risk here — the same discipline as the Feral
+modifier row.
+
+The first apparent hang also produced a false alarm worth recording: a zero-pixel diff
+after a tap looked like a freeze, but the app was alive at 51.8% CPU and simply had the
+button already in its pressed state. A later diff showed only the button's own rect
+changing — which is what proved the app was rendering and the HANDLER was the thing
+declining to act.
+
+### Not reached this pass — T9-46b, T9-47, T9-48, T9-49, T9-51
+
+All five need a specific random event that three world-phase walks did not produce:
+
+- T9-46b / T9-48 / T9-49 need a **p.85 Rival ambush**. Walk 1 rolled no ambush; walk 2
+  assigned the Decoy task, which grants "+1 to Rival avoidance roll per crew assigned"
+  and actively worked against the test; walk 3 was lost to tap-coordinate drift after
+  the page scroll position changed.
+- T9-47 needs the Explore "lose one item" row; four Explore rolls across the pass gave
+  Got yourself noticed / Make a new friend / Had a nice chat / Information broker.
+- T9-51 needs one of two p.130 Character Events post-battle.
+
+They remain **unit-verified and detection-proven** (each fails on isolated revert) but
+**not device-confirmed**. Recorded as such rather than implied — a fix that has not been
+seen working on hardware is not a verified fix, which is the whole lesson of T9-50 above.
+
+### Device left clean
+
+Real save restored byte-identically (38562 b, single Corporate rival, turn 2); QA
+fixtures and `/data/local/tmp` scratch files removed.
+
+### Gates
+
+`test_world_phase_checkpoint_keeps_the_job` 7/7 (one new ordering case) ·
+`test_character_event_item_effects` 7/7 · `test_crew_task_item_loss_applies` 8/8 ·
+`test_battle_journal_handoff` 14/14 · `test_rival_ambush_replaces_the_job` 18/18 ·
+six gating lints exit 0 · `--headless --import` parse clean.
+
+
+---
+
+## Aug 14 2026 — DEPLOY #12: T9-50 failed a SECOND time; there were two producers
+
+Build `0.9.7`, `lastUpdateTime 2026-08-14 08:09:24` (confirmed newer than the
+`WorldPhaseController.gd` edit at 2026-08-13 21:14:28, so the deploy #11 reorder WAS in
+this APK). One deterministic check, run to a conclusion.
+
+### T9-50 — FAILED AGAIN. Root cause: a SECOND caller of `initialize_job_offers()`
+
+Deploy #11 fixed the ordering so the restore ran after `_fetch_campaign_data()`. On
+hardware it still lost the job.
+
+**The run.** Turn 3, walked Back from Mission Prep to Step 3 Job Offers, accepted the one
+offer on the board — Patron "Reputable Contractor", Objective "Protect", Enemy
+"Isolationists", pay 7cr (+3 danger), Danger Level 1, Hot Job hazard, Joffre VI. Step
+strip went `1 2 3 4 ✓ 6` to `1 2 ✓ 4 ✓ 6`, both buttons greyed: accepted. Pressed Back to
+Dashboard (one of only two `save_checkpoint()` triggers, the other being proceed-to-battle).
+
+**The data half passed.** Save grew 38562 to 39513 b and the checkpoint on disk held:
+
+```
+checkpoint keys: [automation_enabled, current_step, job_offers, step_completed,
+                  timestamp, turn_number, world_phase_data]
+current_step: 2 | turn_number: 2 | turns_played: 2.0     <- not stale, will restore
+job_offers: job_accepted=True selected_job_index=0 available_jobs=1
+  patron_name=Reputable Contractor  job_type=Protect  enemy_type=Isolationists
+  pay=7.0  danger_pay=3.0  danger_level=1.0  location=Joffre VI
+```
+
+**Force-stop, relaunch, Continue, Begin Turn 3 — and the job was gone.** Landed on the
+right step (3 of 6, from `current_step: 2`) with two UNRELATED offers ("Eliminate +5cr",
+"Fight Off +6cr"), Accept Job disabled, the step-3 checkmark cleared, and the blocker
+"⚠ Accept a job offer (or decline all) to continue".
+
+**Cause.** `initialize_job_offers()` has TWO callers, not one:
+
+```
+_setup_initial_state() checkpoint branch:
+  _fetch_campaign_data()                  -> _initialize_components_with_data()
+                                             -> initialize_job_offers()   PRODUCER #1
+  _restore_job_offers_from_checkpoint()   -> restores the job             OK
+  _show_current_step()                    -> _refresh_job_offers() (:1177)
+                                             -> initialize_job_offers()   PRODUCER #2  CLOBBERS
+```
+
+`initialize_job_offers()` sets `job_accepted = false` unconditionally
+(`JobOfferComponent.gd:200`). Deploy #11 ordered the restore against producer #1 and never
+saw producer #2.
+
+⚠ **This is the two-producer trap from Aug 13, repeated by me on the same feature.**
+"I found the producer" is only true once you have COUNTED them. Ordering a fix against one
+caller of a non-idempotent function is not a fix, it is a race you happen to lose.
+
+**The fix is a guard, not more ordering** — and the idiom already existed six lines above
+in the same file. `_refresh_rumors()` carries exactly this guard, with the comment "that
+would wipe the player's rumor resolution on back-navigation". `_refresh_job_offers()`
+never got the equivalent. It has one now: skip re-initialisation when
+`get_accepted_job()` is non-empty. Order-independent, so a third producer cannot
+reintroduce the bug.
+
+### Bonus: this also fixes a plain back-navigation bug needing NO restart
+
+Because `_show_current_step()` runs `_refresh_job_offers()` on every arrival at the step,
+accepting a job, stepping forward, then pressing Back re-rolled the board and silently
+discarded the acceptance. No app restart, no checkpoint involved. Observed directly this
+session: arriving at Job Offers via Back produced a freshly rolled board every time.
+
+Also worth recording: `initialize_job_offers()` is NOT idempotent beyond the flag. It
+expires stale offers (`_fail_expired_job`) and CONSUMES `patron_offers_owed`
+(`_consume_patron_offers_owed`). Calling it twice per step entry was spending p.77 offer
+credit twice.
+
+### Corrected non-finding: the "skipped World Phase" was an off-by-one in MY reading
+
+I first read the resume landing on Step 6 of 6 as the whole World Phase being skipped on a
+new turn. It is not a bug. `_current_campaign_turn()` reads `turns_played`, and
+`CampaignTurnController` writes `turns_played = turn_number - 1`, so displayed Turn 3 means
+`turns_played = 2`, which equals the checkpoint's `turn_number: 2`. The checkpoint belongs
+to the current turn and restoring it is correct. `is_checkpoint_stale()` is internally
+consistent because both sides use `turns_played`.
+
+⚠ The checkpoint stamps a COMPLETED count while the UI shows that count plus one. Two
+different numbers both called "turn". Anyone diffing a checkpoint against a screenshot will
+be off by one every time.
+
+The user's real save also carries a LEGACY checkpoint with no `job_offers` key at all;
+resuming it restores to `{}` and renders the blank briefing, which is the documented
+`test_an_empty_checkpoint_is_harmless` behaviour, not a defect.
+
+### Tests
+
+`tests/unit/test_world_phase_checkpoint_keeps_the_job.gd` 7 -> 10 cases. The three new ones
+are BEHAVIOURAL on purpose: the previous anchor for this bug asserted a call was PRESENT in
+the source and stayed green while the feature was broken.
+
+- `test_re_initialising_clears_the_acceptance` — pins the hazard the guard exists for.
+- `test_an_accepted_job_survives_arriving_at_the_step_again` — drives the real
+  `_refresh_job_offers()`. ⚠ The controller MUST be added to the tree: detached, its
+  absolute-path `/root/GameState` lookup ERRORS and aborts the function, so the job would
+  survive for the wrong reason and the test would pass with the guard removed.
+- `test_the_step_still_initialises_when_nothing_is_accepted_yet` — the guard must not break
+  first arrival, when Crew Tasks may have turned up new patrons.
+
+**Detection-proven by isolated revert** (file backed up with `Copy-Item`, never
+`git checkout`): guard removed gives 10 cases / 2 failures, guard restored gives 10 / 0.
+Case count identical both ways, so it is not a parse error masquerading as a pass.
+
+### Gates
+
+7 suites requested, 7 executed, **78 cases, 0 failures** —
+`test_world_phase_checkpoint_keeps_the_job` 10 · `test_crew_task_item_loss_applies` 8 ·
+`test_character_event_item_effects` 7 · `test_battle_journal_handoff` 14 ·
+`test_rival_ambush_replaces_the_job` 18 · `test_job_offer_component` 17 (unchanged by the
+guard) · `test_world_phase_data_merge` 4. Six gating lints exit 0.
+`--headless --import` parse clean.
+
+### Device left clean
+
+User's real save restored and verified BYTE-IDENTICAL by SHA256
+(`99418F2807714F76140D850E5CCCDA587EDDF0A78C0BD95552864260C6ABF8B9`, 38562 b).
+`/data/local/tmp` scratch files removed.
+
+### Still not device-confirmed
+
+The `_refresh_job_offers()` guard itself, plus T9-46b / T9-47 / T9-48 / T9-49 / T9-51 from
+deploy #11 (each needs a specific random event that has not come up in five world-phase
+walks). All are unit-verified and detection-proven. Given T9-50 has now failed on hardware
+TWICE after passing every desk gate, that distinction is the point, not a formality.
+
+---
+
+## Aug 14 2026 — CORRECTION to the deploy #12 entry above: producer #2 was NOT the cause
+
+The section above names `_refresh_job_offers()` (producer #2) as the T9-50 cause. **That is
+wrong.** It is a real and separate bug, now fixed, but it does not explain T9-50. Verified
+before re-deploying, at the user's insistence, on the SAME build.
+
+### The experiment that disproved it
+
+Producer #2 is only reachable at the JOB_OFFERS step — `_show_current_step()` calls
+`_refresh_job_offers()` only when `current_step == JOB_OFFERS`. At MISSION_PREP it calls
+`_refresh_mission_prep()` instead. So resuming a checkpoint stamped at MISSION_PREP is a
+clean control: if producer #2 were the cause, that resume would work.
+
+Built exactly that checkpoint on device (accept job -> Confirm Equipment -> Next -> Next ->
+Back to Dashboard):
+
+```
+current_step: 5 (MISSION_PREP) | turn_number: 2 | turns_played: 2.0
+job_accepted: True | idx: 0
+accepted_job: Reputable Contractor | Isolationists | pay 7.0
+```
+
+In-session control BEFORE the restart: briefing read "Objective: Protect / Enemy:
+Isolationists / Danger Level: 1 / Location: Joffre VI / Pay: 7 credits". Correct.
+
+After force-stop + relaunch + resume: **"Objective: Unknown / Enemy: Unknown / Danger
+Level: 0 / Location: Unknown / Pay: 0 credits"** — blank, with producer #2 unreachable.
+
+### The actual cause: `initialize_world_phase()`, a THIRD producer on a path `_ready()` cannot see
+
+`initialize_world_phase()` (:892) is the orchestrator entry point. Its own comment
+(:900-902) records that **CampaignTurnController SHOWS this controller each turn rather
+than re-creating it**, so it runs AFTER `_ready()` has already restored:
+
+```
+_ready() -> _setup_initial_state() -> checkpoint branch
+     _fetch_campaign_data() -> _initialize_components_with_data()      [P1]
+     _restore_job_offers_from_checkpoint()          <- restores, correctly
+     _show_current_step() -> _refresh_mission_prep()  <- briefing CORRECT at this instant
+
+CampaignTurnController -> initialize_world_phase(ship, crew, world_data)
+     _generate_turn_world_event()                    <- world event re-rolls
+     _initialize_components_with_data()              [P3, UNCONDITIONAL at :961]
+         initialize_job_offers()      -> job_accepted = false
+         initialize_mission_prep(world_phase_data.get("mission", {}))
+                                      -> {} -> BRIEFING BLANKED
+     if not has_checkpoint(): reset + _show_current_step()   <- SKIPPED (checkpoint valid)
+                                                             so nothing re-renders
+```
+
+Two details make this invisible to the obvious reading. `world_phase_data["mission"]` does
+not exist — the mission lives in `job_offer_component.get_accepted_job()` — so MissionPrep
+is re-initialised with `{}`. And the `if not has_checkpoint()` guard means the very case
+that needs a re-render is the one that does not get one.
+
+**The corroboration was already in the screenshots and I misread it.** The world's Current
+Event changed across the resume, "A supply glut drops market prices by 20%" ->
+"Nothing notable happens this turn". `_generate_turn_world_event()` is the only thing that
+rolls it and `initialize_world_phase()` is its only caller. That was proof this function
+ran after the restore, sitting in a capture I had already looked at.
+
+**Fix**: `initialize_world_phase()` now early-returns on the fresh-turn branch and, when a
+valid checkpoint exists, re-adopts the job and re-renders the step.
+
+### Both fixes stand, and they are independent
+
+- `initialize_world_phase()` re-adopt — **the actual T9-50 fix**.
+- `_refresh_job_offers()` guard — a genuine separate defect: accept a job, step forward,
+  press Back, and the board re-rolled the acceptance away. No restart, no checkpoint.
+  Also stops `initialize_job_offers()` double-spending `patron_offers_owed` per step entry.
+
+Reverting either fails only its own test, with the other 11 green.
+
+### ⚠ The transferable rule, third time of asking
+
+**A fix ordered against SOME callers is not a fix.** Three attempts:
+
+1. Ordered against `_initialize_components_with_data()` via `_fetch_campaign_data()` — failed.
+2. Ordered against `_refresh_job_offers()` — failed.
+3. Handled the orchestrator entry point — the one `_ready()` cannot see.
+
+`grep "initialize_job_offers"` returns three call sites in one file. Counting them first
+would have found this on day one. And when a screen is REUSED rather than re-created
+between turns, `_ready()` is not the whole initialisation story — find the orchestrator
+entry point and read it before reasoning about ordering at all.
+
+### Tests
+
+`test_world_phase_checkpoint_keeps_the_job.gd` 10 -> 12 cases.
+`test_the_orchestrator_entry_point_does_not_destroy_a_restored_job` drives the real
+`initialize_world_phase()` over a live checkpoint; `test_a_fresh_turn_entry_still_resets`
+pins that the new early-return does not swallow the reset path.
+
+⚠ Fixture trap worth remembering: `has_checkpoint()` DISCARDS `_checkpoint_data` as a side
+effect when `turn_number` differs from `_current_campaign_turn()`, so a hardcoded turn
+number silently emptied the checkpoint and the test failed with the fix IN. The fixture now
+takes the turn from the controller at runtime.
+
+Detection-proven by isolated revert (backed up with `Copy-Item`, never `git checkout`):
+12 cases / 1 test failing reverted, 12 / 0 restored.
+
+### Gates
+
+6 suites requested, 6 executed, **64 cases, 0 failures** —
+`test_world_phase_checkpoint_keeps_the_job` 12 · `test_job_offer_component` 17 ·
+`test_world_phase_data_merge` 4 · `test_world_phase_effects` 16 ·
+`test_crew_task_item_loss_applies` 8 · `test_character_event_item_effects` 7.
+Six gating lints exit 0.
+
+### Status
+
+**NOT device-confirmed.** Both fixes are desk-verified and detection-proven; the T9-50 fix
+has now been wrong twice, so it needs the same Mission-Prep resume check run against a new
+build before anyone calls it done. The check is deterministic and takes about five minutes.
+
+---
+
+## Aug 14 2026 — DEPLOY #13: T9-50 VERIFIED ON HARDWARE. Closed.
+
+Build `0.9.7`, `lastUpdateTime 2026-08-14 10:34:17`, newer than the
+`WorldPhaseController.gd` fix at 10:21:43 — the fix is in this APK.
+
+### T9-50 — PASSES (third fix, first hardware pass)
+
+Deterministic check, no dice involved.
+
+1. Walked back to Step 3 Job Offers, accepted "Protect (regular) - +7 cr" —
+   Patron **Reputable Contractor**, Enemy **Isolationists**, Danger 1, Joffre VI.
+2. Confirm Equipment -> Next -> Next -> Step 6 Mission Prep. **In-session control:**
+   "Objective: Protect / Enemy: Isolationists / Danger Level: 1 / Location: Joffre VI /
+   Pay: 7 credits". Correct.
+3. Back to Dashboard. Checkpoint on disk verified:
+   `current_step: 5 | turn_number: 2 | turns_played: 2.0 | job_accepted: True |
+   Reputable Contractor | Isolationists | 7.0`
+4. **Force-stop, relaunch, Continue, Begin Turn 3.**
+
+**RESULT: "Objective: Protect / Enemy: Isolationists / Danger Level: 1 / Location:
+Joffre VI / Pay: 7 credits"** — byte-for-byte the pre-restart briefing.
+
+The two previous builds failed this exact check. T9-50 is CLOSED.
+
+### The back-navigation guard — also PASSES
+
+Second, independent fix, verified in the same run. From the resumed Mission Prep, walked
+Back three steps to Job Offers: the board still showed the SAME
+"Protect (regular) - +7 cr - Any time" with **Reroll Jobs and Accept Job both greyed** —
+the acceptance held.
+
+On the deploy #12 build this identical action produced a re-rolled board
+("Eliminate +5 cr", "Fight Off +6 cr") with Accept Job ENABLED and the step's checkmark
+cleared. The two states are visually unambiguous, so this is a discriminating check and
+not a pass-either-way one.
+
+### What actually fixed it, for the record
+
+Neither of the first two fixes. The cause was `initialize_world_phase()` (:892), the
+orchestrator entry point that `CampaignTurnController` calls AFTER `_ready()` has already
+restored the checkpoint, re-running `_initialize_components_with_data()` unconditionally
+and blanking both the job and the MissionPrep briefing — with its `if not has_checkpoint()`
+guard skipping the `_show_current_step()` that would have repaired it.
+
+Full disproof and mechanism in the correction section above.
+
+### Device left clean
+
+Real save restored and verified BYTE-IDENTICAL by SHA256 (38562 b). App-written `.bak`
+removed (did not exist before this session). Screen timeout restored to 120 s.
+`/data/local/tmp` scratch cleared.
+
+### Status of the queue
+
+| Row | State |
+|---|---|
+| T9-50 checkpoint resume | **VERIFIED on hardware** |
+| `_refresh_job_offers()` back-nav guard | **VERIFIED on hardware** |
+| T9-46b, T9-47, T9-48, T9-49, T9-51 | unit-verified + detection-proven, **awaiting the random event that triggers each** |
+
+---
+
+## Aug 14 2026 — DEPLOY #13b: T9-46b and T9-49 VERIFIED by FORCING the p.85 roll
+
+Same build (`lastUpdateTime 2026-08-14 10:34:17`). Rather than wait on dice, the p.85 check
+was made DETERMINISTIC with a save-file fixture.
+
+### The fixture: 6 Rivals makes the p.85 roll unlosable
+
+`RivalEncounterCheck.check()` rolls D6 and fires on a result <= the Rival count
+(`CampaignTurnController:496-531`, reading the canonical `campaign.rivals`). Six Rivals
+means D6 <= 6, i.e. **every turn**. Built by editing the pulled save:
+`resources.rivals` + `crew.rivals` = 6 entries, **all typed `Corporate`**, which is not a
+valid enemy type — so the T9-46b validator MUST reject it and stamp the generated enemy
+instead. A fixture that could have passed either way would have proved nothing.
+
+Fired first attempt: **"Rival Attack: Karn Brokerage — has tracked you down (Core Rules
+p.85). Straight-up fight. No modifications."**
+
+### T9-46b — VERIFIED
+
+Journal, turn 3:
+
+```
+type battle | mood neutral | title 'Battle: Joffre VI'
+desc  'Battle vs Tech Zealots - Held The Field'
+stats enemy_type "Tech Zealots" | enemy_count 4 | enemy_category "interested_parties"
+      deployment_condition "Bitter Struggle" | loot_earned 1 | notable_sight present
+```
+
+`enemy_type` is the GENERATED enemy, not the Rival's bogus `Corporate` and not `Unknown`.
+The deploy-#10 regression (erasing the invalid type left the journal recording
+"Battle vs Unknown" forever) is closed. Contrast the turn-2 entry written by the older
+build in the same save: `'Battle vs Mutants - Defeat'`.
+
+### T9-49 — VERIFIED, both halves
+
+PreBattleUI stated the precondition outright: *"HOW YOU WIN: There is no Win condition
+against Rivals — Hold the Field to improve your chance of chasing them off (p.91)."*
+
+1. **The counter did not move.** Campaign Cycle Summary after the battle:
+   `Battles 4W / 0L` (unchanged from the pre-battle baseline) while
+   `Missions Completed` went **4 -> 5**. Persisted save agrees:
+   `battles_won 4.0 | battles_lost 0.0 | missions_completed 5.0`.
+   The ledger records this exact situation moving 4W -> 5W on the previous build.
+2. **The journal used the book's vocabulary**, not victory/defeat:
+   `battle_result: "held the field"`, description "Held The Field", `mood: neutral`.
+   That is `PostBattleCompletion._outcome_word()` working.
+
+### T9-48 — HALF verified
+
+The non-prohibition branch renders correctly: a normal battle showed
+**"Need 7+ on 2D6 (Savvy +2) — 58% chance"** and the Rival Showdown showed
+**"Need 8+ ... 42%"** (7+ with the p.91 Rival -1). Correct percentages, so the old
+double-scaling bug ("4167%") is gone.
+
+The PROHIBITION branch still needs a Rival **AMBUSH**, which is `roll_range [1,1]` on a D10
+(`data/mission_tables/rival_involvement.json`) — 10% per ambush, and per
+`CampaignTurnController:1370` it is the only scenario in the battle chapter that forbids the
+roll. Not reached. **Forcing it would require widening that roll_range, which the user
+declined** (correctly — it means testing a build whose rules data differs from ship).
+
+### T9-47 / T9-51 — not reachable through sanctioned tools
+
+Both need a specific table row that no in-app tool can force:
+
+- T9-47: "Gambling problem" (`exploration_events.json` roll 51-53) or "A chance to unload
+  some stuff" (`trade_results.json` 76-78).
+- T9-51: character event D100 88-94 (`character_events.json`).
+
+QA scenarios (`QAScenarioLoader`) apply counters / DLC / compendium progress / crew patches
+/ narrative (rivals, patrons, quest). The Campaign Editor sets scalars (turn, credits,
+supplies, story points, reputation, debt, red-zone turns, salvage) plus crew. **Neither
+touches a table roll**, and `MissionTableManager` uses bare `randi_range()` with no
+injectable dice seam. Left on their detection-proven unit tests.
+
+### ⚠ Two wrong calls I made during this run, both corrected
+
+1. **"Ready for Battle" is not the battle launcher.** It COMPLETES the Mission Prep step;
+   a separate green **"Proceed to Battle"** button then appears at the BOTTOM of the page,
+   below the fold. I read the greyed button + dimmed card as a stuck transition and chased
+   it across three runs, including a control on the original save. There was never a defect.
+   A pixel-diff showing "nothing changed" told me the screen had SETTLED — I read it as
+   "hung" instead of "settled, look elsewhere on the page".
+2. **CPU is not evidence without a baseline.** I called ~55% CPU a busy loop. Measured
+   afterwards: this app idles at **32% on the main menu and 37% on the dashboard**, with CPU
+   time climbing steadily (Godot renders continuously). 55% is unremarkable. Take the
+   baseline BEFORE citing a number as anomalous.
+
+### Device wrangling notes worth keeping
+
+- **`KEYCODE_WAKEUP` does not turn this panel on; `KEYCODE_POWER` does.** Swipes sent to a
+  dark screen do nothing, so the unlock silently fails. Check
+  `dumpsys display | grep mScreenState` and only then swipe.
+- Launching the app against an off screen fails hard:
+  `ERROR: Failed to create vulkan window. Unable to create DisplayServer` — the process
+  runs with no rendering surface and the screen stays black. Not a save-file problem.
+- `wm dismiss-keyguard`, `cmd statusbar collapse` and short swipes all failed; a long swipe
+  (1280,1450 -> 1280,250 over 400ms) with the panel confirmed ON worked.
+- `adb logcat` returns nothing for this app on this device; `user://logs/godot.log` via
+  `run-as` is the only usable log, and it captures engine errors but rotates on launch.
+
+### Device left clean
+
+Real save restored, verified BYTE-IDENTICAL by SHA256 (38562 b). App-written `.bak`
+removed. Screen timeout restored to 120 s. `/data/local/tmp` cleared.
+
+### Status
+
+| Row | State |
+|---|---|
+| T9-50 checkpoint resume | **VERIFIED on hardware** (deploy #13) |
+| `_refresh_job_offers()` back-nav guard | **VERIFIED on hardware** (deploy #13) |
+| T9-46b enemy-type stamping | **VERIFIED on hardware** |
+| T9-49 no-win-condition W/L + journal wording | **VERIFIED on hardware** |
+| T9-48 Seize display | normal branch verified; **prohibition branch unreached** (needs D10=1) |
+| T9-47, T9-51 | unit-verified + detection-proven only; no tool can force the roll |

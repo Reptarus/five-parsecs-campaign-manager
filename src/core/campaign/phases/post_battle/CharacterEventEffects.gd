@@ -611,7 +611,10 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			var equip_list: Array = _get_character_equipment(character)
 			if equip_list.size() > 0:
 				var dmg_idx: int = randi() % equip_list.size()
-				var damaged_item: String = equip_list[dmg_idx]
+				# NOT `= equip_list[dmg_idx]`: that element is a Dictionary on any
+				# saved crew member, and assigning it to a String aborts this whole
+				# handler. See _equipment_entry_name().
+				var damaged_item: String = _equipment_entry_name(equip_list[dmg_idx])
 				ctx.apply_character_status_effect(character, {
 					"type": "item_damaged",
 					"name": "Don't Make Them Like They Used To",
@@ -629,7 +632,11 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			var lost_item_name: String = "unknown item"
 			if equip_for_loss.size() > 0:
 				var loss_idx: int = randi() % equip_for_loss.size()
-				lost_item_name = equip_for_loss[loss_idx]
+				# Same trap as the damage event above: resolve the NAME before it
+				# meets this String variable, or the handler aborts HERE and the
+				# removal below never runs — the item is neither lost nor
+				# recoverable, and no status effect is applied.
+				lost_item_name = _equipment_entry_name(equip_for_loss[loss_idx])
 				# Remove the item from equipment
 				if character is Resource and "equipment" in character:
 					var eq: Array = character.equipment
@@ -704,6 +711,30 @@ func _get_character_equipment(character: Variant) -> Array:
 	elif character is Dictionary:
 		return character.get("equipment", [])
 	return []
+
+
+func _equipment_entry_name(entry: Variant) -> String:
+	## The printable name of one equipment entry, whichever shape it arrives in.
+	##
+	## ⚠ `_get_character_equipment()` returns TWO different element shapes. A
+	## Character Resource holds `Array[String]` (:129), but a crew member that has
+	## been through save/load is a Dictionary whose `equipment` holds full item
+	## Dictionaries — verified in a save pulled off the tablet Aug 13 2026:
+	##   {"condition":"damaged","id":"military_rifle_3495_8386",
+	##    "name":"Military Rifle","owner":"Zephyr Flynn",...}
+	## and crew members are canonically Dictionaries, so that is the COMMON case.
+	##
+	## Assigning such an element straight into a `: String` variable is a runtime
+	## type error, and in Godot that ABORTS the enclosing function — so the p.130
+	## events "Don't Make Them Like They Used To" and "Where Did It Go" applied no
+	## status effect, removed no item and returned no text, on any campaign whose
+	## equipment is dictionary-shaped. Silent: the app keeps running, the event
+	## just never happens. Same class as the crew-task discard defect (T9-47),
+	## which was proven to leave the item on the sheet.
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		return str(d.get("name", d.get("id", "unknown item")))
+	return str(entry)
 
 
 ## ── Helpers for the pp.128-130 events wired above ─────────────────────────────
