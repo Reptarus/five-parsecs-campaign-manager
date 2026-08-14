@@ -8,6 +8,7 @@ class_name CharacterAdvancementService
 
 ## Dependencies
 const CharacterAdvancementConstants = preload("res://src/core/systems/CharacterAdvancementConstants.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 
 ## Signals for advancement events
 
@@ -43,6 +44,20 @@ static func can_advance_stat(character: Dictionary, stat_name: String) -> Dictio
 
 	# Get advancement cost
 	var cost := CharacterAdvancementConstants.get_advancement_cost(stat_lower)
+
+	# On-board item, Genetic reconfiguration kit (Core Rules p.57): "Reduce the
+	# cost of an ability score upgrade by 2 XP. Has no effect on Bots or Soulless.
+	# K'Erin may only use this to increase Toughness. Single-use."
+	#
+	# The discount is applied HERE rather than in advance_stat() because this
+	# function also runs the affordability check ("Insufficient XP"). Discounting
+	# only at deduction time would refuse a character holding exactly cost-2 XP —
+	# the precise case the kit exists to solve — and get_available_advancements()
+	# would hide the upgrade the player just armed the kit for.
+	var kit_discount: int = _genetic_kit_discount(character, stat_lower)
+	if kit_discount > 0:
+		cost = maxi(0, cost - kit_discount)
+		result["genetic_kit_discount"] = kit_discount
 	result.xp_cost = cost
 
 	if cost >= 999:
@@ -150,6 +165,13 @@ static func advance_stat(character: Dictionary, stat_name: String) -> Dictionary
 	# Update character data
 	character[stat_lower] = new_value
 	character["experience"] = character.get("experience", 0) - cost
+
+	# Spend the kit only once the upgrade actually went through — can_advance_stat
+	# is called speculatively by get_available_advancements() for every stat, so
+	# consuming it there would burn the item on a menu refresh.
+	if int(can_advance_result.get("genetic_kit_discount", 0)) > 0:
+		OnboardItemServiceRef.consume_armed_genetic_kit(_campaign())
+		result.message += " (Genetic Reconfiguration Kit: -2 XP, kit used up)"
 
 	# Set result
 	result.success = true
@@ -262,3 +284,32 @@ static func get_advancement_summary(character: Dictionary) -> Dictionary:
 			summary.total_advancement_cost += cost * steps
 
 	return summary
+
+
+## GameState is an autoload NODE, not an engine singleton, so a non-Node class
+## must resolve it through the scene tree root (see CLAUDE.md).
+static func _campaign():
+	var loop: Variant = Engine.get_main_loop()
+	if loop == null or not ("root" in loop):
+		return null
+	var gs: Node = loop.root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") 		else null
+
+
+## 2 XP off ONE ability upgrade, if the player armed the kit and this character
+## and stat are eligible under p.57's restrictions. 0 otherwise.
+static func _genetic_kit_discount(character: Dictionary, stat_lower: String) -> int:
+	var campaign: Variant = _campaign()
+	if campaign == null or not OnboardItemServiceRef.is_genetic_kit_armed(campaign):
+		return 0
+	var species: String = str(character.get(
+		"species_id", character.get("origin", ""))).to_lower()
+	if not OnboardItemServiceRef.genetic_kit_allows(
+			species,
+			bool(character.get("is_bot", false)),
+			bool(character.get("is_soulless", false)),
+			stat_lower):
+		return 0
+	return 2

@@ -7,6 +7,9 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
+## Core Rules pp.73-74 — "Imminent invasion" (-1) and "Military outpost" (+2) both
+## modify THIS table and had no call site.
+const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 
 func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 	## Update galactic war progression.
@@ -50,6 +53,20 @@ func process_galactic_war(ctx: PostBattleContextClass) -> Dictionary:
 				RedZoneSystemRef.get_invasion_modifiers())
 			war_modifier += rz_mods.get(
 				"galactic_war_modifier", -1)
+
+		# Core Rules pp.73-74, verbatim: "Imminent invasion — ...if the world is
+		# invaded, rolls for war progress are at -1" and "Military outpost — Add +2
+		# when checking for war progress."
+		#
+		# `WorldTraitEffects.war_progress_modifier()` implemented both and had ZERO
+		# callers, so the two traits that speak directly to this table did nothing
+		# at it. The traits are read off the BATTLE RESULT — carried there from the
+		# mission by the normalizer — for the same reason the Invasion check reads
+		# them there: the crew may have travelled since, and the world that was
+		# invaded is the world that scores it.
+		war_modifier += WorldTraitEffectsRef.war_progress_modifier(
+			ctx.battle_result.get("world_traits", []))
+
 		var modified_roll: int = roll + war_modifier
 
 		var outcome: Dictionary = {

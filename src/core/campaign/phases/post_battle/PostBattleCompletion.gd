@@ -95,6 +95,36 @@ func _resolve_participant_ids(participants: Array) -> Array:
 	return ids
 
 
+## The word the permanent record uses for how this battle ended.
+##
+## Core Rules p.91 (Rivals) verbatim: "There is no Win condition against Rivals,
+## but if you Hold the Field, you have an increased chance of permanently chasing
+## them off." p.92 says the same of an Invasion. So such a battle is neither a
+## victory NOR a defeat, and the book supplies its own vocabulary for it:
+## Holding the Field, or not.
+##
+## ⚠ `ctx.mission_successful` is CORRECTLY false for these battles — TacticalBattleUI
+## forces it so (`_has_no_win_condition()`, :5997) and PaymentProcessor depends on
+## that for the p.120 payment gate. The bug was the `else` branch: a plain
+## `"victory" if mission_successful else "defeat"` therefore stamped **defeat** on
+## every Rival and Invasion battle, however well it went. MEASURED on the tablet
+## Aug 13 2026: a Rival ambush recorded with the objective achieved, "Won" and Held
+## the Field was journalled `"battle_result": "defeat"`, mood `defeat`, description
+## "Battle vs ... - Defeat | Objective: Access (achieved)" — contradicting itself
+## inside one entry.
+##
+## Values stay human-readable because they are printed raw: into the Encounter Log's
+## "result" box (`SheetDataContext.gd:622`) and, via `.capitalize()`, into the entry
+## description (`CampaignJournal.gd:771`). `_determine_battle_mood` matches only
+## "victory"/"defeat" and falls through to "neutral" for these, which is right.
+static func _outcome_word(ctx: PostBattleContextClass) -> String:
+	var setup_rules: Dictionary = ctx.battle_result.get("setup_rules", {})
+	if bool(setup_rules.get("no_win_condition", false)):
+		return "held the field" if bool(
+			ctx.battle_result.get("held_field", false)) else "withdrew"
+	return "victory" if ctx.mission_successful else "defeat"
+
+
 func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 	## Create a journal entry for the completed battle
 	if not ctx.campaign_journal or not ctx.campaign_journal.has_method("auto_create_battle_entry"):
@@ -130,13 +160,31 @@ func create_battle_journal_entry(ctx: PostBattleContextClass) -> void:
 	var entry_data: Dictionary = {
 		"turn": ctx.battle_result.get("turn", 0),
 		"location": resolved_location,
-		"outcome": "victory" if ctx.mission_successful else "defeat",
+		"outcome": _outcome_word(ctx),
 		"casualties": ctx.injuries_sustained.size(),
 		"loot": ctx.loot_earned.size(),
 		"xp": ctx.battle_result.get("xp_earned", 0),
 		"crew_ids": crew_ids,
 		"enemy_type": ctx.battle_result.get("enemy_type", "Unknown"),
 	}
+
+	# T9-43: THE SCENARIO KEYS. `auto_create_battle_entry()` was taught on Aug 9 to
+	# record mission_type / enemy_category / deployment_condition / enemy_count /
+	# notable_sight into `stats`, which is what the printable Encounter Log reads
+	# (Core Rules Appendix X, p.180). It works — but only on the dict it is HANDED,
+	# and this literal is that dict. It named none of them, so the Aug 9 fix could
+	# never fire on the campaign path and the Encounter Log stayed blank.
+	#
+	# Only forwarded when present, matching how auto_create_battle_entry itself
+	# records them: a blank box on a print form is correct, an invented value is
+	# not. objective_met / threat_condition / time_constraint are NOT in this list
+	# on purpose — the blocks below already derive them with more context.
+	for scenario_key: String in [
+		"mission_type", "enemy_category", "deployment_condition", "enemy_count",
+		"notable_sight",
+	]:
+		if ctx.battle_result.has(scenario_key):
+			entry_data[scenario_key] = ctx.battle_result[scenario_key]
 
 	# Enrich with zone context
 	if not zone_type.is_empty():

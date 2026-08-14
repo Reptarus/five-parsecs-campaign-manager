@@ -8,7 +8,16 @@ signal consent_updated
 
 const CONSENT_FILE := "user://legal_consent.cfg"
 const EULA_VERSION := "1.0"
-const PRIVACY_VERSION := "1.0"
+## Bumped to 1.1 on 2026-08-11. `needs_legal_consent()` compares the stored
+## acceptance against this constant, so a material change to
+## `data/legal/privacy_policy.md` MUST bump it or no existing tester is ever
+## re-prompted and they keep consenting to a policy they never saw.
+##
+## 1.1 corrected the policy to match what the code actually does: analytics go to
+## Talo (a third party) rather than "our servers in the future", the named
+## processor was GitHub and is Talo, and bug reports (free-text contact plus a
+## 100-line log tail, delivered to a private Discord channel) were undisclosed.
+const PRIVACY_VERSION := "1.1"
 
 # Consent state
 var eula_accepted: bool = false

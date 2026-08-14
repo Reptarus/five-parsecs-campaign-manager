@@ -22,6 +22,9 @@ const GalacticWarProcessorClass = preload("res://src/core/campaign/phases/post_b
 const StoryTrackProcessorClass = preload("res://src/core/campaign/phases/post_battle/StoryTrackProcessor.gd")
 const PostBattleCompletionClass = preload("res://src/core/campaign/phases/post_battle/PostBattleCompletion.gd")
 const PsionicSystemRef = preload("res://src/core/systems/PsionicSystem.gd")
+## Compendium p.147 — salvage banked at Step 4, then spendable at the Scrapper
+## and against ship repairs / ship modules / bot upgrades.
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 
 # Autoload references (resolved in _ready())
 var dice_manager: Variant = null
@@ -50,6 +53,8 @@ signal fringe_strife_advanced(report: Dictionary)
 ## Rival Assault credit fine / Rival Raid Hull damage, charged on a failure to
 ## Hold the Field (Core Rules p.92). Each entry is {type, amount, reason}.
 signal scenario_penalties_applied(penalties: Array)
+## Compendium p.147 Step 4 salvage tally: (units_this_battle, campaign_total).
+signal salvage_banked_to_campaign(units: int, campaign_total: int)
 signal loot_gathered(loot: Array)
 signal injuries_resolved(injuries: Array)
 signal experience_awarded(xp_awards: Array)
@@ -64,6 +69,10 @@ signal galactic_war_updated(progress: Dictionary)
 signal story_track_advanced(result: Dictionary)
 ## Introductory Campaign moved to its next guided turn (Compendium pp.104-109).
 signal intro_campaign_advanced(completed: bool)
+## Precursor CHARACTER Event choice (Core Rules p.17 + p.126, step 13). These
+## used to fire on the step-12 Campaign Event, where the book has no such rule.
+## A listener MUST answer with select_precursor_event(1|2|3) — step 13 suspends
+## until it does, and 3 (avoid) costs 1 story point.
 signal precursor_event_choice_available(event1: Dictionary, event2: Dictionary)
 signal precursor_event_chosen(chosen_event: Dictionary)
 ## Compendium p.137 illegal salvage job: the D6 has been rolled. `check` carries
@@ -270,6 +279,21 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 		# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
 		_payment.process_black_zone_rewards(_ctx)
 
+		# Step 4d: Salvage tally (Compendium p.147), verbatim: "In Post-battle
+		# Step 4. Get paid, tally up how many units of Salvage you have obtained."
+		#
+		# Runs AFTER _process_illegal_salvage_check() above, which can zero the
+		# units when the player hands them to the authorities (p.138). Banking
+		# first would let a caught crew keep salvage the book confiscates.
+		#
+		# Was: nothing. SalvageResolver counted units all battle, SalvageMissionPanel
+		# displayed them, and they were dropped on the floor at the end of the fight.
+		var salvage_banked: int = SalvageLedgerRef.bank_battle_salvage(
+			_ctx.campaign, battle_result)
+		if int(battle_result.get("salvage_units_banked", 0)) > 0:
+			salvage_banked_to_campaign.emit(
+				int(battle_result.get("salvage_units_banked", 0)), salvage_banked)
+
 	# Step 4c: Scenario loss penalties (Core Rules p.92) — the Rival Assault
 	# 1D3-credit fine and the Rival Raid 1D6+1 Hull damage, charged only when you
 	# failed to Hold the Field. Both were rolled into mission_data at setup and
@@ -303,6 +327,17 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	if _intro_allows("gather_loot"):
 		_emit_substep(GlobalEnums.PostBattleSubPhase.GATHER_LOOT)
 		var gathered_loot: Array = _loot.process_loot_gathering(_ctx)
+		# T9-43: the return was emitted and DROPPED. `loot_earned` was declared,
+		# synced to the context and read by two consumers — the Encounter Log's
+		# "loot" box (PostBattleCompletion:135, `ctx.loot_earned.size()`) and
+		# `get_results()["loot_earned"]` — and written by nothing, so both were
+		# empty on every battle ever played.
+		#
+		# ⚠ MUTATE, do not rebind. `_sync_context()` runs ONCE (:230) and binds
+		# `_ctx.loot_earned` to this array OBJECT; `loot_earned = gathered_loot`
+		# would hand the orchestrator a new array while the context kept pointing
+		# at the old empty one — the fix would look right and change nothing.
+		loot_earned.assign(gathered_loot)
 		loot_gathered.emit(gathered_loot)
 
 	# Step 8: Determine Injuries
@@ -317,6 +352,21 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	if _intro_allows("experience"):
 		_emit_substep(GlobalEnums.PostBattleSubPhase.EXPERIENCE)
 		var xp_awards: Array = _experience.process_experience(_ctx)
+		# T9-43, same shape as the loot above: the journal entry reads
+		# `battle_result["xp_earned"]` (PostBattleCompletion:136) and the only
+		# writer of that key repo-wide is BattleResults.gd:190, which is not on
+		# this path. So the Crew Log recorded 0 XP for a battle that had just
+		# awarded 14. The awards are per-crew ({crew_id, xp}); the entry wants the
+		# battle total, so total it here at the one place that has them all.
+		#
+		# battle_result is the carrier the journal reads every other scenario fact
+		# off, and _ctx.battle_result is a reference to this same Dictionary, so
+		# writing it here is what makes it visible downstream.
+		var total_xp: int = 0
+		for award in xp_awards:
+			if award is Dictionary:
+				total_xp += int((award as Dictionary).get("xp", 0))
+		battle_result["xp_earned"] = total_xp
 		experience_awarded.emit(xp_awards)
 
 		_emit_substep(GlobalEnums.PostBattleSubPhase.TRAINING)
@@ -334,37 +384,30 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 		_process_character_event_step()
 		return
 
+	# Step 12 is one line in the book (p.125): "Roll D100 on the Campaign Event
+	# Table. Apply the result immediately." No Precursor double-roll lives here —
+	# that rule belongs to step 13 below. See CampaignEventEffects.
 	_emit_substep(GlobalEnums.PostBattleSubPhase.CAMPAIGN_EVENT)
 	var campaign_event: Dictionary = _campaign_events.process_campaign_event(_ctx)
-	if campaign_event.get("precursor_choice", false):
-		# Precursor crew: emit choice for UI, wait for select_precursor_event()
-		if precursor_event_choice_available.get_connections().size() > 0:
-			precursor_event_choice_available.emit(campaign_event.event1, campaign_event.event2)
-			return  # UI will call select_precursor_event() to continue
-		else:
-			# Auto-pick: prefer non-"none" event
-			var auto_event: Dictionary = campaign_event.event1
-			if campaign_event.event1.get("type", "none") == "none" and campaign_event.event2.get("type", "none") != "none":
-				auto_event = campaign_event.event2
-			_campaign_events.waiting_for_precursor_choice = false
-			_campaign_events.finalize_event(auto_event, _ctx)
-			campaign_event_occurred.emit(auto_event)
-	else:
-		_campaign_events.finalize_event(campaign_event, _ctx)
-		campaign_event_occurred.emit(campaign_event)
+	_campaign_events.finalize_event(campaign_event, _ctx)
+	campaign_event_occurred.emit(campaign_event)
 
 	# Step 13: Character Events
 	_process_character_event_step()
 
 func select_precursor_event(choice: int) -> void:
-	## PUBLIC API: Select which precursor event to use (1 or 2).
+	## PUBLIC API: resolve the Precursor CHARACTER Event choice (p.17 + p.126).
+	## 1 = first roll, 2 = second roll, 3 = avoid the event for 1 story point.
+	## Resumes the pipeline at step 13b — see _process_character_event_step().
 	_ensure_subsystems()
-	var chosen: Dictionary = _campaign_events.select_precursor_event(choice)
+	var chosen: Dictionary = _character_events.select_precursor_event(choice, _ctx)
 	precursor_event_chosen.emit(chosen)
-	_campaign_events.finalize_event(chosen, _ctx)
-	campaign_event_occurred.emit(chosen)
-	# Continue pipeline
-	_process_character_event_step()
+	# An avoided event is type "none" and is deliberately NOT finalized; that is
+	# what the story point bought.
+	if chosen.has("type") and chosen.type != "none":
+		_character_events.finalize_event(chosen, _ctx)
+	character_event_occurred.emit(chosen)
+	_process_post_character_steps()
 
 ## ── Illegal salvage: the authorities check (Compendium p.137) ───────────────
 ##
@@ -495,15 +538,44 @@ func apply_character_event_effect(event_title: String, character: Variant) -> St
 # ═══════════════════════════════════════════════════════════════════════════════
 
 func _process_character_event_step() -> void:
-	## Steps 13-14: Character Event → Galactic War → Complete
-	# Step 13: Character Event (intro turns 0-1 do not roll for one)
+	## Step 13: Character Event, then everything after it.
+	# (intro turns 0-1 do not roll for one)
 	if _intro_allows("character_event"):
 		_emit_substep(GlobalEnums.PostBattleSubPhase.CHARACTER_EVENT)
 		var character_event: Dictionary = _character_events.process_character_event(_ctx)
+
+		# Precursor (p.17 + p.126): the SELECTED character rolled two events; the
+		# player takes either, or spends 1 story point to avoid the event.
+		#
+		# The producer returns a choice envelope that carries NO "type" key. With
+		# no branch here it fell straight through the has("type") guard below, so
+		# the Character Event was silently DROPPED — no XP, no story point, no
+		# rumor, no status effect — every time a Precursor was the one selected.
+		# The rule was implemented and the call was simply missing.
+		if character_event.get("precursor_choice", false):
+			if precursor_event_choice_available.get_connections().size() > 0:
+				precursor_event_choice_available.emit(
+					character_event.event1, character_event.event2)
+				return  # select_precursor_event() resumes at 13b.
+			# Headless or no listener: keep an event rather than lose one.
+			var auto_event: Dictionary = character_event.event1
+			if auto_event.get("type", "none") == "none" \
+					and character_event.event2.get("type", "none") != "none":
+				auto_event = character_event.event2
+			_character_events.waiting_for_precursor_choice = false
+			character_event = auto_event
+
 		if character_event.has("type") and character_event.type != "none":
 			_character_events.finalize_event(character_event, _ctx)
 		character_event_occurred.emit(character_event)
 
+	_process_post_character_steps()
+
+func _process_post_character_steps() -> void:
+	## Steps 13b-14c → Complete. Split out of _process_character_event_step() so
+	## the Precursor choice can suspend step 13 and RESUME here. Returning early
+	## from the merged function would have skipped the Faction steps, Galactic
+	## War and the phase-completion signal — a soft-locked post-battle wizard.
 	# Step 13b: Faction Event (Compendium pp.115-117, after character events)
 	var faction_sys = Engine.get_main_loop().root.get_node_or_null(
 		"/root/FactionSystem"

@@ -14,6 +14,7 @@ const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
 const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -221,32 +222,63 @@ func process_payment(ctx: PostBattleContextClass) -> int:
 	# 1D6-1 instead (minimum score 1)". Every credit die in the game goes through
 	# that helper so the option cannot end up half-applied; with the toggle off it
 	# is a plain 1D6.
-	var credit_roll: int = CompendiumTogglesRef.roll_credit_die()
+	## HOW MANY DICE. Every rule that widens this roll states a TOTAL, not an
+	## increment, so when two apply the answer is the LARGER total — never the sum.
+	## Verbatim:
+	##   p.120  "If you finished the final mission of a Quest, roll the die twice,
+	##           pick the better score, and add +1 to the total."
+	##   p.150  "When rolling for credits, you may roll twice and pick the better
+	##           roll."                                        (Red Zone, general)
+	##   p.150  "When finishing a Quest, you may roll three dice, pick the best,
+	##           and add +1."                                  (Red Zone + Quest)
+	##   p.83   "+3 credits and roll twice, picking the higher die when rolling
+	##           for mission pay after the battle."            (Danger Pay 10+)
+	##
+	## The p.150 Quest bullet is the tell: if these stacked, it would be redundant
+	## with the general Red Zone bullet one line above it and would have been
+	## written as "roll one ADDITIONAL die". It says "roll three dice" — a total,
+	## replacing both.
+	##
+	## The old code applied them in sequence, so a Red Zone Quest conclusion rolled
+	## FOUR dice: best-of-4 averages 5.24 against the book's best-of-3 4.96.
+	## Expressed as a count now so the cases read side by side and a future bullet
+	## cannot silently stack again.
+	var is_red_zone_pay: bool = bool(ctx.battle_result.get("is_red_zone", false))
+	var is_quest_finale_pay: bool = bool(
+		ctx.battle_result.get("is_quest_finale", false))
+	var dice_count: int = 1
+	if is_quest_finale_pay:
+		dice_count = 3 if is_red_zone_pay else 2   # p.150 / p.120
+	elif is_red_zone_pay:
+		dice_count = 2                             # p.150 general
+	# Danger Pay 10+ (Core Rules p.83). JobOfferComponent has always rolled this
+	# and stamped `double_roll_bonus` on the offer, and the offer summary
+	# advertised "Roll twice for mission pay, keep higher" — but the flag never
+	# crossed into the post-battle step, so those jobs paid a single 1D6 like every
+	# other. Average mission pay on them was ~3.5 instead of ~4.5. maxi(), not +1,
+	# for the same reason as everything above it.
+	if bool(ctx.battle_result.get("double_roll_bonus", false)):
+		dice_count = maxi(dice_count, 2)
 
-	# Red Zone: roll twice, pick better (Compendium)
-	if ctx.battle_result.get("is_red_zone", false):
-		var red_second_roll: int = CompendiumTogglesRef.roll_credit_die()
-		credit_roll = maxi(credit_roll, red_second_roll)
-
-	# Quest finale: roll twice, pick better, +1 (Core Rules p.120)
-	# Red Zone quest: roll THREE dice, pick best, +1 (Appendix III)
-	if ctx.battle_result.get("is_quest_finale", false):
-		var second_roll: int = CompendiumTogglesRef.roll_credit_die()
-		credit_roll = maxi(credit_roll, second_roll)
-		if ctx.battle_result.get("is_red_zone", false):
-			var third_roll: int = CompendiumTogglesRef.roll_credit_die()
-			credit_roll = maxi(credit_roll, third_roll)
+	# Each die goes through roll_credit_die() so Compendium p.32 "Money is Tight"
+	# ("whenever you would roll 1D6 for credits, roll 1D6-1 instead") applies to
+	# every one of them rather than only the first.
+	#
+	# Core Rules p.73, verbatim: "Booming economy — When rolling for post-battle
+	# credit rewards, ANY 1 ON THE DICE IS REROLLED until it shows a score other
+	# than 1." `WorldTraitEffects.rerolls_credit_reward_ones()` implemented this
+	# and had ZERO callers, so the trait was a paragraph of text.
+	#
+	# Applied per DIE, inside the loop, not to the final total: with two dice the
+	# book rerolls each 1 independently, and rerolling only the kept die would
+	# quietly change the distribution.
+	var booming: bool = WorldTraitEffectsRef.rerolls_credit_reward_ones(
+		ctx.battle_result.get("world_traits", []))
+	var credit_roll: int = _roll_credit_die(booming)
+	for _extra in range(dice_count - 1):
+		credit_roll = maxi(credit_roll, _roll_credit_die(booming))
+	if is_quest_finale_pay:
 		credit_roll += 1
-
-	# Danger Pay 10+ (Core Rules p.83): "+3 credits and roll twice, picking the
-	# higher die when rolling for mission pay after the battle." JobOfferComponent
-	# has always rolled this and stamped `double_roll_bonus` on the offer, and the
-	# offer summary advertised "Roll twice for mission pay, keep higher" — but the
-	# flag never crossed into the post-battle step, so those jobs paid a single
-	# 1D6 like every other. Average mission pay on them was ~3.5 instead of ~4.5.
-	if ctx.battle_result.get("double_roll_bonus", false):
-		var danger_second_roll: int = CompendiumTogglesRef.roll_credit_die()
-		credit_roll = maxi(credit_roll, danger_second_roll)
 
 	# Easy mode: +1 credit (Core Rules p.64)
 	var difficulty: int = ctx.get_campaign_difficulty()
@@ -398,6 +430,14 @@ func process_invasion_check(ctx: PostBattleContextClass) -> bool:
 	## Step 6: Check for Invasion (Core Rules p.88). Returns invasion_pending.
 	var enemy_is_threat: bool = ctx.battle_result.get("enemy_is_invasion_threat", false)
 	if not enemy_is_threat:
+		return false
+
+	# Compendium p.147, verbatim: "There are no Invasion checks after a Salvage
+	# battle. It's just scrap metal, right?" Checked BEFORE the world-trait
+	# immunity below because it is a property of the MISSION, not the world — a
+	# Salvage job against Converted troops on an Invasion-risk world still makes
+	# no Invasion check.
+	if SalvageLedgerRef.invasion_check_suppressed(ctx.battle_result):
 		return false
 
 	# World Traits, Core Rules pp.73-74. All four were flavour text:
@@ -580,12 +620,29 @@ func _apply_strife_event(ctx: PostBattleContextClass, planet_id: String,
 				"instruction": str(event.get("instruction", "")),
 			})
 
+	# Compendium p.114 "Fringe World Strife (See page 148)" — the Factions
+	# chapter's own cross-reference back to this table, verbatim:
+	#   "A Crackdown prevents all Faction activities this turn."
+	#   "If an Economic Collapse takes place, all Factions suffer -1 Influence."
+	#   "If a Civil War breaks out, Factions will go to ground until the war is
+	#    over."
+	#
+	# FactionSystem.process_strife_by_name() implements all three and had ZERO
+	# callers, so in a campaign where a Crackdown or an Economic Collapse fired
+	# the factions carried on exactly as before. The strife row is the only place
+	# that knows one fired, so the call belongs here.
+	if event_id in ["crackdown", "economic_collapse", "civil_war"]:
+		var faction_sys: Node = Engine.get_main_loop().root.get_node_or_null(
+			"/root/FactionSystem") if Engine.get_main_loop() else null
+		if faction_sys and faction_sys.has_method("process_strife_by_name"):
+			faction_sys.process_strife_by_name(event_id)
+
 	# turn_number and location are derived at the create_entry chokepoint — do
 	# not pass them here (23 of 45 callers used to omit turn_number and stamped
 	# turn 0, which is exactly why the derivation moved into the autoload).
 	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 		ctx.campaign_journal.create_entry({
-			"type": "world",
+			"type": "campaign_event",
 			"title": "Fringe World Strife: %s" % str(event.get("name", "")),
 			"content": str(event.get("instruction", "")),
 		})
@@ -834,6 +891,22 @@ func process_black_zone_rewards(
 			})
 
 	return bz_rewards
+
+
+## One credit die, with the p.73 Booming economy reroll applied when the world
+## has it. Bounded at 12 attempts rather than `while true`: "Money is Tight"
+## (Compendium p.32) rolls 1D6-1 with a MINIMUM OF 1, so on that toggle a 1 is a
+## legitimate floor the reroll can never escape — an unbounded loop would hang
+## the post-battle sequence on a world with both.
+func _roll_credit_die(reroll_ones: bool) -> int:
+	var value: int = CompendiumTogglesRef.roll_credit_die()
+	if not reroll_ones:
+		return value
+	var guard: int = 0
+	while value == 1 and guard < 12:
+		value = CompendiumTogglesRef.roll_credit_die()
+		guard += 1
+	return value
 
 
 func _rumors_of_war_modifier(ctx: PostBattleContextClass) -> int:

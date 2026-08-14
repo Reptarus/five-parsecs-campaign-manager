@@ -1,6 +1,8 @@
 # Agent Roster
 
-## 9 Agents
+## 6 Agents
+
+*(Consolidated from 9 on 2026-08-06 — see the "Retired" note below the roster.)*
 
 ### 1. character-data-engineer (sonnet, blue)
 **Domain**: Character model, 2 enum systems, JSON data, equipment, world/economy
@@ -41,52 +43,37 @@
 - `addons/godotpdf/` + `addons/godotharu/` (third-party PDF addons — read-only awareness)
 **Skill**: `ui-development` (6 references including narrative-screen + sheet-export)
 
-### 5. bug-hunt-specialist (sonnet, cyan)
-**Domain**: Bug Hunt gamemode, cross-mode safety
+### 5. gamemode-specialist (sonnet, cyan)
+**Domain**: All three variant gamemodes — Bug Hunt, Planetfall, Tactics — plus **all** cross-mode safety review
 **Files Owned**:
-- `src/ui/screens/bug_hunt/`, `src/core/campaign/BugHuntPhaseManager.gd`
-- `data/bug_hunt/` (15 files), any file with `bug_hunt` in name
-**Skill**: `bug-hunt-gamemode` (3 references)
+- **Bug Hunt**: `src/ui/screens/bug_hunt/`, `src/core/campaign/BugHuntPhaseManager.gd`, `data/bug_hunt/` (15 files)
+- **Planetfall**: `src/ui/screens/planetfall/` (incl. `panels/PlanetfallCharacterImportPanel.gd`), `src/game/campaign/PlanetfallCampaignCore.gd` (incl. `add_roster_character`), `src/core/campaign/PlanetfallPhaseManager.gd`, `data/planetfall/`
+- **Tactics**: `src/ui/screens/tactics/` (incl. `panels/TacticsVeteranImportPanel.gd`), `src/game/campaign/TacticsCampaignCore.gd` (incl. `veteran_characters[]` + `add_veteran_character`), `src/core/campaign/TacticsPhaseManager.gd`, `src/data/tactics/`, `data/tactics/`
+- Any file with `bug_hunt`, `planetfall`, or `tactics` in the name
+**Skills**: `bug-hunt-gamemode` (3 refs) + `planetfall-gamemode` (3 refs) + `tactics-gamemode` (4 refs) — kept as three separate skills; they are the on-demand detail behind one agent
+**Prototype Reference**: `c:\Users\admin\Desktop\tacticaprototype1\` (structure only, NEVER data — Age of Fantasy IP)
 
-### 6. planetfall-specialist (sonnet, orange)
-**Domain**: Planetfall gamemode, colony management, 18-step turns, cross-mode safety for Planetfall
-**Files Owned**:
-- `src/ui/screens/planetfall/` (15 GDScript + 3 TSCN; incl. `panels/PlanetfallCharacterImportPanel.gd` — the shipped veteran-import UI)
-- `src/game/campaign/PlanetfallCampaignCore.gd` (incl. `add_roster_character` — the Planetfall transfer-pickup target)
-- `data/planetfall/` (8 JSON files)
-- Future: `src/core/campaign/PlanetfallPhaseManager.gd`
-- Any file with `planetfall` in name
-**Skill**: `planetfall-gamemode` (3 references)
-
-### 7. tactics-specialist (sonnet, lime)
-**Domain**: Tactics gamemode, army building, species army lists, vehicles, cross-mode safety for Tactics
-**Files Owned**:
-- Future: `src/ui/screens/tactics/`
-- Future: `src/game/campaign/TacticsCampaignCore.gd`
-- Future: `data/tactics/`
-- Future: `src/core/campaign/TacticsPhaseManager.gd`
-- Any file with `tactics` in name (within FPCM project)
-**Skill**: `tactics-gamemode` (4 references)
-**Prototype Reference**: `c:\Users\admin\Desktop\tacticaprototype1\` (structure only, NOT data)
-
-### 8. qa-specialist (opus, magenta)
+### 6. qa-specialist (opus, purple)
 **Domain**: Testing, QA, bug reporting, gdUnit4
 **Files Owned**: `tests/` (all test directories)
-**Skill**: `qa-specialist` (6 references)
+**Skill**: `qa-specialist` (8 references)
 
-### 9. fpcm-project-manager (opus, white)
-**Domain**: Orchestration, task decomposition, cross-agent coordination
-**Files Owned**: None (coordinator only)
-**Skill**: `fpcm-project-management` (3 references)
+---
+
+**Retired 2026-08-06**: `bug-hunt-specialist`, `planetfall-specialist` and `tactics-specialist` merged
+into `gamemode-specialist` (structurally identical bodies; the Planetfall and Tactics
+`cross-mode-safety.md` references were byte-identical). `fpcm-project-manager` was deleted — it wrote
+no code, had no spawn mechanism, and its content was this file plus the CLAUDE.md roster table.
 
 ## Ownership Rules
 
 1. Each agent owns specific files — don't route tasks to agents outside their domain
 2. `character-data-engineer` exclusively owns both enum files (two-enum sync: GlobalEnums + GameEnums; FiveParsecsGameEnums deleted Sprint A Bug 3)
 3. When a task touches files in multiple domains → decompose into sub-tasks
-4. All gamemode specialists (`bug-hunt-specialist`, `planetfall-specialist`, `tactics-specialist`) review shared file changes for their own mode's safety
+4. `gamemode-specialist` reviews **every** shared-file change (`TacticalBattleUI`, `GameState`, `SceneRouter`, `GameStateManager`, `CampaignScreenBase`) for all three variant modes at once
 5. `qa-specialist` is always the final step for verification
-6. Never route Planetfall or Tactics tasks to `campaign-systems-engineer` (incompatible data models)
+6. Never route Bug Hunt, Planetfall or Tactics tasks to `campaign-systems-engineer` (incompatible data models)
+7. For read-only recon prefer the built-in **`Explore`** agent — it skips CLAUDE.md and git status, so it is far cheaper, but it therefore knows none of the project rules: restate what it needs in the prompt. Pass a per-call `model` (`haiku` for mechanical retrieval, `sonnet` for liveness/wiring judgement)
 
 ## Model Tiers Reflect Cost/Latency, Not Trust
 

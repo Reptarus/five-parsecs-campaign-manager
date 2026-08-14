@@ -1,8 +1,32 @@
 # Rules Wiring — Closeout Plan
 
-**Ground truth Aug 3 2026: 73 open / 7 partial / 62 fixed of 143 rows** in the
-Core Rules audit — **plus an unmeasured Compendium backlog** (§2), which is the
-larger and more commercially important half.
+> # ✅ ROUTE COMPLETE — Aug 7 2026
+>
+> **The ledger is closed: 0 open / 0 partial / 136 fixed / 1 corrected.**
+> Re-measure with §0 rather than trusting this line; it is the fourth header
+> written here and the previous three all drifted.
+>
+> This file is kept as the ROUTE that was actually taken, not as a worklist.
+> Nothing below is outstanding. Its lasting value is the method — §0's
+> re-measure-before-you-plan rule and §2's "a paid unlock that changes nothing is
+> selling an empty box" framing, which is what moved the Compendium to the spine
+> of the plan and is why the four unreachable chapters got found at all.
+>
+> **What closing it does NOT mean.** Every row *someone wrote down* now has a call
+> site and a test. The audit was eight auditors on eight subsystems; it was never a
+> page-by-page walk of both books. The guard going forward is the four lints plus
+> the per-row tests, never this count.
+>
+> Final closures — Aug 6: rows **125** Black Jobs (the mission, not the rewards),
+> **136** Salvage + the Scrapper, **241** Flee Invasion consequences, **243**
+> Train's immediate upgrade. Aug 7: **96** Progressive Difficulty Option 2,
+> **115** Private Transport + Busy, **119/157** paid Trade rolls, **153** the
+> Freelancer License, **162/239** eleven zero-caller World Trait accessors, and
+> **87** Faction Favors.
+
+**Historical ground truth, Aug 3 2026: 73 open / 7 partial / 62 fixed of 143 rows**
+in the Core Rules audit — **plus an unmeasured Compendium backlog** (§2), which is
+the larger and more commercially important half.
 Branch `campaign-editor-and-fixits`. Companion to `RULES_WIRING_AUDIT_2026-08.md`
 (the ledger); this file is the *route*, the ledger is the *record*.
 

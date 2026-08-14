@@ -47,13 +47,37 @@ func _crew_member(overrides: Dictionary = {}) -> Dictionary:
 func test_the_seven_courses_match_the_book() -> void:
 	var expected := {
 		"pilot": 20, "mechanic": 15, "medical": 20, "merchant": 10,
-		"security": 10, "broker": 15, "bot_tech": 10,
+		"security": 10, "broker": 15, "bot_technician": 10,
 	}
 	assert_int(_dlg.TRAINING_TYPES.size()).is_equal(7)
 	for key in expected:
 		assert_bool(_dlg.TRAINING_TYPES.has(key)).override_failure_message(
 			"missing p.125 course '%s'" % key).is_true()
 		assert_int(int(_dlg.TRAINING_TYPES[key]["cost"])).is_equal(expected[key])
+
+## The course ID is what lands in `acquired_training`, so it is the key every
+## rules check looks up. This dialog said `bot_tech` while CharacterDetailsScreen
+## read data/training_courses.json and granted `bot_technician` — the same 10-XP
+## course recorded under two names, so a check could only ever see half of them.
+## Pinned against the JSON rather than a second hardcoded list, because a second
+## hardcoded list is exactly what caused the divergence.
+func test_course_ids_match_the_data_file() -> void:
+	var file := FileAccess.open("res://data/training_courses.json", FileAccess.READ)
+	assert_object(file).override_failure_message(
+		"data/training_courses.json is the SSOT for course ids and is missing"
+	).is_not_null()
+	var json := JSON.new()
+	assert_int(json.parse(file.get_as_text())).is_equal(OK)
+	file.close()
+	var courses: Dictionary = (json.data as Dictionary).get("courses", {})
+	for key in courses:
+		assert_bool(_dlg.TRAINING_TYPES.has(key)).override_failure_message(
+			"course id '%s' is in training_courses.json but this dialog grants a"
+			% key + " different key — a rules check cannot match both").is_true()
+	for key in _dlg.TRAINING_TYPES:
+		assert_bool(courses.has(key)).override_failure_message(
+			"this dialog grants '%s', which is not a course id in the SSOT" % key
+		).is_true()
 
 ## "Engineer" is a character CLASS mentioned inside the Mechanic entry, not a
 ## course. It was an invented eighth row.

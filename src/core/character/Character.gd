@@ -1053,9 +1053,27 @@ func add_bot_upgrade(upgrade_id: String) -> void:
 	if upgrade_id not in bot_upgrades:
 		bot_upgrades.append(upgrade_id)
 
+## Legacy course-id spellings that still appear in saved `acquired_training`
+## arrays. TrainingSelectionDialog granted `bot_tech` while CharacterDetailsScreen
+## granted `bot_technician` (the id in data/training_courses.json, the SSOT), so a
+## campaign can hold either. The dialog now writes the canonical id; this keeps
+## already-trained crew recognised. Do NOT add new aliases — fix the writer.
+const _TRAINING_ID_ALIASES := {
+	"bot_technician": ["bot_tech"],
+}
+
 func has_training(training_id: String) -> bool:
-	## Check if character has completed a specific training course
-	return training_id in acquired_training
+	## Check if character has completed a specific training course.
+	## The single source of truth is `acquired_training`. AdvancementSystem also
+	## used to record courses as `has_*_training` booleans via Object.set(), but
+	## no such property is declared on this class, so those writes were silent
+	## no-ops — never read them, and never reintroduce that mechanism.
+	if training_id in acquired_training:
+		return true
+	for legacy in _TRAINING_ID_ALIASES.get(training_id, []):
+		if legacy in acquired_training:
+			return true
+	return false
 
 func add_training(training_id: String) -> void:
 	## Add training course to completed list (Compendium p.27)

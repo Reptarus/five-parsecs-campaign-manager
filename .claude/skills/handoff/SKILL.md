@@ -4,7 +4,7 @@ description: "Session handoff skill. Use when a conversation is getting long (~4
 user_invocable: true
 ---
 
-> 🛑 **RULE 0 (CLAUDE.md "Agent Verification Protocol" — MANDATORY, NON-NEGOTIABLE): READ THE ACTUAL CODE *AND* SCENES BEFORE ANY PLAN.** You may NOT propose a plan, design, edit, routing decision, or structural claim until you have opened and read the ACTUAL files involved — the `.gd` scripts AND the related `.tscn`/`.tres` scene/resource files. Memory, CLAUDE.md docblocks, SOPs, this file's own notes, and relayed sub-agent summaries are **LEADS TO VERIFY, never facts** — they go stale; open the file and confirm, citing `file:line`. The `.tscn` wiring (node tree, node types, `[ext_resource]` scripts, embedded/instanced sub-scenes, `unique_name_in_owner`, anchors/containers) is the **authority on what is actually instantiated and live** — a `.gd` can look dead but be wired into a scene, or look live but be orphaned. UI / layout / responsive work: reading the `.gd` is NOT enough, OPEN the `.tscn`. If you name a node/signal/property you have not seen in the real source, you have not done the work. **No first-hand read of the code + scene wiring = no plan.** Full code-and-scene due diligence is the floor, not extra effort.
+> 🛑 **RULE 0 applies — read the actual code AND scenes before any plan, edit, or structural claim.** Canonical text: `CLAUDE.md` → "Agent Verification Protocol" → "RULE 0". The `.tscn`/`.tres` wiring is the authority on what is actually instantiated and live; memory, docblocks, SOPs and relayed sub-agent summaries are leads to verify, never facts. Cite `file:line`.
 
 # Session Handoff
 
@@ -94,9 +94,9 @@ Check each skill's reference files against what changed this session.
 | `bug-hunt-gamemode` | Bug Hunt data model, turn flow, cross-mode changes | `bug-hunt-data-model.md`, `cross-mode-safety.md` |
 | `qa-specialist` | New test patterns, bugs found/fixed, test infrastructure | `gdunit4-patterns.md`, `bug-notes.md`, `cross-system-verification.md` |
 | `ui-development` | Theme changes, new patterns, TweenFX, SceneRouter routes | `deep-space-theme.md`, `panel-patterns.md`, `scene-router.md` |
-| `fpcm-project-management` | Agent routing changes, project milestones, test counts | `project-status.md`, `agent-roster.md` |
+| `fpcm-project-management` | Agent routing changes, project milestones, test counts | `project-status.json`, `agent-roster.md` |
 
-**Always update `fpcm-project-management/references/project-status.md`** with:
+**Always update `fpcm-project-management/references/project-status.json`** with:
 
 - Any phases/tasks completed this session
 - Current phase focus changes
@@ -163,7 +163,7 @@ Before finalizing handoff, verify:
 - [ ] All session progress is captured in memory (not just the last task)
 - [ ] Memory files have accurate dates (absolute, not relative)
 - [ ] Skill reference files reflect any architecture/behavior changes from this session
-- [ ] `project-status.md` has current phase status and test counts
+- [ ] `project-status.json` has current phase status and test counts
 - [ ] Continuation prompt has enough context for cold-start (no "as we discussed")
 - [ ] No secrets, temp paths, or session-specific state leaked into memories
 - [ ] Phase/task status numbers are accurate (test counts, coverage %, etc.)

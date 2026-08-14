@@ -29,6 +29,10 @@ func archive_campaign(campaign_id: String, campaign_data: Dictionary = {}) -> vo
 		"timestamp": Time.get_unix_time_from_system(),
 		"reputation": campaign_data.get("reputation", 0),
 		"credits_earned": campaign_data.get("credits_earned", 0),
+		# How the campaign ended: "victory" | "retired" | "ended". Core Rules p.8
+		# treats a crew retiring as its own ending, distinct from a campaign that
+		# simply ran long, and the Hall of Fame card says which.
+		"ended_by": campaign_data.get("ended_by", "ended"),
 	}
 	_hall_of_fame.append(archive)
 	hall_of_fame_updated.emit()

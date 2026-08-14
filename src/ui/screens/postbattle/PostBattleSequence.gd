@@ -6,6 +6,8 @@ const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.
 const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
 const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
+## The p.131 Loot Table's third roll ("finally the exact item in question").
+const LootTableResolverClass = preload("res://src/core/equipment/LootTableResolver.gd")
 const DataLoader = preload("res://src/utils/GameDataLoader.gd")
 const TrainingDialog = preload("res://src/ui/components/postbattle/TrainingSelectionDialog.tscn")
 const AdvancementSystemClass = preload("res://src/core/character/advancement/AdvancementSystem.gd")
@@ -471,6 +473,10 @@ func _connect_backend_signals() -> void:
 		if not post_battle_phase.illegal_salvage_checked.is_connected(_on_backend_illegal_salvage):
 			post_battle_phase.illegal_salvage_checked.connect(_on_backend_illegal_salvage)
 
+	if post_battle_phase.has_signal("salvage_banked_to_campaign"):
+		if not post_battle_phase.salvage_banked_to_campaign.is_connected(_on_backend_salvage_banked):
+			post_battle_phase.salvage_banked_to_campaign.connect(_on_backend_salvage_banked)
+
 	if post_battle_phase.has_signal("traveler_event_occurred"):
 		if not post_battle_phase.traveler_event_occurred.is_connected(_on_backend_traveler_event):
 			post_battle_phase.traveler_event_occurred.connect(_on_backend_traveler_event)
@@ -685,9 +691,75 @@ func _on_backend_training_result(training: Array) -> void:
 				_add_result_to_log("%s training application denied: %s" % [crew_name, reason])
 
 func _on_backend_precursor_event_choice(event1: Dictionary, event2: Dictionary) -> void:
-	## Handle Precursor event choice available - auto-select first event for now
-	# NOTE: Deferred — show PrecursorEventChoiceDialog for player selection instead of auto-selecting
-	_handle_precursor_choice(1, event1, event2)
+	## Precursor CHARACTER Event choice (Core Rules p.17 + p.126).
+	##
+	## This used to auto-select event 1 behind a "Deferred" note, which made the
+	## species' signature advantage a pair of wasted rolls: rolling twice and
+	## always keeping the first is distributionally identical to rolling once.
+	## Step 13 is SUSPENDED until select_precursor_event() answers, so the popup
+	## must be one the player cannot dismiss — ItemChoicePopup refuses to close
+	## without a selection, the same reason the p.137 authorities prompt uses it.
+	var labels: Array = []
+	var choice_by_label: Dictionary = {}
+
+	var label1: String = "1. %s" % _precursor_event_label(event1)
+	var label2: String = "2. %s" % _precursor_event_label(event2)
+	labels.append(label1)
+	choice_by_label[label1] = 1
+	labels.append(label2)
+	choice_by_label[label2] = 2
+
+	# p.17: "If you would prefer avoiding the event altogether, you may do so by
+	# spending 1 story point after rolling twice." Offered only when there is a
+	# story point to spend — the cost is not optional.
+	if _current_story_points() > 0:
+		var avoid_label: String = "Avoid the event entirely (spend 1 story point)"
+		labels.append(avoid_label)
+		choice_by_label[avoid_label] = 3
+
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "Precursor Foresight"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			_handle_precursor_choice(
+				int(choice_by_label.get(chosen_label, 1)), event1, event2))
+	popup.show_choices(
+		"Your Precursor's long memory offers two possible futures"
+			+ " (Core Rules p.17).",
+		labels,
+		"Choose Which Path To Walk")
+
+
+func _precursor_event_label(event: Dictionary) -> String:
+	var nm: String = str(event.get("name", event.get("title", "")))
+	if nm.is_empty():
+		nm = "Unknown Event"
+	return "%s (rolled %d)" % [nm, int(event.get("roll", 0))]
+
+
+func _current_story_points() -> int:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("get_story_points"):
+		return int(gsm.get_story_points())
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and "current_campaign" in gs and gs.current_campaign != null \
+			and "story_points" in gs.current_campaign:
+		return int(gs.current_campaign.story_points)
+	return 0
+
+func _on_backend_salvage_banked(units: int, campaign_total: int) -> void:
+	## Compendium p.147: "In Post-battle Step 4. Get paid, tally up how many units
+	## of Salvage you have obtained." Before this, the units a player physically
+	## picked up off the table vanished with the battle screen.
+	_add_result_to_log(
+		"Salvage tallied: +%d unit(s), %d held (Compendium p.147 — spend at the "
+		% [units, campaign_total]
+		+ "Scrapper, or against ship repairs, ship modules and bot upgrades)")
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_success"):
+		nm.show_success("+%d Salvage (%d held)" % [units, campaign_total])
+
 
 func _on_backend_illegal_salvage(check: Dictionary) -> void:
 	## Compendium p.137 illegal salvage — the authorities check.
@@ -820,18 +892,28 @@ func _on_backend_manipulator_bonus(bonus: int) -> void:
 		})
 
 func _handle_precursor_choice(choice: int, event1: Dictionary, event2: Dictionary) -> void:
+	## Step 13 is suspended until this answers, so resolving the handler matters
+	## more here than elsewhere: the member reference first, the phase-manager
+	## lookup only as a fallback. The reverse order silently missed the live
+	## handler once already in this file.
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp):
+		var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("get_phase_handler"):
+			pbp = phase_manager.get_phase_handler("post_battle")
 
-	var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
-	if phase_manager and phase_manager.has_method("get_phase_handler"):
-		var post_battle_phase = phase_manager.get_phase_handler("post_battle")
-		if post_battle_phase and post_battle_phase.has_method("select_precursor_event"):
-			post_battle_phase.select_precursor_event(choice)
-		else:
-			push_warning("PostBattleSequence: PostBattlePhase missing select_precursor_event method")
-	else:
-		# Fallback: emit the chosen event directly
-		var chosen_event: Dictionary = event1 if choice == 1 else event2
-		_add_result_to_log("Precursor Vision: %s" % chosen_event.get("name", "Unknown Event"))
+	if pbp != null and pbp.has_method("select_precursor_event"):
+		pbp.select_precursor_event(choice)
+		return
+
+	push_warning("PostBattleSequence: no PostBattlePhase to answer the Precursor"
+		+ " choice; logging the pick only")
+	var chosen_event: Dictionary = event2 if choice == 2 else event1
+	if choice == 3:
+		_add_result_to_log("Precursor Foresight: event avoided (1 story point).")
+		return
+	_add_result_to_log("Precursor Foresight: %s"
+		% chosen_event.get("name", "Unknown Event"))
 
 func _on_backend_loot_generated(loot: Array) -> void:
 	## Handle loot generated from backend
@@ -901,6 +983,13 @@ func _injury_consequence_suffix(injury: Dictionary) -> String:
 	## simply stops working (p.122: damaged equipment "cannot be used until it
 	## has been Repaired") with no explanation anywhere in the app.
 	var parts: Array = []
+
+	# Core Rules p.125 Advanced Training. Empty unless a course actually changed
+	# this roll; shown so a 20-XP Medical school or 10-XP Bot technician purchase
+	# is visibly earning its cost instead of being an invisible statistical edge.
+	var reroll: String = str(injury.get("training_reroll", ""))
+	if not reroll.is_empty():
+		parts.append(reroll)
 
 	var lost: Array = injury.get("items_lost", [])
 	if not lost.is_empty():
@@ -1941,11 +2030,20 @@ func _add_purchase_content() -> void:
 		var credits = _get_current_credits()
 		var stash = _get_ship_stash()
 
-		# Initialize component with campaign data
+		# ADD FIRST, SEED SECOND. `@onready` vars resolve when the node enters the
+		# tree, so on a freshly instantiate()'d component every one of them —
+		# including %SellItemsList — is still null. initialize_purchase_phase()
+		# used to run here, before add_child(), so its _populate_sell_items() hit
+		# the `if not sell_items_list: return` guard and bailed. Nothing else
+		# populates that list (_setup_initial_state does basic items only), so the
+		# Sell pane was EMPTY in every post-battle Purchase Items step and the
+		# p.125 "you may sell up to 3 items" rule had no reachable surface.
+		#
+		# Same shape as the battle audit's _populate_deployment_conditions defect:
+		# a correct seed call, made before the thing it seeds exists.
+		step_content.add_child(purchase_component)
 		if purchase_component.has_method("initialize_purchase_phase"):
 			purchase_component.initialize_purchase_phase(credits, stash)
-
-		step_content.add_child(purchase_component)
 	else:
 		# Fallback to simple label if component fails to load
 		var label: Label = Label.new()
@@ -2953,17 +3051,25 @@ func _resolve_main_loot(roll: int) -> Dictionary:
 	return {"source": "main_loot", "roll": roll, "category": "NOTHING",
 		"description": "Nothing of value"}
 
-## Roll on a subtable that has roll_range + items arrays.
-## Picks a random item from the matched range's items list.
+## Roll D100 to pick the subtable, then delegate the book's THIRD roll to the
+## canonical resolver — Core Rules p.131: "Roll to determine the category, then
+## the subtable, and finally the exact item in question."
+##
+## That third roll did not exist anywhere. This function, and four others like
+## it, picked UNIFORMLY from the subtable's name list, so every frequency on
+## pp.131-134 was flattened: a Blade is a 20% melee result and paid out at
+## 12.5%, a Suppression Maul is 5% and also paid 12.5%, grenades are 60/40 and
+## came out 50/50. `loot_tables.json` now carries the per-item ranges and
+## `LootTableResolver.roll_item_in()` is the one place they are rolled.
 func _roll_on_subtable(subtable_data: Array) -> String:
 	var sub_roll: int = randi_range(1, 100)
 	for entry in subtable_data:
 		var r: Array = entry.get("roll_range", [0, 0])
 		if sub_roll >= r[0] and sub_roll <= r[1]:
-			var items: Array = entry.get("items", [])
-			if items.is_empty():
-				return entry.get("item", "Unknown item")
-			return items[randi() % items.size()]
+			var rolled: String = LootTableResolverClass.roll_item_in(entry)
+			if not rolled.is_empty():
+				return rolled
+			return entry.get("item", "Unknown item")
 	return "Unknown item"
 
 ## Resolve the Rewards subtable (Core Rules p.133) — credits, rumors, story points
@@ -3161,8 +3267,9 @@ func _advance_to_next_step() -> void:
 	## Advance to next step (used by war panel and other components)
 	_on_next_pressed()
 
-func _get_current_crew() -> Array[Resource]:
-	## Get current crew members as Resource array for training dialog
+func _get_current_crew() -> Array:
+	## Get current crew members for the training dialog.
+	##
 	## UNTYPED, and unfiltered. crew_data["members"] holds Character RESOURCES on
 	## a fresh campaign and DICTIONARIES on every loaded save. The old
 	## `Array[Resource]` plus `if crew_member is Resource` dropped every member of
@@ -3170,6 +3277,18 @@ func _get_current_crew() -> Array[Resource]:
 	## character list for anyone who had saved and come back — which is precisely
 	## the crew that has accumulated enough XP to want it. The dialog reads both
 	## shapes through its own accessors.
+	##
+	## THE RETURN TYPE MUST STAY `Array`, NOT `Array[Resource]`. That earlier fix
+	## widened the BODY to an untyped array and left the SIGNATURE typed, so every
+	## call died on
+	##     "Trying to return an array of type "Array" where expected return type
+	##      is "Array[Resource]"."
+	## Godot ABORTS the function on that error and keeps the process alive, so the
+	## caller at :2011 never got its crew and the enclosing step build unwound
+	## silently — no crash, no visible message, just a post-battle sequence that
+	## did not appear. Found on the tablet 2026-08-08 submitting a battle result.
+	## Widening a container's element type is only half the change; the signature
+	## is the other half.
 	var crew_array: Array = []
 	var gsm_get_crew = get_node_or_null("/root/GameStateManager")
 

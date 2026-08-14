@@ -137,6 +137,7 @@ static func purchase_ship(
 	# Set debt
 	if "ship_debt" in campaign:
 		campaign.ship_debt = financed
+		_sync_debt_mirror(campaign)
 
 	# Mark as having ship
 	if "has_ship" in campaign:
@@ -151,6 +152,32 @@ static func purchase_ship(
 			total, down_payment, financed
 		]
 	}
+
+## Keep the ship_data["debt"] DISPLAY MIRROR in step with the owner.
+##
+## T8-01 (tablet QA, Aug 8 2026). `campaign.ship_debt` is the owner and
+## `ship_data["debt"]` is a display mirror that GameStateManager.set_ship_debt()
+## keeps in sync — but that setter's own docblock claims "it is written only
+## through this setter, so there is exactly one writer", and that is false: nine
+## sites assign the owner directly. This module holds the only PER-TURN one, so
+## it is where the drift accumulates.
+##
+## Measured on the live tablet save: ship_debt=45, ship.debt=25.0. Every display
+## that reads the mirror (ShipPanel, ShipManager, FinalPanel and — until this
+## sprint — the Campaign Editor) showed a debt frozen at its creation value while
+## the p.76 interest ladder charged against the real one. Nothing warned, because
+## `.get("debt", 0)` on a present-but-stale key is a normal read.
+##
+## This module cannot call the setter: it is a static RefCounted parameterised by
+## `campaign`, and GameStateManager is an autoload bound to whichever campaign is
+## current — the same exemption CLAUDE.md records for TravelEventResolver and
+## CampaignEventEffects. So it writes the mirror directly, here, at the source.
+static func _sync_debt_mirror(campaign: Resource) -> void:
+	if campaign == null or not ("ship_debt" in campaign):
+		return
+	if "ship_data" in campaign and campaign.ship_data is Dictionary:
+		campaign.ship_data["debt"] = int(campaign.ship_debt)
+
 
 # MARK: - Debt Management (Per Campaign Turn)
 
@@ -168,6 +195,7 @@ static func process_debt_interest(campaign: Resource) -> Dictionary:
 		interest = HIGH_DEBT_INTEREST  # +2 per turn if > 30
 
 	campaign.ship_debt += interest
+	_sync_debt_mirror(campaign)
 
 	# Check for seizure risk
 	# Core Rules p.76: "75 credits or more" triggers seizure risk
@@ -181,6 +209,7 @@ static func process_debt_interest(campaign: Resource) -> Dictionary:
 			ship_seized = true
 			campaign.has_ship = false
 			campaign.ship_debt = 0
+			_sync_debt_mirror(campaign)
 
 	return {
 		"interest": interest,

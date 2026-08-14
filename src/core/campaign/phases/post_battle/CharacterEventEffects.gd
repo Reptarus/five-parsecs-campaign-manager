@@ -10,10 +10,23 @@ const PostBattleContextClass = preload("res://src/core/campaign/phases/post_batt
 const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
 const EquipmentTransferServiceClass = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
-# Precursor event state (Core Rules p.128: Precursors roll twice, pick either)
+# Precursor event state. The rule is stated twice and both statements are here,
+# on the CHARACTER Event — never on the Campaign Event (see CampaignEventEffects,
+# which used to implement a fabricated copy of it on step 12):
+#   p.126 (step 13): "If the selected character is a Precursor, you may roll
+#     twice and pick either score."
+#   p.17 (species):  "if a Precursor is the subject of a Character Event, you may
+#     roll for 2 events and pick which one you prefer. If you would prefer
+#     avoiding the event altogether, you may do so by spending 1 story point
+#     after rolling twice."
+# The species entry is the fuller statement: it adds a THIRD option (avoid for 1
+# story point) that p.126 omits, and it is only available AFTER rolling twice.
 var _pending_event1: Dictionary = {}
 var _pending_event2: Dictionary = {}
 var waiting_for_precursor_choice: bool = false
+
+## select_precursor_event() choice values.
+enum PrecursorChoice {FIRST = 1, SECOND = 2, AVOID = 3}
 
 func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	## Roll for a character event. Returns the event dict with crew_id and roll.
@@ -58,22 +71,48 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	character_event["crew_id"] = random_crew
 	character_event["roll"] = event_roll
 
-	# Precursor double-roll (Core Rules p.128)
-	var origin: String = ctx.get_character_origin(random_crew).to_lower()
+	# `eligible` holds crew_id STRINGS, and get_character_origin() takes the
+	# CHARACTER. Handed a String it falls through both branches — `"origin" in
+	# "crew_1"` is a substring test, not a property test — and returns "Human"
+	# for everyone. So the Precursor comparison below was permanently false and
+	# the species' signature advantage could never fire, no matter what the
+	# orchestrator did with the result. Resolve the member first.
+	var selected_member: Variant = ctx.get_crew_member(random_crew)
+	var origin: String = ""
+	if selected_member != null:
+		origin = ctx.get_character_origin(selected_member).to_lower()
+
+	# T5-08: stamp WHO this happened to. PostBattleSequence displays
+	# event.get("character_name", "Unknown"), and nothing ever wrote that key — so
+	# every step 13 line read "Unknown: Overhear Something Useful". A Character
+	# Event names a specific crew member by design (p.126 picks exactly one), so a
+	# nameless one is not a cosmetic loss: it is the whole point of the step.
+	# Stamped once here where the member is already resolved, and onto BOTH
+	# Precursor branches below, since either can be the one that surfaces.
+	var event_char_name: String = "Unknown"
+	if selected_member != null and ctx.has_method("get_char_name"):
+		event_char_name = ctx.get_char_name(selected_member)
+	character_event["character_name"] = event_char_name
+
+	# Precursor double-roll (Core Rules p.17 + p.126).
 	if origin == "precursor":
 		var second_roll: int = randi_range(1, 100)
 		var second_event: Dictionary = _get_character_event(second_roll)
 		second_event["crew_id"] = random_crew
 		second_event["roll"] = second_roll
+		second_event["character_name"] = event_char_name
 
 		_pending_event1 = character_event
 		_pending_event2 = second_event
 		waiting_for_precursor_choice = true
-		return {"precursor_choice": true, "event1": character_event, "event2": second_event, "crew_id": random_crew}
+		return {"precursor_choice": true, "event1": character_event,
+			"event2": second_event, "crew_id": random_crew}
 
-	# Add species_exceptions from JSON entry for downstream handling
-	character_event["character_origin"] = ctx.get_character_origin(
-		random_crew)
+	# Carried on the event so finalize_event() does not have to re-resolve it —
+	# its fallback path hands the crew_id to get_character_origin() and hits the
+	# same String trap described above. Every consumer lowercases, so the raw
+	# value is stored rather than a normalised one.
+	character_event["character_origin"] = origin if not origin.is_empty() else "Human"
 
 	# Emo-suppressed: may ignore events requiring fights (Core Rules p.22)
 	var crew_sid: String = ""
@@ -91,16 +130,58 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 
 	return character_event
 
-func select_precursor_event(choice: int) -> Dictionary:
-	## Select which precursor event to use (1 or 2).
+func select_precursor_event(choice: int,
+		ctx: PostBattleContextClass = null) -> Dictionary:
+	## Resolve the p.17 / p.126 Precursor choice. See PrecursorChoice.
+	## AVOID spends 1 story point and returns a type:"none" event, which the
+	## orchestrator does NOT finalize — that is the whole point of avoiding it.
 	if not waiting_for_precursor_choice:
 		push_warning("CharacterEventEffects: select_precursor_event called but not waiting for choice")
 		return {}
 	waiting_for_precursor_choice = false
-	var chosen: Dictionary = _pending_event2 if choice == 2 else _pending_event1
+	var crew_id: String = str(_pending_event1.get("crew_id", ""))
+	var chosen: Dictionary = _pending_event2 if choice == PrecursorChoice.SECOND \
+		else _pending_event1
+
+	if choice == PrecursorChoice.AVOID:
+		# "you may do so by spending 1 story point AFTER rolling twice" (p.17) —
+		# the cost is not optional, so a player who cannot pay does not get the
+		# option. Falling back to the first roll is the honest failure: the two
+		# rolls have already happened and cannot be un-rolled.
+		if _can_spend_story_point(ctx):
+			ctx.add_story_points(-1)
+			chosen = {
+				"type": "none",
+				"name": "Event Avoided",
+				"description": "Precursor foresight: the event was avoided by"
+					+ " spending 1 story point (Core Rules p.17).",
+				"crew_id": crew_id,
+				"precursor_avoided": true,
+			}
+		else:
+			push_warning("CharacterEventEffects: Precursor AVOID chosen with no"
+				+ " story point to spend; keeping the first roll")
+
 	_pending_event1 = {}
 	_pending_event2 = {}
 	return chosen
+
+func _can_spend_story_point(ctx: PostBattleContextClass) -> bool:
+	## The reader must mirror ctx.add_story_points(), which writes through the
+	## manager when it can and the campaign directly when it cannot. Reading only
+	## the manager would report 0 on any path where it is absent and silently
+	## withdraw an option the player has paid for.
+	## NOT ctx.get("story_points") — the accessor is get_runtime_state(); plain
+	## get() finds no such property and returns null, i.e. always "cannot afford".
+	if ctx == null or not ctx.has_method("add_story_points"):
+		return false
+	var from_manager: Variant = ctx.get_runtime_state("story_points", null)
+	if from_manager != null:
+		return int(from_manager) > 0
+	var campaign = ctx.campaign
+	if campaign != null and "story_points" in campaign:
+		return int(campaign.story_points) > 0
+	return false
 
 func _get_character_event(roll: int) -> Dictionary:
 	## Get character event based on D100 roll from JSON data file (Core Rules p.128-130)
@@ -128,7 +209,35 @@ func _get_character_event(roll: int) -> Dictionary:
 func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 	## Apply the character event effects after rolling.
 	if event.has("type") and event.type != "none":
-		var crew: Variant = event.get("crew_id", ctx.get_random_crew_member())
+		# RESOLVE THE ID TO THE ACTUAL CREW MEMBER.
+		#
+		# This used to be a bare
+		#     var crew = event.get("crew_id", ctx.get_random_crew_member())
+		# which returns two INCOMPATIBLE shapes: `crew_id` is a String id, while the
+		# fallback returns a Character/Dictionary. Everything downstream treats the
+		# value as a character, so on any event that carried a crew_id the post-battle
+		# run hit
+		#     Invalid call. Nonexistent function 'set' in base 'String'.
+		# inside PostBattleContext._set_character_stat (a non-empty String is TRUTHY,
+		# so the `elif character:` branch accepted it). That ABORTS the function, which
+		# unwound step 13 and took the whole 14-step post-battle sequence with it —
+		# submitting a battle result tore down the battle screen and nothing replaced
+		# it. Measured on the tablet 2026-08-08 via Personal Breakthrough (p.129).
+		#
+		# The dual shape was half-known: the journal line below already read
+		# `crew if crew is String else str(crew)`. Handling a type split at ONE of its
+		# consumers leaves the rest to find it at runtime — normalize at the boundary
+		# instead, which is also what makes get_character_origin() work (`"origin" in
+		# some_string` is a SUBSTRING test, so it quietly returned "" for every
+		# id-carrying event).
+		var crew_ref: Variant = event.get("crew_id", null)
+		var crew: Variant = null
+		if crew_ref is String:
+			crew = ctx.get_crew_member(crew_ref)
+		elif crew_ref != null:
+			crew = crew_ref
+		if crew == null:
+			crew = ctx.get_random_crew_member()
 		var event_name: String = event.get("name", event.get("title", "Unknown"))
 		var origin: String = event.get("character_origin", "")
 		if origin.is_empty() and crew:
@@ -139,13 +248,26 @@ func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 			# Journal: log character event
 			if ctx.campaign_journal \
 					and ctx.campaign_journal.has_method("auto_create_character_event"):
-				var crew_id: String = crew if crew is String else str(crew)
+				var crew_id: String = _crew_id_of(crew, crew_ref)
 				ctx.campaign_journal.auto_create_character_event(
 					crew_id, "character_event", {
 						"turn": ctx.battle_result.get("turn", 0),
 						"event_name": event_name,
 						"description": event.get("description", ""),
 					})
+
+func _crew_id_of(crew: Variant, original_ref: Variant) -> String:
+	## The journal wants the id. Prefer the id the event carried; otherwise read it off
+	## the resolved member. Never str() a Resource — that yields "<Resource#123>", which
+	## is what the old `str(crew)` wrote into the journal for every non-String crew.
+	if original_ref is String and not (original_ref as String).is_empty():
+		return original_ref
+	if crew is Dictionary:
+		return str(crew.get("character_id", crew.get("id", "")))
+	if crew != null and "character_id" in crew:
+		return str(crew.character_id)
+	return ""
+
 
 func apply_effect(event_title: String, character: Variant, ctx: PostBattleContextClass, character_origin: String = "", species_exceptions: Dictionary = {}) -> String:
 	## Apply character event effects based on event title (Core Rules p.128-130)
@@ -253,7 +375,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			_mark_departed(character)
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 				ctx.campaign_journal.create_entry({
-					"type": "character_departure",
+					"type": "character_event",
 					"auto_generated": true,
 					"title": "Time to Move On",
 					"description": "%s left the crew from Sick Bay (rolled %d vs %d turns remaining, Core Rules p.128)" % [
@@ -290,7 +412,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				# Log departure to journal
 				if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 					ctx.campaign_journal.create_entry({
-						"type": "character_departure",
+						"type": "character_event",
 						"auto_generated": true,
 						"title": "Feeler Mental Breakdown",
 						"description": "%s suffered a mental breakdown from a crew fight and left permanently (Core Rules p.22)" % char_name,
@@ -489,7 +611,10 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			var equip_list: Array = _get_character_equipment(character)
 			if equip_list.size() > 0:
 				var dmg_idx: int = randi() % equip_list.size()
-				var damaged_item: String = equip_list[dmg_idx]
+				# NOT `= equip_list[dmg_idx]`: that element is a Dictionary on any
+				# saved crew member, and assigning it to a String aborts this whole
+				# handler. See _equipment_entry_name().
+				var damaged_item: String = _equipment_entry_name(equip_list[dmg_idx])
 				ctx.apply_character_status_effect(character, {
 					"type": "item_damaged",
 					"name": "Don't Make Them Like They Used To",
@@ -507,7 +632,11 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			var lost_item_name: String = "unknown item"
 			if equip_for_loss.size() > 0:
 				var loss_idx: int = randi() % equip_for_loss.size()
-				lost_item_name = equip_for_loss[loss_idx]
+				# Same trap as the damage event above: resolve the NAME before it
+				# meets this String variable, or the handler aborts HERE and the
+				# removal below never runs — the item is neither lost nor
+				# recoverable, and no status effect is applied.
+				lost_item_name = _equipment_entry_name(equip_for_loss[loss_idx])
 				# Remove the item from equipment
 				if character is Resource and "equipment" in character:
 					var eq: Array = character.equipment
@@ -582,6 +711,30 @@ func _get_character_equipment(character: Variant) -> Array:
 	elif character is Dictionary:
 		return character.get("equipment", [])
 	return []
+
+
+func _equipment_entry_name(entry: Variant) -> String:
+	## The printable name of one equipment entry, whichever shape it arrives in.
+	##
+	## ⚠ `_get_character_equipment()` returns TWO different element shapes. A
+	## Character Resource holds `Array[String]` (:129), but a crew member that has
+	## been through save/load is a Dictionary whose `equipment` holds full item
+	## Dictionaries — verified in a save pulled off the tablet Aug 13 2026:
+	##   {"condition":"damaged","id":"military_rifle_3495_8386",
+	##    "name":"Military Rifle","owner":"Zephyr Flynn",...}
+	## and crew members are canonically Dictionaries, so that is the COMMON case.
+	##
+	## Assigning such an element straight into a `: String` variable is a runtime
+	## type error, and in Godot that ABORTS the enclosing function — so the p.130
+	## events "Don't Make Them Like They Used To" and "Where Did It Go" applied no
+	## status effect, removed no item and returned no text, on any campaign whose
+	## equipment is dictionary-shaped. Silent: the app keeps running, the event
+	## just never happens. Same class as the crew-task discard defect (T9-47),
+	## which was proven to leave the item on the sheet.
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		return str(d.get("name", d.get("id", "unknown item")))
+	return str(entry)
 
 
 ## ── Helpers for the pp.128-130 events wired above ─────────────────────────────

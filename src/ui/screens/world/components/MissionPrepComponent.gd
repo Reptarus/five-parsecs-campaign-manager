@@ -343,6 +343,25 @@ func _build_zone_info_section() -> void:
 		else:
 			mission_prep_container.add_child(_zone_info_container)
 
+## The pp.150-151 'Your Day in Hell' roll for THIS Black Job, in preference order:
+## the mission dict (stamped by WorldPhaseController), then the campaign (survives
+## a save/reload), then a one-off preview roll that is deliberately not persisted.
+func _black_zone_mission() -> Dictionary:
+	var stamped: Variant = mission_data.get("black_zone_mission", {})
+	if stamped is Dictionary and not (stamped as Dictionary).is_empty():
+		return stamped
+
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs and "current_campaign" in gs and gs.current_campaign:
+		var campaign = gs.current_campaign
+		if "progress_data" in campaign:
+			var saved: Variant = campaign.progress_data.get(
+				"black_zone_mission", {})
+			if saved is Dictionary and not (saved as Dictionary).is_empty():
+				return saved
+	return BlackZoneSystem.roll_mission_type()
+
+
 func _build_red_zone_info() -> void:
 	## Build Red Zone info card with threat condition and rules
 	var card: PanelContainer = _create_zone_card(
@@ -411,8 +430,14 @@ func _build_black_zone_info() -> void:
 		"font_color", Color(0.85, 0.6, 1.0, 1))
 	vbox.add_child(title)
 
-	# Mission type
-	var bz_mission: Dictionary = BlackZoneSystem.roll_mission_type()
+	# Mission type — READ, never rolled here. This is a card BUILDER: it runs on
+	# every panel rebuild, so rolling in it meant the briefing could read "Destroy
+	# strong point" one moment and "Penetrate the lines" the next. The pp.150-151
+	# 'Your Day in Hell' D10 is rolled once by
+	# `WorldPhaseController._stamp_black_zone_mission()` and persisted on the
+	# campaign. The fallback roll below covers a Black Zone panel opened before
+	# that stamp has run (a preview), and is deliberately NOT persisted.
+	var bz_mission: Dictionary = _black_zone_mission()
 	var mission_label: Label = Label.new()
 	mission_label.text = "Mission: %s\n%s" % [
 		bz_mission.get("name", "Unknown"),
@@ -423,14 +448,21 @@ func _build_black_zone_info() -> void:
 		"font_color", Color(0.88, 0.88, 0.88, 1))
 	vbox.add_child(mission_label)
 
-	# Opposition info
+	# Opposition info — READ from the same data the generator uses (p.151), not
+	# hardcoded. The literal "4 teams of 4 (16 initial enemies)" that used to sit
+	# here was the ONLY place those numbers appeared anywhere in the app: the
+	# generator rolled an ordinary force, so this card described a battle the
+	# player was never given.
+	var bz_opp: Dictionary = BlackZoneSystem.get_opposition_rules()
+	var bz_teams: int = int(bz_opp.get("initial_teams", 4))
+	var bz_team_size: int = int(bz_opp.get("team_size", 4))
 	var opp_label: Label = Label.new()
 	opp_label.text = (
-		"Opposition: Roving Threats, 4 teams of 4 "
-		+ "(16 initial enemies)\n"
+		"Opposition: Roving Threats, %d teams of %d (%d initial enemies), one Specialist per team\n"
+			% [bz_teams, bz_team_size, bz_teams * bz_team_size]
 		+ "Reinforcement wave arrives every round "
 		+ "(Active/Passive system)\n"
-		+ "No Notable Sights or Deployment Conditions")
+		+ "No Notable Sights or Deployment Conditions — Seize the Initiative at +1")
 	opp_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	opp_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(12))
 	opp_label.add_theme_color_override(

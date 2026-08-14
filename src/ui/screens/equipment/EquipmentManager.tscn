@@ -123,15 +123,5 @@ alignment = 1
 layout_mode = 2
 text = "Generate Equipment"
 
-[node name="TradeButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Trade/Market"
-
-[node name="RepairButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Repair Equipment"
-
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GenerateEquipmentButton" to="." method="_on_generate_equipment_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/TradeButton" to="." method="_on_trade_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/RepairButton" to="." method="_on_repair_pressed"]

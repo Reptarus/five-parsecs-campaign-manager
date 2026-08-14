@@ -204,7 +204,7 @@
     {
       "roll_range": [97, 100],
       "name": "This place is rather nice, really",
-      "effect": "Pay 1 story point or one crew member leaves the crew"
+      "effect": "When you are ready to leave this world, unless it is being Invaded, you must pay 1 story point or this crew member will decide to stay behind. If they do, you can keep their equipment, though."
     }
   ]
 }

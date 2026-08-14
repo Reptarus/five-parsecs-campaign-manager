@@ -23,6 +23,11 @@ const EquipmentTransferServiceRef = preload(
 @onready var confirm_button: Button = %ConfirmButton
 @onready var selected_crew_label: Label = %SelectedCrewLabel
 
+const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
+
+## Code-built, appended to the existing TransferButtons HFlowContainer.
+var _fit_button: Button = null
+
 # Design system constants
 const SPACING_XS := UIColors.SPACING_XS
 const SPACING_SM := UIColors.SPACING_SM
@@ -153,8 +158,12 @@ func _populate_stash_list() -> void:
 	stash_list.clear()
 	for item in stash_items:
 		var item_name = item.get("name", "Unknown Item") if item is Dictionary else str(item)
-		var damaged = item.get("damaged", false) if item is Dictionary else false
-		var suffix = " [DAMAGED]" if damaged else ""
+		# p.78: a repaired item "is usable again", so a damaged one is NOT — the
+		# tag is the whole warning the player gets before issuing it. Routed
+		# through the shared predicate because p.131 Loot marks damage with a
+		# second key (`needs_repair`) that this site used to miss entirely.
+		var damaged = EquipmentTransferService.is_item_damaged(item)
+		var suffix = " [DAMAGED — needs Repair]" if damaged else ""
 		stash_list.add_item(item_name + suffix)
 
 func _populate_crew_equipment() -> void:
@@ -172,7 +181,11 @@ func _populate_crew_equipment() -> void:
 	var id_to_name: Dictionary = _build_equipment_id_name_map()
 
 	for item in equipment:
-		crew_equipment_list.add_item(_resolve_item_display_name(item, id_to_name))
+		# The fitted Gun Mod / Gun Sight is shown on the WEAPON line, because once
+		# fitted it is no longer a separate item (p.53) — it is part of that gun,
+		# and the player needs to see which gun is the modified one.
+		crew_equipment_list.add_item(_resolve_item_display_name(item, id_to_name)
+			+ WeaponModServiceRef.summary_tag(item))
 
 func _build_equipment_id_name_map() -> Dictionary:
 	## id -> friendly name over the WHOLE campaign equipment registry (owned +
@@ -228,6 +241,40 @@ func _persist_to_stash(character_id: String, equipment_id: String) -> bool:
 	if svc == null:
 		return false
 	return svc.transfer_to_stash(equipment_id, character_id)
+
+## The id the EquipmentTransferService will match this member on.
+##
+## T9-41 (tablet, Aug 13 2026): both transfer paths read
+## `member.character_id if "character_id" in member else ""`. A campaign created
+## before `character_id` was serialised — the April save on the test tablet, and
+## every alpha tester carrying one — has `id` and no `character_id`, so this came
+## out "" and `_persist_to_character()` returned false on its own empty-id guard.
+## The item was then still removed from the stash and shown on the character, so
+## the screen reported a transfer the campaign never recorded.
+##
+## `EquipmentTransferService._find_crew_member()` already matches on
+## `character_id` OR `id` (:183), so the service was always able to find these
+## members — the caller simply never handed it anything to look up.
+static func _character_key(member) -> String:
+	if member is Dictionary:
+		var d: Dictionary = member
+		var cid: String = str(d.get("character_id", ""))
+		return cid if not cid.is_empty() else str(d.get("id", ""))
+	if member is Object:
+		if "character_id" in member and not str(member.character_id).is_empty():
+			return str(member.character_id)
+		if "id" in member:
+			return str(member.id)
+	return ""
+
+
+## True when there is a campaign for a transfer to be written to. With no
+## campaign (creation preview, tests) the local mirror IS the whole model, so a
+## failed persist there is expected and must not block the move.
+func _has_live_campaign() -> bool:
+	var gs = get_node_or_null("/root/GameState")
+	return gs != null and gs.current_campaign != null
+
 
 func _persist_to_character(character_id: String, equipment_id: String) -> bool:
 	if character_id.is_empty() or equipment_id.is_empty():
@@ -307,9 +354,9 @@ func _on_transfer_to_stash_pressed() -> void:
 		var item = equipment[item_index]
 
 		# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
-		var character_id: String = member.character_id if "character_id" in member else ""
+		var character_id: String = _character_key(member)  # see _character_key(): T9-41
 		var equipment_id: String = item.get("id", "") if item is Dictionary else ""
-		
+
 		# Persist to the LIVE campaign, then mirror into the local copies so the
 		# lists redraw. The old code asked EquipmentManager for
 		# `transfer_to_ship_stash`, a method with ZERO definitions repo-wide, so
@@ -317,8 +364,14 @@ func _on_transfer_to_stash_pressed() -> void:
 		# fallback below — mutating deep copies that were thrown away when the
 		# player left the step. Reassigning gear in the World Phase therefore
 		# changed nothing: the crew went into battle with their old loadout.
-		if not _persist_to_stash(character_id, equipment_id):
+		#
+		# T9-41: same mirror-anyway bug as _do_transfer_to_crew(). Refuse the move
+		# when a live campaign rejected the write, so the list cannot show an item
+		# in a place the campaign does not have it.
+		if not _persist_to_stash(character_id, equipment_id) and _has_live_campaign():
 			push_warning("AssignEquipmentComponent: stash transfer not persisted (%s)" % equipment_id)
+			_show_notification("Could not return that item — it stays with the crew member.")
+			return
 		equipment.remove_at(item_index)
 		_set_member_equipment(member, equipment)
 		stash_items.append(item)
@@ -355,13 +408,22 @@ func _on_transfer_to_crew_pressed() -> void:
 
 func _do_transfer_to_crew(member, item, item_index: int) -> void:
 	# Get character and equipment IDs (Sprint 26.3: Character-Everywhere)
-	var character_id: String = member.character_id if "character_id" in member else ""
+	var character_id: String = _character_key(member)  # see _character_key(): T9-41
 	var equipment_id: String = item.get("id", "") if item is Dictionary else ""
 
 	# Persist to the LIVE campaign first (see _on_transfer_to_stash_pressed for
 	# why the old EquipmentManager guard could never fire), then mirror locally.
-	if not _persist_to_character(character_id, equipment_id):
+	#
+	# T9-41: the mirror below used to run even when this returned false, so the
+	# item vanished from the stash and appeared on the character while the
+	# campaign recorded neither — the screen stating an outcome the model does
+	# not hold. When there IS a campaign and it refused the write, refuse the
+	# move too and say so; with no campaign the mirror is the whole model and
+	# the move is correct.
+	if not _persist_to_character(character_id, equipment_id) and _has_live_campaign():
 		push_warning("AssignEquipmentComponent: crew transfer not persisted (%s)" % equipment_id)
+		_show_notification("Could not assign that item — it stays in the stash.")
+		return
 	stash_items.remove_at(item_index)
 	var equipment = _get_member_equipment(member)
 	equipment.append(item)
@@ -722,6 +784,138 @@ func _on_equipment_item_selected(index: int) -> void:
 	if stash_list:
 		stash_list.deselect_all()
 	_update_detail_strip()
+	_refresh_fit_button()
+
+
+## Gun Mods and Gun Sights (Core Rules p.53).
+##
+## This screen because the book puts it here, verbatim: Sights "can be fitted to
+## a weapon or moved to a new one WHEN EQUIPMENT IS BEING ASSIGNED DURING THE
+## CAMPAIGN TURN. During battle, Sights cannot be attached or removed."
+##
+## Before this, nothing anywhere could fit an attachment to a weapon — so all 13
+## p.53 items (a fifth of all Gear loot on the p.131 table) were inventory lines
+## with no effect, and `BattleCalculations`' Bipod clause read a `has_bipod` key
+## no producer ever wrote.
+func _ensure_fit_button() -> void:
+	if _fit_button and is_instance_valid(_fit_button):
+		return
+	if transfer_to_stash_button == null or transfer_to_stash_button.get_parent() == null:
+		return
+	_fit_button = Button.new()
+	_fit_button.text = "Fit to Weapon"
+	_fit_button.tooltip_text = (
+		"Fit a Gun Mod or Gun Sight to one of this character's weapons"
+		+ " (Core Rules p.53). Mods are permanent; Sights can be moved.")
+	_fit_button.accessibility_name = "Fit gun mod or sight to a weapon"
+	_fit_button.custom_minimum_size = Vector2(0, 48)
+	_fit_button.disabled = true
+	_fit_button.pressed.connect(_on_fit_to_weapon_pressed)
+	transfer_to_stash_button.get_parent().add_child(_fit_button)
+
+
+func _refresh_fit_button() -> void:
+	_ensure_fit_button()
+	if _fit_button == null:
+		return
+	_fit_button.disabled = _selected_attachment_id().is_empty()
+
+
+## The attachment id currently selected in the crew equipment list, or "".
+func _selected_attachment_id() -> String:
+	if _selected_equipment_index < 0:
+		return ""
+	if selected_crew_index < 0 or selected_crew_index >= crew_data.size():
+		return ""
+	var equipment: Array = _get_member_equipment(crew_data[selected_crew_index])
+	if _selected_equipment_index >= equipment.size():
+		return ""
+	var entry: Variant = equipment[_selected_equipment_index]
+	var label: String = ""
+	if entry is Dictionary:
+		label = str((entry as Dictionary).get("name", (entry as Dictionary).get("id", "")))
+	else:
+		label = str(entry)
+	return WeaponModServiceRef.normalize_id(label)
+
+
+func _on_fit_to_weapon_pressed() -> void:
+	var attachment_id: String = _selected_attachment_id()
+	if attachment_id.is_empty():
+		return
+	var member = crew_data[selected_crew_index]
+	var equipment: Array = _get_member_equipment(member)
+
+	# Candidate weapons: the character's own gear only. p.53 fits an attachment
+	# TO a weapon, and a weapon in the Stash is not in play this turn.
+	var weapons: Array = []
+	var labels: Array = []
+	for entry in equipment:
+		if not (entry is Dictionary):
+			continue
+		var d: Dictionary = entry
+		if not (d.has("range") or str(d.get("type", "")).to_lower() == "weapon"):
+			continue
+		var check: Dictionary = WeaponModServiceRef.can_fit(d, attachment_id)
+		weapons.append(d)
+		labels.append("%s%s%s" % [
+			str(d.get("name", "Weapon")),
+			WeaponModServiceRef.summary_tag(d),
+			"" if bool(check.get("ok", false)) else "  — " + str(check.get("reason", "")),
+		])
+
+	if weapons.is_empty():
+		AcknowledgeDialog.show_message(self,
+			"This character is carrying no weapon to fit it to (p.53).")
+		return
+
+	var popup := ItemChoicePopup.new()
+	get_tree().root.add_child(popup)
+	popup.title = "Fit to Weapon"
+	popup.item_chosen.connect(func(chosen: String):
+		_apply_fit(attachment_id, weapons, labels, chosen))
+	popup.show_choices(
+		str(WeaponModServiceRef.definition(attachment_id).get("name", attachment_id)),
+		labels, "Fit to which weapon? (Core Rules p.53)")
+
+
+func _apply_fit(attachment_id: String, weapons: Array, labels: Array,
+		chosen_label: String) -> void:
+	var idx: int = labels.find(chosen_label)
+	if idx < 0 or idx >= weapons.size():
+		return
+	var weapon: Dictionary = weapons[idx]
+	var result: Dictionary = WeaponModServiceRef.fit(weapon, attachment_id)
+	if not bool(result.get("ok", false)):
+		AcknowledgeDialog.show_message(self, str(result.get("reason", "")))
+		return
+
+	# The attachment is now PART of the weapon, so it stops being a separate item
+	# — one item, one home. A Sight it displaced becomes a loose item again,
+	# because a Sight is movable and must not simply evaporate.
+	var member = crew_data[selected_crew_index]
+	var equipment: Array = _get_member_equipment(member)
+	if _selected_equipment_index >= 0 and _selected_equipment_index < equipment.size():
+		equipment.remove_at(_selected_equipment_index)
+	var replaced: String = str(result.get("replaced", ""))
+	if not replaced.is_empty():
+		equipment.append({
+			"id": replaced,
+			"name": str(WeaponModServiceRef.definition(replaced).get("name", replaced)),
+			"type": "gear",
+		})
+	_set_member_equipment(member, equipment)
+
+	_selected_equipment_index = -1
+	_populate_crew_equipment()
+	_refresh_fit_button()
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("%s fitted to %s%s" % [
+			str(WeaponModServiceRef.definition(attachment_id).get("name", attachment_id)),
+			str(weapon.get("name", "the weapon")),
+			"" if replaced.is_empty() else " (previous Sight returned to kit)"])
 
 func _on_stash_item_selected(index: int) -> void:
 	## Handle stash item selection

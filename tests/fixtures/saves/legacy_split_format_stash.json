@@ -1,0 +1,325 @@
+{
+ "campaign_id": "22222222_1775243767",
+ "equipment": {
+  "equipment": [
+   {
+    "condition": "damaged",
+    "name": "Military Rifle",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Rattle Gun",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "superior",
+    "name": "Infantry Laser",
+    "owner": "Dex Jones",
+    "quality_modifier": 1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "damaged",
+    "name": "Shotgun",
+    "owner": "Doctor Indigo Ashford",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Scrap Pistol",
+    "owner": "Officer Kai Ashford",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Handgun",
+    "owner": "Drew Thorne",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Beam Light",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gear"
+   },
+   {
+    "condition": "standard",
+    "name": "Snooper Bot",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gadget"
+   },
+   {
+    "category": "DAMAGED_GEAR",
+    "description": "Found as battle loot",
+    "id": "loot_157153_1063",
+    "location": "ship_stash",
+    "name": "Assault Blade",
+    "needs_repair": true,
+    "value": 1.0
+   },
+   {
+    "category": "DAMAGED_GEAR",
+    "description": "Found as battle loot",
+    "id": "loot_157153_6433",
+    "location": "ship_stash",
+    "name": "Hot Shot Pack",
+    "needs_repair": true,
+    "value": 1.0
+   },
+   {
+    "category": "DAMAGED_GEAR",
+    "description": "Found as battle loot",
+    "id": "loot_157153_1063",
+    "location": "ship_stash",
+    "name": "Assault Blade",
+    "needs_repair": true,
+    "value": 1.0
+   },
+   {
+    "category": "DAMAGED_GEAR",
+    "description": "Found as battle loot",
+    "id": "loot_157153_6433",
+    "location": "ship_stash",
+    "name": "Hot Shot Pack",
+    "needs_repair": true,
+    "value": 1.0
+   },
+   {
+    "category": "ODDS_AND_ENDS",
+    "description": "Found as battle loot",
+    "id": "loot_128431_1572",
+    "location": "ship_stash",
+    "name": "Booster Pills",
+    "needs_repair": false,
+    "value": 1
+   }
+  ],
+  "gear": [
+   {
+    "condition": "damaged",
+    "name": "Military Rifle",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Rattle Gun",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "superior",
+    "name": "Infantry Laser",
+    "owner": "Dex Jones",
+    "quality_modifier": 1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "damaged",
+    "name": "Shotgun",
+    "owner": "Doctor Indigo Ashford",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Scrap Pistol",
+    "owner": "Officer Kai Ashford",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Handgun",
+    "owner": "Drew Thorne",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Beam Light",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gear"
+   },
+   {
+    "condition": "standard",
+    "name": "Snooper Bot",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gadget"
+   }
+  ],
+  "items": [
+   {
+    "condition": "damaged",
+    "name": "Military Rifle",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Rattle Gun",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "superior",
+    "name": "Infantry Laser",
+    "owner": "Dex Jones",
+    "quality_modifier": 1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "damaged",
+    "name": "Shotgun",
+    "owner": "Doctor Indigo Ashford",
+    "quality_modifier": -1.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Scrap Pistol",
+    "owner": "Officer Kai Ashford",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Handgun",
+    "owner": "Drew Thorne",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Weapon"
+   },
+   {
+    "condition": "standard",
+    "name": "Beam Light",
+    "owner": "Zephyr Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gear"
+   },
+   {
+    "condition": "standard",
+    "name": "Snooper Bot",
+    "owner": "Lieutenant Casey Flynn",
+    "quality_modifier": 0.0,
+    "source": "shared_pool",
+    "source_table": "crew_base",
+    "type": "Gadget"
+   }
+  ],
+  "weapons": [],
+  "armor": [],
+  "credits": 1.0
+ },
+ "crew": {
+  "members": [
+   {
+    "background": 20.0,
+    "character": "():<Resource#-9223371778435312629>",
+    "character_class": 11.0,
+    "character_name": "Zephyr Flynn",
+    "character_type": 0.0,
+    "combat": 1.0,
+    "experience": 0.0,
+    "id": "2873092675",
+    "injuries": [],
+    "is_bot": false,
+    "is_captain": true,
+    "is_human": false,
+    "is_soulless": false,
+    "level": 1.0,
+    "luck": 1.0,
+    "motivation": 20.0,
+    "name": "Zephyr Flynn",
+    "origin": 7.0,
+    "psionic_power": "",
+    "psionic_power_enhanced": false,
+    "reaction": 1.0,
+    "reactions": 1.0,
+    "savvy": 1.0,
+    "speed": 5.0,
+    "starting_rolls": [
+     "low_tech_weapon"
+    ],
+    "toughness": 3.0,
+    "traits": [
+     "Background: Primitive or Regressed World",
+     "Motivation: Fame",
+     "Class: Working Class"
+    ]
+   }
+  ]
+ },
+ "meta": {
+  "campaign_id": "22222222_1775243767",
+  "campaign_name": "22222222",
+  "created_at": "2026-04-03T12:16:07",
+  "difficulty": 2,
+  "game_phase": "ready_for_turn_system",
+  "ironman_mode": false,
+  "last_modified": "2026-04-05T09:15:50",
+  "schema_version": 1,
+  "version": "1.0.0"
+ }
+}

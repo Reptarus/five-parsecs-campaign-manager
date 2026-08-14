@@ -7,38 +7,31 @@ extends RefCounted
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 
-# Precursor event state
-var _pending_event1: Dictionary = {}
-var _pending_event2: Dictionary = {}
-var waiting_for_precursor_choice: bool = false
-
-func process_campaign_event(ctx: PostBattleContextClass) -> Dictionary:
-	## Roll for a campaign event. Returns the event dict.
-	## If crew has Precursor members, rolls twice and returns both for UI choice.
+func process_campaign_event(_ctx: PostBattleContextClass) -> Dictionary:
+	## Roll for a campaign event (Core Rules p.125, step 12). Returns the event dict.
+	##
+	## THERE IS NO PRECURSOR DOUBLE-ROLL ON THIS STEP. p.125 step 12 is one line:
+	## "Roll D100 on the Campaign Event Table. Apply the result immediately."
+	##
+	## The Precursor "roll twice and pick either" is a CHARACTER Event rule and
+	## belongs to step 13. Both of the book's statements of it name the Character
+	## Event and nothing else — p.126: "If the selected character is a Precursor,
+	## you may roll twice and pick either score"; p.17 (the species entry): "if a
+	## Precursor is the subject of a Character Event, you may roll for 2 events
+	## and pick which one you prefer." A whole-book sweep for "Precursor" turns up
+	## no third statement.
+	##
+	## This file used to implement the rule HERE, and triggered it whenever ANY
+	## crew member was a Precursor rather than when the selected one was. That was
+	## a fabricated rule on the wrong step, and it starved the real one: the
+	## correct producer in CharacterEventEffects had no consumer, so a Precursor
+	## selected for step 13 lost the event entirely. See that file for the fix.
 	var event_roll: int = randi_range(1, 100)
 	var campaign_event: Dictionary = _get_campaign_event(event_roll)
-
-	if _has_precursor_crew(ctx):
-		var second_roll: int = randi_range(1, 100)
-		var second_event: Dictionary = _get_campaign_event(second_roll)
-
-		_pending_event1 = campaign_event
-		_pending_event2 = second_event
-		waiting_for_precursor_choice = true
-		return {"precursor_choice": true, "event1": campaign_event, "event2": second_event}
-
+	# finalize_event() journals event.get("roll", 0) and nothing ever wrote the
+	# key, so every campaign-event journal entry recorded a roll of 0.
+	campaign_event["roll"] = event_roll
 	return campaign_event
-
-func select_precursor_event(choice: int) -> Dictionary:
-	## Select which precursor event to use (1 or 2).
-	if not waiting_for_precursor_choice:
-		push_warning("CampaignEventEffects: select_precursor_event called but not waiting for choice")
-		return {}
-	waiting_for_precursor_choice = false
-	var chosen: Dictionary = _pending_event2 if choice == 2 else _pending_event1
-	_pending_event1 = {}
-	_pending_event2 = {}
-	return chosen
 
 func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 	## Apply the event effects after selection.
@@ -78,24 +71,6 @@ func _get_campaign_event(roll: int) -> Dictionary:
 				result["species_exceptions"] = entry["species_exceptions"]
 			return result
 	return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
-
-func _has_precursor_crew(ctx: PostBattleContextClass) -> bool:
-	if not ctx.game_state_manager:
-		return false
-	if not ctx.game_state_manager.has_method("get_crew_members"):
-		return false
-	var crew: Array = ctx.game_state_manager.get_crew_members()
-	for member in crew:
-		if not member:
-			continue
-		# str() guard: legacy saves store crew origin as a numeric enum (float), so
-		# member.origin can be a float and .to_lower() would crash. Same class as the
-		# CrewTaskComponent fix. str(7.0)="7.0" simply won't match "precursor" (correct
-		# graceful degradation for legacy crew with no string origin).
-		var origin: String = str(member.origin).to_lower() if "origin" in member else ""
-		if origin == "precursor":
-			return true
-	return false
 
 func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 	## Apply campaign event effects based on event title (Core Rules p.126-128)
@@ -219,7 +194,7 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			_mark_departed(old_captain)
 			if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 				ctx.campaign_journal.create_entry({
-					"type": "character_departure",
+					"type": "character_event",
 					"auto_generated": true,
 					"title": "New Captain",
 					"description": "%s took command; %s left the campaign with their gear (Core Rules p.127)" % [

@@ -14,6 +14,55 @@ extends RefCounted
 # GlobalEnums available as autoload singleton
 const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+## Compendium p.147 — Bot upgrades are one of the three things Salvage may buy.
+const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
+## Core Rules p.74 "Bot manufacturing — All Bot upgrades are 1 credit cheaper."
+const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
+
+## ============================================================================
+## THE ONE WAY TO ASK "DOES THIS CREW MEMBER HAVE COURSE X?"
+## ============================================================================
+##
+## `acquired_training` is the single source of truth (Character.gd:1067). The
+## `has_*_training` BOOLEANS that `_apply_training_benefits()` below writes via
+## `Object.set()` are silent no-ops — no such property is declared on Character —
+## and `purchase_training()`, their only producer, has ZERO callers. The live
+## grant path is `Character.add_training()`, reached from TrainingSelectionDialog
+## and CharacterDetailsScreen.
+##
+## That combination is why `RedZoneSystem.can_obtain_license()` read
+## `has_broker_training` and never once found it: a crew member who PURCHASED
+## Broker training got no Red Zone licence discount, only one who happened to roll
+## a broker-ish background trait at creation.
+##
+## Dual-shape on purpose. Crew are Dictionaries on a loaded save and Character
+## RESOURCES on a fresh campaign, and the Dictionary branch must come FIRST —
+## `has_method()` on a Dictionary is an invalid call that unwinds the caller.
+static func member_has_training(member: Variant, course_id: String) -> bool:
+	if member == null:
+		return false
+	if member is Dictionary:
+		var d: Dictionary = member
+		var list: Variant = d.get("acquired_training", [])
+		if not (list is Array) or (list as Array).is_empty():
+			list = d.get("training", [])
+		return list is Array and course_id in (list as Array)
+	if member.has_method("has_training"):
+		return member.has_training(course_id)
+	if "acquired_training" in member and member.acquired_training is Array:
+		return course_id in member.acquired_training
+	return false
+
+
+## True when ANY member of `crew` holds the course. Several p.125 courses are
+## crew-wide in effect ("When rolling to obtain licenses ... add +1") rather than
+## tied to the figure that acts.
+static func crew_has_training(crew: Array, course_id: String) -> bool:
+	for member: Variant in crew:
+		if member_has_training(member, course_id):
+			return true
+	return false
+
 
 # Signals
 signal character_advanced(character: Resource, advancement_type: String, new_value: int)
@@ -300,8 +349,18 @@ func _apply_training_benefits(character: Resource, training_type: String) -> voi
 ## Get available advancements for a character
 
 func get_available_advancements(character: Resource) -> Array[Dictionary]:
-	## Get list of available advancements for a character
-	var advancements: Array = []
+	## Get list of available advancements for a character.
+	##
+	## The element type MUST match the signature. A bare `Array` here returns fine to
+	## the compiler and then dies at runtime on
+	##     "Trying to return an array of type "Array" where expected return type is
+	##      "Array[Dictionary]"."
+	## which ABORTS the function silently — the caller gets nothing and the process
+	## keeps running. Narrowed rather than widening the signature because callers of
+	## the sibling CharacterAdvancementService assign straight into
+	## `var options: Array[Dictionary]` (PostBattleSequence :1800,
+	## CharacterUpgradeDialog :133), and only Dictionary literals are appended below.
+	var advancements: Array[Dictionary] = []
 	var current_xp = Godot4Utils.safe_get_property(character, "experience_points", 0)
 
 	# Stat advancements
@@ -444,7 +503,7 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = get_stat_cost(stat_name)
+	var cost: int = _bot_upgrade_cost(stat_name, null)
 	return campaign_credits >= cost
 
 func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resource) -> bool:
@@ -465,7 +524,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	if stat_name in upgraded_stats:
 		return false
 
-	var cost: int = get_stat_cost(stat_name)
+	var cost: int = _bot_upgrade_cost(stat_name, game_state_ref)
 
 	# Core Rules p.125 Bot Tech training: "All Bot upgrades cost 1 credit less."
 	# Check if any crew member has bot_tech training (caller should pass this)
@@ -477,15 +536,35 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	else:
 		current_credits = Godot4Utils.safe_get_property(game_state_ref, "credits", 0)
 
-	if current_credits < cost:
+	# Compendium p.147: "When purchasing any of the following, you may cash in
+	# Salvage to offset the cost in Credits. 1 unit of Salvage equals 1 Credit
+	# ONLY when purchasing: Ship repairs / Ship modules / Bot upgrades."
+	#
+	# Applied BEFORE the affordability check so salvage can actually make an
+	# upgrade reachable, and refunded below if the credit half then fails —
+	# salvage that bought nothing was never "cashed in".
+	var campaign_for_salvage: Variant = _campaign_for_salvage(game_state_ref)
+	var salvage_paid: int = 0
+	if campaign_for_salvage != null:
+		var offset: Dictionary = SalvageLedgerRef.apply_offset(
+			campaign_for_salvage, cost, SalvageLedgerRef.PURPOSE_BOT_UPGRADE)
+		salvage_paid = int(offset.get("salvage_applied", 0))
+	var credit_cost: int = maxi(0, cost - salvage_paid)
+
+	if current_credits < credit_cost:
+		if campaign_for_salvage != null and salvage_paid > 0:
+			SalvageLedgerRef.add_units(campaign_for_salvage, salvage_paid)
 		return false
 
 	# Deduct credits
-	if game_state_ref.has_method("remove_credits"):
-		if not game_state_ref.remove_credits(cost):
-			return false
-	elif game_state_ref.has_method("set"):
-		game_state_ref.set("credits", current_credits - cost)
+	if credit_cost > 0:
+		if game_state_ref.has_method("remove_credits"):
+			if not game_state_ref.remove_credits(credit_cost):
+				if campaign_for_salvage != null and salvage_paid > 0:
+					SalvageLedgerRef.add_units(campaign_for_salvage, salvage_paid)
+				return false
+		elif game_state_ref.has_method("set"):
+			game_state_ref.set("credits", current_credits - credit_cost)
 
 	# Apply +1 to the stat
 	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
@@ -502,6 +581,43 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 
 	bot_upgrade_installed.emit(bot, stat_name, {"stat": stat_name, "cost": cost, "new_value": new_val})
 	return true
+
+
+## The campaign that owns the salvage ledger.
+##
+## `game_state_ref` is typed Resource here but callers pass the GameState AUTOLOAD
+## (a Node), so `"current_campaign" in game_state_ref` is checked rather than
+## assumed, with the autoload as the fallback. This is a RefCounted, so
+## get_node_or_null() is unavailable — the tree is reached via the main loop, per
+## the Engine.has_singleton gotcha.
+## Core Rules p.74, verbatim: "Bot manufacturing — All Bot upgrades are 1 credit
+## cheaper."
+##
+## `WorldTraitEffects.bot_upgrade_cost()` implemented this and had ZERO callers,
+## so the trait was a paragraph of text. Applied at BOTH the affordability check
+## and the charge, or the button greys out at the undiscounted price on a world
+## the crew can actually afford — the guard-applied-to-N-1-of-N shape.
+func _bot_upgrade_cost(stat_name: String, game_state_ref: Variant) -> int:
+	var base: int = get_stat_cost(stat_name)
+	var campaign: Variant = _campaign_for_salvage(game_state_ref)
+	if campaign == null:
+		return base
+	return WorldTraitEffectsRef.bot_upgrade_cost(
+		base, WorldTraitEffectsRef.traits_for_current_world(campaign))
+
+
+func _campaign_for_salvage(game_state_ref: Variant) -> Variant:
+	if game_state_ref != null and "current_campaign" in game_state_ref:
+		var c: Variant = game_state_ref.current_campaign
+		if c != null:
+			return c
+	var loop: MainLoop = Engine.get_main_loop()
+	if loop == null or not (loop is SceneTree):
+		return null
+	var gs: Node = (loop as SceneTree).root.get_node_or_null("/root/GameState")
+	if gs == null or not ("current_campaign" in gs):
+		return null
+	return gs.current_campaign
 
 
 func _is_soulless(character: Resource) -> bool:

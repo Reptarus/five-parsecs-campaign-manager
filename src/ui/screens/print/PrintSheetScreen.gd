@@ -15,6 +15,12 @@ extends Control
 const SheetRenderer = preload("res://src/ui/components/sheet/SheetRenderer.gd")
 const PdfExportRouter = preload("res://src/core/export/PdfExportRouter.gd")
 const UIColors = preload("res://src/ui/components/base/UIColors.gd")
+# Preloaded rather than referenced by its class_name, matching the three above and the
+# same note in SheetRenderer.gd: the global class_name cache can lag behind file edits
+# (CLAUDE.md "Preload Pattern for UI Class References" / Sprint 2 F4). A bare
+# `SheetDataContext.build(...)` resolves fine in tests, which import fresh — the risk is
+# an exported build, which is exactly where a blank sheet would be hardest to diagnose.
+const SheetDataContextScript = preload("res://src/core/export/SheetDataContext.gd")
 
 const SHEETS: Array[Dictionary] = [
 	{"id": "crew_log", "label": "Crew Log"},
@@ -60,6 +66,15 @@ func _ready() -> void:
 		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
 		add_child(_sss)
 		_sss.setup(_sss_column as BoxContainer, 1)
+
+	# Hold the device landscape while a sheet is on screen. The sheets are 3:2
+	# landscape pages from the rulebook — a fixed-aspect DOCUMENT, not a layout — so
+	# in portrait the preview can only shrink to fit the width and the stat numbers
+	# stop being readable. Nothing to reflow, so the orientation is the fix.
+	# No-ops on desktop (FEATURE_ORIENTATION is false there) and restores on exit.
+	var _orientation = load("res://src/ui/components/base/OrientationLock.gd").new()
+	add_child(_orientation)
+	_orientation.setup(DisplayServer.SCREEN_SENSOR_LANDSCAPE)
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	# layout_class_changed, not breakpoint_changed: rotating a device keeps the
 	# width bucket but flips portrait/landscape, and this screen only cares about
@@ -262,31 +277,34 @@ func _render_active_sheet() -> void:
 
 
 func _build_data_context() -> Dictionary:
-	var ctx: Dictionary = {}
+	## Delegates to SheetDataContext, which projects the campaign into the shape the
+	## field manifests address (T9-09). This used to hand the raw campaign Resource
+	## straight to the renderer, so every `campaign.crew[N]` / `campaign.captain` /
+	## `campaign.ship` path walked into a property that does not exist —
+	## 154 of 163 sources resolved to null and the printed sheet came out 94.5% blank.
+	## Pinned by tests/unit/test_sheet_source_paths_resolve.gd.
+	var campaign: Object = null
 	var game_state: Node = get_node_or_null("/root/GameState")
 	if game_state and "current_campaign" in game_state:
-		ctx["campaign"] = game_state.get("current_campaign")
+		campaign = game_state.get("current_campaign")
+
+	var world: Variant = null
 	var planet_mgr: Node = get_node_or_null("/root/PlanetDataManager")
 	if planet_mgr and planet_mgr.has_method("get_current_planet"):
-		ctx["world"] = planet_mgr.get_current_planet()
+		world = planet_mgr.get_current_planet()
+
+	var entries: Array = []
 	var journal: Node = get_node_or_null("/root/CampaignJournal")
-	if journal:
-		var entries: Array = []
-		if journal.has_method("get_entries"):
-			entries = journal.get_entries()
-		# last_battle convenience: most recent entry where type == "battle"
-		var last_battle: Dictionary = {}
-		for i in range(entries.size() - 1, -1, -1):
-			var entry: Variant = entries[i]
-			if entry is Dictionary \
-					and str((entry as Dictionary).get("type", "")) == "battle":
-				last_battle = entry
-				break
-		ctx["journal"] = {
-			"entries": entries,
-			"last_battle": last_battle,
-		}
-	return ctx
+	# `get_all_entries()` — NOT `get_entries()`, which has ZERO definitions repo-wide.
+	# That made this a permanently-false branch (CLAUDE.md: "a has_method() guard on a
+	# method with zero definitions is not a safety net"), so `entries` was ALWAYS [] and
+	# the Encounter Log's whole journal block printed blank in every campaign on every
+	# platform. Found on device, deploy #5, Aug 9 2026 — the unit suite calls
+	# SheetDataContext.build() directly with entries, so it is structurally blind here.
+	if journal and journal.has_method("get_all_entries"):
+		entries = journal.get_all_entries()
+
+	return SheetDataContextScript.build(campaign, world, entries)
 
 
 # ── Signal handlers ────────────────────────────────────────────────────────
@@ -325,6 +343,8 @@ func _on_save_png_pressed() -> void:
 	dialog.title = "Save Sheet as PNG"
 	dialog.current_file = _default_filename("png")
 	dialog.size = Vector2i(800, 500)
+	# MANDATORY on Android — see the note on _on_save_pdf_pressed().
+	dialog.use_native_dialog = true
 	dialog.file_selected.connect(_on_png_path_selected.bind(dialog))
 	dialog.canceled.connect(_on_dialog_canceled.bind(dialog))
 	add_child(dialog)
@@ -340,6 +360,26 @@ func _on_save_pdf_pressed() -> void:
 	dialog.title = "Save Sheet as PDF"
 	dialog.current_file = _default_filename("pdf")
 	dialog.size = Vector2i(800, 500)
+	# MANDATORY on Android (T9-10, measured on a TB361FU Aug 9 2026: without it the
+	# save fails with error 13 / ERR_FILE_CANT_WRITE and NOTHING is written).
+	#
+	# Godot's own FileDialog browses the real filesystem, so it happily shows
+	# /storage/emulated/0 and lets the player pick Documents/ — but the app requests
+	# ONLY android.permission.INTERNET at targetSdk 35, and under scoped storage an
+	# app with no storage permission cannot write there. The pick succeeds and the
+	# WRITE fails, which is the worst possible split.
+	#
+	# use_native_dialog routes to the Android Storage Access Framework instead, which
+	# needs no permission at all: the picker returns a content:// URI and the docs are
+	# explicit that "this URI can be passed directly to FileAccess to perform
+	# read/write operations". PDF.gd:137 and export_to_png() both write via FileAccess,
+	# so the URI flows straight through.
+	#
+	# Per the Godot 4.6 docs this is supported on Android 10+ and ONLY for
+	# ACCESS_FILESYSTEM — with ACCESS_RESOURCES/ACCESS_USERDATA it silently falls back
+	# to the custom dialog. So do NOT "tidy" the access mode above; the two settings
+	# only work as a pair.
+	dialog.use_native_dialog = true
 	dialog.file_selected.connect(_on_pdf_path_selected.bind(dialog))
 	dialog.canceled.connect(_on_dialog_canceled.bind(dialog))
 	add_child(dialog)
@@ -347,16 +387,58 @@ func _on_save_pdf_pressed() -> void:
 	dialog.popup_centered()
 
 
+## Put the screen into "working" state and let the UI actually PAINT it.
+##
+## Both exports rasterise a 2764x1843 sheet and write ~15 MB, so even after the
+## bulk-write fix they are not instant. Without this the screen sat silent — measured
+## over 4 minutes on device with no indication anything was happening, which reads as a
+## freeze and invites the player to kill the app mid-write.
+##
+## The two awaited frames are load-bearing: setting a Label's text does not repaint it,
+## and the export that follows blocks the main thread. Yield first or the "Exporting"
+## message only becomes visible after the work it was describing has finished.
+func _begin_export(what: String) -> void:
+	_set_status("Exporting %s… this can take a few seconds for a full sheet." % what)
+	_save_png_btn.disabled = true
+	_save_pdf_btn.disabled = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
+func _end_export(message: String) -> void:
+	_set_status(message)
+	_save_png_btn.disabled = false
+	# Never re-enable a PDF button the backend cannot serve.
+	_save_pdf_btn.disabled = not PdfExportRouter.is_pdf_available()
+
+
+## The filename to show the player after a save.
+##
+## Android's native (SAF) dialog hands back a content:// URI, not a path — on
+## device the status read
+##   content://com.android.externalstorage.documents/document/primary%3Acrew_log_...
+## wrapped over five lines. The player picked the location, so the location is not
+## news; the filename is. Falls back to the whole string if nothing parses out,
+## which is better than showing an empty "Saved:".
+static func _display_file_name(path: String) -> String:
+	var decoded: String = path.uri_decode()
+	for separator: String in ["/", "\\", ":"]:
+		if decoded.contains(separator):
+			decoded = decoded.get_slice(separator, decoded.get_slice_count(separator) - 1)
+	return decoded if not decoded.is_empty() else path
+
+
 func _on_png_path_selected(path: String, dialog: FileDialog) -> void:
 	_cleanup_dialog(dialog)
 	if _renderer == null:
 		_set_status("Renderer not ready.")
 		return
+	await _begin_export("PNG")
 	var err: Error = await _renderer.export_to_png(path)
 	if err == OK:
-		_set_status("Saved PNG: %s" % path)
+		_end_export("Saved PNG: %s" % _display_file_name(path))
 	else:
-		_set_status("PNG save failed (error %d)" % err)
+		_end_export("PNG save failed (error %d)" % err)
 
 
 func _on_pdf_path_selected(path: String, dialog: FileDialog) -> void:
@@ -364,13 +446,14 @@ func _on_pdf_path_selected(path: String, dialog: FileDialog) -> void:
 	if _renderer == null:
 		_set_status("Renderer not ready.")
 		return
+	await _begin_export("PDF")
 	var err: Error = await _renderer.export_to_pdf(path)
 	if err == ERR_UNAVAILABLE:
-		_set_status("PDF backend not installed. Saved PNG fallback recommended.")
+		_end_export("PDF backend not installed. Save as PNG instead.")
 	elif err == OK:
-		_set_status("Saved PDF: %s" % path)
+		_end_export("Saved PDF: %s" % _display_file_name(path))
 	else:
-		_set_status("PDF save failed (error %d)" % err)
+		_end_export("PDF save failed (error %d)" % err)
 
 
 func _on_dialog_canceled(dialog: FileDialog) -> void:

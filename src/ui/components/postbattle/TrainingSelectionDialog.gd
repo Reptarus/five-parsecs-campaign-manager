@@ -86,7 +86,13 @@ const TRAINING_TYPES := {
 		"description": "When rolling to obtain licenses, Advanced Training "
 			+ "applications, or searching for Patrons, add +1 to the roll."
 	},
-	"bot_tech": {
+	# Key MUST match data/training_courses.json, which is the SSOT for course ids
+	# (CharacterDetailsScreen reads it and grants `bot_technician`). This dict
+	# said `bot_tech`, so the same course was recorded under two different names
+	# depending on which screen the player bought it from, and any rules check
+	# could only ever see half of them. Character.has_training() still accepts
+	# the old spelling for saves that already carry it.
+	"bot_technician": {
 		"name": "Bot technician",
 		"cost": 10,
 		"description": "All Bot upgrades cost 1 credit less. If a Bot or Soulless "

@@ -1208,6 +1208,10 @@ func _on_change_portrait_pressed() -> void:
 	])
 	dialog.title = "Select Character Portrait"
 	dialog.min_size = Vector2i(600, 400)
+	# Android: SAF picker — portrait images live in shared storage, which this app has
+	# no permission to browse. Pairs with ACCESS_FILESYSTEM above.
+	# Full rationale: PrintSheetScreen._on_save_pdf_pressed().
+	dialog.use_native_dialog = true
 	dialog.file_selected.connect(_on_portrait_file_selected)
 	add_child(dialog)
 	dialog.popup_centered()

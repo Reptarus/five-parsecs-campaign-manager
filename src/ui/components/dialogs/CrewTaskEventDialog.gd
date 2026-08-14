@@ -409,6 +409,32 @@ func _build_grenade_picker() -> void:
 	confirm.pressed.connect(_on_grenades_confirmed)
 	_interactive_area.add_child(confirm)
 
+## The printable name of an equipment entry, whichever shape it arrives in.
+##
+## ⚠ An equipment array holds EITHER plain names (the `Array[String]` shape
+## `Character.to_dictionary()` produces) OR full item Dictionaries — a live save
+## pulled off the tablet Aug 13 2026 carries the latter:
+##   {"condition":"damaged","id":"military_rifle_3495_8386","name":"Military Rifle",
+##    "owner":"Zephyr Flynn","quality_modifier":-1.0,...}
+## so a bare `str(entry)` renders that entire dictionary into a button label.
+##
+## THAT WAS NOT COSMETIC. The stringified dict was also bound as the selection and
+## handed to `CrewTaskComponent._remove_from_crew_equipment()`, which matches with
+## `if item_name in equip` — a String tested against Dictionaries, so it can never
+## match and the erase never runs. MEASURED: Zephyr Flynn's equipment is
+## byte-identical before and after a "Bad fight - lose one item" event. The p.82
+## penalty was unenforceable through this dialog.
+##
+## The two-shape rule was already known at :725 (the loot summary) and nowhere
+## else; this is that one correct line promoted to the single source every list
+## uses. Static so the consumer can resolve the same name the player clicked.
+static func item_display_name(entry: Variant) -> String:
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		return str(d.get("name", d.get("id", "Unknown Item")))
+	return str(entry)
+
+
 func _build_discard_list() -> void:
 	var equipment: Array = _event_data.get("equipment", [])
 	if equipment.is_empty():
@@ -426,13 +452,14 @@ func _build_discard_list() -> void:
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
-	for item_name in equipment:
+	for entry in equipment:
+		var label: String = item_display_name(entry)
 		var btn := Button.new()
-		btn.text = str(item_name)
+		btn.text = label
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(btn, COLOR_ELEVATED)
-		btn.pressed.connect(_on_discard_selected.bind(str(item_name)))
+		btn.pressed.connect(_on_discard_selected.bind(label))
 		_interactive_area.add_child(btn)
 
 func _build_sell_list() -> void:
@@ -454,9 +481,11 @@ func _build_sell_list() -> void:
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
 
-	for item_name in equipment:
+	for entry in equipment:
 		var cb := CheckBox.new()
-		cb.text = str(item_name)
+		# `_on_sell_confirmed` collects `cb.text` into `sold_items`, which
+		# CrewTaskComponent then removes by name — so the label IS the identifier.
+		cb.text = item_display_name(entry)
 		cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		cb.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
@@ -676,8 +705,8 @@ func _handle_roll_on_table() -> void:
 		_show_outcome("No loot found", COLOR_TEXT_SECONDARY)
 	else:
 		_show_outcome("Loot rolled:", COLOR_TEXT_GOLD)
-		for item_name in resolved_items:
-			_add_outcome_line("  → %s" % str(item_name), COLOR_SUCCESS)
+		for entry in resolved_items:
+			_add_outcome_line("  → %s" % item_display_name(entry), COLOR_SUCCESS)
 
 	# Update event data with resolved names so completion callback uses them
 	_event_data["items_to_resolve"] = resolved_items
@@ -688,31 +717,44 @@ func _handle_roll_on_table() -> void:
 ## ── Loot Table Resolution (for ROLL_ON_TABLE) ────────────────────────
 
 const _LootConstants = preload("res://src/core/systems/LootSystemConstants.gd")
+const _LootRoller = preload("res://src/core/equipment/LootTableResolver.gd")
+## The pp.28-29 CREATION tables (Low-Tech Weapon / Gear / Gadget) live in
+## gear_database.json and are a different set from the p.131 Loot Table. Several
+## table entries cite them by page, and this dialog used to answer those cites
+## out of the Loot Table instead — see the two branches below.
+const _CreationTables = preload(
+	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 
 func _resolve_loot_roll(item_string: String) -> Array:
 	## Resolve a "(random)" item string into actual item names via loot subtables
 	if item_string.begins_with("Gear Loot") or item_string == "Gear (random)":
 		return [_roll_subtable(_LootConstants.get_gear_subtable_data())]
 	elif "Low Tech Weapon" in item_string:
-		# Melee weapons only
-		for entry in _LootConstants.get_weapon_subtable_data():
-			if entry is Dictionary and entry.get("category") == "melee_weapons":
-				var wpn_items: Array = entry.get("items", [])
-				if wpn_items.size() > 0:
-					return [wpn_items[randi() % wpn_items.size()]]
-		return [item_string]
+		# p.28 Low-Tech Weapon Table — Handgun, Scrap Pistol, Colony Rifle,
+		# Shotgun, Blade and friends. This used to pull from the LOOT table's
+		# melee_weapons subtable, handing over a Power Claw / Suppression Maul /
+		# Glare Sword / Ripper Sword: the wrong table, and far better gear than
+		# the book pays. Identical bug to CrewTaskComponent.gd, which was fixed
+		# in isolation while this copy kept shipping it.
+		return _roll_creation_table("low_tech_weapon", item_string)
 	elif "Gadget" in item_string:
-		# Gun mods + sights from gear subtable
-		var gadget_pool: Array = []
-		for entry in _LootConstants.get_gear_subtable_data():
-			if entry is Dictionary and entry.get("category", "") in ["gun_mods", "gun_sights"]:
-				gadget_pool.append_array(entry.get("items", []))
-		if gadget_pool.size() > 0:
-			return [gadget_pool[randi() % gadget_pool.size()]]
-		return [item_string]
+		# p.29 Gadget Table — its own 22-row D100 table, not gun mods + sights.
+		return _roll_creation_table("gadget", item_string)
 	else:
 		# Full main loot table roll
 		return _roll_main_loot()
+
+## Roll once on a pp.28-29 creation table via the shared generator, so there is
+## one roller per table rather than a private copy in every dialog.
+func _roll_creation_table(table_name: String, fallback: String) -> Array:
+	var dice_manager: Node = get_node_or_null("/root/DiceManager")
+	var rolled: Array = _CreationTables.generate_bonus_equipment([table_name], dice_manager)
+	var names: Array = []
+	for item: Variant in rolled:
+		var item_name: String = str(item.get("name", "")) if item is Dictionary else str(item)
+		if not item_name.is_empty():
+			names.append(item_name)
+	return names if not names.is_empty() else [fallback]
 
 func _roll_main_loot() -> Array:
 	## Roll D100 on main loot table, then resolve subtable (Core Rules pp.131-133)
@@ -747,15 +789,18 @@ func _roll_main_loot() -> Array:
 	return ["Unknown Loot"]
 
 func _roll_subtable(subtable_data: Array) -> String:
-	## Roll D100 on a subtable, pick a random item from the matched range
+	## Roll D100 to pick the subtable, then delegate the book's THIRD roll
+	## (p.131, "finally the exact item in question") to the canonical resolver.
+	## The random pick this replaced flattened every printed frequency on
+	## pp.131-134 to uniform.
 	var roll: int = randi_range(1, 100)
 	for entry in subtable_data:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
 			if roll >= r[0] and roll <= r[1]:
-				var sub_items: Array = entry.get("items", [])
-				if sub_items.size() > 0:
-					return str(sub_items[randi() % sub_items.size()])
+				var rolled: String = _LootRoller.roll_item_in(entry)
+				if not rolled.is_empty():
+					return rolled
 				return str(entry.get("item", "Unknown"))
 	return "Unknown Loot"
 
@@ -950,13 +995,14 @@ func _on_trade_accepted() -> void:
 	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_interactive_area.add_child(desc)
-	for item_name in equipment:
+	for entry in equipment:
+		var label: String = item_display_name(entry)
 		var btn := Button.new()
-		btn.text = str(item_name)
+		btn.text = label
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_style_button(btn, COLOR_ELEVATED)
-		btn.pressed.connect(_on_trade_item_selected.bind(str(item_name)))
+		btn.pressed.connect(_on_trade_item_selected.bind(label))
 		_interactive_area.add_child(btn)
 
 func _on_trade_declined() -> void:

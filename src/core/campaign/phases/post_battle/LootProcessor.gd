@@ -28,6 +28,14 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 		roll_count = 0
 	elif ctx.battle_result.get("is_quest_finale", ctx.battle_result.get("quest_final_stage", ctx.battle_result.get("is_quest_final", false))):
 		roll_count = 3  # Core Rules p.120: final stage of a Quest -> roll three times, claim all.
+	elif ctx.battle_result.get("is_black_zone", false) \
+			and ctx.battle_result.get("success", false):
+		# Core Rules p.151 Black Job victory: "Claim 3 rolls on the Loot Table."
+		# BlackZoneSystem.calculate_rewards() has always returned `loot_rolls: 3`
+		# and NOTHING read it — PaymentProcessor applies the credits, the ship
+		# loan payoff, the Rival clear and the 2 Patrons from that same dict, and
+		# stops short of the loot. An absolute count, like the Quest finale above.
+		roll_count = 3
 	elif int(ctx.battle_result.get("story_loot_rolls", 0)) > 0:
 		# Story Track Event 7 win (p.160): "3 rolls on the Loot Table".
 		roll_count = int(ctx.battle_result.get("story_loot_rolls", 0))
@@ -36,6 +44,15 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	# from snooping around the site" — additive, unlike the absolute counts above.
 	if roll_count > 0:
 		roll_count += int(ctx.battle_result.get("story_bonus_loot_rolls", 0))
+
+		# Core Rules p.150 Red Job Improved Rewards: "If you Win, you may make an
+		# additional roll on the Loot Table after the battle. You receive this
+		# roll AS LONG AS YOU WIN, even if you subsequently withdrew from the
+		# battlefield." Additive, and keyed on the win rather than on holding the
+		# field — that second sentence exists precisely to separate the two.
+		if ctx.battle_result.get("is_red_zone", false) \
+				and ctx.battle_result.get("success", false):
+			roll_count += 1
 
 	for _i in range(roll_count):
 		gathered_loot.append_array(_roll_loot_table())
@@ -109,8 +126,21 @@ func _add_loot_to_inventory(ctx: PostBattleContextClass, loot_item: Dictionary) 
 		% str(equipment_data.get("name", "?")))
 
 func _apply_loot_reward(ctx: PostBattleContextClass, reward: Dictionary) -> void:
-	## Apply a Rewards-Subtable result (Core Rules p.133): credits / rumors / story points.
-	## (ship_component_discount has no purchase-discount system yet — recorded via journal only.)
+	## Apply a Rewards-Subtable result (Core Rules p.134): credits / rumors / story
+	## points / ship-component discount.
+	##
+	## p.134, rows 71-85 "Ship Parts" and 86-90 "Military Ship Part": "Discount
+	## your next ship component purchase by 1D6 [or 1D6+2] credits. ESTABLISH VALUE
+	## NOW." `LootTableResolver` already rolls it at establish-time into
+	## `ship_component_discount` and this function threw it away — 20% of Rewards
+	## results produced a line of text and no benefit.
+	##
+	## Banked as a QUEUE, not a running total. Each row discounts "your NEXT ship
+	## component purchase", so two rewards are two separate vouchers spent on two
+	## purchases rather than one double discount; that is the literal reading and
+	## stacking them would be inventing.
+	_bank_ship_component_discount(ctx, int(reward.get("ship_component_discount", 0)))
+
 	var credits: int = int(reward.get("credits", 0))
 	if credits > 0:
 		if ctx.game_state and ctx.game_state.has_method("add_credits"):
@@ -123,6 +153,23 @@ func _apply_loot_reward(ctx: PostBattleContextClass, reward: Dictionary) -> void
 	var rumors: int = int(reward.get("rumors", 0))
 	for _r in range(rumors):
 		ctx.add_quest_rumor()
+
+
+func _bank_ship_component_discount(
+	ctx: PostBattleContextClass, amount: int
+) -> void:
+	if amount <= 0:
+		return
+	var campaign = ctx.campaign
+	if campaign == null and ctx.game_state and "current_campaign" in ctx.game_state:
+		campaign = ctx.game_state.current_campaign
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	var queue: Array = campaign.progress_data.get("ship_component_discounts", [])
+	if not (queue is Array):
+		queue = []
+	queue.append(amount)
+	campaign.progress_data["ship_component_discounts"] = queue
 
 
 func _try_install_implant_from_loot(loot_name: String) -> bool:

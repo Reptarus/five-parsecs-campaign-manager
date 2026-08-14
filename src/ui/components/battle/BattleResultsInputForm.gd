@@ -32,6 +32,7 @@ var _objective_id: String = ""
 var _objective_name: String = ""
 var _objective_condition: String = ""
 var _objective_met_check: CheckBox
+var _objective_outcome_note: Label
 var _notable_sight_check: CheckBox
 
 # Core Rules p.123 per-character XP bonuses. Both are things only the player
@@ -40,6 +41,7 @@ var _notable_sight_check: CheckBox
 var _first_casualty_btn: OptionButton
 var _unique_kill_btn: OptionButton
 var _reduced_lethality_btn: OptionButton
+var _medical_nominee_btn: OptionButton
 
 ## prefill: optional {victory, enemies_defeated, rounds, held_field} from
 ## BattleObjectiveTracker.get_result_prefill(). Stored and applied at the end
@@ -144,6 +146,7 @@ func _build_ui() -> void:
 		_objective_met_check = CheckBox.new()
 		_objective_met_check.text = "Objective achieved"
 		_objective_met_check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		_objective_met_check.toggled.connect(_on_objective_met_toggled)
 		obj_card.add_child(_objective_met_check)
 
 		# Core Rules p.89 Notable Sights: the item "can be acquired by moving into
@@ -192,6 +195,13 @@ func _build_ui() -> void:
 	_outcome_btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	_outcome_btn.item_selected.connect(_on_outcome_changed)
 	outcome_left.add_child(_outcome_btn)
+
+	_objective_outcome_note = Label.new()
+	_objective_outcome_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_objective_outcome_note.visible = false
+	_objective_outcome_note.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+	_objective_outcome_note.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
+	outcome_left.add_child(_objective_outcome_note)
 	outcome_row.add_child(outcome_left)
 
 	_held_field_check = CheckBox.new()
@@ -362,6 +372,24 @@ func _build_ui() -> void:
 		_reduced_lethality_btn = _build_crew_picker(
 			xp_card, "Exempt from the injury roll")
 
+	# Core Rules p.125 Medical school: "you may nominate a casualty that will roll
+	# twice on the Injury Table, picking the better result." Asked here for the
+	# same reason as Reduced Lethality above — the nomination precedes the roll,
+	# and by the time the post-battle screen renders the Injury Table has already
+	# been rolled. Only shown when a crew member actually holds the course, so a
+	# crew without it never sees a control it cannot use.
+	if _crew_has_training("medical"):
+		var med_hint := Label.new()
+		med_hint.text = ("Medical school (p.125): your medic may nominate one"
+			+ " casualty to roll twice on the Injury Table and keep the better"
+			+ " result. Choose before the rolls are made.")
+		med_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		med_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		med_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		xp_card.add_child(med_hint)
+		_medical_nominee_btn = _build_crew_picker(
+			xp_card, "Nominate for the Medical school reroll")
+
 	vbox.add_child(xp_section[0])
 
 	# === SUBMIT BUTTON ===
@@ -420,6 +448,29 @@ func _apply_prefill() -> void:
 			var i: int = int(idx)
 			if i >= 0 and i < _injury_checks.size():
 				_injury_checks[i].button_pressed = true
+
+func _crew_has_training(course_id: String) -> bool:
+	## Mirrors InjuryProcessor._member_has_training: Dictionary branch FIRST,
+	## because has_method() on a Dictionary is an invalid call that unwinds the
+	## whole enclosing function. `bot_tech` is the legacy spelling of
+	## `bot_technician` (see Character._TRAINING_ID_ALIASES).
+	for member in _crew:
+		if member == null:
+			continue
+		var list: Array = []
+		if member is Dictionary:
+			list = (member as Dictionary).get("acquired_training", [])
+		elif member.has_method("has_training"):
+			if member.has_training(course_id):
+				return true
+			continue
+		elif "acquired_training" in member:
+			list = member.acquired_training
+		if course_id in list:
+			return true
+		if course_id == "bot_technician" and "bot_tech" in list:
+			return true
+	return false
 
 func _build_crew_picker(parent: VBoxContainer, label_text: String) -> OptionButton:
 	## A labelled "which crew member?" dropdown. Item 0 is always "Nobody" so the
@@ -525,6 +576,21 @@ func _safe_get(obj, key: String, default = 0):
 		return obj.get(key)
 	return default
 
+## Whether the battle was WON, per Core Rules p.89. Pure decision seam.
+##
+##   outcome_index: 0 Won / 1 Lost / 2 Fled, as picked in the dropdown
+##   has_objective: this mission rolled an objective (Opportunity/Patron/Quest)
+##   objective_met: the player declared they achieved it
+##
+## On an objective mission the objective decides, full stop — including when the
+## crew was chased off, which the book calls out explicitly. Without an objective
+## there is nothing to measure against, so the dropdown is the only signal.
+static func decide_victory(outcome_index: int, has_objective: bool, objective_met: bool) -> bool:
+	if has_objective:
+		return objective_met
+	return outcome_index == 0
+
+
 func _on_outcome_changed(index: int) -> void:
 	# Auto-manage held_field based on outcome
 	if index == 0: # Won
@@ -533,6 +599,45 @@ func _on_outcome_changed(index: int) -> void:
 	else: # Lost or Fled
 		_held_field_check.button_pressed = false
 		_held_field_check.disabled = true
+	_update_objective_outcome_note()
+
+
+## Core Rules p.89: "To Win the battle, you must achieve the objective (even if you
+## are subsequently chased from the battlefield, unless the specific mission
+## objective states otherwise)."
+##
+## T5-06: the form let "Objective achieved" be ticked while Battle Result stayed
+## "Lost", and left them contradicting each other on screen AND in the payload —
+## `mission_success` correctly followed the objective while `victory`/`won` followed
+## the dropdown, so the two halves of the same result disagreed.
+##
+## "Lost" is the incoherent pairing and is corrected: p.89 admits no reading in
+## which you achieve the objective and lose. "Fled" is NOT touched, because the
+## book explicitly preserves the win when you are chased off — and fleeing is a
+## separate fact downstream (`fled_early` drives the p.123 XP rule).
+func _on_objective_met_toggled(pressed: bool) -> void:
+	if pressed and _outcome_btn and _outcome_btn.selected == 1: # Lost
+		_outcome_btn.selected = 0 # Won
+		_on_outcome_changed(0)
+	_update_objective_outcome_note()
+
+
+## Say plainly what will be recorded. The screen contradicting itself is what made
+## T5-06 a finding rather than a footnote, and a silent correction would leave the
+## player wondering whether their input took.
+func _update_objective_outcome_note() -> void:
+	if _objective_outcome_note == null or _objective_met_check == null:
+		return
+	if not _objective_met_check.button_pressed:
+		_objective_outcome_note.visible = false
+		return
+	_objective_outcome_note.visible = true
+	if _outcome_btn and _outcome_btn.selected == 2: # Fled
+		_objective_outcome_note.text = ("Recorded as a WIN — you achieved the objective."
+			+ " Being chased off does not cost you the battle (Core Rules p.89).")
+	else:
+		_objective_outcome_note.text = ("Recorded as a WIN — to win the battle you must"
+			+ " achieve the objective (Core Rules p.89).")
 
 func _resolve_defeated_enemies(confirmed_count: int) -> Array:
 	## The per-figure defeated-enemy records the prefill collected, trimmed to the
@@ -569,8 +674,19 @@ func _on_casualty_toggled(_pressed: bool, _member) -> void:
 				_injury_checks[i].disabled = false
 
 func _on_submit() -> void:
-	var victory: bool = _outcome_btn.selected == 0
 	var fled: bool = _outcome_btn.selected == 2
+	# `victory` is DERIVED on an objective mission, not read off the dropdown.
+	#
+	# Core Rules p.89: "To Win the battle, you must achieve the objective (even if
+	# you are subsequently chased from the battlefield...)". The form previously
+	# emitted `mission_success` from the objective and `victory`/`won` from the
+	# dropdown, so one payload could carry both "the mission succeeded" and "the
+	# battle was lost" — and the two halves feed DIFFERENT post-battle consumers.
+	# Fleeing stays its own fact in `fled_early`; the book keeps the win.
+	var victory: bool = decide_victory(
+		_outcome_btn.selected,
+		_objective_name != "" and _objective_met_check != null,
+		_objective_met_check.button_pressed if _objective_met_check != null else false)
 
 	# Build casualty and injury arrays
 	var casualties_data: Array = []
@@ -642,6 +758,7 @@ func _on_submit() -> void:
 		# process_injuries(), which skips this crew member's roll entirely and
 		# records a complete recovery. "" means no exemption was chosen.
 		"reduced_lethality_exempt_crew_id": _picked_crew_id(_reduced_lethality_btn),
+		"medical_school_nominee_crew_id": _picked_crew_id(_medical_nominee_btn),
 		# Mission context passthrough
 		"success": mission_success,
 		"is_red_zone": _mission_data.get("is_red_zone", false),

@@ -373,3 +373,83 @@ func test_restore_enforces_one_item_one_owner_invariant():
 	assert_that(alpha_ids[0] != beta_ids[0]).is_true()
 
 	eq_mgr.clear_all_equipment()
+
+func test_legacy_split_format_copies_do_not_double_the_stash():
+	## T9-23 (device save, Aug 9 2026). Reproduced from the REAL shape found in
+	## `22222222_1775243767.save` on the test tablet: 8 id-less items in
+	## "equipment" that are BYTE-IDENTICAL to the 8 in "gear", left behind when
+	## CampaignFinalizationService folded the split format into the flat list
+	## without erasing the source keys.
+	##
+	## The load heal unions equipment+weapons+armor+gear and used to wave every
+	## id-less entry through as a "unique original", so those 8 items became 16.
+	## The rehydrate then hands each copy its own generated id (name+ticks+randi),
+	## so one save later the doubling is baked in and no id-based dedup can see
+	## it. Load a legacy campaign, press Save, silently own twice the gear.
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	assert_that(gs).is_not_null()
+
+	var echoed: Array = []
+	for item_name in ["Military Rifle", "Rattle Gun", "Infantry Laser", "Shotgun"]:
+		echoed.append({
+			"name": item_name, "type": "weapon", "condition": 100,
+			"quality_modifier": 0, "source": "starting_equipment",
+			"source_table": "military", "owner": "",
+		})
+
+	var campaign := FiveParsecsCampaignCore.new()
+	campaign.initialize_crew({"members": []})
+	campaign.equipment_data = {
+		# The flat list AND the un-erased split copy hold the same four items.
+		"equipment": echoed.duplicate(true),
+		"gear": echoed.duplicate(true),
+		"weapons": [],
+		"armor": [],
+	}
+
+	gs._restore_equipment_from_campaign(campaign)
+
+	var stash: Array = campaign.equipment_data.get("equipment", [])
+	var counts: Dictionary = {}
+	for item in stash:
+		if item is Dictionary:
+			var n: String = str(item.get("name", ""))
+			counts[n] = int(counts.get(n, 0)) + 1
+	var doubled: Array = []
+	for n in counts:
+		if int(counts[n]) > 1:
+			doubled.append("%s x%d" % [n, int(counts[n])])
+	assert_that(doubled).override_failure_message(
+		"The split-format echo in 'gear' doubled the stash: %s. Id-less items must be " % str(doubled)
+		+ "deduped by CONTENT across source keys — see the dedup block in "
+		+ "GameState._restore_equipment_from_campaign."
+	).is_equal([])
+	assert_that(stash.size()).override_failure_message(
+		"Expected the 4 real items, got %d." % stash.size()).is_equal(4)
+
+
+func test_two_genuinely_identical_items_in_the_stash_are_both_kept():
+	## The other side of the same fix, and the reason the dedup is scoped ACROSS
+	## source keys rather than applied globally: two identical id-less items
+	## inside "equipment" are two real items (two looted Handguns), not an echo.
+	## A content dedup that ignored the source key would silently eat one.
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	assert_that(gs).is_not_null()
+
+	var handgun := {
+		"name": "Handgun", "type": "weapon", "condition": 100,
+		"quality_modifier": 0, "source": "loot", "source_table": "", "owner": "",
+	}
+	var campaign := FiveParsecsCampaignCore.new()
+	campaign.initialize_crew({"members": []})
+	campaign.equipment_data = {
+		"equipment": [handgun.duplicate(true), handgun.duplicate(true)],
+	}
+
+	gs._restore_equipment_from_campaign(campaign)
+
+	var stash: Array = campaign.equipment_data.get("equipment", [])
+	assert_that(stash.size()).override_failure_message(
+		"Two separately-looted Handguns collapsed into %d — the cross-key dedup is " % stash.size()
+		+ "leaking into a single source key."
+	).is_equal(2)

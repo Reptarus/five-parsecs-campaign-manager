@@ -92,6 +92,61 @@ static func get_active_milestones(turn_number: int, progression_type: int) -> Ar
 	return active
 
 
+## ── Option 2 UNLOCKS — the half that was only ever printed ─────────────────
+##
+## Compendium p.31 Option 2 does not add numbers; it TURNS ON existing chapters
+## and difficulty toggles as the campaign ages. The milestone table above was
+## byte-faithful and reached exactly one consumer: a block of instruction text.
+## So a player on Option 2 read "Enable Strength-Adjusted Enemies" every battle
+## from turn 3 and the option was never actually enabled.
+##
+## Five of the eight milestones name toggles the codebase already implements at
+## live rule sites, so unlocking them is a matter of adding their ids to the
+## active-toggle set — `compendium_difficulty_toggles.get_active_toggles()` is the
+## single chokepoint every rule reads, so this reaches all of them at once rather
+## than needing a branch at each.
+const OPTION_2_TOGGLE_UNLOCKS := {
+	3: ["strength_adjusted"],
+	5: ["actually_specialized", "better_leadership"],
+	8: ["armored_leaders", "veteran"],
+}
+
+## p.31: turn 14 "elite-level enemies on a D6 roll of 4+", 16 "on a 3+", 20
+## "always". Returns the D6 target, or 7 when Option 2 has not reached turn 14
+## (unreachable on a D6 = never). 1 means always.
+const OPTION_2_ELITE_NEVER := 7
+
+static func option_2_toggle_unlocks(turn_number: int) -> Array:
+	if not _is_enabled():
+		return []
+	var out: Array = []
+	for turn in OPTION_2_TOGGLE_UNLOCKS.keys():
+		if turn_number >= int(turn):
+			for id in OPTION_2_TOGGLE_UNLOCKS[turn]:
+				if not (id in out):
+					out.append(id)
+	return out
+
+
+static func option_2_elite_target(turn_number: int) -> int:
+	if not _is_enabled():
+		return OPTION_2_ELITE_NEVER
+	if turn_number >= 20:
+		return 1
+	if turn_number >= 16:
+		return 3
+	if turn_number >= 14:
+		return 4
+	return OPTION_2_ELITE_NEVER
+
+
+## Is Option 2 selected for this campaign? `options` is the persisted
+## `progress_data["progressive_difficulty_options"]` array — [1] basic, [2]
+## advanced, [1,2] both.
+static func option_2_selected(options: Array) -> bool:
+	return int(ProgressionType.ADVANCED) in options or 2 in options
+
+
 ## Get the LATEST milestone unlocked this turn (for notification).
 static func get_newly_unlocked(turn_number: int, progression_type: int) -> Dictionary:
 	if not _is_enabled():

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Version 1.0**
+**Version 1.1**
 **Last Updated: [DATE OF RELEASE]**
 
 This Privacy Policy describes how ReptarusOnIce ("we", "us", or "our") collects, uses, and protects your information when you use the Five Parsecs Campaign Manager application ("App").
@@ -22,13 +22,27 @@ The App stores the following data locally on your device. This data is never tra
 
 ### 1.2 Anonymous Gameplay Metrics
 
-The App may collect anonymous, non-personal gameplay metrics (such as which campaign phases are used most frequently) to help us improve the App. This data is stored locally on your device only.
+The App collects anonymous, non-personal gameplay metrics (such as which campaign phases are used most frequently) to help us improve the App. These metrics are held on your device unless you opt in to sharing them.
 
-If you enable "Share Anonymous Usage Data" in Settings, this anonymous data may be transmitted to our servers in the future. This feature is opt-in and disabled by default. You can change your preference at any time in Settings.
+**Sharing is opt-in and switched off by default.** If you enable "Share Anonymous Usage Data" in Settings, metrics are transmitted over an encrypted connection to Talo (trytalo.com), a third-party game analytics service that processes them on our behalf. You can turn this off again at any time in Settings, and events stop immediately.
 
-**We do not collect any personally identifiable information (PII)** such as your name, email address, device ID, IP address, or location through our own systems.
+To group events from the same installation, the App generates a random identifier the first time you opt in, and stores it on your device. It is generated randomly, it is not derived from your device, your account, or any hardware identifier, and it cannot be traced back to you. If you turn sharing off, this identifier is deleted from your device and your Talo identity is cleared.
 
-### 1.3 Platform Store Data
+**We do not collect any personally identifiable information (PII)** such as your name, email address, device ID, IP address, or location through our own systems. Event data is filtered before transmission to strip fields that could carry personal information.
+
+### 1.3 Bug Reports
+
+If you choose to send a bug report from within the App, the report is saved on your device and copied to your clipboard. It contains:
+
+- **What you write** — the description, the steps to reproduce, and an optional contact detail. The contact field is optional and free-form: only put something there if you want us to be able to reply to you
+- **Technical context collected automatically** — app version and build type, engine version, platform and device model, screen size and orientation, which screen you were on, and your current campaign mode, phase and turn number
+- **The last 100 lines of the App's own log file**, to show what happened before the problem
+
+In builds distributed for closed testing, submitting a report also sends it to a private channel visible only to the development team. Reports are never used for advertising or profiling, and are deleted from your device by "Delete All Data".
+
+Bug reports are only ever sent when you actively submit one. The App does not send anything automatically when it crashes.
+
+### 1.4 Platform Store Data
 
 When you purchase the App or expansion content through a third-party storefront (Google Play, Apple App Store, or Steam), that platform manages your personal data related to the transaction. We do not receive or store your payment information or personal account details.
 
@@ -45,6 +59,7 @@ The data stored on your device is used exclusively to:
 
 - **Operate the App** — save your progress, apply your settings, display your content
 - **Improve the App** — if you opt in to anonymous usage data sharing, we use aggregated metrics to prioritize bug fixes and feature development
+- **Fix what you report** — if you submit a bug report, we use its contents to reproduce and fix the problem, and to contact you only if you supplied a contact detail
 
 We do not use your data for advertising, profiling, or any purpose other than operating and improving the App.
 
@@ -52,16 +67,21 @@ We do not use your data for advertising, profiling, or any purpose other than op
 
 We do not sell, trade, rent, or otherwise transfer your information to outside parties.
 
-If anonymous usage data sharing is enabled by you, aggregated (non-personal) data may be processed by:
+If you enable anonymous usage data sharing, non-personal event data is processed by:
 
-- **GitHub** — for issue tracking and development prioritization
+- **Talo** (trytalo.com) — game analytics, processing anonymous events on our behalf
 
-No personally identifiable information is ever shared.
+If you submit a bug report from a closed-testing build, its contents are delivered to a private development channel hosted by:
+
+- **Discord** — subject to Discord's own privacy policy
+
+Nothing is shared unless you opt in to usage data sharing or actively submit a bug report. No personally identifiable information is ever shared through our own systems.
 
 ## 4. Data Retention
 
 - **Local data** is retained on your device until you delete it (via Settings or by uninstalling the App)
 - **Anonymous usage metrics** (if shared) are retained only as long as needed for development prioritization and are not linked to any individual
+- **Bug reports** you submit are retained by the development team only until the reported issue is resolved
 
 ## 5. Your Rights
 
@@ -88,7 +108,7 @@ The App is not directed at children under the age of 13 (or the applicable age o
 
 ## 7. Data Security
 
-All App data is stored locally on your device using standard file system storage. We do not transmit data over the network unless you explicitly opt in to anonymous usage data sharing. No system is perfectly secure, but we take reasonable measures to protect the data stored by the App.
+All App data is stored locally on your device using standard file system storage. The App transmits data over the network in only two cases, both of which require an action from you: when you have opted in to anonymous usage data sharing, and when you submit a bug report. Both are sent over an encrypted (HTTPS) connection. No system is perfectly secure, but we take reasonable measures to protect the data stored by the App.
 
 ## 8. Changes to This Policy
 

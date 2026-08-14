@@ -1435,24 +1435,18 @@ func _update_create_button_state() -> void:
 			)
 
 func _get_difficulty_name(difficulty_value: Variant) -> String:
-	## Convert difficulty value (integer or string) to display name
+	## Convert difficulty value (integer or string) to display name.
+	##
+	## T9-05 (Aug 9 2026) — this was WRONG, not merely off-vocabulary. It matched a
+	## contiguous 1..5 scale, but GlobalEnums.DifficultyLevel is not contiguous: the
+	## three deprecated save-compat members sit at HARD=3, NIGHTMARE=5, ELITE=7, so the
+	## real modes are EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8. The old
+	## map therefore showed Challenging(4) as "Hardcore", and HARDCORE(6) and
+	## INSANITY(8) both fell through the default to "Standard" — on the FINAL REVIEW
+	## screen, the last thing a player sees before committing to the campaign.
 	if difficulty_value is String:
 		return difficulty_value
-	if difficulty_value is int:
-		match difficulty_value:
-			1:
-				return "Story"
-			2:
-				return "Standard"
-			3:
-				return "Challenging"
-			4:
-				return "Hardcore"
-			5:
-				return "Nightmare"
-			_:
-				return "Standard"
-	return "Standard"
+	return DifficultyModifiers.get_display_name(int(difficulty_value))
 
 func _get_victory_condition_display_name(condition_key: String) -> String:
 	## Get display name for victory condition key

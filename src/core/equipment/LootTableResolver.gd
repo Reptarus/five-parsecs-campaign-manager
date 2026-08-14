@@ -64,11 +64,47 @@ static func _roll_d100(subtable: Array) -> Dictionary:
 	return subtable[subtable.size() - 1]
 
 
-static func _pick_name(category_entry: Dictionary) -> String:
+## THE THIRD ROLL (Core Rules p.131, verbatim): "This usually requires three
+## rolls... Roll to determine the category, then the subtable, and **finally the
+## exact item in question**."
+##
+## This is the shared, public door to that roll — `CrewTaskComponent` (Trade
+## Table "Something interesting", p.79 roll 45-48) and `LootSystemConstants`
+## both route through it, so there is ONE implementation of the procedure rather
+## than three that can drift. Until Aug 2026 there were three, and all three
+## picked UNIFORMLY from a flat name list, because `loot_tables.json` carried no
+## per-item ranges to roll on. Every printed frequency in pp.131-134 was wrong:
+## a Blade is a 20% melee result and was 12.5%; a Suppression Maul is 5% and was
+## also 12.5%; grenades are 60/40 Frakk/Dazzle and were 50/50; Stim-pack is 30%
+## of consumables and was 16.7%.
+##
+## Tolerates the legacy flat-string shape so a stale/partial data file degrades
+## to the old behaviour instead of returning nothing — but the JSON is now
+## dict-shaped throughout and `test_loot_table_distribution` pins that.
+static func roll_item_in(category_entry: Dictionary) -> String:
 	var items: Array = category_entry.get("items", [])
 	if items.is_empty():
 		return ""
-	return str(items[randi() % items.size()])
+	var roll: int = randi() % 100 + 1
+	var last_named := ""
+	for item: Variant in items:
+		if item is Dictionary:
+			var rng: Array = item.get("roll_range", [])
+			last_named = str(item.get("name", ""))
+			if rng.size() == 2 and roll >= int(rng[0]) and roll <= int(rng[1]):
+				return last_named
+		else:
+			# Legacy flat list — no ranges exist, so uniform is the only option.
+			return str(items[randi() % items.size()])
+	# Ranges present but the roll fell in a gap: the data is malformed, and a
+	# silent default here is exactly how the old bug hid. Say so, then degrade.
+	push_warning("LootTableResolver: roll %d matched no item range in '%s'"
+		% [roll, str(category_entry.get("category", "?"))])
+	return last_named
+
+
+static func _pick_name(category_entry: Dictionary) -> String:
+	return roll_item_in(category_entry)
 
 
 static func _item(item_name: String, type_str: String, damaged: bool) -> Dictionary:
@@ -76,6 +112,23 @@ static func _item(item_name: String, type_str: String, damaged: bool) -> Diction
 		item_name = "Salvage"
 	var d: Dictionary = {"name": item_name, "type": type_str, "description": item_name}
 	if damaged:
+		# `damaged` is the CANONICAL key and this line is the fix for it.
+		#
+		# p.131 rows 26-35 and 36-45 (a fifth of all loot) say "Both items require
+		# Repair", and this producer wrote ONLY `needs_repair`/`quality` — while
+		# every rule that acts on damage reads `damaged`:
+		#   CrewTaskComponent._first_damaged_in_stash()  (Repair Your Kit, p.78)
+		#   AssignEquipmentComponent  (the "[DAMAGED]" suffix)
+		#   PostBattleContext._damage_random_stash_item() (the other WRITER)
+		#   EquipmentManager UI repair list
+		# So loot damage was invisible to all of them: no tag in Assign Equipment,
+		# and Repair Your Kit could never find the item to fix it. Two spellings
+		# for one concept, which is the bug — not a missing feature.
+		#
+		# `needs_repair` is kept because it is already persisted in saves on disk
+		# and two display sites read it; new writes set both, and readers should
+		# go through EquipmentTransferService.is_item_damaged().
+		d["damaged"] = true
 		d["needs_repair"] = true
 		d["quality"] = "damaged"
 		d["description"] = item_name + " (needs Repair)"

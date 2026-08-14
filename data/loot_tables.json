@@ -7,170 +7,1556 @@
   "tables": {
     "main_loot": [
       {
-        "roll_range": [1, 25],
+        "roll_range": [
+          1,
+          25
+        ],
         "category": "WEAPON",
         "description": "Single weapon (roll weapon subtable)"
       },
       {
-        "roll_range": [26, 35],
+        "roll_range": [
+          26,
+          35
+        ],
         "category": "DAMAGED_WEAPONS",
         "description": "2 damaged weapons (need repair)",
         "requires_repair": true,
         "count": 2
       },
       {
-        "roll_range": [36, 45],
+        "roll_range": [
+          36,
+          45
+        ],
         "category": "DAMAGED_GEAR",
         "description": "2 damaged gear items (need repair)",
         "requires_repair": true,
         "count": 2
       },
       {
-        "roll_range": [46, 65],
+        "roll_range": [
+          46,
+          65
+        ],
         "category": "GEAR",
         "description": "Single gear item (roll gear subtable)"
       },
       {
-        "roll_range": [66, 80],
+        "roll_range": [
+          66,
+          80
+        ],
         "category": "ODDS_AND_ENDS",
         "description": "Odds and ends item (roll subtable)"
       },
       {
-        "roll_range": [81, 100],
+        "roll_range": [
+          81,
+          100
+        ],
         "category": "REWARDS",
         "description": "Rewards (roll rewards subtable)"
       }
     ],
     "weapon_subtable": [
-      {"roll_range": [1, 35], "category": "slug_weapons", "items": ["Hold Out Pistol", "Hand Gun", "Scrap Pistol", "Machine Pistol", "Duelling Pistol", "Hand Cannon", "Colony Rifle", "Military Rifle", "Shotgun", "Flak Gun", "Hunting Rifle", "Marksman's Rifle", "Auto Rifle", "Rattle Gun"]},
-      {"roll_range": [36, 50], "category": "energy_weapons", "items": ["Hand Laser", "Beam Pistol", "Infantry Laser", "Blast Pistol", "Blast Rifle", "Hyper Blaster"]},
-      {"roll_range": [51, 65], "category": "special_weapons", "items": ["Needle Rifle", "Plasma Rifle", "Fury Rifle", "Shell Gun", "Cling Fire Pistol", "Hand Flamer"]},
-      {"roll_range": [66, 85], "category": "melee_weapons", "items": ["Blade", "Brutal Melee Weapon", "Boarding Saber", "Ripper Sword", "Shatter Axe", "Power Claw", "Glare Sword", "Suppression Maul"]},
-      {"roll_range": [86, 100], "category": "grenades", "items": ["3 Frakk Grenades", "3 Dazzle Grenades"]}
+      {
+        "roll_range": [
+          1,
+          35
+        ],
+        "category": "slug_weapons",
+        "items": [
+          {
+            "name": "Hold Out Pistol",
+            "roll_range": [
+              1,
+              5
+            ]
+          },
+          {
+            "name": "Hand Gun",
+            "roll_range": [
+              6,
+              13
+            ]
+          },
+          {
+            "name": "Scrap Pistol",
+            "roll_range": [
+              14,
+              18
+            ]
+          },
+          {
+            "name": "Machine Pistol",
+            "roll_range": [
+              19,
+              26
+            ]
+          },
+          {
+            "name": "Duelling Pistol",
+            "roll_range": [
+              27,
+              32
+            ]
+          },
+          {
+            "name": "Hand Cannon",
+            "roll_range": [
+              33,
+              37
+            ]
+          },
+          {
+            "name": "Colony Rifle",
+            "roll_range": [
+              38,
+              46
+            ]
+          },
+          {
+            "name": "Military Rifle",
+            "roll_range": [
+              47,
+              56
+            ]
+          },
+          {
+            "name": "Shotgun",
+            "roll_range": [
+              57,
+              65
+            ]
+          },
+          {
+            "name": "Flak Gun",
+            "roll_range": [
+              66,
+              70
+            ]
+          },
+          {
+            "name": "Hunting Rifle",
+            "roll_range": [
+              71,
+              78
+            ]
+          },
+          {
+            "name": "Marksman's Rifle",
+            "roll_range": [
+              79,
+              83
+            ]
+          },
+          {
+            "name": "Auto Rifle",
+            "roll_range": [
+              84,
+              92
+            ]
+          },
+          {
+            "name": "Rattle Gun",
+            "roll_range": [
+              93,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          36,
+          50
+        ],
+        "category": "energy_weapons",
+        "items": [
+          {
+            "name": "Hand Laser",
+            "roll_range": [
+              1,
+              20
+            ]
+          },
+          {
+            "name": "Beam Pistol",
+            "roll_range": [
+              21,
+              35
+            ]
+          },
+          {
+            "name": "Infantry Laser",
+            "roll_range": [
+              36,
+              55
+            ]
+          },
+          {
+            "name": "Blast Pistol",
+            "roll_range": [
+              56,
+              70
+            ]
+          },
+          {
+            "name": "Blast Rifle",
+            "roll_range": [
+              71,
+              90
+            ]
+          },
+          {
+            "name": "Hyper Blaster",
+            "roll_range": [
+              91,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          51,
+          65
+        ],
+        "category": "special_weapons",
+        "items": [
+          {
+            "name": "Needle Rifle",
+            "roll_range": [
+              1,
+              20
+            ]
+          },
+          {
+            "name": "Plasma Rifle",
+            "roll_range": [
+              21,
+              45
+            ]
+          },
+          {
+            "name": "Fury Rifle",
+            "roll_range": [
+              46,
+              60
+            ]
+          },
+          {
+            "name": "Shell Gun",
+            "roll_range": [
+              61,
+              75
+            ]
+          },
+          {
+            "name": "Cling Fire Pistol",
+            "roll_range": [
+              76,
+              90
+            ]
+          },
+          {
+            "name": "Hand Flamer",
+            "roll_range": [
+              91,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          66,
+          85
+        ],
+        "category": "melee_weapons",
+        "items": [
+          {
+            "name": "Blade",
+            "roll_range": [
+              1,
+              20
+            ]
+          },
+          {
+            "name": "Brutal Melee Weapon",
+            "roll_range": [
+              21,
+              40
+            ]
+          },
+          {
+            "name": "Boarding Saber",
+            "roll_range": [
+              41,
+              55
+            ]
+          },
+          {
+            "name": "Ripper Sword",
+            "roll_range": [
+              56,
+              75
+            ]
+          },
+          {
+            "name": "Shatter Axe",
+            "roll_range": [
+              76,
+              85
+            ]
+          },
+          {
+            "name": "Power Claw",
+            "roll_range": [
+              86,
+              90
+            ]
+          },
+          {
+            "name": "Glare Sword",
+            "roll_range": [
+              91,
+              95
+            ]
+          },
+          {
+            "name": "Suppression Maul",
+            "roll_range": [
+              96,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          86,
+          100
+        ],
+        "category": "grenades",
+        "items": [
+          {
+            "name": "3 Frakk Grenades",
+            "roll_range": [
+              1,
+              60
+            ]
+          },
+          {
+            "name": "3 Dazzle Grenades",
+            "roll_range": [
+              61,
+              100
+            ]
+          }
+        ]
+      }
     ],
     "gear_subtable": [
-      {"roll_range": [1, 20], "category": "gun_mods", "items": ["Assault Blade", "Beam Light", "Bipod", "Hot Shot Pack", "Cyber-configurable Nano-Sludge", "Stabilizer", "Shock Attachment", "Upgrade Kit"]},
-      {"roll_range": [21, 40], "category": "gun_sights", "items": ["Laser Sight", "Quality Sight", "Seeker Sight", "Tracker Sight", "Unity Battle Sight"]},
-      {"roll_range": [41, 75], "category": "protective_items", "items": ["Battle Dress", "Camo Cloak", "Combat Armor", "Deflector Field", "Flak Screen", "Flex-Armor", "Frag Vest", "Screen Generator", "Stealth Gear"]},
-      {"roll_range": [76, 100], "category": "utility_items", "items": ["Auto Sensor", "Battle Visor", "Communicator", "Concealed Blade", "Displacer", "Distraction Bot", "Grapple Launcher", "Grav Dampener", "Hazard Suit", "Hover Board", "Insta-Wall", "Jump Belt", "Motion Tracker", "Multi-Cutter", "Robo-Rabbit's Foot", "Scanner Bot", "Snooper Bot", "Sonic Emitter", "Steel Boots", "Time Distorter"]}
+      {
+        "roll_range": [
+          1,
+          20
+        ],
+        "category": "gun_mods",
+        "items": [
+          {
+            "name": "Assault Blade",
+            "roll_range": [
+              1,
+              10
+            ]
+          },
+          {
+            "name": "Beam Light",
+            "roll_range": [
+              11,
+              20
+            ]
+          },
+          {
+            "name": "Bipod",
+            "roll_range": [
+              21,
+              35
+            ]
+          },
+          {
+            "name": "Hot Shot Pack",
+            "roll_range": [
+              36,
+              55
+            ]
+          },
+          {
+            "name": "Cyber-configurable Nano-Sludge",
+            "roll_range": [
+              56,
+              65
+            ]
+          },
+          {
+            "name": "Stabilizer",
+            "roll_range": [
+              66,
+              80
+            ]
+          },
+          {
+            "name": "Shock Attachment",
+            "roll_range": [
+              81,
+              90
+            ]
+          },
+          {
+            "name": "Upgrade Kit",
+            "roll_range": [
+              91,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          21,
+          40
+        ],
+        "category": "gun_sights",
+        "items": [
+          {
+            "name": "Laser Sight",
+            "roll_range": [
+              1,
+              20
+            ]
+          },
+          {
+            "name": "Quality Sight",
+            "roll_range": [
+              21,
+              45
+            ]
+          },
+          {
+            "name": "Seeker Sight",
+            "roll_range": [
+              46,
+              70
+            ]
+          },
+          {
+            "name": "Tracker Sight",
+            "roll_range": [
+              71,
+              85
+            ]
+          },
+          {
+            "name": "Unity Battle Sight",
+            "roll_range": [
+              86,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          41,
+          75
+        ],
+        "category": "protective_items",
+        "items": [
+          {
+            "name": "Battle Dress",
+            "roll_range": [
+              1,
+              5
+            ]
+          },
+          {
+            "name": "Camo Cloak",
+            "roll_range": [
+              6,
+              15
+            ]
+          },
+          {
+            "name": "Combat Armor",
+            "roll_range": [
+              16,
+              40
+            ]
+          },
+          {
+            "name": "Deflector Field",
+            "roll_range": [
+              41,
+              50
+            ]
+          },
+          {
+            "name": "Flak Screen",
+            "roll_range": [
+              51,
+              65
+            ]
+          },
+          {
+            "name": "Flex-Armor",
+            "roll_range": [
+              66,
+              75
+            ]
+          },
+          {
+            "name": "Frag Vest",
+            "roll_range": [
+              76,
+              90
+            ]
+          },
+          {
+            "name": "Screen Generator",
+            "roll_range": [
+              91,
+              95
+            ]
+          },
+          {
+            "name": "Stealth Gear",
+            "roll_range": [
+              96,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          76,
+          100
+        ],
+        "category": "utility_items",
+        "items": [
+          {
+            "name": "Auto Sensor",
+            "roll_range": [
+              1,
+              6
+            ]
+          },
+          {
+            "name": "Battle Visor",
+            "roll_range": [
+              7,
+              11
+            ]
+          },
+          {
+            "name": "Communicator",
+            "roll_range": [
+              12,
+              17
+            ]
+          },
+          {
+            "name": "Concealed Blade",
+            "roll_range": [
+              18,
+              23
+            ]
+          },
+          {
+            "name": "Displacer",
+            "roll_range": [
+              24,
+              29
+            ]
+          },
+          {
+            "name": "Distraction Bot",
+            "roll_range": [
+              30,
+              34
+            ]
+          },
+          {
+            "name": "Grapple Launcher",
+            "roll_range": [
+              35,
+              38
+            ]
+          },
+          {
+            "name": "Grav Dampener",
+            "roll_range": [
+              39,
+              43
+            ]
+          },
+          {
+            "name": "Hazard Suit",
+            "roll_range": [
+              44,
+              49
+            ]
+          },
+          {
+            "name": "Hover Board",
+            "roll_range": [
+              50,
+              54
+            ]
+          },
+          {
+            "name": "Insta-Wall",
+            "roll_range": [
+              55,
+              57
+            ]
+          },
+          {
+            "name": "Jump Belt",
+            "roll_range": [
+              58,
+              63
+            ]
+          },
+          {
+            "name": "Motion Tracker",
+            "roll_range": [
+              64,
+              70
+            ]
+          },
+          {
+            "name": "Multi-Cutter",
+            "roll_range": [
+              71,
+              75
+            ]
+          },
+          {
+            "name": "Robo-Rabbit's Foot",
+            "roll_range": [
+              76,
+              79
+            ]
+          },
+          {
+            "name": "Scanner Bot",
+            "roll_range": [
+              80,
+              84
+            ]
+          },
+          {
+            "name": "Snooper Bot",
+            "roll_range": [
+              85,
+              89
+            ]
+          },
+          {
+            "name": "Sonic Emitter",
+            "roll_range": [
+              90,
+              93
+            ]
+          },
+          {
+            "name": "Steel Boots",
+            "roll_range": [
+              94,
+              96
+            ]
+          },
+          {
+            "name": "Time Distorter",
+            "roll_range": [
+              97,
+              100
+            ]
+          }
+        ]
+      }
     ],
     "odds_and_ends_subtable": [
-      {"roll_range": [1, 55], "category": "consumables", "items": ["Booster Pills", "Combat Serum", "Kiranin Crystals", "Rage Out", "Still", "Stim-pack"], "uses": 2},
-      {"roll_range": [56, 70], "category": "implants", "items": ["AI Companion", "Body Wire", "Boosted Arm", "Boosted Leg", "Cyber Hand", "Genetic Defenses", "Health Boost", "Nerve Adjuster", "Neural Optimization", "Night Sight", "Pain Suppressor"]},
-      {"roll_range": [71, 100], "category": "ship_items", "items": ["Analyzer", "Colonist Ration Packs", "Duplicator", "Fake ID", "Fixer", "Genetic Reconfiguration Kit", "Loaded Dice", "Lucky Dice", "Mk II Translator", "Med-patch", "Meditation Orb", "Nano-doc", "Novelty Stuffed Animal", "Purifier", "Repair Bot", "Sector Permit", "Spare Parts", "Teach-Bot", "Transcender"]}
+      {
+        "roll_range": [
+          1,
+          55
+        ],
+        "category": "consumables",
+        "items": [
+          {
+            "name": "Booster Pills",
+            "roll_range": [
+              1,
+              20
+            ]
+          },
+          {
+            "name": "Combat Serum",
+            "roll_range": [
+              21,
+              30
+            ]
+          },
+          {
+            "name": "Kiranin Crystals",
+            "roll_range": [
+              31,
+              40
+            ]
+          },
+          {
+            "name": "Rage Out",
+            "roll_range": [
+              41,
+              55
+            ]
+          },
+          {
+            "name": "Still",
+            "roll_range": [
+              56,
+              70
+            ]
+          },
+          {
+            "name": "Stim-pack",
+            "roll_range": [
+              71,
+              100
+            ]
+          }
+        ],
+        "uses": 2
+      },
+      {
+        "roll_range": [
+          56,
+          70
+        ],
+        "category": "implants",
+        "items": [
+          {
+            "name": "AI Companion",
+            "roll_range": [
+              1,
+              10
+            ]
+          },
+          {
+            "name": "Body Wire",
+            "roll_range": [
+              11,
+              16
+            ]
+          },
+          {
+            "name": "Boosted Arm",
+            "roll_range": [
+              17,
+              28
+            ]
+          },
+          {
+            "name": "Boosted Leg",
+            "roll_range": [
+              29,
+              40
+            ]
+          },
+          {
+            "name": "Cyber Hand",
+            "roll_range": [
+              41,
+              50
+            ]
+          },
+          {
+            "name": "Genetic Defenses",
+            "roll_range": [
+              51,
+              61
+            ]
+          },
+          {
+            "name": "Health Boost",
+            "roll_range": [
+              62,
+              71
+            ]
+          },
+          {
+            "name": "Nerve Adjuster",
+            "roll_range": [
+              72,
+              79
+            ]
+          },
+          {
+            "name": "Neural Optimization",
+            "roll_range": [
+              80,
+              85
+            ]
+          },
+          {
+            "name": "Night Sight",
+            "roll_range": [
+              86,
+              94
+            ]
+          },
+          {
+            "name": "Pain Suppressor",
+            "roll_range": [
+              95,
+              100
+            ]
+          }
+        ]
+      },
+      {
+        "roll_range": [
+          71,
+          100
+        ],
+        "category": "ship_items",
+        "items": [
+          {
+            "name": "Analyzer",
+            "roll_range": [
+              1,
+              4
+            ]
+          },
+          {
+            "name": "Colonist Ration Packs",
+            "roll_range": [
+              5,
+              11
+            ]
+          },
+          {
+            "name": "Duplicator",
+            "roll_range": [
+              12,
+              17
+            ]
+          },
+          {
+            "name": "Fake ID",
+            "roll_range": [
+              18,
+              24
+            ]
+          },
+          {
+            "name": "Fixer",
+            "roll_range": [
+              25,
+              31
+            ]
+          },
+          {
+            "name": "Genetic Reconfiguration Kit",
+            "roll_range": [
+              32,
+              34
+            ]
+          },
+          {
+            "name": "Loaded Dice",
+            "roll_range": [
+              35,
+              39
+            ]
+          },
+          {
+            "name": "Lucky Dice",
+            "roll_range": [
+              40,
+              44
+            ]
+          },
+          {
+            "name": "Mk II Translator",
+            "roll_range": [
+              45,
+              48
+            ]
+          },
+          {
+            "name": "Med-patch",
+            "roll_range": [
+              49,
+              56
+            ]
+          },
+          {
+            "name": "Meditation Orb",
+            "roll_range": [
+              57,
+              60
+            ]
+          },
+          {
+            "name": "Nano-doc",
+            "roll_range": [
+              61,
+              67
+            ]
+          },
+          {
+            "name": "Novelty Stuffed Animal",
+            "roll_range": [
+              68,
+              71
+            ]
+          },
+          {
+            "name": "Purifier",
+            "roll_range": [
+              72,
+              74
+            ]
+          },
+          {
+            "name": "Repair Bot",
+            "roll_range": [
+              75,
+              78
+            ]
+          },
+          {
+            "name": "Sector Permit",
+            "roll_range": [
+              79,
+              83
+            ]
+          },
+          {
+            "name": "Spare Parts",
+            "roll_range": [
+              84,
+              91
+            ]
+          },
+          {
+            "name": "Teach-Bot",
+            "roll_range": [
+              92,
+              96
+            ]
+          },
+          {
+            "name": "Transcender",
+            "roll_range": [
+              97,
+              100
+            ]
+          }
+        ]
+      }
     ],
     "rewards_subtable": [
-      {"roll_range": [1, 10], "item": "Documents", "rumors": 1},
-      {"roll_range": [11, 20], "item": "Data Files", "rumors": 2},
-      {"roll_range": [21, 25], "item": "Scrap", "credits": 3},
-      {"roll_range": [26, 40], "item": "Cargo Crate", "credits_dice": "1d6"},
-      {"roll_range": [41, 55], "item": "Valuable Materials", "credits_dice": "1d6+2"},
-      {"roll_range": [56, 70], "item": "Rare Substance", "credits_dice": "2d6_pick_highest"},
-      {"roll_range": [71, 85], "item": "Ship Parts", "discount_dice": "1d6"},
-      {"roll_range": [86, 90], "item": "Military Ship Part", "discount_dice": "1d6+2"},
-      {"roll_range": [91, 95], "item": "Mysterious Items", "story_points": 2},
-      {"roll_range": [96, 100], "item": "Personal Item", "story_points": 3}
+      {
+        "roll_range": [
+          1,
+          10
+        ],
+        "item": "Documents",
+        "rumors": 1
+      },
+      {
+        "roll_range": [
+          11,
+          20
+        ],
+        "item": "Data Files",
+        "rumors": 2
+      },
+      {
+        "roll_range": [
+          21,
+          25
+        ],
+        "item": "Scrap",
+        "credits": 3
+      },
+      {
+        "roll_range": [
+          26,
+          40
+        ],
+        "item": "Cargo Crate",
+        "credits_dice": "1d6"
+      },
+      {
+        "roll_range": [
+          41,
+          55
+        ],
+        "item": "Valuable Materials",
+        "credits_dice": "1d6+2"
+      },
+      {
+        "roll_range": [
+          56,
+          70
+        ],
+        "item": "Rare Substance",
+        "credits_dice": "2d6_pick_highest"
+      },
+      {
+        "roll_range": [
+          71,
+          85
+        ],
+        "item": "Ship Parts",
+        "discount_dice": "1d6"
+      },
+      {
+        "roll_range": [
+          86,
+          90
+        ],
+        "item": "Military Ship Part",
+        "discount_dice": "1d6+2"
+      },
+      {
+        "roll_range": [
+          91,
+          95
+        ],
+        "item": "Mysterious Items",
+        "story_points": 2
+      },
+      {
+        "roll_range": [
+          96,
+          100
+        ],
+        "item": "Personal Item",
+        "story_points": 3
+      }
     ],
     "battlefield_finds": [
-      {"roll_range": [1, 15], "category": "WEAPON", "description": "Random weapon from slain enemy"},
-      {"roll_range": [16, 25], "category": "CONSUMABLE", "description": "Usable goods (consumable item)"},
-      {"roll_range": [26, 35], "category": "QUEST_RUMOR", "description": "Curious data stick", "quest_rumor": true},
-      {"roll_range": [36, 45], "category": "SHIP_PART", "description": "Starship part", "credits": 2},
-      {"roll_range": [46, 60], "category": "TRINKET", "description": "Personal trinket (possible future loot roll)"},
-      {"roll_range": [61, 75], "category": "DEBRIS", "description": "Debris (1D3 credits)", "dice": "1d3"},
-      {"roll_range": [76, 90], "category": "VITAL_INFO", "description": "Vital info (Corporate Patron opportunity)"},
-      {"roll_range": [91, 100], "category": "NOTHING", "description": "Nothing of value"}
+      {
+        "roll_range": [
+          1,
+          15
+        ],
+        "category": "WEAPON",
+        "description": "Random weapon from slain enemy"
+      },
+      {
+        "roll_range": [
+          16,
+          25
+        ],
+        "category": "CONSUMABLE",
+        "description": "Usable goods (consumable item)"
+      },
+      {
+        "roll_range": [
+          26,
+          35
+        ],
+        "category": "QUEST_RUMOR",
+        "description": "Curious data stick",
+        "quest_rumor": true
+      },
+      {
+        "roll_range": [
+          36,
+          45
+        ],
+        "category": "SHIP_PART",
+        "description": "Starship part",
+        "credits": 2
+      },
+      {
+        "roll_range": [
+          46,
+          60
+        ],
+        "category": "TRINKET",
+        "description": "Personal trinket (possible future loot roll)"
+      },
+      {
+        "roll_range": [
+          61,
+          75
+        ],
+        "category": "DEBRIS",
+        "description": "Debris (1D3 credits)",
+        "dice": "1d3"
+      },
+      {
+        "roll_range": [
+          76,
+          90
+        ],
+        "category": "VITAL_INFO",
+        "description": "Vital info (Corporate Patron opportunity)"
+      },
+      {
+        "roll_range": [
+          91,
+          100
+        ],
+        "category": "NOTHING",
+        "description": "Nothing of value"
+      }
     ]
   },
   "weapon_definitions": {
-    "Hand Gun": {"range": 12, "shots": 1, "damage": 0, "special": "", "category": "pistol"},
-    "Military Rifle": {"range": 24, "shots": 1, "damage": 0, "special": "", "category": "rifle"},
-    "Shotgun": {"range": 12, "shots": 2, "damage": 1, "special": "FOCUSED", "category": "shotgun"},
-    "Auto Rifle": {"range": 24, "shots": 2, "damage": 0, "special": "", "category": "rifle"},
-    "Hunting Rifle": {"range": 30, "shots": 1, "damage": 0, "special": "", "category": "rifle"},
-    "Scrap Pistol": {"range": 8, "shots": 1, "damage": 0, "special": "UNRELIABLE", "category": "pistol"},
-    "Machine Pistol": {"range": 8, "shots": 2, "damage": 0, "special": "", "category": "pistol"},
-    "Carbine": {"range": 18, "shots": 1, "damage": 0, "special": "", "category": "rifle"},
-    "Hand Laser": {"range": 12, "shots": 1, "damage": 0, "special": "SNAP_FIRE", "category": "laser"},
-    "Infantry Laser": {"range": 30, "shots": 1, "damage": 0, "special": "SNAP_FIRE", "category": "laser"},
-    "Blast Rifle": {"range": 16, "shots": 1, "damage": 1, "special": "", "category": "laser"},
-    "Beam Pistol": {"range": 10, "shots": 1, "damage": 1, "special": "", "category": "laser"},
-    "Plasma Rifle": {"range": 20, "shots": 2, "damage": 1, "special": "FOCUSED_PIERCING", "category": "plasma"},
-    "Fury Rifle": {"range": 24, "shots": 1, "damage": 2, "special": "HEAVY_PIERCING", "category": "plasma"},
-    "Needle Rifle": {"range": 18, "shots": 2, "damage": 0, "special": "CRITICAL", "category": "plasma"},
-    "Hyper Blaster": {"range": 24, "shots": 3, "damage": 1, "special": "", "category": "energy"},
-    "Blade": {"range": 0, "shots": 0, "damage": 0, "special": "MELEE", "category": "melee"},
-    "Ripper Sword": {"range": 0, "shots": 0, "damage": 1, "special": "MELEE", "category": "melee"},
-    "Boarding Saber": {"range": 0, "shots": 0, "damage": 1, "special": "MELEE ELEGANT", "category": "melee"},
-    "Power Claw": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE CLUMSY", "category": "melee"},
-    "Shatter Axe": {"range": 0, "shots": 0, "damage": 2, "special": "MELEE", "category": "melee"},
-    "Glare Sword": {"range": 0, "shots": 0, "damage": 0, "special": "MELEE ELEGANT PIERCING", "category": "melee"},
-    "Flak Gun": {"range": 8, "shots": 2, "damage": 1, "special": "FOCUSED CRITICAL", "category": "slug"},
-    "Frakk Grenade": {"range": 6, "shots": 0, "damage": 1, "special": "AREA SINGLE_USE", "category": "grenade"},
-    "Dazzle Grenade": {"range": 6, "shots": 0, "damage": 0, "special": "STUN AREA SINGLE_USE", "category": "grenade"}
+    "Hand Gun": {
+      "range": 12,
+      "shots": 1,
+      "damage": 0,
+      "special": "",
+      "category": "pistol"
+    },
+    "Military Rifle": {
+      "range": 24,
+      "shots": 1,
+      "damage": 0,
+      "special": "",
+      "category": "rifle"
+    },
+    "Shotgun": {
+      "range": 12,
+      "shots": 2,
+      "damage": 1,
+      "special": "FOCUSED",
+      "category": "shotgun"
+    },
+    "Auto Rifle": {
+      "range": 24,
+      "shots": 2,
+      "damage": 0,
+      "special": "",
+      "category": "rifle"
+    },
+    "Hunting Rifle": {
+      "range": 30,
+      "shots": 1,
+      "damage": 0,
+      "special": "",
+      "category": "rifle"
+    },
+    "Scrap Pistol": {
+      "range": 8,
+      "shots": 1,
+      "damage": 0,
+      "special": "UNRELIABLE",
+      "category": "pistol"
+    },
+    "Machine Pistol": {
+      "range": 8,
+      "shots": 2,
+      "damage": 0,
+      "special": "",
+      "category": "pistol"
+    },
+    "Carbine": {
+      "range": 18,
+      "shots": 1,
+      "damage": 0,
+      "special": "",
+      "category": "rifle"
+    },
+    "Hand Laser": {
+      "range": 12,
+      "shots": 1,
+      "damage": 0,
+      "special": "SNAP_FIRE",
+      "category": "laser"
+    },
+    "Infantry Laser": {
+      "range": 30,
+      "shots": 1,
+      "damage": 0,
+      "special": "SNAP_FIRE",
+      "category": "laser"
+    },
+    "Blast Rifle": {
+      "range": 16,
+      "shots": 1,
+      "damage": 1,
+      "special": "",
+      "category": "laser"
+    },
+    "Beam Pistol": {
+      "range": 10,
+      "shots": 1,
+      "damage": 1,
+      "special": "",
+      "category": "laser"
+    },
+    "Plasma Rifle": {
+      "range": 20,
+      "shots": 2,
+      "damage": 1,
+      "special": "FOCUSED_PIERCING",
+      "category": "plasma"
+    },
+    "Fury Rifle": {
+      "range": 24,
+      "shots": 1,
+      "damage": 2,
+      "special": "HEAVY_PIERCING",
+      "category": "plasma"
+    },
+    "Needle Rifle": {
+      "range": 18,
+      "shots": 2,
+      "damage": 0,
+      "special": "CRITICAL",
+      "category": "plasma"
+    },
+    "Hyper Blaster": {
+      "range": 24,
+      "shots": 3,
+      "damage": 1,
+      "special": "",
+      "category": "energy"
+    },
+    "Blade": {
+      "range": 0,
+      "shots": 0,
+      "damage": 0,
+      "special": "MELEE",
+      "category": "melee"
+    },
+    "Ripper Sword": {
+      "range": 0,
+      "shots": 0,
+      "damage": 1,
+      "special": "MELEE",
+      "category": "melee"
+    },
+    "Boarding Saber": {
+      "range": 0,
+      "shots": 0,
+      "damage": 1,
+      "special": "MELEE ELEGANT",
+      "category": "melee"
+    },
+    "Power Claw": {
+      "range": 0,
+      "shots": 0,
+      "damage": 2,
+      "special": "MELEE CLUMSY",
+      "category": "melee"
+    },
+    "Shatter Axe": {
+      "range": 0,
+      "shots": 0,
+      "damage": 2,
+      "special": "MELEE",
+      "category": "melee"
+    },
+    "Glare Sword": {
+      "range": 0,
+      "shots": 0,
+      "damage": 0,
+      "special": "MELEE ELEGANT PIERCING",
+      "category": "melee"
+    },
+    "Flak Gun": {
+      "range": 8,
+      "shots": 2,
+      "damage": 1,
+      "special": "FOCUSED CRITICAL",
+      "category": "slug"
+    },
+    "Frakk Grenade": {
+      "range": 6,
+      "shots": 0,
+      "damage": 1,
+      "special": "AREA SINGLE_USE",
+      "category": "grenade"
+    },
+    "Dazzle Grenade": {
+      "range": 6,
+      "shots": 0,
+      "damage": 0,
+      "special": "STUN AREA SINGLE_USE",
+      "category": "grenade"
+    }
   },
   "gear_definitions": {
-    "Assault Blade": {"effect": "melee_mod", "description": "Weapon gains Melee trait. Damage +1, wins on Draw. Non-Pistol only."},
-    "Beam Light": {"effect": "visibility", "description": "Increase visibility by +3\" in reduced visibility conditions."},
-    "Bipod": {"effect": "stability_bonus", "description": "+1 to Hit at ranges over 8\" when Aiming or from Cover. Non-Pistol only."},
-    "Hot Shot Pack": {"effect": "damage_boost", "description": "+1 Damage for Blast Pistol/Blast Rifle/Hand Laser/Infantry Laser. Natural 6 = overheat (inoperable rest of fight)."},
-    "Cyber-configurable Nano-Sludge": {"effect": "hit_bonus", "description": "Permanent +1 Hit bonus."},
-    "Stabilizer": {"effect": "ignore_heavy", "description": "Weapon may ignore Heavy trait."},
-    "Shock Attachment": {"effect": "stun_mod", "description": "Weapon receives Stun trait against targets within 8\"."},
-    "Upgrade Kit": {"effect": "range_bonus", "description": "+2\" Range increase."},
-    "Laser Sight": {"effect": "snap_shot", "description": "Weapon receives Snap Shot trait. Pistol only."},
-    "Quality Sight": {"effect": "range_reroll", "description": "+2\" Range. Reroll 1s when firing only 1 shot."},
-    "Seeker Sight": {"effect": "stationary_bonus", "description": "+1 to Hit if shooter did not Move this round."},
-    "Tracker Sight": {"effect": "tracking_bonus", "description": "+1 to Hit if fired at same target previous round."},
-    "Unity Battle Sight": {"effect": "hit_bonus", "description": "+1 to all Hit rolls."},
-    "Battle Dress": {"effect": "armor_save", "value": 5, "description": "+1 Reactions (max 4) and 5+ Saving Throw."},
-    "Camo Cloak": {"effect": "cover_extension", "description": "Within 2\" of Cover counts as in Cover. No effect if shooter within 4\"."},
-    "Combat Armor": {"effect": "armor_save", "value": 5, "description": "5+ Saving Throw."},
-    "Deflector Field": {"effect": "auto_deflect", "description": "Automatically deflects one ranged Hit per battle. Decide before Toughness/armor rolls."},
-    "Flak Screen": {"effect": "area_reduction", "description": "Area weapons have Damage reduced by -1 (cap +0)."},
-    "Flex-Armor": {"effect": "conditional_toughness", "description": "If did not move last activation, +1 Toughness (max 6)."},
-    "Frag Vest": {"effect": "armor_save", "value": 6, "description": "6+ Saving Throw, improved to 5+ vs Area attacks."},
-    "Screen Generator": {"effect": "ranged_save", "value": 5, "description": "5+ Saving Throw vs gunfire. No effect vs Area or Melee."},
-    "Stealth Gear": {"effect": "range_penalty", "description": "Enemies firing from over 9\" are -1 to Hit."},
-    "Auto Sensor": {"effect": "reaction_fire", "description": "Fire one Pistol shot at enemy moving within 4\" LoS. Hits only on natural 6."},
-    "Battle Visor": {"effect": "reroll_ones", "description": "Reroll any 1s on firing dice when shooting."},
-    "Communicator": {"effect": "reaction_bonus", "description": "Roll one extra die on Reaction roll, discard one."},
-    "Concealed Blade": {"effect": "thrown_weapon", "description": "Throw at enemy within 2\" as Free Action. Damage +0. Once per battle, free replacement."},
-    "Displacer": {"effect": "teleport", "description": "Teleport to point 1D6\" from aimed spot. Once per mission. Precursor: pick from 2 landing points."},
-    "Distraction Bot": {"effect": "disable_enemy", "description": "Target enemy within 12\" cannot act next activation. Once per battle."},
-    "Grapple Launcher": {"effect": "vertical_move", "description": "Scale terrain within 1\", ascend up to 12\". Combat Action."},
-    "Grav Dampener": {"effect": "fall_immunity", "description": "No falling damage. Drops over 6\" count as Move."},
-    "Hazard Suit": {"effect": "hazard_save", "description": "5+ Saving Throw vs environmental hazards."},
-    "Hover Board": {"effect": "fast_move", "description": "Move up to 9\" ignoring man-height terrain. No combat while boarding."},
-    "Insta-Wall": {"effect": "force_wall", "description": "Place 2\" impenetrable wall within 3\". Dissipates on D6 roll of 6 each round. Once per mission."},
-    "Jump Belt": {"effect": "jump_move", "description": "Jump 9\" forward and 3\" up. May take Combat Action after landing."},
-    "Motion Tracker": {"effect": "initiative_bonus", "description": "+1 to all Seize the Initiative rolls."},
-    "Multi-Cutter": {"effect": "terrain_cut", "description": "Cut man-sized hole through terrain up to 1\" thick. Combat Action. No effect on force fields."},
-    "Robo-Rabbit's Foot": {"effect": "luck_boost", "description": "Luck 0 counts as Luck 1. Prevents death once (destroyed)."},
-    "Scanner Bot": {"effect": "crew_initiative", "description": "+1 to all crew Seize the Initiative rolls."},
-    "Snooper Bot": {"effect": "negate_penalty", "description": "Ignore Seize the Initiative penalties. Damaged on D6 roll of 1."},
-    "Sonic Emitter": {"effect": "debuff_enemies", "description": "Enemies within 5\" suffer -1 to all Hit rolls when shooting."},
-    "Steel Boots": {"effect": "kick_attack", "description": "On natural 5-6 Brawl win, kick opponent Damage +0, knockback 1D3\"."},
-    "Time Distorter": {"effect": "freeze_enemies", "description": "Freeze up to 3 enemies until end of following round. Single-use."}
+    "Assault Blade": {
+      "effect": "melee_mod",
+      "description": "Weapon gains Melee trait. Damage +1, wins on Draw. Non-Pistol only."
+    },
+    "Beam Light": {
+      "effect": "visibility",
+      "description": "Increase visibility by +3\" in reduced visibility conditions."
+    },
+    "Bipod": {
+      "effect": "stability_bonus",
+      "description": "+1 to Hit at ranges over 8\" when Aiming or from Cover. Non-Pistol only."
+    },
+    "Hot Shot Pack": {
+      "effect": "damage_boost",
+      "description": "+1 Damage for Blast Pistol/Blast Rifle/Hand Laser/Infantry Laser. Natural 6 = overheat (inoperable rest of fight)."
+    },
+    "Cyber-configurable Nano-Sludge": {
+      "effect": "hit_bonus",
+      "description": "Permanent +1 Hit bonus."
+    },
+    "Stabilizer": {
+      "effect": "ignore_heavy",
+      "description": "Weapon may ignore Heavy trait."
+    },
+    "Shock Attachment": {
+      "effect": "stun_mod",
+      "description": "Weapon receives Stun trait against targets within 8\"."
+    },
+    "Upgrade Kit": {
+      "effect": "range_bonus",
+      "description": "+2\" Range increase."
+    },
+    "Laser Sight": {
+      "effect": "snap_shot",
+      "description": "Weapon receives Snap Shot trait. Pistol only."
+    },
+    "Quality Sight": {
+      "effect": "range_reroll",
+      "description": "+2\" Range. Reroll 1s when firing only 1 shot."
+    },
+    "Seeker Sight": {
+      "effect": "stationary_bonus",
+      "description": "+1 to Hit if shooter did not Move this round."
+    },
+    "Tracker Sight": {
+      "effect": "tracking_bonus",
+      "description": "+1 to Hit if fired at same target previous round."
+    },
+    "Unity Battle Sight": {
+      "effect": "hit_bonus",
+      "description": "+1 to all Hit rolls."
+    },
+    "Battle Dress": {
+      "effect": "armor_save",
+      "value": 5,
+      "description": "+1 Reactions (max 4) and 5+ Saving Throw."
+    },
+    "Camo Cloak": {
+      "effect": "cover_extension",
+      "description": "Within 2\" of Cover counts as in Cover. No effect if shooter within 4\"."
+    },
+    "Combat Armor": {
+      "effect": "armor_save",
+      "value": 5,
+      "description": "5+ Saving Throw."
+    },
+    "Deflector Field": {
+      "effect": "auto_deflect",
+      "description": "Automatically deflects one ranged Hit per battle. Decide before Toughness/armor rolls."
+    },
+    "Flak Screen": {
+      "effect": "area_reduction",
+      "description": "Area weapons have Damage reduced by -1 (cap +0)."
+    },
+    "Flex-Armor": {
+      "effect": "conditional_toughness",
+      "description": "If did not move last activation, +1 Toughness (max 6)."
+    },
+    "Frag Vest": {
+      "effect": "armor_save",
+      "value": 6,
+      "description": "6+ Saving Throw, improved to 5+ vs Area attacks."
+    },
+    "Screen Generator": {
+      "effect": "ranged_save",
+      "value": 5,
+      "description": "5+ Saving Throw vs gunfire. No effect vs Area or Melee."
+    },
+    "Stealth Gear": {
+      "effect": "range_penalty",
+      "description": "Enemies firing from over 9\" are -1 to Hit."
+    },
+    "Auto Sensor": {
+      "effect": "reaction_fire",
+      "description": "Fire one Pistol shot at enemy moving within 4\" LoS. Hits only on natural 6."
+    },
+    "Battle Visor": {
+      "effect": "reroll_ones",
+      "description": "Reroll any 1s on firing dice when shooting."
+    },
+    "Communicator": {
+      "effect": "reaction_bonus",
+      "description": "Roll one extra die on Reaction roll, discard one."
+    },
+    "Concealed Blade": {
+      "effect": "thrown_weapon",
+      "description": "Throw at enemy within 2\" as Free Action. Damage +0. Once per battle, free replacement."
+    },
+    "Displacer": {
+      "effect": "teleport",
+      "description": "Teleport to point 1D6\" from aimed spot. Once per mission. Precursor: pick from 2 landing points."
+    },
+    "Distraction Bot": {
+      "effect": "disable_enemy",
+      "description": "Target enemy within 12\" cannot act next activation. Once per battle."
+    },
+    "Grapple Launcher": {
+      "effect": "vertical_move",
+      "description": "Scale terrain within 1\", ascend up to 12\". Combat Action."
+    },
+    "Grav Dampener": {
+      "effect": "fall_immunity",
+      "description": "No falling damage. Drops over 6\" count as Move."
+    },
+    "Hazard Suit": {
+      "effect": "hazard_save",
+      "description": "5+ Saving Throw vs environmental hazards."
+    },
+    "Hover Board": {
+      "effect": "fast_move",
+      "description": "Move up to 9\" ignoring man-height terrain. No combat while boarding."
+    },
+    "Insta-Wall": {
+      "effect": "force_wall",
+      "description": "Place 2\" impenetrable wall within 3\". Dissipates on D6 roll of 6 each round. Once per mission."
+    },
+    "Jump Belt": {
+      "effect": "jump_move",
+      "description": "Jump 9\" forward and 3\" up. May take Combat Action after landing."
+    },
+    "Motion Tracker": {
+      "effect": "initiative_bonus",
+      "description": "+1 to all Seize the Initiative rolls."
+    },
+    "Multi-Cutter": {
+      "effect": "terrain_cut",
+      "description": "Cut man-sized hole through terrain up to 1\" thick. Combat Action. No effect on force fields."
+    },
+    "Robo-Rabbit's Foot": {
+      "effect": "luck_boost",
+      "description": "Luck 0 counts as Luck 1. Prevents death once (destroyed)."
+    },
+    "Scanner Bot": {
+      "effect": "crew_initiative",
+      "description": "+1 to all crew Seize the Initiative rolls."
+    },
+    "Snooper Bot": {
+      "effect": "negate_penalty",
+      "description": "Ignore Seize the Initiative penalties. Damaged on D6 roll of 1."
+    },
+    "Sonic Emitter": {
+      "effect": "debuff_enemies",
+      "description": "Enemies within 5\" suffer -1 to all Hit rolls when shooting."
+    },
+    "Steel Boots": {
+      "effect": "kick_attack",
+      "description": "On natural 5-6 Brawl win, kick opponent Damage +0, knockback 1D3\"."
+    },
+    "Time Distorter": {
+      "effect": "freeze_enemies",
+      "description": "Freeze up to 3 enemies until end of following round. Single-use."
+    }
   },
   "consumable_items": {
-    "Booster Pills": {"uses": 1, "effect": "Remove all Stun markers. Move at double Speed this round.", "duration": "round"},
-    "Combat Serum": {"uses": 1, "effect": "+2\" Speed and +2 Reactions for the rest of the battle.", "duration": "battle"},
-    "Kiranin Crystals": {"uses": 1, "effect": "Daze all characters within 4\" (unable to act this round). No effect on already-acted or user. Brawl defense normal.", "duration": "round"},
-    "Rage Out": {"uses": 1, "effect": "+2\" Speed and +1 to Brawling rolls for this and next round. K'Erin: rest of battle.", "duration": "2_rounds"},
-    "Still": {"uses": 1, "effect": "+1 to Hit, but cannot Move this and next round.", "duration": "2_rounds"},
-    "Stim-pack": {"uses": 1, "effect": "If character would become casualty, remain with 1 Stun marker. Reflexive, no action required.", "duration": "instant"}
+    "Booster Pills": {
+      "uses": 1,
+      "effect": "Remove all Stun markers. Move at double Speed this round.",
+      "duration": "round"
+    },
+    "Combat Serum": {
+      "uses": 1,
+      "effect": "+2\" Speed and +2 Reactions for the rest of the battle.",
+      "duration": "battle"
+    },
+    "Kiranin Crystals": {
+      "uses": 1,
+      "effect": "Daze all characters within 4\" (unable to act this round). No effect on already-acted or user. Brawl defense normal.",
+      "duration": "round"
+    },
+    "Rage Out": {
+      "uses": 1,
+      "effect": "+2\" Speed and +1 to Brawling rolls for this and next round. K'Erin: rest of battle.",
+      "duration": "2_rounds"
+    },
+    "Still": {
+      "uses": 1,
+      "effect": "+1 to Hit, but cannot Move this and next round.",
+      "duration": "2_rounds"
+    },
+    "Stim-pack": {
+      "uses": 1,
+      "effect": "If character would become casualty, remain with 1 Stun marker. Reflexive, no action required.",
+      "duration": "instant"
+    }
   },
   "trade_goods": {
-    "Common Supplies": {"base_value": 1, "weight": 1, "legal": true},
-    "Medical Supplies": {"base_value": 3, "weight": 1, "legal": true},
-    "Weapons Cache": {"base_value": 5, "weight": 3, "legal": false},
-    "Tech Components": {"base_value": 4, "weight": 1, "legal": true},
-    "Luxury Goods": {"base_value": 6, "weight": 2, "legal": true},
-    "Military Hardware": {"base_value": 8, "weight": 4, "legal": false},
-    "Alien Artifacts": {"base_value": 10, "weight": 1, "legal": false},
-    "Fuel Cells": {"base_value": 2, "weight": 2, "legal": true},
-    "Data Cores": {"base_value": 4, "weight": 0, "legal": true},
-    "Contraband": {"base_value": 7, "weight": 1, "legal": false}
+    "Common Supplies": {
+      "base_value": 1,
+      "weight": 1,
+      "legal": true
+    },
+    "Medical Supplies": {
+      "base_value": 3,
+      "weight": 1,
+      "legal": true
+    },
+    "Weapons Cache": {
+      "base_value": 5,
+      "weight": 3,
+      "legal": false
+    },
+    "Tech Components": {
+      "base_value": 4,
+      "weight": 1,
+      "legal": true
+    },
+    "Luxury Goods": {
+      "base_value": 6,
+      "weight": 2,
+      "legal": true
+    },
+    "Military Hardware": {
+      "base_value": 8,
+      "weight": 4,
+      "legal": false
+    },
+    "Alien Artifacts": {
+      "base_value": 10,
+      "weight": 1,
+      "legal": false
+    },
+    "Fuel Cells": {
+      "base_value": 2,
+      "weight": 2,
+      "legal": true
+    },
+    "Data Cores": {
+      "base_value": 4,
+      "weight": 0,
+      "legal": true
+    },
+    "Contraband": {
+      "base_value": 7,
+      "weight": 1,
+      "legal": false
+    }
   }
 }

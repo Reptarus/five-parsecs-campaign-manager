@@ -353,17 +353,46 @@ func _apply_battlefield_event(_event: BattleEvent) -> void:
 
 ## Handle environmental hazard events
 func _apply_environmental_event(_event: BattleEvent) -> void:
+	## Core Rules p.117 roll 55-60, verbatim: "Environmental hazard: Select a
+	## random terrain feature. Any figure currently in, on, or within 1\" of the
+	## feature must roll 1D6+Savvy and achieve a 5+ (enemies roll 1D6 and must
+	## roll a 4+) or take a Damage +1 Hit, ignoring any Armor Saving Throws. The
+	## feature is safe afterwards."
+	##
+	## THE KEY MISMATCH THIS FIXES: the registry above writes `hazard_radius`,
+	## `crew_save`, `enemy_save`, `damage`, `ignore_armor` and `one_time_only`.
+	## This function read `radius`, `save_difficulty`, `damage_bonus`,
+	## `effect_type` and `permanent` — five keys NO producer writes. Every field
+	## silently took its default, so the enemy's easier 4+ target and the
+	## armor-ignoring clause never left the registry, and "the feature is safe
+	## afterwards" (one_time_only) was never carried at all.
+	var effects: Dictionary = _event.effects
 	var hazard := EnvironmentalHazard.new()
 	hazard.hazard_id = _event.event_id
 	hazard.hazard_name = _event.title
-	hazard.effect_type = _event.effects.get("effect_type", "damage")
-	hazard.damage_bonus = _event.effects.get("damage_bonus", 1)
-	hazard.save_difficulty = _event.effects.get("save_difficulty", 5)
-	hazard.affects_radius = _event.effects.get("radius", 1)
-	hazard.is_permanent = _event.effects.get("permanent", false)
+	hazard.effect_type = str(effects.get("effect_type", "damage"))
+	hazard.damage_bonus = int(effects.get("damage", effects.get("damage_bonus", 1)))
+	hazard.save_difficulty = save_target_from(effects.get("crew_save", "savvy_5plus"), 5)
+	hazard.affects_radius = float(effects.get("hazard_radius", effects.get("radius", 1)))
+	# "The feature is safe afterwards" — a one-time hazard is never permanent.
+	hazard.is_permanent = bool(effects.get("permanent", false)) \
+		and not bool(effects.get("one_time_only", false))
 
 	active_hazards.append(hazard)
 	environmental_hazard_activated.emit(hazard)
+
+
+static func save_target_from(spec: Variant, fallback: int) -> int:
+	## Registry saves are written as strings ("savvy_5plus", "4plus"); pull the
+	## target number out rather than defaulting the whole field away.
+	var text: String = str(spec)
+	var digits: String = ""
+	for ch in text:
+		if ch.is_valid_int():
+			digits += ch
+		elif not digits.is_empty():
+			break
+	return int(digits) if not digits.is_empty() else fallback
 
 ## Handle universal events that affect everything
 func _apply_universal_event(_event: BattleEvent) -> void:

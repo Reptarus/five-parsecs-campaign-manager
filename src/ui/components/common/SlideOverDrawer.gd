@@ -42,6 +42,9 @@ const SCRIM_ALPHA := 0.35  # low enough that glance rails stay readable behind
 ## panel, not a sliver. Content shorter than this is top-aligned within it.
 const MIN_PANEL_H := 200.0
 
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+
 var _scrim: Button
 var _panel: PanelContainer
 var _header: HBoxContainer
@@ -152,8 +155,42 @@ func set_content(content: Control) -> void:
 		# natural height (the drawer measures it to size the panel).
 		_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_content_host.add_child(_content)
+		# T9-45: the drawer OWNS scrolling (see _build), but a touch-drag never
+		# reached it — the content's own controls default to MOUSE_FILTER_STOP
+		# and swallowed the gesture, so every drawer scrolled by grabbing the
+		# thin scrollbar only. Worst on the Record Battle Result form, which is
+		# wall-to-wall CheckBox / SpinBox / OptionButton, putting Submit below an
+		# unreachable fold.
+		#
+		# BattleResultsInputForm.gd:97-102 records the previous workaround: the
+		# form's spacing was tightened on-device so the whole thing would FIT,
+		# because "the drawer's ScrollContainer does NOT vertical-touch-scroll on
+		# the tablet". That height budget is what finally overran when the
+		# Mission Objective section landed. Fixing the scroll removes the need
+		# for it.
+		#
+		# Deferred one frame: children built in the content's own _ready() do not
+		# exist yet at add_child time, and a sweep that runs before them is a fix
+		# that silently does nothing.
+		#
+		# Deferred through an INSTANCE method, not `TouchScrollOpenerRef
+		# .open_subtree.call_deferred(_content)`. Taking a Callable off a STATIC
+		# function of a preloaded GDScript and deferring it is not a documented
+		# form — the Godot 4.6 Callable docs only cover instance methods — and an
+		# unverified call that silently no-ops would leave the drawer exactly as
+		# broken as before while looking fixed. `_check_pending_transfers
+		# .call_deferred()` in CampaignScreenBase is the idiom used everywhere
+		# else here.
+		_open_content_to_touch_scroll.call_deferred()
 		if _is_open:
 			_fit_panel_height()
+
+
+## Let a touch-drag over the drawer's content reach the ScrollContainer that owns
+## it. Runs one frame after the content is parented; see set_content().
+func _open_content_to_touch_scroll() -> void:
+	if _content and is_instance_valid(_content):
+		TouchScrollOpenerRef.open_subtree(_content)
 
 
 func is_open() -> bool:

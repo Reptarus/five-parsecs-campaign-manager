@@ -244,18 +244,39 @@ static func get_default_difficulty() -> int:
 
 # MARK: - Private Helpers
 
-static func _get_difficulty_name(difficulty: int) -> String:
+## THE single source for difficulty text shown to a player (T9-05, Aug 9 2026).
+##
+## The book names exactly, per data/RulesReference/DifficultyOptions.json
+## (_source: "Core Rules pp.64-65"): Easy / Normal / Challenging / Hardcore / Insanity.
+## Four separate maps existed before this and none matched the book — the dashboard
+## rendered "Story" / "Standard" / "Nightmare", so a player cross-referencing their
+## rulebook found no such difficulty.
+##
+## HARD(3) / NIGHTMARE(5) / ELITE(7) are DEPRECATED members kept only for save compat —
+## not real modes, and CLAUDE.md's standing rule is "Never expose in UI". They therefore
+## resolve to the name of the mode they alias, never to their own invented label.
+##
+## ⚠ The enum is NOT contiguous (EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6, INSANITY=8,
+## with the deprecated three interleaved at 3/5/7). Never match difficulty on a 1..5
+## range — that is precisely how FinalPanel came to report Hardcore and Insanity as
+## "Standard" and Challenging as "Hardcore".
+static func get_display_name(difficulty: int) -> String:
 	match difficulty:
-		GlobalEnums.DifficultyLevel.NONE: return "None"
-		GlobalEnums.DifficultyLevel.EASY: return "Story (Easy)"
-		GlobalEnums.DifficultyLevel.NORMAL: return "Standard (Normal)"
-		GlobalEnums.DifficultyLevel.HARD: return "Hard"
+		GlobalEnums.DifficultyLevel.EASY: return "Easy"
+		GlobalEnums.DifficultyLevel.NORMAL: return "Normal"
+		GlobalEnums.DifficultyLevel.HARD: return "Normal"       # deprecated alias of NORMAL
 		GlobalEnums.DifficultyLevel.CHALLENGING: return "Challenging"
-		GlobalEnums.DifficultyLevel.NIGHTMARE: return "Nightmare"
+		GlobalEnums.DifficultyLevel.NIGHTMARE: return "Insanity" # deprecated alias of INSANITY
 		GlobalEnums.DifficultyLevel.HARDCORE: return "Hardcore"
-		GlobalEnums.DifficultyLevel.ELITE: return "Elite"
+		GlobalEnums.DifficultyLevel.ELITE: return "Insanity"     # deprecated alias of INSANITY
 		GlobalEnums.DifficultyLevel.INSANITY: return "Insanity"
-		_: return "Unknown"
+		# NONE(0) means "unset", which the rules layer already treats as Normal
+		# ("No changes to game mechanics" — p.65), so name it what it behaves as.
+		_: return "Normal"
+
+
+static func _get_difficulty_name(difficulty: int) -> String:
+	return get_display_name(difficulty)
 
 static func _get_enemy_modifier_description(difficulty: int) -> String:
 	var data := _get_level_data(difficulty)

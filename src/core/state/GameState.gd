@@ -885,6 +885,10 @@ func verify_consistency() -> Array[String]:
 ## Campaign queued when the restore is requested before this autoload enters
 ## the tree (boot path — same situation as _pending_journal_propagation).
 var _pending_equipment_restore = null
+## True once the heal below has reset EquipmentManager for THIS restore.
+## Exists only so the fallback clear cannot double-reset — the heal owns the
+## clear because it is the only place that has already read the stash out.
+var _stash_reset_done: bool = false
 
 
 ## Public entry point for tests and external callers that need to trigger
@@ -934,9 +938,23 @@ func _restore_equipment_from_campaign(campaign) -> void:
 		push_error("GameState: EquipmentManager unavailable during equipment restore — "
 			+ "stash-backed screens will be empty this session")
 		return
-	# Clear transient storage to avoid duplicates on reload
-	if eq_mgr.has_method("clear_all_equipment"):
-		eq_mgr.clear_all_equipment()
+	# ⚠ DO NOT clear here. `clear_all_equipment()` deliberately clears the CANONICAL
+	# OWNER as well as the runtime caches (see its own note), and `load_campaign()`
+	# calls `set_current_campaign(loaded)` BEFORE calling us — so at this point
+	# `gs.current_campaign` IS the campaign we are about to read. Clearing first
+	# emptied `equipment_data["equipment"]` and the heal below then rebuilt the stash
+	# from whatever survived, which is only the split-format echo keys.
+	#
+	# MEASURED on the device's own legacy save (deploy #4): 13 stash items became 8.
+	# Everything that lived ONLY under "equipment" — Assault Blade x2, Hot Shot Pack
+	# x2, Booster Pills — was destroyed, and the log said nothing, because after the
+	# wipe there was genuinely nothing left to dedup ("healed N" never fired) and the
+	# 8 surviving echoes were all id-less (exactly 8 "auto-generated id" warnings).
+	# Both of those log observations are what the wipe LOOKS like.
+	#
+	# The clear now happens further down, AFTER the heal has read the stash into
+	# `deduped_stash` and BEFORE that healed list is written back. Order is the whole
+	# fix: a destructive reset must not precede the read it destroys.
 	# Repopulate from campaign's persisted equipment data (ship stash + unassigned).
 	# Items without an id (legacy saves) get a stable id auto-generated so they
 	# can participate in the EquipmentManager ownership tracking. The generated
@@ -973,33 +991,108 @@ func _restore_equipment_from_campaign(campaign) -> void:
 			# below), folding it in would ADD a duplicate of every item rather than
 			# remove one. get_all_equipment() does not read it either. It is erased
 			# as dead weight.
+			# ⚠ CORRECTION (Aug 9 2026, found on the device's own legacy save). This
+			# loop used to treat EVERY id-less item as a unique original, on the stated
+			# premise that "the duplication bugs only ever copied items that already HAD
+			# ids". That premise is false: `22222222_1775243767.save` carries 8 id-less
+			# items in "equipment" that are BYTE-IDENTICAL to the 8 in "gear", so the
+			# union produced 16 entries and the id-less branch waved all 16 through.
+			#
+			# It then got worse, permanently: the rehydrate below auto-generates an id
+			# per item from name+ticks+randi, so the 16 copies each received a DIFFERENT
+			# id. One save later the stash is doubled, and no id-based dedup can ever
+			# see it again. Load a legacy campaign, hit Save, lose the ability to tell.
+			#
+			# Dedup id-less items by CONTENT, but only ACROSS source keys. Two identical
+			# id-less items inside "equipment" are two real items (two looted Handguns);
+			# the same item echoed in "gear" is the un-erased split-format copy that
+			# CampaignFinalizationService left behind.
+			# ⚠ SECOND CORRECTION (Aug 9 2026, deploy #4, found on the SAME device
+			# save). The id branch below used to drop any repeat of an id it had
+			# already seen, ANYWHERE. That destroyed real items: loading
+			# `22222222_1775243767.save` and pressing Save took the stash from 13
+			# to 11, deleting one of two "Assault Blade" and one of two "Hot Shot
+			# Pack" — silently, permanently, with a cheerful "healed 10 duplicate
+			# stash item(s)" in the log.
+			#
+			# The premise was that an id identifies a physical item. It does not.
+			# These ids come from a loot roll and identify the TABLE ENTRY: that
+			# save carries 5 id-bearing items with only THREE distinct ids, because
+			# two Assault Blades rolled the same loot id. Two Assault Blades are two
+			# Assault Blades.
+			#
+			# So BOTH branches now use one rule, which is the rule the id-less
+			# branch already had: **duplicates WITHIN the primary list are real
+			# items; an entry reappearing under a SECONDARY key is the split-format
+			# echo.** That is the only distinction the data actually supports.
+			#
+			# Trade-off, stated deliberately: a save written while the old
+			# add_equipment() write-through was live could carry genuine
+			# within-"equipment" duplicates that this no longer collapses. That bug
+			# is fixed at source, the echo (the common case, and the one in every
+			# split-format save) is still healed, and a stale duplicate is a
+			# recoverable annoyance while a deleted item is not. Never trade a real
+			# item for a tidier list.
 			var raw_stash: Array = []
+			var deduped_stash: Array = []
+			var from_primary: Dictionary = {}
+			var dup_sequence: Dictionary = {}
 			for source_key in ["equipment", "weapons", "armor", "gear"]:
 				var source_list = campaign.equipment_data.get(source_key, [])
-				if source_list is Array:
-					raw_stash.append_array(source_list)
-			var seen_stash_ids: Dictionary = {}
-			var deduped_stash: Array = []
-			for stash_item in raw_stash:
-				if not (stash_item is Dictionary):
+				if not (source_list is Array):
+					continue
+				var is_primary: bool = source_key == "equipment"
+				raw_stash.append_array(source_list)
+				for stash_item in source_list:
+					if not (stash_item is Dictionary):
+						deduped_stash.append(stash_item)
+						continue
+					# Key on the id when there is one, else on the whole content —
+					# an id-less item has nothing else to identify it by.
+					var sid: String = str(stash_item.get("id", ""))
+					var signature: String = sid if not sid.is_empty() \
+						else JSON.stringify(stash_item)
+					if is_primary:
+						# Two REAL items that share one loot id (see above). Keep both,
+						# but give the later one an id of its own: EquipmentManager
+						# keys its runtime cache by id and rejects a repeat
+						# ("Equipment with ID already exists"), so without this the
+						# cache holds fewer items than the stash it mirrors.
+						#
+						# The FIRST occurrence keeps the original id on purpose — a
+						# character's equipment list may reference it by id (the
+						# id->name heal further down does exactly that), and that
+						# reference must still resolve.
+						if from_primary.has(signature) and not sid.is_empty():
+							var seq: int = int(dup_sequence.get(signature, 1)) + 1
+							dup_sequence[signature] = seq
+							stash_item["id"] = "%s_dup%d" % [sid, seq]
+						from_primary[signature] = true
+					elif from_primary.has(signature):
+						continue  # the split-format echo of an item we already have
 					deduped_stash.append(stash_item)
-					continue
-				var sid: String = str(stash_item.get("id", ""))
-				if sid.is_empty():
-					# id-less items are always unique originals: the duplication bugs
-					# only ever copied items that already HAD ids.
-					deduped_stash.append(stash_item)
-					continue
-				if seen_stash_ids.has(sid):
-					continue
-				seen_stash_ids[sid] = true
-				deduped_stash.append(stash_item)
 			var removed_dupes: int = raw_stash.size() - deduped_stash.size()
 			if removed_dupes > 0:
 				push_warning("GameState: healed %d duplicate stash item(s) on load" % removed_dupes)
+			# NOW it is safe to reset. `deduped_stash` already holds every surviving
+			# item, so wiping the owner cannot lose anything — and doing it here
+			# rather than at the top of this function is what stopped the wipe from
+			# eating the stash before the read (see the note there).
+			if eq_mgr.has_method("clear_all_equipment"):
+				eq_mgr.clear_all_equipment()
+				_stash_reset_done = true
 			campaign.equipment_data["equipment"] = deduped_stash
 			for consumed_key in ["weapons", "armor", "gear", "items"]:
 				campaign.equipment_data.erase(consumed_key)
+
+		# The heal above owns the clear. If its guard did NOT match (equipment_data
+		# missing or not the expected shape) nothing has reset the runtime caches
+		# yet, and rehydrating on top of the PREVIOUS campaign's items would merge
+		# two campaigns' stashes. There is nothing to lose in that branch — the
+		# campaign has no readable stash — so clearing here is safe.
+		if not _stash_reset_done and eq_mgr.has_method("clear_all_equipment"):
+			eq_mgr.clear_all_equipment()
+		_stash_reset_done = false
 
 		# Rehydrate EquipmentManager from the (now clean) stash. Items without an
 		# id (legacy saves) get a stable id auto-generated so they can participate
@@ -1203,7 +1296,16 @@ func get_campaign_info(path: String) -> Dictionary:
 	return info
 
 func get_date_string(unix_time: int) -> String:
-	var datetime = Time.get_datetime_dict_from_unix_time(unix_time)
+	## Format a file mtime for display, in the PLAYER'S LOCAL TIME.
+	##
+	## T9-07 (tablet QA, Aug 9 2026): Time.get_datetime_dict_from_unix_time() interprets
+	## the stamp as UTC, and FileAccess.get_modified_time() hands back epoch seconds, so
+	## the raw conversion rendered a save written at 08:13 local as "15:13" in the Load
+	## Campaign dialog on a UTC-7 device. Shift by the system zone bias before formatting.
+	## (Time.get_datetime_string_from_system() defaults to local and needs no such fix —
+	## only the from_unix_time family is UTC.)
+	var bias_seconds: int = int(Time.get_time_zone_from_system().get("bias", 0)) * 60
+	var datetime = Time.get_datetime_dict_from_unix_time(unix_time + bias_seconds)
 	return "%04d-%02d-%02d %02d:%02d" % [
 		datetime.year, datetime.month, datetime.day,
 		datetime.hour, datetime.minute

@@ -15,6 +15,7 @@ const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd
 const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const EquipmentTransferService = preload("res://src/core/equipment/EquipmentTransferService.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 
 ## The Compendium p.79 step this battle produced or discharged, for the
 ## orchestrator to emit. Subsystems return data and never emit, and the int
@@ -178,22 +179,56 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 	if Engine.get_main_loop():
 		npc_tracker_node = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker")
 
-	var fought_existing_rival: bool = false
+	# WHO DID WE FIGHT? Read from the MISSION, not from the corpses.
+	#
+	# THE BUG THIS FIXES: `fought_existing_rival` was derived by scanning
+	# `ctx.defeated_enemies` for an `is_rival` stamp, so it was really asking "did
+	# we KILL any of them". p.118 Morale can rout an entire enemy force with zero
+	# casualties — "Bail" removes the figure from the battlefield, it does not kill
+	# it — and that is a common way to Hold the Field against a Rival. In that
+	# battle `defeated_enemies` is empty, so:
+	#   (a) the p.119 removal roll never happened, and a Rival you had just
+	#       comprehensively beaten could never be shaken off; and worse,
+	#   (b) execution fell through to the `not fought_existing_rival` branch below
+	#       and rolled to gain a NEW Rival — so beating a Rival by morale could
+	#       hand you a second one for the same fight.
+	#
+	# The identity is already in the funnel: `CampaignTurnController` stamps
+	# `rival_id` + `mission_source = "rival"` onto mission_data before the battle
+	# (:921-922) and `BattleResultNormalizer` derives `is_rival_mission` from
+	# either (:151-154). Reading it there is the funnel rule — the mission carries
+	# its own identity — and it holds however the fight ended.
+	var mission_rival_id: String = str(ctx.battle_result.get("rival_id", ""))
+	var fought_existing_rival: bool = bool(
+		ctx.battle_result.get("is_rival_mission", false)) or not mission_rival_id.is_empty()
+
+	# The corpse scan is still consulted, but only as an ADDITIONAL source of ids:
+	# a Rival encountered without the mission stamp (a legacy save, or an enemy
+	# tagged by the normalizer) must still get its roll.
+	var rival_ids: Array[String] = []
+	if not mission_rival_id.is_empty():
+		rival_ids.append(mission_rival_id)
 	for enemy in ctx.defeated_enemies:
-		if enemy.get("is_rival", false):
-			fought_existing_rival = true
-			var rival_id = enemy.get("rival_id", "")
-			if rival_id != "" and held_field:
-				var removal_roll = _roll_rival_removal(ctx, rival_id)
-				if removal_roll >= 4:
-					rivals_removed.append(rival_id)
-					_remove_rival(ctx, rival_id)
-				if faction_sys and faction_sys.has_method("update_rival_reputation"):
-					var rep_change = 2 if removal_roll >= 4 else -1
-					faction_sys.update_rival_reputation(rival_id, rep_change)
-				if npc_tracker_node and npc_tracker_node.has_method("track_rival_encounter"):
-					var result_str: String = "victory" if ctx.mission_successful else "defeat"
-					npc_tracker_node.track_rival_encounter(rival_id, result_str, ctx.battle_result.get("turn", 0))
+		if not enemy.get("is_rival", false):
+			continue
+		fought_existing_rival = true
+		var enemy_rival_id: String = str(enemy.get("rival_id", ""))
+		if not enemy_rival_id.is_empty() and not (enemy_rival_id in rival_ids):
+			rival_ids.append(enemy_rival_id)
+
+	if held_field:
+		for rival_id in rival_ids:
+			var removal_roll = _roll_rival_removal(ctx, rival_id)
+			if removal_roll >= 4:
+				rivals_removed.append(rival_id)
+				_remove_rival(ctx, rival_id)
+			if faction_sys and faction_sys.has_method("update_rival_reputation"):
+				var rep_change = 2 if removal_roll >= 4 else -1
+				faction_sys.update_rival_reputation(rival_id, rep_change)
+			if npc_tracker_node and npc_tracker_node.has_method("track_rival_encounter"):
+				var result_str: String = "victory" if ctx.mission_successful else "defeat"
+				npc_tracker_node.track_rival_encounter(
+					rival_id, result_str, ctx.battle_result.get("turn", 0))
 
 	# Story Track: Event 1 (p.153) and Event 4 (p.156) both end with "Do not
 	# check for new Rivals after this battle." Stamped by StoryTrackProcessor.
@@ -263,9 +298,55 @@ func process_rival_status(ctx: PostBattleContextClass) -> Dictionary:
 
 	return {"rivals_removed": rivals_removed, "new_rivals": new_rivals}
 
+## Core Rules p.74, verbatim: "Corporate state — +2 when rolling to find a Patron.
+## Patrons are always Corporations. FAILING A MISSION MEANS BEING BLACKLISTED and
+## you cannot get Patrons here again."
+##
+## The +2 and the forced type were already wired at the crew-task end; the
+## blacklist is the clause with teeth and it had no writer, so failing a Corporate
+## State job cost nothing. Recorded per PLANET — "here" is the world, and the crew
+## can come back — on progress_data, which CrewTaskComponent reads before letting
+## a Patron be found or a contact be added.
+func _apply_corporate_blacklist(ctx: PostBattleContextClass) -> void:
+	if ctx.mission_successful:
+		return
+	var traits: Array = ctx.battle_result.get("world_traits", [])
+	if WorldTraitEffects.forced_patron_type(traits).is_empty():
+		return
+	var campaign: Variant = ctx.campaign
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	if not (campaign.progress_data is Dictionary):
+		return
+	var planet_id: String = str(ctx.battle_result.get("planet_id", ""))
+	if planet_id.is_empty():
+		return
+	var listed: Variant = campaign.progress_data.get("patron_blacklist_planets", [])
+	var blacklist: Array = listed if listed is Array else []
+	if planet_id in blacklist:
+		return
+	blacklist.append(planet_id)
+	campaign.progress_data["patron_blacklist_planets"] = blacklist
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": "Blacklisted",
+			"description": "The job failed on a Corporate State world. The crew is "
+				+ "blacklisted here and can no longer find Patrons on this planet "
+				+ "(Core Rules p.74).",
+			"turn": int(ctx.battle_result.get("turn", 0)),
+			"tags": ["patron", "world_trait"],
+		})
+
+
 func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 	## Step 2: Resolve Patron Status. Returns patrons_added array.
 	var patrons_added: Array[String] = []
+
+	# p.74 Corporate state. Runs FIRST: a failed job blacklists the world, and the
+	# retention below must not add a contact on a world that just shut the door.
+	_apply_corporate_blacklist(ctx)
 
 	if ctx.mission_successful and ctx.battle_result.has("patron_id"):
 		var patron_id = ctx.battle_result.patron_id
@@ -301,6 +382,23 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 					ctx.battle_result),
 			})
 			patrons_added.append(str(patron_id))
+
+			# Core Rules p.84 Conditions Subtable 7-8, verbatim: "Busy — If the
+			# mission is a SUCCESS, the Patron offers a new job NEXT CAMPAIGN TURN."
+			#
+			# `PatronJobEffects.offers_new_job_on_success()` implemented this and had
+			# ZERO callers. Banked as a named follow-up rather than folded into
+			# `patron_offers_owed` (the p.77 entitlement): that one draws a RANDOM
+			# existing Patron, and Busy names the specific employer, so merging them
+			# would let the follow-up arrive from someone else entirely.
+			if PatronJobEffects.offers_new_job_on_success(ctx.battle_result) \
+					and ctx.campaign != null and "progress_data" in ctx.campaign:
+				var pending: Variant = ctx.campaign.progress_data.get(
+					"patron_followup_offers", [])
+				var followups: Array = pending if pending is Array else []
+				if not (str(patron_id) in followups):
+					followups.append(str(patron_id))
+				ctx.campaign.progress_data["patron_followup_offers"] = followups
 		elif ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
 			ctx.campaign_journal.create_entry({
 				"type": "event",
@@ -438,16 +536,30 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 	elif ctx.game_state.has_method("get_quest_rumor_count"):
 		quest_rumors = ctx.game_state.get_quest_rumor_count()
 
+	# On-board item, Analyzer (Core Rules p.57): "Add +1 when rolling to see if
+	# Rumors result in a Quest and when rolling for QUEST RESOLUTION."
+	#
+	# Computed ABOVE the branch on purpose. There are two quest-progress systems
+	# (core p.120 and the Compendium p.78 replacement) and applying the bonus
+	# inside either one is the "guard applied to N-1 of N sites" shape that keeps
+	# recurring here — the player would get the Analyzer only when their DLC flags
+	# happened to match. Both branches read this one value.
+	#
+	# Applied to the ROLL, not the threshold, because both systems succeed on a
+	# HIGH total — the opposite polarity from the p.85 Rumors check, where the
+	# same sentence has to move the threshold instead. See ResolveRumorsComponent.
+	var analyzer_bonus: int = OnboardItemServiceRef.quest_roll_bonus(ctx.campaign)
+
 	# Compendium p.78: "the system below is used IN PLACE OF the core rulebook
 	# system." Branching before the D6 is rolled, not after, because the expanded
 	# system does not always roll — a standing obligation suppresses the roll
 	# entirely, and a die rolled and discarded would still reach the dice feed
 	# and the journal.
 	if ExpandedQuestRef.is_enabled():
-		return _process_expanded_quest_progress(ctx, quest_rumors)
+		return _process_expanded_quest_progress(ctx, quest_rumors, analyzer_bonus)
 
 	var base_roll: int = ctx.roll_d6("Quest progress roll")
-	var total_roll: int = base_roll + quest_rumors
+	var total_roll: int = base_roll + quest_rumors + analyzer_bonus
 
 	# Expanded Database: +1 to quest progress (Compendium p.28)
 	if ShipComponentQuery.has_component("expanded_database"):
@@ -504,7 +616,9 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 ##     its business.
 ##   * the ordinary outcome is neither progress nor a dead end. It is a task,
 ##     which stands until discharged and suppresses the next roll while it does.
-func _process_expanded_quest_progress(ctx: PostBattleContextClass, quest_rumors: int) -> int:
+func _process_expanded_quest_progress(
+	ctx: PostBattleContextClass, quest_rumors: int, analyzer_bonus: int = 0
+) -> int:
 	# A battle fought FOR the pending step discharges it first — by the time
 	# Step 3 asks, the obligation the battle was taken on is settled.
 	var discharge: Dictionary = ExpandedQuestRef.record_battle(ctx.campaign, ctx.battle_result)
@@ -526,9 +640,9 @@ func _process_expanded_quest_progress(ctx: PostBattleContextClass, quest_rumors:
 		}
 		return 4
 
-	var db_bonus: int = 0
+	var db_bonus: int = analyzer_bonus
 	if ShipComponentQuery.has_component("expanded_database"):
-		db_bonus = 1
+		db_bonus += 1
 
 	var d6: int = ctx.roll_d6("Quest progress (Compendium p.78)")
 	# Only roll the progression table when the gate did not clear the Conclusion.
@@ -701,6 +815,15 @@ func _append_rival(campaign, ctx, enemy_type: String, is_psi_hunter: bool = fals
 		"created_turn": ctx.battle_result.get("turn", 0),
 		"origin": "psi_hunt" if is_psi_hunter else "battle_grudge"
 	}
+	# Compendium p.49 Elite-level Rivals: "Elite-level enemies are more
+	# persistent. When traveling to a new world, roll 1D6 for each Elite Rival you
+	# have: On a 4+ they opt to follow you to the new world" — against the Core
+	# Rules p.72 baseline of 5+. Tagged at birth because the roll happens turns
+	# later, in NewWorldArrival, by which time nothing else can tell where this
+	# Rival came from. Psi-hunters are a Core Rules band and are never elite by
+	# this route.
+	if not is_psi_hunter and bool(ctx.battle_result.get("enemy_is_elite", false)):
+		new_rival["is_elite"] = true
 	if is_psi_hunter:
 		# "Note on your record sheet that these Rivals are Psi-hunters in addition
 		# to their normal type" — the tag rides along with the three adjustments

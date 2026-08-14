@@ -3,7 +3,7 @@ name: fpcm-project-management
 description: "Use this skill for task decomposition, agent routing, cross-system coordination, project status reporting, roadmap planning, or when determining which agent should handle a complex or ambiguous task. Also use for architectural decisions that span multiple systems."
 ---
 
-> 🛑 **RULE 0 (CLAUDE.md "Agent Verification Protocol" — MANDATORY, NON-NEGOTIABLE): READ THE ACTUAL CODE *AND* SCENES BEFORE ANY PLAN.** You may NOT propose a plan, design, edit, routing decision, or structural claim until you have opened and read the ACTUAL files involved — the `.gd` scripts AND the related `.tscn`/`.tres` scene/resource files. Memory, CLAUDE.md docblocks, SOPs, this file's own notes, and relayed sub-agent summaries are **LEADS TO VERIFY, never facts** — they go stale; open the file and confirm, citing `file:line`. The `.tscn` wiring (node tree, node types, `[ext_resource]` scripts, embedded/instanced sub-scenes, `unique_name_in_owner`, anchors/containers) is the **authority on what is actually instantiated and live** — a `.gd` can look dead but be wired into a scene, or look live but be orphaned. UI / layout / responsive work: reading the `.gd` is NOT enough, OPEN the `.tscn`. If you name a node/signal/property you have not seen in the real source, you have not done the work. **No first-hand read of the code + scene wiring = no plan.** Full code-and-scene due diligence is the floor, not extra effort.
+> 🛑 **RULE 0 applies — read the actual code AND scenes before any plan, edit, or structural claim.** Canonical text: `CLAUDE.md` → "Agent Verification Protocol" → "RULE 0". The `.tscn`/`.tres` wiring is the authority on what is actually instantiated and live; memory, docblocks, SOPs and relayed sub-agent summaries are leads to verify, never facts. Cite `file:line`.
 
 # FPCM Project Management
 
@@ -13,13 +13,13 @@ description: "Use this skill for task decomposition, agent routing, cross-system
 |-----------|----------|
 | `references/agent-roster.md` | All 9 agents: domain, model, color, files owned, routing rules, cross-domain flow examples |
 | `references/task-decomposition.md` | Decomposition framework, execution order, dependency chains, 6 worked examples |
-| `references/project-status.md` | Per-system implementation status, completed phases, roadmap, future work |
+| `references/project-status.json` | Per-system implementation status, completed phases, roadmap, future work |
 
 ## Quick Decision Tree
 
 - **Which agent handles X?** → Read `agent-roster.md`
 - **How to break down a complex task?** → Read `task-decomposition.md`
-- **What's the project status?** → Read `project-status.md`
+- **What's the project status?** → Read `project-status.json`
 - **Cross-system coordination needed?** → Read `agent-roster.md` (cross-domain flows section)
 - **Enum change needed?** → Always route to `character-data-engineer` (two-enum sync rule: GlobalEnums + GameEnums)
 - **Cross-mode character transfer change?** → Spans 3 owners: `CharacterTransferService.gd` (character-data-engineer, canonical-hub legs + any book-sourced conversion values), `CampaignScreenBase` pickup + the receiving core's mutator (`add_crew_member` / `add_main_character` / `add_roster_character` / `add_veteran_character`) + `pending_character_transfers` signal (campaign-systems-engineer), the receiving mode's import UI (the relevant gamemode specialist), then qa-specialist. All 4 modes are SHIPPED and interconnect any-to-any (Tactics transfer shipped Jun 4). See `agent-roster.md` "Extending cross-mode character transfer"

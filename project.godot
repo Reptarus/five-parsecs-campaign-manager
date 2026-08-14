@@ -21,11 +21,13 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 config/name="Five Parsecs Campaign Manager"
 config/version="0.9.7-alpha1"
 run/main_scene="res://src/ui/screens/mainmenu/MainMenu.tscn"
+config/quit_on_go_back=false
 config/features=PackedStringArray("4.6", "Forward Plus")
 run/max_fps=60
 config/icon="res://assets/iconnew.png"
 
 [autoload]
+
 GlobalEnums="*res://src/core/systems/GlobalEnums.gd"
 SettingsManager="*res://src/autoload/SettingsManager.gd"
 GameDataManager="*res://src/core/managers/GameDataManager.gd"
@@ -48,6 +50,7 @@ CampaignTurnEventBus="*res://src/core/events/CampaignTurnEventBus.gd"
 EquipmentManager="*res://src/core/equipment/EquipmentManager.gd"
 PlanetDataManager="*res://src/core/world/PlanetDataManager.gd"
 ResponsiveManager="*res://src/autoload/ResponsiveManager.gd"
+KeyboardAvoidance="*res://src/autoload/KeyboardAvoidance.gd"
 ThemeManager="*res://src/ui/themes/ThemeManager.gd"
 TransitionManager="res://src/autoload/TransitionManager.gd"
 SettingsOverlay="*res://src/autoload/SettingsOverlay.gd"
@@ -112,10 +115,6 @@ common/physics_ticks_per_second=30
 [rendering]
 
 textures/vram_compression/import_etc2_astc=true
-; UIColors.COLOR_PRIMARY (#0a0d14). Eleven screens inject no background of their
-; own and render straight onto this, so it IS the page colour for a third of the
-; app; it used to be the old navy-purple #1A1A2E, which is why those screens
-; looked like a different product than the ones that do inject a background.
 environment/defaults/default_clear_color=Color(0.0392157, 0.0509804, 0.0784314, 1)
 
 [steam]

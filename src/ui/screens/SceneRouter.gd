@@ -143,6 +143,12 @@ const CAMPAIGN_CREATION_SCENES = [
 # Scene transition context storage
 var scene_contexts: Dictionary = {} # String -> Dictionary
 
+## How long a second Back press still counts as "yes, quit" at the root screen.
+const BACK_TO_QUIT_WINDOW_MS := 2500
+
+## When the first of a double-Back was pressed. 0 = no press pending.
+var _back_quit_armed_at_ms: int = 0
+
 func _ready() -> void:
 	# Validate critical scenes on startup
 	_validate_critical_scenes()
@@ -219,15 +225,37 @@ func navigate_to(scene_name: String, context: Dictionary = {}, add_to_history: b
 ## Navigate back to the previous scene
 func navigate_back() -> void:
 	## Navigate back to the previous scene in history.
-	## Falls back to main_menu if history is empty.
+	## Falls back to the campaign dashboard mid-campaign, else main_menu.
 	if navigation_history.is_empty():
 		if current_scene != "main_menu":
-			navigate_to("main_menu", {}, false)
+			navigate_to(empty_history_fallback(), {}, false)
 		return
 
 	var previous_scene = navigation_history.pop_back()
 	@warning_ignore("unsafe_call_argument")
 	navigate_to(previous_scene, {}, false) # Don't add to history when going back
+
+
+## Where Back goes when there is no history left to pop.
+##
+## Main menu is right from a cold start, and wrong mid-campaign: it drops the player
+## out of a campaign they are in the middle of playing. History CAN legitimately run
+## dry — clear_history() is called on new-campaign and return-to-menu, entries are
+## trimmed at max_history_size, and consecutive duplicates are never pushed — so this
+## is a fallback that has to be correct on its own, not a should-never-happen.
+##
+## Filed as N2 (Aug 8) from a mid-turn World Phase. Re-driven on device Aug 9 and it did
+## NOT reproduce through the direct path (Dashboard -> Begin Turn -> BACK correctly
+## returned to the Dashboard), so the exact route that emptied the history is still
+## unidentified. Rather than leave a symptom nobody can reproduce, make the fallback
+## right for every route: if a campaign is loaded, the campaign's home screen is a
+## better answer than the main menu no matter how we got here.
+func empty_history_fallback() -> String:
+	var gs := get_node_or_null("/root/GameState")
+	if gs and gs.has_method("has_active_campaign") and gs.has_active_campaign():
+		if current_scene != "campaign_dashboard":
+			return "campaign_dashboard"
+	return "main_menu"
 
 ## Alias for navigate_back().
 ##
@@ -242,6 +270,97 @@ func navigate_back() -> void:
 ## the next copy-paste of that block from silently doing the same thing.
 func go_back() -> void:
 	navigate_back()
+
+
+# ── Android system Back button ──────────────────────────────────────────────
+#
+# The app used to DIE here. `application/config/quit_on_go_back` defaults to true, so
+# SceneTree quit the moment Back was pressed, from any screen, with no prompt — verified
+# on device Aug 8 2026, process gone afterwards. Back is the most-used control on
+# Android; treating it as "quit, no confirmation" is the single worst input bug found in
+# the tablet pass. The setting is now false and this owns the behaviour.
+#
+# The notification still arrives either way — GameState._notification() has been flushing
+# the campaign on it all along — so the data was never the problem, the navigation was.
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST:
+		_handle_go_back()
+
+
+## Decide and perform. Split from decide_back_action() so the policy can be tested
+## without a tree, a running app, or an actual quit.
+func _handle_go_back() -> String:
+	var action := decide_back_action(
+		_close_topmost_popup(),
+		not navigation_history.is_empty(),
+		Time.get_ticks_msec(),
+		_back_quit_armed_at_ms)
+	match action:
+		"popup":
+			pass  # _close_topmost_popup() already closed it.
+		"back":
+			_back_quit_armed_at_ms = 0
+			navigate_back()
+		"arm_quit":
+			_back_quit_armed_at_ms = Time.get_ticks_msec()
+			var nm := get_node_or_null("/root/NotificationManager")
+			if nm and nm.has_method("show_toast"):
+				nm.show_toast("Press Back again to exit", "info", 2.0)
+		"quit":
+			_back_quit_armed_at_ms = 0
+			get_tree().quit()
+	return action
+
+
+## The whole policy, as a pure function of three facts. Kept free of tree access so the
+## decision table is testable — the alternative is a test that really quits the app.
+##
+## Order matters: a popup wins over navigation, because navigating out from under an open
+## modal orphans it. That is a bug this fix would otherwise have INTRODUCED, since before
+## it the app just died and the modal never outlived the press.
+static func decide_back_action(
+		closed_a_popup: bool, has_history: bool, now_ms: int, armed_at_ms: int = -1
+) -> String:
+	if closed_a_popup:
+		return "popup"
+	if has_history:
+		return "back"
+	# At the root screen. Double-press to leave: the Android idiom, and it needs no
+	# styled dialog of its own.
+	if armed_at_ms > 0 and now_ms - armed_at_ms <= BACK_TO_QUIT_WINDOW_MS:
+		return "quit"
+	return "arm_quit"
+
+
+## Close the frontmost open Window, if any. Returns true when one was closed.
+##
+## Tree order, last match wins: Godot draws later siblings on top, so the last visible
+## Window found in a depth-first walk is the one the player is looking at.
+func _close_topmost_popup() -> bool:
+	var tree := get_tree()
+	if tree == null:
+		return false
+	var topmost: Window = null
+	var stack: Array[Node] = [tree.root]
+	while not stack.is_empty():
+		var n: Node = stack.pop_front()
+		for c in n.get_children():
+			stack.push_back(c)
+		if n is Window and n != tree.root and (n as Window).visible:
+			topmost = n as Window
+	if topmost == null:
+		return false
+	# Prefer the signal the engine itself fires when the titlebar X is clicked: owners
+	# connect to it to free the dialog or re-enable the screen behind it, and a bare
+	# hide() skips all of that, leaving a hidden window alive and its caller still
+	# waiting. Fall back to hide() for dialogs that nobody listens to.
+	if topmost.get_signal_connection_list("close_requested").size() > 0:
+		topmost.emit_signal("close_requested")
+	else:
+		topmost.hide()
+	return true
 
 ## Get the name of the current scene
 func get_current_scene() -> String:

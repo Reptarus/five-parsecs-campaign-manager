@@ -11,6 +11,7 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const CharacterRef = preload("res://src/core/character/Character.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
+const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
 
 # Autoload references (resolved by PostBattlePhase orchestrator in _ready())
 var dice_manager: Variant = null
@@ -351,12 +352,31 @@ func is_crew_member_bot(crew_id: String) -> bool:
 			return char_class == "Bot" or char_class == "BOT"
 	return false
 
+func _as_member(character: Variant) -> Variant:
+	## Callers pass EITHER a crew member or a crew_id, and both spellings are in
+	## the tree today. A bare String falls through every branch of the two
+	## methods below — `"origin" in "crew_1"` is a SUBSTRING test, not a property
+	## test, and a String is not a Dictionary — so an id silently answered
+	## "Human" and "not a Bot" for every character in the game.
+	##
+	## That is not cosmetic. It made the p.126 eligibility filter ("Select a
+	## random non-Bot, non-Soulless character") a no-op, so Bots and Soulless
+	## were eligible for Character Events the book excludes them from, and it
+	## made the Precursor double-roll unreachable. Resolve ids at the door so
+	## every consumer gets the same answer.
+	if character is String:
+		var resolved = get_crew_member(character)
+		if resolved != null:
+			return resolved
+	return character
+
 func get_character_origin(character: Variant) -> String:
 	## Get the origin/species of a character (Core Rules species: Human, K'Erin, Swift, Engineer, Soulless, Precursor, Feral, Bot)
-	if "origin" in character:
+	character = _as_member(character)
+	if character is Dictionary:
+		return str(character.get("origin", character.get("species", "Human")))
+	if character != null and "origin" in character:
 		return str(character.origin)
-	elif character is Dictionary:
-		return character.get("origin", character.get("species", "Human"))
 	return "Human"
 
 func has_crew_with_origin(origin_name: String) -> bool:
@@ -369,17 +389,20 @@ func has_crew_with_origin(origin_name: String) -> bool:
 
 func is_character_bot_or_soulless(character: Variant) -> bool:
 	## Check if character is Bot, Soulless, or Assault Bot
-	## (excluded from character events per Core Rules pp.15, 21, 128)
+	## (excluded from character events per Core Rules pp.15, 21, 126)
+	character = _as_member(character)
+	if character == null:
+		return false
 	var origin: String = get_character_origin(character).to_lower()
-	if origin in ["bot", "soulless", "assault bot"]:
+	if origin in ["bot", "soulless", "assault bot", "assault_bot"]:
 		return true
 	# Also check species_id for Strange Characters
 	var sid: String = ""
 	if character is Dictionary:
-		sid = character.get("species_id", "").to_lower()
+		sid = str(character.get("species_id", "")).to_lower()
 	elif "species_id" in character:
 		sid = str(character.species_id).to_lower()
-	return sid == "assault_bot"
+	return sid in ["bot", "soulless", "assault_bot", "assault bot"]
 
 func has_crew_with_class(character_class: String) -> bool:
 	var crew := get_crew_members()
@@ -748,22 +771,47 @@ func apply_character_status_effect(character: Variant, effect: Dictionary) -> vo
 # Ability maximums (Core Rules p.123 Ability Increase Table). Luck handled separately.
 const ABILITY_MAX := {"reaction": 6, "combat": 5, "speed": 8, "savvy": 5, "toughness": 6}
 
+## A crew member is a Character Resource or a Dictionary — NEVER a String id.
+##
+## A non-empty String is TRUTHY in GDScript, so a bare `elif character:` accepted an
+## id and then died on `character.set(...)` with "Nonexistent function 'set' in base
+## 'String'." Godot ABORTS the function on that, so a single mis-shaped argument in
+## step 13 unwound the entire 14-step post-battle sequence and the player saw the
+## battle screen tear down with nothing replacing it (tablet, 2026-08-08).
+##
+## Callers must resolve ids via get_crew_member() — CharacterEventEffects.finalize_event
+## now does. This guard exists so that a future caller that forgets loses ONE stat
+## write with a visible error, instead of the whole post-battle run silently.
+func _is_character_like(character: Variant) -> bool:
+	if character is Dictionary:
+		return true
+	if character is Object:
+		return true
+	if character != null:
+		push_error(
+			"PostBattleContext: expected a crew member (Resource or Dictionary), got %s "
+			% type_string(typeof(character))
+			+ "(%s). Resolve ids through get_crew_member() first." % str(character))
+	return false
+
 func _get_character_stat(character: Variant, stat: String) -> int:
 	if character is Dictionary:
 		return int(character.get(stat, 0))
-	if character and stat in character:
+	if _is_character_like(character) and stat in character:
 		return int(character.get(stat))
 	return 0
 
 func _set_character_stat(character: Variant, stat: String, value: int) -> void:
 	if character is Dictionary:
 		character[stat] = value
-	elif character:
+	elif _is_character_like(character):
 		character.set(stat, value)
 
 func apply_luck_increase(character: Variant, amount: int = 1) -> bool:
 	## Core Rules p.123: Luck max is 1 (3 for Humans). Used by Charmed Existence (p.129).
-	if not character:
+	## Guard on the SHAPE, not on truthiness — a crew-id String is truthy and would
+	## otherwise report success while writing nothing (see _is_character_like).
+	if not _is_character_like(character):
 		return false
 	var current: int = _get_character_stat(character, "luck")
 	var origin: String = ""
@@ -780,7 +828,12 @@ func apply_luck_increase(character: Variant, amount: int = 1) -> bool:
 func apply_random_ability_increase(character: Variant) -> String:
 	## Core Rules p.129 Personal Breakthrough: +1 to one ability not yet at its max.
 	## Returns the ability raised (empty string if all abilities are maxed).
-	if not character:
+	##
+	## Guard on the SHAPE, not on truthiness. A crew-id String is truthy, so the old
+	## `if not character` let it through and this returned an ability NAME while the
+	## write below silently did nothing — the player was told "+1 Reaction" for a stat
+	## that never moved. Empty string is the honest answer for "nothing was raised".
+	if not _is_character_like(character):
 		return ""
 	var origin: String = ""
 	if character is Dictionary:
@@ -1169,7 +1222,10 @@ func damage_random_equipment() -> String:
 	var candidates: Array = []
 	for i in range(items.size()):
 		var entry: Variant = items[i]
-		if entry is Dictionary and not bool(entry.get("damaged", false)):
+		# Shared predicate: p.131 Loot marks damage as `needs_repair` too, and
+		# reading only `damaged` here would let this event "break" an item the
+		# player already knows is broken — a no-op the player is told happened.
+		if entry is Dictionary and not EquipmentTransferService.is_item_damaged(entry):
 			candidates.append(i)
 	if candidates.is_empty():
 		return ""
@@ -1177,6 +1233,10 @@ func damage_random_equipment() -> String:
 	var item: Dictionary = items[idx]
 	item["damaged"] = true
 	item["damage_source"] = "Campaign Event: Equipment Malfunction (Core Rules p.127)"
+	# p.53: "If the weapon is damaged, any Sight attached also becomes damaged."
+	# A fitted Sight is no longer a separate item, so nothing else would ever
+	# reach it — the damage has to be propagated at the moment the weapon breaks.
+	WeaponModServiceRef.propagate_damage_to_sight(item)
 	return str(item.get("name", "an item"))
 
 func apply_permanent_stat_reduction(crew_id: String, stats: Array, amount: int) -> Dictionary:

@@ -70,7 +70,7 @@ var _reset_button: Button
 var _results_label: Label
 var _entry_list: ItemList
 var _detail_richtext: RichTextLabel
-var _detail_actions_hbox: HBoxContainer
+var _detail_actions_row: HFlowContainer
 var _edit_notes_button: Button
 var _attach_photo_button: Button
 var _view_photos_button: Button
@@ -464,17 +464,25 @@ func _build_content_split() -> Control:
 	_detail_richtext.meta_clicked.connect(_on_meta_clicked)
 	detail_vbox.add_child(_detail_richtext)
 
-	_detail_actions_hbox = HBoxContainer.new()
-	_detail_actions_hbox.add_theme_constant_override("separation", SPACING_SM)
-	_detail_actions_hbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	detail_vbox.add_child(_detail_actions_hbox)
+	# HFlow, for the same reason _build_header() uses one: three buttons that cannot wrap
+	# set a hard width floor for the WHOLE SCREEN. detail_scroll above has horizontal
+	# scrolling disabled, and a disabled axis propagates the child's minimum straight up —
+	# so this row's 243px went through the scroll, the detail panel and the split to the
+	# root MarginContainer, which then needed 359px on a 310px-wide phone. Measured:
+	# verify_layout "off-screen by 48.7 px" at 360x640, which is exactly 359 - 310.3.
+	# Wrapping costs a second line on a phone and changes nothing on desktop.
+	_detail_actions_row = HFlowContainer.new()
+	_detail_actions_row.add_theme_constant_override("h_separation", SPACING_SM)
+	_detail_actions_row.add_theme_constant_override("v_separation", SPACING_XS)
+	_detail_actions_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_vbox.add_child(_detail_actions_row)
 
 	_edit_notes_button = Button.new()
 	_edit_notes_button.text = "Edit Notes"
 	_edit_notes_button.tooltip_text = "Add or edit your personal notes for this entry"
 	_edit_notes_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_edit_notes_button.pressed.connect(_on_edit_notes_pressed)
-	_detail_actions_hbox.add_child(_edit_notes_button)
+	_detail_actions_row.add_child(_edit_notes_button)
 
 	_attach_photo_button = Button.new()
 	_attach_photo_button.text = "Attach Photo"
@@ -482,14 +490,14 @@ func _build_content_split() -> Control:
 		"Attach a PNG/JPG screenshot or tabletop photo to this entry")
 	_attach_photo_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_attach_photo_button.pressed.connect(_on_attach_photo_pressed)
-	_detail_actions_hbox.add_child(_attach_photo_button)
+	_detail_actions_row.add_child(_attach_photo_button)
 
 	_view_photos_button = Button.new()
 	_view_photos_button.text = "View Photos"
 	_view_photos_button.tooltip_text = "Open the attached photos for this entry"
 	_view_photos_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_view_photos_button.pressed.connect(_on_view_photos_pressed)
-	_detail_actions_hbox.add_child(_view_photos_button)
+	_detail_actions_row.add_child(_view_photos_button)
 
 	split.add_child(detail_panel)
 
@@ -823,8 +831,8 @@ func _render_empty_detail() -> void:
 	_detail_richtext.text = (
 		"[center][color=#808080][i]No entries match these filters.[/i]"
 		+ "\n\nUse Reset Filters to clear all active filters.[/color][/center]")
-	if _detail_actions_hbox != null:
-		_detail_actions_hbox.visible = false
+	if _detail_actions_row != null:
+		_detail_actions_row.visible = false
 
 
 # ── Selection + Detail Rendering ────────────────────────────────────────────
@@ -899,8 +907,8 @@ func _show_entry_detail(entry: Dictionary) -> void:
 
 	_detail_richtext.text = bb
 
-	if _detail_actions_hbox != null:
-		_detail_actions_hbox.visible = true
+	if _detail_actions_row != null:
+		_detail_actions_row.visible = true
 		_edit_notes_button.text = "Edit Notes" if player_notes.is_empty() else "Edit Notes (1)"
 		_view_photos_button.visible = not photos.is_empty()
 		_view_photos_button.text = "View Photos (%d)" % photos.size()
@@ -1316,6 +1324,10 @@ func _ensure_photo_file_dialog() -> void:
 	_photo_file_dialog.filters = PackedStringArray([
 		"*.png, *.jpg, *.jpeg, *.webp ; Image Files",
 	])
+	# Android: SAF picker — the camera roll lives in shared storage, which this app
+	# has no permission to browse. Pairs with ACCESS_FILESYSTEM above.
+	# Full rationale: PrintSheetScreen._on_save_pdf_pressed().
+	_photo_file_dialog.use_native_dialog = true
 	_photo_file_dialog.file_selected.connect(_on_photo_file_selected)
 	add_child(_photo_file_dialog)
 

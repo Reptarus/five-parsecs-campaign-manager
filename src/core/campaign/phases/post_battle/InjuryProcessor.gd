@@ -8,6 +8,14 @@ extends RefCounted
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
 const InjuryConstants = preload("res://src/core/systems/InjurySystemConstants.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
+
+## Core Rules p.125 Advanced Training rerolls, resolved once per battle in
+## process_injuries() and read by the roll sites below. Both courses were pure
+## theatre before this: 20 XP for Medical school and 10 XP for Bot technician
+## bought a line of text and no mechanical effect whatsoever.
+var _medical_nominee_id: String = ""
+var _bot_technician_active: bool = false
 
 func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	## Process all injuries from battle. Returns array of processed injury dicts.
@@ -30,6 +38,8 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 	if CompendiumTogglesRef.is_toggle_active("reduced_lethality") \
 			and ctx.injuries_sustained.size() >= 2:
 		exempt_id = str(ctx.battle_result.get("reduced_lethality_exempt_crew_id", ""))
+
+	_resolve_training_rerolls(ctx, exempt_id)
 
 	for injury_data in ctx.injuries_sustained:
 		var this_crew_id: String = str(injury_data.get("crew_id", ""))
@@ -80,6 +90,163 @@ func process_injuries(ctx: PostBattleContextClass) -> Array[Dictionary]:
 
 	return processed_injuries
 
+## ── Core Rules p.125 Advanced Training rerolls ────────────────────────────────
+
+func _resolve_training_rerolls(ctx: PostBattleContextClass, exempt_id: String) -> void:
+	## Medical school (20 XP), verbatim: "After each battle, you may nominate a
+	## casualty that will roll twice on the Injury Table, picking the better
+	## result. This crew member must have been in the battle and must not have
+	## become a casualty. If your ship has a Shuttle, you can evac fast enough
+	## that this crew member can apply their skill even if they did not
+	## participate in the battle."
+	##
+	## "This crew member" is the MEDIC, not the nominee — the Shuttle sentence
+	## only parses that way ("apply their skill"), and a casualty has by
+	## definition participated.
+	##
+	## Bot technician (10 XP), verbatim: "If a Bot or Soulless character must
+	## roll for a post-battle injury, you may roll twice, picking the better
+	## result." No participation clause and no per-battle limit, so unlike
+	## Medical school it is not restricted to one figure.
+	_medical_nominee_id = ""
+	_bot_technician_active = false
+	if ctx == null:
+		return
+
+	_bot_technician_active = _crew_has_training(ctx, "bot_technician")
+
+	if not _medic_is_eligible(ctx):
+		return
+
+	# The nomination is made BEFORE the rolls (BattleResultsInputForm asks on the
+	# played path, same moment and same reason as the Reduced Lethality exemption
+	# above). On auto-resolve there is no player moment, so the first eligible
+	# casualty is nominated rather than silently withholding a benefit the player
+	# spent 20 XP on. Bots are skipped: they roll on the Bot Injury Table, and
+	# Medical school names "the Injury Table".
+	var nominated: String = str(ctx.battle_result.get("medical_school_nominee_crew_id", ""))
+	for injury_data in ctx.injuries_sustained:
+		var cid: String = str(injury_data.get("crew_id", ""))
+		if cid.is_empty() or cid == exempt_id:
+			continue
+		if ctx.is_character_bot_or_soulless(cid):
+			continue
+		if nominated.is_empty():
+			_medical_nominee_id = cid
+			return
+		if cid == nominated:
+			_medical_nominee_id = cid
+			return
+
+func _medic_is_eligible(ctx: PostBattleContextClass) -> bool:
+	## The medic must have been in the battle and not be a casualty themselves —
+	## unless the ship has a Shuttle, which waives the participation half.
+	var casualties: Dictionary = {}
+	for injury_data in ctx.injuries_sustained:
+		casualties[str(injury_data.get("crew_id", ""))] = true
+
+	var has_shuttle: bool = _ship_has_shuttle(ctx)
+	for member in ctx.get_crew_members():
+		if member == null:
+			continue
+		if not _member_has_training(member, "medical"):
+			continue
+		var cid: String = _member_id(member)
+		if casualties.has(cid):
+			continue  # became a casualty — cannot apply their skill
+		if has_shuttle or cid in ctx.crew_participants:
+			return true
+	return false
+
+func _ship_has_shuttle(ctx: PostBattleContextClass) -> bool:
+	var campaign = ctx.campaign
+	if campaign == null or not ("ship_data" in campaign):
+		return false
+	var ship: Variant = campaign.ship_data
+	if not (ship is Dictionary):
+		return false
+	for component in (ship as Dictionary).get("components", []):
+		var nm: String = str(component.get("name", component) if component is Dictionary
+			else component).to_lower()
+		if nm.contains("shuttle"):
+			return true
+	return false
+
+func _crew_has_training(ctx: PostBattleContextClass, course_id: String) -> bool:
+	for member in ctx.get_crew_members():
+		if member != null and _member_has_training(member, course_id):
+			return true
+	return false
+
+func _member_has_training(member: Variant, course_id: String) -> bool:
+	## Dictionary branch FIRST — has_method() on a Dictionary is an invalid call
+	## that unwinds the caller (the trap documented at process_single_injury).
+	if member is Dictionary:
+		var list: Array = (member as Dictionary).get("acquired_training", [])
+		if list.is_empty():
+			list = (member as Dictionary).get("training", [])
+		return course_id in list or _legacy_training_hit(course_id, list)
+	if member.has_method("has_training"):
+		return member.has_training(course_id)
+	if "acquired_training" in member:
+		return course_id in member.acquired_training \
+			or _legacy_training_hit(course_id, member.acquired_training)
+	return false
+
+func _legacy_training_hit(course_id: String, list: Array) -> bool:
+	## Mirrors Character._TRAINING_ID_ALIASES for crew held as plain dicts.
+	return course_id == "bot_technician" and "bot_tech" in list
+
+func _member_id(member: Variant) -> String:
+	if member is Dictionary:
+		return str((member as Dictionary).get("character_id",
+			(member as Dictionary).get("id", "")))
+	if "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+func _better_roll(roll_a: int, roll_b: int, is_bot_table: bool) -> int:
+	## "Picking the better result" (p.125) resolved mechanically. Nothing here is
+	## invented: every term is a consequence the book itself attaches to the row,
+	## compared in the order a player would. Lower rank wins; a TIE keeps the
+	## FIRST roll, so a reroll can never make an outcome worse.
+	var rank_a: Array = _bot_severity_rank(roll_a) if is_bot_table \
+		else _severity_rank(roll_a)
+	var rank_b: Array = _bot_severity_rank(roll_b) if is_bot_table \
+		else _severity_rank(roll_b)
+	for i in rank_a.size():
+		if rank_a[i] != rank_b[i]:
+			return roll_a if rank_a[i] < rank_b[i] else roll_b
+	return roll_a
+
+func _severity_rank(roll: int) -> Array:
+	var injury_type = InjuryConstants.get_injury_type_from_roll(roll)
+	var props: Dictionary = InjuryConstants.INJURY_PROPERTIES.get(injury_type, {})
+	var recovery: Dictionary = InjuryConstants.get_recovery_time(injury_type)
+	var stat_loss: Dictionary = props.get("stat_reduction", {})
+	return [
+		1 if props.get("is_fatal", false) else 0,          # death first
+		0 if stat_loss.is_empty() else 1,                  # permanent stat loss
+		1 if props.get("equipment_permanently_lost", false) else 0,
+		1 if props.get("equipment_lost", false) else 0,
+		# Upper bound, not a fresh dice roll — the comparison must be
+		# deterministic or the same pair of rolls could rank differently twice.
+		int(recovery.get("max", 0)),
+		-int(props.get("luck_bonus", 0)),                  # p.122 roll 16 upside
+		-int(props.get("bonus_xp", 0)),
+	]
+
+func _bot_severity_rank(roll: int) -> Array:
+	var bot_type = InjuryConstants.get_bot_injury_type_from_roll(roll)
+	var props: Dictionary = InjuryConstants.BOT_INJURY_PROPERTIES.get(bot_type, {})
+	var recovery: Dictionary = InjuryConstants.get_bot_recovery_time(bot_type)
+	return [
+		1 if props.get("is_fatal", false) else 0,
+		1 if props.get("all_equipment", false) else 0,
+		1 if props.get("equipment_lost", false) else 0,
+		int(recovery.get("max", 0)),
+	]
+
 func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary) -> Dictionary:
 	## Process a single injury (Core Rules p.94). Routes bots to separate table.
 	var crew_id = injury_data.get("crew_id", "")
@@ -112,6 +279,29 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 				"recovery_turns": 0,
 				"is_fatal": false
 			}
+
+	# On-board item, Nano-doc (Core Rules p.58): "Prevent one roll on the
+	# post-battle Injury Table, NO MATTER THE SOURCE of the injury. You must
+	# decide before rolling the dice. Single-use."
+	#
+	# Placed here, above the bot routing and above BOTH injury tables, because
+	# "no matter the source" is the whole point of the item — gating it inside
+	# the organic branch would silently exclude Bots and Soulless, and gating it
+	# after the detailed-injuries opt-in would make it depend on a DLC toggle.
+	# One site, all paths: this is the recurring "guard applied to N-1 of N
+	# sites" trap and the reason this sits where Feel Great sits.
+	#
+	# The player arms it from the On-board Items dialog, which is what satisfies
+	# "you must decide before rolling the dice" — consuming it here on demand
+	# would be deciding after seeing who got hurt.
+	if OnboardItemServiceRef.consume_armed_nano_doc(ctx.campaign):
+		return {
+			"crew_id": crew_id,
+			"type": "ignored",
+			"description": "Injury roll prevented (Nano-doc, p.58)",
+			"recovery_turns": 0,
+			"is_fatal": false
+		}
 
 	var is_bot_character := false
 	var crew_origin: String = injury_data.get("origin", "")
@@ -163,6 +353,17 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		return _process_detailed_injury(ctx, detailed_row, crew_id)
 
 	var injury_roll := randi_range(1, 100)
+	# Medical school (p.125): the nominated casualty "will roll twice on the
+	# Injury Table, picking the better result".
+	var reroll_note: String = ""
+	if not _medical_nominee_id.is_empty() and crew_id == _medical_nominee_id:
+		var second_roll: int = randi_range(1, 100)
+		var kept: int = _better_roll(injury_roll, second_roll, false)
+		reroll_note = "Medical school (p.125): rolled %d and %d, kept %d." % [
+			injury_roll, second_roll, kept]
+		injury_roll = kept
+		# One nominee per battle: "you may nominate A casualty".
+		_medical_nominee_id = ""
 	var injury_type := InjuryConstants.get_injury_type_from_roll(injury_roll)
 	var recovery_info := InjuryConstants.get_recovery_time(injury_type)
 
@@ -194,7 +395,10 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 		"description": injury_description,
 		"is_fatal": is_fatal,
 		"equipment_lost": equipment_lost,
-		"bonus_xp": bonus_xp
+		"bonus_xp": bonus_xp,
+		# Empty unless a p.125 course actually changed this roll. The wizard shows
+		# it so a 20-XP purchase is visibly doing something.
+		"training_reroll": reroll_note,
 	}
 
 	# Core Rules p.122 equipment consequences. `equipment_lost` and
@@ -501,6 +705,16 @@ func _apply_crippling_wound(ctx: PostBattleContextClass,
 func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, crew_id: String) -> Dictionary:
 	## Process injury for Bot/Soulless character (Core Rules p.94-95)
 	var injury_roll := randi_range(1, 100)
+	# Bot technician (p.125): "If a Bot or Soulless character must roll for a
+	# post-battle injury, you may roll twice, picking the better result." The
+	# book sets no per-battle limit here, so every such roll benefits.
+	var reroll_note: String = ""
+	if _bot_technician_active:
+		var second_roll: int = randi_range(1, 100)
+		var kept: int = _better_roll(injury_roll, second_roll, true)
+		reroll_note = "Bot technician (p.125): rolled %d and %d, kept %d." % [
+			injury_roll, second_roll, kept]
+		injury_roll = kept
 	var bot_injury_type := InjuryConstants.get_bot_injury_type_from_roll(injury_roll)
 	var recovery_info := InjuryConstants.get_bot_recovery_time(bot_injury_type)
 	var injury_type_name: String = InjuryConstants.BOT_INJURY_TYPE_NAMES.get(bot_injury_type, "UNKNOWN")
@@ -527,7 +741,8 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 		"is_fatal": is_fatal,
 		"equipment_lost": equipment_damaged,
 		"bonus_xp": 0,
-		"is_bot_injury": true
+		"is_bot_injury": true,
+		"training_reroll": reroll_note,
 	}
 
 	var bot_props: Dictionary = InjuryConstants.BOT_INJURY_PROPERTIES.get(bot_injury_type, {})

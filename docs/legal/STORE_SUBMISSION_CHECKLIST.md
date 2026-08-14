@@ -1,5 +1,24 @@
 # Store Submission Legal Checklist
 
+> # ⚠ STALE AS OF 2026-08-11 — THIS DOCUMENT'S OWN TRIGGER HAS FIRED
+>
+> Written 2026-04-07, when the app transmitted nothing. It says
+> *"N/A (no data transmitted)"* and carries the note *"If analytics upload is
+> enabled in a future version, update these answers"*, plus an unchecked item
+> *"If analytics upload ships: update Data Safety form, Nutrition Label, and
+> privacy policy"*.
+>
+> **Analytics upload has shipped.** Talo is installed, autoloaded, consent-gated
+> and exposed through a Settings toggle, and the bug reporter is built to POST to
+> a Discord webhook. Sharing is opt-in and off by default, but Google's Data
+> Safety form asks what the app CAN collect, not what a given user opted into.
+> Submitting these answers unchanged would be a false declaration.
+>
+> The privacy policy half is DONE (v1.1, discloses Talo and bug reports). The Data
+> Safety form and Apple Nutrition Label answers below are NOT.
+> See [POST_LOI_LEGAL_CHECKLIST.md](POST_LOI_LEGAL_CHECKLIST.md).
+
+
 **Last Updated:** 2026-04-07
 
 This checklist covers all legal/compliance steps required before submitting to each platform. Complete all items before first submission.

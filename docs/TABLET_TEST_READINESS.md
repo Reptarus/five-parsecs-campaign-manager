@@ -1,4 +1,44 @@
-# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6
+# Tablet Test Readiness — verified Aug 3 2026, re-verified Aug 6, desk gate cleared Aug 7, **first real-hardware pass Aug 8-11 (see §10)**
+
+> # ⚠ READ §10 FIRST (Aug 11 2026)
+>
+> The Aug 7 banner below says the pre-tablet gate is CLEAR. That was a **desk**
+> result: suites, harnesses, lints, headless parse. It was accurate about
+> everything it measured, and no device had run the build.
+>
+> The first real-hardware pass (Aug 8-11) produced **35 findings**. **Deploy #6 is
+> outstanding**, so device verification is INCOMPLETE. Do not hand an APK to a
+> tester on the strength of the banner below.
+
+> # ✅ UPDATE Aug 7 — THE PRE-TABLET *DESK* GATE IS CLEAR
+>
+> **The rules-wiring ledger is closed: 0 open / 0 partial / 136 fixed / 1
+> corrected** (`docs/RULES_WIRING_AUDIT_2026-08.md`). §1's "five visible lies and
+> one class of dead switch" and the 73-row backlog it referenced are both gone,
+> and so is the 2-3 session estimate in §4.
+>
+> Green on this branch: `verify_post_battle` 47/47 · `verify_battle_ui` 79/79 ·
+> `lint_data_ownership` / `_signal_wiring` / `_tscn_connections` /
+> `_autoload_lookups` all CLEAN · headless `--import` parse-clean.
+>
+> **What a tester can now exercise that they could not before:** Black Jobs as a
+> real mission (16 enemies in 4 teams, per-round reinforcements, the D10 "Your Day
+> in Hell" objective); Salvage as a real economy (units bank at post-battle Step 4
+> and buy things at the Scrapper); fleeing an Invasion with actual consequences;
+> the Freelancer License and its forged-licence gamble; Faction favors; the paid
+> Trade rolls; and roughly fifteen World Traits that were previously a paragraph
+> of text on the world screen.
+>
+> ⚠ **Still open and NOT closed by this**: the APK content re-verification carried
+> in §9. The last artifact was packaged clean on Aug 3 but its CONTENT was stale at
+> Jul 29, and nothing since has re-checked it. **Build a fresh APK and verify it by
+> UNZIPPING** (`scripts/verify_apk.py`) before handing anything to a tester —
+> `--export-release` exits 0 on failure, so a green build command proves nothing.
+>
+> ⚠ **The ledger closing does not mean the rules are complete.** It means every row
+> someone wrote down has a call site and a test. Eight auditors walked eight
+> subsystems; nobody walked every page of both books. A tester finding a rule gap
+> is still a plausible and useful outcome.
 
 > **UPDATE Aug 6 — see §9 at the bottom.** A battle-phase DELIVERY audit shipped
 > and it changes what is worth testing: four Compendium chapters that this
@@ -17,6 +57,12 @@ is right and the older doc is stale.
 ---
 
 ## 1. Verdict
+
+> **Aug 7: §1 is now HISTORICAL.** The "five visible lies and one class of dead
+> switch" have been worked, the 73-row backlog it measures itself against is at
+> **0 open / 0 partial**, and the 2-3 session estimate is spent. The only thing
+> left before handing over an APK is re-verifying the ARTIFACT (see the header
+> block and §9) — not the app.
 
 **The build is tablet-testable now.** Nothing in the build, deploy, layout or
 runtime path blocks handing an APK to a tester.
@@ -160,8 +206,13 @@ suite that exercises nothing.
   `HBoxContainer` and collapses to 1×480 — the autowrap-in-a-horizontal-container
   trap already in memory. It cascades to 3 screens × 2 phone sizes. Fix it when
   phones matter; it does not block a tablet session.
-- **40 of the 73 open audit rows are DLC or endgame content** a tester cannot
-  reach in an evening (factions, Elite enemies, Red/Black Zone at 10+ turns).
+- ~~**40 of the 73 open audit rows are DLC or endgame content** a tester cannot
+  reach in an evening (factions, Elite enemies, Red/Black Zone at 10+ turns).~~
+  **STALE — the ledger closed Aug 7 at 0 open.** Those rows are now the *reason*
+  to hand over an APK rather than a reason not to: factions have spendable
+  Loyalty (Compendium p.112 favors), Elite enemies arrive on the p.31 Option 2
+  curve, and a Black Job is a real 16-enemy mission with per-round
+  reinforcements. A tester at 10+ turns now has content to reach.
 - **`lint_handoff_contracts` reports 100 rule-silencing findings** — 35
   orphan-reads, 64 uncalled rules, 1 dead producer. This is the best standing
   instrument for the audit's defect family and it should replace hand-counted row
@@ -408,3 +459,63 @@ The fixes concentrate in one place, so start there rather than sweeping:
 3. If a **salvage** job appears, play it through to the post-battle authorities
    prompt (it is a mandatory 3-option choice, deliberately not dismissable).
 4. Anything in §4/§8 still marked open — those are unchanged by this audit.
+
+---
+
+## 10. Aug 8-11 2026 — the gate was cleared on a build no device had run
+
+⚠ **§1 and the Aug 7 header block above are now HISTORICAL in a specific way.**
+They say the only thing left before handing over an APK is re-verifying the
+ARTIFACT, not the app. That was written from desk verification: unit suites,
+harnesses, lints, headless parse. It was accurate about everything it measured.
+It was not a device result, because no device had run the build.
+
+The first real-hardware pass (Lenovo TB361FU, Aug 8-11) produced **35 findings**,
+T9-01 through T9-35. Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md).
+
+### Why a clean desk gate could not predict this
+
+Three groups, and none of them is a gap in the Aug 7 checking:
+
+1. **Physically unobservable on desktop.** The soft keyboard covers any input
+   below the midline, and Godot 4.6 has no keyboard signal at all. Touch scroll
+   was swallowed by `PanelContainer` / `HSeparator` mouse-filter defaults. A
+   `ScrollContainer` absorbed a layout squeeze silently, which reads as missing
+   DATA rather than a layout fault.
+2. **Never exercised, because no test drove a SCREEN.** The printable sheet had
+   never received a single journal entry on any platform, and its World block was
+   blank on every campaign. Both faults sat in the ~15 lines that FETCH the
+   builder's arguments; every test called the builder directly and passed the
+   arguments in.
+3. **Only a real save exposes it.** A legacy-save stash doubled on load. The first
+   fix for that then destroyed items on load until the caller ordering was
+   corrected.
+
+### The rule this establishes
+
+**A desk gate can certify that the code is right. It cannot certify that the app
+works.** Those are different claims, and this document previously ran them
+together. Any future "cleared" verdict here must name which of the two it means,
+and an APK does not go to a tester on the first kind alone.
+
+### Current state
+
+| Gate | State |
+|---|---|
+| Unit suites touched in this sprint | **152/152 across 14 suites** |
+| Six gating lints | **all CLEAN** |
+| `lint_orphan_assets` | `orphans=0`, `test_only=40` (tier-7 backlog) |
+| Headless `--import` parse | **clean** |
+| Device verification | **INCOMPLETE, deploy #6 outstanding** |
+
+### Outstanding before an APK goes to anyone
+
+1. **Deploy #6 and confirm the two sheet fixes on hardware** (the World block, and
+   the journal accessor). Both are desk-verified and detection-proven; neither has
+   been seen working on the device.
+2. **Fight one battle under the new build**, then open the Encounter Log. Journal
+   entries written before this build carry no `stats` scenario keys and there is no
+   backfill, so their boxes are correctly blank. Only a post-fix battle proves the
+   producer chain.
+3. **Commit.** As of Aug 11 the sprint is ~290 uncommitted files on
+   `campaign-editor-and-fixits`, last commit `69cfd4d2b` (Aug 7).

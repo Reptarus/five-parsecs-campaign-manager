@@ -290,12 +290,12 @@
     {
       "roll_min": 97, "roll_max": 100,
       "name": "This place is rather nice, really",
-      "effect": "Pay 1 story point or the crew member decides to stay behind and leaves the crew.",
+      "effect": "When you are ready to leave this world, unless it is being Invaded, you must pay 1 story point or this crew member will decide to stay behind. If they do, you can keep their equipment, though.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
       "single_use": false, "requires_roll": false, "deferred_trigger": "",
-      "pay_or_lose": { "cost": "1 story point", "penalty": "crew member leaves" }
+      "pay_or_lose": { "cost": "1 story point on departure", "penalty": "this crew member stays behind (you keep their equipment)" }
     }
   ]
 }

@@ -22,6 +22,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
@@ -2591,6 +2592,111 @@ func _active_condition_id() -> String:
 		return str(dc.get("condition_id", dc.get("id", "")))
 	return ""
 
+## ── Red Job Time Constraint (Core Rules p.149) ────────────────────────────
+##
+## "All Red Jobs are fought under a time constraint. AT THE END OF ROUND 6, roll
+## 1D6 on the table below." Round-bound, so unlike the Threat Condition it cannot
+## be stamped at mission acceptance — it needs the round loop, which is why
+## `RedZoneSystem.roll_time_constraint()` sat correct and zero-caller.
+##
+## Two of the six rows deny Hold the Field ("Count down" when the clock runs out,
+## and "Evac now!" outright), and that is the half with real campaign
+## consequences: Hold the Field gates the p.119 Rival removal roll, p.120
+## Battlefield Finds and p.121 Loot.
+var _red_job_tc: Dictionary = {}
+var _red_job_hold_denied: bool = false
+
+
+func _is_red_job_battle() -> bool:
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	return bool(md.get("is_red_zone", _battle_context.get("is_red_zone", false)))
+
+
+func _is_black_job_battle() -> bool:
+	var md: Dictionary = _stored_mission_data \
+		if _stored_mission_data is Dictionary else {}
+	return bool(md.get("is_black_zone", _battle_context.get("is_black_zone", false)))
+
+
+## Has the p.150-151 "Your Day in Hell" objective already been met? Drives the
+## p.151 ending clause ("you will be evac'ed out at the end of the FOLLOWING
+## round"), which is a round the crew still has to survive.
+## The method is `is_complete()`, NOT `is_objective_complete()` — checked against
+## BattleObjectiveTracker rather than guessed. A has_method() guard on a name with
+## zero definitions repo-wide is a permanently-false branch, which is how a rule
+## ends up shipping as dead code that reads like a safety net.
+func _black_job_objective_met() -> bool:
+	if _objective_tracker == null or not _objective_tracker.has_objective():
+		return false
+	return _objective_tracker.is_complete()
+
+
+func _current_round_number() -> int:
+	if round_tracker and round_tracker.has_method("get_current_round"):
+		return int(round_tracker.get_current_round())
+	return 0
+
+
+## Resolve the p.149 table at the end of Round 6, then escalate the Count Down
+## clock every round after. Called from the End Phase, once per round.
+func _resolve_red_job_time_constraint() -> void:
+	if not _is_red_job_battle():
+		return
+	var round_num: int = _current_round_number()
+
+	if not bool(_red_job_tc.get("rolled", false)):
+		if round_num < BattleFlowGuideClass.RED_JOB_CONSTRAINT_ROUND:
+			return
+		var tc: Dictionary = RedZoneSystemRef.roll_time_constraint()
+		if tc.is_empty():
+			return
+		_red_job_tc = {
+			"rolled": true,
+			"roll": int(tc.get("roll", 0)),
+			"name": str(tc.get("name", "")),
+			"description": str(tc.get("description", "")),
+			"effect": str(tc.get("effect", "none")),
+			# "On a 1, the Battle ends immediately. At the end of the next round
+			# the Battle ends on a 1-2, then 1-3, and so forth." The first check
+			# happens on the round AFTER the one that rolled it.
+			"countdown_at": 1,
+		}
+		_log_message("Red Job Time Constraint (p.149): %s — %s"
+			% [_red_job_tc["name"], _red_job_tc["description"]],
+			UIColors.COLOR_DANGER)
+		# "Evac now! The battle ends immediately. You do not Hold the Field."
+		if _red_job_tc["effect"] == "evac_now":
+			_red_job_hold_denied = true
+		return
+
+	# Already rolled — only Count Down has anything left to do.
+	if str(_red_job_tc.get("effect", "")) != "countdown":
+		return
+	var threshold: int = maxi(1, int(_red_job_tc.get("countdown_at", 1)))
+	var clock: int = randi_range(1, 6)
+	if clock <= threshold:
+		_red_job_hold_denied = true
+		_log_message(
+			"Count Down (p.149): rolled %d against 1-%d — the battle ends"
+			% [clock, threshold]
+			+ " immediately. You do NOT Hold the Field.", UIColors.COLOR_DANGER)
+	else:
+		_red_job_tc["countdown_at"] = threshold + 1
+		_log_message("Count Down (p.149): rolled %d against 1-%d — the clock"
+			% [clock, threshold]
+			+ " tightens to 1-%d next round." % (threshold + 1),
+			UIColors.COLOR_AMBER)
+
+
+## p.149 rows 4 and 5 both say "you do not Hold the Field". Hold the Field is read
+## by FOUR different result producers in this file, so the denial is resolved here
+## once rather than at each of them — a guard applied to N-1 of N sites is the
+## single most common defect shape in this codebase.
+func _apply_red_job_hold_denial(held: bool) -> bool:
+	return false if _red_job_hold_denied else held
+
+
 ## Battle Card (journey Moment 0). Only real rolled data — every line that
 ## has no data is simply omitted. Returns null when nothing is known.
 func _build_battle_card() -> Control:
@@ -2862,6 +2968,10 @@ func _build_results_prefill() -> Dictionary:
 			and crew_standing > 0
 	if not prefill.has("held_field"):
 		prefill["held_field"] = bool(prefill["victory"])
+	# p.149 Count Down / Evac Now: "you do not Hold the Field." Applied even to a
+	# player-declared result, because the book takes the field away regardless of
+	# how the battle was resolved.
+	prefill["held_field"] = _apply_red_job_hold_denial(bool(prefill["held_field"]))
 	return prefill
 
 func _defeated_enemy_records() -> Array:
@@ -3353,6 +3463,42 @@ func _roll_paying_by_the_hour_limit() -> void:
 		"They are Paying us by the Hour: 2D6 = %d/%d, highest + 4 — the job runs for %d rounds."
 		% [a, b, _paying_by_hour_limit], UIColors.COLOR_AMBER)
 
+func _battle_event_roll_instructions(effects: Dictionary) -> String:
+	## Spell out the rolls a battle event demands, per figure.
+	##
+	## Core Rules p.117 roll 55-60 is the one row whose target number DIFFERS PER
+	## FIGURE — "must roll 1D6+Savvy and achieve a 5+ (enemies roll 1D6 and must
+	## roll a 4+)" — so a generic "make a save" line is not an assist. Each crew
+	## member's Savvy is known here, so each one's actual number is printed. The
+	## app cannot know which figures are within 1" of the feature (that is on the
+	## physical table), so it lists the roster and lets the player apply it.
+	if not effects.has("crew_save"):
+		return ""
+	var crew_target: int = FPCM_BattleEventsSystem.save_target_from(
+		effects.get("crew_save", "savvy_5plus"), 5)
+	var enemy_target: int = FPCM_BattleEventsSystem.save_target_from(
+		effects.get("enemy_save", "4plus"), 4)
+	var damage: int = int(effects.get("damage", 1))
+
+	var out: String = "\n\nAffected figures — in, on, or within 1\" of the feature:"
+	for unit in crew_units:
+		if unit == null or not is_instance_valid(unit) or unit.is_dead:
+			continue
+		var savvy: int = int(unit.savvy) if "savvy" in unit else 0
+		# 1D6 + Savvy >= target, so the die itself must show target - Savvy,
+		# floored at 1 (a natural 1 can still succeed with enough Savvy) and
+		# capped at 7 to say "impossible" honestly rather than printing "8+".
+		var needed: int = clampi(crew_target - savvy, 1, 7)
+		var needs_text: String = "%d+ on 1D6" % needed if needed <= 6 \
+			else "cannot pass — automatic hit"
+		out += "\n  • %s (Savvy +%d): %s" % [str(unit.node_name), savvy, needs_text]
+	out += "\n  • Each enemy figure: %d+ on 1D6 (no Savvy)." % enemy_target
+	out += "\n\nFailure = a Damage +%d Hit that IGNORES Armor Saving Throws." % damage
+	if bool(effects.get("one_time_only", false)):
+		out += " The feature is safe afterwards."
+	return out
+
+
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
 	_log_message(
@@ -3373,7 +3519,8 @@ func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 			var battle_event = triggered.back()
 			event_dict = {
 				"title": battle_event.title,
-				"description": battle_event.description,
+				"description": battle_event.description
+					+ _battle_event_roll_instructions(battle_event.effects),
 				"type": battle_event.target_type,
 				"effects": battle_event.effects,
 				"duration": battle_event.duration,
@@ -3948,6 +4095,18 @@ func _show_end_phase_ui() -> void:
 	# (a Button, which sizes fine in the HFlow) goes in the action row.
 	var round_prompts: Array = BattleFlowGuideClass.build_round_end_prompts(
 		_active_condition_id())
+	# Core Rules p.149 Red Job Time Constraint — round-aware, so it cannot be
+	# stamped at mission acceptance the way the Threat Condition is. Resolved
+	# BEFORE the prompts are built so the banner reports the outcome rather than
+	# asking for a roll the app has already made.
+	_resolve_red_job_time_constraint()
+	round_prompts.append_array(BattleFlowGuideClass.build_red_job_round_prompts(
+		_current_round_number(), _is_red_job_battle(), _red_job_tc))
+	# Core Rules p.151 Black Job — a fresh 4-figure team every single round plus the
+	# Passive-team activation roll. Round-aware for the same reason as the Red Job
+	# constraint above, and the single most consequential thing about the mission.
+	round_prompts.append_array(BattleFlowGuideClass.build_black_job_round_prompts(
+		_current_round_number(), _is_black_job_battle(), _black_job_objective_met()))
 	var banner_lines: Array[String] = [
 		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check."]
 	for prompt in round_prompts:
@@ -4094,6 +4253,32 @@ func _build_battle_briefing_content() -> Control:
 	vbox.add_child(rtl)
 	return vbox
 
+func _guardian_attachment_lines() -> Array[String]:
+	## Names the figure each Guardian-AI Unique is attached to (Core Rules p.94),
+	## and restates the p.43 routine that depends on it. Returns [] when no
+	## Guardian is present, so the card is unchanged in the common case.
+	var out: Array[String] = []
+	for unit in enemy_units:
+		if unit == null or not is_instance_valid(unit):
+			continue
+		var target: String = ""
+		if "guardian_attached_to" in unit:
+			target = str(unit.guardian_attached_to)
+		if target.is_empty():
+			continue
+		if out.is_empty():
+			out.append("")
+			out.append("[b][color=#D97706]Guardian attachment (p.94):[/color][/b]")
+		# TacticalUnit is a plain RefCounted whose name field is `node_name`;
+		# `unit.name` is an invalid property access that would abort this
+		# function silently and drop the whole enemy-activation card.
+		out.append("  [color=#D97706]%s is attached to %s[/color]"
+			% [str(unit.node_name), target])
+		out.append("  Stay within 3\" of it, move at its pace, and attack the"
+			+ " same target the same way (firing / Brawling).")
+	return out
+
+
 func _build_enemy_action_content() -> Control:
 	## Build structured enemy action card for ENEMY_ACTIONS phase.
 	var vbox := VBoxContainer.new()
@@ -4144,6 +4329,15 @@ func _build_enemy_action_content() -> Control:
 		lines.append("")
 		lines.append("[b]Order:[/b] nearest YOUR edge first, working away. "
 			+ "Ties: start on their left.")
+
+		# Core Rules p.94 + p.43. A Guardian-AI Unique Individual is attached to a
+		# named figure, and p.43 makes its ENTIRE routine depend on which one:
+		# "must always remain within 3\" of that figure ... will move at the same
+		# pace and attack the same targets using the same methods." The generator
+		# picks the target (Lieutenant if present, else a random non-Specialist);
+		# without printing it here the player has no way to run the figure, and
+		# 26 of 100 Unique Individual results carry Guardian AI.
+		lines.append_array(_guardian_attachment_lines())
 
 		# The book's actual AI instructions for this type (base condition + 1D6).
 		lines.append_array(_ai_reference_lines(ai_code))
@@ -5774,8 +5968,9 @@ func _resolve_battle() -> void:
 		if unit.original_character:
 			crew_participants.append(unit.original_character)
 
-	# Held field = victory + at least 1 crew alive at end
-	var held_field: bool = victory and crew_alive > 0
+	# Held field = victory + at least 1 crew alive at end, unless the p.149 Red Job
+	# clock took the field away (Count Down expiry / Evac Now).
+	var held_field: bool = _apply_red_job_hold_denial(victory and crew_alive > 0)
 
 	# Extract mission type flags from stored mission data
 	var md: Dictionary = _stored_mission_data \
@@ -5999,7 +6194,8 @@ func _on_auto_resolve_battle() -> void:
 	if crew_casualties_count > 0:
 		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
 
-	var held_field: bool = resolver_result.get("held_field", result.victory)
+	var held_field: bool = _apply_red_job_hold_denial(
+		resolver_result.get("held_field", result.victory))
 	if held_field:
 		_log_message("Crew holds the field — battlefield salvage available", UIColors.COLOR_EMERALD)
 
@@ -7489,6 +7685,22 @@ func _setup_salvage_panel(mission_dict: Dictionary) -> void:
 	# Initialize with mission data
 	salvage_mission_panel.setup_mission(mission_dict)
 
+	# Compendium p.147: "In Post-battle Step 4. Get paid, tally up how many units
+	# of Salvage you have obtained." The tally has to SURVIVE this screen, and it
+	# did not — the panel counted units all battle and `get_salvage_units()` had
+	# zero callers, so every unit picked up off the table was dropped on the floor
+	# when the battle ended.
+	#
+	# Stamped onto _stored_mission_data rather than into each result dict, because
+	# mission_data is the one thing BattleResultNormalizer carries across ALL FOUR
+	# exits (played, LOG_ONLY declared, in-battle auto-resolve, map auto-resolve).
+	# Wiring it into the played path alone is the guard-on-N-1-of-N shape.
+	salvage_mission_panel.salvage_collected.connect(
+		func(total: int) -> void:
+			if _stored_mission_data is Dictionary:
+				_stored_mission_data["salvage_units"] = total
+	)
+
 	# Connect signals to journal
 	if unified_log:
 		salvage_mission_panel.round_advanced.connect(
@@ -7554,6 +7766,11 @@ class TacticalUnit:
 	var is_lieutenant: bool = false
 	var is_specialist: bool = false
 	var is_unique_individual: bool = false
+	## Core Rules p.94: a Guardian-AI Unique "must be attached to a figure in the
+	## enemy force". EnemyGenerator picks the target; this carries its NAME to the
+	## enemy-activation card, because p.43 makes the whole routine depend on it
+	## ("must always remain within 3\" of that figure ... attack the same targets").
+	var guardian_attached_to: String = ""
 
 	# Equipment
 	var _weapon_range: int = 12
@@ -7610,6 +7827,7 @@ class TacticalUnit:
 				or bool(enemy.get("is_specialist", false))
 			is_unique_individual = _role == "unique" \
 				or bool(enemy.get("is_unique_individual", false))
+			guardian_attached_to = str(enemy.get("guardian_attached_to", ""))
 		else:
 			var _name_val = enemy.get("name") if enemy else null
 			node_name = str(_name_val) if _name_val else "Enemy"

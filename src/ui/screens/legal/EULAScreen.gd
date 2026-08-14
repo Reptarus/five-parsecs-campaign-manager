@@ -25,7 +25,12 @@ func _card_min_width() -> float:
 	if vp == null:
 		return 360.0
 	var avail: float = vp.get_visible_rect().size.x - float(UIColors.SPACING_XL) * 2.0
-	return minf(360.0, maxf(240.0, avail))
+	# T1-03: 360 was a small-screen FLOOR written as a CEILING, so a tablet got the
+	# same narrow column as a phone — measured on device as a 464x386 dp card on a
+	# 1280x800 dp screen. Scale with the viewport instead, bounded at both ends:
+	# 240 keeps a phone usable, and 720 stops legal prose reaching the unreadable
+	# line lengths a full-width column would give on a landscape tablet.
+	return clampf(avail * 0.55, 240.0, minf(720.0, maxf(240.0, avail)))
 
 
 ## Minimum height for the EULA scroll. Kept to a fraction of the viewport so a
@@ -35,7 +40,14 @@ func _scroll_min_height() -> float:
 	var vp := get_viewport()
 	if vp == null:
 		return 250.0
-	return minf(250.0, maxf(120.0, vp.get_visible_rect().size.y * 0.35))
+	# Same ceiling-vs-floor mistake as _card_min_width(): 250 was there to stop a
+	# LANDSCAPE PHONE being asked for more height than it owns, but it also capped a
+	# tablet at 250 of the 1080 design px it has — about five lines of legal text,
+	# clipped mid-sentence, which is what T1-03 recorded. The 120 floor still
+	# protects the phone; the upper bound now scales and only stops the card growing
+	# past what the surrounding chrome (title, subtitle, checkbox, link, two buttons)
+	# leaves room for.
+	return clampf(vp.get_visible_rect().size.y * 0.45, 120.0, 640.0)
 
 
 ## True when vertical space is tight enough that decorative padding costs the user
@@ -98,6 +110,12 @@ func _build_ui() -> void:
 	# the real size. Cap the width against the live viewport and let height come from
 	# the content, with the EULA ScrollContainer absorbing the slack.
 	card.custom_minimum_size = Vector2(_card_min_width(), 0)
+	# Decorative chrome: it draws the card background and receives nothing. Its
+	# default MOUSE_FILTER_STOP would eat any touch drag over the card before
+	# `outer_scroll` could read it. Exactly the T4-01 trap
+	# ([reference_decorative_chrome_swallows_touch_scrolling]), on the one screen
+	# every new user has to get through.
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	card.size_flags_horizontal = SIZE_EXPAND_FILL
 	# The house card recipe, then widened: this is a full-page consent card rather
 	# than a list row, so it keeps its generous padding. The 8px radius it used to
@@ -148,6 +166,13 @@ func _build_ui() -> void:
 	_eula_text.bbcode_enabled = true
 	_eula_text.fit_content = true
 	_eula_text.size_flags_horizontal = SIZE_EXPAND_FILL
+	# Control.mouse_filter defaults to STOP, and a STOP child eats the touch drag
+	# before the ScrollContainer can read it. Measured on the tablet Aug 13 2026:
+	# the EULA body would not scroll AT ALL, so a tester could read only the first
+	# screenful of a document they were being asked to accept. Same class as T4-01.
+	# IGNORE costs text selection, which these documents do not need, and they
+	# contain no links (pinned by tests/tools/verify_legal_docs.gd).
+	_eula_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_eula_text.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_eula_text.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	_scroll.add_child(_eula_text)
@@ -251,7 +276,7 @@ func _markdown_to_bbcode(md: String) -> String:
 		elif trimmed.begins_with("### "):
 			result += "\n[b]%s[/b]\n\n" % trimmed.substr(4)
 		elif trimmed.begins_with("- "):
-			result += "  [color=#06b6d4]\u2022[/color] %s\n" % trimmed.substr(2)
+			result += "  [color=#06b6d4]\u2022[/color] %s\n" % _inline_bold(trimmed.substr(2))
 		elif trimmed.begins_with("**") and trimmed.ends_with("**"):
 			result += "[b]%s[/b]\n" % trimmed.trim_prefix("**").trim_suffix("**")
 		elif trimmed.begins_with("[PENDING"):
@@ -259,18 +284,29 @@ func _markdown_to_bbcode(md: String) -> String:
 		elif trimmed == "":
 			result += "\n"
 		else:
-			# Inline bold
-			var processed := trimmed
-			while processed.find("**") != -1:
-				var start := processed.find("**")
-				var end := processed.find("**", start + 2)
-				if end == -1:
-					break
-				var bold_text := processed.substr(start + 2, end - start - 2)
-				processed = processed.substr(0, start) + "[b]" + bold_text + "[/b]" + processed.substr(end + 2)
-			result += processed + "\n"
+			result += _inline_bold(trimmed) + "\n"
 
 	return result
+
+
+## `**bold**` -> `[b]bold[/b]`, anywhere in a line.
+##
+## This used to live inline in the `else` branch ONLY, so a bulleted line kept its
+## literal asterisks. Measured on the tablet Aug 13 2026: the privacy policy has 25
+## bulleted-bold lines and every one of them printed
+## `• **Campaign save files** — your campaign progress` to the reader. Shared here
+## so every branch that emits body text gets the same treatment.
+func _inline_bold(text: String) -> String:
+	var processed := text
+	while processed.find("**") != -1:
+		var start := processed.find("**")
+		var end := processed.find("**", start + 2)
+		if end == -1:
+			break
+		var bold_text := processed.substr(start + 2, end - start - 2)
+		processed = processed.substr(0, start) + "[b]" + bold_text + "[/b]" \
+			+ processed.substr(end + 2)
+	return processed
 
 
 func _on_checkbox_toggled(_pressed: bool) -> void:
@@ -322,6 +358,10 @@ func _on_privacy_link_pressed() -> void:
 	rtl.bbcode_enabled = true
 	rtl.fit_content = true
 	rtl.size_flags_horizontal = SIZE_EXPAND_FILL
+	# See the note on _eula_text: a STOP child swallows the touch drag, and this
+	# popup would not scroll on the tablet at all. The reader could see as far as
+	# "1.1 Data Stored Locally on Your Device" and no further.
+	rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 
 	var file := FileAccess.open("res://data/legal/privacy_policy.md", FileAccess.READ)

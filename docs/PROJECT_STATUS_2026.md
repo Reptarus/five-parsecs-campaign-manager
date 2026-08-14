@@ -1,9 +1,49 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: April 8, 2026 (Session 52 — Strange Character gameplay wiring 16/16 complete + Upkeep failure system fix: Sick Bay exclusion, crew lockout, sell-for-upkeep, dismiss crew)
+**Last Updated**: August 11, 2026 — **real-hardware tablet QA is IN PROGRESS (Aug 8-11)**; see [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md) and the QA dashboard. The rules-wiring ledger remains CLOSED (0 open / 0 partial / 136 fixed / 1 corrected). Everything below the milestone block dates to April 8 2026 (Session 52) and has NOT been re-verified; treat it as history.
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
+
+---
+
+## ✅ MILESTONE — Aug 7 2026: the rules-wiring ledger is CLOSED
+
+`docs/RULES_WIRING_AUDIT_2026-08.md` — **0 open / 0 partial / 136 fixed / 1
+corrected**. Branch `campaign-editor-and-fixits` (uncommitted).
+
+| Gate | State |
+|---|---|
+| Rules-wiring ledger | **0 open / 0 partial** |
+| `verify_post_battle` | **47/47** |
+| `verify_battle_ui` | **79/79** |
+| All four `scripts/lint_*.py` | **CLEAN** |
+| Headless `--import` parse | **clean** |
+| Pre-tablet gate | **clear** (APK content still needs re-verifying by UNZIP — see `docs/TABLET_TEST_READINESS.md`) |
+
+**Why this matters more than the "100% mechanics" row below it.** That row asked
+*"is this mechanic implemented?"* and answered yes while Quests were unplayable,
+four Compendium chapters could not be opened, and salvage units evaporated when
+the battle screen closed. The ledger asked *"does the player ever reach it?"* —
+a different and harder question — and closing it is the first time both answers
+are yes for every recorded row.
+
+**The shape of nearly every closing row: correct code with no call site.**
+`WorldTraitEffects` had **eleven** byte-faithful accessors nothing called;
+`BlackZoneSystem` four; `FactionSystem.attempt_faction_favor()` was complete but
+Compendium p.112 requires a crew task nobody had built. The cheap check that
+finds the whole class: enumerate a resolver's public accessors and grep each for
+an external caller.
+
+**Read the zero correctly.** It means every row someone WROTE DOWN has a call site
+and a test. Eight auditors walked eight subsystems; nobody walked every page of
+both books. The going-forward guard is the four lints plus the per-row tests,
+never this count.
+
+> ⚠ **Everything from "Overall Status" down is April 8 2026 and unverified since.**
+> Where it disagrees with `docs/RULES_WIRING_AUDIT_2026-08.md`,
+> `docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md`, `docs/QA_STATUS_DASHBOARD.md` or
+> `docs/TABLET_TEST_READINESS.md`, those are right and this is stale.
 
 ---
 
@@ -156,7 +196,7 @@ Automated runtime UI testing using Godot MCP bridge (UDP port 9900). 12 sessions
 
 **Testing methodology**: MCP bridge injected as autoload → `get_ui_elements` for node discovery → `take_screenshot` for visual verification → `simulate_input`/`click_element` for interaction → `run_script` for state inspection → `get_debug_output` for error detection.
 
-**71 bugs discovered and fixed across 12 sessions** (see [UIUX_TEST_RESULTS.md](UIUX_TEST_RESULTS.md) for full tracker).
+**71 bugs discovered and fixed across 12 sessions** (see [UIUX_TEST_RESULTS.md](testing/UIUX_TEST_RESULTS.md) for full tracker).
 
 ### Demo QA Runtime Testing (Mar 12, 2026)
 
