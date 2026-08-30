@@ -316,6 +316,62 @@ Android Studio emulator is acceptable for pre-device smoke checks, but `screen_g
 not return the correct hardware density. Always confirm with a real device before any APK
 distribution.
 
+### ⚠ Waking and unlocking the device over adb (measured on the TB361FU, 2026-08-14)
+
+An hour was lost to this. Do these in order and VERIFY each step — a failure here looks
+exactly like a corrupt save or a hung app.
+
+1. **`KEYCODE_WAKEUP` does NOT turn this panel on. `KEYCODE_POWER` does.** Swipes sent to a
+   dark screen silently do nothing, so unlock attempts fail with no visible reason.
+   Confirm first: `adb shell dumpsys display | grep mScreenState` must read `ON`.
+2. **Never `am start` the app against an off screen.** It fails hard with
+   `ERROR: Failed to create vulkan window` / `Unable to create DisplayServer`. The process
+   runs with no rendering surface and screencaps come back solid black.
+3. `wm dismiss-keyguard` and `cmd statusbar collapse` both failed here. What worked was a
+   long swipe with the panel confirmed on:
+   `adb shell input swipe 1280 1450 1280 250 400`. Verify with
+   `dumpsys window | grep mDreamingLockscreen` (`false` = unlocked).
+4. Raise the timeout before a long walk and restore it after:
+   `settings put system screen_off_timeout 1800000` → `120000`.
+
+**Logs:** `adb logcat` returns **nothing** for this app on this device. The only usable log
+is `user://logs/godot.log` read via `run-as` — it captures engine errors, and it **rotates on
+launch**, so read it BEFORE force-stopping.
+
+### ⚠ Reading the screen: "settled" is not "hung"
+
+Three device runs were spent chasing a battle-transition hang that did not exist.
+
+- **A pixel-diff showing "nothing changed" means the screen has SETTLED.** That is a reason
+  to scroll the full page and look elsewhere, not evidence of a hang. The control that
+  actually advanced the flow ("Proceed to Battle") was below the fold the whole time.
+- **A greyed control is usually correct.** "Ready for Battle" greys out precisely because it
+  succeeded — it completes the Mission Prep step.
+- **CPU is meaningless without a baseline.** This app idles at **32% on the main menu and 37%
+  on the dashboard**, with CPU-time climbing steadily because Godot renders continuously.
+  ~55% is unremarkable. Measure idle before calling a number anomalous.
+- **Button positions MOVE when siblings appear** (the World Phase Back button shifts left once
+  "Next Step" becomes visible). Re-locate between taps instead of chaining blind ones.
+- ⚠ `adb keyevent KEYCODE_BACK` reaches the app's own back handler and has abandoned a battle
+  in progress. Use `KEYCODE_ENTER` to dismiss the IME. Swiping over a focused `SpinBox` types
+  into it — scroll on the drawer's left edge instead.
+
+### Forcing rare events for verification
+
+Some fixes sit behind a rare roll. What is and is not reachable:
+
+- **Forceable via save edit:** the p.85 Rival check is `D6 <= rival count`
+  (`CampaignTurnController:496-531`), so writing **6 Rivals** into BOTH `resources.rivals` and
+  `crew.rivals` makes it fire every turn. `resources.rivals` is what populates
+  `campaign.rivals` (`FiveParsecsCampaignCore.gd:635`). Make the fixture **discriminating** —
+  typing every Rival `Corporate` (not a valid enemy type) forces the enemy-type validator down
+  its reject path; a fixture that could pass either way proves nothing.
+- **NOT forceable:** any D10/D100 table roll. `QAScenarioLoader` covers counters / DLC /
+  compendium progress / crew / narrative; `CampaignEditorScreen` covers scalars plus crew.
+  `MissionTableManager` uses bare `randi_range()` with no injectable dice seam.
+- Temporarily widening a `roll_range` in `data/` works but means testing a build whose rules
+  data differs from ship. **Ask the user before doing it** — it was declined on 2026-08-14.
+
 ### ⛔ THE EMULATOR CANNOT RENDER THIS APP (verified 2026-07-29 — do not re-run this)
 
 A full emulator provisioning + smoke attempt was made and **the app cannot be visually

@@ -1,15 +1,16 @@
 # Five Parsecs Campaign Manager - Development Guide
 
-**Last Updated**: 2026-08-11 (real-hardware QA on the tablet, Aug 8-11 — see "Tablet QA" below. The rules-wiring ledger remains CLOSED at 0 open / 136 fixed.)
+**Last Updated**: 2026-08-14 (real-hardware QA on the tablet, Aug 8-14 — **PAUSED at a clean stopping point**. Read [docs/qa/PICKUP_2026-08-14.md](docs/qa/PICKUP_2026-08-14.md) FIRST when resuming. The rules-wiring ledger remains CLOSED at 0 open / 136 fixed.)
 **Engine**: Godot 4.6-stable (non-mono, pure GDScript)
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager
 **Partnership / commercial**: see [docs/MODIPHIUS_PARTNERSHIP_STATUS.md](docs/MODIPHIUS_PARTNERSHIP_STATUS.md) — deal terms, the four agreed strategic theses (do NOT re-argue them), artifacts, and the ⚠ caveat that the correspondence journal stops at Jun 4 2026. None of it bears on writing code, so it is not loaded here.
 **Legal placeholders are DELIBERATE**: the shipped EULA and privacy policy carry 7 bracketed placeholders (license grant scope, revenue share, governing law, contact email, release date). They mark terms the LOI settles and are visible to testers ON PURPOSE. Do NOT invent values. Master list: [docs/legal/POST_LOI_LEGAL_CHECKLIST.md](docs/legal/POST_LOI_LEGAL_CHECKLIST.md).
 **Active plan**: none. (This line pointed at `5pfh-4219-dtrpg-jiggly-charm.md` until 2026-08-11; that file does not exist. Plans live in `C:\Users\admin\.claude\plans\` — check the directory rather than trusting a path here.)
 
-> ⚠ **The working tree carries a large uncommitted body of work** (Aug 8-11 tablet QA
-> + sheet/PDF export). Last commit is `69cfd4d2b`, Aug 7, on `campaign-editor-and-fixits`.
-> Nothing here is committed until the user asks.
+> ✅ **The Aug 8-14 tablet QA sprint IS committed** — branch `campaign-editor-and-fixits`,
+> through `d6fe7b962` (all fixes, their tests, and the ledger through deploy #13b).
+> Working-tree changes after that point are docs/agent-memory only.
+> Nothing new is committed until the user asks.
 
 ---
 
@@ -282,16 +283,34 @@ MainMenu/CampaignDashboard → "Sheets" → PrintSheetScreen (tab bar + Save PNG
 - **Backends differ by platform, so a desktop probe is not a device test.** Make any probe
   PRINT its branch (`tests/tools/emit_sheet_pdf.gd` emits both).
 
-### Tablet QA (real hardware, Aug 8-11 2026)
+### Tablet QA (real hardware, Aug 8-14 2026) — ⏸ PAUSED, see the pickup doc
 
-Ledger: [docs/qa/TABLET_QA_SPRINT_2026-08.md](docs/qa/TABLET_QA_SPRINT_2026-08.md).
-Procedure: `docs/sop/android-runtime-testing.md`.
+**▶ [docs/qa/PICKUP_2026-08-14.md](docs/qa/PICKUP_2026-08-14.md) — read this first when resuming.**
+Ledger: [docs/qa/TABLET_QA_SPRINT_2026-08.md](docs/qa/TABLET_QA_SPRINT_2026-08.md) (append-only,
+one section per deploy). Procedure: `docs/sop/android-runtime-testing.md`.
 
 First QA on a real device (Lenovo TB361FU). It found defect classes desktop testing is
 structurally incapable of seeing — soft-keyboard occlusion, touch-scroll swallowed by
 decorative chrome, legacy-save data loss — plus several that were simply never exercised
-because no test drove the SCREEN rather than the function it calls. **Two full days of
-findings; treat "the unit suite is green" as saying nothing about device behaviour.**
+because no test drove the SCREEN rather than the function it calls. **Treat "the unit suite
+is green" as saying nothing about device behaviour.**
+
+**Hardware-verified:** T9-50 (checkpoint keeps the accepted job across process death), the
+`_refresh_job_offers()` back-nav guard, T9-46b (journal records the generated enemy, not the
+Rival's bogus type), T9-49 (a no-win-condition Rival battle moves neither W nor L, and the
+journal says "Held The Field").
+
+**Desk-verified only** (unit-verified + detection-proven, but no in-app tool can force the
+roll): T9-48's prohibition branch (Rival AMBUSH = D10 roll of 1), T9-47 (Explore 51-53 /
+Trade 76-78), T9-51 (character event D100 88-94).
+
+⭐ **T9-50 took THREE fixes and is the sprint's transferable lesson.**
+`initialize_job_offers()` has three callers; ordering the restore against the first two both
+passed every desk gate and failed on device. The cause was `initialize_world_phase()` — the
+orchestrator entry point `CampaignTurnController` calls AFTER `_ready()`, because it **shows**
+`WorldPhaseController` each turn rather than re-creating it. **A fix ordered against SOME
+callers is not a fix: grep and COUNT, or make it order-independent. And when a screen is
+reused rather than re-instantiated, `_ready()` is not the whole initialisation story.**
 
 ### Character Events System (Session 51, Core Rules pp.128-130)
 
@@ -1017,6 +1036,8 @@ suppress the same roll is how the p.120 Rival payment rule ended up duplicated.
 ## Gotchas
 
 - **Godot's JSON parser returns every number as FLOAT — so `value is int` is ALWAYS false on loaded data (Aug 1 2026)**: `StoryEvent.load_from_json()` had `next_clock_ticks = clock_val if clock_val is int else 0`, which silently zeroed the next-clock for all seven Story Events. Nobody noticed for as long as the clock had no caller. Use `int(value)` with an explicit `== null` guard (events 5 and 7 legitimately carry `null` there), never an `is int` type test, on anything that came out of `JSON.parse`.
+- **A fix ordered against SOME callers is not a fix (Aug 14 2026)**: `initialize_job_offers()` has THREE callers — `_fetch_campaign_data()`, `_show_current_step() -> _refresh_job_offers()` (:1177), and `initialize_world_phase()` (:961). T9-50 was "fixed" twice by ordering the restore against the first two; both passed every desk gate and failed on hardware. **`grep` the callee and COUNT the call sites before choosing where to insert, or make the fix order-independent (guard the callee).** The killer is #3: `CampaignTurnController` **shows** `WorldPhaseController` each turn rather than re-instantiating it (its own comment, `WorldPhaseController.gd:900-902`), so `initialize_world_phase()` runs AFTER `_ready()` and re-runs `_initialize_components_with_data()` unconditionally. **When a screen is REUSED between turns, `_ready()` is not the whole initialisation story — find the orchestrator entry point first.** Cheap disproof for any such diagnosis: pick a state where the suspected cause CANNOT fire (here, MISSION_PREP, where `_refresh_job_offers()` is unreachable) and see whether the symptom survives.
+- **"Settled" is not "hung", and CPU means nothing without a baseline (Aug 14 2026)**: three device runs were spent chasing a non-existent battle-transition hang. **"Ready for Battle" is not the battle launcher** — it COMPLETES the Mission Prep step (hence the greying and the full `✓✓✓✓✓✓` strip); a separate green **"Proceed to Battle"** button appears at the BOTTOM of the page, below the fold. A pixel-diff showing "nothing changed" means the screen has **settled** — scroll and look elsewhere before concluding a control did nothing. And this app idles at **32% CPU on the main menu / 37% on the dashboard** with CPU-time climbing steadily (Godot renders continuously), so ~55% is unremarkable: **take the idle baseline before calling a number anomalous.**
 - **A "rebuild from a fixed key literal" chokepoint silently DELETES every other key (Aug 9 2026)**: `CampaignJournal.create_entry()` assembles each entry from a literal `{id, turn_number, timestamp, type, auto_generated, title, description, mood, tags, characters_involved, location, photos, stats, player_notes}`. Anything else its caller passed is gone. Grepping the PRODUCER finds the key (the caller does pass it!) and tells you nothing — grep the chokepoint's literal. A hand-written test fixture of such an output is a shape the app **cannot produce**, so build fixtures with the real producer. This is how five of the Encounter Log's six boxes printed blank on every campaign with 28 green tests.
 - **Test the SCREEN, not just the builder it calls (Aug 9 2026)**: every sheet test called `SheetDataContext.build(a, b, c)` and *passed a, b, c in*, so nothing exercised the ~15 lines of `PrintSheetScreen._build_data_context()` that FETCH them — and both device-only defects lived exactly there (a dead `has_method` name, and an object-vs-Dictionary type check). Same shape as the T9-23 stash bug: a test of the callee is blind to a caller defect.
 - **When a symptom survives a correct fix, look for a SECOND cause before reverting (Aug 9 2026)**: the Encounter Log was blank for THREE independent reasons, each sufficient alone. "Still blank after your fix" was never evidence the fix was wrong.

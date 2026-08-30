@@ -45,6 +45,45 @@ live in `CLAUDE.md` — don't duplicate them here.
    had been deleted six weeks earlier. **Before deleting a zero-caller provider, ask what used to call
    it** — a missing consumer and genuine dead code look identical. Dead consumers are dangerous; dead
    providers are usually a missing wire.
+9. **A fix ordered against SOME callers is not a fix.** `initialize_job_offers()` has THREE callers
+   (`_fetch_campaign_data()`; `_show_current_step() -> _refresh_job_offers()` at :1177;
+   `initialize_world_phase()` at :961). T9-50 was "fixed" twice by ordering the restore against the
+   first two — both passed every desk gate and **failed on hardware**. `grep` the callee and COUNT the
+   sites before choosing where to insert, or make the fix order-independent by guarding the callee.
+
+---
+
+## ⚠ WorldPhaseController is REUSED between turns — `_ready()` is not the whole init
+
+`CampaignTurnController` **shows** `WorldPhaseController` each turn rather than re-instantiating it
+(its own comment, `WorldPhaseController.gd:900-902`). So `_ready()` fires **once per app session** and
+`initialize_world_phase()` — the orchestrator entry point — runs AFTER it, re-running
+`_initialize_components_with_data()` unconditionally (:961). That clears `job_accepted`
+(`JobOfferComponent.gd:200`) and re-inits MissionPrep with `world_phase_data.get("mission", {})`, a key
+that does not exist because the mission lives in `job_offer_component.get_accepted_job()`. Its
+`if not has_checkpoint()` guard then skips `_show_current_step()`, so nothing re-renders and the
+resumed briefing stays blank.
+
+**When a screen is reused rather than re-created, find the orchestrator entry point and read it BEFORE
+reasoning about ordering at all.**
+
+Related traps in the same area:
+
+- `save_checkpoint()` builds `_checkpoint_data` from a **fixed key literal** — a key it does not name
+  is simply not in the checkpoint. Use the component's own `get_step_results()` /
+  `restore_step_results()` pair rather than re-listing fields.
+- `has_checkpoint()` **ERASES `_checkpoint_data`** as a side effect when `turn_number` differs from
+  `_current_campaign_turn()`. A hardcoded fixture turn silently empties it and the test fails WITH the
+  fix in — derive the turn at runtime.
+- The checkpoint stamps `turns_played` (a **completed** count) while the UI shows `turns_played + 1`.
+  Two different numbers both called "turn"; diffing a checkpoint against a screenshot is off by one.
+- A `_refresh_*()` called from a step-entry hook runs on **BACK**-navigation too. `_refresh_rumors()`
+  already guards on "already resolved"; `_refresh_job_offers()` did not, so accept → forward → Back
+  silently re-rolled the acceptance away. **When one sibling refresher guards and another doesn't, the
+  unguarded one is the bug.**
+
+**Cheap disproof for any such diagnosis:** pick a state where the suspected cause CANNOT fire (here,
+MISSION_PREP, where `_refresh_job_offers()` is unreachable) and see whether the symptom survives.
 
 ---
 

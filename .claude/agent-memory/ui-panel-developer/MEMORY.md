@@ -103,6 +103,17 @@ captures the scene's original margin for the landscape restore).
 11. **Never assume a documented widget is wired.** `BookFrame`, `OrnamentPanel` and
     `InlineRenameWidget` are built, documented, and referenced by nothing in `src/`. Run
     `py scripts/lint_orphan_assets.py` for ground truth.
+12. **"Settled" is not "hung", and a greyed control is usually correct.** Three device runs went into
+    a non-existent "battle transition hang". **"Ready for Battle" is not the launcher** — it COMPLETES
+    the Mission Prep step, hence the greying and the full `✓✓✓✓✓✓` step strip; a separate green
+    **"Proceed to Battle"** appears at the BOTTOM of the page, below the fold. **A pixel-diff showing
+    "nothing changed" means the screen SETTLED — scroll the whole page before concluding a control did
+    nothing.** This is the third time self-disabled controls have read as a stuck overlay.
+13. **CPU is meaningless without a baseline.** This app idles at **32% on the main menu, 37% on the
+    dashboard**, CPU-time climbing steadily, because Godot renders continuously. ~55% is unremarkable —
+    take the idle measurement before calling a number anomalous.
+14. **A button's position MOVES when a sibling appears.** The World Phase Back button shifts left once
+    "Next Step" becomes visible, so chained blind taps land on dead space. Re-locate between taps.
 
 ---
 

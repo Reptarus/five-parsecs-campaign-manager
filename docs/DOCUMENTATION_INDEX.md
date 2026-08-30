@@ -34,13 +34,18 @@ its own correction history because each has been wrong at least once.
   the whole class: enumerate a resolver's public accessors and grep each for an
   external caller (`test_every_world_trait_accessor_has_a_live_consumer` does this
   and now fails if a new accessor lands without one).
-- **[Tablet QA Sprint, Aug 2026](qa/TABLET_QA_SPRINT_2026-08.md)** — the live record
-  of the FIRST real-hardware QA (Lenovo TB361FU, Aug 8-11). ~3,700 lines, appended as
-  we test: screen / expected / observed / severity per finding. It is the evidence that
+- **▶ [PICK UP HERE — paused 2026-08-14](qa/PICKUP_2026-08-14.md)** — **read this first
+  before touching the tablet QA work.** Cold-start readable: what is hardware-verified vs
+  desk-verified only, how to force a Rival ambush, the three-caller lesson behind T9-50, the
+  device wake/unlock traps, and the fact that **nothing from the entire sprint is committed**.
+- **[Tablet QA Sprint, Aug 2026](qa/TABLET_QA_SPRINT_2026-08.md)** — the record of the
+  FIRST real-hardware QA (Lenovo TB361FU, Aug 8-14). 5,740 lines, append-only, one section
+  per deploy: screen / expected / observed / severity per finding. It is the evidence that
   a green unit suite says nothing about device behaviour — it found soft-keyboard
   occlusion, touch-scroll swallowed by decorative chrome, legacy-save data loss, and a
   printable sheet that had never received a journal entry on any platform.
-  ⚠ Deploy #6 is outstanding: two sheet fixes are unconfirmed on hardware.
+  ⚠ It also records two diagnoses I got WRONG and had to retract; those retractions are
+  kept deliberately, because the reasoning error is the reusable part.
 - **[Tablet Test Readiness](TABLET_TEST_READINESS.md)** — the gate for handing an
   APK to a tester. §9 has the current artifact and what changed under the tester's
   feet.

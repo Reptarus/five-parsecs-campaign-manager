@@ -2,6 +2,25 @@
 
 Canonical bug tracker for QA reference. Updated after each fix sprint.
 
+## ⏸ Tablet QA sprint — PAUSED 2026-08-14
+
+**Live worklist lives in [docs/qa/PICKUP_2026-08-14.md](../../../../docs/qa/PICKUP_2026-08-14.md);
+the full record is `docs/qa/TABLET_QA_SPRINT_2026-08.md` (5,740 lines).** T9-xx rows are
+tracked there, not in the table below. Committed through `d6fe7b962`.
+
+| Row | State |
+|---|---|
+| T9-50 — resumed World Phase checkpoint lost the accepted job | **HARDWARE-VERIFIED.** Took THREE fixes; cause was `initialize_world_phase()`, the orchestrator entry point that runs after `_ready()` |
+| `_refresh_job_offers()` back-navigation guard | **HARDWARE-VERIFIED.** Accept → forward → Back re-rolled the acceptance away |
+| T9-46b — journal recorded "Battle vs Unknown" | **HARDWARE-VERIFIED.** Journal now records the generated enemy (`Tech Zealots`), not the Rival's bogus `Corporate` |
+| T9-49 — no-win-condition battle moved the W/L counter | **HARDWARE-VERIFIED.** 4W/0L held while `missions_completed` incremented; journal reads "Held The Field" |
+| T9-48 — Seize the Initiative prohibition text | Normal branch verified; **prohibition branch unreached** (needs Rival AMBUSH, D10 roll of 1) |
+| T9-47 — item name resolved from a Dictionary | **Desk-verified only** (needs Explore 51-53 or Trade 76-78) |
+| T9-51 — p.130 character-event item damage/loss aborted on Dictionary equipment | **Desk-verified only** (needs character event D100 88-94) |
+
+All three desk-only rows are unit-verified **and** detection-proven by isolated revert. No
+in-app tool can force their roll — `MissionTableManager` uses bare `randi_range()`.
+
 ## Fixed
 
 | Bug | Root Cause | Fix |

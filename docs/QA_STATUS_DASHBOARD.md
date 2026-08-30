@@ -2,22 +2,39 @@
 
 ---
 
-## 🔴 § Tablet QA on real hardware (Aug 8-11 2026) — IN PROGRESS
+## 🟡 § Tablet QA on real hardware (Aug 8-14 2026) — ⏸ PAUSED at a clean stopping point
 
-**Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md)** (~3,700
-lines, appended as we test). Device: Lenovo TB361FU. Branch
-`campaign-editor-and-fixits`, uncommitted.
+**▶ Pick up here: [qa/PICKUP_2026-08-14.md](qa/PICKUP_2026-08-14.md)** — read before
+touching this work again.
+**Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md)** (5,740
+lines, append-only, one section per deploy). Device: Lenovo TB361FU. Branch
+`campaign-editor-and-fixits`, **committed through `d6fe7b962`** (all fixes, their tests, and
+the ledger through deploy #13b).
 
 ⚠ **This supersedes the "Tablet-test / APK gate: clear" row below**, which was written
 on Aug 7 before any real device had run the build. It was never a device result.
 
 | Gate | State |
 |---|---|
-| Unit suites touched this sprint | **152/152 across 14 suites** |
-| Six gating lints | **all CLEAN** |
+| Suites touched this sprint | **all green** |
+| Six gating lints | **all exit 0** |
 | `lint_orphan_assets` | `orphans=0`, `test_only=40` (tier-7 backlog) |
 | Headless `--import` parse | **clean** |
-| **Device verification** | **INCOMPLETE — deploy #6 outstanding** |
+| **Device verification** | **4 of 6 fixes hardware-verified** (see below) |
+
+**Hardware-verified:** T9-50 (checkpoint keeps the accepted job across process death) ·
+the `_refresh_job_offers()` back-navigation guard · T9-46b (journal records the generated
+enemy, not the Rival's bogus type or "Unknown") · T9-49 (a no-win-condition Rival battle
+moves neither W nor L while `missions_completed` increments, and the journal reads
+"Held The Field").
+
+**Desk-verified only** — unit-verified AND detection-proven, but no in-app tool can force
+the roll: T9-48's prohibition branch (Rival AMBUSH = D10 roll of 1) · T9-47 (Explore 51-53
+or Trade 76-78) · T9-51 (character event D100 88-94).
+
+⭐ **T9-50 took THREE fixes** and is the sprint's transferable lesson: a fix ordered against
+SOME callers is not a fix. `grep` the callee and COUNT the call sites, or guard the callee so
+order stops mattering.
 
 ### What real hardware found that the desk never could
 

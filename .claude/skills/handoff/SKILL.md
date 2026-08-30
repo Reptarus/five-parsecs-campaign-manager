@@ -70,17 +70,21 @@ For each category of change, update or create the appropriate memory file:
 
 ### Step 3: Update Agent Memories
 
-Check each agent's MEMORY.md for discoveries made this session:
+Check each agent's MEMORY.md for discoveries made this session. **Keep each file under 200
+lines** — it is loaded into that agent's system prompt.
+
+There are **six** agents (consolidated 2026-08-06). `bug-hunt-specialist` /
+`planetfall-specialist` / `tactics-specialist` merged into `gamemode-specialist`, and
+`fpcm-project-manager` was deleted — do not write to those paths.
 
 | Agent | Save When |
 |-------|----------|
 | `character-data-engineer` | Enum issues found, stat edge cases, serialization gotchas |
 | `campaign-systems-engineer` | State sync bugs, creation flow changes, save/load issues |
 | `battle-systems-engineer` | State machine fixes, combat resolution changes, UI tier issues |
-| `bug-hunt-specialist` | Cross-mode isolation bugs, data model changes, transfer issues |
+| `gamemode-specialist` | Bug Hunt / Planetfall / Tactics changes, cross-mode isolation, transfers |
 | `ui-panel-developer` | Theme fixes, TweenFX gotchas, responsive layout changes |
-| `qa-specialist` | New bugs found/fixed, test infrastructure changes, MCP gotchas |
-| `fpcm-project-manager` | Routing decisions, cross-domain coordination patterns |
+| `qa-specialist` | New bugs found/fixed, test infrastructure changes, device/MCP gotchas |
 
 ### Step 4: Update Skills
 

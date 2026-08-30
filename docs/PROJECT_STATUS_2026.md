@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Project Status
 
-**Last Updated**: August 11, 2026 — **real-hardware tablet QA is IN PROGRESS (Aug 8-11)**; see [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md) and the QA dashboard. The rules-wiring ledger remains CLOSED (0 open / 0 partial / 136 fixed / 1 corrected). Everything below the milestone block dates to April 8 2026 (Session 52) and has NOT been re-verified; treat it as history.
+**Last Updated**: August 14, 2026 — **real-hardware tablet QA is PAUSED at a clean stopping point (Aug 8-14)** while the LOI paperwork proceeds. **Read [qa/PICKUP_2026-08-14.md](qa/PICKUP_2026-08-14.md) first when resuming**; the full record is [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md). The sprint is committed through `d6fe7b962` on `campaign-editor-and-fixits`. The rules-wiring ledger remains CLOSED (0 open / 0 partial / 136 fixed / 1 corrected). Everything below the milestone block dates to April 8 2026 (Session 52) and has NOT been re-verified; treat it as history.
 **Engine**: Godot 4.6-stable (pure GDScript, non-mono)
 **Test Framework**: gdUnit4 v6.0.3
 **Repository**: https://github.com/Reptarus/five-parsecs-campaign-manager

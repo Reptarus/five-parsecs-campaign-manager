@@ -79,6 +79,39 @@ controls; **desktop cannot simulate a portrait window** — portrait layout is d
 
 ---
 
+## Tablet QA sprint — PAUSED 2026-08-14 (read `docs/qa/PICKUP_2026-08-14.md` first)
+
+Hardware-verified: T9-50, the `_refresh_job_offers()` back-nav guard, T9-46b, T9-49.
+Desk-verified only (no in-app tool can force the roll): T9-48's prohibition branch,
+T9-47, T9-51. Nothing from the sprint is committed.
+
+**Forcing rare events — what actually works.** A save-file edit to BOTH `resources.rivals`
+and `crew.rivals` (6 Rivals ⇒ the p.85 `D6 <= count` check fires EVERY turn). Type them all
+`Corporate`, which is not a valid enemy type, so the enemy-type validator must reject it —
+**a fixture that could pass either way proves nothing.** `QAScenarioLoader` covers
+counters/DLC/compendium/crew/narrative; `CampaignEditorScreen` covers scalars plus crew.
+**Neither can force a D10/D100 table roll**, and `MissionTableManager` uses bare
+`randi_range()` with no injectable dice seam. Widening a `roll_range` in `data/` would work
+but means testing a build whose rules data differs from ship — **the user declined it on
+2026-08-14; ask again before doing it.**
+
+**Physical-device traps that cost an hour each.** `KEYCODE_WAKEUP` does NOT turn this
+panel on — `KEYCODE_POWER` does; swipes sent to a dark screen silently do nothing. Launching
+the app against an off screen fails with `Failed to create vulkan window / Unable to create
+DisplayServer` and looks exactly like a corrupt save. `wm dismiss-keyguard` and
+`cmd statusbar collapse` both failed; a long swipe with the panel confirmed ON worked.
+`adb logcat` returns nothing for this app — `user://logs/godot.log` via `run-as` is the only
+usable log and it ROTATES on launch.
+
+**Two diagnosis errors worth not repeating.** (1) A pixel-diff showing "nothing changed"
+means the screen has **SETTLED** — scroll and look elsewhere before calling it a hang. "Ready
+for Battle" only completes the Mission Prep step; the actual launcher is a separate
+**"Proceed to Battle"** button below the fold. (2) **CPU is meaningless without a baseline** —
+this app idles at 32% (main menu) / 37% (dashboard) with CPU-time climbing, so ~55% is not a
+busy loop.
+
+---
+
 ## Lints — all four are exit 0, so a finding means a NEW regression
 
 `lint_signal_wiring` · `lint_tscn_connections` · `lint_autoload_lookups` · `lint_data_ownership`.
