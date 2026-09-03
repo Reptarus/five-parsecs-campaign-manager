@@ -97,9 +97,19 @@ static func can_afford_passage(credits: int, crew_size: int) -> bool:
 ## Roll for a new ship offer (Core Rules p.59).
 ## Cost = (2D6+3) * 10 credits. Can finance up to 70.
 ## Returns Dictionary with ship details and financing options.
+## Core Rules p.60 "Getting a New Ship", verbatim: "Each campaign turn you may
+## look for a new vessel. Roll 2D6+3 and multiply the total by 10 to find the
+## cost in credits. Roll ONCE ON THE SHIP TABLE in the Character Creation
+## chapter (p.31). This is the ship on offer."
+##
+## The p.31 half was missing: the offer carried a price and no ship, so a
+## purchase would have produced a vessel with no Hull Points and no traits. The
+## table lives in data/ships.json (`generation_table` -> `ship_types`), the same
+## one character creation rolls, so the two cannot drift.
 static func roll_ship_offer() -> Dictionary:
 	var roll: int = randi_range(1, 6) + randi_range(1, 6) + 3
 	var cost: int = roll * 10
+	var ship: Dictionary = roll_ship_table()
 
 	var can_finance: bool = true
 	var max_financed: int = mini(cost, MAX_SHIP_FINANCING)
@@ -108,6 +118,8 @@ static func roll_ship_offer() -> Dictionary:
 	return {
 		"roll": roll,
 		"cost": cost,
+		"ship": ship,
+		"ship_name": str(ship.get("name", "")),
 		"can_finance": can_finance,
 		"max_financed": max_financed,
 		"min_down_payment": min_down_payment,
@@ -120,7 +132,8 @@ static func roll_ship_offer() -> Dictionary:
 ## down_payment: credits paid upfront.
 ## financed: amount added to ship_debt.
 static func purchase_ship(
-	campaign: Resource, down_payment: int, financed: int
+	campaign: Resource, down_payment: int, financed: int,
+	ship: Dictionary = {}
 ) -> Dictionary:
 	var total: int = down_payment + financed
 
@@ -139,6 +152,22 @@ static func purchase_ship(
 		campaign.ship_debt = financed
 		_sync_debt_mirror(campaign)
 
+	# Install the vessel. Without this the crew got `has_ship = true` and an
+	# empty ship_data: no Hull Points, no traits, no name — a ship that exists
+	# only as a boolean. p.31 supplies all three and roll_ship_offer() now
+	# carries them, so the offer the player accepted is the ship they get.
+	if ship is Dictionary and not (ship as Dictionary).is_empty():
+		var hull: int = int(ship.get("hull_points", 0))
+		var sd: Dictionary = {
+			"ship_class": str(ship.get("id", "")),
+			"name": str(ship.get("name", "")),
+			"hull_points": hull,
+			"max_hull_points": hull,
+			"traits": (ship.get("traits", []) as Array).duplicate(),
+			"debt": financed,
+		}
+		if "ship_data" in campaign:
+			campaign.ship_data = sd
 	# Mark as having ship
 	if "has_ship" in campaign:
 		campaign.has_ship = true
@@ -148,6 +177,7 @@ static func purchase_ship(
 		"cost": total,
 		"down_payment": down_payment,
 		"financed": financed,
+		"ship": ship,
 		"description": "Ship purchased for %d credits (%d down, %d financed)." % [
 			total, down_payment, financed
 		]
@@ -246,3 +276,35 @@ static func get_status_summary(campaign: Resource) -> String:
 			return "Ship: Active (Debt: %d cr)" % debt
 		return "Ship: Active"
 	return "NO SHIP — Stash limited to %d items, travel by commercial passage only" % SHIPLESS_STASH_LIMIT
+
+
+## Roll once on the Core Rules p.31 Ship Table and return the ship on offer.
+##
+## Reads data/ships.json — `generation_table` gives the D100 spans, `ship_types`
+## the hull, debt formula and traits. Debt is NOT rolled here: p.60 says the
+## purchase price is the 2D6+3 x10 figure and what you do not pay becomes debt,
+## so the p.31 `debt_base` (a starting-campaign number) must not be added on top.
+static func roll_ship_table(rng: RandomNumberGenerator = null) -> Dictionary:
+	var raw: Dictionary = UniversalResourceLoader.load_json_safe(
+		"res://data/ships.json", "Ship Table")
+	if raw.is_empty():
+		return {}
+	var roll: int = (rng.randi_range(1, 100) if rng != null
+		else randi_range(1, 100))
+	var wanted: String = ""
+	for row in raw.get("generation_table", []):
+		if not (row is Dictionary):
+			continue
+		var span: Array = row.get("range", [])
+		# JSON numerics arrive as float; int() everything read off this file.
+		if span.size() == 2 and roll >= int(span[0]) and roll <= int(span[1]):
+			wanted = str(row.get("type", ""))
+			break
+	if wanted.is_empty():
+		return {}
+	for entry in raw.get("ship_types", []):
+		if entry is Dictionary and str(entry.get("id", "")) == wanted:
+			var out: Dictionary = (entry as Dictionary).duplicate(true)
+			out["table_roll"] = roll
+			return out
+	return {}

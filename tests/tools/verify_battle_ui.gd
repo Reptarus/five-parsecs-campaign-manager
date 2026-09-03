@@ -489,18 +489,39 @@ func _check_campaign_path_wiring() -> void:
 
 
 func _check_ai_reference() -> void:
-	## P0.2 / U7 — the book's AI instructions (Core Rules pp.113-115) were never
-	## shown: only a one-line AI_DESCRIPTIONS summary. The base condition, the 1D6
-	## behaviour table and the activation order must all reach the player, at every
-	## tier, because a LOG_ONLY player runs the enemy entirely by hand.
+	## P0.2 / U7 — the book's AI instructions were never shown: only a one-line
+	## AI_DESCRIPTIONS summary. The routine and the activation order must reach the
+	## player at every tier, because a LOG_ONLY player runs the enemy by hand.
+	##
+	## ⚠ REWRITTEN Sep 2026. This check used to require "base condition" and
+	## "1D6" on the DEFAULT card, and it passed — because
+	## data/RulesReference/EnemyAI.json held the COMPENDIUM pp.42-43 AI Variations
+	## option (base conditions + dice tables) mislabelled as core, and the card
+	## printed it whether or not the player owned the DLC. The Core Rules AI is
+	## DICELESS (p.42). So the assertions invert: the default card carries the
+	## pp.42-43 BULLETS and no dice, and the dice appear only behind the flag.
 	var lines: Array = _ui._ai_reference_lines("A")
 	var blob: String = "\n".join(PackedStringArray(lines.map(func(l): return str(l))))
 	_ok("AI reference resolves the 'A' code to Aggressive data",
 		not lines.is_empty(), "no lines returned for code A")
-	_ok("base condition text reaches the player",
-		blob.to_lower().contains("base condition"), "missing base condition")
-	_ok("the 1D6 behaviour table reaches the player",
-		blob.contains("1D6") and blob.contains("6"), "missing behaviour table")
+	_ok("the core Aggressive routine reaches the player (Core Rules p.43)",
+		blob.contains("advance at least half a move"),
+		"core pp.42-43 bullets absent: %s" % blob.substr(0, 160))
+	_ok("the core card cites the Core Rules, not a Compendium option",
+		blob.contains("Core Rules p."), "no core page cite on the card")
+
+	var dlc: Node = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager")
+	var variations_on: bool = false
+	if dlc and dlc.has_method("is_feature_enabled"):
+		var flag: int = int(dlc.ContentFlag.get("AI_VARIATIONS", -1))
+		variations_on = flag >= 0 and dlc.is_feature_enabled(flag)
+	if variations_on:
+		_ok("with AI Variations ON the 1D6 table reaches the player",
+			blob.contains("1D6"), "variation table absent with the flag on")
+	else:
+		_ok("with AI Variations OFF the card offers no dice roll",
+			not blob.contains("Otherwise roll 1D6"),
+			"the card told a non-DLC player to roll 1D6 for enemy actions")
 
 	# The card the Enemy Actions phase actually renders.
 	_ui._show_enemy_actions_ui()
@@ -508,9 +529,9 @@ func _check_ai_reference() -> void:
 	_ok("enemy action card states the activation order (p.113)",
 		card_text.to_lower().contains("nearest your edge first"),
 		"activation order line absent from the rendered card")
-	_ok("enemy action card carries the behaviour table",
-		card_text.to_lower().contains("otherwise roll 1d6"),
-		"behaviour table absent from the rendered card")
+	_ok("enemy action card carries the enemy's AI routine",
+		card_text.to_lower().contains("core rules p."),
+		"AI routine absent from the rendered card")
 
 func _check_end_phase_checklist() -> void:
 	## U3/U4 — the End-Phase rows were inert CheckBoxes with no signal and no

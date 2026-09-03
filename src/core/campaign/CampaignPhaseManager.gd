@@ -474,11 +474,21 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 			# Dictionary-format crew: manually decrement recovery_turns
 			var injuries: Array = member.get("injuries", [])
 			var healed: Array = []
+			var persistent_remaining: int = 0
 			for i in range(injuries.size()):
 				var inj: Dictionary = injuries[i]
 				var turns: int = inj.get("recovery_turns", 0)
 				if turns > 0:
 					inj["recovery_turns"] = turns - 1
+				# Compendium p.102: an Injured arm / leg / torso is cleared by "3
+				# Credits of medical treatment", and a Lingering injury by a
+				# natural 6 before a mission — never by time served. Removing
+				# them here at 0 is what made all four evaporate the moment Sick
+				# Bay ended, so the penalty lasted 1D3 turns instead of until the
+				# player paid for it.
+				if bool(inj.get("persistent", false)):
+					persistent_remaining += 1
+					continue
 				if inj.get("recovery_turns", 0) == 0:
 					healed.append(i)
 			# Remove healed (reverse order)
@@ -498,7 +508,11 @@ func _process_sick_bay_recovery(campaign: Resource) -> void:
 			# in_sick_bay / recovery_turns must be cleared here too: they are what the
 			# task and upkeep gates actually read, so leaving them set would keep the
 			# member in Sick Bay after their injuries had all healed.
-			if injuries.is_empty():
+			# Sick Bay ends when no TIME-BASED injury is left. A persistent p.102
+			# penalty keeps its entry but must NOT keep the character benched —
+			# the book gives it a Sick Bay time of 1D3 and a standing penalty
+			# afterwards, so `injuries.is_empty()` was the wrong question.
+			if injuries.size() == persistent_remaining:
 				var st: String = str(member.get("status", ""))
 				if st == "RECOVERING" or st == "injured":
 					member["status"] = "ACTIVE"

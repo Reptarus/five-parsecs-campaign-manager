@@ -477,6 +477,27 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 
 	return patrons_added
 
+## Errata v1.06 / FAQ 13: the Rumor pool is emptied when a Quest concludes.
+## Journals the discard, because a resource silently vanishing is worse for the
+## player than one they can see was spent.
+func _discard_rumors_at_conclusion(ctx: PostBattleContextClass) -> void:
+	if not ctx.has_method("discard_all_quest_rumors"):
+		return
+	var discarded: int = int(ctx.discard_all_quest_rumors())
+	if discarded <= 0:
+		return
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "story",
+			"auto_generated": true,
+			"title": "Quest conclusion reached",
+			"description": ("The trail ends here: %d Quest Rumor(s) discarded, all"
+				+ " of them about this Quest (errata v1.06). Any Rumors from here"
+				+ " count towards a NEW Quest.") % discarded,
+			"tags": ["story_track", "quest"],
+		})
+
+
 func process_quest_progress(ctx: PostBattleContextClass) -> int:
 	## Step 3: Determine Quest Progress (Core Rules p.120).
 	## Returns -1 step does not apply / 0 dead end / 1 step closer (+1 Rumor) /
@@ -589,6 +610,11 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 		quest_progress = 2
 		if ctx.game_state.has_method("set_quest_finale_available"):
 			ctx.game_state.set_quest_finale_available(true)
+		# Errata v1.06 + designer FAQ 13, verbatim: "Once the roll on this table
+		# is a 7 or greater, DISCARD ALL RUMORS you have accumulated." The core
+		# rulebook is silent, so the pool used to carry over and every Rumor
+		# spent on this Quest kept adding +1 to the next one's rolls.
+		_discard_rumors_at_conclusion(ctx)
 
 	# Core Rules p.119: "If the modified roll was a 4 or higher, roll another D6
 	# with no modifiers. On a 5-6, the next step is on another world, and you must
@@ -671,6 +697,12 @@ func _process_expanded_quest_progress(
 	if bool(outcome.get("conclusion", false)):
 		if ctx.game_state.has_method("set_quest_finale_available"):
 			ctx.game_state.set_quest_finale_available(true)
+		# DOCUMENTED READING: Compendium p.78's expanded system replaces Step 3's
+		# TABLE, and says nothing about the Rumor pool. The errata ruling is
+		# about the pool itself ("Rumors ... are always added together in a single
+		# pool"), so it governs both systems — and the expanded conclusion is
+		# reached on the same "7 or higher" the ruling names.
+		_discard_rumors_at_conclusion(ctx)
 		last_quest_step = {"step_id": "conclusion",
 			"message": str(outcome.get("message", "")), "pending": false}
 		_journal_quest_step("Quest Conclusion unlocked", str(outcome.get("message", "")), ctx)

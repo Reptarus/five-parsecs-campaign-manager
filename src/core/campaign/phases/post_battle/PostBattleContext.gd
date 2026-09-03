@@ -276,6 +276,18 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 		"description": effect["description"],
 		"turn_sustained": turn_sustained,
 	}
+	# ⚠ THE LITERAL ABOVE IS A FIXED KEY SET, so anything the caller passed that
+	# is not named here is DELETED at this chokepoint (the same shape as
+	# CampaignJournal.create_entry). Compendium p.102 has four injuries that
+	# OUTLIVE their Sick Bay time — Injured arm / leg / torso persist "until 3
+	# Credits of medical treatment" and a Lingering injury until a natural 6 —
+	# so their flags have to be forwarded explicitly or the turn-rollover
+	# countdown deletes the entry the moment recovery hits 0 and the penalty
+	# silently disappears.
+	for carried in ["persistent", "treatment_cost", "lingering", "injury_source",
+			"table_name", "injury_roll"]:
+		if injury.has(carried):
+			injury_record[carried] = injury[carried]
 	if member is Dictionary:
 		member["is_wounded"] = true
 		member["injury_recovery_turns"] = maxi(int(member.get("injury_recovery_turns", 0)), recovery)
@@ -475,6 +487,36 @@ func add_quest_rumor() -> void:
 	# patrons: Array (:47) on FiveParsecsCampaignCore.
 	elif "quest_rumors" in gc:
 		gc.quest_rumors += 1
+
+## Discard the whole Rumor pool. Errata v1.06 + designer FAQ item 13, verbatim:
+## "Once the roll on this table is a 7 or greater, DISCARD ALL RUMORS you have
+## accumulated. Any Rumors you obtain from this point on will be towards
+## obtaining a new Quest (as the process starts over)."
+##
+## THE GAP THIS CLOSES. Reaching the Quest conclusion set the finale flag and
+## left the pool untouched, so every Rumor spent getting there kept adding +1 to
+## the NEXT Quest's progress rolls — a crew that finished one Quest with five
+## Rumors banked started the next one five ahead, forever. The core rulebook does
+## not say this; the errata and the FAQ do, which is why it was missed.
+##
+## Both crew shapes, like every sibling here: the live 5PFH campaign is a
+## FiveParsecsCampaignCore RESOURCE with `quest_rumors: int`, and a Dictionary
+## campaign keeps a `rumors` Array.
+func discard_all_quest_rumors() -> int:
+	var gc = _get_current_campaign()
+	if gc == null:
+		return 0
+	if gc is Dictionary:
+		var rumors: Array = gc.get("rumors", [])
+		var had: int = rumors.size()
+		gc["rumors"] = []
+		return had
+	if "quest_rumors" in gc:
+		var had_res: int = int(gc.quest_rumors)
+		gc.quest_rumors = 0
+		return had_res
+	return 0
+
 
 func remove_quest_rumor() -> void:
 	var gc = _get_current_campaign()

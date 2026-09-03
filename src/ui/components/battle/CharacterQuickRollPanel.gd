@@ -18,9 +18,14 @@ extends PanelContainer
 
 signal roll_completed(character_name: String, roll_type: String, result: Dictionary)
 
-enum RollType { HIT, BRAWL, DAMAGE, REACTION }
+## TEST is Core Rules Appendix IV (p.152) Problem Solving — Quick, Opposed
+## and Wits tests. The appendix had ZERO code presence before Sep 3 2026, and
+## it is also the resolver Appendix VIII needs: "if a player wishes to request
+## help, a 1D6+Savvy roll of 5+" (p.172) is a Wits Test at Challenge 5.
+enum RollType { HIT, BRAWL, DAMAGE, REACTION, TEST }
 
 const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
+const ProblemSolvingRef = preload("res://src/core/battle/ProblemSolvingTests.gd")
 
 # Design system constants
 const SPACING_SM: int = UIColors.SPACING_SM
@@ -46,6 +51,7 @@ const ROLL_TYPE_LABELS: Dictionary = {
 	RollType.BRAWL: "Brawl",
 	RollType.DAMAGE: "Damage",
 	RollType.REACTION: "Reaction",
+	RollType.TEST: "Problem Solving",
 }
 
 # State
@@ -72,6 +78,14 @@ var _character_label: Label
 
 # Brawl-specific inputs (shown only in BRAWL mode)
 var _brawl_section: VBoxContainer
+
+# Problem Solving inputs (Core Rules Appendix IV, p.152)
+var _test_section: VBoxContainer
+var _test_kind_option: OptionButton
+var _test_rating_spin: SpinBox
+var _test_rating_label: Label
+var _test_modifier_spin: SpinBox
+var _test_risky_check: CheckBox
 var _opponent_combat_spin: SpinBox
 var _opponent_weapon_option: OptionButton
 var _opponent_species_edit: LineEdit
@@ -177,6 +191,7 @@ func _setup_ui() -> void:
 	_roll_type_option.add_item("Brawl", RollType.BRAWL)
 	_roll_type_option.add_item("Damage", RollType.DAMAGE)
 	_roll_type_option.add_item("Reaction", RollType.REACTION)
+	_roll_type_option.add_item("Problem Solving", RollType.TEST)
 	_roll_type_option.custom_minimum_size.y = TOUCH_TARGET_MIN
 	_roll_type_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_roll_type_option.item_selected.connect(_on_roll_type_changed)
@@ -190,6 +205,9 @@ func _setup_ui() -> void:
 
 	# Damage-specific inputs
 	_build_damage_inputs(main_vbox)
+
+	# Problem Solving inputs (Core Rules Appendix IV, p.152)
+	_build_test_inputs(main_vbox)
 
 	# Roll button
 	_roll_button = Button.new()
@@ -315,6 +333,147 @@ func _build_hit_inputs(parent: VBoxContainer) -> void:
 	_range_spin.custom_minimum_size = Vector2(80, TOUCH_TARGET_MIN)
 	_range_spin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	range_row.add_child(_range_spin)
+
+## Core Rules Appendix IV (p.152) Problem Solving, plus the Appendix VIII
+## request-for-help roll it resolves.
+func _build_test_inputs(parent: VBoxContainer) -> void:
+	_test_section = VBoxContainer.new()
+	_test_section.name = "TestInputs"
+	_test_section.add_theme_constant_override("separation", 4)
+	_test_section.visible = false
+	parent.add_child(_test_section)
+
+	var section_label := Label.new()
+	section_label.text = "Problem Solving (Core Rules p.152)"
+	section_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	section_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_test_section.add_child(section_label)
+
+	var kind_row := HBoxContainer.new()
+	kind_row.add_theme_constant_override("separation", SPACING_SM)
+	_test_section.add_child(kind_row)
+
+	var kind_label := Label.new()
+	kind_label.text = "Test:"
+	kind_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	kind_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	kind_row.add_child(kind_label)
+
+	_test_kind_option = OptionButton.new()
+	# Ids match ProblemSolvingTests.TestKind so the dispatch cannot drift.
+	_test_kind_option.add_item("Quick — Easy (3+)", ProblemSolvingRef.TestKind.QUICK_EASY)
+	_test_kind_option.add_item("Quick — Hard (5+)", ProblemSolvingRef.TestKind.QUICK_HARD)
+	_test_kind_option.add_item("Opposed (D6 vs D6)", ProblemSolvingRef.TestKind.OPPOSED)
+	_test_kind_option.add_item("Wits (1D6+Savvy)", ProblemSolvingRef.TestKind.WITS)
+	_test_kind_option.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_test_kind_option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_test_kind_option.item_selected.connect(func(_i: int) -> void:
+		_refresh_test_inputs())
+	kind_row.add_child(_test_kind_option)
+
+	var rating_row := HBoxContainer.new()
+	rating_row.add_theme_constant_override("separation", SPACING_SM)
+	_test_section.add_child(rating_row)
+	_test_rating_label = Label.new()
+	_test_rating_label.text = "Challenge Rating (2-7):"
+	_test_rating_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_test_rating_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	rating_row.add_child(_test_rating_label)
+
+	_test_rating_spin = SpinBox.new()
+	# p.152: "Set a Challenge Rating from 2 to 7."
+	_test_rating_spin.min_value = ProblemSolvingRef.WITS_RATING_MIN
+	_test_rating_spin.max_value = ProblemSolvingRef.WITS_RATING_MAX
+	_test_rating_spin.value = 5
+	_test_rating_spin.custom_minimum_size.y = TOUCH_TARGET_MIN
+	rating_row.add_child(_test_rating_spin)
+
+	var mod_row := HBoxContainer.new()
+	mod_row.add_theme_constant_override("separation", SPACING_SM)
+	_test_section.add_child(mod_row)
+	var mod_label := Label.new()
+	mod_label.text = "Circumstance modifier:"
+	mod_label.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	mod_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	mod_row.add_child(mod_label)
+
+	_test_modifier_spin = SpinBox.new()
+	_test_modifier_spin.min_value = -3
+	_test_modifier_spin.max_value = 3
+	_test_modifier_spin.value = 0
+	_test_modifier_spin.custom_minimum_size.y = TOUCH_TARGET_MIN
+	mod_row.add_child(_test_modifier_spin)
+
+	# p.152: "If you deem a given test to be inherently Risky, rolling a 1
+	# inflicts a Damage +0 Hit as well." The app cannot know, so the player says.
+	_test_risky_check = CheckBox.new()
+	_test_risky_check.text = "Risky (a natural 1 also inflicts a Damage +0 Hit)"
+	_test_risky_check.custom_minimum_size.y = TOUCH_TARGET_MIN
+	_test_risky_check.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	_test_section.add_child(_test_risky_check)
+
+	var note := Label.new()
+	note.text = "A test replaces this figure's Combat Action for the round."
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.add_theme_font_size_override("font_size", FONT_SIZE_SM)
+	note.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_test_section.add_child(note)
+
+	_refresh_test_inputs()
+
+
+## The Challenge Rating only exists for a Wits Test — showing it for a Quick or
+## Opposed test would imply a target number those tests do not have.
+func _refresh_test_inputs() -> void:
+	if _test_kind_option == null or _test_rating_spin == null:
+		return
+	var is_wits: bool = _test_kind_option.get_selected_id() \
+		== ProblemSolvingRef.TestKind.WITS
+	_test_rating_spin.visible = is_wits
+	if _test_rating_label:
+		_test_rating_label.visible = is_wits
+
+
+func _execute_problem_solving_roll() -> void:
+	var kind: int = _test_kind_option.get_selected_id() if _test_kind_option \
+		else ProblemSolvingRef.TestKind.QUICK_EASY
+	var risky: bool = _test_risky_check.button_pressed if _test_risky_check else false
+	var modifier: int = int(_test_modifier_spin.value) if _test_modifier_spin else 0
+	var savvy: int = int(_selected_character.get("savvy", 0))
+	var roller: Callable = func() -> int: return _roll_d6()
+
+	var result: Dictionary = {}
+	match kind:
+		ProblemSolvingRef.TestKind.QUICK_HARD:
+			result = ProblemSolvingRef.quick_test(true, risky, roller)
+		ProblemSolvingRef.TestKind.OPPOSED:
+			result = ProblemSolvingRef.opposed_test(risky, roller, roller)
+		ProblemSolvingRef.TestKind.WITS:
+			result = ProblemSolvingRef.wits_test(
+				int(_test_rating_spin.value) if _test_rating_spin else 5,
+				savvy, risky, modifier, roller)
+		_:
+			result = ProblemSolvingRef.quick_test(false, risky, roller)
+
+	_last_result = result
+	var bbcode := "[b]PROBLEM SOLVING[/b]\n"
+	bbcode += "%s\n" % str(result.get("summary", ""))
+	if bool(result.get("passed", false)):
+		bbcode += "[color=#10B981][b]PASSED[/b][/color]"
+	elif bool(result.get("draw", false)):
+		bbcode += "[color=#D97706][b]UNRESOLVED THIS ROUND[/b][/color]"
+	else:
+		bbcode += "[color=#DC2626][b]FAILED[/b][/color]"
+	if bool(result.get("stunned", false)):
+		bbcode += "\n[color=#DC2626]Natural 1 — the character is Stunned.[/color]"
+	if bool(result.get("damage_hit", false)):
+		bbcode += "\n[color=#DC2626]Risky: also takes a Damage +0 Hit.[/color]"
+	_result_display.text = bbcode
+
+	var char_name: String = str(_selected_character.get("character_name",
+		_selected_character.get("name", "Unknown")))
+	roll_completed.emit(char_name, "problem_solving", result)
+
 
 func _build_brawl_inputs(parent: VBoxContainer) -> void:
 	_brawl_section = VBoxContainer.new()
@@ -561,6 +720,44 @@ func _on_crew_selected(char_data: Dictionary) -> void:
 ##
 ## Returns {} when no weapon dict can be found, in which case the caller falls
 ## back to the flat `weapon_range` / `weapon_traits` keys the panel used before.
+## Compendium p.102 Injured arm, verbatim: "Count the character's Combat Skill as
+## 1 point lower (to a minimum of -1) WHEN FIRING A NON-PISTOL WEAPON OR WHEN
+## BRAWLING. It takes 3 Credits of medical treatment to remove this penalty."
+##
+## THE GAP THIS CLOSES. The injury was recorded and then surfaced only as
+## character-sheet text — `Character._apply_injury_penalties` deliberately
+## REFUSES to apply it as a flat modifier, because that channel is unconditional
+## and would also penalise PISTOL shots, which the book exempts. So the only
+## place it can be applied correctly is the roll itself, where the weapon is
+## known. Returns 0 or -1.
+func _injured_arm_penalty(is_pistol_shot: bool) -> int:
+	if is_pistol_shot:
+		return 0
+	var injuries: Variant = _selected_character.get("injuries", [])
+	if not (injuries is Array):
+		return 0
+	for entry in injuries:
+		if not (entry is Dictionary):
+			continue
+		var t: String = str(entry.get("type", "")).to_lower()
+		if t == "injured_arm" or t == "injured arm":
+			return -1
+	return 0
+
+
+## True when the weapon carries the p.51 Pistol trait, which is what exempts a
+## shot from the Injured arm penalty.
+func _weapon_is_pistol(weapon: Dictionary) -> bool:
+	var traits: Variant = weapon.get("traits", _selected_character.get(
+		"weapon_traits", []))
+	if not (traits is Array):
+		return false
+	for t in traits:
+		if str(t).to_lower() == "pistol":
+			return true
+	return false
+
+
 func _equipped_weapon() -> Dictionary:
 	if _selected_character.is_empty():
 		return {}
@@ -631,6 +828,8 @@ func _on_roll_type_changed(index: int) -> void:
 		hit_inputs.visible = (_current_roll_type == RollType.HIT)
 	if _brawl_section:
 		_brawl_section.visible = (_current_roll_type == RollType.BRAWL)
+	if _test_section:
+		_test_section.visible = (_current_roll_type == RollType.TEST)
 	if _damage_section:
 		_damage_section.visible = (_current_roll_type == RollType.DAMAGE)
 
@@ -656,6 +855,8 @@ func _on_roll_pressed() -> void:
 			_execute_brawl_roll()
 		RollType.DAMAGE:
 			_execute_damage_roll()
+		RollType.TEST:
+			_execute_problem_solving_roll()
 		RollType.REACTION:
 			_execute_reaction_roll()
 
@@ -734,7 +935,9 @@ func _execute_hit_roll() -> void:
 	# Snap fire penalty (Core Rules p.113)
 	var snap_penalty: int = -1 if is_snap_fire else 0
 
-	var effective_roll: int = roll + combat_skill + snap_penalty
+	# Compendium p.102 Injured arm — non-Pistol shots only.
+	var arm_penalty: int = _injured_arm_penalty(_weapon_is_pistol(weapon))
+	var effective_roll: int = roll + combat_skill + snap_penalty + arm_penalty
 	var hit: bool = effective_roll >= threshold
 
 	_last_result = {
@@ -755,6 +958,8 @@ func _execute_hit_roll() -> void:
 	bbcode += "+ Combat Skill: [b]+%d[/b]\n" % combat_skill
 	if snap_penalty != 0:
 		bbcode += "[color=#DC2626]+ Snap Fire: %d[/color]\n" % snap_penalty
+	if arm_penalty != 0:
+		bbcode += "[color=#DC2626]+ Injured arm (non-Pistol, p.102): %d[/color]\n" % arm_penalty
 	if stuns > 0:
 		bbcode += "[color=#D97706]Stunned (x%d): penalty applied[/color]\n" % stuns
 	bbcode += "Total: [b]%d[/b] vs threshold [b]%d+[/b]\n" % [effective_roll, threshold]
@@ -768,7 +973,11 @@ func _execute_hit_roll() -> void:
 	if hit:
 		bbcode += "[color=#10B981][b]HIT![/b][/color]"
 		if roll == 6:
-			bbcode += " [color=#10B981](Natural 6 — always hits)[/color]"
+			# Errata v1.06, verbatim: "Shots do not automatically hit on a 6
+			# or miss on a 1." The MATH was already right (the comparison is
+			# against the threshold), but this label claimed an automatic hit
+			# the designer explicitly ruled out.
+			bbcode += " [color=#10B981](Natural 6)[/color]"
 	else:
 		bbcode += "[color=#DC2626][b]MISS[/b][/color]"
 
@@ -784,10 +993,15 @@ func _execute_brawl_roll() -> void:
 		_selected_character.get("name", "Unknown")))
 	var species: String = str(_selected_character.get("species", "human"))
 
-	# Build attacker dict for BattleCalculations
+	# Build attacker dict for BattleCalculations.
+	#
+	# Compendium p.102 Injured arm applies to ALL Brawling with no Pistol
+	# exemption — the clause is "when firing a non-Pistol weapon OR WHEN
+	# BRAWLING" — so false is passed for is_pistol_shot here on purpose.
+	var brawl_arm_penalty: int = _injured_arm_penalty(false)
 	var attacker := {
 		"combat_skill": _selected_character.get("combat",
-			_selected_character.get("combat_skill", 0)),
+			_selected_character.get("combat_skill", 0)) + brawl_arm_penalty,
 		"species": species,
 		"weapon_type": _get_attacker_brawl_weapon_type(),
 		"weapon_traits": _selected_character.get("weapon_traits", []),

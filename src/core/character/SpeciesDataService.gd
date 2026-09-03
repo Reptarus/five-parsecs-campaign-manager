@@ -8,6 +8,7 @@ extends RefCounted
 static var _cache: Dictionary = {}  # species_id → full species dict (with added "category" key)
 static var _ordered: Array[Dictionary] = []  # ordered: primary, strange, compendium
 static var _strange_ids: Array[String] = []  # IDs in the strange_characters array
+static var _crew_type_tables: Dictionary = {}  # p.14 Crew Type Tables
 static var _loaded: bool = false
 
 static func _ensure_loaded() -> void:
@@ -30,6 +31,7 @@ static func _ensure_loaded() -> void:
 			_ordered.append(enriched)
 			if category == "strange_characters":
 				_strange_ids.append(id)
+	_crew_type_tables = raw.get("crew_type_tables", {})
 	_loaded = true
 
 static func get_species(species_id: String) -> Dictionary:
@@ -93,3 +95,77 @@ static func get_stat_modifiers(species_id: String) -> Dictionary:
 
 static func get_species_name(species_id: String) -> String:
 	return get_species(species_id).get("name", "")
+
+
+## ── Core Rules p.14 "Crew Type Tables" — the Random Method (p.13) ─────────
+##
+## THE GAP THIS CLOSES. `CharacterCreator._on_randomize_pressed()` picked a
+## species with `randi() % _origin_species_ids.size()` over a dropdown list of
+## 8 primary entries + 18 Strange Characters (+ any unlocked DLC). That is a
+## FLAT distribution across ~26 rows, and the book's is steeply weighted:
+##
+##   book            flat list        p.14
+##   Baseline Human   3.8%             60%
+##   Primary Alien   23.1%             20%
+##   Bot              3.8%             10%
+##   Strange Char    69.2%             10%
+##
+## So a randomised crew came out roughly seven times too strange and sixteen
+## times too rarely human, and p.78 recruits inherit it — that rule's own text
+## is "Each recruit rolls using the random method in the character creation
+## process (see p.14)".
+##
+## The spans live in data/character_species.json under `crew_type_tables`, with
+## `_source` and `_provenance_warning` keys, so a DLC species cannot be dropped
+## in and silently reweight every other row.
+static func roll_crew_type(rng: RandomNumberGenerator = null) -> Dictionary:
+	_ensure_loaded()
+	var step1: Dictionary = _roll_on("crew_type", rng)
+	if step1.is_empty():
+		return {}
+	var category: String = str(step1.get("category", ""))
+	var subtable: String = str(step1.get("subtable", ""))
+	if subtable.is_empty():
+		return {
+			"category": category,
+			"species_id": str(step1.get("species_id", "")),
+			"crew_type_roll": int(step1.get("_roll", 0)),
+			"subtable_roll": 0,
+		}
+	# p.14 Step 1: "If you roll Primary Alien or Strange Character, proceed to
+	# the relevant subtable, and roll for the exact type."
+	var step2: Dictionary = _roll_on(subtable, rng)
+	return {
+		"category": category,
+		"species_id": str(step2.get("species_id", "")),
+		"crew_type_roll": int(step1.get("_roll", 0)),
+		"subtable_roll": int(step2.get("_roll", 0)),
+	}
+
+
+## Resolve a D100 roll against one of the p.14 tables. Exposed so a test can
+## assert the SPANS rather than a sampled distribution.
+static func crew_type_row_for(table_name: String, roll: int) -> Dictionary:
+	_ensure_loaded()
+	var rows: Array = _crew_type_tables.get(table_name, [])
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var span: Array = row.get("range", [])
+		# JSON numerics arrive as float, so int() everything off this file.
+		if span.size() == 2 and roll >= int(span[0]) and roll <= int(span[1]):
+			var out: Dictionary = (row as Dictionary).duplicate(true)
+			out["_roll"] = roll
+			return out
+	return {}
+
+
+static func has_crew_type_tables() -> bool:
+	_ensure_loaded()
+	return not _crew_type_tables.is_empty()
+
+
+static func _roll_on(table_name: String, rng: RandomNumberGenerator) -> Dictionary:
+	var roll: int = (rng.randi_range(1, 100) if rng != null
+		else randi_range(1, 100))
+	return crew_type_row_for(table_name, roll)

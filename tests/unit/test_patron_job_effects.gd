@@ -465,11 +465,30 @@ func test_every_crew_task_allows_two_characters() -> void:
 	assert_int(json.parse(file.get_as_text())).is_equal(OK)
 	file.close()
 
+	# ⚠ ONE DOCUMENTED EXCEPTION, and it is a real book rule rather than a
+	# relaxation. Compendium p.112 on calling in a Faction favor: it "requires a
+	# crew task, and can only be done by your captain". A captain-only task
+	# cannot take two crew, so `call_in_a_favor` carries max_crew 1 correctly.
+	# The task landed Aug 7 with the Faction Favors work and this test, written
+	# before it existed, then reported the app's only correct captain-gated task
+	# as a defect.
+	#
+	# The exception is keyed to the task id AND re-checks the reason, so adding
+	# a second stingy task still fails.
+	const CAPTAIN_ONLY := {"call_in_a_favor": "Compendium p.112, captain-only"}
 	var stingy: Array = []
 	for task in json.data.get("tasks", []):
-		if int(task.get("max_crew", 2)) < 2:
-			stingy.append("%s (max_crew %d)" % [task.get("id", "?"),
-				int(task.get("max_crew", 2))])
+		var tid: String = str(task.get("id", "?"))
+		if int(task.get("max_crew", 2)) >= 2:
+			continue
+		if CAPTAIN_ONLY.has(tid):
+			# The exemption is only valid while the task really is captain-only.
+			assert_bool(bool(task.get("captain_only", false))).override_failure_message(
+				"%s is exempt from the two-crew rule because it is captain-only"
+				% tid + " (%s), but it no longer carries captain_only"
+				% CAPTAIN_ONLY[tid]).is_true()
+			continue
+		stingy.append("%s (max_crew %d)" % [tid, int(task.get("max_crew", 2))])
 	assert_array(stingy).override_failure_message(
 		"p.76 allows two crew on ANY task; these cap lower with no book rule: %s"
 		% [stingy]).is_empty()

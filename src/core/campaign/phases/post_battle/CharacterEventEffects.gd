@@ -312,10 +312,11 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			if origin_lower == "swift":
 				# Swift characters never return — mark as departed (Core Rules p.128)
 				# Set status to DEPARTED so dashboard/upkeep/battle all exclude them
-				if character is Resource and "status" in character:
-					character.status = "DEPARTED"
-				elif character is Dictionary:
-					character["status"] = "DEPARTED"
+				# Through the chokepoint, so the p.24 Leader exemption applies.
+				if _is_leader(character):
+					return ("%s (Swift) had business elsewhere, but is the Leader"
+						% char_name + " and stays with the crew (p.24)")
+				_mark_departed(character)
 				ctx.apply_character_status_effect(character, {
 					"type": "departed",
 					"name": "Business Elsewhere (Swift)",
@@ -419,10 +420,10 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 						"tags": ["feeler", "species_ability", "departure"],
 					})
 				# Mark character for removal — orchestrator handles actual crew removal
-				if character is Resource and "status" in character:
-					character.status = "departed"
-				elif character is Dictionary:
-					character["status"] = "departed"
+				_mark_departed(character)
+				if _is_leader(character):
+					return ("%s (Feeler) took the fight badly, but is the Leader"
+						% char_name + " and stays with the crew (p.24)")
 				return "%s (Feeler) has a mental breakdown from crew fight and leaves permanently" % char_name
 			## p.129, 20-23: "Randomly select another crew member and roll
 			## 1D6+Combat Skill for each. The LOWER score must spend one campaign
@@ -750,9 +751,33 @@ func _member_field(character: Variant, key: String, default_value: Variant) -> V
 	return default_value
 
 
+## Core Rules p.24 "Leaders", verbatim: "This character receives 1 Luck point
+## and WILL NEVER LEAVE THE CREW THROUGH RANDOM EVENTS, though they can
+## certainly be slain."
+##
+## Character Events (pp.128-130) are random events, so the Leader is exempt
+## from every departure they can produce. The rule was quoted in
+## `CharacterCreator._setup_captain_bonuses()` and enforced NOWHERE: a Swift
+## Leader rolling Business Elsewhere (p.128, 4-6) or a Feeler Leader having
+## a mental breakdown (p.22) was removed from the crew permanently.
+##
+## DOCUMENTED READING. p.24 is categorical about the Leader while the Swift
+## and Feeler clauses are general character rules, and neither the errata
+## nor the FAQ carves out an exception, so the Leader rule wins. "They can
+## certainly be slain" is the ONE exit the book leaves open, and death is
+## not routed through here.
+##
+## Guarded at the CALLEE, not at the three call sites, so a fourth
+## departure route added later cannot miss it.
+func _is_leader(character: Variant) -> bool:
+	return bool(_member_field(character, "is_captain", false))
+
+
 func _mark_departed(character: Variant) -> void:
 	## Same shape the Feeler breakdown above already writes — the orchestrator
 	## does the actual crew removal off `status`.
+	if _is_leader(character):
+		return  # p.24: the Leader never leaves through a random event.
 	if character is Dictionary:
 		character["status"] = "departed"
 	elif character != null and "status" in character:

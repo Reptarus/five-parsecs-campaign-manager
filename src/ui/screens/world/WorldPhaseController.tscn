@@ -210,6 +210,14 @@ text = "← Back to Dashboard"
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="LayLowButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_type_variation = &"BackButton"
+tooltip_text = "Errata v1.06: if your Rivals do not attack, pay 1D6+1 Credits to stay in town and skip this turn's battle — and all of its rewards."
+text = "Lay Low (pay 1D6+1 cr)"
+
 [node name="ProceedToBattleButton" type="Button" parent="MarginContainer/VBoxContainer/Footer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)

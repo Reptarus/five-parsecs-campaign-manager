@@ -29,6 +29,8 @@ const CREWTASK_SRC := "res://src/ui/screens/world/components/CrewTaskComponent.g
 const JOB_SRC := "res://src/ui/screens/world/components/JobOfferComponent.gd"
 
 
+const NL := "\n"
+
 func _src(path: String) -> String:
 	var f := FileAccess.open(path, FileAccess.READ)
 	assert_object(f).override_failure_message("cannot open %s" % path).is_not_null()
@@ -135,7 +137,15 @@ func test_the_new_roll_replaces_the_old_one() -> void:
 	var src: String = _code_only(CREWTASK_SRC)
 	var body_at: int = src.find("func _offer_merchant_reroll")
 	assert_int(body_at).is_greater(-1)
-	var body: String = src.substr(body_at)
+	# ⚠ BOUND THE WINDOW. `substr(body_at)` alone scans to END OF FILE, so
+	# this failed the moment ANY later function in the ~4,100-line component
+	# used maxi() — which the Sep 3 errata recruit work did, at :4029 and
+	# :4060, nowhere near the merchant reroll. The rule was never broken;
+	# the test was reading the wrong code. Same shape as the knock-out test
+	# that scanned its own docblock.
+	var rest: String = src.substr(body_at)
+	var next_func: int = rest.find(NL + "func ", 1)
+	var body: String = rest.substr(0, next_func) if next_func > 0 else rest
 	assert_bool(body.contains("maxi(")).override_failure_message(
 		"the merchant reroll is picking the better of two rolls; p.125 says the"
 		+ " new roll MUST be accepted").is_false()
@@ -170,7 +180,13 @@ func test_the_voucher_is_consumed_after_the_affordability_check() -> void:
 	var fn_at: int = src.find("func _on_upgrade_purchased")
 	assert_int(fn_at).is_greater(-1)
 	var body: String = src.substr(fn_at)
-	var afford_at: int = body.find("if current_credits < cost:")
+	# ⚠ The anchor was "if current_credits < cost:". The Aug 6 SalvageLedger
+	# work renamed that local to `credit_cost` (salvage is applied first,
+	# so the credit half is what must be affordable), and the test was never
+	# updated - it searched for a string that no longer existed, got -1, and
+	# failed on `-1 > -1`. Matched on the stable prefix now, so a further
+	# rename of the amount cannot break it again.
+	var afford_at: int = body.find("if current_credits < ")
 	var consume_at: int = body.find("_consume_component_discount()")
 	assert_int(afford_at).is_greater(-1)
 	assert_int(consume_at).is_greater(-1)

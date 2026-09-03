@@ -463,7 +463,12 @@ func test_the_resolver_branches_before_the_core_die_is_rolled() -> void:
 	## A die rolled and then discarded still reaches the dice feed and the
 	## journal, and the expanded system does not always roll.
 	var code: String = _code_only(RESOLVER_SRC)
-	var branch: int = code.find("_process_expanded_quest_progress(ctx, quest_rumors)")
+	# Anchored on the call PREFIX, without the closing paren: the callee gained
+	# an `analyzer_bonus` argument (Core Rules p.57 Analyzer) and this find()
+	# had required an exact 2-argument form, so it silently stopped matching
+	# and the case failed for a reason that had nothing to do with ordering.
+	# A red harness row is a lead, not a verdict — this one was the TEST.
+	var branch: int = code.find("_process_expanded_quest_progress(ctx, quest_rumors")
 	var core_roll: int = code.find("ctx.roll_d6(\"Quest progress roll\")")
 	assert_int(branch).override_failure_message(
 		"the expanded branch is gone from process_quest_progress").is_greater(-1)

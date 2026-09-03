@@ -214,8 +214,22 @@ func test_reference_text_carries_the_book_mechanics() -> void:
 func test_reference_text_is_sourced_from_the_module_not_inlined() -> void:
 	# The fabricated block lived inline in CheatSheetPanel. Keep exactly one
 	# source of truth so a future edit cannot fork the rules again.
+	#
+	# The chain gained a link on Sep 3 2026, when EVERY Compendium section of the
+	# panel moved into CheatSheetSections (four of the others were printing
+	# invented rules). The invariant is unchanged and is asserted end to end:
+	# panel -> sections builder -> the module. What must never come back is the
+	# panel holding grid rules of its OWN.
 	var sheet: String = _code_only(CHEAT_SHEET_PATH)
-	assert_str(sheet).contains("CompendiumGridMovementRef.get_reference_text()")
+	assert_str(sheet).override_failure_message(
+		"CheatSheetPanel no longer reaches the grid-movement module"
+	).contains("CheatSheetSectionsRef.grid_movement()")
+	var sections: String = _code_only(
+		"res://src/ui/components/battle/CheatSheetSections.gd")
+	assert_str(sections).override_failure_message(
+		"CheatSheetSections.grid_movement() must delegate to the module rather"
+		+ " than restate pp.90-93 itself"
+	).contains("GridMovementRef.get_reference_text()")
 
 
 ## ============================================================================

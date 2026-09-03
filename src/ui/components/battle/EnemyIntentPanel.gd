@@ -17,6 +17,11 @@ signal oracle_instruction_ready(group_name: String, instruction: String)
 # Dependencies
 const EnemyAIOracleRouterClass = preload("res://src/core/battle/EnemyAIOracleRouter.gd")
 
+## Index of the "D6 Table" button in the mode row, which must stay aligned with
+## FPCM_EnemyAIOracleRouter.OracleMode.MODE_D6_TABLE (= 1). Named here rather
+## than reaching through the preload so the row build cannot silently mis-index.
+const MODE_INDEX_D6_TABLE: int = 1
+
 # Design system constants
 const SPACING_SM: int = 8
 const SPACING_MD: int = 16
@@ -130,6 +135,16 @@ func _build_oracle_ui() -> void:
 	mode_row.add_theme_constant_override("separation", 4)
 	_oracle_container.add_child(mode_row)
 
+	# The D6 Table mode IS the Compendium pp.42-43 AI Variations option — the CORE
+	# AI is diceless (Core Rules p.42, "The default AI is diceless to keep the game
+	# moving as quickly as possible"). Offering the mode without that DLC invited
+	# the player to roll a die the rules they own do not use, so it is hidden
+	# unless the flag is live. Reference and Card Oracle are companion aids and
+	# stay available.
+	var variations_on: bool = _oracle_router != null \
+		and _oracle_router.has_method("variations_enabled") \
+		and _oracle_router.variations_enabled()
+
 	var mode_names: Array[String] = ["Reference", "D6 Table", "Card Oracle"]
 	for i: int in range(mode_names.size()):
 		var btn := Button.new()
@@ -140,6 +155,9 @@ func _build_oracle_ui() -> void:
 		btn.toggle_mode = true
 		btn.button_pressed = (i == 0)
 		btn.pressed.connect(_on_mode_button_pressed.bind(i))
+		# Kept in the array at its own index so _on_mode_button_pressed's
+		# toggle bookkeeping stays index-aligned with OracleMode.
+		btn.visible = (i != MODE_INDEX_D6_TABLE) or variations_on
 		mode_row.add_child(btn)
 		_mode_buttons.append(btn)
 

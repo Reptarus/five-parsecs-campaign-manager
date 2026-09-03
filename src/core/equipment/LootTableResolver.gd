@@ -32,6 +32,23 @@ static func _get_tables() -> Dictionary:
 ## Roll once on the main Loot Table. Returns an Array of item dicts (1 normally,
 ## 2 for the DAMAGED categories per the book). Each item: {name, type, description,
 ## quality, [needs_repair], [uses], [is_reward + resource grants]}.
+## Roll one name off the Core Rules p.133 Implants Subtable (1-10 AI Companion
+## through 95-100 Pain Suppressor), or "" if the data is missing.
+##
+## Exists for errata v1.06 (update 1.03), verbatim: "The Bio-Upgrade character
+## sub-type will always begin the campaign with one randomly generated Implant
+## (Loot table p.133)." That is a CREATION rule with no loot roll to ride on, so
+## it needs the subtable addressable on its own — reached through the same
+## `_roll_d100` the loot path uses, rather than a second copy of the spans.
+static func roll_implant_name() -> String:
+	var tables: Dictionary = _get_tables()
+	for entry in tables.get("odds_and_ends_subtable", []):
+		if entry is Dictionary and str(entry.get("category", "")) == "implants":
+			return roll_item_in(entry)
+	push_warning("LootTableResolver: no 'implants' category in odds_and_ends_subtable")
+	return ""
+
+
 static func roll_loot() -> Array[Dictionary]:
 	var tables := _get_tables()
 	if tables.is_empty():

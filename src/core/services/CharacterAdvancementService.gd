@@ -166,6 +166,16 @@ static func advance_stat(character: Dictionary, stat_name: String) -> Dictionary
 	character[stat_lower] = new_value
 	character["experience"] = character.get("experience", 0) - cost
 
+	# Core Rules p.64: the three "Upgrade N Characters 10 Times" Victory
+	# Conditions count Character Upgrades, and NOTHING counted them — no
+	# per-character tally existed and GameStateManager's milestone recorder had
+	# zero callers, so those conditions sat at 0/N for the life of every
+	# campaign. Recorded here, at the service every live Dictionary-crew path
+	# goes through (post-battle wizard, character sheet, upgrade dialog).
+	var gsm: Node = _game_state_manager()
+	if gsm and gsm.has_method("record_character_upgrade"):
+		gsm.record_character_upgrade(character)
+
 	# Spend the kit only once the upgrade actually went through — can_advance_stat
 	# is called speculatively by get_available_advancements() for every stat, so
 	# consuming it there would burn the item on a menu refresh.
@@ -288,6 +298,15 @@ static func get_advancement_summary(character: Dictionary) -> Dictionary:
 
 ## GameState is an autoload NODE, not an engine singleton, so a non-Node class
 ## must resolve it through the scene tree root (see CLAUDE.md).
+## The GameStateManager autoload, or null. Separate from `_campaign()` below:
+## the campaign is a Resource and the counters live behind the manager's setters.
+static func _game_state_manager() -> Node:
+	var loop: Variant = Engine.get_main_loop()
+	if loop == null or not ("root" in loop):
+		return null
+	return loop.root.get_node_or_null("/root/GameStateManager")
+
+
 static func _campaign():
 	var loop: Variant = Engine.get_main_loop()
 	if loop == null or not ("root" in loop):

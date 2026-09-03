@@ -398,6 +398,204 @@ func increment_unique_individual_kills(count: int = 1) -> void:
 		c.progress_data["unique_individuals_killed"] = \
 			c.progress_data.get("unique_individuals_killed", 0) + count
 
+## Record ONE Character Upgrade (Core Rules p.123) against a crew member, and
+## fire the p.64 milestone the moment they reach their tenth.
+##
+## THE GAP THIS CLOSES. `record_character_upgrade_milestone()` below has existed
+## with ZERO callers, and no per-character upgrade count existed anywhere, so the
+## three "Upgrade N Characters 10 Times" Victory Conditions could never move off
+## 0/N no matter how much XP the crew spent. This is the chokepoint both live
+## advance paths call: `CharacterAdvancementService.advance_stat()` (Dictionary
+## crew, used by the post-battle wizard, the character sheet and the upgrade
+## dialog) and `AdvancementPhasePanel._on_apply_pressed()` (which mutates the
+## member directly).
+##
+## Documented reading: p.64 says "Character Upgrade" without qualification and
+## p.123 defines one as spending XP to raise an ability score, so EVERY stat
+## advancement counts once — bots included, since a Bot upgrade bought with
+## credits is a different mechanic and does not come through here.
+##
+## Returns the member's new total. Dual-shape because a fresh campaign holds
+## Character Resources and a loaded save holds Dictionaries.
+func record_character_upgrade(member) -> int:
+	if member == null:
+		return 0
+	var total: int = 0
+	if member is Dictionary:
+		total = int(member.get("character_upgrades", 0)) + 1
+		member["character_upgrades"] = total
+	elif member is Object and "character_upgrades" in member:
+		total = int(member.character_upgrades) + 1
+		member.character_upgrades = total
+	else:
+		# No field to count on (a minimal test/battle-sim dict shape). Say so
+		# rather than silently dropping the upgrade.
+		push_warning("GameStateManager.record_character_upgrade: member has no character_upgrades field")
+		return 0
+
+	# p.64: "If one character Upgrades 10 times and dies, all 10 Character
+	# Upgrades still count." The milestone is banked on the CAMPAIGN at the
+	# instant it is reached, so it survives the character's death — which is why
+	# it fires here on == 10 and not on every later upgrade.
+	if total == UPGRADE_MILESTONE:
+		record_character_upgrade_milestone()
+	return total
+
+
+## p.64 counts CHARACTERS who reached ten upgrades, so ten is the threshold.
+const UPGRADE_MILESTONE: int = 10
+
+## The `source_event` InjuryProcessor stamps on the two status effects an
+## UNTREATED Extensive injury applies (Compendium p.102). Named here because the
+## writer and this clearer must agree exactly, or paying for treatment would
+## leave the crew member benched forever.
+const UNTREATED_INJURY_SOURCE := "Detailed Injury: Extensive injury"
+
+
+## Pay for medical treatment of a persistent Compendium p.102 injury.
+##
+## p.102, verbatim, on Injured arm / leg / torso: "It takes 3 Credits of medical
+## treatment to remove this penalty." And on Extensive injury: "The character
+## requires specialized treatment. Roll 1D6+1 to determine the cost in Credits.
+## Until the cost has been paid, the character cannot take crew tasks or fight.
+## The Sick Bay recovery time begins ONCE THEY HAVE RECEIVED TREATMENT."
+##
+## THE GAP THIS CLOSES. `treatment_cost` was written by InjuryProcessor and read
+## by NOTHING, so an Extensive injury benched a crew member permanently with no
+## way to pay, and the three stat penalties had no removal path at all. There was
+## no consumer for the one number that ends them.
+##
+## Charges through `remove_credits()`, which is the single affordability-and-charge
+## site — checking a price separately from paying it is how a crew came to afford
+## what it could not pay for (the p.53 weapon-licensing bug).
+##
+## Returns {ok, reason, cost, credits_left, recovery_turns, treated}.
+func pay_medical_treatment(crew_id: String, injury_index: int) -> Dictionary:
+	var out: Dictionary = {
+		"ok": false, "reason": "", "cost": 0, "credits_left": get_credits(),
+		"recovery_turns": 0, "treated": "",
+	}
+	var member = _find_crew_member_by_id(crew_id)
+	if member == null:
+		out["reason"] = "No such crew member."
+		return out
+
+	var injuries: Array = _member_injuries(member)
+	if injury_index < 0 or injury_index >= injuries.size():
+		out["reason"] = "No such injury."
+		return out
+	var entry: Variant = injuries[injury_index]
+	if not (entry is Dictionary):
+		out["reason"] = "Injury record is not readable."
+		return out
+	var injury: Dictionary = entry
+
+	var cost: int = int(injury.get("treatment_cost", 0))
+	if cost <= 0:
+		out["reason"] = "That injury does not take medical treatment (Compendium p.102)."
+		return out
+	out["cost"] = cost
+
+	if not remove_credits(cost):
+		out["reason"] = "Not enough credits: treatment costs %d, you have %d." % [
+			cost, get_credits()]
+		return out
+
+	# "The Sick Bay recovery time BEGINS once they have received treatment" —
+	# Extensive injury only, which is why the row stores its cost as the recovery
+	# length too. Everything else is already past its Sick Bay time.
+	var pending: bool = bool(injury.get("treatment_pending", false))
+	injuries.remove_at(injury_index)
+	if pending:
+		var turns: int = int(injury.get("recovery_turns", cost))
+		out["recovery_turns"] = turns
+		_begin_treated_recovery(member, turns)
+		# The two status effects that held them out of tasks and battles were
+		# written with no duration, so nothing could ever expire them.
+		_clear_untreated_injury_effects(member)
+
+	out["ok"] = true
+	out["treated"] = str(injury.get("table_name", injury.get("type", "injury")))
+	out["credits_left"] = get_credits()
+	return out
+
+
+## Injuries array off either crew shape, as a LIVE reference so a removal sticks.
+func _member_injuries(member) -> Array:
+	if member is Dictionary:
+		if not member.has("injuries") or not (member["injuries"] is Array):
+			member["injuries"] = []
+		return member["injuries"]
+	if member is Object and "injuries" in member and member.injuries is Array:
+		return member.injuries
+	return []
+
+
+func _find_crew_member_by_id(crew_id: String):
+	var c = _get_campaign()
+	if c == null:
+		return null
+	if c.has_method("get_crew_member_by_id"):
+		var found = c.get_crew_member_by_id(crew_id)
+		if found != null:
+			return found
+	for member in get_crew_members():
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str(member.get("character_id", member.get("id", "")))
+		elif member is Object and "character_id" in member:
+			mid = str(member.character_id)
+		if mid == crew_id:
+			return member
+	return null
+
+
+## Start the Sick Bay clock an Extensive injury deferred until payment.
+func _begin_treated_recovery(member, turns: int) -> void:
+	if turns <= 0:
+		return
+	var record: Dictionary = {
+		"type": "extensive_injury_recovery",
+		"recovery_turns": turns,
+		"description": "Recovering after paid treatment (Compendium p.102).",
+	}
+	if member is Dictionary:
+		member["injuries"].append(record)
+		member["in_sick_bay"] = true
+		member["recovery_turns"] = maxi(int(member.get("recovery_turns", 0)), turns)
+		member["status"] = "injured"
+		return
+	if member is Object:
+		if "injuries" in member and member.injuries is Array:
+			member.injuries.append(record)
+		if "in_sick_bay" in member:
+			member.in_sick_bay = true
+		if "recovery_turns" in member:
+			member.recovery_turns = maxi(int(member.recovery_turns), turns)
+		if "status" in member:
+			member.status = "injured"
+
+
+## Drop the skip_tasks / skip_next_battle effects an untreated Extensive injury
+## applied. They carry no `duration`, so the turn-rollover expiry in
+## CampaignPhaseManager._process_character_event_effects can never clear them —
+## paying is the only exit, and this is it.
+func _clear_untreated_injury_effects(member) -> void:
+	var effects: Array = []
+	if member is Dictionary:
+		effects = member.get("status_effects", [])
+	elif member is Object and "status_effects" in member:
+		effects = member.status_effects
+	if not (effects is Array):
+		return
+	for i in range(effects.size() - 1, -1, -1):
+		var eff: Variant = effects[i]
+		if not (eff is Dictionary):
+			continue
+		if str(eff.get("source_event", "")) == UNTREATED_INJURY_SOURCE:
+			effects.remove_at(i)
+
+
 func record_character_upgrade_milestone(count: int = 1) -> void:
 	## Counts CHARACTERS who have reached 10 Upgrades, for the three "Upgrade N
 	## Characters 10 Times" Victory Conditions (Core Rules p.64).

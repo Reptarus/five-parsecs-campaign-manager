@@ -347,8 +347,13 @@ func _push_campaign_crew_size(panel: Node) -> void:
 	var state: Dictionary = coordinator.get_unified_campaign_state()
 	var cfg: Dictionary = state.get("campaign_config", {})
 	var configured: int = int(cfg.get("campaign_crew_size", 0))
+	# Compendium p.34 "Starting in the Gutter" shrinks the STARTING ROSTER to 3
+	# while the standard size stays 6, so the panel needs both numbers: the
+	# standard one for the dropdown and the enemy-count rules, the roster for how
+	# many characters to build. Defaults to the size when the toggle is off.
+	var roster: int = int(cfg.get("starting_roster_size", configured))
 	if configured >= 4 and configured <= 6:
-		panel.apply_campaign_crew_size(configured)
+		panel.apply_campaign_crew_size(configured, roster)
 
 func _fit_panel_to_step_bounds() -> void:
 	if current_panel:

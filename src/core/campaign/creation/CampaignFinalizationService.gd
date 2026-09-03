@@ -766,6 +766,24 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		"quest_rumors": resources.get("quest_rumors", crew_data.get("quest_rumors", 0))
 	})
 	pass # Resources transferred to campaign
+
+	# Errata v1.06 + designer FAQ 14, verbatim: "Patrons received during
+	# character creation will automatically grant you a job offer in the FIRST
+	# CAMPAIGN TURN. Additionally, even if you do not accept the job they are
+	# added to your list of known Patrons."
+	#
+	# THE GAP THIS CLOSES. The list half was already right — creation patrons
+	# land in campaign.patrons above. The OFFER half had no producer: since the
+	# p.77 gate was wired, JobOfferComponent generates an offer only from
+	# `patron_offers_owed` (a successful Find a Patron roll) or the named
+	# `patron_followup_offers` (p.84 Busy). Neither fires on turn 1, so a crew
+	# that rolled a Patron at creation opened its first World Phase with an
+	# empty job board and no way to reach the contact it had just been given.
+	#
+	# Banked as NAMED follow-ups rather than as `patron_offers_owed`: that
+	# counter draws a RANDOM existing patron, and the errata promises a job from
+	# the patron the crew actually acquired.
+	_bank_creation_patron_offers(campaign, patrons_data)
 	
 	# CRITICAL FIX: Mark campaign as ready for turn system
 	campaign.game_phase = "ready_for_turn_system"
@@ -783,6 +801,32 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 		return null
 
 	return campaign
+
+## Errata v1.06 / FAQ 14: every Patron acquired at creation owes a job offer in
+## the first campaign turn. Writes the ids JobOfferComponent._consume_patron_
+## followups() spends, using the same identity rule it does (`id`, else
+## `patron_id`, else the name) — a mismatch here would leave the offer unclaimed
+## forever, and the consumer DROPS ids it cannot match.
+static func _bank_creation_patron_offers(campaign: Resource, patrons_data: Array) -> void:
+	if campaign == null or patrons_data.is_empty():
+		return
+	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
+		return
+	var owed: Array = []
+	var existing: Variant = campaign.progress_data.get("patron_followup_offers", [])
+	if existing is Array:
+		owed = (existing as Array).duplicate()
+	for entry in patrons_data:
+		var ident: String = ""
+		if entry is Dictionary:
+			ident = str(entry.get("id", entry.get("patron_id", entry.get("name", ""))))
+		else:
+			ident = str(entry)
+		if ident.is_empty() or ident in owed:
+			continue
+		owed.append(ident)
+	campaign.progress_data["patron_followup_offers"] = owed
+
 
 func _verify_campaign_is_ready(campaign: Resource) -> Dictionary:
 	## Verify the campaign carries what the turn system needs, BY READING THE

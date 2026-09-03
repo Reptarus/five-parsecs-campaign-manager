@@ -99,7 +99,7 @@
   ],
   "ai_variation_tables": {
     "cautious": {
-      "base_condition": "If in Cover and visible opponents within 12\", move away to most distant position that remains in Cover and in range with Line of Sight, then fire.",
+      "base_condition": "If in Cover and visible opponents are within 12\", move away to the most distant position that remains in Cover and in range and retains Line of Sight to an opponent, then fire.",
       "actions": [
         {
           "roll": 1,
@@ -215,7 +215,26 @@
       ]
     }
   },
-  "ai_behavior_table": [],
+  "ai_variation_rules": {
+    "_source": "Compendium pp.42-43 'AI VARIATIONS'. VERBATIM. Gated on ContentFlag.AI_VARIATIONS.",
+    "intro": "The default AI is diceless to keep the game moving as quickly as possible. If you prefer a less predictable battle environment, you can use this system to determine enemy actions.",
+    "unchanged_types": "Using these rules, enemies with the Beast, Rampage, and Guardian AIs function as they would currently. No changes are made.",
+    "how_to_use": [
+      "Enemies still activate in the normal order.",
+      "When an enemy figure is selected to act, check if the base condition for the AI type applies. If it does, it will take the listed action. Otherwise, roll 1D6 to determine what actions the enemy takes.",
+      "As usual, resolve all actions by each figure completely before the next enemy is selected to act."
+    ],
+    "group_actions": [
+      "Any group of enemies where a given figure is within 2\" of another - for example in a skirmish line - will obey the same die roll instead of rolling for each figure.",
+      "If any figure in the group would be subject to the base condition, they all follow that option."
+    ],
+    "impossible_actions": "The system may suggest an action that is impossible to carry out or which would make no sense in the current context of the game. In such circumstances, the player will have to inject some logic. After all, enemies will not wander off cliff-sides or charge into lava pools. If in doubt, the figure will remain in place and fire at a visible target.",
+    "notes": [
+      "\"Next forward position\" means the next Cover or terrain feature that is closer to the player's side and in front of the figure in question.",
+      "\"Use Cover\" means the figure will attempt to remain in Cover or out of sight. A move in the open will be done by Dashing if it will bring the figure into Cover. The figure will only end a move out of Cover if the end of the move is not in sight of player figures.",
+      "\"Maneuver within Cover\" means the figure will move within or behind the current terrain feature in order to get the best shot possible (preferring targets in the open over targets in Cover). If the figure is not in Cover currently, it will move to find Cover, Dashing if needed."
+    ]
+  },
   "casualty_tables": {
     "humanoid": {
       "name": "Table 1: Humanoid Combatants",

@@ -4030,7 +4030,7 @@ func _apply_recruit() -> void:
 		var rolled = CharGen.create_character({})
 		if rolled == null:
 			continue
-		_strip_to_recruit_loadout(rolled)
+		_apply_recruit_creation_tables(rolled)
 		candidates.append(rolled)
 	if candidates.is_empty():
 		return
@@ -4083,6 +4083,16 @@ func _hire_recruit(campaign, new_char) -> void:
 		return
 	if not campaign.has_method("add_crew_member"):
 		return
+	# ⚠ THE CONTACTS ARE GRANTED HERE, NOT WHEN THE CANDIDATE IS ROLLED.
+	#
+	# p.74 Adventurous population rolls up EXTRA candidates the player then picks
+	# from, and `_apply_recruit_creation_tables()` runs on every one of them so
+	# the player can compare real characters. Granting the errata's Rivals and
+	# Patrons there would hand out the contacts of people who were never hired —
+	# up to two extra Rivals for a single Recruit task, from candidates the player
+	# rejected. The table rewards belong to the character who joins.
+	if "creation_bonuses" in new_char and new_char.creation_bonuses is Dictionary:
+		_grant_recruit_contacts(campaign, new_char, new_char.creation_bonuses)
 	if new_char.has_method("to_dictionary"):
 		campaign.add_crew_member(new_char.to_dictionary())
 	else:
@@ -4090,24 +4100,139 @@ func _hire_recruit(campaign, new_char) -> void:
 	_notify_recruit_joined(new_char)
 
 
-func _strip_to_recruit_loadout(new_char) -> void:
-	## p.78: a recruit is the BASIC profile plus a Hand Gun, with no background
-	## rolls. create_character() runs the full generator, which hands out a whole
-	## starting loadout, so the gear is replaced rather than added to.
+func _apply_recruit_creation_tables(new_char) -> void:
+	## ERRATA v1.06 (Characters, Update), verbatim: "When adding a new character
+	## to your crew, ROLL ON THE NORMAL CHARACTER CREATION TABLES as you would
+	## when starting a new game but IGNORE ALL CREDITS that would have been
+	## awarded normally. Any Rivals are added to your roster immediately. Any
+	## Patrons are added to the list known and will award a job offer next turn
+	## automatically."
+	##
+	## THIS SUPERSEDES p.78, which says a recruit "do[es] not roll on any of the
+	## random background tables" and arrives with "the basic profile for their
+	## type ... armed with a Handgun". The code implemented p.78 exactly, and the
+	## designer has since replaced that rule — so a recruit was arriving with no
+	## background, no motivation, no class, and none of the Patrons or Rivals the
+	## tables hand out. The errata overturns the printed page; see
+	## docs/gameplay/rules/5P_errata_and_tweaks106.pdf.
+	##
+	## Rolled through the STATIC table roller rather than the creation wizard:
+	## `CharacterCreator` is a Control scene and this runs inside a World Phase
+	## component, and `CharacterGeneration.roll_character_tables()` /
+	## `apply_table_results_to_character()` are the same tables without the UI.
+	## The result is stored in `creation_bonuses`, which stays the single home for
+	## table rewards (CLAUDE.md's one-grant-site-per-rule rule).
+	if new_char == null:
+		return
+	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
+	if CharGen == null or not CharGen.has_method("roll_character_tables"):
+		return
+	var rolled: Dictionary = CharGen.roll_character_tables()
+	if CharGen.has_method("apply_table_results_to_character"):
+		CharGen.apply_table_results_to_character(new_char, rolled)
+
+	var res: Dictionary = rolled.get("resources", {})
+	# "IGNORE ALL CREDITS that would have been awarded normally" — the one reward
+	# the errata withholds. Everything else on the tables stands.
+	var bonuses: Dictionary = {
+		"bonus_credits": 0,
+		"credits_dice_sources": [],
+		"patrons": int(res.get("patrons", 0)),
+		"rivals": int(res.get("rivals", 0)),
+		"story_points": int(res.get("story_points", 0)),
+		"quest_rumors": int(res.get("rumors", 0)),
+		"xp": int(res.get("xp", 0)),
+		"starting_rolls": (res.get("starting_rolls", []) as Array).duplicate(),
+		"rolled_items": [],
+		"source": "recruit_errata_v1_06",
+	}
+	if "creation_bonuses" in new_char:
+		new_char.creation_bonuses = bonuses
+
+	# The tables' XP is a per-character award, so it goes on the character.
+	if int(bonuses["xp"]) > 0 and "experience" in new_char:
+		new_char.experience = int(new_char.experience) + int(bonuses["xp"])
+
+	_grant_recruit_equipment(new_char, bonuses["starting_rolls"])
+
+
+func _grant_recruit_equipment(new_char, starting_rolls: Array) -> void:
+	## p.78's Hand Gun stays the base — the errata replaces the "no background
+	## rolls" clause, not the starting weapon — and the tables' equipment rolls
+	## are added on top.
 	##
 	## Character.equipment is Array[String]; assigning an untyped array to a typed
-	## property is rejected outright and the write is LOST, so .assign() is the
+	## property is REJECTED and the write is silently LOST, so .assign() is the
 	## only safe route. "Hand Gun" is the canonical name in
 	## data/equipment_database.json — "Handgun" resolves to nothing.
 	if not ("equipment" in new_char):
 		return
+	var names: Array = ["Hand Gun"]
+	if not starting_rolls.is_empty():
+		var EquipGen = load("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
+		if EquipGen and EquipGen.has_method("generate_bonus_equipment"):
+			var dice: Node = get_node_or_null("/root/DiceManager")
+			for item in EquipGen.generate_bonus_equipment(starting_rolls, dice):
+				# `equipment` holds NAMES (Array[String]); appending an item
+				# Dictionary is rejected and the item is LOST.
+				if item is Dictionary:
+					var item_name: String = str(item.get("name", ""))
+					if not item_name.is_empty():
+						names.append(item_name)
+				elif item is String:
+					names.append(item)
 	var loadout: Array[String] = []
-	loadout.assign(["Hand Gun"])
+	loadout.assign(names)
 	new_char.equipment = loadout
-	# Background-table rewards (credits, Patrons, Rivals, story points) belong to
-	# character creation only; a recruit must not carry them into the campaign.
-	if "creation_bonuses" in new_char and new_char.creation_bonuses is Dictionary:
-		new_char.creation_bonuses = {}
+
+
+func _grant_recruit_contacts(campaign, new_char, bonuses: Dictionary) -> void:
+	## Errata: "Any Rivals are added to your roster IMMEDIATELY. Any Patrons are
+	## added to the list known and will award a job offer NEXT TURN
+	## automatically."
+	##
+	## The follow-up offer is banked as a NAMED id in `patron_followup_offers`,
+	## the same channel p.84 Busy and the creation patrons use, because
+	## JobOfferComponent generates an offer from nowhere else. `patron_offers_owed`
+	## would have been wrong: it draws a RANDOM existing patron.
+	if campaign == null:
+		return
+	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
+	var who: String = ""
+	if new_char != null and "character_name" in new_char:
+		who = str(new_char.character_name)
+
+	for _r in range(int(bonuses.get("rivals", 0))):
+		var rival: Dictionary = {}
+		if CharGen and CharGen.has_method("_create_starting_rival"):
+			rival = CharGen._create_starting_rival(randi() % 1000, who)
+		if rival.is_empty():
+			continue
+		if campaign.has_method("add_rival"):
+			campaign.add_rival(rival)
+		elif "rivals" in campaign and campaign.rivals is Array:
+			campaign.rivals.append(rival)
+
+	if int(bonuses.get("patrons", 0)) <= 0:
+		return
+	if not ("progress_data" in campaign) or not (campaign.progress_data is Dictionary):
+		return
+	var owed: Array = []
+	var existing: Variant = campaign.progress_data.get("patron_followup_offers", [])
+	if existing is Array:
+		owed = (existing as Array).duplicate()
+	for _p in range(int(bonuses.get("patrons", 0))):
+		var patron: Dictionary = {}
+		if CharGen and CharGen.has_method("_create_starting_patron"):
+			patron = CharGen._create_starting_patron(randi() % 1000, who)
+		if patron.is_empty():
+			continue
+		if "patrons" in campaign and campaign.patrons is Array:
+			campaign.patrons.append(patron)
+		var ident: String = str(patron.get("id", patron.get("name", "")))
+		if not ident.is_empty() and not (ident in owed):
+			owed.append(ident)
+	campaign.progress_data["patron_followup_offers"] = owed
 
 
 func _notify_recruit_joined(new_char) -> void:
@@ -4123,7 +4248,9 @@ func _notify_recruit_joined(new_char) -> void:
 			"type": "event",
 			"auto_generated": true,
 			"title": "New recruit",
-			"description": "%s signed on, armed with a Hand Gun (Core Rules p.78)." % recruit_name,
+			"description": ("%s signed on with a Hand Gun and their own"
+				+ " background, motivation and class (errata v1.06 replaces"
+				+ " p.78's basic profile).") % recruit_name,
 			"tags": ["crew", "recruit"],
 		})
 

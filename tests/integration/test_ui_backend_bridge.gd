@@ -20,6 +20,38 @@ func before() -> void:
 	if not is_instance_valid(phase_manager):
 		push_warning("CampaignPhaseManager not initialized properly")
 
+## Release any turn left mid-flight by the PREVIOUS test.
+##
+## `before()` is suite-level, so all seven cases share ONE CampaignPhaseManager
+## and every case inherits whatever turn state the last one left behind.
+##
+## What leaks is `_turn_start_in_flight`, the re-entrancy latch added by the
+## Aug 8-9 2026 tablet QA (T8-02/T9-01/T9-02) to stop a second start_new_turn()
+## re-running p.76 debt interest on a turn already underway. It is set by
+## start_new_turn() and cleared ONLY by complete_current_turn() or
+## bind_campaign(). Tests that start a turn without finishing it therefore leave
+## it armed, and the latch branch (CampaignPhaseManager.gd:227-235) is a very
+## quiet failure: it still moves current_phase NONE -> UPKEEP, so a phase
+## assertion passes, while turn_number is NOT incremented.
+##
+## That is exactly how these two read before the fix:
+##   test_campaign_loop_continuity  line 236 turn_number 0, not 1 (latched start)
+##                                  line 247 PASSED - the 12 completes released
+##                                           the latch and did emit
+##                                  line 254 turn_number 1, not 2 (one real start)
+##   test_multiple_turns_accumulate line 173 turn_number never moved off 1
+##
+## The latch is CORRECT product behaviour and must not be weakened - in real play
+## CampaignTurnController completes a turn before starting the next. This is test
+## isolation, so it goes through the PUBLIC `complete_current_turn()` ("end the
+## turn in flight") rather than poking the private flag. Its
+## `campaign_turn_completed` emit is harmless here: every case that counts that
+## signal connects its counter AFTER this hook has run.
+func before_test() -> void:
+	if is_instance_valid(phase_manager) and phase_manager.has_method("complete_current_turn"):
+		phase_manager.complete_current_turn()
+
+
 func after_test() -> void:
 	# Cleanup between tests
 	pass

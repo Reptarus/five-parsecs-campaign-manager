@@ -524,6 +524,15 @@ func _on_apply_pressed() -> void:
 				selected_crew_member[selected_advancement.stat] = current_val + selected_advancement.amount
 			else:
 				selected_crew_member.set(selected_advancement.stat, current_val + selected_advancement.amount)
+			# Core Rules p.64 "Upgrade N Characters 10 Times". This panel mutates
+			# the member directly rather than going through
+			# CharacterAdvancementService, so it needs its own call to the
+			# chokepoint or an upgrade bought HERE would not count toward the
+			# Victory Condition (and this is the panel the Advancement phase
+			# opens, so it is the commonest way a player spends XP).
+			var gsm_upg = get_node_or_null("/root/GameStateManager")
+			if gsm_upg and gsm_upg.has_method("record_character_upgrade"):
+				gsm_upg.record_character_upgrade(selected_crew_member)
 		"PSIONICS":
 			# Acquire psionic power — roll D10, assign from psionic_powers.json
 			var psionic_data: Dictionary = _load_psionic_powers_json()

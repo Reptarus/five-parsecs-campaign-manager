@@ -33,9 +33,14 @@ const MODE_DESCRIPTIONS: Dictionary = {
 	OracleMode.MODE_CARD_ORACLE: "Draw a card from the oracle deck. Suit = behavior, rank = intensity.",
 }
 
+## Compendium pp.42-43 AI Variations. The core AI (this file's own data) is
+## DICELESS; the dice tables belong to that DLC option and live in
+## data/compendium/difficulty_toggles.json, behind ContentFlag.AI_VARIATIONS.
+const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+
 var current_mode: int = OracleMode.MODE_REFERENCE
 var card_oracle: FPCM_CardOracleSystem = null
-var _ai_data: Dictionary = {}  # Parsed from EnemyAI.json
+var _ai_data: Dictionary = {}  # Parsed from EnemyAI.json — CORE RULES pp.42-43 only
 var _rng := RandomNumberGenerator.new()
 
 func _init() -> void:
@@ -95,54 +100,80 @@ func get_instruction(ai_type: String, group_name: String = "Enemy Group", roll_r
 	return result
 
 ## MODE_REFERENCE: Get the full rules text for an AI type.
+##
+## ⚠ THE CORE RULES AI IS DICELESS (p.42: "The default AI is diceless to keep the
+## game moving as quickly as possible"). Until Sep 2026 this function printed a
+## base condition and a 1D6 table for every enemy at every tier — the COMPENDIUM
+## pp.42-43 AI Variations option, which `data/RulesReference/EnemyAI.json` held by
+## mistake. The core bullets (pp.42-43) appeared nowhere in the app, and a player
+## without the DLC was being told to roll dice the game does not use.
 func _get_reference_text(ai_type: String) -> String:
 	var type_data: Dictionary = _find_ai_type(ai_type)
 	if type_data.is_empty():
 		return "Unknown AI type: %s. Use common sense for enemy behavior." % ai_type
 
-	var text: String = "%s AI\n" % type_data.get("name", ai_type)
-	text += "%s\n\n" % type_data.get("description", "")
-	text += "Base Condition: %s" % type_data.get("base_condition", "None")
+	var type_name: String = str(type_data.get("name", ai_type))
+	var text: String = "%s AI (Core Rules p.%s)\n" % [
+		type_name, str(type_data.get("page", 42))]
+	text += "%s\n" % str(type_data.get("description", ""))
+	for bullet in type_data.get("core_rules", []):
+		text += "\n  - %s" % str(bullet)
 
-	if type_data.has("note"):
-		text += "\n\nNote: %s" % type_data.note
-
-	if type_data.has("behavior_table"):
-		text += "\n\nBehavior Table (roll d6):"
-		for entry: Dictionary in type_data.behavior_table:
-			text += "\n  %s: %s" % [entry.get("roll", "?"), entry.get("action", "")]
-
+	var variation: String = _variation_text(type_name)
+	if not variation.is_empty():
+		text += "\n\n%s" % variation
 	return text
 
-## MODE_D6_TABLE: Look up action from behavior table.
+
+## The Compendium pp.42-43 AI Variations block for this type, or "" when the
+## option is off (or the type is one of the three the book leaves unchanged).
+func _variation_text(ai_type: String) -> String:
+	var variation: Dictionary = CompendiumTogglesRef.ai_variation_for(ai_type)
+	if variation.is_empty():
+		return ""
+	var rules: Dictionary = CompendiumTogglesRef.AI_VARIATION_RULES
+	var text: String = "AI VARIATIONS (Compendium pp.42-43)\n"
+	text += "Base condition (check FIRST): %s\n" % str(
+		variation.get("base_condition", ""))
+	text += "\nOtherwise roll 1D6:"
+	for entry in variation.get("actions", []):
+		if entry is Dictionary:
+			text += "\n  %d: %s" % [
+				int(entry.get("roll", 0)), str(entry.get("action", ""))]
+	for line in rules.get("group_actions", []):
+		text += "\n\nGroup actions: %s" % str(line)
+	var impossible: String = str(rules.get("impossible_actions", ""))
+	if not impossible.is_empty():
+		text += "\n\n%s" % impossible
+	return text
+
+
+## MODE_D6_TABLE: Look up an action on the Compendium pp.42-43 variation table.
+##
+## This mode IS the AI Variations option, so it reads the Compendium data and
+## says so when the option is off, rather than inventing a roll.
 func _get_d6_table_result(ai_type: String, roll: int) -> String:
 	var type_data: Dictionary = _find_ai_type(ai_type)
 	if type_data.is_empty():
 		return "Unknown AI type: %s. Roll: %d." % [ai_type, roll]
 
-	# Types without behavior tables always follow base condition
-	if not type_data.has("behavior_table"):
-		return "%s (no behavior table): %s" % [
-			type_data.get("name", ai_type),
-			type_data.get("base_condition", "Act according to type.")]
+	var type_name: String = str(type_data.get("name", ai_type))
+	var row: Dictionary = CompendiumTogglesRef.get_ai_behavior(type_name, roll)
+	if row.is_empty():
+		if not CompendiumTogglesRef.ai_variations_enabled():
+			return ("%s: the core AI is DICELESS (Core Rules p.42). Enable AI"
+				+ " Variations (Compendium p.42) to roll for enemy actions.\n\n%s") % [
+					type_name, _get_reference_text(ai_type)]
+		# p.42: "enemies with the Beast, Rampage, and Guardian AIs function as
+		# they would currently. No changes are made."
+		return ("%s has no variation table — the Compendium leaves it unchanged"
+			+ " (p.42).\n\n%s") % [type_name, _get_reference_text(ai_type)]
 
-	# Check base condition first (as per AI Decision Making rules)
-	var base: String = type_data.get("base_condition", "")
-	var header: String = "%s AI - Rolled %d\n" % [type_data.get("name", ai_type), roll]
-	header += "Base Condition: %s\n\n" % base
-
-	# Lookup behavior table
-	var table: Array = type_data.behavior_table
-	var clamped_roll: int = clampi(roll, 1, 6)
-	var action: String = "Act according to type."
-
-	for entry: Dictionary in table:
-		var entry_roll: String = entry.get("roll", "")
-		if entry_roll == str(clamped_roll):
-			action = entry.get("action", action)
-			break
-
-	return header + "Action: %s" % action
+	var header: String = "%s AI - Rolled %d (Compendium pp.42-43)\n" % [
+		type_name, int(row.get("roll", roll))]
+	header += "Base condition (check FIRST): %s\n\n" % str(
+		CompendiumTogglesRef.ai_variation_for(type_name).get("base_condition", ""))
+	return header + "Action: %s" % str(row.get("action", ""))
 
 ## Find AI type data from loaded JSON.
 func _find_ai_type(ai_type: String) -> Dictionary:
@@ -171,27 +202,28 @@ func get_ai_types() -> Array[String]:
 
 	return types
 
-## Get AI decision making steps (for reference display).
+## True when the Compendium AI Variations option is on, so a UI can hide the D6
+## mode instead of offering a roll the core rules do not have.
+func variations_enabled() -> bool:
+	return CompendiumTogglesRef.ai_variations_enabled()
+
+## The Compendium p.42 "How to Use the New AI" steps, or [] when the option is
+## off — the CORE rules have no activation procedure beyond the type's bullets.
+##
+## Was reading an "AI Decision Making" section of EnemyAI.json that was itself
+## Compendium p.42 text mislabelled as core; the file is core-only now.
 func get_decision_steps() -> Array:
-	var enemy_ai: Dictionary = _ai_data.get("EnemyAI", {})
-	var content: Array = enemy_ai.get("content", [])
+	if not CompendiumTogglesRef.ai_variations_enabled():
+		return []
+	var rules: Dictionary = CompendiumTogglesRef.AI_VARIATION_RULES
+	var steps: Variant = rules.get("how_to_use", [])
+	return steps if steps is Array else []
 
-	for section: Dictionary in content:
-		if section.get("title", "") == "AI Decision Making":
-			return section.get("steps", [])
-
-	return []
-
-## Get targeting priority rules.
-func get_targeting_priority() -> Array:
-	var enemy_ai: Dictionary = _ai_data.get("EnemyAI", {})
-	var content: Array = enemy_ai.get("content", [])
-
-	for section: Dictionary in content:
-		if section.get("title", "") == "AI Targeting Priority":
-			return section.get("priorities", [])
-
-	return []
+## `get_targeting_priority()` was DELETED (Sep 2026). Its three "priorities"
+## ("Closest visible opponent", "Opponent in the open", "Random selection if
+## multiple equal targets") appear in NEITHER rulebook — targeting is part of
+## each AI type's own bullets (pp.42-43), which differ per type. It had zero
+## callers, so nothing showed the invented list; do not re-add it.
 
 ## Serialize for save/load.
 func serialize() -> Dictionary:

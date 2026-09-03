@@ -56,6 +56,12 @@ const DEFAULTS := {
 		#   "No-roll option — If you prefer to reduce dice-rolling, a Connection
 		#    occurs any time you play an Opportunity mission AND the prior
 		#    Opportunity mission did not have a Connection."
+		# Compendium p.100 Critical Hit, an "additional optional rule" ON TOP of
+		# the Casualty Tables option: "If the Hit roll was a natural 6, roll one
+		# additional time on the Casualty table and use the highest result as
+		# normal." Defaults OFF because the book presents it as a further opt-in,
+		# and it only does anything while Casualty Tables are also on.
+		"critical_hit": false,
 		"connections_no_roll": false,
 		#   "Designer note — If you prefer to maintain variety, swap a result you
 		#    have already had this campaign for the first new result in the same
@@ -397,6 +403,11 @@ func are_battle_events_enabled() -> bool:
 	## Defaults TRUE, preserving the existing behaviour for anyone who does not
 	## go looking for the switch.
 	return get_setting("gameplay", "use_battle_events")
+
+func use_critical_hit() -> bool:
+	## Compendium p.100 Critical Hit. Read by TacticalBattleUI's auto-resolve
+	## casualty branch; meaningless unless CASUALTY_TABLES is also enabled.
+	return get_setting("gameplay", "critical_hit")
 
 func use_connections_no_roll() -> bool:
 	## Compendium p.80: "If you prefer to reduce dice-rolling, a Connection occurs

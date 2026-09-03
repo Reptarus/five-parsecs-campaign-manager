@@ -10,6 +10,7 @@ extends PanelContainer
 
 const CompendiumGridMovementRef = preload(
 	"res://src/data/compendium_grid_movement.gd")
+const CheatSheetSectionsRef = preload("res://src/ui/components/battle/CheatSheetSections.gd")
 
 # Design system constants
 const SPACING_SM: int = 8
@@ -43,15 +44,15 @@ func _ready() -> void:
 func _build_sections_data() -> void:
 	_sections = [
 		{
-			"title": "Turn Sequence (p.38)",
+			"title": "Turn Sequence (pp.112-113)",
 			"content": _turn_sequence_text(),
 		},
 		{
-			"title": "Hit Rules (p.40-43)",
+			"title": "Hit Rules (pp.44-46)",
 			"content": _hit_rules_text(),
 		},
 		{
-			"title": "Damage & Armor (p.43-44)",
+			"title": "Damage & Armor (p.46)",
 			"content": _damage_rules_text(),
 		},
 		{
@@ -59,14 +60,26 @@ func _build_sections_data() -> void:
 			"content": _morale_rules_text(),
 		},
 		{
-			"title": "Status Effects (p.44)",
+			"title": "Status Effects (p.40)",
 			"content": _status_effects_text(),
 		},
 		{
-			"title": "Common Weapons (p.45-47)",
+			"title": "Common Weapons (p.50)",
 			"content": _common_weapons_text(),
 		},
 	]
+	# Core Rules appendices. In the BASE book, so they are always available —
+	# all three had ZERO code presence before Sep 3 2026.
+	_add_built_section("Problem Solving (App IV, p.152)",
+		CheatSheetSectionsRef.problem_solving())
+	_add_built_section("Playing on a Grid (App II, p.147)",
+		CheatSheetSectionsRef.playing_on_a_grid())
+	_add_built_section("Neutral Characters (App VIII, pp.172-173)",
+		CheatSheetSectionsRef.neutral_characters())
+	_add_built_section("Cooperative Play (App VI, p.161)",
+		CheatSheetSectionsRef.cooperative_play())
+	_add_built_section("Game Mastering Tools (App VII, pp.162-171)",
+		CheatSheetSectionsRef.game_mastering_tools())
 	# Compendium DLC sections (added dynamically if DLC owned)
 	_add_compendium_sections()
 
@@ -343,7 +356,7 @@ func _build_battle_reference_text(data: Dictionary) -> String:
 # =====================================================
 
 func _turn_sequence_text() -> String:
-	return """[b]Five Parsecs Battle Round (5 phases):[/b]
+	return """[b]Five Parsecs Battle Round (Core Rules pp.112-113):[/b]
 
 [color=#4FC3F7]1. Reaction Roll[/color] - Roll 1d6 per crew member
    Result <= Reactions stat = Quick Action
@@ -361,7 +374,7 @@ func _turn_sequence_text() -> String:
    Check for Battle Events on rounds 2 and 4"""
 
 func _hit_rules_text() -> String:
-	return """[b]To Hit (p.44) - roll 1d6 + Combat Skill:[/b]
+	return """[b]To Hit (Core Rules p.44) - roll 1d6 + Combat Skill:[/b]
 Cover does not modify the roll. It changes which
 target number applies:
   Within [color=#4FC3F7]6\"[/color] and in the open      [color=#10B981]3+[/color]
@@ -440,7 +453,7 @@ allowed. Remove one marker after it has acted.
 removed from play."""
 
 func _morale_rules_text() -> String:
-	return """[b]Running Away (p.47) - end of each round:[/b]
+	return """[b]Running Away (Core Rules p.114) - end of each round:[/b]
 The enemy tests Morale only if they [color=#4FC3F7]lost figures[/color]
 during the round just played.
 
@@ -482,7 +495,7 @@ target, they retreat toward better Cover. They will
 [b]Wounded (crew only)[/b]
 After battle, roll on the Injury Table (p.122).
 
-[b]Bail (p.47)[/b]
+[b]Bail (Core Rules p.114)[/b]
 An enemy that fails Morale flees the field and is
 removed. Bailed figures do [color=#10B981]not[/color] count as killed and do
 [color=#10B981]not[/color] trigger further Morale dice.
@@ -542,6 +555,19 @@ Suppression maul  Brawl   -     1   Melee, Impact"""
 # COMPENDIUM DLC SECTIONS (gated by DLCManager)
 # =====================================================
 
+## ⚠ EVERY COMPENDIUM SECTION IS RENDERED FROM ITS DATA FILE.
+##
+## They used to be hand-written string literals, and FOUR of them printed rules
+## that are in neither rulebook — a D6 casualty table and a 2D6 injury table that
+## do not exist, a salvage-to-credits scale that does not exist, the wrong
+## Suspect table at the wrong range, and the wrong stealth reinforcement rate.
+## Two even cited page numbers ("p.86", "p.87") that hold neither table. A dead
+## rule does nothing; a fabricated rule misinforms play, and this is the surface
+## a player reads MID-BATTLE.
+##
+## The fix is structural, not textual: each section now reads the same JSON the
+## MECHANIC reads, so the reference and the rule cannot drift apart again. Add a
+## builder to CheatSheetSections, never a literal here.
 func _add_compendium_sections() -> void:
 	var dlc_mgr = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
 	if not dlc_mgr:
@@ -549,30 +575,60 @@ func _add_compendium_sections() -> void:
 
 	# Trailblazer's Toolkit sections
 	if dlc_mgr.has_dlc("trailblazers_toolkit"):
-		_sections.append({"title": "Species Rules [Compendium]", "content": _species_rules_text()})
+		_sections.append({"title": "Species Rules [Compendium pp.12-15]", "content": _species_rules_text()})
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.PSIONICS):
-			_sections.append({"title": "Psionics [Compendium]", "content": _psionics_text()})
+			_sections.append({"title": "Psionics [Compendium pp.17-24]", "content": _psionics_text()})
 
 	# Freelancer's Handbook sections
 	if dlc_mgr.has_dlc("freelancers_handbook"):
+		_add_built_section("AI Variations [Compendium pp.42-43]",
+			CheatSheetSectionsRef.ai_variations())
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.NO_MINIS_COMBAT):
-			_sections.append({"title": "No-Minis Combat [Compendium]", "content": _no_minis_text()})
+			_add_built_section("No-Minis Combat [Compendium pp.66-73]",
+				CheatSheetSectionsRef.no_minis_combat())
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.GRID_BASED_MOVEMENT):
-			_sections.append({"title": "Grid Movement [Compendium]", "content": _grid_movement_text()})
-		_sections.append({"title": "Difficulty Toggles [Compendium]", "content": _difficulty_toggles_text()})
+			_add_built_section("Grid Movement [Compendium pp.90-93]",
+				CheatSheetSectionsRef.grid_movement())
+		_add_built_section("Difficulty Toggles [Compendium pp.32-34]",
+			CheatSheetSectionsRef.difficulty_toggles())
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.ESCALATING_BATTLES):
-			_sections.append({"title": "Escalating Battles [Compendium]", "content": _escalating_battles_text()})
+			_sections.append({"title": "Escalating Battles [Compendium pp.46-47]", "content": _escalating_battles_text()})
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.CASUALTY_TABLES):
-			_sections.append({"title": "Casualty Tables [Compendium]", "content": _casualty_tables_text()})
+			_add_built_section("Casualty Tables [Compendium pp.99-100]",
+				CheatSheetSectionsRef.casualty_tables())
+		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.DETAILED_INJURIES):
+			_add_built_section("Detailed Injuries [Compendium p.102]",
+				CheatSheetSectionsRef.detailed_injuries())
 
 	# Fixer's Guidebook sections
 	if dlc_mgr.has_dlc("fixers_guidebook"):
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.STEALTH_MISSIONS):
-			_sections.append({"title": "Stealth Missions [Compendium]", "content": _stealth_rules_text()})
+			_add_built_section("Stealth Missions [Compendium pp.117-122]",
+				CheatSheetSectionsRef.stealth_missions())
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.SALVAGE_JOBS):
-			_sections.append({"title": "Salvage Jobs [Compendium]", "content": _salvage_rules_text()})
+			_add_built_section("Salvage Jobs [Compendium pp.137-147]",
+				CheatSheetSectionsRef.salvage_jobs())
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.STREET_FIGHTS):
-			_sections.append({"title": "Street Fights [Compendium]", "content": _street_fight_rules_text()})
+			_add_built_section("Street Fights [Compendium pp.123-136]",
+				CheatSheetSectionsRef.street_fights())
+
+	# PvP and Expanded Co-op are the two chapters the chapter trace still lists
+	# as DEAD. They need a second player this app has no surface for, so they are
+	# delivered as REFERENCE TEXT (user decision, Sep 3 2026) — which is still
+	# more than the zero callers their complete rules data had before.
+	_add_built_section("Player vs Player [Compendium pp.35-38]",
+		CheatSheetSectionsRef.pvp_battles())
+	_add_built_section("Expanded Co-op [Compendium pp.39-41]",
+		CheatSheetSectionsRef.coop_battles())
+
+
+## Append a built section, or nothing when its data is missing. An EMPTY box is
+## worse than an absent one: it reads as a feature that failed rather than a
+## chapter the player does not own.
+func _add_built_section(title: String, content: String) -> void:
+	if content.strip_edges().is_empty():
+		return
+	_sections.append({"title": title, "content": content})
 
 
 func _species_rules_text() -> String:
@@ -604,122 +660,6 @@ Roll 2D6 for range (sum in inches). Must have LoS.
   Obscure, Dominate, Crush, Paralyze, Psionic Rage"""
 
 
-func _no_minis_text() -> String:
-	return """[b]Abstract Combat (no miniatures needed)[/b]
-
-[b]Locations:[/b] 3-5 zones: Open / Light Cover / Heavy Cover / Elevated / Objective / Hazard
-[b]Movement:[/b] 1 Location per activation. Sprint = 2 Locations.
-[b]Taking Cover:[/b] 2D6 Battlefield Test, [color=#10B981]6+[/color] ([color=#DC2626]-1[/color] at a Location).
-  While in Cover, all shots [color=#4FC3F7]by and against[/color] you hit only on a
-  natural [color=#4FC3F7]6[/color]. Brawling enemies still engage you.
-  The status is lost when you Move Up or Brawl.
-  (No light/heavy cover tiers - Cover is binary here too.)
-
-[b]Initiative Actions (choose 1 per figure):[/b]
-  Fire | Engage (Brawl) | Take Cover | Sprint | Search | First Aid
-
-[b]Enemy Actions (D6):[/b]
-  1-2: Advance + Fire | 3-4: Hold + Fire (+1 aim)
-  5: Advance + Engage | 6: Special (retreat/coordinate/rush)
-
-[color=#D97706]NOT compatible with: AI Variations, Escalating Battles, Deployment Variables[/color]"""
-
-
-## Compendium pp.90-93, via the single source of truth.
-##
-## What used to live inline here was FABRICATED: "1 square = 2 inches", a
-## speed/range-to-squares conversion table, "1 square per activation (+1 if
-## Speed > 4\")" and "enter occupied square = automatic Brawl". A full-text
-## search of the Compendium finds no square/inch conversion at all, and p.93
-## says the opposite of two of them — ranged combat and proximity both stay on
-## the core rules, in inches. Only the Flanking block was correct. Do not
-## re-inline this text; extend CompendiumGridMovement instead.
-func _grid_movement_text() -> String:
-	return CompendiumGridMovementRef.get_reference_text()
-
-
-func _difficulty_toggles_text() -> String:
-	return """[b]Difficulty Toggles (enable individually):[/b]
-
-[color=#4FC3F7]Encounter Scaling:[/color]
-  Strength-Adjusted: Enemy count = crew size + modifiers
-
-[color=#4FC3F7]Economy:[/color]
-  Money is Tight: Increased upkeep, crew actions cost 1 cr
-  Slower Progression: XP costs increased (Reactions/Combat/Tough: 8 XP)
-
-[color=#4FC3F7]Combat:[/color]
-  Veteran: 1 basic enemy gets +1 Combat Skill
-  Actually Specialized: Specialists min Combat +1, Toughness 4
-  Armored Leaders: Lieutenants get 5+ Armor save
-  Better Leadership: Unique Individuals roll 7+ (not 9+)
-
-[color=#4FC3F7]Time Pressure:[/color]
-  Paying by the Hour: 2D6 (pick highest) +4 = round limit
-  Fickle Scans: Notable Sights removed after Round 3"""
-
-
-func _stealth_rules_text() -> String:
-	return """[b]Stealth Mission Rules[/b]
-
-[b]Movement:[/b] Base speed +1" (no Dashing allowed).
-[b]Detection:[/b] Sentries patrol randomly. If detected = combat begins.
-
-[b]Spotting Check:[/b] Enemy rolls 2D6
-  Modifiers: -2 partial cover, -1 per intervening feature
-  -1 if sentry scanning (slow patrol)
-  If roll > distance in inches = [color=#DC2626]DETECTED[/color]
-
-[b]Finding (objectives):[/b]
-  Move within 6" with LoS, roll D6+Savvy
-  [color=#10B981]6+[/color] = located. Some objectives need multiple successes.
-
-[b]Quick Actions:[/b] Move + 1 action (lockpick, hack, search, signal)
-[b]Alarm:[/b] When triggered, all sentries converge. +D6 reinforcements Round 2."""
-
-
-func _salvage_rules_text() -> String:
-	return """[b]Salvage Job Rules[/b]
-
-[b]Tension Track:[/b] Starts at ceil(crew_size / 2). Max 12.
-  Each round after Round 1, roll D6:
-	pass
-  D6 > Tension = [color=#D97706]+1 Tension[/color]
-  D6 ≤ Tension = [color=#DC2626]New Contact marker![/color]
-
-[b]Contact Resolution (D6):[/b]
-  1: Nothing | 2: Bad feeling (+1 Tension)
-  3-5: [color=#DC2626]HOSTILES![/color] | 6: Place 2 new Contacts
-
-[b]Points of Interest (D100):[/b]
-  Move within 2", 1 action to search. Yields salvage units + possible loot.
-
-[b]Salvage → Credits:[/b]
-  1-3 units = 2 cr | 4-6 = 5 cr | 7-10 = 8 cr | 11-15 = 12 cr | 16+ = 18 cr
-
-[b]Extraction:[/b] All crew must reach table edge to end mission."""
-
-
-func _street_fight_rules_text() -> String:
-	return """[b]Street Fight Rules[/b]
-
-[b]Setup:[/b] Urban terrain. Place 3-5 buildings with interiors.
-[b]Suspects:[/b] D6 Suspect markers placed. Move within 4" to identify.
-
-[b]Suspect Identity (D6):[/b]
-  1-2: Civilian (remove) | 3-4: Armed thug | 5: Target! | 6: Trap!
-
-[b]Police Response:[/b]
-  Timer starts at 6. Decrease by 1 each round + 1 per gunshot heard.
-  Timer reaches 0 = [color=#DC2626]Police arrive[/color] (D6+2 Enforcers, 2 edges).
-
-[b]Evasion (D6+Savvy, 7+):[/b]
-  Success = slip away before police cordon.
-  Fail = must fight through or surrender.
-
-[b]Objectives (D100):[/b] Assassination, Protection, Retrieval, Delivery, Sabotage, Escape"""
-
-
 func _escalating_battles_text() -> String:
 	return """[b]Escalating Battles (Compendium pp.46-48)[/b]
 
@@ -745,23 +685,3 @@ func _escalating_battles_text() -> String:
 [color=#D97706]NOT compatible with No-Minis Combat[/color]"""
 
 
-func _casualty_tables_text() -> String:
-	return """[b]Compendium Casualty Table (p.86) - Roll D6:[/b]
-
-[color=#DC2626]1: Instantly Killed[/color] - Remove from campaign
-[color=#DC2626]2: Dead[/color] - Roll on injury for dramatic flavor only
-[color=#D97706]3: Permanent Injury[/color] - Roll on Detailed Injury table
-[color=#D97706]4: Serious Wound[/color] - Miss 3 campaign turns
-[color=#4FC3F7]5: Minor Wound[/color] - Miss 1 campaign turn
-[color=#10B981]6: Lucky Escape[/color] - No lasting effect
-
-[b]Detailed Injury Table (p.87) - Roll 2D6:[/b]
-  2: [color=#DC2626]Lost Limb[/color] (-1 Speed permanent)
-  3: [color=#DC2626]Head Trauma[/color] (-1 Savvy permanent)
-  4: [color=#D97706]Nerve Damage[/color] (-1 Reactions permanent)
-  5: [color=#D97706]Torn Muscle[/color] (-1 Combat permanent)
-  6-8: [color=#4FC3F7]Deep Laceration[/color] (miss 2 turns)
-  9: [color=#4FC3F7]Cracked Ribs[/color] (miss 1 turn, -1 Toughness next battle)
-  10: [color=#4FC3F7]Concussion[/color] (miss 1 turn, -1 Savvy next battle)
-  11: [color=#10B981]Flesh Wound[/color] (miss 1 turn)
-  12: [color=#10B981]Adrenaline Rush[/color] (no effect, +1 XP)"""

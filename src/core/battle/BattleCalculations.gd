@@ -1174,8 +1174,12 @@ static func check_impact_stun(target_already_stunned: bool, weapon_traits: Array
 ## (a Free Action is still allowed).
 const STUN_MARKERS_TO_KNOCK_OUT := 3
 
-static func is_knocked_out_by_stun(stun_markers: int) -> bool:
-	return stun_markers >= STUN_MARKERS_TO_KNOCK_OUT
+static func is_knocked_out_by_stun(stun_markers: int, threshold: int = STUN_MARKERS_TO_KNOCK_OUT) -> bool:
+	## Compendium p.102 Injured torso: "The character is knocked out after TWO
+	## Stun markers, instead of the customary three." The threshold was a
+	## hardcoded constant, so that injury could not reach the auto-resolve
+	## path at all. Defaults to the Core Rules p.40 three.
+	return stun_markers >= maxi(threshold, 1)
 
 
 ## Brawling against a Stunned opponent (Core Rules p.40/p.45): "remove all Stun

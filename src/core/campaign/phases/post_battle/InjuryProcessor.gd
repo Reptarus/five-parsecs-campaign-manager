@@ -544,6 +544,29 @@ func _process_detailed_injury(ctx: PostBattleContextClass, row: Dictionary,
 		"table_name": str(row.get("name", row_id)),
 	}
 
+	# Compendium p.102: four of the twelve rows OUTLIVE Sick Bay.
+	#
+	#   Injured arm / leg / torso — "It takes 3 Credits of medical treatment to
+	#     remove this penalty", so the entry must survive its 1D3 recovery turns
+	#     and be cleared by PAYMENT, not by time.
+	#   Lingering injury — "Note down that the character has a Lingering Injury
+	#     ONCE THEY RECOVER. Before every mission, roll 1D6 ... On a 6, they are
+	#     finally over it and are fully recovered."
+	#
+	# Before this, all four fell through with only a Sick Bay count, and both
+	# turn-rollover countdowns delete an injury entry the moment its recovery
+	# reaches 0 — so every one of them evaporated a turn or three later and the
+	# player kept a Speed or Combat Skill penalty for exactly as long as the
+	# character was in the med bay. `persistent` is what both countdowns now
+	# check; `PostBattleContext.apply_crew_injury` forwards it.
+	match row_id:
+		"injured_arm", "injured_leg", "injured_torso":
+			processed["persistent"] = true
+			processed["treatment_cost"] = int(row.get("treatment_cost", 3))
+		"lingering_injury":
+			processed["persistent"] = true
+			processed["lingering"] = true
+
 	match row_id:
 		"death":
 			# "The character is slain. A random item they carried is damaged."

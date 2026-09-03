@@ -5,17 +5,43 @@
 		{
 			"id": "human",
 			"name": "Human",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
-			"special_rules": ["Can exceed 1 point of Luck"],
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
+			"special_rules": [
+				"Can exceed 1 point of Luck"
+			],
 			"rolls_creation_tables": true,
 			"page_reference": "p.15"
 		},
 		{
 			"id": "bot",
 			"name": "Bot",
-			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 1, "toughness": 4, "savvy": 2},
-			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 0, "savvy": 2, "reactions": 1},
+			"base_stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 1,
+				"toughness": 4,
+				"savvy": 2
+			},
+			"stat_modifiers": {
+				"combat": 1,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 2,
+				"reactions": 1
+			},
 			"special_rules": [
 				"No rolls on character creation tables",
 				"Use Bot injury table",
@@ -31,8 +57,20 @@
 		{
 			"id": "engineer",
 			"name": "Engineer",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 2, "savvy": 1},
-			"stat_modifiers": {"combat": 0, "toughness": -1, "speed": 0, "savvy": 1, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 2,
+				"savvy": 1
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": -1,
+				"speed": 0,
+				"savvy": 1,
+				"reactions": 0
+			},
 			"special_rules": [
 				"+1 to repair rolls",
 				"Toughness cannot exceed 4 (even with equipment)"
@@ -43,8 +81,20 @@
 		{
 			"id": "kerin",
 			"name": "K'Erin",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Roll twice in Brawling, pick better result",
 				"Must move to Brawl if enemy within base movement speed"
@@ -55,8 +105,20 @@
 		{
 			"id": "soulless",
 			"name": "Soulless",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 1},
-			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 1, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 1
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 1,
+				"reactions": 0
+			},
 			"special_rules": [
 				"6+ Armor Saving Throw",
 				"Cannot use Consumables or Implants",
@@ -70,8 +132,20 @@
 		{
 			"id": "precursor",
 			"name": "Precursor",
-			"base_stats": {"reactions": 1, "speed": 5, "combat_skill": 0, "toughness": 2, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": -1, "speed": 1, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 5,
+				"combat_skill": 0,
+				"toughness": 2,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": -1,
+				"speed": 1,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Roll 2 Character Events and pick preferred one",
 				"May spend 1 story point to avoid Character Event entirely"
@@ -82,8 +156,20 @@
 		{
 			"id": "feral",
 			"name": "Feral",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Enemy penalties to Seize the Initiative are ignored",
 				"If Reaction Roll scores single 1, must be given to Feral if possible"
@@ -94,8 +180,20 @@
 		{
 			"id": "swift",
 			"name": "Swift",
-			"base_stats": {"reactions": 1, "speed": 5, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 1, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 5,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 1,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Can glide to lower position (distance = height difference)",
 				"Leap gaps up to 4\" wide, jump down from any height without damage",
@@ -109,8 +207,20 @@
 		{
 			"id": "de_converted",
 			"name": "De-converted",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"6+ Armor Saving Throw (built-in plating)",
 				"Can be fitted with up to 3 implants",
@@ -124,8 +234,20 @@
 		{
 			"id": "unity_agent",
 			"name": "Unity Agent",
-			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 1},
+			"base_stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 1
+			},
 			"special_rules": [
 				"Call in a Favor: Roll 2D6 each turn. 10-12: remove Rival, gain Quest Rumor, or gain Patron. 2-4: must travel to next planet or lose trait permanently",
 				"Motivation is always Order"
@@ -137,8 +259,20 @@
 		{
 			"id": "mysterious_past",
 			"name": "Mysterious Past",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Roll twice on Background Table, apply both results",
@@ -151,8 +285,20 @@
 		{
 			"id": "hakshan",
 			"name": "Hakshan",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Automatically has Truth motivation in addition to rolled motivation"
 			],
@@ -165,8 +311,20 @@
 		{
 			"id": "stalker",
 			"name": "Stalker",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Can teleport instead of moving: Roll 1D6\" and reposition anywhere within distance",
 				"Teleport upgradeable twice (4 XP each, +1\" per upgrade)"
@@ -177,8 +335,20 @@
 		{
 			"id": "hulker",
 			"name": "Hulker",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 1, "toughness": 5, "savvy": 0},
-			"stat_modifiers": {"combat": 1, "toughness": 2, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 1,
+				"toughness": 5,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 1,
+				"toughness": 2,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Combat Skill always treated as +0 when shooting (no weapon/sight/mod bonuses)",
 				"Ignores Clumsy and Heavy weapon traits",
@@ -190,8 +360,20 @@
 		{
 			"id": "hopeful_rookie",
 			"name": "Hopeful Rookie",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Begin with 1 Luck",
@@ -204,8 +386,20 @@
 		{
 			"id": "genetic_uplift",
 			"name": "Genetic Uplift",
-			"base_stats": {"reactions": 2, "speed": 5, "combat_skill": 1, "toughness": 4, "savvy": 1},
-			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 1, "savvy": 1, "reactions": 1},
+			"base_stats": {
+				"reactions": 2,
+				"speed": 5,
+				"combat_skill": 1,
+				"toughness": 4,
+				"savvy": 1
+			},
+			"stat_modifiers": {
+				"combat": 1,
+				"toughness": 1,
+				"speed": 1,
+				"savvy": 1,
+				"reactions": 1
+			},
 			"special_rules": [
 				"Background rolls granting bonus credits are ignored",
 				"Crew receives 1 additional Rival"
@@ -216,8 +410,20 @@
 		{
 			"id": "mutant",
 			"name": "Mutant",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Cannot perform Recruit or Find a Patron tasks",
@@ -230,8 +436,20 @@
 		{
 			"id": "assault_bot",
 			"name": "Assault Bot",
-			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 1, "toughness": 4, "savvy": 0},
-			"stat_modifiers": {"combat": 1, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 1},
+			"base_stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 1,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 1,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 1
+			},
 			"special_rules": [
 				"As Bot but Savvy is +0 and cannot be upgraded",
 				"Ignores Clumsy and Heavy weapon traits",
@@ -244,8 +462,20 @@
 		{
 			"id": "manipulator",
 			"name": "Manipulator",
-			"base_stats": {"reactions": 2, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 1},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 1, "reactions": 1},
+			"base_stats": {
+				"reactions": 2,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 1
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 1,
+				"reactions": 1
+			},
 			"special_rules": [
 				"Cannot enter Brawl voluntarily",
 				"May fire 2 Pistols at separate targets using tentacles",
@@ -259,8 +489,20 @@
 		{
 			"id": "primitive_character",
 			"name": "Primitive",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Cannot benefit from gun sights or fire above 8\" range",
@@ -274,8 +516,20 @@
 		{
 			"id": "feeler",
 			"name": "Feeler",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Roll twice on Motivation Table and receive benefits of both",
@@ -288,8 +542,20 @@
 		{
 			"id": "emo_suppressed",
 			"name": "Emo-suppressed",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Will never voluntarily leave crew",
@@ -304,8 +570,20 @@
 		{
 			"id": "minor_alien",
 			"name": "Minor Alien",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"Bonus credits or story points from tables reduced by 1",
@@ -317,8 +595,20 @@
 		{
 			"id": "traveler",
 			"name": "Traveler",
-			"base_stats": {"reactions": 3, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 2},
-			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 2, "reactions": 2},
+			"base_stats": {
+				"reactions": 3,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 2
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 2,
+				"reactions": 2
+			},
 			"special_rules": [
 				"Begin with +2 story points and 2 Quest Rumors",
 				"Speed is +2\" if moving directly away from a visible enemy",
@@ -332,8 +622,20 @@
 		{
 			"id": "empath",
 			"name": "Empath",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"When sent on Recruit or Find a Patron tasks, add +1 to the roll",
@@ -345,8 +647,20 @@
 		{
 			"id": "bio_upgrade",
 			"name": "Bio-upgrade",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 3, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"As Baseline Human",
 				"May have up to 4 implants, and could benefit from 2 of the same implant",
@@ -360,8 +674,20 @@
 		{
 			"id": "krag",
 			"name": "Krag",
-			"base_stats": {"reactions": 1, "speed": 4, "combat_skill": 0, "toughness": 4, "savvy": 0},
-			"stat_modifiers": {"combat": 0, "toughness": 1, "speed": 0, "savvy": 0, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 4,
+				"combat_skill": 0,
+				"toughness": 4,
+				"savvy": 0
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 1,
+				"speed": 0,
+				"savvy": 0,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Cannot take Dash moves under any circumstances",
 				"When fighting Rivals, may reroll a natural 1 once on firing or Brawl dice",
@@ -375,8 +701,20 @@
 		{
 			"id": "skulker",
 			"name": "Skulker",
-			"base_stats": {"reactions": 1, "speed": 6, "combat_skill": 0, "toughness": 3, "savvy": 1},
-			"stat_modifiers": {"combat": 0, "toughness": 0, "speed": 2, "savvy": 1, "reactions": 0},
+			"base_stats": {
+				"reactions": 1,
+				"speed": 6,
+				"combat_skill": 0,
+				"toughness": 3,
+				"savvy": 1
+			},
+			"stat_modifiers": {
+				"combat": 0,
+				"toughness": 0,
+				"speed": 2,
+				"savvy": 1,
+				"reactions": 0
+			},
 			"special_rules": [
 				"Character creation 1D6 Credits results grant only 1D3 Credits",
 				"Ignore first Rival during character creation",
@@ -393,5 +731,216 @@
 	],
 	"species_compatibility": {
 		"note": "All species roll on Background, Motivation, and Class tables unless specifically noted otherwise. Bot and Assault Bot do not roll on any creation tables."
+	},
+	"crew_type_tables": {
+		"_source": "Core Rules p.14 \"Crew Type Tables\", Step 1. VERBATIM.",
+		"_provenance_warning": "CORE RULES ONLY. Do not merge Compendium or expansion species into these D100 spans - the spans are the Core Rules Random Method (p.13) and adding rows would silently reweight every other outcome. A DLC species belongs in its own table, not here.",
+		"_note": "Step 1 rolls CREW TYPE. On Primary Alien or Strange Character, roll again on the matching subtable (p.14: \"If you roll Primary Alien or Strange Character, proceed to the relevant subtable, and roll for the exact type\").",
+		"crew_type": [
+			{
+				"range": [
+					1,
+					60
+				],
+				"category": "baseline_human",
+				"species_id": "human"
+			},
+			{
+				"range": [
+					61,
+					80
+				],
+				"category": "primary_alien",
+				"subtable": "primary_alien"
+			},
+			{
+				"range": [
+					81,
+					90
+				],
+				"category": "bot",
+				"species_id": "bot"
+			},
+			{
+				"range": [
+					91,
+					100
+				],
+				"category": "strange_character",
+				"subtable": "strange_character"
+			}
+		],
+		"primary_alien": [
+			{
+				"range": [
+					1,
+					20
+				],
+				"species_id": "engineer"
+			},
+			{
+				"range": [
+					21,
+					40
+				],
+				"species_id": "kerin"
+			},
+			{
+				"range": [
+					41,
+					55
+				],
+				"species_id": "soulless"
+			},
+			{
+				"range": [
+					56,
+					70
+				],
+				"species_id": "precursor"
+			},
+			{
+				"range": [
+					71,
+					90
+				],
+				"species_id": "feral"
+			},
+			{
+				"range": [
+					91,
+					100
+				],
+				"species_id": "swift"
+			}
+		],
+		"strange_character": [
+			{
+				"range": [
+					1,
+					2
+				],
+				"species_id": "de_converted"
+			},
+			{
+				"range": [
+					3,
+					8
+				],
+				"species_id": "unity_agent"
+			},
+			{
+				"range": [
+					9,
+					17
+				],
+				"species_id": "mysterious_past"
+			},
+			{
+				"range": [
+					18,
+					22
+				],
+				"species_id": "hakshan"
+			},
+			{
+				"range": [
+					23,
+					27
+				],
+				"species_id": "stalker"
+			},
+			{
+				"range": [
+					28,
+					34
+				],
+				"species_id": "hulker"
+			},
+			{
+				"range": [
+					35,
+					41
+				],
+				"species_id": "hopeful_rookie"
+			},
+			{
+				"range": [
+					42,
+					47
+				],
+				"species_id": "genetic_uplift"
+			},
+			{
+				"range": [
+					48,
+					53
+				],
+				"species_id": "mutant"
+			},
+			{
+				"range": [
+					54,
+					58
+				],
+				"species_id": "assault_bot"
+			},
+			{
+				"range": [
+					59,
+					62
+				],
+				"species_id": "manipulator"
+			},
+			{
+				"range": [
+					63,
+					67
+				],
+				"species_id": "primitive_character"
+			},
+			{
+				"range": [
+					68,
+					73
+				],
+				"species_id": "feeler"
+			},
+			{
+				"range": [
+					74,
+					79
+				],
+				"species_id": "emo_suppressed"
+			},
+			{
+				"range": [
+					80,
+					85
+				],
+				"species_id": "minor_alien"
+			},
+			{
+				"range": [
+					86,
+					87
+				],
+				"species_id": "traveler"
+			},
+			{
+				"range": [
+					88,
+					93
+				],
+				"species_id": "empath"
+			},
+			{
+				"range": [
+					94,
+					100
+				],
+				"species_id": "bio_upgrade"
+			}
+		]
 	}
 }

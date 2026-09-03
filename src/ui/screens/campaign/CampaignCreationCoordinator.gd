@@ -91,6 +91,10 @@ var unified_campaign_state: Dictionary = {
 		"campaign_name": "",
 		"campaign_type": "standard",
 		"campaign_crew_size": 6,  # Core Rules p.63
+		# Compendium p.34 "Starting in the Gutter" shrinks the STARTING ROSTER to
+		# 3 while leaving campaign_crew_size at 6. Equal to the size unless that
+		# toggle is on.
+		"starting_roster_size": 6,
 		"victory_conditions": {},  # Integrated here
 		"story_track_enabled": false,
 		"introductory_campaign": false,
@@ -313,6 +317,16 @@ func update_ship_state(ship_data: Dictionary) -> void:
 
 	# Update overall completion status
 	_update_campaign_completion_status()
+
+## Compendium p.34 "Starting in the Gutter" — see
+## CompendiumDifficultyToggles.starting_roster_size(). Written into the config so
+## FinalPanel's completion check and CrewPanel's cap read ONE value.
+func _refresh_starting_roster_size() -> void:
+	var size: int = int(unified_campaign_state.campaign_config.get(
+		"campaign_crew_size", 6))
+	var roster: int = CompendiumTogglesRef.starting_roster_size(size)
+	unified_campaign_state.campaign_config["starting_roster_size"] = roster
+
 
 func update_crew_state(crew_data: Dictionary) -> void:
 	## Update crew state and emit signal
@@ -660,6 +674,8 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.campaign_name = campaign_config_data.campaign_name
 	if campaign_config_data.has("campaign_crew_size"):
 		unified_campaign_state.campaign_config.campaign_crew_size = campaign_config_data.campaign_crew_size
+		# The p.34 roster depends on the size, so a size change re-derives it.
+		_refresh_starting_roster_size()
 	# THIS IS A WHITELIST, and that is deliberate — it is what makes campaign
 	# state ownership auditable. But a key the panel collects and this list does
 	# not name is silently dropped, which is how Progressive Difficulty and the
@@ -685,6 +701,13 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		# the wizard to read; finalization clears it.
 		CompendiumTogglesRef.set_creation_toggles(
 			campaign_config_data.difficulty_toggles)
+		# Compendium p.34 "Starting in the Gutter": "In a campaign with a
+		# standard crew size of 6, begin with only 3 crew." The STANDARD size is
+		# unchanged — it feeds the p.63 enemy-count dice and the deployment cap —
+		# so the roster is a SECOND number, republished whenever the toggles
+		# change. Recomputed here rather than read by the crew panel directly
+		# because the panel must not hold a second opinion on crew size.
+		_refresh_starting_roster_size()
 	# Core Rules p.65 step 5. Finalization has always read config["house_rules"]
 	# and called campaign.set_house_rules(); nothing ever wrote it.
 	if campaign_config_data.has("house_rules"):

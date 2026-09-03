@@ -115,12 +115,26 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	# every job forever and the same Patron re-offered fresh work next turn at no
 	# cost, and "This campaign turn" meant precisely nothing.
 	var current_turn: int = _current_campaign_turn()
+	# Errata v1.06: a job already accepted keeps its Time Frame running, so
+	# commitments are expired FIRST — one that lapsed while the crew was busy
+	# elsewhere is a failure now, not next turn.
+	var live_commitments: Array = _expire_stale_commitments(current_turn)
 	var sifted: Dictionary = _expire_stale_offers(_stored_offers(), current_turn)
 	for expired in sifted.expired:
 		_fail_expired_job(expired, current_turn)
 	for held in sifted.live:
 		if held is Dictionary:
 			patron_offers.append(held)
+
+	# Errata v1.06: an accepted-but-unfought job is still on the plate, so it is
+	# offered back rather than vanishing until its Time Frame runs out. Tagged so
+	# the details pane can say which it is.
+	for commitment in live_commitments:
+		if not (commitment is Dictionary):
+			continue
+		var carried_job: Dictionary = (commitment as Dictionary).duplicate(true)
+		carried_job["is_outstanding_commitment"] = true
+		patron_offers.append(carried_job)
 
 	# A Patron with a job still on the table does not hand you a second one. The
 	# book's "Busy" Condition — "If the mission is a success, the Patron offers a
@@ -1669,6 +1683,21 @@ func accept_selected_job() -> bool:
 				remaining.append(offer)
 		_store_offers(remaining)
 
+	# -- Errata v1.06 (Campaign rules, Update) --------------------------------
+	#
+	# Verbatim: "If you are offered more than one Patron job at the same time,
+	# you can ACCEPT ALL OF THEM but pay attention to the time-frames. Failure to
+	# finish a job in the allotted time counts as a failure."
+	#
+	# The printed rules give no such permission, so accepting one job consumed it
+	# and the rest sat on the board until their Time Frames lapsed. Now an
+	# accepted job is ALSO banked as an outstanding commitment: the crew fights
+	# ONE of them this turn (`get_accepted_job()` is unchanged, and
+	# WorldPhaseController still builds the mission_dict from it), and the others
+	# keep counting down and lapse into real failures through the same
+	# `_fail_expired_job()` path a lapsed OFFER takes.
+	_bank_accepted_commitment(job)
+
 	# Publish job accepted event
 	if event_bus:
 		event_bus.publish_event(CampaignTurnEventBus.TurnEvent.JOB_ACCEPTED, {
@@ -1677,6 +1706,90 @@ func accept_selected_job() -> bool:
 
 	_update_ui_display()
 	return true
+
+## Errata v1.06: accepted-but-unfought jobs. Stored on the CAMPAIGN so they
+## survive a save and the World Phase checkpoint.
+const PENDING_KEY := "patron_jobs_accepted_pending"
+
+
+func _pending_commitments() -> Array:
+	var campaign = _campaign()
+	if not campaign or not ("progress_data" in campaign):
+		return []
+	if not (campaign.progress_data is Dictionary):
+		return []
+	var raw: Variant = campaign.progress_data.get(PENDING_KEY, [])
+	return (raw as Array) if raw is Array else []
+
+
+func _store_commitments(entries: Array) -> void:
+	var campaign = _campaign()
+	if not campaign or not ("progress_data" in campaign):
+		return
+	if not (campaign.progress_data is Dictionary):
+		return
+	campaign.progress_data[PENDING_KEY] = entries
+
+
+## Record an accepted job as an outstanding commitment.
+##
+## PATRON jobs only: the errata clause is about Patron jobs, and a Quest or an
+## Opportunity mission is generated fresh each turn rather than offered with a
+## Time Frame to miss.
+func _bank_accepted_commitment(job: Dictionary) -> void:
+	if not _is_patron_job(job):
+		return
+	var job_id: String = str(job.get("id", ""))
+	if job_id.is_empty():
+		return
+	var entries: Array = _pending_commitments().duplicate()
+	for existing in entries:
+		if existing is Dictionary and str(existing.get("id", "")) == job_id:
+			return
+	var record: Dictionary = job.duplicate(true)
+	record["accepted_on_turn"] = _current_campaign_turn()
+	entries.append(record)
+	_store_commitments(entries)
+
+
+## Discharge a commitment once its battle has been fought, so a job the crew
+## actually ran cannot later lapse as an unfinished one.
+func discharge_commitment(job_id: String) -> void:
+	if job_id.is_empty():
+		return
+	var kept: Array = []
+	for entry in _pending_commitments():
+		if entry is Dictionary and str(entry.get("id", "")) != job_id:
+			kept.append(entry)
+	_store_commitments(kept)
+
+
+## Errata v1.06: "pay attention to the time-frames. Failure to finish a job in
+## the allotted time counts as a failure."
+##
+## Lapsed commitments go through the same `_fail_expired_job()` as a lapsed
+## OFFER — removal from known Patrons (errata Correction p.119) and the p.84
+## Vengeful check — because the errata says a missed deadline COUNTS AS A
+## FAILURE, not as a quietly forgotten offer.
+func _expire_stale_commitments(current_turn: int) -> Array:
+	var live: Array = []
+	var lapsed: Array = []
+	for entry in _pending_commitments():
+		if not (entry is Dictionary):
+			continue
+		var accepted_on: int = int(entry.get("accepted_on_turn", current_turn))
+		var frame: int = int(entry.get("time_frame_turns",
+			entry.get("time_frame", 0)))
+		if frame > 0 and current_turn - accepted_on >= frame:
+			lapsed.append(entry)
+		else:
+			live.append(entry)
+	if not lapsed.is_empty():
+		_store_commitments(live)
+	for job in lapsed:
+		_fail_expired_job(job, current_turn)
+	return live
+
 
 func decline_selected_job() -> bool:
 	## Decline (pass on) the currently selected job — removes it from the
@@ -1912,7 +2025,11 @@ func get_step_results() -> Dictionary:
 		"job_accepted": job_accepted,
 		"accepted_job": get_accepted_job(),
 		"available_jobs": available_jobs.duplicate(),
-		"selected_job_index": selected_job_index
+		"selected_job_index": selected_job_index,
+		# Errata v1.06 outstanding commitments, so the World Phase checkpoint
+		# carries them. They also live on campaign.progress_data and THAT is the
+		# owner — this is the checkpoint copy, not a second home.
+		"pending_commitments": _pending_commitments().duplicate(true),
 	}
 
 func restore_step_results(data: Dictionary) -> void:
@@ -1950,6 +2067,14 @@ func restore_step_results(data: Dictionary) -> void:
 		and selected_job_index < available_jobs.size()
 	if not job_accepted:
 		selected_job_index = -1 if available_jobs.is_empty() else selected_job_index
+	# Restore the errata commitments only when the campaign holds none: the
+	# campaign is the owner, so a live value always wins over the checkpoint copy.
+	# Guarded in the CALLEE so it cannot matter which of initialize_job_offers()
+	# three callers ran first — the T9-50 lesson.
+	var carried: Variant = data.get("pending_commitments", [])
+	if carried is Array and not (carried as Array).is_empty():
+		if _pending_commitments().is_empty():
+			_store_commitments((carried as Array).duplicate(true))
 	_update_ui_display()
 
 

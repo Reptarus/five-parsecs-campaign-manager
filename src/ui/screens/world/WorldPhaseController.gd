@@ -15,6 +15,13 @@ signal phase_completed(results: Dictionary)
 signal return_to_dashboard
 signal return_to_travel  # Sprint 10.2: Signal for bidirectional navigation
 signal proceed_to_battle
+## Errata v1.06 (Campaign rules, Update), verbatim: "Normally you have to
+## undertake a new mission every campaign turn. If you wish to lay low and rest
+## up, check for Rival attacks normally. If you are not attacked, you can pay
+## 1D6+1 Credits to stay in town. Simply skip the battle sequence and all reward
+## sections (loot, pay, injuries, XP)." Emitted WITHOUT completing the phase —
+## the Rival check has to happen first and may force a battle anyway.
+signal lay_low_requested
 
 # Event bus integration - single source of truth for events
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
@@ -74,6 +81,7 @@ var _is_tight_layout: bool = false
 @onready var automation_toggle: CheckBox = %AutomationToggle
 @onready var back_to_dashboard_button: Button = %BackToDashboardButton
 @onready var proceed_to_battle_button: Button = %ProceedToBattleButton
+@onready var lay_low_button: Button = %LayLowButton
 
 # Component containers - properly structured scene hierarchy
 @onready var upkeep_container: Control = %UpkeepContainer
@@ -695,6 +703,8 @@ func _connect_ui_signals() -> void:
 		back_to_dashboard_button.pressed.connect(_on_back_to_dashboard_pressed)
 	if proceed_to_battle_button:
 		proceed_to_battle_button.pressed.connect(_on_proceed_to_battle_pressed)
+	if lay_low_button:
+		lay_low_button.pressed.connect(_on_lay_low_pressed)
 	# B1: the upkeep step (unlike crew-task/job/mission-prep) has no event-bus
 	# completion notification, so "Next Step" never re-evaluated after upkeep was
 	# paid → turn soft-lock. Refresh the nav on every upkeep state change.
@@ -733,6 +743,8 @@ func _setup_initial_state() -> void:
 		_create_step_indicators()
 		if proceed_to_battle_button:
 			proceed_to_battle_button.visible = false
+		if lay_low_button:
+			lay_low_button.visible = false
 		_fetch_campaign_data()
 		# ⚠ ORDER IS LOAD-BEARING. This MUST run after _fetch_campaign_data(),
 		# which reaches _initialize_components_with_data() ->
@@ -767,6 +779,8 @@ func _setup_initial_state() -> void:
 	# Hide battle button until all steps are complete
 	if proceed_to_battle_button:
 		proceed_to_battle_button.visible = false
+	if lay_low_button:
+		lay_low_button.visible = false
 
 	# Auto-fetch campaign data from GameStateManager
 	_fetch_campaign_data()
@@ -1430,6 +1444,9 @@ func _update_ui_display() -> void:
 			and mission_prep_component.is_mission_prepared()
 		)
 		proceed_to_battle_button.visible = all_complete or mission_prep_done
+		# Lay Low is the alternative to that same button, so it appears with it.
+		if lay_low_button:
+			lay_low_button.visible = proceed_to_battle_button.visible
 
 func _should_skip_intro_step(step: int) -> bool:
 	## Check if the Introductory Campaign restricts this step.
@@ -1681,6 +1698,18 @@ func _on_automation_toggled(enabled: bool) -> void:
 		})
 
 ## Navigation Button Handlers - Clear user actions
+func _on_lay_low_pressed() -> void:
+	## Errata v1.06: pay 1D6+1 Credits to skip this turn's battle.
+	##
+	## Deliberately does NOT complete the world phase here. The errata's first
+	## clause is "check for Rival attacks NORMALLY" — a Rival that tracks the crew
+	## down forces the fight regardless (Core Rules p.85: "this will prevent you
+	## from doing whatever you had wanted to do this campaign turn"), and the crew
+	## may not be able to afford the stay. CampaignTurnController owns both
+	## answers, so it decides and completes the phase itself.
+	lay_low_requested.emit()
+
+
 func _on_proceed_to_battle_pressed() -> void:
 	## Handle Proceed to Battle button - primary action
 
@@ -1828,6 +1857,13 @@ func _complete_world_phase() -> void:
 	var job_results = {}
 	if job_offer_component and job_offer_component.has_method("get_accepted_job"):
 		job_results = job_offer_component.get_accepted_job()
+		# Errata v1.06: the crew fights ONE of its accepted jobs this turn, and
+		# that one is no longer outstanding — so its commitment is discharged here,
+		# at the hand-off, rather than left to lapse into a false failure later.
+		# Without this call `discharge_commitment()` would be a zero-caller
+		# producer, which is the exact defect shape this sprint exists to close.
+		if job_offer_component.has_method("discharge_commitment"):
+			job_offer_component.discharge_commitment(str(job_results.get("id", "")))
 
 	# `get_step_results()` is the real method — `get_equipment_assignments()` has
 	# ZERO definitions repo-wide, so this guard was permanently false and

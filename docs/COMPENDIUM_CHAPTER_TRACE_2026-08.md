@@ -1,10 +1,14 @@
-# Compendium chapter trace — Aug 3 2026 (revised Aug 6, closed Aug 7)
+# Compendium chapter trace — Aug 3 2026 (revised Aug 6, closed Aug 7, reopened Sep 3)
 
-> **This document has now been wrong four separate times, in four different ways.**
+> **This document has now been wrong SIX separate times, in six different ways.**
 > That is not a reason to distrust it — it is the reason to keep it. Each
 > correction is preserved below rather than edited away, because the FAILURE MODES
 > are the transferable knowledge, not the verdicts. If you are about to add a row,
-> read all four callouts first and ask which of them your evidence would miss.
+> read all six callouts first and ask which of them your evidence would miss.
+>
+> The newest, and the one that gets past every check the others taught: **the data
+> file was a faithful extraction of the WRONG BOOK.** See the Sep 3 2026 callout
+> immediately below.
 
 Every chapter of the Compendium, walked producer → key → consumer by hand against
 the TOC on pp.4-5 of `docs/rules/Five Parsecs From Home-Compendium.pdf`. No agents,
@@ -19,18 +23,56 @@ written — and it is worse for us, because it looks finished in every inventory
 
 | | Chapters |
 |---|---|
-| **LIVE** — a live path reaches the player | 27 |
+| **LIVE** — a live path reaches the player | 28 |
 | **PARTIAL** — some of the chapter lands, a named part does not | 0 |
-| **DEAD** — data + gated API exist, nothing reaches the player | 3 |
+| **REFERENCE** — the rules text reaches the player; the mechanic needs a surface this app does not have | 2 |
+| **DEAD** — data + gated API exist, nothing reaches the player | 0 |
 
 Casualty Tables, Detailed Injuries, Dramatic Combat and Loans all moved to LIVE
 on Aug 3; Grid-based Movement on Aug 6. Each fix is described in its section
 below — and every one of them was a defect that **call-site tracing cannot see**,
 which is what the original pass did. Trace to the value.
 
-All 3 remaining dead chapters are **Freelancer's Handbook** — PvP (pp.35-38),
-Expanded Co-op (pp.39-41) and AI Variations (p.42). The first two need a second
-player this app has no surface for; AI Variations is a genuine wiring gap.
+**No chapter is DEAD as of Sep 3 2026.** AI Variations (p.42) went LIVE — and it
+was worse than dead, see the fifth callout below. PvP (pp.35-38) and Expanded
+Co-op (pp.39-41) are REFERENCE: both need a second player this app has no surface
+for, so the chapters are delivered as gated reference sections in the battle
+drawer (their first callers ever), by user decision on Sep 3 2026. That is a
+product boundary, not a wiring gap.
+
+> ### ⛔ A SIXTH failure mode: the data file was the WRONG BOOK (Sep 3 2026)
+>
+> `data/RulesReference/EnemyAI.json` held the COMPENDIUM pp.42-43 "AI Variations"
+> base conditions and 1D6 action tables — verbatim, accurate, complete — under a
+> Core Rules label, in the directory reserved for core-rules extractions. Three
+> consumers rendered it at every tier with no flag check at all
+> (`TacticalBattleUI._ai_reference_lines`, `EnemyAIOracleRouter`,
+> `EnemyIntentPanel`), and one of them cited "Core Rules pp.113-115" in its own
+> docblock.
+>
+> So the app had it backwards in both directions at once. A player who owned no
+> expansion was told to roll 1D6 for every enemy activation — Core Rules p.42
+> says **"The default AI is diceless to keep the game moving as quickly as
+> possible"** — while the actual core AI, seven bullet routines on pp.42-43,
+> appeared in the app NOWHERE. And the chapter's own API (`roll_ai_behavior()`)
+> read `ai_behavior_table`, a key whose value was the empty array `[]`, and had
+> zero callers, so the option a player PAID for did nothing while its rules were
+> given away free under the wrong name.
+>
+> **Why no census could see it.** Producer, consumer, key, flag and call site
+> were all present, correct and mutually consistent. The chapter trace's question
+> ("does a live path reach the player?") answers YES. The ledger's question
+> ("does this rule have a producer and a consumer?") answers YES. The Aug 6
+> question ("does the constructor actually run?") answers YES. The only check
+> that finds it is asking **which book this text came from** — and the answer was
+> not in the file, which is why it now carries a `_source` and a
+> `_provenance_warning`.
+>
+> The transferable rule: **a data file can be honest, complete, and about the
+> wrong book.** When a chapter's rules and a core rule cover the same ground,
+> check provenance before contents.
+
+<!-- -->
 
 > ### ⛔ The Grid-based Movement row was wrong in a NEW way (Aug 6)
 >
@@ -142,9 +184,9 @@ getter.
 |---|---|---|
 | Progressive Difficulty p.30 | LIVE | `ProgressiveDifficultyTracker` → `EnemyGenerator`, `TacticalBattleUI:6652` |
 | Difficulty Toggles pp.32-34 | **LIVE (fixed Aug 3)** | all 12 ids were read NOWHERE, and the creation selection never even left the panel — `CampaignCreationCoordinator.update_campaign_config_state` is a whitelist that did not name the key. Now: whitelist → `campaign.progress_data["difficulty_toggles"]` → `CompendiumDifficultyToggles.is_toggle_active()`, the one call every rule site reads. **Known partial:** Starting in the Gutter applies 3 of its 4 clauses — see below |
-| **Player vs Player pp.35-38** | **DEAD** | `get_pvp_setup` / `get_pvp_rules` / `roll_pvp_battle_reason` / `roll_pvp_third_party` (`compendium_missions_expanded.gd:319/326/333/346`) — **zero callers repo-wide, tests included.** No PvP surface exists |
-| **Expanded Co-op pp.39-41** | **DEAD** | `get_coop_setup` / `get_coop_rules` (`:359/:366`) — zero callers |
-| **AI Variations p.42** | **DEAD** | `roll_ai_behavior` / `get_ai_behavior` (`compendium_difficulty_toggles.gd:150/161`) and the `AI_VARIATION_TABLES` getter (`:91`) — zero callers |
+| **Player vs Player pp.35-38** | **REFERENCE (Sep 3 2026)** | the rules text now reaches the player through `CheatSheetSections.pvp_battles()` — the first caller `get_pvp_setup` / `get_pvp_rules` have ever had. The MECHANIC still needs a second-player surface this app does not have, which is a product decision rather than a wiring gap |
+| **Expanded Co-op pp.39-41** | **REFERENCE (Sep 3 2026)** | same: `CheatSheetSections.coop_battles()` is the first caller of `get_coop_setup` / `get_coop_rules` |
+| **AI Variations p.42** | **LIVE (fixed Sep 3 2026)** | and it was worse than dead — its RULES were being given away free under the wrong book's name. `data/RulesReference/EnemyAI.json` held this chapter's base conditions and 1D6 tables VERBATIM under a Core Rules label, and three consumers printed them with no flag check, so a player who owned nothing was told to roll a die per enemy activation while the CORE routine ("The default AI is diceless", p.42) was in the app nowhere. Meanwhile `roll_ai_behavior()` read `ai_behavior_table`, whose value was `[]`, and had zero callers. Now: `EnemyAI.json` is core-only, the dice live in `difficulty_toggles.json` behind `ai_variation_for()`, and `TacticalBattleUI` / `EnemyAIOracleRouter` / `EnemyIntentPanel` all gate on the flag. 18 cases in `test_enemy_ai_reference.gd` |
 | Enemy Deployment Variables pp.44-45 | **LIVE (fixed Aug 3)** | the missing loader is `src/data/compendium_deployment_variables.gd`; the roll fires from `TacticalBattleUI._on_initiative_calculated`, the exact moment p.44 keys it to |
 | Escalating Battles p.46 | LIVE | `EscalatingBattlesManager` → `TacticalBattleUI:6091`, `BattleRoundHUD` |
 | Elite-level Enemies pp.48-65 | **LIVE (fixed Aug 3)** | was never loaded AND only 40% present. Data completed from the PDF (82 profiles, five tables, each spanning 1-100); `src/data/compendium_elite_enemies.gd` loads it and `EnemyGenerator._roll_enemy_in_category` performs the p.48 substitution. See "the incomplete table is worse than the dead one" below |

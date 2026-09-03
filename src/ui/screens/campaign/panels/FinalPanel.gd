@@ -1596,9 +1596,15 @@ func _check_completion_requirements() -> bool:
 	var crew_members = crew_data.get("members", [])
 	var cfg = campaign_data.get(
 		"campaign_config", campaign_data.get("config", {}))
-	var required_crew_size: int = cfg.get("campaign_crew_size", 6)
-	if required_crew_size < 4:
-		required_crew_size = 4  # Enforce game minimum
+	# Compendium p.34 "Starting in the Gutter": "In a campaign with a standard
+	# crew size of 6, begin with only 3 crew." The CREW STEP is complete at the
+	# starting roster, not at the standard size — checking the standard size
+	# would leave a legal Gutter campaign permanently three crew short and block
+	# the review step.
+	var required_crew_size: int = cfg.get(
+		"starting_roster_size", cfg.get("campaign_crew_size", 6))
+	if required_crew_size < 3:
+		required_crew_size = 3  # p.34's floor; the ordinary minimum is 4 (p.63)
 	if crew_members.size() >= required_crew_size:
 		completed_phases += 1
 	

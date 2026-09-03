@@ -4374,13 +4374,21 @@ func _ai_type_name(ai_code: String) -> String:
 
 
 func _ai_reference_lines(ai_code: String) -> Array:
-	## The BOOK's AI instructions for this enemy: base condition, then the 1D6
-	## behaviour table (Core Rules pp.113-115, data/RulesReference/EnemyAI.json).
+	## The BOOK's AI instructions for this enemy: the Core Rules pp.42-43 routine,
+	## plus the Compendium pp.42-43 dice table WHEN that option is owned and on.
 	##
 	## Shown at EVERY tier. The tier gates AUTOMATION, never INSTRUCTIONS — a
 	## LOG_ONLY player is running the enemy by hand off this text and needs it MORE
 	## than a FULL_ORACLE player does, not less. Before this, the only AI guidance
 	## anywhere in the battle was a one-line AI_DESCRIPTIONS summary.
+	##
+	## ⚠ CORRECTED Sep 2026, and the docblock above used to say "Core Rules
+	## pp.113-115" while the data was the COMPENDIUM's AI Variations option.
+	## `data/RulesReference/EnemyAI.json` held that chapter's base conditions and
+	## 1D6 tables verbatim, and this function printed them unconditionally — so a
+	## player who owned no DLC was told to roll a die for every enemy activation,
+	## and the actual core routine ("The default AI is diceless", p.42) was in the
+	## app nowhere at all. Core bullets are the default; the dice ride on the flag.
 	var lines: Array = []
 	if _ai_reference_router == null:
 		_ai_reference_router = EnemyAIOracleRouterClass.new()
@@ -4394,26 +4402,53 @@ func _ai_reference_lines(ai_code: String) -> Array:
 	if data.is_empty():
 		return lines
 
-	var base: String = str(data.get("base_condition", ""))
-	if base != "":
+	var core_rules: Array = data.get("core_rules", [])
+	if not core_rules.is_empty():
 		lines.append("")
+		lines.append("[b]%s AI[/b] — Core Rules p.%s:" % [
+			type_name, str(data.get("page", 42))])
+		for bullet in core_rules:
+			lines.append("  [color=#4FC3F7]• %s[/color]" % str(bullet))
+
+	lines.append_array(_ai_variation_lines(type_name))
+	lines.append_array(_ai_errata_lines(type_name))
+	return lines
+
+
+func _ai_variation_lines(type_name: String) -> Array:
+	## Compendium pp.42-43 AI Variations, and ONLY when the option is live.
+	## Beast / Rampage / Guardian deliberately have no table — p.42: "enemies with
+	## the Beast, Rampage, and Guardian AIs function as they would currently. No
+	## changes are made." — so they fall out through the empty dictionary.
+	var lines: Array = []
+	var variation: Dictionary = CompendiumDifficultyTogglesRef.ai_variation_for(
+		type_name)
+	if variation.is_empty():
+		return lines
+
+	lines.append("")
+	lines.append("[b]AI Variations[/b] (Compendium pp.42-43):")
+	var base: String = str(variation.get("base_condition", ""))
+	if base != "":
 		lines.append("[b]Base condition[/b] — check this FIRST:")
 		lines.append("  [color=#4FC3F7]%s[/color]" % base)
 
-	var note: String = str(data.get("note", ""))
-	if note != "":
-		lines.append("  [color=#808080]%s[/color]" % note)
-
-	var table: Array = data.get("behavior_table", [])
-	if not table.is_empty():
+	var actions: Array = variation.get("actions", [])
+	if not actions.is_empty():
 		lines.append("")
 		lines.append("[b]Otherwise roll 1D6:[/b]")
-		for entry in table:
+		for entry in actions:
 			if entry is Dictionary:
-				lines.append("  [b]%s[/b]  %s" % [
-					str(entry.get("roll", "?")), str(entry.get("action", ""))])
+				# JSON numerics arrive as float — int(), not a bare str().
+				lines.append("  [b]%d[/b]  %s" % [
+					int(entry.get("roll", 0)), str(entry.get("action", ""))])
 
-	lines.append_array(_ai_errata_lines(type_name))
+	var rules: Dictionary = CompendiumDifficultyTogglesRef.AI_VARIATION_RULES
+	for line in rules.get("group_actions", []):
+		lines.append("  [color=#808080]%s[/color]" % str(line))
+	var impossible: String = str(rules.get("impossible_actions", ""))
+	if impossible != "":
+		lines.append("  [color=#808080][i]%s[/i][/color]" % impossible)
 	return lines
 
 
@@ -5304,7 +5339,45 @@ func _on_card_stun(char_name: String, unit) -> void:
 	unit.stun_markers += 1
 	if unified_log:
 		unified_log.log_action(char_name, "Stunned (x%d)" % unit.stun_markers)
+	# Core Rules p.40, verbatim: "If a character ever has 3 or more Stun markers
+	# at the same time, they are knocked out and removed from play."
+	#
+	# THE RULE WAS MISSING ENTIRELY. Markers accumulated without a ceiling, so a
+	# figure on five Stuns kept acting, and the Compendium p.102 Injured torso
+	# injury ("knocked out after two Stun markers, instead of the customary
+	# three") had nothing to modify — the character sheet could only print it as
+	# advisory text for the player to remember.
+	if unit.stun_markers >= unit.stun_ko_threshold and not unit.is_knocked_out:
+		_mark_knocked_out(unit, char_name)
+		return
 	_refresh_unit_rails()
+
+
+func _mark_knocked_out(unit, char_name: String) -> void:
+	## Core Rules p.40 knock-out. NOT a casualty: p.121 says "If a character was
+	## merely knocked out (from suffering 3 Stun results simultaneously), NO ROLL
+	## IS REQUIRED" on the Injury Table, and p.114 counts only figures "removed
+	## due to combat" for Morale. So this deliberately does not touch `is_dead`,
+	## does not call `_mark_casualty()`, and never feeds the morale tracker —
+	## routing it through the casualty path would have invented both a post-battle
+	## injury roll and an enemy Morale die the book does not grant.
+	if unit == null or unit.is_knocked_out:
+		return
+	unit.is_knocked_out = true
+	unit.is_activated = true
+	if activation_tracker and is_instance_valid(activation_tracker):
+		if activation_tracker.has_method("set_unit_activated"):
+			activation_tracker.set_unit_activated(_unit_id(unit), true)
+	if unified_log:
+		unified_log.log_action(char_name, ("KNOCKED OUT on %d Stun markers —"
+			+ " removed from play, no injury roll (Core Rules pp.40, 121)")
+			% unit.stun_markers)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_warning"):
+		notif.show_warning("%s is knocked out (%d Stun markers) — remove the figure from the table." % [
+			char_name, unit.stun_markers])
+	_refresh_unit_rails()
+	_refresh_glance_chips()
 
 
 func _on_card_action(char_name: String, action_type: String, unit) -> void:
@@ -6066,7 +6139,15 @@ func _on_auto_resolve_battle() -> void:
 				"savvy": unit.savvy,
 				"reactions": unit.reactions,
 				"health": unit.health,
-				"is_alive": true
+				"is_alive": true,
+				# Compendium p.102 Injured torso ("knocked out after two Stun
+				# markers, instead of the customary three"). BattleResolver reads
+				# this per target; without it the auto-resolve path would keep the
+				# Core Rules p.40 three for a crew member the book says breaks at
+				# two, so the injury would apply only when the fight was played by
+				# hand.
+				"stun_ko_threshold": unit.stun_ko_threshold,
+				"stun_markers": unit.stun_markers
 			}
 			if unit.original_character:
 				if unit.original_character is Dictionary:
@@ -6136,11 +6217,18 @@ func _on_auto_resolve_battle() -> void:
 	# and the not-deployed crew are handled explicitly as the casualties they are.
 	var crew_units_final: Array = resolver_result.get("crew_units_final", [])
 	var fates: Dictionary = {}  # TacticalUnit -> is_alive
+	# Compendium p.100 Critical Hit: the natural 6 that felled the figure is
+	# known only inside the resolver, so BattleResolver stamps it on the unit
+	# and it is read back here beside the fate.
+	var crits: Dictionary = {}  # TacticalUnit -> the felling Hit was a natural 6
 	for i in range(deployed_units.size()):
 		var alive: bool = true
 		if i < crew_units_final.size():
 			alive = crew_units_final[i].get("is_alive", true)
 		fates[deployed_units[i]] = alive
+		if i < crew_units_final.size():
+			crits[deployed_units[i]] = bool(
+				crew_units_final[i].get("casualty_hit_critical", false))
 	for unit_pre in crew_units:
 		if not fates.has(unit_pre):
 			# Not deployed => already at 0 health when auto-resolve started.
@@ -6169,7 +6257,8 @@ func _on_auto_resolve_battle() -> void:
 				or bool(_oc_field(oc, "is_soulless", false))
 			var casualty_check: Dictionary = _roll_compendium_casualty(
 				CompendiumDifficultyTogglesRef.casualty_category_for(is_mech, false),
-				bool(_oc_field(oc, "is_captain", false)))
+				bool(_oc_field(oc, "is_captain", false)),
+				bool(crits.get(unit, false)))
 			if not casualty_check.is_empty():
 				var outcome: String = str(casualty_check.get("outcome", ""))
 				_log_message("%s — %s (D6 %d, %s column): %s" % [
@@ -7533,9 +7622,27 @@ func _oc_field(oc: Variant, key: String, fallback: Variant = null) -> Variant:
 
 
 func _roll_compendium_casualty(category: String = "humanoid",
-		is_boss: bool = false) -> Dictionary:
+		is_boss: bool = false, was_critical: bool = false) -> Dictionary:
 	## Roll on the Compendium casualty table if CASUALTY_TABLES is on, else {}.
-	return CompendiumDifficultyTogglesRef.roll_casualty(category, is_boss)
+	##
+	## Compendium p.100 Critical Hit, an "additional optional rule", verbatim:
+	## "If the Hit roll was a natural 6, roll one additional time on the Casualty
+	## table and use the highest result as normal." Gated on the
+	## gameplay/critical_hit setting because the book presents it as a FURTHER
+	## opt-in on top of the Casualty Tables themselves — and p.100 notes the
+	## interaction it creates on purpose ("inexperienced shooters often only hit
+	## on a 6 and thus always score a Critical Hit. This is fine").
+	##
+	## The rule itself lives in CompendiumDifficultyToggles beside
+	## roll_casualty() so it is testable without a battle screen; this
+	## wrapper exists only to read the setting, which that static layer
+	## has no tree access to reach.
+	var settings: Node = get_node_or_null("/root/SettingsManager")
+	var critical_on: bool = (settings != null
+		and settings.has_method("use_critical_hit")
+		and settings.use_critical_hit())
+	return CompendiumDifficultyTogglesRef.roll_casualty_with_critical(
+		category, is_boss, was_critical, critical_on)
 
 # _roll_compendium_injury() was DELETED here. The Detailed Post-Battle Injury
 # table is a POST-BATTLE table — p.101: "can be used in place of the one in the
@@ -7756,6 +7863,20 @@ class TacticalUnit:
 	var is_activated: bool = false
 	var react_slot: int = 0
 
+	## Core Rules p.40, verbatim: "If a character ever has 3 or more Stun markers
+	## at the same time, they are knocked out and removed from play."
+	##
+	## THIS RULE WAS NOT IMPLEMENTED ANYWHERE. Stun markers accumulated with no
+	## ceiling, so a figure could sit on five of them and keep acting, and the
+	## Compendium p.102 Injured torso injury ("knocked out after two Stun markers,
+	## instead of the customary three") had nothing to modify — which is why
+	## Character._apply_injury_penalties could only surface it as advisory text.
+	var stun_ko_threshold: int = 3
+	## Knocked out is NOT a casualty (Core Rules p.121: "If a character was merely
+	## knocked out ... no roll is required"), so this is deliberately separate
+	## from `is_dead` and never feeds enemy Morale.
+	var is_knocked_out: bool = false
+
 	# Enemy identity carried over from the generated force. These did not exist,
 	# so every `"is_lieutenant" in unit` / `"enemy_type" in unit` guard in this file
 	# was permanently FALSE: the post-battle `defeated_enemies` list recorded every
@@ -7800,8 +7921,33 @@ class TacticalUnit:
 		max_health = max(1, toughness)
 		health = max_health
 
+		# Compendium p.102 Injured torso: "The character is knocked out after two
+		# Stun markers, instead of the customary three." Read off the injuries
+		# list on either crew shape — a fresh campaign holds Character Resources
+		# and a loaded save holds Dictionaries.
+		stun_ko_threshold = _stun_threshold_for(crew_member)
+
 		# Initialize reaction economy from character (Swift = 1 max)
 		initialize_reactions_from_character()
+
+	static func _stun_threshold_for(crew_member) -> int:
+		## 3 by default (Core Rules p.40), 2 while an Injured torso is untreated
+		## (Compendium p.102).
+		var injuries: Variant = []
+		if crew_member is Dictionary:
+			injuries = crew_member.get("injuries", [])
+		elif crew_member is Object and "injuries" in crew_member:
+			injuries = crew_member.injuries
+		if not (injuries is Array):
+			return 3
+		for entry in injuries:
+			if not (entry is Dictionary):
+				continue
+			var t: String = str(entry.get("type", "")).to_lower()
+			if t == "injured_torso" or t == "injured torso":
+				return 2
+		return 3
+
 
 	func initialize_from_enemy(enemy) -> void:
 		## Initialize unit from enemy data (Resource or Dictionary)

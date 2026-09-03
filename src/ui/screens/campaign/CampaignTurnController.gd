@@ -15,6 +15,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 ## Core Rules p.85 "Check for Rivals". Path preload for the same stale-class-cache
 ## reason as the two consts above.
 const RivalEncounterCheckClass = preload("res://src/core/campaign/RivalEncounterCheck.gd")
+const LingeringInjuryCheckRef = preload("res://src/core/campaign/LingeringInjuryCheck.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
@@ -187,6 +188,10 @@ func _connect_core_signals() -> void:
 	# Sprint 10.3: Connect bidirectional navigation signal for World → Travel rollback
 	if world_phase_controller and world_phase_controller.has_signal("return_to_travel"):
 		world_phase_controller.return_to_travel.connect(_on_return_to_travel)
+	# Errata v1.06 Lay Low. A signal with no listener is the commonest dead wire
+	# in this project, so this connect is pinned by a test.
+	if world_phase_controller and world_phase_controller.has_signal("lay_low_requested"):
+		world_phase_controller.lay_low_requested.connect(_on_lay_low_requested)
 
 	# Connect battle flow signals (BattleTransition → PreBattle → TacticalBattle → PostBattle)
 	if battle_transition_ui and battle_transition_ui.has_signal("battle_ready_to_launch"):
@@ -510,6 +515,17 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 	var gs = get_node_or_null("/root/GameState")
 	if not gs or not gs.current_campaign:
 		return
+	# ONE ROLL PER TURN. Errata v1.06's Lay Low option has to "check for Rival
+	# attacks normally" BEFORE the player commits to staying in town, and
+	# `_initiate_battle_sequence()` then calls this again on the battle path — so
+	# without a stamp the crew would be checked twice per turn and a Rival could
+	# ambush a crew that had already been told it was clear. The result is already
+	# stored in `battle_results["rival_encounter"]`; this only stops it being
+	# re-rolled.
+	var checked_turn: int = int(battle_results.get("rival_check_turn", -1))
+	if checked_turn == _turn_number and battle_results.has("rival_encounter"):
+		return
+	battle_results["rival_check_turn"] = _turn_number
 	var campaign = gs.current_campaign
 	var rivals: Array = []
 	if "rivals" in campaign and campaign.rivals is Array:
@@ -1004,6 +1020,16 @@ func _initiate_battle_sequence() -> void:
 	var _rival_ambush: Dictionary = battle_results.get("rival_encounter", {})
 	if _rival_ambush.get("has_encounter", false):
 		_apply_rival_ambush_override(mission_data, _rival_ambush)
+
+	# Compendium p.102 Lingering Injury: "BEFORE EVERY MISSION, roll 1D6: On a 1,
+	# their old injury is acting up and they cannot participate in the battle."
+	#
+	# Rolled here, before the crew is filtered, because a 1 attaches a one-battle
+	# `skip_next_battle` effect and `GameStateManager.filter_deployable()` — which
+	# every deployment site reaches through `_deployable()` — already excludes
+	# that effect. Wiring the exclusion anywhere else would have meant a second
+	# gate to keep in sync.
+	_roll_lingering_injuries(crew_data)
 
 	# Generate enemies from mission data using EnemyGenerator + JSON data
 	var active_crew: Array = crew_data
@@ -2123,10 +2149,42 @@ func _on_post_battle_completed(results: Dictionary) -> void:
 	game_state.set_battle_results(results)
 
 	# Record battle result via GameStateManager dual-sync (BUG-031 fix)
+	# Errata v1.06 Lay Low: a rest turn is not a mission and not a defeat.
+	#
+	# `victory` is absent on a skipped turn, so without this guard the else-branch
+	# below counted a LOSS — and `battles_lost` is rules-bearing (VictoryChecker
+	# reads the p.64 "Win N tabletop battles" conditions off these counters).
+	# `missions_completed` is skipped for the same reason: no mission was taken.
+	var was_skipped: bool = bool(battle_results.get("battle_skipped", false))
+
 	var gsm = get_node_or_null("/root/GameStateManager")
-	if gsm:
+	if gsm and not was_skipped:
 		if gsm.has_method("increment_missions_completed"):
 			gsm.increment_missions_completed()
+		# Core Rules p.64 "Kill 10 / 25 Unique Individuals". Per-battle unique
+		# kills have always ridden on the battle result — BattleResultsInputForm
+		# writes `unique_kills` (a list of crew ids) and every producer marks the
+		# figure with `was_unique_individual` in `defeated_enemies` — but NOTHING
+		# accumulated them, and GameStateManager.increment_unique_individual_kills
+		# had zero callers, so both conditions sat at 0/N forever.
+		#
+		# Counted off `battle_results` (this controller's stored ORIGINAL result,
+		# per the victory read above) rather than the `results` parameter, which is
+		# the post-battle processing output and carries neither key. The enemy list
+		# is authoritative and the crew-id list is the fallback: a Unique can be
+		# killed by a crew member the player did not nominate for the XP bonus.
+		if gsm.has_method("increment_unique_individual_kills"):
+			var uniques_killed: int = 0
+			for enemy in battle_results.get("defeated_enemies", []):
+				if enemy is Dictionary and bool(enemy.get(
+						"was_unique_individual", enemy.get("is_unique", false))):
+					uniques_killed += 1
+			if uniques_killed == 0:
+				var nominated: Variant = battle_results.get("unique_kills", [])
+				if nominated is Array:
+					uniques_killed = (nominated as Array).size()
+			if uniques_killed > 0:
+				gsm.increment_unique_individual_kills(uniques_killed)
 		if no_win_condition:
 			pass  # p.91/p.92 — neither a win nor a loss.
 		elif victory:
@@ -2300,6 +2358,45 @@ func _validate_crew_status_post_battle() -> void:
 ## Filter a crew array to battle-deployable members via GameStateManager's single
 ## filter authority (excludes DEAD/MISSING/RETIRED, Sick Bay / recovering, and the
 ## departed / skip_next_battle status effects — Core Rules pp.55, 76, 128-130).
+## Compendium p.102 Lingering Injury, rolled once per battle for each crew member
+## carrying one. Journals every result: a benched character is a decision the
+## player did not make, so it must be visible rather than a crew member quietly
+## missing from the deployment list.
+func _roll_lingering_injuries(crew: Array) -> void:
+	if crew.is_empty():
+		return
+	var results: Array = LingeringInjuryCheckRef.roll_for_crew(crew)
+	if results.is_empty():
+		return
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	for res in results:
+		if not (res is Dictionary):
+			continue
+		var who: String = str(res.get("character_name", "Crew"))
+		var rolls: String = str(res.get("rolls", []))
+		var detail: String = ""
+		if bool(res.get("benched", false)):
+			detail = ("%s cannot participate in this battle — an old injury is"
+				+ " acting up (1D6 %s, Compendium p.102).") % [who, rolls]
+		elif not (res.get("cleared", []) as Array).is_empty():
+			detail = ("%s is finally over their %s (1D6 %s, Compendium p.102).") % [
+				who, ", ".join(PackedStringArray(res.get("cleared", []))), rolls]
+		else:
+			detail = "%s pushed through an old injury (1D6 %s)." % [who, rolls]
+		var notif: Node = get_node_or_null("/root/NotificationManager")
+		if notif and notif.has_method("show_info"):
+			notif.show_info(detail)
+		if journal and journal.has_method("create_entry"):
+			journal.create_entry({
+				"type": "injury",
+				"auto_generated": true,
+				"title": "Lingering injury check",
+				"description": detail,
+				"tags": ["injury", "crew"],
+				"characters_involved": [who],
+			})
+
+
 func _deployable(crew: Array) -> Array:
 	var gsm = get_node_or_null("/root/GameStateManager")
 	if gsm and gsm.has_method("filter_deployable"):
@@ -2336,6 +2433,101 @@ func _on_return_to_travel() -> void:
 
 	# Update phase display
 	_update_phase_display("World Phase")
+
+func _on_lay_low_requested() -> void:
+	## Errata v1.06 (Campaign rules, Update), verbatim: "Normally you have to
+	## undertake a new mission every campaign turn. If you wish to lay low and
+	## rest up, check for Rival attacks normally. If you are not attacked, you can
+	## pay 1D6+1 Credits to stay in town. Simply skip the battle sequence and all
+	## reward sections (loot, pay, injuries, XP)."
+	##
+	## THE GAP THIS CLOSES. `battle_skipped` had a CONSUMER since the post-battle
+	## orchestrator was written (`start_post_battle_phase` short-circuits on it)
+	## and NO PRODUCER anywhere in the repo — the app required a battle every
+	## single campaign turn, with no way to rest. The designer FAQ says the same
+	## thing in answer 17.
+	##
+	## Order is the rule, not a preference: the Rival check comes FIRST, because a
+	## Rival that has tracked the crew down forces the fight (Core Rules p.85) and
+	## the errata says to check "normally" before paying anything.
+	var current_planet_id: String = _get_current_planet_id()
+	var turn: int = campaign_phase_manager.get_turn_number()
+	_check_rival_encounter_backend(current_planet_id, turn)
+	var ambush: Dictionary = battle_results.get("rival_encounter", {})
+	if ambush.get("has_encounter", false):
+		_notify(("A Rival tracked you down — you cannot lay low this turn"
+			+ " (Core Rules p.85)."), true)
+		# The battle happens regardless, so hand off exactly as the battle button
+		# does; _initiate_battle_sequence() will reuse the roll above rather than
+		# making a second one.
+		if world_phase_controller and world_phase_controller.has_method(
+				"_complete_world_phase"):
+			world_phase_controller._complete_world_phase()
+		return
+
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("remove_credits"):
+		return
+	# 1D6+1, through the DiceManager autoload so the roll reaches the dice feed
+	# like any other campaign roll. Falls back to a local roll in a headless
+	# context — a missing autoload must not be able to make laying low free.
+	var cost: int = 0
+	var dice: Node = get_node_or_null("/root/DiceManager")
+	if dice and dice.has_method("roll_dice"):
+		cost = int(dice.roll_dice(1, 6)) + 1
+	else:
+		cost = randi_range(1, 6) + 1
+	if not gsm.remove_credits(cost):
+		var held: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+		_notify("Laying low costs %d credits and you have %d." % [cost, held], true)
+		return
+
+	# The post-battle orchestrator reads `battle_skipped` and runs only the steps
+	# the errata leaves standing. Written through set_battle_results so the wizard
+	# and the backend read the SAME dictionary.
+	var skip_result: Dictionary = {
+		"battle_skipped": true,
+		"lay_low_cost": cost,
+		"turn": turn,
+		"victory": false,
+		"success": false,
+	}
+	battle_results = skip_result
+	if game_state and game_state.has_method("set_battle_results"):
+		game_state.set_battle_results(skip_result)
+	_journal_lay_low(cost)
+	_notify("Laid low for %d credits — no battle this turn." % cost, false)
+
+	if world_phase_controller and world_phase_controller.has_method(
+			"_complete_world_phase"):
+		world_phase_controller._complete_world_phase()
+	campaign_phase_manager.start_phase(
+		GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+
+
+func _journal_lay_low(cost: int) -> void:
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal == null or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"type": "event",
+		"auto_generated": true,
+		"title": "Laid low",
+		"description": ("Paid %d credits to stay in town and skip this turn's"
+			+ " battle. No pay, loot, injuries or XP (errata v1.06).") % cost,
+		"tags": ["crew", "finance"],
+	})
+
+
+func _notify(message: String, is_warning: bool) -> void:
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif == null:
+		return
+	if is_warning and notif.has_method("show_warning"):
+		notif.show_warning(message)
+	elif notif.has_method("show_info"):
+		notif.show_info(message)
+
 
 func _on_world_phase_completed(results: Dictionary) -> void:
 	## Handle world phase completion - skip directly to MISSION phase.

@@ -144,6 +144,22 @@ static func can_fit(weapon: Variant, name_or_id: String) -> Dictionary:
 		# Not an error — a Sight may be replaced, because it is movable.
 		pass
 
+	# Errata v1.06, verbatim: "The book says Mods and sights cannot be assigned
+	# to single-shot weapons. This means grenades and other limited use weapons,
+	# not weapons with only 1 Shot per round on their profile."
+	#
+	# The ruling matters because the naive reading is the opposite: a Hand Cannon
+	# and a Military Rifle both have Shots 1, and fitting a Sight to a rifle is
+	# exactly what the p.53 list is for. `Single use` (Core Rules p.51) is the
+	# trait marking the disposable weapons — Frakk and Dazzle grenades in
+	# equipment_database.json — so that trait is what is tested, never the shot
+	# count.
+	if "single use" in _traits_lower(w):
+		return {"ok": false, "reason":
+			("%s is a single-use weapon; Mods and Sights cannot be fitted to"
+			+ " grenades or other limited-use weapons (errata v1.06).") % str(
+				w.get("name", "That weapon"))}
+
 	var restrictions: Array = def.get("restrictions", []) if def.get(
 		"restrictions", []) is Array else []
 	for raw_restriction in restrictions:

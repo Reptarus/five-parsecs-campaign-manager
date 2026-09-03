@@ -103,13 +103,22 @@ func test_every_book_ai_type_resolves_to_a_data_entry() -> void:
 func test_defensive_and_guardian_are_distinct_entries() -> void:
 	# The two errata clarifications are per-type; if these collapsed onto one
 	# entry the wrong note would show.
+	#
+	# Compares `core_rules` (Core Rules pp.42-43) rather than `base_condition`.
+	# Sep 2026: base_condition was COMPENDIUM AI Variations data living in
+	# data/RulesReference/EnemyAI.json by mistake, and this assertion passed
+	# vacuously once it was gone — both sides defaulted to the distinct literals
+	# "d" and "g". Assert on a key the entries actually carry.
 	var r = auto_free(RouterClass.new())
 	var d: Dictionary = r._find_ai_type("Defensive")
 	var g: Dictionary = r._find_ai_type("Guardian")
 	assert_dict(d).is_not_empty()
 	assert_dict(g).is_not_empty()
-	assert_str(str(d.get("base_condition", "d"))) \
-		.is_not_equal(str(g.get("base_condition", "g")))
+	var d_rules: Array = d.get("core_rules", [])
+	var g_rules: Array = g.get("core_rules", [])
+	assert_array(d_rules).is_not_empty()
+	assert_array(g_rules).is_not_empty()
+	assert_str(str(d_rules[0])).is_not_equal(str(g_rules[0]))
 
 # ── _is_bot() never read the property that marks a Bot ───────────────────
 #

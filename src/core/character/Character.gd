@@ -194,6 +194,15 @@ var reactions_used_this_round: int = 0  # Reset at start of each battle round
 @export var battles_survived: int = 0            # Battles not KO'd
 @export var critical_hits_landed: int = 0        # Critical successes
 @export var advancement_history: Array[Dictionary] = []  # {turn, stat, old_value, new_value}
+## Character Upgrades bought with XP (Core Rules p.123), for the three p.64
+## Victory Conditions "Upgrade 1 / 3 / 5 Characters 10 Times".
+##
+## A COUNT, not a derivation from `advancement_history` above: that array is only
+## ever appended by `spend_xp_on_stat()`, which has no external callers, while the
+## live paths are `CharacterAdvancementService.advance_stat()` (Dictionary crew)
+## and `AdvancementPhasePanel._on_apply_pressed()`. Both now go through
+## `GameStateManager.record_character_upgrade()`, which owns this field.
+@export var character_upgrades: int = 0
 @export var player_notes: String = ""  # User-editable notes/lore/story for this character
 
 # Strange Character species data (Core Rules pp.19-22)
@@ -1176,6 +1185,15 @@ func process_recovery_turn() -> void:
 		var current_turns: int = inj_entry.get("recovery_turns", 0)
 		inj_entry["recovery_turns"] = max(0, current_turns - 1)
 
+		# Compendium p.102: Injured arm / leg / torso are removed by "3 Credits
+		# of medical treatment" and a Lingering injury by a natural 6 before a
+		# mission — not by serving their Sick Bay time. Dropping them at 0, which
+		# is what this loop used to do, deleted the standing penalty a turn or
+		# three after the battle. Mirrors the Dictionary-crew countdown in
+		# CampaignPhaseManager._process_sick_bay_recovery.
+		if bool(inj_entry.get("persistent", false)):
+			continue
+
 		# Mark as healed if recovery complete
 		if inj_entry["recovery_turns"] == 0:
 			healed_indices.append(i)
@@ -1422,6 +1440,7 @@ func to_dictionary() -> Dictionary:
 		"bot_upgrades": bot_upgrades.duplicate(),
 		"acquired_training": acquired_training.duplicate(),
 		# Lifetime statistics
+		"character_upgrades": character_upgrades,
 		"lifetime_kills": lifetime_kills,
 		"lifetime_damage_dealt": lifetime_damage_dealt,
 		"lifetime_damage_taken": lifetime_damage_taken,
@@ -1581,6 +1600,8 @@ func from_dictionary(data: Dictionary) -> void:
 			acquired_training.append(t)
 
 	# Lifetime Statistics (Five Parsecs Campaign Tracking)
+	# JSON numerics arrive as float, so int() rather than a bare assignment.
+	character_upgrades = int(data.get("character_upgrades", 0))
 	lifetime_kills = data.get("lifetime_kills", 0)
 	lifetime_damage_dealt = data.get("lifetime_damage_dealt", 0)
 	lifetime_damage_taken = data.get("lifetime_damage_taken", 0)

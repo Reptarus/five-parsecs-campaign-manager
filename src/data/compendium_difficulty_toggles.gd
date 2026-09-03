@@ -93,10 +93,16 @@ static var AI_VARIATION_TABLES: Dictionary:
 		_ensure_loaded()
 		return _data.get("ai_variation_tables", {})
 
-static var AI_BEHAVIOR_TABLE: Array:
+## AI_BEHAVIOR_TABLE was DELETED (Sep 2026). It read `ai_behavior_table`, a key
+## whose value in difficulty_toggles.json was the empty array `[]` — the real
+## pp.42-43 data has always been in `ai_variation_tables`, keyed per AI type with
+## a `base_condition` and a 6-row `actions` list. `roll_ai_behavior()` iterated
+## the empty one looking for `entry.roll`, so it returned {} on every call, and it
+## had zero callers besides. Same defect shape as CASUALTY_TABLE below.
+static var AI_VARIATION_RULES: Dictionary:
 	get:
 		_ensure_loaded()
-		return _data.get("ai_behavior_table", [])
+		return _data.get("ai_variation_rules", {})
 
 static var CASUALTY_TABLES: Dictionary:
 	get:
@@ -278,6 +284,23 @@ static func is_toggle_active(toggle_id: String) -> bool:
 	return toggle_id in get_active_toggles()
 
 
+## Compendium p.34 "Starting in the Gutter", second bullet, verbatim: "In a
+## campaign with a standard crew size of 6, begin with only 3 crew."
+##
+## Note what it does NOT say: the campaign's STANDARD size stays 6. That number
+## drives the p.63 enemy-count dice, the deployment cap, the p.78 Recruit gate
+## and the p.124 stealth sentry count, and the book only shrinks the STARTING
+## ROSTER. Two different numbers, which is why this returns the roster and leaves
+## `campaign_crew_size` alone.
+##
+## Scoped to 6 because that is the only size the bullet names — a player who
+## chose 4 or 5 already starts short-handed.
+static func starting_roster_size(campaign_crew_size: int) -> int:
+	if campaign_crew_size == 6 and is_toggle_active("starting_gutter"):
+		return 3
+	return campaign_crew_size
+
+
 ## ============================================================================
 ## p.32 "MONEY IS TIGHT" HELPERS
 ## ============================================================================
@@ -390,24 +413,74 @@ static func get_toggles_by_category(category: String) -> Array[Dictionary]:
 	return filtered
 
 
-## Roll D6 for enemy AI behavior. Returns behavior dict or empty if disabled.
-static func roll_ai_behavior() -> Dictionary:
-	if not _is_flag_enabled("AI_VARIATIONS"):
-		return {}
-	var roll := randi_range(1, 6)
-	for entry in AI_BEHAVIOR_TABLE:
-		if entry.roll == roll:
-			return entry
-	return {}
+## True when the pp.42-43 AI Variations option is owned and switched on. Public
+## so a UI can hide the dice mode rather than offer a roll the CORE rules do not
+## have (p.42: "The default AI is diceless").
+static func ai_variations_enabled() -> bool:
+	return _is_flag_enabled("AI_VARIATIONS")
 
 
-## Get AI behavior by roll value.
-static func get_ai_behavior(roll: int) -> Dictionary:
+## AI Variations (Compendium pp.42-43) — the per-type base condition and its 1D6
+## action table, or {} when the option is off or the type has no table.
+##
+## p.42, verbatim: "Using these rules, enemies with the Beast, Rampage, and
+## Guardian AIs function as they would currently. No changes are made." Those
+## three therefore have no entry and return {} even with the option ON, which is
+## the book's answer and not a data gap.
+##
+## Accepts a full type name ("Cautious"), the lower-case key, or a Core Rules
+## p.92 letter code (A/C/T/D), because the three call sites hold different forms.
+static func ai_variation_for(ai_type: String) -> Dictionary:
 	if not _is_flag_enabled("AI_VARIATIONS"):
 		return {}
-	for entry in AI_BEHAVIOR_TABLE:
-		if entry.roll == roll:
-			return entry
+	var key: String = _normalize_ai_type(ai_type)
+	if key.is_empty():
+		return {}
+	var table: Variant = AI_VARIATION_TABLES.get(key, {})
+	return table if table is Dictionary else {}
+
+
+const _AI_LETTER_TO_KEY := {
+	"a": "aggressive", "c": "cautious", "t": "tactical", "d": "defensive",
+	"r": "rampage", "b": "beast", "g": "guardian",
+}
+
+
+static func _normalize_ai_type(ai_type: String) -> String:
+	var raw: String = ai_type.strip_edges().to_lower()
+	if raw.is_empty():
+		return ""
+	if raw.length() == 1:
+		return str(_AI_LETTER_TO_KEY.get(raw, ""))
+	return raw
+
+
+## Roll 1D6 on this AI type's variation table. Returns {roll, action} or {}.
+##
+## Was `roll_ai_behavior()` with no argument, reading the empty `ai_behavior_table`
+## and matching `entry.roll` — {} on every call, and zero callers. The table is
+## per-AI-type in the book, so the type is not optional.
+static func roll_ai_behavior(ai_type: String) -> Dictionary:
+	var variation: Dictionary = ai_variation_for(ai_type)
+	if variation.is_empty():
+		return {}
+	return get_ai_behavior(ai_type, randi_range(1, 6))
+
+
+## Look up one row of this AI type's variation table by die result.
+static func get_ai_behavior(ai_type: String, roll: int) -> Dictionary:
+	var variation: Dictionary = ai_variation_for(ai_type)
+	var actions: Variant = variation.get("actions", [])
+	if not (actions is Array):
+		return {}
+	var want: int = clampi(roll, 1, 6)
+	for entry in actions:
+		# JSON numerics arrive as float, so int() rather than a bare compare.
+		if entry is Dictionary and int(entry.get("roll", -1)) == want:
+			var out: Dictionary = (entry as Dictionary).duplicate(true)
+			out["roll"] = want
+			out["ai_type"] = _normalize_ai_type(ai_type)
+			return out
 	return {}
 
 
@@ -442,6 +515,39 @@ static func roll_casualty(category: String = "humanoid", is_boss: bool = false,
 			out["table"] = category
 			return out
 	return {}
+
+
+## Compendium p.100 Critical Hit, an "additional optional rule", verbatim:
+## "If the Hit roll was a natural 6, roll one additional time on the Casualty
+## table and use the highest result as normal."
+##
+## Lives here rather than at the call site so the rule is testable without a
+## battle screen, and so the second roll goes through the SAME roll_casualty()
+## the first did — a hand-rolled duplicate would drift from the table.
+##
+## `critical_enabled` is passed in rather than read from SettingsManager here:
+## this file is a static data layer with no tree access, and the caller already
+## holds the setting.
+static func roll_casualty_with_critical(category: String = "humanoid",
+		is_boss: bool = false, was_critical: bool = false,
+		critical_enabled: bool = false) -> Dictionary:
+	var first: Dictionary = roll_casualty(category, is_boss)
+	if first.is_empty() or not was_critical or not critical_enabled:
+		return first
+	var second: Dictionary = roll_casualty(category, is_boss)
+	if second.is_empty():
+		return first
+	# "Use the highest result" is by ROW SEVERITY. The tables run
+	# Dazed -> Wounded -> Goner and a boss column shifts the spans, so both
+	# rolls are resolved against the SAME column first and then compared on the
+	# roll — equivalent, and it reads the same as p.99's "ONLY the single
+	# highest result from the casualty rolls is applied".
+	var keep: Dictionary = second if int(second.get("roll", 0)) > int(
+		first.get("roll", 0)) else first
+	keep = keep.duplicate(true)
+	keep["critical_hit"] = true
+	keep["critical_rolls"] = [int(first.get("roll", 0)), int(second.get("roll", 0))]
+	return keep
 
 
 ## Which Casualty Table a figure uses (p.99 "the most suitable category").

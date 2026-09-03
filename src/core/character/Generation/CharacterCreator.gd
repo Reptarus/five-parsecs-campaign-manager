@@ -10,6 +10,7 @@ const FiveParsecsCharacterStats = preload("res://src/core/character/Base/Charact
 const FiveParsecsCharacterTableRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 const StartingEquipmentGen = preload("res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+const LootTableResolverRef = preload("res://src/core/equipment/LootTableResolver.gd")
 enum CreatorMode {
 	CHARACTER,
 	CAPTAIN,
@@ -777,6 +778,29 @@ func _roll_gear_table_entry_id(table_key: String) -> String:
 			return str(entry.get("id", ""))
 	return ""
 
+## Errata v1.06 (update 1.03): a Bio-upgrade starts with one random p.133
+## Implant. Goes through Character.add_implant(), which enforces the p.55
+## per-species cap (a Bio-upgrade may hold up to 4, p.23) and the p.96 Psionic
+## interaction — appending to the array directly would bypass both.
+func _grant_bio_upgrade_implant(character) -> void:
+	if character == null or not character.has_method("add_implant"):
+		return
+	var implant_name: String = LootTableResolverRef.roll_implant_name()
+	if implant_name.is_empty():
+		return
+	var implant: Dictionary = {}
+	if character.has_method("create_implant_from_loot"):
+		implant = character.create_implant_from_loot(implant_name)
+	if implant.is_empty():
+		# create_implant_from_loot() name-matches implants.json; a miss means
+		# that file and loot_tables.json have drifted, which is worth saying
+		# rather than silently skipping the errata rule.
+		push_warning("CharacterCreator: implants.json has no entry named '%s'"
+			% implant_name)
+		return
+	character.add_implant(implant)
+
+
 func _roll_and_store_creation_bonuses(character) -> void:
 	## Roll creation bonuses from gear_database.json using character's actual
 	## background/motivation/class. Stores concrete rolled results on
@@ -924,6 +948,15 @@ func _roll_and_store_creation_bonuses(character) -> void:
 				# case at all, so the penalty never applied.
 				if bonuses.bonus_credits > 0:
 					bonuses.bonus_credits = maxi(bonuses.bonus_credits - 2, 0)
+				# Errata v1.06 (update 1.03), verbatim: "The Bio-Upgrade
+				# character sub-type will always begin the campaign with one
+				# randomly generated Implant (Loot table p.133)."
+				#
+				# Not in either rulebook, so the sub-type shipped with only its
+				# PENALTY applied — a Bio-upgrade paid 2 credits for nothing.
+				# Rolled off the real p.133 subtable, because "randomly
+				# generated" is the rule.
+				_grant_bio_upgrade_implant(character)
 			"minor_alien":
 				# Bonus credits/story points reduced by 1 (p.22)
 				bonuses.bonus_credits = maxi(
@@ -1107,17 +1140,28 @@ func _on_randomize_pressed() -> void:
 		rand_name = FiveParsecsCharacterTableRoller.generate_random_name()
 	_set_character_property(current_character, "character_name", rand_name)
 
-	# Origin: flat random from all available species (including Strange Characters)
-	var origin_idx: int = randi() % _origin_species_ids.size()
-	# Skip separator entries (empty species_id)
-	while origin_idx < _origin_species_ids.size() and _origin_species_ids[origin_idx].is_empty():
-		origin_idx = randi() % _origin_species_ids.size()
-	# Skip disabled items (DLC-locked)
-	if origin_idx < origin_options.item_count and origin_options.is_item_disabled(origin_idx):
-		origin_idx = randi() % ORIGIN_ITEMS.size()  # fallback to primary
-	var species_id: String = (
-		_origin_species_ids[origin_idx]
-		if origin_idx < _origin_species_ids.size() else "")
+	# Core Rules p.14 "Crew Type Tables" — the Random Method (p.13).
+	#
+	# This was `randi() % _origin_species_ids.size()`: a FLAT pick across the
+	# whole dropdown (8 primary rows + a separator + 18 Strange Characters,
+	# plus any unlocked DLC). The book weights it steeply — 60% Baseline
+	# Human, 20% Primary Alien, 10% Bot, 10% Strange Character — so the flat
+	# version produced roughly 69% Strange Characters against the book's 10%,
+	# and 3.8% Humans against 60%. Both live creation paths run through here
+	# (CaptainPanel:64, CrewPanel:236), as does the p.78 recruit rule, whose
+	# own text is "Each recruit rolls using the random method ... (see p.14)".
+	var rolled: Dictionary = SpeciesDataService.roll_crew_type()
+	var species_id: String = str(rolled.get("species_id", ""))
+	var origin_idx: int = _origin_species_ids.find(species_id)
+	if species_id.is_empty() or origin_idx < 0:
+		# The tables are core-only, so every row resolves to a species that is
+		# always in the list. Falling back to Human keeps a data problem from
+		# silently reintroducing the flat pick this replaced.
+		push_warning(
+			"CharacterCreator: p.14 crew type roll produced %s, which is not in "
+			% species_id + "the origin list; defaulting to Human")
+		species_id = "human"
+		origin_idx = maxi(_origin_species_ids.find("human"), 0)
 	var origin_enum: int = (
 		origin_options.get_item_id(origin_idx)
 		if origin_idx < origin_options.item_count else 1)

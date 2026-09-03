@@ -41,14 +41,43 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 	# tables take the place of the regular encounter tables") happens in
 	# EnemyGenerator._roll_enemy_in_category. The data file was two of five
 	# tables, both truncated, and was completed from the PDF first.
-	# compendium_missions_expanded.get_pvp_setup / get_pvp_rules /
-	# roll_pvp_battle_reason / roll_pvp_third_party — zero callers repo-wide.
-	"PVP_BATTLES",
-	# compendium_missions_expanded.get_coop_setup / get_coop_rules — zero callers.
-	"COOP_BATTLES",
-	# compendium_difficulty_toggles.roll_ai_behavior / get_ai_behavior and the
-	# AI_VARIATION_TABLES getter — zero callers.
-	"AI_VARIATIONS",
+	#
+	# PVP_BATTLES and COOP_BATTLES were removed from this list on Sep 3 2026, and
+	# the reason is subtler than "their rules landed".
+	#
+	# ⚠ THIS LIST HIDES THE TOGGLE. `is_flag_unimplemented()` is consumed by
+	# ExpansionFeatureSection (:169) and DLCManagementDialog (:211), and both
+	# `continue` past a listed flag — so a listed flag has NO CONTROL anywhere in
+	# the app. Owning the pack does not help: `DLCManager.is_feature_enabled()`
+	# requires `_enabled_flags[flag]`, which only `set_feature_enabled()` writes.
+	# A listed flag is therefore permanently OFF for the player.
+	#
+	# That was correct while the chapters were dead. It stopped being correct the
+	# moment `CheatSheetSections.pvp_battles()` / `.coop_battles()` started gating
+	# on those flags: the sections would have been unreachable, which is the exact
+	# defect shape (a consumer whose gate cannot be opened) this sweep exists to
+	# close. Leaving them listed would have shipped a new dead wire.
+	#
+	# ⚠ WHAT LANDED IS THE RULES TEXT, NOT THE BATTLE MODE. Compendium pp.35-38
+	# and pp.39-41 both need a second player this app has no surface for, so the
+	# chapters are delivered as reference sections in the battle drawer (user
+	# decision, Sep 3 2026). Do NOT read their absence from this list as "PvP is
+	# playable" — see docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md, where both are
+	# recorded as REFERENCE rather than LIVE.
+	#
+	# AI_VARIATIONS was removed from this list on Sep 3 2026, and it was the worst
+	# kind of dead: its RULES were already being handed out for free, under the
+	# wrong book's name. data/RulesReference/EnemyAI.json held the Compendium
+	# pp.42-43 base conditions and 1D6 tables VERBATIM under a Core Rules label,
+	# and three consumers printed them with no flag check at all — so a player who
+	# owned nothing was told to roll for every enemy activation, while the actual
+	# core routine ("The default AI is diceless", p.42) was in the app nowhere.
+	# Meanwhile roll_ai_behavior()/get_ai_behavior() read `ai_behavior_table`, a
+	# key whose value was `[]`, and had zero callers. Now: EnemyAI.json is
+	# core-only (seven diceless bullet routines), the dice live in
+	# data/compendium/difficulty_toggles.json behind ai_variation_for(), and
+	# TacticalBattleUI / EnemyAIOracleRouter / EnemyIntentPanel all gate on the
+	# flag. Pinned by tests/unit/test_enemy_ai_reference.gd (18 cases).
 	#
 	# GRID_BASED_MOVEMENT was removed from this list on Aug 6 2026. It was listed
 	# as a pure wiring gap (`grid_movement_instructions` had zero producers) and
@@ -67,12 +96,16 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 ## into campaign.progress_data["difficulty_toggles"], and
 ## CompendiumDifficultyToggles.is_toggle_active() is the one call every rule site
 ## reads. Pinned by tests/unit/test_compendium_difficulty_toggles.gd.
-## KNOWN PARTIAL: "Starting in the Gutter" applies three of its four clauses
-## (no free Military/Hi-Tech rolls, no 1cr per crew member, no starting ship).
-## "In a campaign with a standard crew size of 6, begin with only 3 crew" is NOT
-## applied — it needs the wizard to separate the campaign's STANDARD size (which
-## feeds the enemy-count dice and must stay 6) from the STARTING ROSTER, and
-## CrewPanel deliberately holds no second opinion on crew size.
+## COMPLETE as of Sep 3 2026: all four "Starting in the Gutter" clauses apply.
+## The last one — "In a campaign with a standard crew size of 6, begin with only
+## 3 crew" — needed the wizard to carry TWO numbers, because the standard size
+## drives the p.63 enemy-count dice, the deployment cap and the p.78 Recruit gate
+## and must stay 6 while the crew step asks for 3.
+## `CompendiumDifficultyToggles.starting_roster_size()` derives the roster, the
+## coordinator publishes it as `campaign_config["starting_roster_size"]`, and
+## CrewPanel consumes it through `apply_campaign_crew_size(size, roster)` — so
+## the panel still holds no second opinion on crew size, it just reads a second
+## value. Pinned by tests/unit/test_compendium_difficulty_toggles.gd.
 ##
 ## FRINGE_WORLD_STRIFE was REMOVED the same day. pp.148-151 now run on
 ## src/core/world/FringeWorldStrife.gd: the arrival 1D6, the per-world

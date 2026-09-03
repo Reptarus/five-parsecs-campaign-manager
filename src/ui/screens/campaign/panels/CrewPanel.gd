@@ -76,6 +76,34 @@ func _add_guidance_label() -> void:
 	content.add_child(guidance)
 	content.move_child(guidance, 0)
 
+## The campaign's STANDARD crew size (Core Rules p.63). Distinct from
+## `selected_size`, which under Compendium p.34 is the STARTING ROSTER.
+var _campaign_standard_size: int = 6
+var _gutter_roster: bool = false
+
+
+## Say so on the panel. A crew step that silently asks for 3 of 6 reads as a bug.
+func _update_gutter_notice() -> void:
+	if content == null:
+		return
+	var notice := content.get_node_or_null("__gutter_notice")
+	if not _gutter_roster:
+		if notice:
+			notice.queue_free()
+		return
+	if notice == null:
+		notice = Label.new()
+		notice.name = "__gutter_notice"
+		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		notice.add_theme_color_override("font_color", Color("#FBBF24"))
+		content.add_child(notice)
+		content.move_child(notice, 1)
+	notice.text = ("Starting in the Gutter (Compendium p.34): begin with only %d"
+		+ " crew. The campaign's standard crew size stays %d — that is what the"
+		+ " enemy-count dice and the deployment cap use.") % [
+			selected_size, _campaign_standard_size]
+
+
 func _setup_crew_size_options() -> void:
 	crew_size_option.clear()
 	
@@ -98,7 +126,7 @@ func _connect_signals() -> void:
 
 	crew_list.item_selected.connect(_on_crew_member_selected)
 
-func apply_campaign_crew_size(size: int) -> void:
+func apply_campaign_crew_size(size: int, roster_size: int = 0) -> void:
 	## CONFIG owns the crew size (Core Rules p.63). It is the value the rules
 	## engine reads — enemy-count dice, the deployment cap, the recruit gate — so
 	## this panel must CONSUME it, not hold a second opinion.
@@ -107,15 +135,34 @@ func apply_campaign_crew_size(size: int) -> void:
 	## what the player picked at step 1. Choose a crew of 4 there and this panel
 	## still asked for 6, so the roster and campaign_crew_size disagreed and the
 	## campaign was created with an enemy-count formula for a crew it did not have.
+	# Compendium p.34 "Starting in the Gutter", second bullet: "In a campaign with
+	# a standard crew size of 6, begin with only 3 crew."
+	#
+	# `size` is the campaign's STANDARD size (p.63) and `roster_size` is how many
+	# characters to create now. They differ only under that toggle, and the
+	# distinction is load-bearing: the standard size drives the enemy-count dice,
+	# the deployment cap and the p.78 Recruit gate, so it must stay 6 while this
+	# panel asks for 3. Until Sep 2026 the clause was unimplemented (recorded as
+	# a KNOWN PARTIAL in DLCContentCatalog) because there was only one number.
 	var clamped: int = clampi(size, 4, 6)
-	if clamped == selected_size:
+	var roster: int = clampi(roster_size, 3, 6) if roster_size > 0 else clamped
+	_campaign_standard_size = clamped
+	_gutter_roster = roster < clamped
+	if roster == selected_size:
+		_update_gutter_notice()
 		return
-	selected_size = clamped
+	selected_size = roster
 	if crew_size_option:
 		for i in range(crew_size_option.item_count):
 			if crew_size_option.get_item_id(i) == clamped:
 				crew_size_option.select(i)
 				break
+		# Under "Starting in the Gutter" the roster and the standard size differ,
+		# and the dropdown shows the STANDARD one — so it must not be editable
+		# here or the player would appear to be able to change a number this
+		# panel is no longer the owner of.
+		crew_size_option.disabled = _gutter_roster
+	_update_gutter_notice()
 	_update_crew_list()
 	_update_candidate_hint()
 	crew_updated.emit(crew_members)

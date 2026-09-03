@@ -4,6 +4,25 @@ Eight parallel auditors, one per subsystem, each required to quote the book, cit
 
 **152 findings**: 88 NEVER-FIRES, 21 WRONG-VALUE, 13 FABRICATED, 30 PARTIAL.
 
+> ## ⚠ Sep 3 2026 — REOPENED AND RE-CLOSED by a page walk: +14 fixed, +2 corrected
+>
+> The Aug 7 closure was accurate and it was not the end. Its own caveat said so:
+> eight auditors walked eight SUBSYSTEMS, and nobody walked every PAGE. Walking
+> the rest — the Core Rules appendices, the Compendium chapters marked DEAD, the
+> sub-sections inside the LIVE ones, the designer errata v1.06 and the FAQ — found
+> **sixteen more rows**, including three failure shapes neither this ledger nor
+> the chapter trace can see:
+>
+> 1. a `RulesReference` data file that was a faithful extraction of the WRONG BOOK
+>    (the Compendium AI Variations option, shipped to every player as core rules);
+> 2. five rules implemented CORRECTLY against the printed page that the designer
+>    has since changed by errata; and
+> 3. a value written and then erased by a `clear()` before its reader ran.
+>
+> **The full section is at the bottom of this file: "Sep 2026 page walk".** Read
+> the number below as what it always meant — every row someone wrote down has a
+> call site and a test — and never as "the rules are done".
+>
 > ## Standing as of Aug 7 2026 — **0 open / 0 partial / 136 fixed / 1 corrected. THE LEDGER IS CLOSED.**
 >
 > The last four OPEN rows (125 Black Jobs, 136 Salvage, 241 Flee Invasion, 243
@@ -611,3 +630,187 @@ Battle regression set, all green at handoff (130/130): `test_battle_calculations
 `test_battle_resolver_router`, `test_battle_funnel_routing`,
 `test_zone_job_opposition`, `test_enemy_deploy_markers`,
 `test_weapon_table_source_of_truth`.
+
+---
+
+# Sep 2026 page walk — the pages nobody had walked
+
+Appended Sep 3 2026. The ledger above closed Aug 7 at 0 open, and its own header
+says why that is not "the rules are done": eight auditors walked eight
+SUBSYSTEMS, and nobody walked every page of both books. This section is the walk
+of what was left — Core Rules appendices II, IV, VI, VII and VIII, the three
+Compendium chapters the trace still lists as DEAD, the sub-sections inside the
+LIVE ones, the designer errata v1.06, and the designer FAQ — plus a diff of the
+one surface a player reads mid-battle (the Cheat Sheet) against the PDFs.
+
+**17 rows: 15 FIXED, 2 CORRECTED (stale tests).** Every fix is detection-proven
+by isolated revert. No agents; each row was found by opening the file and the
+page.
+
+⚠ **The seventeenth row was found by auditing THIS sweep for completeness, and
+it was mine.** Two of the sections built above were gated on ContentFlags that
+`DLCContentCatalog.UNIMPLEMENTED_FLAGS` still listed, and that list hides a
+flag's toggle everywhere in the app — so the sections could never render. A
+second completeness check found the Critical Hit rule shipped with no test at
+all, because it had been written inside a UI method that cannot be instantiated
+outside its scene. Both are recorded as rows. **Auditing your own sweep the way
+you audited the codebase is worth doing: the same failure shapes recur in the
+fix.**
+
+## The three new failure shapes
+
+The ledger's unit of analysis is *rule → producer → consumer*, and the chapter
+trace's is *does a live path reach the player*. Three of this walk's rows are
+invisible to BOTH, and they are the transferable part:
+
+1. **The data file is a faithful extraction of the WRONG BOOK.**
+   `data/RulesReference/EnemyAI.json` held the COMPENDIUM pp.42-43 "AI
+   Variations" base conditions and 1D6 tables, verbatim and correct, under a Core
+   Rules label. Producer, consumer, key and flag were all present and
+   self-consistent; three surfaces rendered it at every tier. So a player who
+   owned no expansion was told to roll a die for every enemy activation — Core
+   Rules p.42 says "The default AI is diceless" — while the actual core routine
+   (seven bullet lists on pp.42-43) was in the app NOWHERE. Meanwhile the
+   chapter's own API read an empty key and had zero callers, so the option a
+   player PAID for did nothing and its rules were given away free under the wrong
+   name. **A `RulesReference` file can be honest, complete, and about the wrong
+   book. Check provenance, not just contents.**
+
+2. **The rule is right, the DESIGNER changed it.** Five rows were implemented
+   correctly against the printed page and are now wrong, because errata v1.06 and
+   the FAQ replaced the rule. That is invisible to every census in this project:
+   the code matches its own citation. **A page cite proves the code followed the
+   book; it does not prove the book still says that.** Sources are in the repo:
+   `docs/gameplay/rules/5P_errata_and_tweaks106.pdf` and
+   <https://modiphius.net/en-us/pages/five-parsecs-faq>.
+
+3. **The write is undone before the read.** `MainMenu` set
+   `temp_data["onboarding_mode"]` and then called `_start_new_campaign()`, whose
+   first act is `clear_all_temp_data()`. Both halves existed and were correct;
+   the ORDER erased the value in between, so "Onboard Existing Game" silently
+   behaved like "New Campaign". Same invisibility as a consumer with no producer.
+
+## Rows
+
+| Rule | Player-visible effect | Status |
+|---|---|---|
+| Enemy AI — Core Rules pp.42-43 vs Compendium pp.42-43 | A player with no DLC was instructed to roll 1D6 per enemy activation, a rule the core game does not have, and the seven core routines appeared nowhere. The AI Variations option itself did nothing (`roll_ai_behavior()` read `ai_behavior_table`, whose value was `[]`, and had zero callers). | **FIXED** — `EnemyAI.json` is core-only (seven diceless bullet routines, verbatim); the dice live in `difficulty_toggles.json` behind `ai_variation_for()`; `TacticalBattleUI`, `EnemyAIOracleRouter` and `EnemyIntentPanel` gate on `AI_VARIATIONS`; the invented "AI Targeting Priority" section is deleted. 18 cases in `test_enemy_ai_reference.gd`. |
+| Victory Conditions — kill 10/25 Unique Individuals (p.64) | Both conditions sat at 0/N for the life of every campaign. `increment_unique_individual_kills()` had ZERO callers while every producer already wrote `was_unique_individual` onto `defeated_enemies`. | **FIXED** — tallied at `CampaignTurnController._on_post_battle_completed()`, off the STORED battle result (the `results` parameter is post-battle output and carries neither key). |
+| Victory Conditions — upgrade 1/3/5 characters 10 times (p.64) | Three more conditions at 0/N forever: no per-character upgrade count existed anywhere, and `record_character_upgrade_milestone()` had zero callers. | **FIXED** — persisted `Character.character_upgrades`, new chokepoint `GameStateManager.record_character_upgrade()` called from both live advance paths, milestone banked on the campaign so it survives the character's death (p.64 says it must). |
+| Detailed Injuries — the four persistent rows (Compendium p.102) | Injured arm / leg / torso and Lingering injury fell through with only a Sick Bay count, and BOTH turn-rollover countdowns delete an injury entry at 0 — so a penalty the book says lasts "until 3 Credits of medical treatment" lasted exactly as long as the med-bay stay. | **FIXED** — `persistent` / `treatment_cost` / `lingering` flags, forwarded through `apply_crew_injury()`'s FIXED KEY LITERAL (they were being deleted at that chokepoint), and both countdowns keep them while still ending Sick Bay on schedule. |
+| Detailed Injuries — paying for treatment (p.102) | `treatment_cost` was written and read by NOTHING. An Extensive injury benched a crew member with `skip_tasks` + `skip_next_battle` effects carrying no `duration`, which the turn-rollover expiry can never clear — a permanent lockout with no way to pay. | **FIXED** — `GameStateManager.pay_medical_treatment()` charges through `remove_credits()` (one site checks AND charges), removes the entry, clears the lockout effects and starts the deferred Sick Bay clock. |
+| Lingering Injury — the pre-mission 1D6 (p.102) | Never implemented. The condition the book says to "note down" was deleted by the recovery tick a turn or two later. | **FIXED** — `src/core/campaign/LingeringInjuryCheck.gd`, rolled once per battle from `_initiate_battle_sequence()` BEFORE the crew is filtered; a 1 attaches a one-battle `skip_next_battle` that `filter_deployable()` already excludes, so no second gate exists to drift. |
+| Knocked out — 3 Stun markers (Core Rules p.40) | Not implemented on the played path at all. Stun markers accumulated with no ceiling, so a figure on five kept acting — and the p.102 Injured torso ("knocked out after TWO") had nothing to modify. | **FIXED** — `TacticalUnit.stun_ko_threshold` (3, or 2 with an injured torso) and `_mark_knocked_out()`, deliberately NOT routed through `_mark_casualty()`: p.121 grants no injury roll and p.114 no Morale die for a knock-out. The auto-resolve path takes the threshold too. |
+| Injured arm — the conditional -1 (p.102) | Surfaced as character-sheet text only. `Character._apply_injury_penalties` refuses to apply it, correctly: the channel is unconditional and would also penalise PISTOL shots the book exempts. | **FIXED** — applied at the roll, where the weapon is known: `CharacterQuickRollPanel` subtracts 1 for a non-Pistol shot and always in a Brawl. |
+| Critical Hit (Compendium p.100) | The "additional optional rule" was absent. | **FIXED** — `BattleResolver` stamps the felling hit's natural 6; the rule rolls twice and keeps the higher, behind a new `gameplay/critical_hit` setting (the book presents it as a further opt-in on top of the Casualty Tables). **The rule lives in `CompendiumDifficultyToggles.roll_casualty_with_critical()`, beside `roll_casualty()`, not in the battle screen** — it was first written as a `TacticalBattleUI` method and was therefore untestable: instantiating that script bare dies at `@implicit_ready` on a missing `%ReturnButton`, so no test could ever have run it. The screen keeps a wrapper that only reads the setting, which the static layer has no tree access to reach. |
+| Starting in the Gutter — begin with 3 crew (p.34) | Recorded as a KNOWN PARTIAL: three of four clauses applied. The wizard carried ONE crew-size number, and this clause needs two. | **FIXED** — `starting_roster_size()` derives the roster; `campaign_crew_size` STAYS 6 because it drives the p.63 enemy-count dice and the deployment cap. Shrinking it would have made the book's hardest option easier than Normal. |
+| Errata — Lay Low (p.3 Update, FAQ 17) | `battle_skipped` had a CONSUMER since the orchestrator was written and NO PRODUCER anywhere, so the app demanded a battle every campaign turn with no way to rest. | **FIXED** — `%LayLowButton` in the World Phase footer; the p.85 Rival check runs FIRST (and is now idempotent per turn, since two callers reach it); 1D6+1 charged through `remove_credits()`; the orchestrator's skip branch runs steps 12-14 and writes no battle record; a rest turn moves neither W/L counter. |
+| Errata — creation Patrons offer work on turn 1 (p.3, FAQ 14) | A crew that rolled a Patron at creation opened its first World Phase with an empty job board: offers come only from `patron_offers_owed` or the p.84 Busy follow-up, and neither fires on turn 1. | **FIXED** — banked as NAMED follow-ups at finalization, using the identity rule `JobOfferComponent._patron_identity()` uses (that consumer DROPS ids it cannot match). |
+| Errata — Quest 7+ discards all Rumors (p.3, FAQ 13) | The pool carried over, so every Rumor spent finishing one Quest kept adding +1 to the next one's rolls, forever. The core rulebook is silent; only the errata says it. | **FIXED** — both the core p.120 branch and the Compendium p.78 expanded conclusion discard through `PostBattleContext.discard_all_quest_rumors()`, journalled so the player sees the spend. |
+| Errata — Bio-upgrade starts with an Implant (p.4, update 1.03) | The sub-type applied its 2-credit PENALTY and not the compensating Implant, because the rule is in neither rulebook. | **FIXED** — `LootTableResolver.roll_implant_name()` over the real p.133 Implants Subtable, granted through `Character.add_implant()` so the p.23 four-implant cap and the p.96 Psionic interaction still apply. |
+| Errata — recruits roll the creation tables (p.3 Update) | p.78's "basic profile, no background rolls" was implemented exactly, and the designer replaced it. A recruit arrived with no background, motivation or class and none of the tables' Patrons or Rivals. | **FIXED** — rolled through the static `CharacterGeneration.roll_character_tables()`; credits ignored (the one reward the errata withholds); contacts granted at the HIRE site, not at roll time, or the p.74 Adventurous-population extras would saddle the crew with rejected candidates' Rivals. |
+| Errata — accept several Patron jobs (p.3 Update) | Accepting one job consumed it and left the rest to lapse. The errata lets the crew accept all of them, with each Time Frame running. | **FIXED** — accepted jobs bank as outstanding commitments on the campaign, re-surface as offers, and lapse through the same `_fail_expired_job()` a lapsed offer takes ("counts as a failure"). The fought job is discharged at the mission hand-off, and the list rides the World Phase checkpoint with the restore guarded in the CALLEE. |
+| Errata — Mods/Sights on disposable weapons (p.4) | Never tested at all: a Quality Sight could be fitted to a Frakk Grenade. | **FIXED** — `WeaponModService.can_fit()` rejects the `Single use` TRAIT, not the shot count. The ruling exists because the naive reading is the opposite: a Military Rifle has Shots 1 and is exactly what the p.53 list is for. |
+| Cheat Sheet — four fabricated chapters | The panel a player consults MID-BATTLE printed a D6 casualty table and a 2D6 injury table that exist in neither book (cited to "p.86" and "p.87", which hold neither), a salvage-to-credits scale that does not exist, the wrong Suspect table at the wrong range, and the wrong stealth reinforcement rate. One section shipped a literal `pass` statement in player-facing text. | **FIXED** — `CheatSheetSections.gd`: every Compendium section renders from the SAME JSON the mechanic reads, so the reference and the rule cannot drift again. Core page cites corrected (turn sequence was "p.38"; it is pp.112-113). 14 cases, detection-proven by editing the DATA. |
+| Core appendices II, IV, VI, VII, VIII | ZERO code presence — not dead implementations, absent ones. All four are in the BASE book, so every player owns them. | **FIXED** — `data/RulesReference/NeutralCharacters.json` (twelve verbatim profiles), `src/core/battle/ProblemSolvingTests.gd` (Quick/Opposed/Wits + the natural-1 fumble, and the resolver Appendix VIII's help roll needs), a TEST roll type on the battle quick-roll panel, and reference sections for all five (Appendix VII as text only — see below). |
+| PvP (pp.35-38) and Expanded Co-op (pp.39-41) | The two chapters the trace lists as DEAD. Complete rules data with zero callers, so a player who bought the Freelancer's Handbook could not read what they paid for. | **FIXED as REFERENCE TEXT** (user decision, Sep 3 2026) — both need a second player this app has no surface for, so the chapters are delivered as gated reference sections. Their first callers. |
+| Ship debt fallback (p.31) | `ShipPanel`'s unresolved-type fallback used `randi_range(0, 3)`, matching no row of the Ship Table — a crew taking that branch started effectively debt-free, removing p.76 interest and seizure from the campaign. | **FIXED** — resolved from `ships.json` (Worn Freighter: `debt_base` 20 + 1D6). |
+| Onboard Existing Game | The flag was written and then erased by `clear_all_temp_data()` before either consumer could read it. | **FIXED** — set AFTER `_start_new_campaign()`. The clear itself is deliberate and stays. |
+| PvP / Co-op sections could not be reached (found during the completion audit of this same sweep) | The two new reference sections were gated on `ContentFlag.PVP_BATTLES` / `COOP_BATTLES`, which were still listed in `DLCContentCatalog.UNIMPLEMENTED_FLAGS`. **That list hides the flag's toggle** — `ExpansionFeatureSection` (:169) and `DLCManagementDialog` (:211) both `continue` past a listed flag — and `DLCManager.is_feature_enabled()` needs `_enabled_flags[flag]`, which owning the pack does not write. So the flags were permanently OFF with no control anywhere in the app, and the sections I had just built were unreachable: a new dead wire, of exactly the shape this sweep exists to close. | **FIXED** — both removed from the list, with a comment at the site recording that the list HIDES the toggle and that what landed is the rules TEXT, not a playable battle mode. Pinned by `test_a_gated_section_has_a_toggle_the_player_can_reach`, which walks every flag a Cheat Sheet section gates on and fails if it is unreachable. Detection-proven: putting `PVP_BATTLES` back fails exactly that case. **The lesson: adding a consumer behind an existing flag is not wiring until you check the flag can be turned ON.** |
+| `test_expanded_quest_progression::test_the_resolver_branches_before_the_core_die_is_rolled` | Red on HEAD before this sprint. | **CORRECTED (the TEST)** — it anchored on an exact 2-argument call form that gained an `analyzer_bonus` parameter, so `find()` stopped matching and the case failed for a reason unrelated to ordering. Anchor widened to the call PREFIX. |
+| `test_patron_gate_and_rival_ambush::test_the_rival_check_precedes_mission_generation` | Would have gone red on the Lay Low change. | **CORRECTED (the TEST)** — it asserted "exactly one call site" as a PROXY for "cannot run twice". Lay Low adds a second legitimate caller, so the assertion now checks the real property: the callee stamps the turn and early-returns. That is the T9-50 lesson — a fix ordered against SOME callers is not a fix. |
+
+## Verified-and-already-correct (no change needed)
+
+Recorded so the next reader does not re-walk them. Each was checked against the
+errata or FAQ this session and the code already agrees: damage on
+Toughness-or-higher; no auto-hit on a natural 6; the brawl bonus is the HIGHER of
+Melee/Pistol; first-casualty XP excludes Bots; Psycho → Rampaging; a failed
+known-Patron job removes them; declining a job costs nothing; the 18" deployment
+gap and enemy-deploys-first; the Guardian and always-aware AI clarifications;
+animal Specialists and built-in Melee weapons; Rumors reset on a NEW Quest;
+Analyzer polarity; Colonist ration packs and the Duplicator; Bot/Soulless event
+parity; Soulless barred from Bot upgrades; covered-target-within-6" is 5+; Patron
+Benefits remembered per Patron.
+
+## Still not done, and why
+
+- **Injured torso's Stun threshold does not reach the in-battle Stun tracker on
+  every path.** The played path and the auto-resolver both honour it; a Bug Hunt
+  or Planetfall battle shares `TacticalBattleUI` but builds its units elsewhere.
+  Out of scope by the standing "variant gamemodes are separate" rule.
+- **PvP and Co-op remain reference text.** They need a second-player surface,
+  which is a product decision, not a wiring gap.
+- **Appendix VII (Game Mastering, pp.162-171) is delivered as REFERENCE TEXT,
+  not as mechanics.** Plot Points, Revelations, Mass Battle and War Exhaustion
+  are campaign subsystems in their own right, and building them is net-new scope
+  rather than a gap-close. The section carries the tools a player applies at the
+  table (Plot Points, Booby Traps, Bystanders, Connections, Intrusion, Searching,
+  Revelations, Time Limits, Turrets) and the book's own reward ceilings.
+
+
+# Sep 2026 CORE RULES page walk (pp.12-135) — the chapters no subsystem owned
+
+Appended Sep 3 2026, after the page walk above. That one covered the Core
+appendices, the Compendium's dead chapters and the errata. This one walks the
+Core Rules MAIN chapters, pp.12-135, against the PDF page by page — the last
+part of either book that had never been walked.
+
+**The structural finding, and the reason this walk was worth running.** The eight
+August audits were organised by SUBSYSTEM: `battle-resolution`, `battle-setup`,
+`economy-trade-equipment`, `factions-world-compendium`, `missions-elites-zones`,
+`patrons-rivals-quests`, `post-battle`, `turn-upkeep-travel`. Every one of those
+names a CAMPAIGN or BATTLE concern, so they collectively cover pp.63-135 well —
+and **pp.12-62 (Character Creation and Main Rules) had no owning auditor at all.**
+Every gap below is in that range, and pp.63-135 came back clean apart from
+confirmations. A subsystem census cannot see a chapter that is nobody's subsystem.
+
+**4 rows: 3 FIXED, 1 REPORTED (a product decision, not a wiring gap).** Plus two
+CONFIRMED rows recorded so nobody "fixes" correct code, and a family of
+duplicate-implementation drift noted at the end. Every fix detection-proven by
+isolated revert with the case count intact.
+
+| Rule | Player-visible effect | Status |
+| --- | --- | --- |
+| Crew Type Tables (p.14) — the Random Method (p.13) | **Every randomly generated character had the wrong species distribution.** `CharacterCreator._on_randomize_pressed()` picked with `randi() % _origin_species_ids.size()`: a FLAT pick across the dropdown (8 primary rows + 18 Strange Characters + any unlocked DLC). The book's roll is steeply weighted — 1-60 Baseline Human, 61-80 Primary Alien, 81-90 Bot, 91-100 Strange Character — so the app produced roughly 69% Strange Characters against the book's 10%, and 3.8% Humans against 60%. Both live creation paths run through it (`CaptainPanel:64`, `CrewPanel:236`), and so does the p.78 recruit rule, whose own text is "Each recruit rolls using the random method in the character creation process (see p.14)". | **FIXED** — the three D100 tables (crew type + both subtables, 4 + 6 + 18 rows) now live in `data/character_species.json` under `crew_type_tables`, with `_source` and `_provenance_warning`, validated contiguous 1-100 at write time. New `SpeciesDataService.roll_crew_type()` / `.crew_type_row_for()`. Pinned by `tests/unit/test_crew_type_tables.gd` (8 cases). Detection-proven BOTH halves separately: reverting the wiring fails the source scan, corrupting a span fails the span and distribution tests. ⚠ CLAUDE.md said "16 Strange Character types" for months; the book prints **18**, and the data always had all 18. |
+| Getting a New Ship (p.60) | **A crew that lost its ship could never get another one.** `ShiplessSystem.roll_ship_offer()` and `.purchase_ship()` implemented p.60 correctly and had ZERO callers anywhere in `src/` — no button, no crew task, no world step. Meanwhile `apply_ship_destruction()` genuinely fires (`GameStateManager:803`, `UpkeepPhaseComponent:2395`), so a crew really could end up shipless for the rest of the campaign, capped at a 5-item Stash, with no path back. Not a hard lock (commercial passage still moves them) but a book mechanic that could never happen. The ledger's signature shape, found by the same accessor census that closed the August rows. | **FIXED** — a "Look for a Ship (p.60)" button in the Upkeep step, visible only when `has_ship` is false, with a pass-or-buy dialog ("You may opt to pass and look for a new ship each campaign turn"). Two gaps inside the resolver were closed with it: `roll_ship_offer()` never rolled the p.31 Ship Table the rule points at, so the offer carried a price and no vessel; and `purchase_ship()` set `has_ship = true` while writing no `ship_data`, so the crew would have owned a boolean with no Hull Points, name or traits. The down payment is charged through `GameStateManager`, the credits chokepoint, and refunded if the purchase fails. Pinned by `tests/unit/test_getting_a_new_ship.gd` (10 cases). |
+| Leaders — "will never leave the crew through random events" (p.24) | The +1 Luck half was wired (`CharacterCreator._setup_captain_bonuses()`, Bot correctly excluded). The **"never leaves" half was quoted in a comment at `CharacterCreator:414` and enforced nowhere.** `CampaignEventEffects` does guard `is_captain` (:340, :351); `CharacterEventEffects` had three departure routes and guarded none, so a Swift Leader rolling Business Elsewhere (p.128, 4-6: "If the character is Swift, they never return") or a Feeler Leader having a mental breakdown (p.22) was permanently removed from the crew. | **FIXED** — guarded inside `_mark_departed()`, the CALLEE, and the two routes that wrote `status` by hand now go through it, so a fourth route added later cannot miss the guard (the T9-50 lesson). **Documented reading:** p.24 is categorical about the Leader while the Swift and Feeler clauses are general character rules, and neither the errata nor the FAQ carves out an exception, so the Leader rule wins; "they can certainly be slain" is the one exit the book leaves open, and death does not route through here. Pinned by `tests/unit/test_leader_never_departs.gd` (6 cases), including that an ordinary crew member still departs. |
+| Crew Composition — the four methods (p.13) | **REPORTED, not fixed — a product decision.** The book gives four ways to build a crew (First-timer, Standard, Miniatures, Random) and the Standard Method constrains composition: "3 are always Human. 2 may be Human or a Primary Alien. 1 may be a Human or Bot", with a reduced-crew clause ("you may still select up to 1 Bot and 2 Primary Aliens", p.13 to p.63). `CrewPanel` enforces no composition rule of any kind, and the species dropdown offers all 18 Strange Characters directly — which no book method allows, since Strange Characters are reachable only by ROLLING 91-100. | **OPEN by choice.** Implementing the Random Method (row 1) was an unambiguous rules fix. Enforcing the Standard Method's slot limits would remove player freedom the app currently grants, which is a design call for the owner rather than an audit call. Flagged rather than silently decided. |
+
+## CONFIRMED — correct code, recorded so nobody "fixes" it
+
+| Claim a future auditor will make | Why it is wrong |
+| --- | --- |
+| "Ship debt seizure should be `>75` — p.60 says *exceeds* 75" | **The book contradicts itself and the code follows the right page.** p.60: "If the amount owed EXCEEDS 75 credits". p.76, the campaign-turn procedure where the check is actually executed: "If this brings the total to 75 CREDITS OR MORE, roll 2D6. On a 2-6, your ship has been seized". `ShiplessSystem.SEIZURE_DEBT_THRESHOLD := 75` with `>=`, citing p.76 at :201. Do not change it on the strength of p.60. |
+| "The Cheat Sheet prints a To Hit row that is not in the book — covered target within 6 inches, 5+" | **Errata v1.06 p.4 adds exactly that row.** "Correction p.118: Add to Firing table: Covered target within 6 inches: 5+. The main rules on p.44 are correct." `BattleCalculations.HIT_COVER_CLOSE := 5` already cites it. This one nearly got reported as a fabrication on the strength of p.44 alone. |
+
+Also verified clean on this walk: the whole errata (every item on official pages
+3-4 is honoured; page 5 remains excluded as self-declared unofficial); Battle
+Events (pp.116-117, 24 rows contiguous 1-100, rolled at the end of rounds 2 and
+4); Aiming (p.46) and the Multiple Saving Throws stack (p.46); ability maxima
+(p.12); and the Setting chapter pp.136-145, which has zero code presence
+**correctly** — it is worldbuilding prose with no dice, no tables and no
+mechanics. That last one is worth stating: absence of code is only a finding
+once you have read the page.
+
+## Duplicate implementations found by the accessor census (drift risk, not defects)
+
+The census that found the ship gap also turned up a family of rules with **two
+homes**: a correct resolver function with no callers, shadowed by an inline
+re-implementation elsewhere. None is a live defect; each is a place the two
+copies can drift apart.
+
+- `ShiplessSystem.get_commercial_passage_cost()` / `can_afford_passage()` vs
+  `UpkeepPhaseComponent.COMMERCIAL_TRAVEL_COST_PER_CREW` (:82).
+- `ShiplessSystem.crew_has_ship()` vs `_check_has_ship_for_travel()` — and the
+  duplicate is WEAKER, testing `ship_data is Dictionary` while :1269 in the same
+  file reads `campaign.has_ship`. Two notions of "has a ship" in one component.
+- `LuckSystem.apply_leader_luck_bonus()` — zero references anywhere, duplicating
+  `CharacterCreator._setup_captain_bonuses()`, and citing **p.92** for a rule
+  that is on **p.24**.
+- `BattleCalculations.apply_aim_reroll()` / `enemy_will_aim()` — the live Aiming
+  implementation is inline in `CharacterQuickRollPanel`.
+
+`core/terrain/TerrainRules.gd` is entirely unreferenced but is already on the
+known wire-or-delete backlog (`docs/WIRING_CLEANUP_BACKLOG.md:336`), so it is not
+a new finding.

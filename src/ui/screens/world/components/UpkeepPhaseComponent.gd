@@ -88,6 +88,7 @@ const MAX_SUSPENDED_CREW := 4
 var _travel_panel: PanelContainer
 var _stay_button: Button
 var _travel_button: Button
+var _find_ship_button: Button = null
 var _travel_event_container: VBoxContainer
 var _travel_status_label: Label
 
@@ -1022,6 +1023,7 @@ func _build_travel_section() -> void:
 	_travel_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
 	_travel_button.pressed.connect(_on_travel_pressed)
 	btn_row.add_child(_travel_button)
+	_ensure_find_ship_button(btn_row)
 
 	vbox.add_child(btn_row)
 
@@ -1076,6 +1078,9 @@ func _build_travel_section() -> void:
 func _update_travel_button_text(
 		credits: int, crew_size: int) -> void:
 	## Update travel button text/state based on affordability
+	## Also keeps the p.60 "Look for a Ship" button in step with
+	## has_ship, since both are driven by the same refresh.
+	_refresh_find_ship_button()
 	if not _travel_button:
 		return
 
@@ -3759,3 +3764,121 @@ func _execute_crew_dismissal(
 	_update_ui_display()
 	_show_help_dialog("Crew Dismissed",
 		"%s has been dismissed from the crew." % mname)
+
+
+## == Core Rules p.60 "Getting a New Ship" ================================
+##
+## THE GAP THIS CLOSES. ShiplessSystem.roll_ship_offer() and .purchase_ship()
+## implemented p.60 correctly and had ZERO callers anywhere in src/. There
+## was no button, no crew task and no world step, so once a crew lost its
+## ship - which really happens, via apply_ship_destruction() from
+## GameStateManager:803 and from the invasion-flight route in this file - it
+## stayed shipless for the rest of the campaign, capped at a 5-item Stash,
+## with no path back. The rule existed; the player could never reach it.
+##
+## The upkeep step is the right home: it is the one screen that already
+## tracks has_ship, and p.60 says the search happens "each campaign turn".
+func _ensure_find_ship_button(row: Control) -> void:
+	if _find_ship_button != null or row == null:
+		return
+	_find_ship_button = Button.new()
+	_find_ship_button.custom_minimum_size = Vector2(0, 48)
+	_find_ship_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_find_ship_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.055, 0.647, 0.914, 1)
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 16.0
+	style.content_margin_top = 8.0
+	style.content_margin_right = 16.0
+	style.content_margin_bottom = 8.0
+	_find_ship_button.add_theme_stylebox_override("normal", style)
+	_find_ship_button.add_theme_color_override("font_color", Color(1, 1, 1, 1))
+	_find_ship_button.text = "Look for a Ship (p.60)"
+	_find_ship_button.pressed.connect(_on_find_ship_pressed)
+	row.add_child(_find_ship_button)
+	_refresh_find_ship_button()
+
+
+func _refresh_find_ship_button() -> void:
+	## Only a crew WITHOUT a ship is looking for one (p.60 "Being Without a
+	## Ship" then "Getting a New Ship"). Hidden otherwise, so it never
+	## competes with the Travel button on an ordinary turn.
+	if _find_ship_button == null:
+		return
+	_find_ship_button.visible = not has_ship
+
+
+func _current_campaign() -> Resource:
+	var gs = get_node_or_null("/root/GameState")
+	if gs == null:
+		return null
+	return gs.current_campaign
+
+
+func _on_find_ship_pressed() -> void:
+	if _current_campaign() == null:
+		return
+	var offer: Dictionary = ShiplessSystemRef.roll_ship_offer()
+	if offer.is_empty():
+		return
+	_show_ship_offer(offer)
+
+
+func _show_ship_offer(offer: Dictionary) -> void:
+	## p.60: "You may opt to pass and look for a new ship each campaign
+	## turn." So the offer is a CHOICE and declining costs nothing.
+	var credits: int = GameStateManager.get_credits()
+	var cost: int = int(offer.get("cost", 0))
+	var max_fin: int = int(offer.get("max_financed", 0))
+	var min_down: int = int(offer.get("min_down_payment", 0))
+	var ship_name: String = str(offer.get("ship_name", "Unknown vessel"))
+	var ship: Dictionary = offer.get("ship", {})
+	var hull: int = int(ship.get("hull_points", 0))
+	var traits: Array = ship.get("traits", [])
+	var trait_text: String = ("none" if traits.is_empty()
+		else ", ".join(PackedStringArray(traits)))
+	var body: String = "%s" % ship_name
+	body += "\n\nHull Points: %d" % hull
+	body += "\nTraits: %s" % trait_text
+	body += "\n\nPrice: %d credits (2D6+3 x10)" % cost
+	body += "\nYou may finance up to %d, so the down payment is %d." % [
+		max_fin, min_down]
+	body += "\nYou hold %d credits." % credits
+	body += "\n\nDecline and you may look again next campaign turn"
+	body += " (Core Rules p.60)."
+	var dlg := ConfirmationDialog.new()
+	dlg.title = "Ship on Offer"
+	dlg.dialog_text = body
+	dlg.ok_button_text = "Buy (%d down)" % min_down
+	dlg.cancel_button_text = "Pass"
+	add_child(dlg)
+	dlg.get_ok_button().disabled = credits < min_down
+	dlg.confirmed.connect(func() -> void: _buy_offered_ship(offer))
+	dlg.popup_centered()
+
+
+func _buy_offered_ship(offer: Dictionary) -> void:
+	var campaign: Resource = _current_campaign()
+	if campaign == null:
+		return
+	var down: int = int(offer.get("min_down_payment", 0))
+	var financed: int = int(offer.get("max_financed", 0))
+	# Charge through the OWNER. GameStateManager is the credits chokepoint
+	# and writes through to the campaign; letting purchase_ship() touch
+	# campaign.credits directly would bypass it, so it is passed 0 down and
+	# only sets the debt and installs the vessel.
+	if not GameStateManager.remove_credits(down):
+		return
+	var result: Dictionary = ShiplessSystemRef.purchase_ship(
+		campaign, 0, financed, offer.get("ship", {}))
+	if not bool(result.get("success", false)):
+		GameStateManager.modify_credits(down)
+		return
+	has_ship = true
+	_refresh_find_ship_button()
+	_update_travel_button_text(
+		GameStateManager.get_credits(), _get_crew_size_for_travel())
+	_show_help_dialog("Ship Acquired",
+		"%s is yours. Debt: %d credits (Core Rules p.60)." % [
+			str(offer.get("ship_name", "The vessel")), financed])

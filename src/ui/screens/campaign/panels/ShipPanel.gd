@@ -1256,12 +1256,27 @@ func _create_ship_from_type_id(type_id: String) -> void:
 			# Core Rules p.31: traits are fixed per ship type, no random rolling
 			ship_data.traits = entry.get("traits", [])
 			return
-	# Fallback if type_id not found (Core Rules default: Worn Freighter)
+	# Fallback if type_id not found (Core Rules default: Worn Freighter).
+	#
+	# The debt used to be `randi_range(0, 3)`, which matches NO ROW of the p.31
+	# Ship Table — the smallest debt in the book is well above it, and a crew that
+	# fell down this branch started effectively debt-free. Resolved from the same
+	# ships.json entry the main path reads (Worn Freighter: debt_base 20 + 1D6),
+	# so the fallback cannot drift from the table again.
 	ship_data.type = "Worn Freighter"
 	ship_data.hull_points = 30
 	ship_data.max_hull = 30
-	ship_data.debt = randi_range(0, 3)
+	ship_data.debt = _worn_freighter_debt()
 	ship_data.traits = []  # Core Rules p.31: Worn Freighter has no traits
+
+
+## Core Rules p.31 Worn Freighter debt, off the data file rather than invented.
+func _worn_freighter_debt() -> int:
+	for entry in _ships_db.get("ship_types", []):
+		if entry is Dictionary and str(entry.get("name", "")) == "Worn Freighter":
+			return int(entry.get("debt_base", 20)) + randi_range(1, 6)
+	# The DB itself is missing: use the book value rather than a made-up one.
+	return 20 + randi_range(1, 6)
 
 
 func set_ship_data(data: Dictionary) -> void:

@@ -574,6 +574,14 @@ static func _execute_unit_attacks(
 							"weapon_id": "stim_pack"
 						})
 					else:
+						# Compendium p.100 Critical Hit (an "additional optional
+						# rule"): "If the Hit roll was a natural 6, roll one additional
+						# time on the Casualty table and use the highest result."
+						# Carried on the TARGET because that is what the auto-resolve
+						# loop in TacticalBattleUI reads back (crew_units_final); the
+						# critical is known only here, at the attack that felled them.
+						target["casualty_hit_critical"] = bool(
+							attack_result.get("critical", false))
 						target["hp_current"] = 0
 						target["is_alive"] = false
 						result["casualties"] += 1
@@ -597,7 +605,8 @@ static func _execute_unit_attacks(
 						"target": target.get("name", "Unknown"),
 						"stun_markers": target["stun_markers"]
 					})
-					if BattleCalculations.is_knocked_out_by_stun(int(target["stun_markers"])):
+					if BattleCalculations.is_knocked_out_by_stun(int(target["stun_markers"]),
+							int(target.get("stun_ko_threshold", 3))):
 						target["hp_current"] = 0
 						target["is_alive"] = false
 						result["casualties"] += 1

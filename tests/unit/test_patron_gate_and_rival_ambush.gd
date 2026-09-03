@@ -125,8 +125,28 @@ func test_the_rival_check_precedes_mission_generation() -> void:
 	assert_int(check_call).override_failure_message(
 		"the Rival check runs AFTER the Notable Sight is rolled — p.89 uses a"
 		+ " different column per mission type").is_less(sight_roll)
-	# And exactly one call site, so it cannot silently run twice.
-	assert_int(src.count("_check_rival_encounter_backend(")).is_equal(2)  # 1 def + 1 call
+	# It must not roll twice in one turn — but the guarantee is now in the CALLEE,
+	# not in a call-site count.
+	#
+	# Sep 3 2026 added a SECOND legitimate caller: errata v1.06 "Lay Low" has to
+	# "check for Rival attacks normally" BEFORE the player pays to stay in town,
+	# and the battle path then calls it again. Counting call sites was always a
+	# proxy for the real property, and it is the weaker one — the T9-50 lesson is
+	# that a fix ordered against SOME callers is not a fix, so
+	# `_check_rival_encounter_backend()` stamps the turn and early-returns on a
+	# repeat. That holds however many callers there are.
+	assert_str(src).override_failure_message(
+		"the Rival check has no per-turn guard, so two callers would roll it twice"
+		+ " and an ambushed crew could be told it was clear"
+	).contains('battle_results["rival_check_turn"] = _turn_number')
+	assert_str(src).override_failure_message(
+		"the guard must EARLY-RETURN on a repeat, not merely record the turn"
+	).contains('if checked_turn == _turn_number and battle_results.has("rival_encounter"):')
+	# Both callers are accounted for: the battle path and the Lay Low path.
+	assert_int(src.count("_check_rival_encounter_backend(")).override_failure_message(
+		"unexpected number of Rival-check references — a new caller must be"
+		+ " deliberate, and must rely on the callee guard above"
+	).is_equal(3)  # 1 def + battle path + Lay Low
 
 
 func test_the_ambush_clears_the_displaced_jobs_payload() -> void:

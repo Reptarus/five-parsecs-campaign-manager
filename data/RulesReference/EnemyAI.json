@@ -1,128 +1,94 @@
 {
   "EnemyAI": {
-	"text": "This section details how enemy units behave and make decisions during combat in Five Parsecs from Home. Understanding enemy AI is crucial for tactical planning and mission success.",
+	"_source": "Core Rules pp.42-43, 'Enemy Movement'. VERBATIM.",
+	"_provenance_warning": "This file is the CORE RULES enemy AI and nothing else. Until Sep 2026 it held the COMPENDIUM pp.42-43 'AI Variations' base conditions and 1D6 tables — a faithful extraction of the WRONG BOOK — and every consumer showed them at every tier, DLC or not, while the core rules (seven diceless bullet routines, p.42: 'The default AI is diceless') appeared nowhere in the app. The Compendium option lives in data/compendium/difficulty_toggles.json under 'ai_variation_tables' / 'ai_variation_rules' and is gated on ContentFlag.AI_VARIATIONS. Do NOT add dice, base conditions or behaviour tables to this file.",
+	"text": "Core Rules p.42: \"The way the enemy moves on the field requires the player to inject a modest amount of 'artificial intelligence' into proceedings. It is assumed that the player will make decisions based on what is reasonable, but can also operate enemies according to one of seven broad AI types, shown below. It is up to the player to decide how strictly to adhere to these.\"",
 	"image": "res://assets/images/enemy_ai/overview.png",
 	"content": [
 	  {
 		"title": "AI Types",
-		"description": "Different enemy types follow distinct AI patterns. The main AI types are:",
+		"description": "Seven broad AI types (Core Rules pp.42-43). The default AI is diceless — the player follows the bullets for the type in question.",
 		"types": [
 		  {
 			"name": "Aggressive",
-			"description": "Enemies will move towards the nearest player figure and attempt to engage in combat.",
-			"base_condition": "If able to engage an opponent in brawling combat this round, advance to do so.",
-			"behavior_table": [
-			  {"roll": "1", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "3", "action": "Advance to the next forward position in Cover. Fire if eligible."},
-			  {"roll": "4", "action": "Advance and fire on the nearest enemy. Use Cover."},
-			  {"roll": "5", "action": "Advance and fire on the nearest enemy. Fastest route."},
-			  {"roll": "6", "action": "Dash towards the nearest enemy. Fastest route."}
+			"code": "A",
+			"page": 43,
+			"description": "Advances on opponents in sight and tries to reach a Brawl.",
+			"core_rules": [
+			  "Aggressive enemies with opponents in sight will advance at least half a move towards them, attempting to remain in Cover if possible.",
+			  "Enemies that are unable to see any opposition, or which are within 12\", will advance as fast as possible towards the nearest opponent, attempting to enter into a Brawl.",
+			  "They will not enter a Brawl with an opponent that has higher Combat Skill.",
+			  "Heavy weapon figures will not move if they have a Line of Sight to a target."
 			]
 		  },
 		  {
 			"name": "Cautious",
-			"description": "Enemies prefer to maintain distance and use cover when possible.",
-			"base_condition": "If in Cover and visible opponents are within 12\", move away to the most distant position that remains in Cover and in range and retains Line of Sight to an opponent, then fire.",
-			"behavior_table": [
-			  {"roll": "1", "action": "Retreat a full move, remaining in Cover. Maintain Line of Sight if possible."},
-			  {"roll": "2", "action": "Remain in place or maneuver within current Cover to fire."},
-			  {"roll": "3", "action": "Remain in place or maneuver within current Cover to fire."},
-			  {"roll": "4", "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
-			  {"roll": "5", "action": "Advance to within 12\" of the nearest enemy and fire. Remain in Cover."},
-			  {"roll": "6", "action": "Advance on the nearest enemy and fire, ending in Cover if possible."}
+			"code": "C",
+			"page": 42,
+			"description": "Stays in Cover, fights at long range and avoids Brawling.",
+			"core_rules": [
+			  "Cautious enemies will attempt to stay in Cover whenever possible.",
+			  "Figures with an opponent in sight and range will remain where they are and take Aimed shots. Otherwise, they will advance in or behind terrain features, trying to establish Line of Sight to opposing figures.",
+			  "They will attempt to engage targets at as close to maximum range as possible, and will not advance voluntarily within 12\" of opposition.",
+			  "As a general rule, they will not enter Brawling combat."
 			]
 		  },
 		  {
 			"name": "Tactical",
-			"description": "Enemies use a balanced approach, considering both offense and defense.",
-			"base_condition": "If in Cover and within 12\" of visible opponents, remain in position and fire.",
-			"behavior_table": [
-			  {"roll": "1", "action": "Remain in place to fire."},
-			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "3", "action": "Advance to the next forward position in Cover or move to flank."},
-			  {"roll": "4", "action": "Advance to the next forward position in Cover or move to flank."},
-			  {"roll": "5", "action": "Advance and fire on the nearest enemy. Use Cover."},
-			  {"roll": "6", "action": "Advance and fire on the nearest enemy. Use Cover."}
+			"code": "T",
+			"page": 43,
+			"description": "Advances under Cover, outflanks, and stays near friendly figures.",
+			"core_rules": [
+			  "Tactical enemies will advance at half speed, always retaining Cover where possible. They will cross open ground at full speed, if needed.",
+			  "They will attempt to close to within 12\" of their opponents, then will move to outflank and get clear Line of Sight where possible.",
+			  "If, within one move, they can attempt to Brawl possessing higher Combat Skill, they will; otherwise they will fire.",
+			  "If they have a clear shot and are in Cover, they will remain in place to Aim.",
+			  "Tactical enemies will attempt to remain within 3\" of a friendly figure whenever possible."
 			]
 		  },
 		  {
 			"name": "Defensive",
-			"description": "Enemies prioritize staying in cover and only engage when necessary.",
-			"base_condition": "If in Cover and opponents in the open are visible, remain in position and fire.",
-			"behavior_table": [
-			  {"roll": "1", "action": "Remain in place to fire."},
-			  {"roll": "2", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "3", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "4", "action": "Maneuver within current Cover to fire."},
-			  {"roll": "5", "action": "Advance to the next forward position in Cover."},
-			  {"roll": "6", "action": "Advance and fire on the nearest enemy. Use Cover."}
+			"code": "D",
+			"page": 43,
+			"description": "Holds its own half of the table, fires from Cover, reinforces neighbours.",
+			"core_rules": [
+			  "Defensive enemies will advance to weapons range, but will remain in their initial half of the table, and will remain in Cover or behind terrain whenever possible.",
+			  "Once in position, they will fire from those positions, standing still to Aim, and will move to Brawl if opponents enter their terrain features and they have equal or better Combat Skill.",
+			  "If a terrain feature with friendlies has been entered by the player's forces, those within adjacent features will move to reinforce."
+			]
+		  },
+		  {
+			"name": "Rampage",
+			"book_name": "Rampaging",
+			"code": "R",
+			"page": 43,
+			"description": "Charges the closest opponent and always tries to Brawl.",
+			"core_rules": [
+			  "Rampaging enemies will move as fast as possible towards the closest opponent, and will always attempt to enter Brawling combat.",
+			  "Rampagers with Heavy weapons will stand still and fire, if in sight of a target."
 			]
 		  },
 		  {
 			"name": "Beast",
-			"description": "Animal-like behavior, typically very aggressive and direct.",
-			"base_condition": "Always move towards the nearest visible opponent by the most direct route possible.",
-			"note": "Beasts do not use the behavior table and always follow their base condition."
-		  },
-		  {
-			"name": "Rampage",
-			"description": "Extremely aggressive, will always attempt to engage in close combat.",
-			"base_condition": "Always move towards the nearest opponent by the most direct route possible, attempting to enter brawling combat.",
-			"note": "Rampage enemies do not use the behavior table and always follow their base condition."
+			"code": "B",
+			"page": 43,
+			"description": "Closes as far as Cover allows and hunts in packs.",
+			"core_rules": [
+			  "Beast enemies will always attempt to move as far as possible towards the nearest opponent, while remaining in Cover.",
+			  "They will only break Cover if they can enter a Brawl within two moves. Otherwise they will move to break Line of Sight and maneuver closer.",
+			  "When possible, Beasts will attempt to remain within 2\" of a friendly figure, attacking the same targets."
+			]
 		  },
 		  {
 			"name": "Guardian",
-			"description": "Protects a specific area or object, only engaging when threats come close.",
-			"base_condition": "Remain in place unless an opponent comes within 12\", then move to engage.",
-			"note": "Guardian enemies do not use the behavior table and always follow their base condition."
+			"code": "G",
+			"page": 43,
+			"description": "Attached to another figure and mirrors everything it does.",
+			"core_rules": [
+			  "Guardian enemies are attached to another figure, and must always remain within 3\" of that figure, if possible.",
+			  "They will move at the same pace and attack the same targets using the same methods (firing / Brawling), whenever possible."
+			]
 		  }
-		]
-	  },
-	  {
-		"title": "AI Decision Making",
-		"description": "When an enemy activates, follow these steps:",
-		"steps": [
-		  "1. Check if the base condition for the AI type applies. If so, the enemy follows that action.",
-		  "2. If the base condition doesn't apply, roll 1D6 and consult the behavior table for the AI type.",
-		  "3. Carry out the action indicated by the roll result.",
-		  "4. If the action is impossible or illogical, use common sense to determine the most appropriate action."
-		]
-	  },
-	  {
-		"title": "Group Actions",
-		"description": "Enemies in close proximity may act as a group:",
-		"rules": [
-		  "- If enemy figures are within 2\" of each other, they use the same die roll for their actions.",
-		  "- If any figure in the group meets the base condition, all figures in the group follow that action.",
-		  "- This simulates coordinated tactics and speeds up play for larger groups of enemies."
-		]
-	  },
-	  {
-		"title": "Special AI Rules",
-		"description": "Some enemies have unique AI behaviors:",
-		"examples": [
-		  "- Unique Individuals may have their own specific AI routines.",
-		  "- Some enemies may have special abilities that override standard AI behavior.",
-		  "- Certain scenarios might introduce modified AI behavior for specific enemy types."
-		]
-	  },
-	  {
-		"title": "AI and Cover",
-		"description": "How enemies interact with cover:",
-		"rules": [
-		  "- Most AI types will attempt to use cover when possible.",
-		  "- 'Use Cover' in actions means the enemy will try to end its move in cover if available.",
-		  "- Enemies consider both blocking line of sight and providing physical protection when seeking cover."
-		]
-	  },
-	  {
-		"title": "AI Targeting Priority",
-		"description": "How enemies choose their targets:",
-		"priorities": [
-		  "1. Closest visible opponent",
-		  "2. Opponent in the open (if the enemy is in cover)",
-		  "3. Random selection if multiple equal targets"
 		]
 	  }
 	]

@@ -209,11 +209,35 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	## Begin the Post-Battle Phase sequence (14 steps).
 	_ensure_subsystems()
 
-	# Handle battle-skipped path
+	# ── Battle-skipped path (errata v1.06 "Lay Low") ─────────────────────────
+	#
+	# The errata, verbatim: "Simply skip the battle sequence and ALL REWARD
+	# SECTIONS (loot, pay, injuries, XP)." That names steps 4-10 and, by
+	# extension, the three that only make sense after a fight (1 Rival status, 2
+	# Patron status, 3 Quest progress — all keyed to "the battle you just
+	# fought"). It does NOT excuse the turn's bookkeeping: a Campaign Event and a
+	# Character Event happen because a campaign turn passed, not because a battle
+	# did, and the Galactic War table is rolled "if you are tracking any planets
+	# that were previously Invaded" (Core Rules p.126).
+	#
+	# This used to jump straight to _complete_post_battle_phase(), so a skipped
+	# turn silently dropped steps 12-14 as well. Nothing noticed because nothing
+	# produced `battle_skipped` — there was no way to skip a battle at all.
 	if battle_data.get("battle_skipped", false):
-		battle_result = {"battle_skipped": true}
+		battle_result = battle_data.duplicate(true)
+		mission_successful = false
+		_sync_context()
+		_refresh_intro_gating()
 		post_battle_phase_started.emit()
-		_complete_post_battle_phase()
+		if _intro_allows("campaign_event"):
+			_emit_substep(GlobalEnums.PostBattleSubPhase.CAMPAIGN_EVENT)
+			var skip_event: Dictionary = _campaign_events.process_campaign_event(_ctx)
+			_campaign_events.finalize_event(skip_event, _ctx)
+			campaign_event_occurred.emit(skip_event)
+		# Steps 13, 13b/c and 14, then completion — the same tail every other
+		# path takes, so the Precursor choice and the Faction steps behave
+		# identically on a rest turn.
+		_process_character_event_step()
 		return
 
 	# Store battle result data
@@ -647,6 +671,17 @@ func _complete_post_battle_phase() -> void:
 		current_substep = GlobalEnums.PostBattleSubPhase.NONE
 	_ensure_subsystems()
 	_sync_context()
+
+	# A rest turn (errata v1.06 Lay Low) has no battle to record. Writing a
+	# battle journal entry, lifetime battle stats, a Notable Sight reward, a
+	# planet mission or the p.67 "Bitter Day" story point would all be inventing
+	# a fight that never happened — and `_check_bitter_day_story_point()` pays a
+	# story point for "held the field", which nobody did.
+	if bool(battle_result.get("battle_skipped", false)):
+		_journal_rest_turn()
+		post_battle_phase_completed.emit()
+		return
+
 	_completion.update_character_lifetime_statistics(_ctx)
 	# Core Rules p.89 Notable Sights — the reward for having reached the item.
 	# Runs BEFORE the journal entry so the recovered sight appears in the same
@@ -678,6 +713,22 @@ func _complete_post_battle_phase() -> void:
 	_check_bitter_day_story_point()
 
 	post_battle_phase_completed.emit()
+
+func _journal_rest_turn() -> void:
+	## One line so the turn is not a blank in the campaign record.
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal == null or not journal.has_method("create_entry"):
+		return
+	journal.create_entry({
+		"type": "event",
+		"auto_generated": true,
+		"title": "No battle this turn",
+		"description": ("The crew laid low for %d credits — no pay, loot,"
+			+ " injuries or XP (errata v1.06).") % int(
+				battle_result.get("lay_low_cost", 0)),
+		"tags": ["crew", "finance"],
+	})
+
 
 func _emit_substep(substep: int) -> void:
 	if GlobalEnums:

@@ -476,10 +476,19 @@ func _on_onboard_existing_pressed() -> void:
 	if not is_instance_valid(game_state_manager):
 		show_message("Error: Game state manager not available")
 		return
-	# Flag consumed by CampaignCreationUI._on_campaign_finalized / CampaignEditorScreen.
+	# ⚠ ORDER IS THE FIX. `_start_new_campaign()` calls
+	# `GameStateManager.start_new_campaign()`, whose FIRST act is
+	# `clear_all_temp_data()` — so setting the flag before it wiped the flag, and
+	# the onboarding branch in CampaignCreationUI (:427) and CampaignEditorScreen
+	# (:88) could never fire. "Onboard Existing Game" behaved exactly like "New
+	# Campaign", silently.
+	#
+	# A producer whose value is erased between the write and the read is the same
+	# defect family as a consumer with no producer, and just as invisible: both
+	# halves exist and are correct.
+	_start_new_campaign()
 	if game_state_manager.has_method("set_temp_data"):
 		game_state_manager.set_temp_data("onboarding_mode", true)
-	_start_new_campaign()
 
 func _check_first_run_tutorial() -> void:
 	# Show guided tutorial overlay on first launch
