@@ -26,6 +26,10 @@ const STATUS_ICON_SIZE := 40
 # Signals for manual action confirmation
 signal action_used(character_name: String, action_type: String)
 signal damage_taken(character_name: String, amount: int)
+## A Hit was declared against this figure. The HOST resolves it (Core Rules
+## p.46: 1D6 + Damage vs Toughness, natural 6 always kills) and applies the
+## outcome — this card does not decide what a Hit does.
+signal hit_requested(character_name: String)
 signal stun_marked(character_name: String)
 signal character_selected(character_name: String)
 
@@ -175,24 +179,14 @@ func _update_display() -> void:
 		stats_label.text = _build_basic_stats_bbcode()
 		_ensure_keyword_tooltip_attached()
 
-	# Update health bar
-	if health_bar:
-		health_bar.max_value = max_health
-		health_bar.value = current_health
-
-		# Color code health bar
-		if current_health <= 0:
-			health_bar.modulate = Color.BLACK
-		elif current_health <= max_health * 0.3:
-			health_bar.modulate = UIColors.COLOR_RED
-		elif current_health <= max_health * 0.6:
-			health_bar.modulate = UIColors.COLOR_AMBER
-		else:
-			health_bar.modulate = UIColors.COLOR_EMERALD
-
-	# Update health text
-	if health_text:
-		health_text.text = "%d / %d HP" % [current_health, max_health]
+	# NO HIT-POINT DISPLAY. There are no hit points in Five Parsecs — a figure
+	# is on the table, Stunned, Knocked Out (3 Stun markers, p.40) or removed,
+	# and the status line below says which. The bar and the "2 / 3 HP" text
+	# showed a quantity the rules never refer to and that the player cannot see
+	# on their own table. The whole section is hidden rather than deleted so the
+	# scene stays loadable for anything still addressing those nodes.
+	if health_bar and health_bar.get_parent():
+		health_bar.get_parent().visible = false
 
 	# Update status label
 	if status_label:
@@ -335,9 +329,17 @@ func _on_stun_button_pressed() -> void:
 	add_stun_marker()
 
 func _on_damage_button_pressed() -> void:
-	## Handle Damage button press - opens damage input dialog
-	# NOTE: Deferred — create DamageInputDialog for manual damage entry; defaults to 1
-	apply_damage(1)
+	## "Hit" — hand the event to the host, which opens the p.46 resolution.
+	##
+	## This used to call apply_damage(1), decrementing a current_health the host
+	## had seeded to the figure's Toughness. Five Parsecs has no hit points: a
+	## Hit is resolved with one die and the figure is either a casualty or
+	## Stunned. So a Toughness 5 figure took five presses to remove, the card
+	## displayed a "4 / 5 HP" that corresponds to nothing in the rules, and the
+	## real resolver (BattleCalculations.resolve_hit_outcome) was never reached
+	## from the played path. The old comment here — "Deferred: create
+	## DamageInputDialog" — was the placeholder that never landed.
+	emit_signal("hit_requested", get_character_name())
 
 func _on_use_action_button_pressed() -> void:
 	## Handle Use Action button press

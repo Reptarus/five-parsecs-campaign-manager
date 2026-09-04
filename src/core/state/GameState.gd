@@ -1895,6 +1895,27 @@ func set_battlefield_data(data: Dictionary) -> void:
 func get_battlefield_data() -> Dictionary:
 	return _battlefield_data
 
+## In-progress battle checkpoint (see FPCM_BattleCheckpoint). Mirrors the
+## active_battlefield write-through above. The terrain layout already survived a
+## quit; the FIGHT on top of it did not, so relaunching mid-battle regenerated a
+## different encounter under a table the player had already built.
+func set_active_battle(data: Dictionary) -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data["active_battle"] = data.duplicate(true)
+
+func get_active_battle() -> Dictionary:
+	if current_campaign and "progress_data" in current_campaign:
+		var d: Variant = current_campaign.progress_data.get("active_battle", {})
+		if d is Dictionary:
+			return d
+	return {}
+
+## Clear it. Called when the battle resolves and when the player abandons it —
+## a checkpoint outliving its battle would resume a fight that already ended.
+func clear_active_battle() -> void:
+	if current_campaign and "progress_data" in current_campaign:
+		current_campaign.progress_data.erase("active_battle")
+
 ## Clear battlefield data (post-battle: the table has been torn down)
 func clear_battlefield_data() -> void:
 	_battlefield_data = {}

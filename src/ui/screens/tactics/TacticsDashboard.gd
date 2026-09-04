@@ -264,9 +264,13 @@ func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> bool:
 func _notify_transfer_write_failed() -> void:
 	push_error("TacticsDashboard: transfer file could not be written — "
 		+ "veteran kept in the roster rather than lost")
+	# ⚠ `show_notification` has ZERO definitions repo-wide — permanently-false
+	# guard, so this failure was silent. Real API: show_error (autoload
+	# NotificationManager.gd:118). All THREE cross-mode dashboards carried
+	# the same dead guard on the same transfer-write failure path.
 	var notifier := get_node_or_null("/root/NotificationManager")
-	if notifier and notifier.has_method("show_notification"):
-		notifier.show_notification(
+	if notifier and notifier.has_method("show_error"):
+		notifier.show_error(
 			"Transfer failed — the veteran is still on your roster. Check device storage.")
 
 

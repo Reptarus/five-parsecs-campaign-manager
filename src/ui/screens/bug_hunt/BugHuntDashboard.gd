@@ -329,9 +329,16 @@ func _apply_muster_out(char_data: Dictionary) -> void:
 	if write_err != OK:
 		push_error("BugHuntDashboard: transfer file could not be written (err %d) — "
 			% write_err + "character kept in the squad rather than lost")
+		# ⚠ `show_notification` DOES NOT EXIST on NotificationManager — `func
+		# show_notification` has ZERO definitions repo-wide, so this guard was
+		# permanently false and the player was told NOTHING on a failure path.
+		# The real API is show_info / show_success / show_warning / show_error /
+		# show_toast (src/autoload/NotificationManager.gd:105-131).
+		# WorldPhaseAutomationController:569-570 already found and documented this
+		# trap; these call sites were missed by that pass.
 		var notifier := get_node_or_null("/root/NotificationManager")
-		if notifier and notifier.has_method("show_notification"):
-			notifier.show_notification(
+		if notifier and notifier.has_method("show_error"):
+			notifier.show_error(
 				"Muster out failed — the character is still in your squad. "
 				+ "Check device storage.")
 		return

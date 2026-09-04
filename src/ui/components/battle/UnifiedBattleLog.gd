@@ -246,9 +246,19 @@ func add_entry(
 	entry_added.emit(entry)
 
 
-## Advance to next round
-func new_round() -> void:
-	current_round += 1
+## Advance to next round.
+##
+## `round_num` is the BattleRoundTracker's round and is authoritative. It was
+## added because this class kept a SECOND, independent round counter:
+## start_battle() set it to 1, then the round-1 start called new_round() which
+## bumped it to 2 — so the feed read "[R1] === ROUND 1 BEGINS ===" followed
+## immediately by "[R2] Round 2", and every later line was tagged with a
+## round the battle was not in. Worse, the two public logging paths disagreed:
+## add_live_message() is passed TacticalBattleUI.current_turn (correct) while
+## add_entry() used this counter, so the same feed carried both numbers.
+## Reported on hardware as T5-05.
+func new_round(round_num: int = -1) -> void:
+	current_round = round_num if round_num >= 0 else current_round + 1
 	add_entry("round", "Round %d" % current_round)
 
 

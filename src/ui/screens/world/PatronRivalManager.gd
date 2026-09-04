@@ -430,6 +430,10 @@ func _create_patron_panel(patron: Dictionary) -> Control:
 
 	return panel
 
+## Separator for a multi-line special-rules list (see _update_details).
+const NL_JOIN := "\n"
+
+
 func _create_rival_panel(rival: Dictionary) -> Control:
 	## Create a panel for a rival
 	var panel: PanelContainer = PanelContainer.new()
@@ -522,7 +526,20 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 		details_container.add_child(rules_label)
 
 		var rules_text = Label.new()
-		rules_text.text = entity.special_rules
+		# ⚠ NOT `entity.special_rules`. Every OTHER producer in the codebase
+		# makes this an ARRAY — Character.gd:1462 (`special_rules.duplicate()`),
+		# EnemyData.gd:131 and SpeciesDataService.gd:91 (`[]` defaults),
+		# PatronJobGenerator.gd:92, BattleResolver.gd:295 (`var x: Array`).
+		# Only this screen's own template generator (:352/:368) stores a single
+		# String, and the screen no longer reads those templates: it loads live
+		# contacts from GameStateManager (:264-282). Assigning an Array to the
+		# String `Label.text` is a type error that ABORTS _update_details(), so
+		# the details pane would stop building mid-way with no crash to notice.
+		# Dormant today only because no live producer writes the key at all.
+		var raw_rules: Variant = entity.get("special_rules", "")
+		rules_text.text = (NL_JOIN.join(PackedStringArray(
+			(raw_rules as Array).map(func(r: Variant) -> String: return str(r))))
+			if raw_rules is Array else str(raw_rules))
 		rules_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		details_container.add_child(rules_text)
 

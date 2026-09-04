@@ -4,7 +4,13 @@ extends PanelContainer
 ## Tier Selection Panel - Choose tracking level before battle
 ##
 ## Presents three large, touch-friendly buttons for selecting the companion
-## tracking tier. Shown before battle begins. Remembers last selection.
+## tracking tier. Shown before battle begins.
+##
+## The copy comes from BattleTierController.TIER_INFO — the single source, so
+## this panel and PreBattleUI's radios cannot describe the same three choices
+## differently. (This docblock used to claim it "remembers last selection";
+## nothing persisted it. It is remembered now, but by SettingsManager, and it
+## is PreBattleUI that reads it back.)
 ##
 ## Reference: Five Parsecs From Home - Companion Philosophy
 ## "Minimal for veterans, full oracle for learning, player always chooses."

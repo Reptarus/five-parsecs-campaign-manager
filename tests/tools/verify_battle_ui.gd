@@ -46,7 +46,9 @@ func _crew() -> Array:
 			"character_name": "Crew %d" % i,
 			"name": "Crew %d" % i,
 			"combat": 1, "reaction": 2, "speed": 4, "toughness": 3,
-			"savvy": 1, "luck": 0, "health": 3, "max_health": 3,
+			# Core Rules p.46 Luck. Non-zero on purpose: with luck 0 the Luck
+			# branch is unreachable and a test of it proves nothing.
+			"savvy": 1, "luck": 1, "health": 3, "max_health": 3,
 		})
 	return out
 
@@ -81,6 +83,12 @@ func _mission() -> Dictionary:
 		"title": "Harness Battle",
 		"mission_source": "opportunity",
 		"objective": "Fight Off",
+		# CampaignTurnController.gd:1404 normalizes this onto EVERY battle before
+		# either path is taken: `mission_data["mission_objective"] = ...`. It is
+		# the key _init_objective_tracker reads, so a fixture without it silently
+		# produces a battle with NO objective tracker — and then every row that
+		# depends on the tracker passes for the wrong reason.
+		"mission_objective": "Fight Off",
 		"enemy_force": {
 			"type": "Gangers",
 			"count": 6,
@@ -129,6 +137,29 @@ func _mission() -> Dictionary:
 var _ui2: Node = null
 var _ui3: Node = null
 var _ui4: Node = null
+## Entry-sequence instance. Driven ONLY through initialize_battle() and the
+## modal's own Begin Battle button — no _on_tier_selected() by hand, no
+## _on_tracker_battle_started() by hand. Every other instance in this harness
+## short-circuits those, which is exactly why none of them could see that the
+## campaign path started combat before it showed the pre-battle modal.
+var _ui5: Node = null
+## Phase-controls instance: driven through initialize_battle() and the modal's
+## Begin Battle only, so it sits at Round 1 / REACTION_ROLL exactly as a player
+## finds it.
+var _ui6: Node = null
+## Checkpoint round-trip instances.
+var _ui7: Node = null
+var _ui8: Node = null
+
+## GameState.current_campaign is untyped, and the only thing the checkpoint
+## write-through needs of it is a progress_data Dictionary — the same contract
+## GameState.set_battlefield_data() has always used. A full campaign core would
+## drag in save/load, planets and the phase manager for no added coverage.
+class _StubCampaign:
+	extends RefCounted
+	var progress_data: Dictionary = {"turns_played": 4}
+var _ui5_battle_starts: int = 0
+var _ui5_form_before: Object = null
 
 
 func _button_labels(node: Node) -> Array:
@@ -239,18 +270,506 @@ func _process(_delta: float) -> bool:
 			var md4: Dictionary = _campaign_mission("salvage")
 			md4["selected_tier"] = 0
 			_ui4.initialize_battle(_crew(), _enemies(), md4)
+
+			# The ENTRY SEQUENCE instance: one initialize_battle() call on a
+			# campaign mission at ASSISTED, then nothing. Whatever state this is
+			# in afterwards is what a real player is looking at.
+			var packed5: PackedScene = load(
+				"res://src/ui/screens/battle/TacticalBattleUI.tscn")
+			_ui5 = packed5.instantiate()
+			root.add_child(_ui5)
+			_ui5.initialize_battle(_crew(), _enemies(),
+				_campaign_mission("standard"))
+
+			var packed6: PackedScene = load(
+				"res://src/ui/screens/battle/TacticalBattleUI.tscn")
+			_ui6 = packed6.instantiate()
+			root.add_child(_ui6)
+			_ui6.initialize_battle(_crew(), _enemies(),
+				_campaign_mission("standard"))
+			_ui6._on_checklist_dismissed()
 		5:
 			_check_oracle_tier()
 			_check_campaign_path_wiring()
 			_check_mission_drawer_reachable()
+			_check_entry_sequence()
+			_check_phase_controls()
+			_check_hit_resolution()
+			_check_touch_ergonomics()
 			# LAST two — both mutate _ui4 (tier, then _stored_mission_data), so
 			# every assertion above that depends on _ui4's initial state must
 			# already have run.
 			_check_condition_reminders()
 			_check_mid_battle_tier_change()
 			_check_no_win_condition()
+			# LAST: it swaps GameState.current_campaign for a stub and puts it back.
+			_check_battle_checkpoint()
 			return _finish()
 	return false
+
+func _script_path_of(node: Node) -> String:
+	## Identify a component by its SCRIPT rather than its class or node name:
+	## every panel here is a plain Control/PanelContainer built in code, so the
+	## script path is the only thing that says which one it is.
+	if node == null:
+		return ""
+	var s = node.get_script()
+	return str(s.resource_path) if s else ""
+
+
+func _overlay_holds(ui: Node, needle: String) -> Dictionary:
+	## {present, doomed} for a script whose path contains `needle`, among the
+	## overlay's children. `doomed` matters as much as `present`: queue_free()
+	## defers to the end of the frame, so a modal that has ALREADY been replaced
+	## is still parented and still reads as present for the rest of this frame.
+	##
+	## Recursive: the pre-battle modal is a plain VBox wrapper holding a
+	## ScrollContainer holding the column that holds the checklist, so a
+	## direct-children scan finds a scriptless VBox and reports "absent".
+	var out := {"present": false, "doomed": false}
+	_scan_for_script(ui.overlay_content, needle, out)
+	return out
+
+
+func _scan_for_script(node: Node, needle: String, out: Dictionary) -> void:
+	for child in node.get_children():
+		if _script_path_of(child).find(needle) >= 0:
+			out["present"] = true
+			# Any ancestor being freed takes this node with it, so walk up too.
+			var n: Node = child
+			while n != null and n != node:
+				if n.is_queued_for_deletion():
+					out["doomed"] = true
+				n = n.get_parent()
+		_scan_for_script(child, needle, out)
+
+
+func _check_entry_sequence() -> void:
+	## THE BUG THIS PINS (2026-09-03): initialize_battle() used to call
+	## _on_auto_deploy_clicked() at its tail, which starts the round machine. So
+	## on the campaign path — the ONLY path a real 5PFH battle takes — round 1 was
+	## already running before the pre-battle modal was shown. At ASSISTED the
+	## REACTION_ROLL handler then raised the Seize the Initiative overlay, and
+	## _show_overlay() frees what it replaces, so the Battle Card + checklist were
+	## queue_free()d before one frame rendered. At LOG_ONLY the modal survived over
+	## a running battle and its Begin Battle button started round 1 AGAIN.
+	##
+	## Every assertion reads live object state after driving ONLY the real entry
+	## points, because the defect lives in the ORDER those entry points run in.
+	var checklist := _overlay_holds(_ui5, "PreBattleChecklist")
+	_ok("pre-battle modal is shown on the campaign path",
+		bool(checklist["present"]))
+	_ok("pre-battle modal is not already queued for deletion",
+		not bool(checklist["doomed"]),
+		"an overlay raised later in the same call stack freed it")
+	var seize := _overlay_holds(_ui5, "InitiativeCalculator")
+	_ok("Seize the Initiative has NOT pre-empted the modal",
+		not bool(seize["present"]))
+	_ok("battle has not started before the player pressed Begin Battle",
+		int(_ui5.round_tracker.get_current_round()) == 0,
+		"round=%d" % int(_ui5.round_tracker.get_current_round()))
+	_ok("stage is SETUP while the modal is up",
+		int(_ui5.current_stage) == int(_ui5.BattleStage.SETUP),
+		"stage=%d" % int(_ui5.current_stage))
+
+	# The objective tracker must exist BEFORE the modal is built: the Battle Card
+	# names the objective from it, and falls back to the raw mission keys only
+	# when there is none — which is how the card came to print the JOB's name
+	# while the log, the glance chip and the results form all tracked the p.89
+	# objective instead.
+	var tracker_at_modal = _ui5._objective_tracker
+	_ok("objective tracker exists while the Battle Card is being built",
+		tracker_at_modal != null)
+
+	# Now press Begin Battle, then press a redundant deploy on top of it. Exactly
+	# ONE battle_started must come out of the pair.
+	_ui5.round_tracker.battle_started.connect(
+		func() -> void: _ui5_battle_starts += 1)
+	_ui5._on_checklist_dismissed()
+	_ui5._on_auto_deploy_clicked()
+	_ok("Begin Battle starts the round machine exactly once",
+		_ui5_battle_starts == 1, "battle_started x%d" % _ui5_battle_starts)
+	_ok("Begin Battle lands on COMBAT, not a dead deployment stage",
+		int(_ui5.current_stage) == int(_ui5.BattleStage.COMBAT),
+		"stage=%d" % int(_ui5.current_stage))
+	_ok("round 1 is running after Begin Battle",
+		int(_ui5.round_tracker.get_current_round()) == 1,
+		"round=%d" % int(_ui5.round_tracker.get_current_round()))
+	_ok("the objective tracker survived the start (not rebuilt mid-fight)",
+		_ui5._objective_tracker == tracker_at_modal,
+		"a rebuild silently discards every marker and manual toggle recorded")
+
+	# Reuse. This screen is a permanent child of CampaignTurnController.tscn, so
+	# battle 2 of a campaign lands on the SAME node as battle 1.
+	_ui5._ensure_results_form_drawer()
+	_ui5_form_before = _ui5._log_only_results_form
+	var crew_before: int = _ui5.crew_units.size()
+	_ui5.initialize_battle(_crew(), _enemies(), _campaign_mission("standard"))
+	_ok("a second battle does not stack crew on the first",
+		_ui5.crew_units.size() == crew_before,
+		"before=%d after=%d" % [crew_before, _ui5.crew_units.size()])
+	_ok("a second battle does not stack enemies on the first",
+		_ui5.enemy_units.size() == 6, "enemies=%d" % _ui5.enemy_units.size())
+	_ui5._ensure_results_form_drawer()
+	_ok("a second battle gets a FRESH Record Result form",
+		_ui5._log_only_results_form != _ui5_form_before,
+		"the reused form records battle 2 against battle 1's crew")
+	_ok("a second battle resets the round machine to 0",
+		int(_ui5.round_tracker.get_current_round()) == 0,
+		"round=%d" % int(_ui5.round_tracker.get_current_round()))
+
+
+func _check_phase_controls() -> void:
+	## Core Rules p.113: the Reaction Roll is the round's first act and the
+	## player makes it. p.112: Seizing the Initiative happens ONCE, before round 1.
+	##
+	## What these rows pin, all measured on the live scene before the fix:
+	##  * the pool was rolled TWICE — silently on entering phase 0, and again by
+	##    the button, so the rail showed one assignment and the log another;
+	##  * FOUR controls advanced the round, three of them straight past the roll;
+	##  * the Seize overlay reappeared every round, and its modifiers were
+	##    dropped by the panel's own _ready() the first time it was displayed.
+	var tracker = _ui6.round_tracker
+	_ok("battle opens on Round 1 / Reaction Roll",
+		int(tracker.get_current_round()) == 1
+			and int(tracker.get_current_phase()) == 0,
+		"round=%d phase=%d" % [int(tracker.get_current_round()),
+			int(tracker.get_current_phase())])
+
+	# Nobody has pressed anything yet, so no figure may carry a slot.
+	var pre_assigned: int = 0
+	for unit in _ui6.crew_units:
+		if int(unit.react_slot) != 0:
+			pre_assigned += 1
+	_ok("no Reaction Roll is made before the player asks for one",
+		pre_assigned == 0, "%d/5 figures already had a Quick/Slow slot"
+			% pre_assigned)
+
+	var labels: Array = _button_labels(_ui6.action_buttons)
+	_ok("the Reaction Roll phase offers exactly one Roll Reactions button",
+		labels.count("Roll Reactions") == 1, str(labels))
+	_ok("End Turn is not a second way to advance during combat",
+		not _ui6.end_turn_button.visible,
+		"a generic End Turn beside the phase's own action skipped the roll")
+
+	# The HUD's five phase chips emitted phase_clicked, which nothing consumed.
+	var phase_chip: Node = _ui6.battle_round_hud.get_node_or_null(
+		"MainVBox/PhaseContainer/Phase_0")
+	if phase_chip == null:
+		phase_chip = _find_child_named(_ui6.battle_round_hud, "Phase_0")
+	_ok("HUD phase chips are inert indicators, not dead touch targets",
+		phase_chip != null
+			and phase_chip.mouse_filter == Control.MOUSE_FILTER_IGNORE,
+		"Phase_0 still accepts a press that goes nowhere")
+
+	# Roll. The phase must NOT advance on the same press — the assignment is the
+	# one thing this phase exists to show.
+	_ui6._on_roll_reactions_pressed()
+	var assigned: int = 0
+	for unit in _ui6.crew_units:
+		if int(unit.react_slot) == 1 or int(unit.react_slot) == 2:
+			assigned += 1
+	_ok("the roll assigns every living figure a Quick or Slow slot",
+		assigned == 5, "assigned=%d/5" % assigned)
+	_ok("rolling does not also advance the phase",
+		int(tracker.get_current_phase()) == 0,
+		"phase=%d — the result was replaced in the same frame it appeared"
+			% int(tracker.get_current_phase()))
+	_ok("the button becomes the continue affordance once rolled",
+		_button_labels(_ui6.action_buttons).has("Continue to Quick Actions"),
+		str(_button_labels(_ui6.action_buttons)))
+
+	# A second press continues. Re-rolling here would produce a third answer.
+	var dice_before: Array = []
+	for unit in _ui6.crew_units:
+		dice_before.append(int(unit.initiative_roll))
+	_ui6._on_roll_reactions_pressed()
+	var dice_after: Array = []
+	for unit in _ui6.crew_units:
+		dice_after.append(int(unit.initiative_roll))
+	_ok("a second press continues instead of re-rolling",
+		dice_before == dice_after and int(tracker.get_current_phase()) == 1,
+		"before=%s after=%s phase=%d" % [str(dice_before), str(dice_after),
+			int(tracker.get_current_phase())])
+
+	# Seize the Initiative: shown once, and its campaign modifiers must survive
+	# the panel's own _ready(), which runs on first display and used to rebuild
+	# the whole SeizeInitiativeSystem from scratch.
+	var sys = _ui6.initiative_calculator.initiative_system
+	_ok("Seize modifiers survive the panel entering the tree",
+		int(sys.highest_savvy) == 2 and int(sys.calculate_required_roll()) != 10,
+		"savvy=%d required=%d" % [int(sys.highest_savvy),
+			int(sys.calculate_required_roll())])
+
+	# Round 2 must not re-offer the roll (Core Rules p.112: once, before round 1).
+	_ui6._hide_overlay()
+	for _i in range(4):
+		tracker.advance_phase()
+	_ok("round 2 has begun", int(tracker.get_current_round()) == 2,
+		"round=%d" % int(tracker.get_current_round()))
+	var seize_again := _overlay_holds(_ui6, "InitiativeCalculator")
+	_ok("Seize the Initiative is not offered again in round 2",
+		not bool(seize_again["present"]),
+		"p.112 allows the roll once, before the first round")
+	_ok("a new round clears the Reaction Roll so it can be made again",
+		not bool(_ui6._reaction_rolled_this_round))
+
+	# T5-05: the log kept its own round counter and drifted off the tracker.
+	_ok("the battle log tags lines with the tracker's round",
+		int(_ui6.unified_log.current_round)
+			== int(tracker.get_current_round()),
+		"log=%d tracker=%d" % [int(_ui6.unified_log.current_round),
+			int(tracker.get_current_round())])
+
+
+func _find_child_named(node: Node, nm: String) -> Node:
+	for child in node.get_children():
+		if child.name == nm:
+			return child
+		var found := _find_child_named(child, nm)
+		if found != null:
+			return found
+	return null
+
+
+func _check_hit_resolution() -> void:
+	## Core Rules p.46: a Hit is resolved with ONE die — 1D6 + Damage against
+	## Toughness, natural 6 always fatal — and the figure is either removed or
+	## Stunned. There is no hit-point pool, and there was one: the card's Damage
+	## button decremented a current_health seeded to Toughness, so a Toughness 5
+	## figure took five presses and the card showed a "4 / 5 HP" the rules never
+	## mention. These rows use _ui6, which is mid-battle at Round 2.
+	var enemy = _ui6.enemy_units[0]
+	var crew0 = _ui6.crew_units[0]
+
+	# Luck is seeded per battle and never written back (p.46: "All Luck is
+	# regained automatically after each battle").
+	_ok("crew Luck is carried into the battle",
+		int(crew0.luck_remaining) == 1,
+		"luck_remaining=%d" % int(crew0.luck_remaining))
+
+	# A Stun outcome must not remove the figure.
+	var stun_before: int = int(enemy.stun_markers)
+	_ui6._on_hit_resolved({"result": "stun", "declared": true}, enemy, false)
+	_ok("a Stunned result marks the figure, it does not remove it",
+		int(enemy.stun_markers) == stun_before + 1 and not enemy.is_dead,
+		"stun=%d dead=%s" % [int(enemy.stun_markers), str(enemy.is_dead)])
+
+	# A casualty on an enemy removes it AND records who is credited (p.123).
+	_ui6._on_hit_resolved({"result": "down", "declared": true,
+		"credited_to": str(crew0.node_name)}, enemy, false)
+	_ok("a casualty result removes the enemy figure", enemy.is_dead)
+	_ok("the kill is credited to a crew figure",
+		str(enemy.killed_by) == str(crew0.node_name),
+		"killed_by=%s" % str(enemy.killed_by))
+
+	# p.46 Luck: a crew figure with Luck cannot be removed while it has any.
+	_ui6._on_hit_resolved({"result": "down", "declared": true}, crew0, true)
+	_ok("Luck absorbs the casualty instead of removing the figure",
+		not crew0.is_dead and int(crew0.luck_remaining) == 0,
+		"dead=%s luck=%d" % [str(crew0.is_dead), int(crew0.luck_remaining)])
+	_ui6._on_hit_resolved({"result": "down", "declared": true}, crew0, true)
+	_ok("once Luck is spent the next casualty removes the figure",
+		crew0.is_dead)
+
+	# The p.123 XP keys. kills_by_character had NO producer anywhere in src/
+	# before this, and first_casualty_by only had the manual form's picker.
+	var prefill: Dictionary = _ui6._build_results_prefill()
+	var kills: Dictionary = prefill.get("kills_by_character", {})
+	# A LIST of what that figure killed, not a count -- see the shape row
+	# at the end of this function for why the type is load-bearing.
+	var credited: Array = kills.get("crew_0", [])
+	_ok("per-character kill credit reaches the results prefill",
+		credited.size() >= 1, str(kills))
+	_ok("the battle's first casualty is attributed (p.123)",
+		str(prefill.get("first_casualty_by", "")) == "crew_0",
+		"first_casualty_by=%s" % str(prefill.get("first_casualty_by", "")))
+
+	# The card must not advertise hit points any more.
+	var card_scene: PackedScene = load(
+		"res://src/ui/components/battle/CharacterStatusCard.tscn")
+	var card = card_scene.instantiate()
+	root.add_child(card)
+	card.set_character_data({"character_name": "Probe", "toughness": 3,
+		"combat": 1, "reactions": 2, "speed": 4, "savvy": 1})
+	# OBSERVE THE BUTTON, not the signal's existence. Asserting
+	# has_signal("hit_requested") passed just as happily with the handler
+	# reverted to apply_damage(1) — the signal is declared either way, so the
+	# row detected nothing. Press it and watch what changes.
+	var hit_asks: Array = []
+	if card.has_signal("hit_requested"):
+		card.hit_requested.connect(func(n: String) -> void: hit_asks.append(n))
+	var hp_before: int = int(card.current_health)
+	card.damage_button.pressed.emit()
+	_ok("the card's Hit button asks the host to resolve p.46",
+		hit_asks.size() == 1, "emitted %d times" % hit_asks.size())
+	_ok("pressing Hit does not tick a hit-point pool",
+		int(card.current_health) == hp_before,
+		"health %d -> %d; Five Parsecs has no hit points (p.46)"
+			% [hp_before, int(card.current_health)])
+	var hp_section: Node = card.health_bar.get_parent() if card.health_bar else null
+	_ok("the figure card shows no hit-point bar",
+		hp_section != null and not hp_section.visible)
+	card.queue_free()
+
+	# The kill credit must be a LIST per crew id, never a count.
+	# PostBattleCompletion does `var kills: Array = kills_by_character.get(id, [])`
+	# and then kills.size(); an int there is an invalid assignment to a
+	# typed Array, which ABORTS that function and takes every other
+	# lifetime counter and the per-character journal event with it.
+	var attribution: Dictionary = _ui6._attribution_prefill()
+	var kbc: Dictionary = attribution.get("kills_by_character", {})
+	var all_lists: bool = true
+	for k in kbc.keys():
+		if not (kbc[k] is Array):
+			all_lists = false
+	_ok("kill credit is a list per crew id, not a count",
+		all_lists, "kills_by_character = %s" % str(kbc))
+
+
+func _checkpoint_mission() -> Dictionary:
+	## The campaign shape MINUS `battle_mode`. Nothing in production stamps that
+	## key for a standard 5PFH battle — only Bug Hunt, Planetfall and Tactics do —
+	## and a non-empty value makes _is_standalone_battle() true, which correctly
+	## disables checkpointing for the modes that own their own persistence.
+	var md: Dictionary = _campaign_mission("standard")
+	md.erase("battle_mode")
+	return md
+
+
+func _check_battle_checkpoint() -> void:
+	## A battle is 30-60 minutes at a physical table and NOTHING about one in
+	## progress was written anywhere. Worse than losing the notes: on relaunch the
+	## turn walks back into MISSION and _initiate_battle_sequence() re-rolls the
+	## encounter from a fresh seed, so the app ends up describing a different
+	## battle from the one on the table.
+	##
+	## Driven through the real entry points on two SEPARATE screen instances —
+	## one plays and saves, the other is what a relaunch builds.
+	var gs = root.get_node_or_null("/root/GameState")
+	if gs == null:
+		_ok("GameState reachable for the checkpoint round trip", false)
+		return
+	var previous = gs.current_campaign
+	var stub := _StubCampaign.new()
+	gs.current_campaign = stub
+
+	var packed: PackedScene = load(
+		"res://src/ui/screens/battle/TacticalBattleUI.tscn")
+	_ui7 = packed.instantiate()
+	root.add_child(_ui7)
+	_ui7.initialize_battle(_crew(), _enemies(), _checkpoint_mission())
+	_ui7._on_checklist_dismissed()
+
+	# Play a little: an enemy down, a crew figure Stunned and activated.
+	_ui7._checkpoint_save_queued = false
+	_ui7._mark_casualty(_ui7.enemy_units[0], false)
+	# Observed BEFORE the forced write below, or the assertion would be
+	# satisfied by the forced write itself and detect nothing.
+	var queued_by_mutation: bool = _ui7._checkpoint_save_queued
+	_ui7._on_card_stun(str(_ui7.crew_units[1].node_name), _ui7.crew_units[1])
+	_ui7.crew_units[1].is_activated = true
+	_ui7.round_tracker.advance_phase()
+	# Force the write rather than waiting on the debounce — the queue is proven
+	# separately below.
+	_ui7._write_battle_checkpoint()
+
+	var saved: Dictionary = gs.get_active_battle()
+	_ok("an in-progress battle is written to the campaign",
+		not saved.is_empty() and int(saved.get("turn", -1)) == 4,
+		"nothing about a fight in progress was persisted at all")
+	_ok("the checkpoint carries the mission, so a resume cannot re-roll it",
+		(saved.get("mission_data", {}) as Dictionary).has("enemy_force"),
+		"without it the campaign regenerates different enemies and terrain")
+	_ok("marking a figure down queues a save on its own",
+		queued_by_mutation,
+		"_refresh_unit_rails did not request a checkpoint, so a real battle "
+		+ "would only ever be saved if something else happened to ask")
+
+	# What a relaunch builds: a fresh screen, same mission, fresh figures.
+	_ui8 = packed.instantiate()
+	root.add_child(_ui8)
+	_ui8.initialize_battle(_crew(), _enemies(), _checkpoint_mission())
+
+	_ok("a resumed battle skips the pre-battle modal",
+		not bool(_overlay_holds(_ui8, "PreBattleChecklist")["present"]),
+		"the player deployed those figures 40 minutes ago")
+	_ok("the resumed battle is on the round it was left",
+		int(_ui8.round_tracker.get_current_round()) == 1
+			and int(_ui8.round_tracker.get_current_phase()) == 1,
+		"round=%d phase=%d" % [int(_ui8.round_tracker.get_current_round()),
+			int(_ui8.round_tracker.get_current_phase())])
+	_ok("the enemy that was removed is still removed",
+		_ui8.enemy_units[0].is_dead)
+	_ok("an enemy that was still standing is still standing",
+		not _ui8.enemy_units[1].is_dead)
+	_ok("Stun markers survive the interruption",
+		int(_ui8.crew_units[1].stun_markers) == 1,
+		"stun=%d" % int(_ui8.crew_units[1].stun_markers))
+	_ok("activation survives the interruption",
+		_ui8.crew_units[1].is_activated,
+		"the player would have to remember who had already acted")
+	_ok("the resumed screen is in COMBAT, not back at setup",
+		int(_ui8.current_stage) == int(_ui8.BattleStage.COMBAT),
+		"stage=%d" % int(_ui8.current_stage))
+
+	# A recorded result must retire the checkpoint, or the next battle resumes
+	# this one.
+	_ui8._clear_battle_checkpoint()
+	_ok("finishing the battle clears the checkpoint",
+		gs.get_active_battle().is_empty())
+
+	gs.current_campaign = previous
+
+
+func _count_stop_controls(node: Node) -> int:
+	## Controls that would swallow a touch-drag before the drawer's ScrollContainer
+	## sees it. MOUSE_FILTER_STOP marks an event HANDLED whether or not the control
+	## does anything with it, and CheckBox / SpinBox / OptionButton / Button all
+	## default to STOP.
+	var n := 0
+	if node is Button or node is CheckBox or node is SpinBox \
+			or node is OptionButton:
+		if (node as Control).mouse_filter == Control.MOUSE_FILTER_STOP:
+			n += 1
+	for child in node.get_children():
+		n += _count_stop_controls(child)
+	return n
+
+
+func _check_touch_ergonomics() -> void:
+	## T9-45 on hardware: a drawer scrolls by dragging the thin scrollbar and does
+	## nothing at all when dragged in the middle. SlideOverDrawer runs the
+	## TouchScrollOpener sweep once, from set_content(), on the EMPTY body — every
+	## card and form is added afterwards, so the sweep never reached the Crew, Enemy
+	## or Record Result drawers. Those are the three the F9/F10 device findings were
+	## about: with several enemies marked down, the last live figure's Mark Down
+	## button fell below an unreachable fold.
+	var enemy_body = _ui6._drawer_bodies.get("enemies")
+	_ok("the enemy drawer accepts a touch-drag after it is populated",
+		enemy_body != null and _count_stop_controls(enemy_body) == 0,
+		"%d controls still swallow the gesture"
+			% (_count_stop_controls(enemy_body) if enemy_body else -1))
+	var crew_body = _ui6._drawer_bodies.get("crew")
+	_ok("the crew drawer accepts a touch-drag after it is populated",
+		crew_body != null and _count_stop_controls(crew_body) == 0,
+		"%d controls still swallow the gesture"
+			% (_count_stop_controls(crew_body) if crew_body else -1))
+
+	# Portrait hides the TopBar AND the bottom drawer bar, so Record Result — the
+	# control that ends a played battle — lived two taps deep in a popup menu.
+	var bar = _ui6._mobile_app_bar
+	_ok("Record Result is a persistent control in portrait, not a menu entry",
+		bar != null and _ui6._record_action_btn != null
+			and is_instance_valid(_ui6._record_action_btn)
+			and _ui6._record_action_btn.get_parent() != null,
+		"the single most important control on the screen was inside ≡ Panels")
+	_ok("the portrait Record Result control is touch-sized",
+		_ui6._record_action_btn != null
+			and _ui6._record_action_btn.custom_minimum_size.y >= 44.0,
+		"height=%d" % (int(_ui6._record_action_btn.custom_minimum_size.y)
+			if _ui6._record_action_btn else -1))
+
 
 func _check_condition_reminders() -> void:
 	## Aug 6 battle-phase audit — two rules that were correct, computed, and shown

@@ -10,6 +10,11 @@ const StoryQuestData = preload("res://src/core/story/StoryQuestData.gd")
 ## stale-class_name-cache convention.
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+## Tier copy comes from ONE place. This screen used to keep its own parallel
+## list of tier names and descriptions that disagreed with the picker shown
+## inside the battle, and with the code.
+const BattleTierControllerRef = preload(
+	"res://src/core/battle/BattleTierController.gd")
 # KeywordLinker preload — bypasses the global class_name cache which can be
 # stale until editor reopens (CLAUDE.md "Preload Pattern for UI Class
 # References").
@@ -91,7 +96,21 @@ func _touch_target() -> int:
 		return rm.get_touch_target_size()
 	return 48
 
+## Seed the two per-battle choices from what the player picked last time.
+## Called before the selectors are built so the radios come up preselected.
+func _restore_remembered_choices() -> void:
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm == null:
+		return
+	if sm.has_method("get_last_tracking_tier"):
+		selected_tier = clampi(int(sm.get_last_tracking_tier()), 0, 2)
+	if sm.has_method("get_last_combat_mode"):
+		var mode: String = str(sm.get_last_combat_mode())
+		if mode in ["play_on_table", "no_minis", "auto_resolve"]:
+			selected_representation_mode = mode
+
 func _ready() -> void:
+	_restore_remembered_choices()
 	_apply_base_background()
 	_connect_signals()
 	confirm_button.disabled = true
@@ -349,6 +368,20 @@ func _win_condition_text(data: Dictionary) -> String:
 func _setup_mission_info(data: Dictionary) -> void:
 	if not mission_info_panel:
 		return
+
+	# Rebuild, do not append. Every phase that maps to a battle launch —
+	# MISSION, BATTLE_SETUP and BATTLE_RESOLUTION all share the one
+	# _show_phase_ui branch that calls _initiate_battle_sequence() — lands
+	# here again, and this panel owns the mission header, the Seize summary
+	# AND both decision cards. Without a clear, a second pass showed the
+	# player TWO Combat Mode cards and TWO Tracking Level cards, six live
+	# radios in three button groups, of which only the last pair was read.
+	# Observed during the 2026-09-03 desktop MCP walk (6 tier radios).
+	for _old in mission_info_panel.get_children():
+		mission_info_panel.remove_child(_old)
+		_old.queue_free()
+	_tier_radios.clear()
+	_summary_label = null
 
 	var mission_title := Label.new()
 	mission_title.text = data.get("title", "Unknown Mission")
@@ -966,11 +999,16 @@ func _build_tier_selector() -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(desc)
 
-	var tier_names: Array[String] = [
-		"Log Only — manual play, dice journal",
-		"Assisted — auto-roll + guidance overlays",
-		"Full Oracle — AI runs enemy turns",
-	]
+	# Read the copy from the controller rather than keeping a second list here.
+	# The two used to disagree: this screen promised "Full Oracle — AI runs enemy
+	# turns" while the tier picker inside the battle promised it would "manage
+	# everything", and the code does neither — it adds an oracle panel to the
+	# enemy tracker and the player still moves every figure.
+	var tier_names: Array[String] = []
+	for t in [0, 1, 2]:
+		var info: Dictionary = BattleTierControllerRef.TIER_INFO.get(t, {})
+		tier_names.append("%s — %s" % [str(info.get("name", "?")),
+			str(info.get("description", ""))])
 	var button_group := ButtonGroup.new()
 	_tier_radios.clear()
 	for i in range(tier_names.size()):
@@ -981,14 +1019,28 @@ func _build_tier_selector() -> void:
 		radio.custom_minimum_size.y = _touch_target()  # Touch-friendly
 		radio.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART  # long labels wrap at 360dp
 		radio.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if i == 0:
-			radio.button_pressed = true  # Default to LOG_ONLY
+		# Tracking level is meaningless when the app resolves the whole battle.
+		# _on_representation_radio_pressed() applies this rule when the player
+		# PRESSES auto-resolve, but the mode can also arrive from
+		# _restore_remembered_choices() — which sets the field and runs no side
+		# effect, and could not disable these anyway because _tier_radios is
+		# still empty at _ready(). Without this line a remembered auto-resolve
+		# rendered three live radios that persisted a tier nothing would read.
+		radio.disabled = (selected_representation_mode == "auto_resolve")
+		if i == selected_tier:
+			radio.button_pressed = true
 		radio.pressed.connect(_on_tier_radio_pressed.bind(i))
 		_tier_radios.append(radio)
 		card.add_child(radio)
 
 func _on_tier_radio_pressed(tier: int) -> void:
 	selected_tier = tier
+	# Remembered for the next battle. Stored in SettingsManager, the single
+	# owner of options.cfg, not in the campaign — it is a preference about how
+	# this player likes to run a fight, not a fact about the campaign.
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and sm.has_method("set_last_tracking_tier"):
+		sm.set_last_tracking_tier(tier)
 	_update_choice_summary()
 
 ## Live "Mode · Tracking" summary so the current two choices are glanceable
@@ -1074,6 +1126,9 @@ func _build_representation_selector() -> void:
 
 func _on_representation_radio_pressed(mode: String) -> void:
 	selected_representation_mode = mode
+	var sm := get_node_or_null("/root/SettingsManager")
+	if sm and sm.has_method("set_last_combat_mode"):
+		sm.set_last_combat_mode(mode)
 	# Tracking level is meaningless when the app resolves the whole battle.
 	var is_auto: bool = (mode == "auto_resolve")
 	for r in _tier_radios:

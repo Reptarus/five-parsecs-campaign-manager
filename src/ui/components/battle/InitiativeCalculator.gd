@@ -37,11 +37,31 @@ var difficulty_option: OptionButton
 var initiative_system: SeizeInitiativeSystem
 var last_result: SeizeInitiativeSystem.InitiativeResult
 
+## Pending-data pattern for the construction race described on _ready().
+## _ui_built is an explicit flag rather than is_node_ready() so there is no
+## question about whether the engine considers us ready DURING _ready().
+var _pending_ctx: Dictionary = {}
+var _ui_built: bool = false
+
+## ⚠ THIS RUNS LATE. TacticalBattleUI instantiate()s this panel and holds it
+## OUT of the tree ("stored for overlay popup"), so _ready() does not fire
+## until _show_overlay() add_child()s it — which is AFTER the battle has
+## seeded it with the campaign's Seize the Initiative modifiers.
+##
+## Rebuilding the system and the modifier row here therefore threw those away.
+## Measured on the live scene at the moment the overlay was first shown:
+## savvy 2 -> 0, difficulty HARDCORE -> NORMAL, required roll 9+ -> 10+. So the
+## first Seize roll of every battle was made against an unmodified target, even
+## though the app had already displayed the correct one on the pre-battle
+## screen. Anything seeded before we entered the tree is replayed below.
 func _ready() -> void:
 	initiative_system = SeizeInitiativeSystem.new()
 	_setup_panel_style()
 	_setup_modifiers_ui()
 	_setup_buttons()
+	_ui_built = true
+	if not _pending_ctx.is_empty():
+		apply_initiative_context(_pending_ctx)
 	_update_probability()
 
 	if result_panel:
@@ -185,6 +205,12 @@ func set_enemy_modifier(value: int, enemy_name: String = "Enemy Type") -> void:
 ## The controls stay live: this seeds them, the player can still correct any of it.
 func apply_initiative_context(ctx: Dictionary) -> void:
 	if ctx.is_empty():
+		return
+	# Kept so a later _ready() can replay it — see the docblock there. Duplicated
+	# because the caller's mission dictionary keeps being mutated after this.
+	_pending_ctx = ctx.duplicate(true)
+	if not _ui_built:
+		# The controls do not exist yet; _ready() will call us back.
 		return
 	# This panel is instantiated and held for an overlay popup, so _ready() has
 	# not run yet the first time the battle configures it. Same self-heal as

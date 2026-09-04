@@ -8,6 +8,8 @@ const MissionTableManagerClass = preload("res://src/core/mission/MissionTableMan
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
+const BattleCheckpointRef = preload(
+	"res://src/core/battle/BattleCheckpoint.gd")
 const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd")
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
@@ -993,7 +995,17 @@ func _is_quest_finale_mission(mission_data: Dictionary) -> bool:
 
 
 func _initiate_battle_sequence() -> void:
-	## Start battle with current mission data and check for rival encounters
+	## Start battle with current mission data and check for rival encounters.
+	##
+	## A battle already in progress is resumed BEFORE anything is rolled. Every
+	## generator below runs off a fresh `seed_rng.randomize()`, so re-entering this
+	## function mid-battle produced different enemies, a different objective and a
+	## different battlefield — under a table the player had already physically built
+	## from the previous roll. That is what a relaunch after a crash or a force-stop
+	## did, because the World Phase checkpoint resumes the turn and the turn walks
+	## back into MISSION.
+	if _resume_battle_if_checkpointed():
+		return
 	var mission_data = game_state.get_current_mission()
 	# Fallback: read from progress_data if campaign method returned empty
 	if mission_data.is_empty() and game_state.current_campaign and "progress_data" in game_state.current_campaign:
@@ -1688,6 +1700,43 @@ func _stamp_narrative_battle_config(mission_data: Dictionary) -> Dictionary:
 
 	return out
 
+func _resume_battle_if_checkpointed() -> bool:
+	## Put the player back into the fight they were in. Returns true when it did.
+	##
+	## The mission travels inside the checkpoint rather than being re-read from the
+	## campaign, so the resumed battle is guaranteed to be the same encounter even
+	## if current_mission has since been overwritten.
+	if game_state == null or not game_state.has_method("get_active_battle"):
+		return false
+	var cp: Dictionary = game_state.get_active_battle()
+	var turn: int = 0
+	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
+		turn = int(game_state.current_campaign.progress_data.get("turns_played", 0))
+	if not BattleCheckpointRef.is_valid(cp, turn):
+		return false
+	var md: Variant = cp.get("mission_data", {})
+	if not (md is Dictionary) or (md as Dictionary).is_empty():
+		return false
+	if tactical_battle_ui == null:
+		return false
+
+	# Only the figures that were actually DEPLOYED come back. Handing the screen
+	# the whole roster would put crew on the table who were never in this battle,
+	# and they would arrive unmatched by the checkpoint and read as fresh.
+	var keys: Array = BattleCheckpointRef.crew_keys(cp)
+	var crew_data: Array = []
+	for member in _deployable(game_state.get_active_crew()):
+		if keys.has(BattleCheckpointRef.member_key(member)):
+			crew_data.append(member)
+	var enemies: Array = cp.get("source_enemies", [])
+
+	_hide_all_phase_uis()
+	if tactical_battle_ui.has_method("initialize_battle"):
+		tactical_battle_ui.initialize_battle(crew_data, enemies, md)
+	tactical_battle_ui.show()
+	current_ui_phase = tactical_battle_ui
+	return true
+
 func _launch_pre_battle_directly(mission_data: Dictionary, crew_data: Array) -> void:
 	## UX streamline: Skip BattleTransitionUI, go directly to PreBattleUI.
 	## Replicates the data handoff that _on_battle_ready_to_launch() did,
@@ -1828,9 +1877,16 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 		# long; a visible failure is strictly better than a fake victory.
 		push_error("CampaignTurnController: auto-resolve has no enemies — "
 			+ "refusing to resolve a battle with no opposition")
+		# ⚠ `show_notification` DOES NOT EXIST on NotificationManager — `func
+		# show_notification` has ZERO definitions repo-wide, so this guard was
+		# permanently false and the player was told NOTHING on a failure path.
+		# The real API is show_info / show_success / show_warning / show_error /
+		# show_toast (src/autoload/NotificationManager.gd:105-131).
+		# WorldPhaseAutomationController:569-570 already found and documented this
+		# trap; these call sites were missed by that pass.
 		var nm := get_node_or_null("/root/NotificationManager")
-		if nm and nm.has_method("show_notification"):
-			nm.show_notification("Could not auto-resolve: no enemy force was generated.")
+		if nm and nm.has_method("show_error"):
+			nm.show_error("Could not auto-resolve: no enemy force was generated.")
 		return
 
 	# Use BattleResolver for real combat resolution
@@ -2707,8 +2763,20 @@ func _on_tactical_battle_completed(battle_result) -> void:
 	game_state.set_battle_results(results_dict)
 	battle_results = results_dict
 
+	# Every phase UI is hidden BEFORE a transition that can be refused:
+	# start_phase() returns false and emits phase_error when
+	# _can_transition_to_phase() rejects the move, and this call discarded that
+	# bool. A refusal therefore left the player on a completely EMPTY screen
+	# with no control of any kind and no way back, holding a finished battle
+	# whose results were already committed to GameState. Observed during the
+	# 2026-09-03 desktop MCP walk. Recover onto whatever phase the manager is
+	# actually in rather than asserting one it refused to enter.
 	_hide_all_phase_uis()
-	campaign_phase_manager.start_phase(GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION)
+	if not campaign_phase_manager.start_phase(
+			GlobalEnums.FiveParsecsCampaignPhase.POST_MISSION):
+		push_warning("Battle finished but POST_MISSION was refused from phase %s"
+			% str(campaign_phase_manager.current_phase))
+		_show_phase_ui(int(campaign_phase_manager.current_phase))
 
 func _on_return_to_battle_resolution() -> void:
 	## Handle return from TacticalBattle to battle resolution/PreBattle

@@ -82,20 +82,35 @@ const TIER_FEATURES: Dictionary = {
 }
 
 ## Tier display info for UI
+## THE SINGLE SOURCE OF TIER COPY. PreBattleUI used to carry its own parallel
+## list ("Assisted — auto-roll + guidance overlays", "Full Oracle — AI runs
+## enemy turns") while TierSelectionPanel rendered these, so the same three
+## choices were described two different ways depending on which screen the
+## player was looking at — and neither description matched the code.
+##
+## Rewritten against what each tier actually does:
+##  * LOG_ONLY was undersold as note-taking. It gets the whole companion —
+##    the 5-phase round machine, the map, the per-figure trackers, the
+##    scenario rules and Record Result. What it does NOT do is roll for you.
+##  * ASSISTED's real content is the automatic rolls and the tracking drawer.
+##  * FULL_ORACLE does not "manage everything" and does not run enemy turns.
+##    It adds the enemy AI oracle on top of the enemy tracker. The book's AI
+##    instructions are shown at EVERY tier (the tier gates automation, not
+##    instructions), so promising them here misrepresented all three.
 const TIER_INFO: Dictionary = {
 	TrackingTier.LOG_ONLY: {
 		"name": "Log Only",
-		"description": "Minimal tracking. You handle the rules - I'll keep notes and roll dice.",
+		"description": "The full table companion — map, figure tracker, scenario rules, battle log. You roll every die yourself.",
 		"icon_hint": "notebook",
 	},
 	TrackingTier.ASSISTED: {
 		"name": "Assisted",
-		"description": "I'll remind you of rules, prompt for events and morale, and track unit status.",
+		"description": "Adds the dice: reaction rolls, Seize the Initiative, end-of-round morale and condition checks, plus live objective tracking.",
 		"icon_hint": "compass",
 	},
 	TrackingTier.FULL_ORACLE: {
 		"name": "Full Oracle",
-		"description": "I'll tell you what the enemies do, draw from the AI oracle, and manage everything.",
+		"description": "Adds an enemy AI oracle to the enemy tracker — reference, dice table or card draw. You still move the figures.",
 		"icon_hint": "crystal_ball",
 	},
 }

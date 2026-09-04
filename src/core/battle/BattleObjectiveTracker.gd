@@ -122,7 +122,14 @@ func on_round_advanced(round_number: int) -> void:
 	_round = maxi(round_number, _round)
 	_system.update_progress("rounds_survived", _round)
 
-## Casualty driver — called at the existing battle_round_hud.report_casualty() site.
+## Incremental casualty driver. ⚠ NOT the live path. This docblock used to
+## claim it was "called at the existing battle_round_hud.report_casualty()
+## site"; it had ZERO production callers, which froze `enemies_remaining` at
+## its initial value for entire battles and made FIGHT_OFF unwinnable (see
+## TacticalBattleUI._sync_objective_enemy_count for the full fallout). The
+## live driver is that function, which RECOMPUTES from the unit model through
+## set_manual() instead of decrementing. Kept because the unit tests drive
+## objective completion through it.
 func on_enemy_casualty(count: int = 1) -> void:
 	if not _has_objective:
 		return

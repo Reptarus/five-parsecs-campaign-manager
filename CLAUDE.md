@@ -127,7 +127,7 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 
 - **BugHuntCampaignCore** (Resource): Separate from FiveParsecsCampaignCore — no ship, no patrons/rivals
 - **BugHuntPhaseManager**: 3-stage turn orchestration (vs 9-phase CampaignPhaseManager)
-- **TacticalBattleUI** reused with `battle_mode: "bug_hunt"` (hides morale, adds ContactMarkerPanel)
+- **TacticalBattleUI** reused with `battle_mode: "bug_hunt"` (hides morale). ⚠ This line used to say "adds ContactMarkerPanel" — that file was DELETED in `5125a0e4` and nothing replaced it.
 - **CharacterTransferService**: Bidirectional transfer (5PFH ↔ Bug Hunt) with enlistment rolls
 - **GameState.load_campaign()**: Uses `_detect_campaign_type()` to peek at save file JSON `campaign_type` field, routing to `FiveParsecsCampaignCore` (default) or `BugHuntCampaignCore` loader. Legacy saves without the field default to standard 5PFH.
 - **SceneRouter keys**: `bug_hunt_creation`, `bug_hunt_dashboard`, `bug_hunt_turn_controller`
@@ -707,10 +707,15 @@ methods below.
 
 > **⚠ Liveness is NOT implied by this table (verified 2026-07-30).** Several rows
 > describe components that exist and are documented but are referenced by nothing
-> in `src/`: **`BookFrame`, `OrnamentPanel`, `InlineRenameWidget`** (plus
-> `ContactMarkerPanel`, `DiceFeed`, `AttackResolutionOverlay` elsewhere in this
-> file). They are built and usable, but not currently wired into any screen — so
-> "CLAUDE.md lists it" is not evidence a component is in use. Run
+> in `src/`: **`BookFrame`, `OrnamentPanel`, `InlineRenameWidget`**. They are
+> built and usable, but not currently wired into any screen — so
+> "CLAUDE.md lists it" is not evidence a component is in use.
+>
+> ⚠ This warning also used to list `ContactMarkerPanel`, `DiceFeed` and
+> `AttackResolutionOverlay` as "built and usable, not currently wired". All
+> three were **DELETED** in `5125a0e4` ("delete 236 orphaned files found by a
+> new reachability lint"). A note that describes a deleted file as merely
+> unwired sends the next reader looking for it. Run
 > `python scripts/lint_orphan_assets.py` for ground truth, and see
 > `docs/WIRING_CLEANUP_BACKLOG.md` tier 7 for the wire-or-delete triage.
 

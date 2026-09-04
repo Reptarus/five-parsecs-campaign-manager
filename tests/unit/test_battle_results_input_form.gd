@@ -114,3 +114,73 @@ func test_form_reports_real_height_not_collapsed() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	assert_float(form.get_combined_minimum_size().y).is_greater(400.0)
+
+
+# --- Core Rules p.123 XP credit pickers (2026-09-03 desktop MCP walk) -------
+
+func _make_form_with_crew(crew: Array, prefill: Dictionary) -> Control:
+	var form = FormClass.new()
+	add_child(form)
+	auto_free(form)
+	form.setup(crew, 5, {}, prefill)
+	return form
+
+func _xp_crew() -> Array:
+	return [
+		{"character_name": "Alpha", "character_id": "id_alpha", "combat": 1,
+			"reactions": 1, "toughness": 3, "speed": 4},
+		{"character_name": "Beta", "character_id": "id_beta", "combat": 1,
+			"reactions": 1, "toughness": 3, "speed": 4},
+	]
+
+func test_nobody_selection_credits_nobody_not_the_first_crew_member() -> void:
+	## picker.add_item("Nobody", -1) does NOT store -1: Godot treats -1 as
+	## auto-assign and uses the item INDEX, so "Nobody" took id 0, the same id
+	## as crew[0]. _picked_crew_id() resolves the selection through
+	## get_item_id(), so choosing "Nobody" returned crew[0]'s character_id and
+	## silently awarded that member the p.123 +1 XP for the first casualty and
+	## for a Unique Individual kill. Proven live on the desktop MCP walk.
+	var form = _make_form_with_crew(_xp_crew(), {})
+	assert_str(form._first_casualty_btn.get_item_text(0)).is_equal("Nobody")
+	assert_int(form._first_casualty_btn.get_item_id(0)).is_equal(-1)
+	form._first_casualty_btn.select(0)
+	form._unique_kill_btn.select(0)
+	var r: Dictionary = _submit(form)
+	assert_str(r["first_casualty_by"]).is_equal("")
+	assert_int((r["unique_kills"] as Array).size()).is_equal(0)
+
+func test_xp_pickers_seed_from_the_attribution_prefill() -> void:
+	## The battle screen records who scored each casualty (TacticalUnit.killed_by
+	## -> _attribution_prefill) and the prefill carries first_casualty_by /
+	## unique_kills as crew_ids. _apply_prefill() read neither, so both pickers
+	## opened on "Nobody" and the player had to re-enter what the app had just
+	## written down -- which is the whole reason the attribution was added.
+	var form = _make_form_with_crew(_xp_crew(),
+		{"first_casualty_by": "id_beta", "unique_kills": ["id_alpha"]})
+	assert_str(form._first_casualty_btn.get_item_text(
+		form._first_casualty_btn.selected)).is_equal("Beta")
+	assert_str(form._unique_kill_btn.get_item_text(
+		form._unique_kill_btn.selected)).is_equal("Alpha")
+	var r: Dictionary = _submit(form)
+	assert_str(r["first_casualty_by"]).is_equal("id_beta")
+	assert_int((r["unique_kills"] as Array).size()).is_equal(1)
+	assert_str((r["unique_kills"] as Array)[0]).is_equal("id_alpha")
+
+func test_submit_forwards_kills_by_character_from_the_prefill() -> void:
+	## The form has no per-kill control: the battle screen records the credit
+	## figure by figure through the p.46 Hit sheet and hands it over in the
+	## prefill, so forwarding it IS the whole wire. Without it
+	## PostBattleCompletion read an absent key, Character.lifetime_kills never
+	## moved (its only other writer, Character.add_kill(), has ZERO callers) and
+	## the "Kills" figure on CharacterDetailsScreen / CharacterHistoryPanel read
+	## 0 for every campaign ever played.
+	var form = _make_form_with_crew(_xp_crew(),
+		{"kills_by_character": {"id_alpha": ["Pirate", "Pirates Lieutenant"]}})
+	var r: Dictionary = _submit(form)
+	assert_bool(r.has("kills_by_character")).is_true()
+	var kbc: Dictionary = r["kills_by_character"]
+	assert_bool(kbc.has("id_alpha")).is_true()
+	# A LIST, never a count: PostBattleCompletion assigns it to a typed Array
+	# and calls .size(). An int there aborts that whole function.
+	assert_bool(kbc["id_alpha"] is Array).is_true()
+	assert_int((kbc["id_alpha"] as Array).size()).is_equal(2)

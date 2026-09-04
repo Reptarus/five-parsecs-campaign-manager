@@ -449,6 +449,41 @@ func _apply_prefill() -> void:
 			if i >= 0 and i < _injury_checks.size():
 				_injury_checks[i].button_pressed = true
 
+	# Core Rules p.123 XP credit. The battle screen now RECORDS who scored
+	# each casualty (TacticalUnit.killed_by -> _attribution_prefill), and the
+	# prefill carries first_casualty_by / unique_kills as crew_ids. Nothing
+	# read them here, so both pickers still opened on "Nobody" and the player
+	# had to remember what the app had just written down — which is the whole
+	# reason the attribution was added.
+	_select_crew_by_id(_first_casualty_btn,
+		str(_pending_prefill.get("first_casualty_by", "")))
+	var _uk: Variant = _pending_prefill.get("unique_kills", [])
+	if _uk is Array and not (_uk as Array).is_empty():
+		_select_crew_by_id(_unique_kill_btn, str((_uk as Array)[0]))
+	elif _uk is String:
+		_select_crew_by_id(_unique_kill_btn, str(_uk))
+
+func _select_crew_by_id(picker: OptionButton, crew_id: String) -> void:
+	## Inverse of _picked_crew_id: the picker's item IDs are indices into
+	## _crew, and "Nobody" is id -1. Bots are skipped when building it, so
+	## match on the item ID rather than assuming position.
+	if picker == null or crew_id.strip_edges() == "":
+		return
+	for i in _crew.size():
+		var member = _crew[i]
+		var mid: String = ""
+		if member is Dictionary:
+			mid = str((member as Dictionary).get("character_id",
+				(member as Dictionary).get("id", "")))
+		elif member and "character_id" in member:
+			mid = str(member.character_id)
+		if mid != "" and mid == crew_id:
+			for item in picker.item_count:
+				if picker.get_item_id(item) == i:
+					picker.select(item)
+					return
+			return
+
 func _crew_has_training(course_id: String) -> bool:
 	## Mirrors InjuryProcessor._member_has_training: Dictionary branch FIRST,
 	## because has_method() on a Dictionary is an invalid call that unwinds the
@@ -491,7 +526,15 @@ func _build_crew_picker(parent: VBoxContainer, label_text: String) -> OptionButt
 	var picker := OptionButton.new()
 	picker.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	picker.accessibility_name = label_text
-	picker.add_item("Nobody", -1)
+	picker.add_item("Nobody")
+	# add_item(text, -1) does NOT store -1: Godot treats -1 as
+	# auto-assign and uses the item INDEX, so Nobody took id 0 -- the
+	# same id as crew[0]. _picked_crew_id() resolves the selection
+	# through get_item_id(), so picking Nobody returned crew[0]s
+	# character_id and quietly awarded that member the Core Rules p.123
+	# +1 XP for the first casualty and for a Unique Individual kill.
+	# Set the sentinel explicitly so it cannot collide.
+	picker.set_item_id(0, -1)
 	for i in _crew.size():
 		if _is_bot(_crew[i]):
 			continue
@@ -751,6 +794,15 @@ func _on_submit() -> void:
 		"notable_sight_claimed": (_notable_sight_check != null
 			and is_instance_valid(_notable_sight_check)
 			and _notable_sight_check.button_pressed),
+		# Per-character kill credit. The form has no per-kill control -- the
+		# battle screen recorded it figure by figure through the p.46 Hit
+		# sheet -- so the prefill IS the producer and passing it through is
+		# the whole wire. Without this line PostBattleCompletion read an
+		# absent key, Character.lifetime_kills never moved (its only other
+		# writer, Character.add_kill(), has ZERO callers), and the "Kills"
+		# figure on CharacterDetailsScreen and CharacterHistoryPanel read 0
+		# for every campaign ever played.
+		"kills_by_character": _pending_prefill.get("kills_by_character", {}),
 		"first_casualty_by": _picked_crew_id(_first_casualty_btn),
 		"unique_kills": ([] if _picked_crew_id(_unique_kill_btn) == ""
 			else [_picked_crew_id(_unique_kill_btn)]),

@@ -68,6 +68,13 @@ const DEFAULTS := {
 		#    subtable."
 		"connections_variety": false,
 		"table_size_ft": 3.0,  # physical table: 2.0 / 2.5 / 3.0 (Core Rules p.108)
+		# The two per-battle choices on PreBattleUI. They reset to the same
+		# defaults every single battle, so a player who prefers Assisted, or who
+		# always auto-resolves, re-picked it before every fight —
+		# TierSelectionPanel's docblock even claimed it "remembers last
+		# selection" and nothing ever persisted it.
+		"last_tracking_tier": 0,  # 0 LOG_ONLY / 1 ASSISTED / 2 FULL_ORACLE
+		"last_combat_mode": "play_on_table",
 	},
 	"mobile": {
 		"haptic_feedback": true,
@@ -424,6 +431,21 @@ func use_connections_variety() -> bool:
 func get_table_size_ft() -> float:
 	## Player's physical table size: 2.0 / 2.5 / 3.0 ft (Core Rules p.108)
 	return float(get_setting("gameplay", "table_size_ft"))
+
+func get_last_tracking_tier() -> int:
+	## The tracking tier the player chose for their previous battle, used to
+	## preselect the radio rather than dropping everyone back to LOG_ONLY.
+	return int(get_setting("gameplay", "last_tracking_tier"))
+
+func set_last_tracking_tier(tier: int) -> void:
+	set_setting("gameplay", "last_tracking_tier", clampi(tier, 0, 2))
+
+func get_last_combat_mode() -> String:
+	## "play_on_table" / "no_minis" / "auto_resolve".
+	return str(get_setting("gameplay", "last_combat_mode"))
+
+func set_last_combat_mode(mode: String) -> void:
+	set_setting("gameplay", "last_combat_mode", mode)
 
 func is_haptic_enabled() -> bool:
 	return get_setting("mobile", "haptic_feedback")

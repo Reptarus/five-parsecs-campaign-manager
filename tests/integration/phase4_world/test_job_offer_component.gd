@@ -299,13 +299,53 @@ func test_danger_pay_is_pure_component_not_total():
 ## wired these three rows were printed in the offer and enforced nowhere, so
 ## every job was always acceptable.
 func test_a_blocking_condition_refuses_the_job():
+	# ⚠ THIS TEST MUST SUPPLY ITS OWN CAMPAIGN, OR IT MEASURES LUCK.
+	#
+	# The p.84 gate reads `_patron_jobs_completed_here()`, which returns:
+	#   0  -> a readable campaign with no prior Patron job here  -> BLOCKS
+	#   -1 -> NO READABLE CAMPAIGN ("unknown")                   -> FAILS OPEN
+	# The fail-open is deliberate product behaviour, documented at
+	# JobOfferComponent.gd:975-977: "a campaign we cannot read is not a campaign
+	# with no history." It must not be weakened.
+	#
+	# This test never established that precondition. It passed only when some
+	# EARLIER, UNRELATED suite in the same process had left a campaign loaded in
+	# the /root/GameState autoload — `test_real_save_galaxy_and_equipment.gd`
+	# loads a real user save. So the result depended on run composition:
+	#   tests/integration alone .................... PASSED (campaign present)
+	#   full unit sweep, THEN tests/integration .... FAILED (campaign absent)
+	# Instrumented in the failing configuration, the cause was unambiguous:
+	#   DIAG campaign=false  completed_here=-1  block={ }
+	# Installing a fresh campaign makes the test assert the BOOK RULE — "no prior
+	# Patron job completed on this world" -> refuse — instead of ambient state.
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	var previous_campaign = gs.campaign if gs else null
+	if gs:
+		gs.campaign = FiveParsecsCampaignCore.new()
+
 	component.initialize_job_phase({"patron_name": "Test"}, "Location")
 	component.set("selected_job_index", 0)
 
 	var jobs = component.get("available_jobs")
 	jobs[0]["effects"] = ["reputation_required"]
 
+	# Guard the precondition so a future regression names itself instead of
+	# looking like the gate broke.
+	assert_int(component._patron_jobs_completed_here()).override_failure_message(
+		"precondition: need a READABLE campaign with no prior Patron job here."
+		+ " -1 means no campaign is loaded, which the gate deliberately treats as"
+		+ " not-a-block, so the assertions below would be vacuous."
+	).is_equal(0)
+
+	# Assert the reason, not just the refusal: a Freelancer License or Full Squad
+	# block would also return false and would pass this test for the wrong rule.
+	var reason: String = str(component._acceptance_block_reason(jobs[0]).get("reason", ""))
+	assert_str(reason).contains("Reputation Required")
+
 	var result = component.accept_selected_job()
 
 	assert_that(result).is_false()
 	assert_that(component.get("job_accepted")).is_false()
+
+	if gs:
+		gs.campaign = previous_campaign

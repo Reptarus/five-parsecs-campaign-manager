@@ -20,19 +20,40 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 		return
 
 	var kills_by_character: Dictionary = ctx.battle_result.get("kills_by_character", {})
-	var damage_dealt_per_unit: Dictionary = ctx.battle_result.get("damage_dealt_per_unit", {})
-	var damage_taken_per_unit: Dictionary = ctx.battle_result.get("damage_taken_per_unit", {})
+	# damage_dealt_per_unit / damage_taken_per_unit are GONE, and must not
+	# come back. They had ZERO producers anywhere in src/, and never could:
+	# Five Parsecs has no damage quantity. A figure is on the table, Stunned,
+	# Knocked Out (3 markers, p.40) or removed, and a Hit is resolved ONCE
+	# against Toughness (p.46) rather than accumulated. So
+	# Character.lifetime_damage_dealt / _taken could only ever read 0. The
+	# @export fields stay for save compatibility; inventing a damage model to
+	# fill them would be a fabricated mechanic.
 	var units_downed: Array = ctx.battle_result.get("units_downed", [])
 
 	for member in crew:
 		if not member:
 			continue
 
+		# Fall back to "id". Character.to_dictionary() emits BOTH spellings
+		# (CLAUDE.md, "dual keys"), but crew dicts built by hand often carry
+		# only "id" -- in a real turn-20 save the CAPTAIN had character_id and
+		# the other five crew had only id. Reading character_id alone made
+		# char_id empty for those five, the loop `continue`d, and
+		# battles_participated / battles_survived / lifetime_kills never moved
+		# for them -- nor did their per-character battle journal event. The
+		# producer side already resolves both spellings
+		# (TacticalBattleUI._crew_id_for_name), so this was a one-sided
+		# contract. Dictionary branch FIRST: has_method() on a Dictionary is an
+		# invalid call that unwinds the whole function.
 		var char_id: String = ""
-		if member is Object and member.has_method("get"):
-			char_id = member.get("character_id") if member.get("character_id") else ""
-		elif member is Dictionary:
-			char_id = member.get("character_id", "")
+		if member is Dictionary:
+			var _md: Dictionary = member
+			char_id = str(_md.get("character_id", _md.get("id", "")))
+		elif member is Object:
+			if "character_id" in member and str(member.character_id) != "":
+				char_id = str(member.character_id)
+			elif "id" in member:
+				char_id = str(member.id)
 
 		if char_id.is_empty():
 			continue
@@ -49,16 +70,12 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 			if char_id not in units_downed:
 				d["battles_survived"] = int(d.get("battles_survived", 0)) + 1
 			d["lifetime_kills"] = int(d.get("lifetime_kills", 0)) + kills.size()
-			d["lifetime_damage_dealt"] = int(d.get("lifetime_damage_dealt", 0)) 				+ int(damage_dealt_per_unit.get(char_id, 0))
-			d["lifetime_damage_taken"] = int(d.get("lifetime_damage_taken", 0)) 				+ int(damage_taken_per_unit.get(char_id, 0))
 			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
 		elif member is Object and "battles_participated" in member:
 			member.battles_participated += 1
 			if char_id not in units_downed:
 				member.battles_survived += 1
 			member.lifetime_kills += kills.size()
-			member.lifetime_damage_dealt += damage_dealt_per_unit.get(char_id, 0)
-			member.lifetime_damage_taken += damage_taken_per_unit.get(char_id, 0)
 			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
 
 func _resolve_participant_ids(participants: Array) -> Array:

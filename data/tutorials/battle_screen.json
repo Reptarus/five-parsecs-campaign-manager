@@ -1,0 +1,37 @@
+[
+    {
+        "target_path": "EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar/PhaseButtonsContainer",
+        "text": "This bar is where the round happens. It always shows exactly one action for the phase you are in — roll reactions, mark a phase done, or start the next round. Nothing else advances the battle.",
+        "tooltip_position": "top"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/ContentArea/MapHost",
+        "text": "The map is the table you build. Tap any sector for its terrain and the rules that apply there. The app never moves a figure — you do that on your own table.",
+        "tooltip_position": "left"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/ContentArea/CrewRailPanel",
+        "text": "Your crew at a glance: who still has to act, their Quick or Slow slot, and any Stun markers. Tap a card to open the crew drawer, where you record what happens to each figure.",
+        "tooltip_position": "right"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/ContentArea/InfoRailPanel",
+        "text": "The objective, the battlefield conditions, and how many enemies are still standing. Tap an enemy to open the enemy drawer and mark it down.",
+        "tooltip_position": "left"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/FeedStrip",
+        "text": "Every roll and result is written here as you play, so you can reconstruct the fight afterwards — and so the campaign records what actually happened.",
+        "tooltip_position": "top"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/TopBar/TierBadge",
+        "text": "Your tracking level. Tap it to ask for more help part-way through a battle — you can raise it mid-fight, but not lower it.",
+        "tooltip_position": "bottom"
+    },
+    {
+        "target_path": "EdgeMargin/MainContainer/BottomBar/BottomContent/ActionBar/PhaseButtonsContainer",
+        "text": "When the fight is over, press Record Result. Tell the app what happened on your table and it carries the outcome into the campaign. That green button is how every battle ends.",
+        "tooltip_position": "top"
+    }
+]

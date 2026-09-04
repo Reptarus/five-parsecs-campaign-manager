@@ -767,9 +767,14 @@ func _on_export_data_pressed() -> void:
 	if file:
 		file.store_string(json_text)
 		file.close()
+		# ⚠ `show_notification` has ZERO definitions repo-wide, so this branch was
+		# never taken and the else-fallback modal ALWAYS ran. Not a silent
+		# failure like the dashboards (the user was told), but the intended
+		# lightweight toast never appeared. The typed form is show_toast(
+		# message, type) — NotificationManager.gd:131.
 		var notify := get_node_or_null("/root/NotificationManager")
-		if notify and notify.has_method("show_notification"):
-			notify.show_notification(
+		if notify and notify.has_method("show_toast"):
+			notify.show_toast(
 				"Data exported to data_export.json in your user data folder.",
 				"success"
 			)

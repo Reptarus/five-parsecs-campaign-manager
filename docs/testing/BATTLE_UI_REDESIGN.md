@@ -56,7 +56,7 @@ OverlayLayer (modal L10): tier select, pre-battle checklist, enemy-gen wizard
 | Feed (single `UnifiedBattleLog`) | FeedStrip | ✅ | ✅ | ✅ |
 | Dice (`DiceDashboard` + calculators) | Dice drawer | ✅ | ✅ | ✅ |
 | Reference (p.119 card + `CheatSheetPanel` + `WeaponTableDisplay`) | Reference drawer | ✅ | ✅ | ✅ |
-| Round-phase journey spine + TopBar `ROUND n · PHASE` | Toolbar/TopBar | ✗ (no phase machine) | ✅ | ✅ |
+| Round-phase journey spine + TopBar `ROUND n · PHASE` | Toolbar/TopBar | ✅ | ✅ | ✅ |
 | Tracking (`MoralePanicTracker` / `ActivationTrackerPanel` / `ReactionDicePanel` / `VictoryProgressPanel` / `DeploymentConditionsPanel`) | Tracking drawer | ✗ | ✅ | ✅ |
 | Oracle (`EnemyIntentPanel`, overlaid on the enemy tracker) | Oracle drawer / Enemy drawer | ✗ | ✗ | ✅ |
 | Result entry | `BattleResultsInputForm` in a drawer | (Record Result) | normal resolution | normal resolution |
@@ -182,3 +182,25 @@ triggered`, but `BattleRoundTracker` (line ~186) requires the UI to call
 `check_battle_event()` after overlay dismissal to avoid double-firing while a
 modal is up. `BattleRoundTracker.gd` is unchanged by this redesign (commit
 `dbf9980d`); the test encodes a stale expectation. Track separately.
+
+
+## 2026-09-03 — battle-UX sprint corrections to this document
+
+- **The tier table row above was wrong.** It said LOG_ONLY has "no phase
+  machine". It has had the full 5-phase round tracker since the choice-B
+  decision of 2026-07-05 (see the F10 row in the coverage matrix): every tier
+  gets the map, the rails, the per-figure trackers, the round machine and
+  Record Result. What ASSISTED adds is the automatic DICE, not the structure.
+- **Result entry** now reads the same at all three tiers: `BattleResultsInputForm`
+  in the Record Result drawer, reachable from the toolbar in landscape and from
+  a dedicated app-bar button in portrait.
+- **The pre-battle modal is now actually shown on the campaign path.** It was
+  built and then freed within the same call stack at ASSISTED+, because
+  `initialize_battle` started the round machine before returning and the
+  REACTION_ROLL handler raised the Seize overlay over it.
+- **There are no hit points.** The `CharacterStatusCard` HP bar and Damage
+  button are gone; a Hit resolves through `HitResolutionSheet` to a casualty or
+  a Stun (Core Rules p.46).
+- **A battle survives process death** (`FPCM_BattleCheckpoint`).
+- Canonical structure doc: `docs/technical/TACTICAL_BATTLE_UI_ARCHITECTURE.md`,
+  rewritten from the files on the same date.

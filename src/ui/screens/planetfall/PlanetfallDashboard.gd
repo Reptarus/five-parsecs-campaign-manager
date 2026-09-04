@@ -151,9 +151,16 @@ func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> bool:
 func _notify_transfer_write_failed() -> void:
 	push_error("PlanetfallDashboard: transfer file could not be written — "
 		+ "colonist kept in the roster rather than lost")
+	# ⚠ `show_notification` DOES NOT EXIST on NotificationManager — `func
+	# show_notification` has ZERO definitions repo-wide, so this guard was
+	# permanently false and the player was told NOTHING on a failure path.
+	# The real API is show_info / show_success / show_warning / show_error /
+	# show_toast (src/autoload/NotificationManager.gd:105-131).
+	# WorldPhaseAutomationController:569-570 already found and documented this
+	# trap; these call sites were missed by that pass.
 	var notifier := get_node_or_null("/root/NotificationManager")
-	if notifier and notifier.has_method("show_notification"):
-		notifier.show_notification(
+	if notifier and notifier.has_method("show_error"):
+		notifier.show_error(
 			"Transfer failed — the colonist is still on your roster. Check device storage.")
 
 

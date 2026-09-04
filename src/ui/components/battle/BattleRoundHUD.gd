@@ -230,9 +230,17 @@ func _build_ui() -> void:
 		# Style inactive phase
 		_style_phase_button(phase_button, false)
 
-		# Connect signal
-		var phase_idx: int = i
-		phase_button.pressed.connect(func(): _on_phase_button_pressed(phase_idx))
+		# INERT INDICATORS, not controls. These five emitted phase_clicked, which
+		# nothing in the codebase ever connected — five full-width touch targets
+		# in the persistent bottom bar that swallowed a tap and did nothing. The
+		# round advances through the phase's own primary button; jumping to an
+		# arbitrary phase is not a thing the Core Rules sequence allows anyway.
+		#
+		# MOUSE_FILTER_IGNORE rather than `disabled`: disabled swaps in Godot's
+		# disabled StyleBox and would throw away the completed/active/upcoming
+		# colour coding these buttons exist to show.
+		phase_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		phase_button.focus_mode = Control.FOCUS_NONE
 
 		_phase_container.add_child(phase_button)
 		_phase_buttons.append(phase_button)

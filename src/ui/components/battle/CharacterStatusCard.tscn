@@ -180,7 +180,7 @@ theme_override_font_sizes/font_size = 14
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-text = "Dmg"
+text = "Hit"
 
 [node name="UseActionButton" type="Button" parent="CardMargin/CardLayout/ActionSection/ActionContainer"]
 unique_name_in_owner = true

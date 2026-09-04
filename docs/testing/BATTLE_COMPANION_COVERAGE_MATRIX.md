@@ -54,7 +54,7 @@ Then `Confirm Deployment → TacticalBattleUI` (tier pre-set, TIER_SELECT skippe
 
 | Phase | Companion surface | U | R | P |
 |-------|-------------------|---|---|---|
-| 1. Reaction Roll | ReactionDicePanel / ReactionRollAssignment (≤Reaction→Quick, >→Slow, Feral single-1) | PENDING | PENDING | PENDING |
+| 1. Reaction Roll | ReactionDicePanel / ReactionRollAssignment (≤Reaction→Quick, >→Slow, Feral single-1) | PENDING | **VERIFIED 2026-09-03** (pool rolled once per round on one press; no silent pre-roll; funnel rolls instead of skipping) | PENDING |
 | 2. Quick Actions | BattleRoundHUD phase breadcrumb; ActivationTracker | PENDING | PENDING | PENDING |
 | 3. Enemy Actions | EnemyIntentPanel (oracle); closest-to-player-edge order | PENDING | PENDING | PENDING |
 | 4. Slow Actions | BattleRoundHUD; ActivationTracker | PENDING | PENDING | PENDING |
@@ -64,15 +64,15 @@ Then `Confirm Deployment → TacticalBattleUI` (tier pre-set, TIER_SELECT skippe
 
 | Tier | Components (cumulative) | Feature flags | U | R |
 |------|-------------------------|---------------|---|---|
-| LOG_ONLY | Journal, DiceDashboard, RoundHUD, StatusCard, CombatCalculator (+CheatSheet/WeaponTable/BrawlResolver) | casualty_tracking, dice_rolling | PENDING | PENDING |
-| ASSISTED | +Morale/Panic, ReactionDice, ActivationTracker, DeploymentConditions, Initiative, EventResolution, ObjectiveDisplay, PreBattleChecklist, VictoryProgress | +auto_event_prompts, morale_prompts, escalation, deployment_suggestions, phase_reminders | PENDING | PENDING |
+| LOG_ONLY | Journal, DiceDashboard, RoundHUD, StatusCard, CombatCalculator (+CheatSheet/WeaponTable/BrawlResolver) | casualty_tracking, dice_rolling | PENDING | **VERIFIED 2026-09-03** (Hit sheet offers the two p.46 outcomes as declarations, NO dice helper) |
+| ASSISTED | +Morale/Panic, ReactionDice, ActivationTracker, DeploymentConditions, Initiative, EventResolution, ObjectiveDisplay, PreBattleChecklist, VictoryProgress | +auto_event_prompts, morale_prompts, escalation, deployment_suggestions, phase_reminders | PENDING | **VERIFIED 2026-09-03** (Hit sheet adds Roll 1D6; seize target 8+ == 41.667% matches the pre-battle screen) |
 | FULL_ORACLE | +EnemyIntent, EnemyGenerationWizard | +ai_oracle | PENDING | PENDING |
 
 ## D3 — Combat modes (PreBattleUI)
 
 | Mode | Path | U | R |
 |------|------|---|---|
-| play_on_table | interactive companion (H1 Battle Sim; H2 tier walks) | N/A | PENDING |
+| play_on_table | interactive companion (H1 Battle Sim; H2 tier walks) | N/A | **DESKTOP VERIFIED 2026-09-03** (LOG_ONLY + ASSISTED, real campaign path, save asdasdasd_1778119724 -> Step 14 of 14) |
 | no_minis | NoMinisCombatPanel → NoMinisResolver (Freelancer's Handbook DLC) | PENDING | PENDING |
 | auto_resolve | BattleResolver → NarrativeScreen; result → PostBattle | PENDING | PENDING |
 

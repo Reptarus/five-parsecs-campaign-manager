@@ -136,6 +136,19 @@ func end_battle() -> void:
 	_is_battle_active = false
 	battle_ended.emit()
 
+## Put the tracker back at a specific round and phase, for resuming a battle
+## that was interrupted — a force-stop, a crash, or quitting to the menu.
+##
+## Deliberately SILENT: it emits no round_started or phase_changed, because those
+## handlers reset per-round state (activation, reaction slots, the morale tally)
+## and would wipe the very bookkeeping the restore exists to bring back. The
+## caller repaints the UI itself.
+func restore(round_number: int, phase: int) -> void:
+	_current_round = maxi(round_number, 1)
+	_current_phase = clampi(phase, int(BattlePhase.REACTION_ROLL),
+		int(BattlePhase.END_PHASE))
+	_is_battle_active = true
+
 ## Reset tracker to initial state
 func reset() -> void:
 	## Reset to initial state for new battle
