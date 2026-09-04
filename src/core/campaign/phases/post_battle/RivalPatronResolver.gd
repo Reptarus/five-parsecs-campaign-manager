@@ -896,7 +896,21 @@ func _remove_rival(ctx: PostBattleContextClass, rival_id: String) -> void:
 		var rivals: Array = ctx.game_state.current_campaign.rivals
 		for i in range(rivals.size() - 1, -1, -1):
 			var rival = rivals[i]
-			var rid = rival.get("id", rival) if rival is Dictionary else str(rival)
+			# The default here USED TO BE `rival` itself, so a rival dict with no
+			# "id" key made rid a Dictionary and the next line compared a
+			# Dictionary to a String: "Invalid operands ... in operator ==",
+			# which ABORTS _remove_rival. The caller has already appended to
+			# rivals_removed by then (line 32) and that array IS rendered, so the
+			# post-battle screen reported the rival gone while the canonical list
+			# still held it -- and it came back next turn. Caught on the
+			# 2026-09-04 desktop wizard walk.
+			# Accept "rival_id" too: PostBattleSequence.gd:1045 resolves ids as
+			# rival_id -> id -> name, so matching on "id" alone could miss.
+			var rid: String = ""
+			if rival is Dictionary:
+				rid = str(rival.get("id", rival.get("rival_id", "")))
+			else:
+				rid = str(rival)
 			if rid == rival_id:
 				rivals.remove_at(i)
 				return

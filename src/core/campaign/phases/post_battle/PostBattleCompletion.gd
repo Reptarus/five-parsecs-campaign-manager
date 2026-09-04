@@ -30,33 +30,28 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	# fill them would be a fabricated mechanic.
 	var units_downed: Array = ctx.battle_result.get("units_downed", [])
 
-	for member in crew:
-		if not member:
+	for participant in crew:
+		if not participant:
 			continue
 
-		# Fall back to "id". Character.to_dictionary() emits BOTH spellings
-		# (CLAUDE.md, "dual keys"), but crew dicts built by hand often carry
-		# only "id" -- in a real turn-20 save the CAPTAIN had character_id and
-		# the other five crew had only id. Reading character_id alone made
-		# char_id empty for those five, the loop `continue`d, and
-		# battles_participated / battles_survived / lifetime_kills never moved
-		# for them -- nor did their per-character battle journal event. The
-		# producer side already resolves both spellings
-		# (TacticalBattleUI._crew_id_for_name), so this was a one-sided
-		# contract. Dictionary branch FIRST: has_method() on a Dictionary is an
-		# invalid call that unwinds the whole function.
-		var char_id: String = ""
-		if member is Dictionary:
-			var _md: Dictionary = member
-			char_id = str(_md.get("character_id", _md.get("id", "")))
-		elif member is Object:
-			if "character_id" in member and str(member.character_id) != "":
-				char_id = str(member.character_id)
-			elif "id" in member:
-				char_id = str(member.id)
-
+		# THE PARTICIPANT IS NOT THE CREW MEMBER. On the played path
+		# PostBattlePhase:251 lifts crew_participants straight off the
+		# normalized battle result, and those entries are built by
+		# BattleResultNormalizer._to_crew_entry() -- a brand-new 4-key dict
+		# {crew_id, name, origin, species_id}. So this loop used to receive
+		# throwaways: they carry NEITHER character_id NOR id (char_id came
+		# out empty and every member was skipped), and any write to them is
+		# discarded with the dict. Resolve the id from all THREE spellings
+		# in circulation, then look the real member up on the campaign and
+		# mutate THAT.
+		var char_id: String = _participant_id(participant)
 		if char_id.is_empty():
 			continue
+		var member: Variant = ctx.get_crew_member(char_id)
+		if member == null:
+			# Callers that pass the real crew straight in (the auto-resolve
+			# path, and the unit tests) already hold the canonical object.
+			member = participant
 
 		var kills: Array = kills_by_character.get(char_id, [])
 		# DICTIONARY BRANCH TOO. Crew members are canonically Dictionaries (the
@@ -77,6 +72,25 @@ func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 				member.battles_survived += 1
 			member.lifetime_kills += kills.size()
 			_create_character_battle_journal_event(ctx, member, char_id, kills.size())
+
+func _participant_id(entry: Variant) -> String:
+	## The SAME crew id travels under three spellings in this codebase:
+	## "character_id" (canonical, Character.to_dictionary()), "id" (legacy
+	## crew dicts and the older half of Character.to_dictionary()'s dual
+	## keys), and "crew_id" (BattleResultNormalizer._to_crew_entry, which is
+	## what actually arrives on the played path). Accept all three here so
+	## no caller has to know which producer it is downstream of.
+	##
+	## Dictionary branch FIRST: has_method() on a Dictionary is an invalid
+	## call that unwinds the whole enclosing function.
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		return str(d.get("character_id", d.get("id", d.get("crew_id", ""))))
+	if entry is Object:
+		for prop in ["character_id", "id", "crew_id"]:
+			if prop in entry and str(entry.get(prop)) != "":
+				return str(entry.get(prop))
+	return ""
 
 func _resolve_participant_ids(participants: Array) -> Array:
 	## Resolve battle participants to character IDS for journal attribution.

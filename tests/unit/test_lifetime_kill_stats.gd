@@ -87,3 +87,53 @@ func test_character_id_still_wins_when_both_spellings_are_present() -> void:
 	]
 	_run(crew, {"kills_by_character": {"canonical": ["Pirate"], "legacy": ["A", "B", "C"]}})
 	assert_int(crew[0]["lifetime_kills"]).is_equal(1)
+
+# --- the PLAYED path: participants are throwaway normalizer entries ---------
+
+func _played_path_ctx(real_crew: Array, participants: Array, battle_result: Dictionary):
+	## Models what actually reaches this function in a played battle:
+	## PostBattlePhase:251 lifts crew_participants off the normalized battle
+	## result, and those are BattleResultNormalizer._to_crew_entry() dicts --
+	## {crew_id, name, origin, species_id} -- not the campaign's crew members.
+	var ctx = ContextClass.new()
+	ctx.campaign = {"crew": real_crew}
+	ctx.crew_participants = participants
+	ctx.battle_result = battle_result
+	return ctx
+
+func _entry(crew_id: String, nm: String) -> Dictionary:
+	return {"crew_id": crew_id, "name": nm, "origin": "", "species_id": ""}
+
+func test_played_path_writes_to_the_campaign_crew_not_the_participant() -> void:
+	## Both halves of the bug in one case. The entry carries NEITHER
+	## character_id NOR id, so char_id used to resolve empty and every crew
+	## member was skipped; and even with an id, the write would have landed on a
+	## dict that is discarded the moment the loop moves on.
+	var real_crew: Array = [
+		{"character_id": "id_a", "character_name": "Alpha",
+			"lifetime_kills": 0, "battles_participated": 0, "battles_survived": 0},
+		{"id": "id_b", "character_name": "Beta",
+			"lifetime_kills": 0, "battles_participated": 0, "battles_survived": 0},
+	]
+	var participants: Array = [_entry("id_a", "Alpha"), _entry("id_b", "Beta")]
+	var ctx = _played_path_ctx(real_crew, participants,
+		{"kills_by_character": {"id_a": ["Pirates Lieutenant"], "id_b": ["Pirate", "Pirate"]}})
+	CompletionClass.new().update_character_lifetime_statistics(ctx)
+
+	assert_int(real_crew[0]["lifetime_kills"]).is_equal(1)
+	assert_int(real_crew[1]["lifetime_kills"]).is_equal(2)
+	assert_int(real_crew[0]["battles_participated"]).is_equal(1)
+	assert_int(real_crew[1]["battles_participated"]).is_equal(1)
+	# and nothing leaked onto the throwaway entries
+	assert_bool(participants[0].has("lifetime_kills")).is_false()
+
+func test_played_path_downed_crew_participate_but_do_not_survive() -> void:
+	var real_crew: Array = [
+		{"character_id": "id_a", "character_name": "Alpha",
+			"lifetime_kills": 0, "battles_participated": 0, "battles_survived": 0},
+	]
+	var ctx = _played_path_ctx(real_crew, [_entry("id_a", "Alpha")],
+		{"kills_by_character": {}, "units_downed": ["id_a"]})
+	CompletionClass.new().update_character_lifetime_statistics(ctx)
+	assert_int(real_crew[0]["battles_participated"]).is_equal(1)
+	assert_int(real_crew[0]["battles_survived"]).is_equal(0)
