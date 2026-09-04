@@ -211,7 +211,7 @@ button's `pressed` signal is fired directly). The working harness is `run_script
 before capture. NOTE: MCP runs in `--debug` → any script error HALTS at the debugger (restart to recover).
 
 **Tier gating (D2) VERIFIED at runtime** (Battle Simulator → TacticalBattleUI):
-- LOG_ONLY: enabled = exactly `[BattleJournal, DiceDashboard, BattleRoundHUD, CharacterStatusCard,
+- LOG_ONLY: enabled = exactly `[UnifiedBattleLog, DiceDashboard, BattleRoundHUD, CharacterStatusCard,
   CombatCalculator]`; Morale/Oracle/Activation components **absent** from the tree. PASS.
 - FULL_ORACLE: all 14 cumulative components enabled AND instantiated (Morale, Reaction, Activation,
   DeploymentConditions, Initiative, EventResolution, Objective, VictoryProgress, EnemyIntent,

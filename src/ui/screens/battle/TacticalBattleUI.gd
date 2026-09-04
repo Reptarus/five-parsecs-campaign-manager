@@ -2084,7 +2084,7 @@ func _connect_assisted_signals() -> void:
 		)
 
 func _connect_component_signals() -> void:
-	## Connect component signals so actions log to BattleJournal
+	## Connect component signals so actions log to the unified battle log.
 	if dice_dashboard and unified_log:
 		dice_dashboard.dice_rolled.connect(
 			func(dice_type: String, result: int, context: String) -> void:
@@ -6915,7 +6915,7 @@ func _on_auto_resolve_battle() -> void:
 	if held_field:
 		_log_message("Crew holds the field — battlefield salvage available", UIColors.COLOR_EMERALD)
 
-	# Log auto-resolve summary to BattleJournal
+	# Log auto-resolve summary to the unified battle log
 	if unified_log:
 		unified_log.add_entry("event", "Auto-resolved: %d rounds of combat" % result.rounds_fought)
 		if crew_casualties_count > 0:

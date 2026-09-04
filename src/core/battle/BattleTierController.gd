@@ -22,9 +22,31 @@ enum TrackingTier {
 
 ## Components enabled per tier. StringName keys match component node names.
 ## Each tier includes all components from lower tiers.
+##
+## ⚠ THIS MAP IS DESIGN DATA, NOT A LIVE GATE. `get_enabled_components()` and
+## `is_component_enabled()` below have ZERO production callers — `git log -S`
+## finds each in exactly one commit, the one that introduced it, so neither ever
+## had a caller added or removed. Only `test_battle_tier_controller_features.gd`
+## reads them.
+##
+## The gating that actually runs is `TacticalBattleUI._apply_tier_visibility()`
+## (its own docblock: "REAL per-tier gating (was inert pre-redesign)"), which
+## works on DRAWER TOOLBARS rather than per-component node names, plus
+## `_instance_assisted_components()` / `_instance_oracle_components()` which gate
+## instantiation on `tier >= 1` / `tier >= 2`. The redesign replaced the
+## show/hide-by-node-name model this map describes.
+##
+## Kept rather than deleted because it records the intended tier scaling, and a
+## zero-caller provider is usually a missing wire rather than a corpse. Do NOT
+## treat it as authoritative about what is on screen — update
+## `_apply_tier_visibility` for that.
 const TIER_COMPONENTS: Dictionary = {
 	TrackingTier.LOG_ONLY: [
-		&"BattleJournal",
+		# Was &"BattleJournal" until 2026-09-04. That component was superseded by
+		# FPCM_UnifiedBattleLog ("Replaces BattleJournal + FallbackLog") and its
+		# files were deleted as orphans; a key naming a file that no longer
+		# exists sends the next reader looking for it.
+		&"UnifiedBattleLog",
 		&"DiceDashboard",
 		&"BattleRoundHUD",
 		&"CharacterStatusCard",

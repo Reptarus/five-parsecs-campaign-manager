@@ -47,7 +47,10 @@ func test_log_only_components_present_at_assisted() -> void:
 	## All LOG_ONLY components should still be present at ASSISTED
 	controller.set_tier(FPCM_BattleTierController.TrackingTier.ASSISTED, true)
 	var components := controller.get_enabled_components()
-	assert_bool(&"BattleJournal" in components).is_true()
+	# Renamed 2026-09-04: BattleJournal was superseded by FPCM_UnifiedBattleLog
+	# and its orphaned files deleted. The map is design data — the live gate is
+	# TacticalBattleUI._apply_tier_visibility(). See TIER_COMPONENTS.
+	assert_bool(&"UnifiedBattleLog" in components).is_true()
 	assert_bool(&"DiceDashboard" in components).is_true()
 	assert_bool(&"BattleRoundHUD" in components).is_true()
 	assert_bool(&"CharacterStatusCard" in components).is_true()

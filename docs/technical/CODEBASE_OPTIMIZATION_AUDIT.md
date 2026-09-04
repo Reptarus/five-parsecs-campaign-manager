@@ -208,7 +208,7 @@ Replace unconditional preloads with a lazy-load cache:
 var _scene_cache: Dictionary = {}
 const _SCENE_REGISTRY: Dictionary = {
     "tier_selection": "res://src/ui/components/battle/TierSelectionPanel.gd",
-    "battle_journal": "res://src/ui/components/battle/BattleJournal.tscn",
+    "unified_log": "res://src/ui/components/battle/UnifiedBattleLog.tscn",  # was battle_journal; BattleJournal deleted 2026-09-04
     # ... remaining 31 entries
 }
 

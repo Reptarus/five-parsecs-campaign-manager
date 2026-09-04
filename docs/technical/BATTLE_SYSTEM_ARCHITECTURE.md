@@ -43,7 +43,7 @@ CampaignPhaseManager (MISSION/BATTLE_SETUP/BATTLE_RESOLUTION phases)
 
 | Component | Tier | Signals Connected |
 | --- | --- | --- |
-| BattleJournal | LOG_ONLY | Yes - central log |
+| UnifiedBattleLog | LOG_ONLY | Yes - central log (Live feed + Journal views) |
 | DiceDashboard | LOG_ONLY | Yes - dice_rolled |
 | CombatCalculator | LOG_ONLY | Yes - calculation_completed |
 | CharacterStatusCard | LOG_ONLY | Yes - action_used, damage_taken |
@@ -106,9 +106,10 @@ Three-zone tabbed layout:
 
 ### Signal Hub Pattern
 
-All component signals route through TacticalBattleUI → BattleJournal for logging. Key connections:
+All component signals route through TacticalBattleUI → `FPCM_UnifiedBattleLog` for logging (90 call sites in TacticalBattleUI). Key connections:
 
-- Component signals → lambda → `battle_journal.log_action()` / `log_event()`
+- Component signals → lambda → `unified_log.add_entry()` / `add_live_message()`
+- ⚠ The old `BattleJournal` component was superseded by UnifiedBattleLog and its files were DELETED 2026-09-04 (orphaned: zero instantiations). Do not go looking for `battle_journal`.
 - BattleRoundTracker → `_on_round_phase_changed()`, `_on_round_started()`, etc.
 - CharacterStatusCards → per-card `action_used` / `damage_taken`
 - Overlays: InitiativeCalculator shown at REACTION_ROLL phase, EventResolutionPanel at rounds 2/4

@@ -4,7 +4,8 @@ extends Resource
 ## Battle Keyword Database - Five Parsecs Combat Term Reference
 ##
 ## Pre-populated with ~35 Five Parsecs combat terms and page references.
-## Used by BattleJournal and CheatSheetPanel for auto-linking terms.
+## Used by UnifiedBattleLog and CheatSheetPanel for auto-linking terms.
+## (Was BattleJournal, which UnifiedBattleLog superseded; deleted 2026-09-04.)
 ## Extends the existing KeywordDB autoload with battle-specific entries.
 
 signal keywords_registered(count: int)

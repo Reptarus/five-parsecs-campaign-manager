@@ -306,7 +306,12 @@ This audit comprehensively inventories all user-facing battle UI components acro
 - **Integration**: Receives crew data from GameState
 - **Map Rewrite Impact**: ✅ NO IMPACT — character display independent of visualization
 
-#### 22. **BattleJournal** (`src/core/battle/BattleJournal.gd`)
+#### 22. **BattleJournal** — ⚠ **DELETED 2026-09-04, superseded by `FPCM_UnifiedBattleLog`**
+> Historical snapshot. The component was orphaned (zero instantiations, no scene
+> embed, no preload) and its files were removed; every capability below now lives
+> in `src/ui/components/battle/UnifiedBattleLog.gd`, which deliberately mirrors the
+> same API. Note this row also had the path wrong — it was never in
+> `src/core/battle/`, it lived in `src/ui/components/battle/`.
 - **Responsibility**: Auto-logging battle events and outcomes
 - **Tier Visibility**: LOG_ONLY+ (always visible)
 - **Key Features**:

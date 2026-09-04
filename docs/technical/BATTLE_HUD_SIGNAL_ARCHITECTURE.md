@@ -35,7 +35,8 @@ TacticalBattleUI (Top Level — 1,694 lines, signal hub)
         │   ├─ Signals UP: morale_check_triggered, enemy_fled
         │   └─ Called DOWN: (setup via instantiation)
         │
-        ├─ BattleJournal (central log — receives from all components)
+        ├─ UnifiedBattleLog (central log — receives from all components;
+        │   replaced BattleJournal, whose files were deleted 2026-09-04)
         │
         └─ ... 22 more components (see BATTLE_SYSTEM_ARCHITECTURE.md)
 ```

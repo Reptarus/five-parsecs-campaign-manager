@@ -420,3 +420,68 @@ recreate the exact defect the audit existed to find:
   `clear_all_temp_data()` — so the flag is wiped before the wizard opens and the
   onboarding branch can never fire. Deferred only because `MainMenu.gd` was in
   another session's uncommitted set.
+
+---
+
+## `BattleJournal` — DELETED 2026-09-04
+
+`src/ui/components/battle/BattleJournal.gd` (329 lines, `class_name
+FPCM_BattleJournal`) + `.tscn` + both `.uid`s.
+
+**Why it was a corpse and not a missing wire.** The distinction CLAUDE.md insists
+on — *"before deleting a zero-caller provider, ask what used to call it"* — has a
+clear answer here: the consumer was **migrated on purpose**, not lost.
+
+- `UnifiedBattleLog.gd` says so in its own header: *"replaces BattleJournal"* and
+  *"Exposes the same API as BattleJournal so all signal connections work."*
+- `TacticalBattleUI.gd:214`: `var unified_log: FPCM_UnifiedBattleLog = null
+  # Replaces BattleJournal + FallbackLog`, and TacticalBattleUI writes to it at
+  **90** call sites.
+- The Sep 3 sprint (Phase 7) removed the `battle_journal` scene-registry entry,
+  which is what orphaned the files.
+- Verified before deleting: **zero** instantiations — no `preload`, no `load`, no
+  `.tscn` embed, and no reference to either UID (`uid://bq4h7m3rwk8ty` scene,
+  `uid://upiu8b1fobau` script). Its own `.tscn` referenced only its own script.
+
+`lint_orphan_assets.py` `orphans` is back to **0** (it was 2). Exit is still 1
+because of `test_only=34`, the deliberate tier-7 backlog below — unchanged.
+
+### What was NOT deleted, and why
+
+**`BattleTierController.TIER_COMPONENTS` and its test suite stay.** The map is
+inert — `get_enabled_components()` / `is_component_enabled()` have ZERO production
+callers (`git log -S` finds each in exactly one commit, the one that introduced
+it, so neither ever gained or lost a caller), and only
+`test_battle_tier_controller_features.gd` reads them. The gating that actually
+runs is `TacticalBattleUI._apply_tier_visibility()` — its own docblock says *"REAL
+per-tier gating (was inert pre-redesign)"* — which works on **drawer toolbars**
+rather than per-component node names, plus `_instance_assisted_components()` /
+`_instance_oracle_components()` gating instantiation on `tier >= 1` / `tier >= 2`.
+
+So the map records intended tier scaling that the redesign implemented a different
+way. Deleting it would erase the design record, which is the trap `c8fd7e07c`
+already fell into once. It now carries a docblock saying it is design data, and its
+`&"BattleJournal"` key was renamed to `&"UnifiedBattleLog"` so it does not name a
+deleted file. Counts are unchanged, so the suite's `is_equal(14)` assertions hold.
+
+### Stale references cleaned up in the same pass
+
+A note describing a deleted file sends the next reader looking for it, so every
+surviving mention now says it is gone:
+
+- `BattleKeywordDB.gd:7` ("Used by BattleJournal and CheatSheetPanel")
+- `TacticalBattleUI.gd:2087, :6918` (comments naming it as the log target)
+- `UnifiedBattleLog.gd` header (now states BattleJournal was deleted)
+- `docs/technical/BATTLE_SYSTEM_ARCHITECTURE.md` (component table + signal hub)
+- `docs/technical/BATTLE_HUD_SIGNAL_ARCHITECTURE.md` (component tree)
+- `docs/technical/TACTICAL_BATTLE_UI_ARCHITECTURE.md`, `CODEBASE_OPTIMIZATION_AUDIT.md`
+- `docs/testing/BATTLE_COMPANION_COVERAGE_MATRIX.md`, `BATTLE_UI_COMPONENT_AUDIT.md`
+  (annotated, not rewritten — it is a historical snapshot, and it also had the path
+  wrong: never `src/core/battle/`, always `src/ui/components/battle/`)
+- `docs/QOL_FEATURE_CANDIDATES.md` (KeywordDB consumer list)
+- **`docs/GAME_MECHANICS_IMPLEMENTATION_MAP.md`** carried a *"Needs Wiring"* entry
+  and a gap row reading *"BattleJournal logging | Battles produce blank journal —
+  logging methods never called"*. Both were stale: the replacement is written to at
+  90 call sites. Row marked RESOLVED, wiring entry removed.
+
+`docs/archive/**` left untouched — historical by definition.

@@ -8,7 +8,7 @@ stand. **Engine**: Godot 4.6.
 > `BattlefieldGridPanel`, a `ContactMarkerPanel` and a `BattleJournal`. None of
 > those exist: the tab layout was replaced by the map-primary drawer frame in May
 > 2026, `BattlefieldGridPanel` was deleted, `ContactMarkerPanel` was deleted in
-> `5125a0e4`, and `BattleJournal` was superseded by `FPCM_UnifiedBattleLog`. A long
+> `5125a0e4`, and `BattleJournal` was superseded by `FPCM_UnifiedBattleLog` and its own files were then DELETED 2026-09-04 (orphaned: zero instantiations, no scene embed, no preload). A long
 > stale document is worse than a short accurate one, so this is the short one.
 
 ## The scene is a shell; the screen is code

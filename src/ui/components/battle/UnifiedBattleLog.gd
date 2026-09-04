@@ -5,9 +5,12 @@ extends PanelContainer
 ##
 ## Two views:
 ## - "Live" — scrolling BBCode feed (replaces FallbackLog)
-## - "Journal" — structured entries with filtering (replaces BattleJournal)
+## - "Journal" — structured entries with filtering (replaced BattleJournal)
 ##
-## Exposes the same API as BattleJournal so all signal connections work.
+## The API here deliberately mirrors the one BattleJournal exposed, so every
+## existing signal connection kept working across the swap. ⚠ BattleJournal
+## itself was DELETED 2026-09-04 (orphaned: zero instantiations, no scene
+## embed, no preload) — do not go looking for it. This is the only battle log.
 
 signal entry_added(entry: Dictionary)
 signal journal_cleared()

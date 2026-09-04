@@ -651,7 +651,7 @@ No remaining high-priority gaps.
 
 | Gap | Impact | Location |
 |-----|--------|----------|
-| BattleJournal logging | Battles produce blank journal — logging methods never called | TacticalBattleUI |
+| ~~BattleJournal logging~~ | **RESOLVED.** BattleJournal was superseded by `FPCM_UnifiedBattleLog`, which TacticalBattleUI writes to at **90** call sites (`add_entry` / `add_live_message` / `new_round`). The orphaned BattleJournal files were deleted 2026-09-04 | TacticalBattleUI |
 | NPCTracker integration | Patron/rival/location tracking API exists but 0% gameplay calls | WorldPhaseController, PostBattlePhase |
 | LegacySystem lifecycle | No campaign archival on end, no legacy bonus on new campaign | EndPhasePanel, CampaignCreationCoordinator |
 | CampaignJournal character events | Only PostBattlePhase generates entries; advancement/injuries unlogged | AdvancementPhasePanel, CharacterPhasePanel |
@@ -724,7 +724,6 @@ No remaining high-priority gaps.
 
 ### Needs Wiring
 
-- BattleJournal logging calls from TacticalBattleUI battle event handlers
 - NPCTracker.track_patron_interaction() / track_rival_encounter() / visit_location() from gameplay phases
 - LegacySystem.archive_campaign() from campaign end, get_legacy_bonus() from new campaign start
 - CampaignJournal.auto_create_character_event() from advancement and character phases
