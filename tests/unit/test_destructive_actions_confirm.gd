@@ -140,10 +140,27 @@ func test_the_confirmation_names_the_crew_who_would_lose_their_turn() -> void:
 	dialog.free()
 
 
-## Every Label's text anywhere under `node`, joined. Structure-agnostic on
-## purpose: this suite cares what the dialog SAYS, not how it is nested.
+## Everything the dialog SAYS, wherever it lives: AcceptDialog.dialog_text plus
+## any Label anywhere beneath it. Structure-agnostic on purpose — this suite
+## cares what the dialog says, not how it is nested.
+##
+## Widened twice now, both times because the SHAPE changed while the names it
+## checks stayed correct:
+##   T9-39  wrapped the text in a ScrollContainer, making the Label a grandchild,
+##          so a direct-child walk found nothing and asserted against "".
+##   T10-01 deleted that wrapper and moved the text to `dialog_text`. A Control
+##          add_child()'d into a Window gets no layout pass while
+##          Window.wrap_controls is false (the default) — measured on the tablet,
+##          the dialog rendered completely EMPTY. dialog_text uses AcceptDialog's
+##          BUILT-IN label, which is an *internal* child and therefore invisible
+##          to get_children().
+##
+## The lesson both times: widen the observation, never relax the assertion it
+## feeds. The crew names must still appear.
 func _all_label_text(node: Node) -> String:
 	var out: String = ""
+	if node is AcceptDialog:
+		out += (node as AcceptDialog).dialog_text + "\n"
 	for child in node.get_children():
 		if child is Label:
 			out += (child as Label).text + "\n"

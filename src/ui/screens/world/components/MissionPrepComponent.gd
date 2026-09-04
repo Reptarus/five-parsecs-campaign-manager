@@ -289,8 +289,11 @@ func _update_mission_briefing() -> void:
 		return
 
 	var briefing: String = "Mission Briefing:\n\n"
-	briefing += "Objective: %s\n" % mission_data.get(
-		"objective", "Unknown")
+	# No Objective row: at Mission Prep the objective has not been rolled yet.
+	# Core Rules p.89 step 5 rolls it during battle setup, AFTER this screen, so
+	# printing one here was showing the job generator's invented value and it
+	# disagreed with the battle the player then fought (T10-03). It appears on the
+	# Battle Card instead.
 	briefing += "Enemy: %s\n" % mission_data.get(
 		"enemy_type", "Unknown")
 	briefing += "Danger Level: %d\n" % mission_data.get(

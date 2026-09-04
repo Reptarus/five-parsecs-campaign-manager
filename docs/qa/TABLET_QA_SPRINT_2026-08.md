@@ -5738,3 +5738,218 @@ removed. Screen timeout restored to 120 s. `/data/local/tmp` cleared.
 | T9-49 no-win-condition W/L + journal wording | **VERIFIED on hardware** |
 | T9-48 Seize display | normal branch verified; **prohibition branch unreached** (needs D10=1) |
 | T9-47, T9-51 | unit-verified + detection-proven only; no tool can force the roll |
+
+---
+
+# Deploy #14 — 2026-09-04 — battle-phase sprint walk (plan step 5)
+
+**Device**: Lenovo TB361FU, 1600x2560 physical @ density 320 = **800x1280 dp**.
+**Build**: commit `92466e57a`, debug APK.
+**Screenshots**: `screenshots/tablet-2026-09/` (14 kept); full set + the raw
+findings file in the session scratchpad.
+
+## ⭐ The deploy route changed: CLI export WORKS
+
+The standing claim that CLI `--export-debug` is "blocked by the engine's autoload
+bug (336 `Identifier \"Talo\" not declared`)" is **wrong about causation**. The
+Talo lines are the benign autoload artifact this repo already documents for
+`--check-only`, and they are printed **after** the failure. The real error is
+line 49 of 395:
+
+```
+ERROR: Export: Invalid filename! Android App Bundle requires the *.aab extension.
+ERROR: Project export for preset "fiveparsecsfromhometest" failed.
+```
+
+`export_presets.cfg` sets `gradle_build/export_format=1` (**AAB**) while
+`export_path` says `.apk`. Set `export_format=0` and it builds a valid 60 MB APK
+(`scripts/verify_apk.py` PASS) that installs and runs clean. Editor Remote Deploy
+always builds an APK regardless of that field, which is why the two paths never
+agreed. **Gradle takes >10 min cold — background it, and check for the file
+rather than trusting a timeout.** Control: `--headless --import` emits **0** Talo
+errors on the same project. See `reference_cli_android_export_is_not_talo_blocked`.
+
+## Verified FIXED / not reproduced
+
+| Item | Evidence |
+|---|---|
+| **T5-04** blank Mission Prep briefing | Renders Objective/Enemy/Danger/Location/Pay in full (`22_step6.png`) |
+| **T5-03** "Proceed to Battle" below the fold | Appears in the FIXED footer, fully visible (`23_ready.png`). "Ready for Battle" greying out is correct — it completes the step |
+| Aug #6 equipment empty after Load | Crew show 2/2/1/1/1/1 items, stash lists 6 with `[DAMAGED]` flags |
+| Aug #2 Android BACK quits the app | Did NOT reproduce — BACK returned to the dashboard correctly |
+| **Phase 1** entry sequence | Battle Card + p.110 deployment card + checklist + fixed Begin Battle, all at **LOG_ONLY**, which previously saw none of it (`25_battle_entry.png`) |
+| **Phase 2** reaction roll | "Start Quick Actions" (the control that used to SKIP the roll) now rolls and does **not** advance; button becomes "Continue to Quick Actions". Pool `[3,4,2,1,3,1] → 3 Quick · 3 Slow`, die ≤ Reactions, book-correct (`29_rolled.png`) |
+| **Phase 2** seize | Pre-battle "Need 8+ on 2D6 (Savvy +2) — 42%" = P(2D6≥8) = 15/36 exactly |
+| **T5-05** feed round tag | `[R0]` for deployment, `[R1]` for round events — correct |
+| **Phase 3** no hit points | No HP bar, no "x / y HP" on any card; "Hit" has replaced "Damage" |
+| **Phase 5** tier copy + persistence | The three SSOT descriptions render verbatim; only 3 radios (the duplicate-card fix holds) |
+| **Phase 6** Record Result | Persistent green button in the app bar, not a popup entry |
+| **Phase 8** coach marks | Auto-ran on first combat, advance correctly, target the right nodes |
+| Phase 1 bonus (objective counter) | Enemy pill tracked 6 → 5 → 2 as figures were marked down |
+| Errata "Lay Low (pay 1D6+1 cr)" | Live and visible on the Mission Prep footer |
+
+## New findings — 11, ledger `T10-01`..`T10-11`
+
+| ID | Severity | Summary |
+|---|---|---|
+| T10-11 | **BLOCKER** | World Phase has **no navigation footer** when entered via dashboard "Begin Turn 21" — no Next Step/pips/Back. Campaign cannot advance. Present on the Load-Campaign entry path, absent on the Begin-Turn path |
+| T10-06 | HIGH | **Phase 4 battle checkpoint does not survive process death** — `active_battle` is never written to disk (`grep` on the live save = 0). Desktop "resume" passed because it re-entered in the same process |
+| T10-05 | HIGH | **Every control inside `CharacterStatusCard` is dead to touch** in a drawer (Stun/Hit/Aim/Snap/?). `Mark Down`, added directly to the drawer body, works — so all of Phase 3 is unreachable on the launch platform |
+| T10-04 | HIGH | Mark Down confirm opens on OverlayLayer **L10, behind DrawerLayer L92** — dimmed screen, nothing to tap |
+| T10-09 | HIGH | Touch-drag scroll dead again in the landscape World Phase. Control: content drag = **0 px** changed, scrollbar drag = **1,442,658 px** |
+| T10-03 | HIGH | Patron job card shows a **fabricated objective** ("Secure") that battle setup then correctly re-rolls (rolled Protect). Core Rules p.89 step 5 says Patron missions roll for the objective; p.83 gives a job no objective. The player builds the wrong table |
+| T10-10 | MED-HIGH | World "CURRENT EVENT" shown ≠ persisted. Save holds "Worker shortages"; screen showed "Pirate raids". It is a live rules modifier |
+| T10-01 | HIGH | Crew Tasks "Resolve without them?" dialog renders **completely empty** — 900,000 px of one luminance value. Asks the player to confirm an irreversible action with zero information |
+| T10-02 | LOW-MED | `⚔` has no glyph in Montserrat; the primary confirm reads as a cancel **✗**. 5 sites incl. the rivals counter |
+| T10-07 | LOW | Two exclusive dialogs stack on campaign load (`DLCRequirementDialog.gd:34`) |
+| T10-08 | LOW | "Undo Mark Down" persists after the confirm is **cancelled** |
+
+## Not completed, and why
+
+- **Enemy-drawer touch-drag scroll in landscape** (the plan's explicit item) is
+  **blocked by T10-11** — after the first battle no further battle can be reached.
+  Partial coverage: in PORTRAIT the enemy drawer does not overflow at 800x1280 dp
+  so there is nothing to scroll, and the same gesture mechanism was measured
+  broken on the landscape World Phase (T10-09) with a scrollbar control.
+- Four Mark Downs WERE performed (6 → 2 enemies) before the drawer test.
+
+## Method notes worth keeping
+
+- `adb` is a Windows binary: give it `C:/...` paths, not Git Bash `/c/...`.
+  Push into the app sandbox via `/data/local/tmp` + `run-as cp`.
+- A byte-identical screenshot pair is the cheapest "did that control do anything"
+  test there is, and md5 beats eyeballing. But **pair it with a control** — three
+  times here a dead-looking control was my own bad coordinate, and once ("Hit")
+  the control (`Mark Down`, same drawer) is what turned it into a real finding.
+- Locate buttons by colour/text bbox from the screenshot before tapping; blind
+  coordinate arithmetic cost several wasted taps.
+
+---
+
+# Deploy #15 — 2026-09-04 — the two open gaps, T10-09 and T10-02
+
+Lenovo TB361FU, 1600x2560 @ density 320 = 800x1280 dp, **landscape**
+(`user_rotation 1`). CLI `--export-debug` APK, verified with `scripts/verify_apk.py`
+(PASS, 2416 entries). Working tree on top of `92466e57a`.
+
+**Both findings were misdiagnosed in deploy #14, and both diagnoses are now
+corrected by measurement.** Neither correction was reachable by reading code —
+one needed a cmap parse, the other needed instrumentation on the device.
+
+## T10-09 — NOT A DEFECT. It was my measurement.
+
+**Deploy #14 recorded:** *"swipe over the CONTENT -> 0 pixels changed; swipe over
+the SCROLLBAR -> 1,442,658 pixels changed. So the scroll range EXISTS and only
+the drag-over-content path is broken."*
+
+**Deploy #15 measures, with `ScrollContainer.scroll_started` (an Android-only
+signal that fires ONLY for a touch drag on the scrollable area, never for the
+scrollbar — Godot 4.6 docs):**
+
+```
+[TouchChainProbe:WorldPhase] touch #1 at (1103, 1077)
+  scroll ContentScroll  v=0  max=1341 page=1173  scrollable_span=168
+  under the finger, DEEPEST FIRST:
+    IGNORE  Label / PASS HBoxContainer / PASS VBoxContainer
+    PASS    PanelContainer  WorldBriefingCard
+    PASS    VBoxContainer   PhaseContentVBox
+    IGNORE  ScrollContainer PhaseScroll
+    PASS    PanelContainer  PhaseContainer
+    PASS    ScrollContainer ContentScroll
+[TouchChainProbe:WorldPhase] scroll_started on ContentScroll — THE GESTURE ARRIVED
+```
+
+The gesture arrives. The chain is clean. **The scrollable span is 168 px** — the
+content overflows by almost nothing — and after that one swipe `v=168`, i.e. the
+scroll was already at its maximum.
+
+**What actually happened in deploy #14:** the content swipe was
+`1280 1250 -> 1280 450`, i.e. UPWARD (scrolling toward the bottom). The
+"control" scrollbar drag was `2470 600 -> 2470 1100`, i.e. DOWNWARD (scrolling
+back to the top). If the view was already at the bottom, the first has nothing
+left to travel and the second has the whole range. **I compared an exhausted
+direction against a fresh one and called the gesture dead.**
+
+Verified today in BOTH directions and on BOTH steps:
+
+| Step | span | content drag up | content drag down |
+|---|---|---|---|
+| 2 of 6 (Crew Tasks) | 168 px | scrolls, `scroll_started` fires | returns to a **byte-identical** screenshot (md5 `5f5eeb60`) |
+| 1 of 6 (Upkeep) | 414 px | scrolls, `scroll_started` fires | — |
+
+The nav (`1 2 3 4 ✓ 6`, `← Back`, `Next Step`, `← Back to Dashboard`) is reachable
+by that drag. **T10-09 is closed as NOT REPRODUCED.**
+
+> **The rule:** a control test needs the control to differ in ONE variable. Mine
+> differed in two — where the finger was AND which direction it travelled — so it
+> could not distinguish "the gesture is blocked" from "this direction is spent".
+> Same family as [[reference_a_bypass_walk_yields_false_and_real_findings]].
+
+## T10-02 — the glyph was never missing; it is illegible at size
+
+**Deploy #14 recorded:** *"U+2694 CROSSED SWORDS; Montserrat has no glyph, so it
+falls back to a thin cross."* First half right, conclusion wrong.
+
+**Desk evidence** — a format-4/12 cmap parse of all four bundled `.ttf`s:
+
+| Codepoint | Montserrat Reg/Semi/Bold | CourierPrime |
+|---|---|---|
+| ⚔ ⚙ 💰 🌍 👤 👥 🚀 💾 | no | no |
+| **✓ ✗ ★** | **no** | **no** |
+| → | YES | no |
+
+The load-bearing row is ✓ / ✗ / ★: deploy #14 lists those as *already proven to
+render on this device*, and no bundled font has them. **So Android system
+fallback is live** — which is exactly what `allow_system_fallback=true` in every
+`.ttf.import` enables.
+
+**Device evidence** — the Battle Simulator row on the Campaign Dashboard,
+magnified 8x from a full-resolution screencap, is unmistakably **two crossed
+blades with crossguards**. Not tofu. The ⚠ and ⚙ chrome glyphs render too.
+
+So the defect is real but it is **legibility, not coverage**: at the button's
+~16 px, monochrome, the thin strokes collapse into an ✗ on the green button that
+STARTS a battle. Adding a `SystemFont` fallback — the fix deploy #14 implied —
+would have changed nothing.
+
+**Fixed** by removing the glyph from `WorldPhaseController.tscn`'s
+`ProceedToBattleButton`, the only site where the pictograph inverts a control's
+meaning. Pinned by `tests/unit/test_primary_cta_glyphs.gd` (2 cases), which reads
+`PackedScene.get_state()` rather than scanning text, and is detection-proven:
+restoring the ⚔ gives exactly 1 failure naming the node and codepoint.
+
+## Shipped this deploy
+
+- `src/ui/components/common/TouchChainProbe.gd` — debug-only (`OS.is_debug_build()`;
+  `attach()` returns null in a release build). Dumps the control chain under the
+  finger with each node's `mouse_filter`, lists hit-testable controls on higher
+  CanvasLayers, reports every watched scroll's live span, and re-runs the
+  idempotent touch sweep to report whether it was stale.
+- `WorldPhaseController` wires it, watching `ContentScroll` and `PhaseScroll`.
+- `test_primary_cta_glyphs.gd` (new, 2 cases) + a widened `_all_label_text()` in
+  `test_destructive_actions_confirm.gd`.
+
+## Method notes
+
+- **`ScrollContainer.scroll_started` is the right instrument for this whole defect
+  class.** It fires only for a touch drag on the scrollable area — never the
+  scrollbar — and only on Android/iOS. It answers "did the gesture arrive" with a
+  yes/no instead of a pixel-diff's "nothing moved".
+- **A probe that over-reports invents work.** The first version swept the whole
+  screen and announced "SWEEP WAS STALE — opened 2"; one of the two was the
+  `Background` ColorRect, a sibling production deliberately never sweeps and which
+  blocks nothing. It now takes an explicit `set_sweep_root()` so the verdict
+  compares like with like.
+- **A `--script` SceneTree probe cannot load these screens at all.** Autoloads are
+  not registered there, so `WorldPhaseController.gd:1345`'s bare `TweenFX` fails to
+  compile, `_ready()` never runs, and `tests/tools/probe_world_phase_drag.gd`
+  reported "51 STOP controls AFTER THE SWEEP" against a tree the sweep had never
+  touched. Whether a screen probes headlessly is decided by whether it names
+  autoloads as bare identifiers or resolves them via `get_node_or_null("/root/X")`
+  — nothing meaningful. **Discard that probe's numbers.**
+- **Read the gdUnit4 case COUNT, not the failure line.** A batch reported 17 and
+  25 cases with a "failure" that vanished at the full 28/30. The partial run was
+  the artefact; the failure was not real.
+- The tablet has a secure lock and re-dozes fast. `adb shell svc power stayon usb`
+  first; a locked screen returns a 19,838-byte all-black screencap, which is the
+  cheapest way to notice.

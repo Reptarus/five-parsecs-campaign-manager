@@ -1889,9 +1889,25 @@ func _update_job_details() -> void:
 	details += "PATRON: %s\n" % job.get("patron_name", job.get("patron", "Unknown"))
 	details += "Type: %s\n\n" % job.get("patron_type", "Unknown")
 
-	# Objective
-	details += "OBJECTIVE: %s\n" % job.get("objective", "Unknown")
-	details += "%s\n\n" % job.get("objective_description", "")
+	# NO objective row here, deliberately.
+	#
+	# T10-03, found on the tablet 2026-09-04: this card promised "OBJECTIVE: Secure"
+	# and the battle then ran Protect — a VIP scenario needing a figure set up 12"
+	# from centre, i.e. a different table from the one the player had built.
+	#
+	# The book is unambiguous about which of the two is right. Core Rules p.83
+	# ("3. Determine Job Offers") lists a job as Patron, Time Frame, Danger Pay,
+	# Benefits, Hazards and Conditions — there is no objective among them. Core
+	# Rules p.89 ("5. Determine the Objective") then says "Opportunity, Patron and
+	# Quest missions will ROLL for the objective you are undertaking", at battle
+	# setup, after the job is accepted. So CampaignTurnController's p.89 roll is
+	# correct and this display was inventing a value the rules do not grant yet.
+	#
+	# The objective reaches the player on the Battle Card, which is when the book
+	# says they learn it. What a job legitimately advertises is below: pay, danger
+	# pay, time frame, enemy, hazards and conditions.
+	if not str(job.get("objective_description", "")).strip_edges().is_empty():
+		details += "%s\n\n" % job.get("objective_description", "")
 
 	# Pay and timing. Payout is 1D6 base (won -> 1-2 count as 3) + Danger Pay for a
 	# Patron job (Core Rules p.120). "pay" is the composite estimate; DANGER PAY is

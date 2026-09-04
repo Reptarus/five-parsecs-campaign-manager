@@ -471,26 +471,51 @@ func complete_mission(planet_id: String, mission_data: Dictionary) -> void:
 
 	self.planet_data_updated.emit(planet_id, "mission_completed")
 
-## Add world event to planet
-func add_world_event(planet_id: String, event: Dictionary) -> void:
+## Add world event to planet.
+##
+## `campaign_turn` is stamped onto the event so the "one event per world per turn"
+## rule can be answered from PERSISTED state — see has_world_event_for_turn().
+## Pass -1 only for events that are not turn-scoped.
+func add_world_event(planet_id: String, event: Dictionary, campaign_turn: int = -1) -> void:
 	if not visited_planets.has(planet_id):
 		return
-	
+
 	var planet = visited_planets[planet_id]
 	event["timestamp"] = Time.get_unix_time_from_system()
+	event["campaign_turn"] = campaign_turn
 	planet.world_events.append(event)
-	
+
 	self.world_event_occurred.emit(planet_id, event)
 
-## Generate a random world event for a planet based on its type (D6 table)
-func generate_world_event(planet_id: String) -> Dictionary:
+
+## Has this world already been given its event for `campaign_turn`?
+##
+## Reads `world_events`, which serializes with the campaign, so the answer
+## survives a quit. An in-memory "already rolled" flag does not — see
+## WorldPhaseController._generate_turn_world_event() for what that cost.
+func has_world_event_for_turn(planet_id: String, campaign_turn: int) -> bool:
+	if campaign_turn < 0 or not visited_planets.has(planet_id):
+		return false
+	var planet = visited_planets[planet_id]
+	if not (planet.world_events is Array):
+		return false
+	for evt in planet.world_events:
+		if evt is Dictionary and int(evt.get("campaign_turn", -1)) == campaign_turn:
+			return true
+	return false
+
+## Generate a random world event for a planet based on its type (D6 table).
+##
+## ⚠ NOT a pure query: it rolls a D6 and APPENDS to the planet's persistent
+## world_events. Every caller must gate it — see has_world_event_for_turn().
+func generate_world_event(planet_id: String, campaign_turn: int = -1) -> Dictionary:
 	if not visited_planets.has(planet_id):
 		return {}
 	var planet: PlanetData = visited_planets[planet_id]
 	var roll: int = randi() % 6 + 1
 	var event: Dictionary = _roll_world_event(roll, planet.type)
 	if not event.is_empty():
-		add_world_event(planet_id, event)
+		add_world_event(planet_id, event, campaign_turn)
 	return event
 
 func _roll_world_event(roll: int, planet_type: String) -> Dictionary:

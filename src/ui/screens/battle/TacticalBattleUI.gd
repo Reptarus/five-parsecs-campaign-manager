@@ -2184,6 +2184,23 @@ func _touch_h() -> int:
 func _show_overlay(content_node: Control) -> void:
 	## Show a modal overlay with the given content.
 	## Uses remove_child() for reusable nodes and queue_free() for disposable ones.
+	##
+	## ⚠ OverlayLayer is layer 93 in the .tscn, ABOVE DrawerLayer's 92. That is not
+	## arbitrary and a .tscn cannot hold a comment, so it is recorded here.
+	##
+	## T10-04, measured on the tablet 2026-09-04: OverlayLayer used to be layer 10,
+	## far BELOW the drawers. Two callers reach this function from inside an open
+	## drawer — _on_card_hit_requested() (the p.46 Hit sheet) and
+	## _show_confirm_overlay() via _confirm_mark_casualty() (the Mark Down confirm,
+	## which Phase 3 deliberately moved off ConfirmationDialog because Windows
+	## misbehave on Android). Both opened UNDERNEATH the drawer that raised them,
+	## and so did OverlayBackground, the 85%-opacity scrim. The player saw the page
+	## outside the drawer dim and nothing to tap: an unrecoverable-looking state
+	## that only closing the drawer would reveal.
+	##
+	## 93 keeps modals above the drawers while staying below LoadingScreen (99) and
+	## TransitionManager (100). It is also above NotificationManager (90), so a
+	## battle toast now renders behind a modal, which is the correct precedence.
 	var reusable_nodes := [initiative_calculator, event_resolution, enemy_generation_wizard]
 	for child in overlay_content.get_children():
 		if child in reusable_nodes:
@@ -5471,6 +5488,29 @@ func _write_battle_checkpoint() -> void:
 		int(round_tracker.get_current_phase()),
 		crew_units, enemy_units, extras))
 
+	# ...and PUT IT ON DISK. set_active_battle() only assigns into the in-memory
+	# campaign.progress_data; nothing else on the battle path ever saves.
+	#
+	# T10-06, measured on the tablet 2026-09-04: the live save was pulled mid-battle
+	# with `run-as ... cat files/saves/<id>.save` and `grep -c active_battle`
+	# returned 0, while world_phase_checkpoint (the T9-50 fix) was present. So a
+	# crash or a force-stop lost the whole fight — round, casualties, objective —
+	# and re-entering MISSION re-rolled enemies and battlefield under a table the
+	# player had already physically built. A graceful background survived only
+	# because GameState._notification() flushes on APPLICATION_PAUSED; SIGKILL
+	# delivers no such callback.
+	#
+	# This mirrors WorldPhaseController.save_checkpoint(), whose own comment
+	# records this exact RAM-only failure happening once before and being fixed the
+	# same way: write into progress_data, then save_campaign() on the same frame.
+	# Cheap enough to do here — the call is already debounced to one per frame by
+	# the _checkpoint_save_queued latch, save_campaign() is synchronous and atomic
+	# (SaveFileWriter.write_text_atomic: .tmp -> .bak -> rename, so a kill mid-write
+	# leaves the previous generation intact), and progress_data round-trips
+	# wholesale so no key registration is needed.
+	if gs.has_method("save_campaign"):
+		gs.save_campaign()
+
 
 func _try_restore_battle_checkpoint() -> bool:
 	## Put an interrupted battle back the way the player left it. Returns true
@@ -5550,6 +5590,12 @@ func _clear_battle_checkpoint() -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("clear_active_battle"):
 		gs.clear_active_battle()
+		# Flush the ERASE too, for the same reason the write is flushed above: an
+		# in-memory clear that never reaches disk leaves a resolved battle's
+		# checkpoint in the save file, and the next entry to MISSION would offer to
+		# resume a fight that already went to post-battle.
+		if gs.has_method("save_campaign"):
+			gs.save_campaign()
 
 
 func _populate_deployment_conditions(mission_dict: Dictionary) -> void:
@@ -6090,7 +6136,6 @@ func _confirm_mark_casualty(unit, is_crew: bool) -> void:
 	## Bail removals stay un-prompted — those already follow a recorded action.
 	if unit == null or unit.is_dead:
 		return
-	_capture_undo_snapshot(unit, "Mark Down", is_crew)
 	# A ConfirmationDialog is a Window, and this project has repeatedly had to
 	# work around Window behaviour on Android. The screen already owns a modal
 	# layer that is scroll-safe and responsive (it carries the tier picker, the
@@ -6102,8 +6147,14 @@ func _confirm_mark_casualty(unit, is_crew: bool) -> void:
 	if is_crew and int(unit.luck_remaining) > 0:
 		body += "\n\n%s still has %d Luck. The book removes a casualty only once Luck is gone (p.46) — spend it on the table first if it applies." % [
 			str(unit.node_name), int(unit.luck_remaining)]
+	# T10-08: the undo snapshot is captured INSIDE the callback, not before the
+	# prompt. Capturing it up front meant cancelling the confirm still left the
+	# bottom bar advertising "Undo Mark Down" for a casualty that never happened,
+	# with the enemy count unchanged — an undo entry for a non-event.
 	_show_confirm_overlay("Mark %s down?" % str(unit.node_name), body,
-		"Mark Down", func() -> void: _mark_casualty(unit, is_crew))
+		"Mark Down", func() -> void:
+			_capture_undo_snapshot(unit, "Mark Down", is_crew)
+			_mark_casualty(unit, is_crew))
 
 
 ## Snapshot one unit's mutable battle state so the NEXT action can be undone.

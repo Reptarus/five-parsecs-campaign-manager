@@ -296,6 +296,7 @@ func _process(_delta: float) -> bool:
 			_check_phase_controls()
 			_check_hit_resolution()
 			_check_touch_ergonomics()
+			_check_card_input_and_overlay_order()
 			# LAST two — both mutate _ui4 (tier, then _stored_mission_data), so
 			# every assertion above that depends on _ui4's initial state must
 			# already have run.
@@ -769,6 +770,55 @@ func _check_touch_ergonomics() -> void:
 			and _ui6._record_action_btn.custom_minimum_size.y >= 44.0,
 		"height=%d" % (int(_ui6._record_action_btn.custom_minimum_size.y)
 			if _ui6._record_action_btn else -1))
+
+
+func _collect_by_class(node: Node, cls: String, out: Array) -> Array:
+	for child in node.get_children():
+		if child.get_class() == cls or (child.get_script() != null \
+				and str(child.get_script().resource_path).ends_with(cls + ".gd")):
+			out.append(child)
+		_collect_by_class(child, cls, out)
+	return out
+
+
+func _check_card_input_and_overlay_order() -> void:
+	## TWO device defects from the 2026-09-04 tablet walk, both invisible to any
+	## desktop check that does not look at hit-testing and layer order.
+	##
+	## T10-05: every button INSIDE a CharacterStatusCard was dead to touch in a
+	## drawer — Stun, Hit, Action, Aim, Snap and "?" — while "Mark Down", a SIBLING
+	## of the card in the drawer body, worked. The card's root is a PanelContainer,
+	## which stretches every visible child across its whole rect, and
+	## _ensure_keyword_tooltip_attached() add_child()s a bare KeywordTooltip LAST.
+	## So an invisible Control covered the card and was picked for every tap. PASS
+	## does not help: per the Godot 4.6 docs an unhandled event on a PASS control
+	## propagates UP the hierarchy, never down to what is drawn beneath it.
+	var tooltips: Array = []
+	var enemy_body = _ui6._drawer_bodies.get("enemies")
+	if enemy_body != null:
+		_collect_by_class(enemy_body, "KeywordTooltip", tooltips)
+	var covering: int = 0
+	for t in tooltips:
+		if t is Control and (t as Control).mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			covering += 1
+	_ok("keyword tooltips in a populated card do not intercept taps",
+		tooltips.size() > 0 and covering == 0,
+		"%d of %d tooltips are still hit-tested and sit over the card's buttons"
+			% [covering, tooltips.size()])
+
+	## T10-04: _show_overlay() parents into OverlayLayer, which was layer 10 while
+	## DrawerLayer is 92. Both callers reachable from an open drawer — the p.46 Hit
+	## sheet and the Mark Down confirm — therefore opened UNDERNEATH the drawer that
+	## raised them, along with the 85% scrim. On device that read as a dimmed screen
+	## with nothing to tap.
+	var drawer_layer = _ui6.get_node_or_null("DrawerLayer")
+	var overlay_layer = _ui6.get_node_or_null("OverlayLayer")
+	_ok("a modal raised from a drawer renders ABOVE that drawer",
+		drawer_layer != null and overlay_layer != null \
+			and int(overlay_layer.layer) > int(drawer_layer.layer),
+		"OverlayLayer=%d DrawerLayer=%d" % [
+			int(overlay_layer.layer) if overlay_layer else -1,
+			int(drawer_layer.layer) if drawer_layer else -1])
 
 
 func _check_condition_reminders() -> void:

@@ -128,3 +128,55 @@ func test_crew_keys_and_member_key_agree() -> void:
 		{"character_id": "crew_b", "character_name": "Bo"}))).is_true()
 	assert_bool(keys.has(Checkpoint.member_key(
 		{"character_id": "crew_zz"}))).is_false()
+
+
+# ── T10-06: the checkpoint has to reach DISK, not just progress_data ──────────
+#
+# Every case above round-trips the checkpoint DICTIONARY, which is why this suite
+# was green while a real battle was being lost. On the tablet on 2026-09-04 the
+# live save was pulled mid-battle and `grep -c active_battle` returned 0: nothing
+# on the battle path ever called save_campaign(), so the fight existed only in
+# RAM and a force-stop took it. Asserting the dict alone cannot see that — this
+# case writes the campaign to a file and reads it back.
+
+const CampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+const TEST_DIR := "user://test_battle_checkpoint_disk/"
+
+
+func _test_path() -> String:
+	DirAccess.make_dir_recursive_absolute(TEST_DIR)
+	return TEST_DIR + "cp_round_trip.save"
+
+
+func test_active_battle_survives_a_real_save_file_round_trip() -> void:
+	var crew := [_crew_unit("crew_a", "Ana"), _crew_unit("crew_b", "Bo")]
+	var enemies := [_enemy_unit("G1"), _enemy_unit("G2")]
+	enemies[0].is_dead = true
+	crew[0].stun_markers = 2
+
+	var campaign := CampaignCore.new()
+	campaign.campaign_id = "cp_disk_test"
+	campaign.progress_data["turns_played"] = TURN
+	campaign.progress_data["active_battle"] = Checkpoint.build(
+		TURN, 1, 3, 2, crew, enemies, {"reaction_rolled": true})
+
+	var path := _test_path()
+	assert_int(campaign.save_to_file(path)).is_equal(OK)
+
+	var loaded = CampaignCore.load_from_file(path)
+	assert_object(loaded).is_not_null()
+
+	# The key exists at all — this is the assertion the device disproved.
+	var restored: Variant = loaded.progress_data.get("active_battle", null)
+	assert_bool(restored is Dictionary).override_failure_message(
+		"active_battle did not survive the save file at all").is_true()
+
+	# ...and it is still a usable checkpoint, not just a present key. Godot's JSON
+	# parser returns every number as a FLOAT, so a checkpoint that round-trips
+	# structurally can still fail is_valid()/round on the way back in.
+	assert_bool(Checkpoint.is_valid(restored, TURN)).is_true()
+	assert_int(int(restored.get("round", -1))).is_equal(3)
+	assert_int(int(restored.get("phase", -1))).is_equal(2)
+	assert_array(Checkpoint.crew_keys(restored)).contains(["crew_a", "crew_b"])
+
+	DirAccess.remove_absolute(path)

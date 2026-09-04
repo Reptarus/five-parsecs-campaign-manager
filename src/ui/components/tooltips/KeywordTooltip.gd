@@ -44,8 +44,28 @@ var _last_tap_time: float = 0.0
 var _current_mode: DisplayMode = DisplayMode.DESKTOP
 
 func _ready() -> void:
-	# Lazy creation - dialog created on first use
-	pass
+	# This node draws NOTHING. It is an invisible host for the AcceptDialog created
+	# lazily below, and every caller parents it with a bare add_child(self) —
+	# CharacterStatusCard.gd:514, WeaponTableDisplay.gd:199, PreBattleUI.gd:206.
+	#
+	# T10-05, measured on the tablet 2026-09-04: two of those three parents are
+	# PanelContainers, and a Container stretches every visible, non-top_level
+	# Control child across its whole rect. Added last, this node therefore sat on
+	# TOP of the entire card and, at MOUSE_FILTER_STOP, was the control picked for
+	# every tap on it. On an enemy card in the battle drawer that killed Stun, Hit,
+	# Action, Aim, Snap and "?" outright — the whole p.46 / p.40 per-figure model —
+	# while the "Mark Down" button kept working because it is a SIBLING of the card
+	# rather than a descendant, so nothing covered it.
+	#
+	# PASS would not have helped: per the Godot 4.6 Control.MouseFilter docs an
+	# unhandled event on a PASS control "propagates UP the node hierarchy", never
+	# down to the nodes drawn beneath it. IGNORE is the only value that takes this
+	# node out of hit-testing, and TouchScrollOpener.open_subtree() only rewrites
+	# STOP -> PASS, so it will not undo this.
+	#
+	# The interactive part is the dialog (a Window, hit-tested on its own) and the
+	# RichTextLabel's meta_clicked in the host — neither needs this node pickable.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 ## Public API
 

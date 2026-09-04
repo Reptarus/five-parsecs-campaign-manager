@@ -668,30 +668,36 @@ func _on_resolve_all_pressed() -> void:
 	dialog.ok_button_text = "Resolve anyway"
 	dialog.cancel_button_text = "Go back and assign"
 
-	var note := Label.new()
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# An autowrapping Label reports its minimum height at its CURRENT width, so
-	# without a small minimum width it demands one long line and the dialog grows
-	# to fit. This is the other half of the T9-39 fix.
-	note.custom_minimum_size.x = 240
-	note.text = ("%d crew have no task and will lose their action for this turn:\n\n%s"
+	# The text goes in dialog_text — the built-in label — NOT a Control added with
+	# add_child().
+	#
+	# T10-01, measured on the tablet 2026-09-04: this dialog rendered as a bare grey
+	# panel with the two buttons and NOTHING else. No title, no crew list, no rule.
+	# The body region (900,000 px) held exactly ONE luminance value. So the player
+	# was asked to confirm an irreversible action with zero information about it.
+	#
+	# Cause, per the Godot 4.6 docs: AcceptDialog is a Window, and
+	# Window.wrap_controls defaults to FALSE — "you need to call
+	# child_controls_changed() manually". The previous version (the T9-39 fix)
+	# add_child()'d a ScrollContainer wrapping this Label and never called it, so
+	# the subtree never got a layout pass and drew at zero size.
+	#
+	# dialog_text is what the other ~20 dialogs in src/ use, all of which render
+	# correctly on device; CampaignScreenBase._show_pending_transfers_dialog() does
+	# the identical header-plus-bulleted-list shape this way. Reusing it also fixes
+	# T9-39 more robustly than the ScrollContainer did: with wrap_controls false the
+	# window will not grow to its content at all, and popup_centered() below still
+	# pins the frame — and therefore the buttons — inside the viewport.
+	# AcceptDialog's built-in label does NOT wrap by default, so the longest line
+	# sets the window width. Measured on the tablet after the dialog_text fix: the
+	# frame grew past the 1600px screen and clipped both the rule sentence ("Once
+	# tasks r...") and the "Resolve anyway" button, which popup_centered's explicit
+	# size cannot claw back because the label's minimum width wins.
+	dialog.dialog_autowrap = true
+	dialog.dialog_text = ("%d crew have no task and will lose their action for this turn:\n\n%s"
 		+ "\n\nEach crew member can perform one task per turn (Core Rules pp.77-78)."
 		+ " Once tasks resolve, this cannot be undone.") % [
 			stranded.size(), "  • " + "\n  • ".join(stranded)]
-
-	# T9-39: the Label used to be added straight to the dialog, which then sized
-	# itself to the text. With a six-name list that came out TALLER THAN THE
-	# SCREEN on the tablet and both buttons sat off the bottom edge, so the World
-	# Phase could not be advanced by touch at all. The scroll gives the text
-	# somewhere to overflow to, and the explicit size keeps the frame — and
-	# therefore the buttons — inside the viewport however long the list gets.
-	var scroll := ScrollContainer.new()
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.add_child(note)
-	dialog.add_child(scroll)
 
 	add_child(dialog)
 	dialog.confirmed.connect(_resolve_all_tasks)

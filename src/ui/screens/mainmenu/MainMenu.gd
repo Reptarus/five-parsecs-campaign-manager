@@ -676,6 +676,16 @@ func _load_and_go_to_dashboard(
 			"res://src/ui/dialogs/DLCRequirementDialog.gd")
 		if DLCReqDialog:
 			var req_dialog: Window = DLCReqDialog.new()
+			# T10-07: the save-picker is still up and it is an exclusive Window, so
+			# adding a second exclusive one made the engine log
+			#   "Attempting to make child window exclusive, but the parent window
+			#    already has another exclusive child"
+			# on every DLC-gated load, and drew the two frames on top of each other.
+			# Hiding the picker releases the parent's exclusive slot (Window clears
+			# its transient link when it becomes invisible); _cleanup_load_ui() in
+			# each callback below still frees it.
+			if dialog is Window and is_instance_valid(dialog):
+				(dialog as Window).hide()
 			add_child(req_dialog)
 			_active_dialogs.append(req_dialog)
 			req_dialog.load_requested.connect(func():

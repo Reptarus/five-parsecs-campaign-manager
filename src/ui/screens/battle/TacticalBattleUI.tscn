@@ -264,7 +264,7 @@ text = "End Turn"
 layer = 92
 
 [node name="OverlayLayer" type="CanvasLayer" parent="." unique_id=521663461]
-layer = 10
+layer = 93
 
 [node name="OverlayBackground" type="ColorRect" parent="OverlayLayer" unique_id=1550347294]
 visible = false

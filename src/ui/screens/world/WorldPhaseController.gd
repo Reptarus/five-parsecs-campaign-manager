@@ -208,6 +208,33 @@ func _ready() -> void:
 
 	_ensure_content_scroll()
 	_apply_vertical_compaction()
+
+	# T10-09: a drag over the step content moves nothing while a drag on the
+	# scrollbar moves 1.4M pixels. Every desk-side diagnosis of that has been
+	# wrong, and a headless probe of THIS screen is impossible (a --script
+	# SceneTree does not register autoloads, so :1345's bare `TweenFX` reference
+	# fails to compile and _ready() never runs). So it is measured on the device.
+	# attach() returns null in a release build — a player cannot reach any of it.
+	var _probe := TouchChainProbe.attach(self, "WorldPhase")
+	if _probe:
+		var _cs := get_node_or_null(
+			"MarginContainer/VBoxContainer/" + CONTENT_SCROLL_NAME)
+		if _cs is ScrollContainer:
+			_probe.watch_scroll(_cs as ScrollContainer, CONTENT_SCROLL_NAME)
+			# Same subtree _open_content_to_scroll_gesture() sweeps, so the
+			# probe's staleness verdict is comparable. Given the whole screen it
+			# counted `Background` — a ColorRect sibling production never sweeps
+			# and which blocks nothing — and reported a stale sweep that was not.
+			_probe.set_sweep_root(_cs)
+		# Watched even though _apply_layout_for() sets it DISABLED + IGNORE: if
+		# PhaseScroll ever reports scroll_started it is still claiming gestures,
+		# which is the failure that IGNORE was added to stop.
+		var _ps: Node = null
+		if phase_container and is_instance_valid(phase_container):
+			_ps = phase_container.get_node_or_null("PhaseScroll")
+		if _ps is ScrollContainer:
+			_probe.watch_scroll(_ps as ScrollContainer, "PhaseScroll")
+
 	var _rm := get_node_or_null("/root/ResponsiveManager")
 	if _rm and _rm.has_signal("layout_class_changed"):
 		# A METHOD callable, not a lambda. Godot cleans up connections whose target
@@ -225,8 +252,14 @@ func _ready() -> void:
 ## reservation takes 68 more, and there are 338 to spend. Nothing was reachable past
 ## the fold and the step content area was squeezed to TWO pixels.
 ##
-## Only the Header stays pinned. The scroll is created once and always present, so
-## the two layouts differ by a single flag rather than by a re-parent:
+## This moves EVERYTHING below the Header in, including the nav row and footer.
+## That is right for the 338px case above and wrong everywhere else — see
+## _apply_nav_pinning(), which lifts Controls / HSeparator2 / Footer back out on
+## any screen that is not `tight`, because leaving them in here put Next Step and
+## Proceed to Battle permanently below the fold on the tablet (T10-11 / T5-03).
+##
+## The scroll is created once and always present, so the two layouts differ by a
+## single flag plus that one re-parent rather than by rebuilding the tree:
 ## _apply_vertical_compaction() turns its vertical scrolling ON for short screens and
 ## OFF everywhere else, and a disabled ScrollContainer propagates its child's minimum
 ## exactly like the plain container this used to be — so tall screens lay out as they
@@ -469,7 +502,72 @@ func _apply_layout_for(tight: bool) -> void:
 		# it must always let the drag past.
 		phase_container.mouse_filter = Control.MOUSE_FILTER_PASS
 
+	_apply_nav_pinning(tight)
 	_open_content_to_scroll_gesture(tight)
+
+
+## Node names of the navigation chrome that must stay reachable without scrolling.
+const _PINNED_NAV_NAMES: Array[String] = ["Controls", "HSeparator2", "Footer"]
+
+
+## Keep Next Step / the step pips / Proceed to Battle on screen at all times.
+##
+## T10-11, measured on the tablet 2026-09-04: the World Phase rendered its step
+## content and then simply ended, with no Next Step, no pips and no Back to
+## Dashboard anywhere on the page — in BOTH orientations, on every entry after
+## the first. The campaign could not be advanced at all.
+##
+## They were never missing. _ensure_content_scroll() moves EVERY non-Header child
+## into ContentScroll, and PhaseScroll is deliberately SCROLL_MODE_DISABLED just
+## above, so PhaseContainer's minimum height becomes the whole step's content
+## height and pushes the nav off the bottom of the column. The numbers are already
+## recorded in _apply_layout_for(): NextButton y=1609, BackToDashboardButton
+## y=1685, in a 1280-tall viewport. The only way to reach them was to drag the
+## outer scroll — and a touch-drag over the step area does not reach it (T10-09),
+## so on a touch device there was no way at all. Same defect as T5-03.
+##
+## Fixing the geometry rather than the gesture: on a normal screen the nav is a
+## pinned sibling BELOW the scroll, exactly as Header is pinned above it, so it
+## cannot go off-screen however tall the step content grows.
+##
+## ⚠ NOT unconditional, and this is the reason the nav was in the scroll to begin
+## with: _ensure_content_scroll()'s docblock records a 733x338 phone-on-its-side
+## where the pinned chrome alone (header 66 + separators + 131 controls + 48
+## footer = 295) leaves 43px of a 338px screen for the step itself. On that screen
+## scrolling to the nav is strictly better than pinning it, so `tight` keeps the
+## original single-column behaviour untouched.
+##
+## Idempotent: re-parents only when a node is not already where this layout wants
+## it, so the repeated calls from size_changed / layout_class_changed are free.
+func _apply_nav_pinning(tight: bool) -> void:
+	var vbox := get_node_or_null("MarginContainer/VBoxContainer")
+	if not (vbox is VBoxContainer):
+		return
+	var scroll := vbox.get_node_or_null(CONTENT_SCROLL_NAME)
+	if scroll == null:
+		return
+	var column := scroll.get_node_or_null("ContentColumn")
+	if column == null:
+		return
+
+	var want_parent: Node = column if tight else vbox
+	for nav_name in _PINNED_NAV_NAMES:
+		var node: Node = column.get_node_or_null(nav_name)
+		if node == null:
+			node = vbox.get_node_or_null(nav_name)
+		if node == null:
+			continue
+		if node.get_parent() == want_parent:
+			continue
+		node.get_parent().remove_child(node)
+		want_parent.add_child(node)
+
+	# Header stays at 0; the scroll takes the space between it and the pinned nav.
+	# add_child() appends, so the loop above already lands the nav in
+	# Controls / HSeparator2 / Footer order after whatever is in the parent — this
+	# only has to put the scroll back above them.
+	if not tight:
+		vbox.move_child(scroll, 1)
 
 
 ## Let a touch-drag over the content reach whichever scroll owns it.
@@ -1032,6 +1130,19 @@ func _generate_turn_world_event() -> void:
 	##
 	## Keyed by planet as well as turn: travelling mid-turn arrives at a DIFFERENT
 	## world, and that world is entitled to its own event on the same turn.
+	##
+	## T10-10, measured on the tablet 2026-09-04: the guard below used to be
+	## `_world_event_rolled` ALONE — a plain instance Dictionary. That holds within
+	## one process and is empty in the next, so after a restart the guard failed
+	## open and this rolled a second event for the same turn on the same world.
+	## Observed: the save on disk held "Worker shortages make recruitment easier
+	## (+1)" while the screen showed "Pirate raids increase local danger level", and
+	## `grep 'Pirate raids' <save>` found nothing. Same family as the battle
+	## checkpoint (T10-06): state that has to outlive the process, kept only in RAM.
+	##
+	## The authority is now the PERSISTED world_events array, which serializes with
+	## the campaign. `_world_event_rolled` stays as a same-frame fast path only, and
+	## must never be the only thing consulted.
 	var pdm = get_node_or_null("/root/PlanetDataManager")
 	if not pdm or not pdm.has_method("generate_world_event"):
 		return
@@ -1046,8 +1157,13 @@ func _generate_turn_world_event() -> void:
 	var turn := _current_campaign_turn()
 	if int(_world_event_rolled.get(planet_id, -1)) == turn:
 		return
+	if pdm.has_method("has_world_event_for_turn") \
+			and pdm.has_world_event_for_turn(planet_id, turn):
+		# Already rolled for this world this turn, in this session or a previous one.
+		_world_event_rolled[planet_id] = turn
+		return
 	_world_event_rolled[planet_id] = turn
-	pdm.generate_world_event(planet_id)
+	pdm.generate_world_event(planet_id, turn)
 
 func _check_compendium_world_strife() -> void:
 	## Compendium p.148 arrival roll: "when arriving on a new world, roll 1D6.
@@ -1978,7 +2094,17 @@ func _complete_world_phase() -> void:
 					"source": mission_source,
 					"mission_source": mission_source,
 					# PreBattleUI-compatible alias keys
-					"title": "%s Mission" % job_results.get("objective", "Patrol").capitalize(),
+					# Named for the PATRON, not the objective. "%s Mission" %
+					# objective produced "Secure Mission" on the pre-battle screen
+					# for a battle whose objective the p.89 roll then made Protect
+					# (T10-03). A job is not entitled to an objective until battle
+					# setup (Core Rules p.83 vs p.89 step 5), so the title cannot be
+					# built from one.
+					"title": ("%s Job" % str(job_results.get("patron_name",
+						job_results.get("patron", "")))).strip_edges() \
+						if not str(job_results.get("patron_name",
+							job_results.get("patron", ""))).strip_edges().is_empty() \
+						else "Patron Job",
 					"description": job_results.get("objective_description", "Complete the mission objective."),
 					"battle_type": _get_battle_type_for_objective(job_results.get("objective", "patrol")),
 				}
@@ -2380,8 +2506,6 @@ func _get_battle_type_for_objective(objective: String) -> int:
 			return 3  # STORY
 		_:
 			return 1  # Default to STANDARD — most missions are combat
-
-	_update_ui_display()
 
 ## Deferred Event System - Check and resolve pending events
 
