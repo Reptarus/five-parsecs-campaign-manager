@@ -11,6 +11,7 @@ const CampaignValidator = preload("res://src/core/validation/CampaignValidator.g
 const FiveParsecsCampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const LuckSystemRef = preload("res://src/core/systems/LuckSystem.gd")
 
 signal finalization_started()
 signal validation_completed(result: Dictionary)
@@ -205,6 +206,29 @@ func finalize_campaign(campaign_data: Dictionary, state_manager: RefCounted) -> 
 		"campaign": campaign,
 		"save_path": save_result.path
 	}
+
+## Core Rules p.24: "pick one to be the Leader. This character receives 1 Luck
+## point ... While you are free to select a Bot as your Leader, they do not
+## receive Luck if you do."
+##
+## THE SINGLE GRANT SITE for that rule, per the one-grant-site-per-rule
+## invariant. LuckSystem.apply_leader_luck_bonus() implemented it correctly and
+## had ZERO callers, so no crew in any campaign ever received it (verified
+## 2026-09-04: add_luck() had exactly one caller, that dead function, and no
+## other site in src/ grants Leader Luck).
+##
+## Called here rather than earlier because members are plain Dictionaries by this
+## point and carry `is_captain`, and because finalization runs exactly once per
+## campaign - which is what keeps the grant from stacking. Do NOT call it from a
+## load path.
+func _grant_leader_luck(transformed_crew: Dictionary) -> void:
+	for member in transformed_crew.get("members", []):
+		if not LuckSystemRef.is_leader(member):
+			continue
+		LuckSystemRef.apply_leader_luck_bonus(member)
+		# Exactly one Leader per crew; stop so a malformed roster carrying two
+		# is_captain flags cannot hand out two points.
+		return
 
 func _validate_campaign_data(data: Dictionary, state_manager: RefCounted) -> Dictionary:
 	## Multi-layer validation with detailed error reporting
@@ -482,6 +506,8 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 
 	transformed_equipment["equipment"] = unassigned_equipment(equipment_list)
 
+	_grant_leader_luck(transformed_crew)
+
 	# NOW persist crew (with equipment already attached) and ship-stash equipment list
 	campaign.initialize_crew(transformed_crew)
 	campaign.set_starting_equipment(transformed_equipment)
@@ -686,6 +712,12 @@ func _create_campaign_resource(data: Dictionary) -> Resource:
 	var house_rules = config.get("house_rules", campaign_config.get("house_rules", []))
 	if not house_rules.is_empty() and campaign.has_method("set_house_rules"):
 		campaign.set_house_rules(house_rules)
+	# Recorded, never applied (Core Rules p.65 invites house rules; it does not
+	# supply a menu of them, and the app cannot enforce one it has not heard of).
+	var house_notes: String = str(config.get(
+		"house_rules_notes", campaign_config.get("house_rules_notes", "")))
+	if not house_notes.is_empty() and campaign.has_method("set_house_rules_notes"):
+		campaign.set_house_rules_notes(house_notes)
 		pass # House rules transferred
 
 	var resources = data.get("resources", {})

@@ -36,6 +36,8 @@ const CHOICE_TITLES: PackedStringArray = [
 ]
 
 
+const AdvancementSystemRef = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+
 static func _savvy_of(member) -> int:
 	if member is Dictionary:
 		return int(member.get("savvy", 0))
@@ -48,11 +50,38 @@ static func _best_savvy(crew: Array):
 	## The book repeatedly says "select a crew member" for a Savvy test. The
 	## player would always pick their best, so picking it for them costs nothing
 	## and avoids a dialog per die roll.
+	##
+	## "Best" is not simply the highest Savvy once Pilot Training is in play: that
+	## course turns the test into 2D6-pick-better +2 (Core Rules p.125), which
+	## beats a point or two of raw Savvy. A trained crew member is therefore
+	## preferred, which is also who the player would actually pick - the course
+	## exists for exactly this roll.
+	var trained = null
 	var best = null
 	for member in crew:
+		if member == null:
+			continue
+		if AdvancementSystemRef.member_has_training(member, "pilot"):
+			if trained == null or _savvy_of(member) > _savvy_of(trained):
+				trained = member
 		if best == null or _savvy_of(member) > _savvy_of(best):
 			best = member
-	return best
+	return trained if trained != null else best
+
+
+## One Savvy-test die for a Starship Travel event.
+##
+## Core Rules p.125, Pilot Training: "If a Starship Travel event calls for a
+## Savvy test, you may roll 2D6, pick the better die and add +2 to the score."
+## This is a DICE CHANGE, not a flat modifier - the +2 rides on top of the better
+## of two dice - so every Savvy test in this file goes through here rather than
+## rolling 1D6 inline.
+##
+## The Savvy stat itself is added by the caller, exactly as before.
+static func _savvy_test_die(character) -> int:
+	if character != null and AdvancementSystemRef.member_has_training(character, "pilot"):
+		return maxi(randi_range(1, 6), randi_range(1, 6)) + 2
+	return randi_range(1, 6)
 
 
 static func _add_credits(campaign, amount: int) -> void:
@@ -302,7 +331,7 @@ static func _resolve_asteroids(campaign, crew: Array, choice: String) -> Diction
 	var damage: int = 0
 	var failures: int = 0
 	for _attempt in range(3):
-		if randi_range(1, 6) + savvy < 4:
+		if _savvy_test_die(pilot) + savvy < 4:
 			failures += 1
 			damage += randi_range(1, 6)
 	if failures == 0:
@@ -325,7 +354,7 @@ static func _resolve_raided(campaign, crew: Array) -> Dictionary:
 	## does not count as the main Battle stage for the campaign turn."
 	var out: Dictionary = _blank_report()
 	var talker = _best_savvy(crew)
-	var roll: int = randi_range(1, 6) + _savvy_of(talker)
+	var roll: int = _savvy_test_die(talker) + _savvy_of(talker)
 	if roll >= 6:
 		out["applied"].append(
 			"%s talked the pirates down (%d, needed 6+)" % [_name_of(talker), roll])
@@ -371,7 +400,7 @@ static func _resolve_drive_trouble(campaign, crew: Array) -> Dictionary:
 	pool.sort_custom(func(a, b): return _savvy_of(a) > _savvy_of(b))
 	var failures: int = 0
 	for i in range(mini(3, pool.size())):
-		if randi_range(1, 6) + _savvy_of(pool[i]) < 6:
+		if _savvy_test_die(pool[i]) + _savvy_of(pool[i]) < 6:
 			failures += 1
 	# With fewer than 3 crew the remaining attempts cannot be made at all.
 	failures += maxi(0, 3 - pool.size())
@@ -416,7 +445,7 @@ static func _resolve_distress_call(campaign, crew: Array, choice: String) -> Dic
 			var engineer = _best_savvy(crew)
 			var saved: bool = false
 			for _attempt in range(3):
-				if randi_range(1, 6) + _savvy_of(engineer) >= 7:
+				if _savvy_test_die(engineer) + _savvy_of(engineer) >= 7:
 					saved = true
 					break
 			if saved:

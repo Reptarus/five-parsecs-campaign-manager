@@ -45,6 +45,7 @@ const FPCM_VictoryDescriptions = preload("res://src/game/victory/VictoryDescript
 const CustomVictoryDialog = preload("res://src/ui/components/victory/CustomVictoryDialog.gd")
 const CompendiumMissionsExpandedRef = preload("res://src/data/compendium_missions_expanded.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const HouseRulesDefinitionsRef = preload("res://src/data/house_rules_definitions.gd")
 const ExpansionFeatureSectionScript = preload("res://src/ui/components/dlc/ExpansionFeatureSection.gd")
 const ProgressiveDifficultyTrackerRef = preload("res://src/core/systems/ProgressiveDifficultyTracker.gd")
 const DLCContentCatalogRef = preload("res://src/ui/screens/store/DLCContentCatalog.gd")
@@ -85,6 +86,7 @@ var local_campaign_config: Dictionary = {
 	"story_track_enabled": false,
 	"introductory_campaign": false,
 	"progressive_difficulty_options": [],
+	"house_rules_notes": "",
 	"is_complete": false
 }
 
@@ -93,6 +95,7 @@ var campaign_name_input: LineEdit
 var _name_hint_label: Label  # Inline "name required to continue" hint (silent-gating fix)
 var campaign_type_option: OptionButton
 var house_rules_edit: TextEdit
+var house_rules_checkboxes: Dictionary = {}  # rule_id -> CheckBox
 var difficulty_option: OptionButton  # Difficulty selector
 var victory_conditions_list: VBoxContainer
 var story_track_checkbox: CheckBox
@@ -510,43 +513,109 @@ func _build_house_rules_section(parent: Control) -> void:
 	## written... In most cases, it is best to not add, remove, or change a house
 	## rule mid-campaign."
 	##
-	## The step had no surface anywhere in the wizard, while finalization already
-	## read config["house_rules"] and called campaign.set_house_rules() — a
-	## consumer waiting on a producer that was never written. Recording them at
-	## creation is also what makes the book's "do not change them mid-campaign"
-	## advice enforceable later.
+	## TWO CONTROLS, because there are two different things here.
+	##
+	## The CHECKBOXES are the optional rules the rulebook prints, and ticking one
+	## switches on a real mechanic, so they must write canonical ids.
+	##
+	## The TEXT BOX is the player's own house rules. p.65 invites you to invent
+	## them; it does not hand you a list, and the app cannot enforce a rule it has
+	## never heard of. That prose is recorded on the campaign and deliberately
+	## never matched against a rule id.
+	##
+	## THE BUG THIS FIXES (2026-09-04): this section used to be the text box
+	## ALONE, and its lines were stored straight into campaign.house_rules — the
+	## array HouseRulesHelper.is_enabled() matches ids against. So a player typing
+	## "Varied Armaments" produced "Varied Armaments", which never equals
+	## "varied_armaments", and no house rule could ever take effect. That was one
+	## of two independent breaks; the other was in HouseRulesHelper itself.
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+
+	var book_hint := Label.new()
+	book_hint.text = "Optional rules printed in the rulebook:"
+	book_hint.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	book_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	book_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(book_hint)
+
+	house_rules_checkboxes.clear()
+	for rule: Dictionary in HouseRulesDefinitionsRef.get_all_rules():
+		var rule_id: String = str(rule.get("id", ""))
+		if rule_id.is_empty():
+			continue
+		var cb := CheckBox.new()
+		cb.text = "%s  (%s)" % [rule.get("name", rule_id), rule.get("source", "")]
+		# The book's own wording, so the player is choosing the printed rule
+		# rather than our paraphrase of it.
+		cb.tooltip_text = str(rule.get("book_text", rule.get("description", "")))
+		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		cb.add_theme_font_size_override(
+			"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+		cb.toggled.connect(_on_house_rule_toggled.bind(rule_id))
+		content.add_child(cb)
+		house_rules_checkboxes[rule_id] = cb
+
+		var desc := Label.new()
+		desc.text = str(rule.get("description", ""))
+		desc.add_theme_font_size_override(
+			"font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+		desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		content.add_child(desc)
+
+	var own_hint := Label.new()
+	own_hint.text = "Your own house rules (recorded for reference; the app does not apply these):"
+	own_hint.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	own_hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	own_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content.add_child(own_hint)
+
 	house_rules_edit = TextEdit.new()
 	house_rules_edit.placeholder_text = "One house rule per line (optional)"
 	house_rules_edit.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN * 2)
 	house_rules_edit.wrap_mode = TextEdit.LINE_WRAPPING_BOUNDARY
 	house_rules_edit.add_theme_font_size_override(
 		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	house_rules_edit.text_changed.connect(_on_house_rules_changed)
+	house_rules_edit.text_changed.connect(_on_house_rules_notes_changed)
+	content.add_child(house_rules_edit)
 
 	var hint := Label.new()
-	hint.text = ("Optional. If this is your first campaign, the book recommends "
-		+ "playing the rules as written — and not changing house rules "
-		+ "mid-campaign (Core Rules p.65).")
+	hint.text = ("If this is your first campaign, the book recommends playing the "
+		+ "rules as written — and not changing house rules mid-campaign "
+		+ "(Core Rules p.65).")
 	hint.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	hint.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-
-	var content = VBoxContainer.new()
-	content.add_theme_constant_override("separation", SPACING_SM)
-	content.add_child(house_rules_edit)
 	content.add_child(hint)
 
 	parent.add_child(_create_section_card("HOUSE RULES", content, ""))
 
-func _on_house_rules_changed() -> void:
+## A printed optional rule was ticked. Writes the CANONICAL ID - the value
+## HouseRulesHelper.is_enabled() matches - never display text.
+func _on_house_rule_toggled(pressed: bool, rule_id: String) -> void:
+	var rules: Array = []
+	var existing: Variant = local_campaign_config.get("house_rules", [])
+	if existing is Array:
+		for r: Variant in (existing as Array):
+			if r is String and HouseRulesDefinitionsRef.is_known_rule(str(r)):
+				rules.append(str(r))
+	if pressed:
+		if not (rule_id in rules):
+			rules.append(rule_id)
+	else:
+		rules.erase(rule_id)
+	local_campaign_config["house_rules"] = rules
+	campaign_config_data_changed.emit(local_campaign_config)
+
+## The player's own house rules. Stored as PROSE under its own key so it can
+## never be mistaken for a rule id (see house_rules_notes on the campaign core).
+func _on_house_rules_notes_changed() -> void:
 	if not house_rules_edit:
 		return
-	var rules: Array = []
-	for line in house_rules_edit.text.split("\n"):
-		var trimmed: String = str(line).strip_edges()
-		if not trimmed.is_empty():
-			rules.append(trimmed)
-	local_campaign_config["house_rules"] = rules
+	local_campaign_config["house_rules_notes"] = house_rules_edit.text
 	campaign_config_data_changed.emit(local_campaign_config)
 
 func _build_difficulty_section(parent: Control) -> void:
@@ -1745,6 +1814,11 @@ func get_campaign_config_data() -> Dictionary:
 		"introductory_campaign": _intro_campaign_enabled,
 		"progressive_difficulty_options": local_campaign_config.get(
 			"progressive_difficulty_options", []),
+		# This function REBUILDS its result from a fixed key literal, so a key
+		# that is not listed here is silently dropped no matter what the panel
+		# stored. house_rules was missing entirely.
+		"house_rules": local_campaign_config.get("house_rules", []),
+		"house_rules_notes": local_campaign_config.get("house_rules_notes", ""),
 		"is_complete": local_campaign_config.get("is_complete", false),
 		"metadata": {
 			"last_modified": Time.get_unix_time_from_system(),
@@ -1807,6 +1881,39 @@ func restore_panel_data(data: Dictionary) -> void:
 			intro_campaign_checkbox.set_pressed_no_signal(
 				_intro_campaign_enabled)
 	_update_narrative_combo_label()
+
+	# Restore house rules: tick the printed-rule boxes, refill the prose box.
+	# Legacy campaigns hold free-text lines in `house_rules` (all the old UI
+	# could produce); is_known_rule() filters those out so a line of prose can
+	# never tick a mechanic, and they are surfaced in the notes box instead so
+	# the player does not silently lose what they wrote.
+	if data.has("house_rules") and data.house_rules is Array:
+		var known: Array = []
+		var legacy_prose: Array = []
+		for r: Variant in (data.house_rules as Array):
+			if not (r is String):
+				continue
+			var rid: String = (r as String).strip_edges()
+			if HouseRulesDefinitionsRef.is_known_rule(rid):
+				known.append(rid)
+			elif not rid.is_empty():
+				legacy_prose.append(rid)
+		local_campaign_config["house_rules"] = known
+		for rule_id: String in house_rules_checkboxes:
+			var cb: CheckBox = house_rules_checkboxes[rule_id]
+			if cb:
+				cb.set_pressed_no_signal(rule_id in known)
+		if not legacy_prose.is_empty():
+			var carried: String = "\n".join(legacy_prose)
+			var existing_notes: String = str(data.get("house_rules_notes", ""))
+			data["house_rules_notes"] = (
+				existing_notes + "\n" + carried if not existing_notes.is_empty()
+				else carried)
+
+	if data.has("house_rules_notes"):
+		local_campaign_config["house_rules_notes"] = str(data.house_rules_notes)
+		if house_rules_edit:
+			house_rules_edit.text = str(data.house_rules_notes)
 
 	# Restore progressive difficulty options
 	if data.has("progressive_difficulty_options"):

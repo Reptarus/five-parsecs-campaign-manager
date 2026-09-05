@@ -63,6 +63,20 @@ ALLOWLIST = {
     "src/ui/screens/dev/SceneViewer.gd",
 }
 
+# Implemented FROM THE BOOK but never wired. These are FINDINGS, not orphans:
+# deleting one deletes a rules chapter, and "it has no callers" is exactly what a
+# dead chapter looks like (see CLAUDE.md, "a dead chapter can have nothing wrong
+# with it"). Each entry MUST cite the pages it implements, and must be removed
+# from this set the moment it is wired - the lint warns if that happens.
+UNWIRED_RULES = {
+    # Five Parsecs: Tactics campaign rules pp.155-168 - the operational/strategic
+    # layer: regions, operational zones, Army Strength, Cohesion, Player Battle
+    # Points. Verified 2026-09-04: NONE of its mechanics (spend_pbp_commando_raid,
+    # is_player_victory, is_player_defeat, count_zones_by_status, add_battle_point)
+    # exist anywhere else in src/, so this is a dead CHAPTER, not a dead file.
+    "src/data/tactics/TacticsOperationalMap.gd",
+}
+
 RES_LITERAL = re.compile(r'res://([^"\'\s]+?\.(?:gd|tscn|tres))')
 CLASS_NAME = re.compile(r'^\s*class_name\s+([A-Za-z_][A-Za-z_0-9]*)', re.M)
 AUTOLOAD_LINE = re.compile(r'^\s*[A-Za-z_][A-Za-z_0-9]*\s*=\s*"\*?(res://[^"]+)"', re.M)
@@ -78,6 +92,38 @@ def read(p: Path) -> str:
         return p.read_text(encoding="utf-8", errors="ignore")
     except OSError:
         return ""
+
+
+# A string literal OR a # comment. Order matters: putting the string alternatives
+# first means "#ff9a52" is consumed as a STRING and never mistaken for a comment,
+# which a naive line.split("#") would corrupt.
+#
+# `[^"\\]` matches a newline too, which is deliberate: GDScript (unlike Python)
+# accepts a raw newline inside a "..." literal, and tests/unit/
+# test_persistent_injuries.gd:524 uses one on purpose.
+STR_OR_COMMENT = re.compile(r"""\"(?:[^"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|\#[^\n]*""")
+
+
+def strip_comments(t: str) -> str:
+    """Blank out # comments, leaving string literals intact.
+
+    WHY: `edges_from` treats any word-bounded mention of a class_name, and any
+    res:// literal, as a reference. Comments are prose, and this codebase's
+    comments are unusually full of the names of files they are explaining are
+    DEAD. That made a dead file look reachable because other files documented it
+    as dead - the exact reason phases/WorldPhase.gd and phases/TravelPhase.gd
+    never surfaced here.
+
+    Replaced with spaces, not removed, so offsets and line counts are unchanged.
+    """
+
+    def repl(m: "re.Match[str]") -> str:
+        tok = m.group(0)
+        if tok.startswith("#"):
+            return " " * len(tok)
+        return tok
+
+    return STR_OR_COMMENT.sub(repl, t)
 
 
 def collect(base: Path, exts) -> list[Path]:
@@ -96,6 +142,13 @@ def main() -> int:
     files = collect(SRC, {"gd", "tscn", "tres"})
     by_path = {rel(p): p for p in files}
     text = {rel(p): read(p) for p in files}
+    # Edges are computed from comment-free source; `text` is kept intact for
+    # anything that legitimately needs the original (class_name declarations are
+    # matched with an anchored regex, so they are unaffected either way).
+    code = {
+        k: (strip_comments(t) if k.endswith(".gd") else t)
+        for k, t in text.items()
+    }
 
     # class_name -> owning file
     owner: dict[str, str] = {}
@@ -109,7 +162,7 @@ def main() -> int:
     cls_re = {c: re.compile(r'\b%s\b' % re.escape(c)) for c in owner}
 
     def edges_from(key: str) -> set[str]:
-        t = text.get(key, "")
+        t = code.get(key, "")
         out: set[str] = set()
         for m in RES_LITERAL.finditer(t):
             tgt = m.group(1)
@@ -141,7 +194,12 @@ def main() -> int:
             print(f"WARNING: allowlist entry no longer exists, drop it: {p}")
 
     # Anything the test suite touches, by path or by class_name.
-    test_text = "\n".join(read(p) for p in collect(TESTS, {"gd", "tscn", "tres"}))
+    # Comment-stripped for the same reason as the src side: a test whose COMMENT
+    # names a class must not keep that class alive.
+    test_text = "\n".join(
+        strip_comments(read(p)) if p.suffix == ".gd" else read(p)
+        for p in collect(TESTS, {"gd", "tscn", "tres"})
+    )
     test_roots: set[str] = set()
     for m in RES_LITERAL.finditer(test_text):
         if m.group(1) in by_path:
@@ -165,12 +223,23 @@ def main() -> int:
     live = reach(roots)
     live_or_test = reach(roots | test_roots)
 
-    orphans = sorted(set(by_path) - live_or_test)
+    unreachable = sorted(set(by_path) - live_or_test)
+    unwired = [k for k in unreachable if k in UNWIRED_RULES]
+    orphans = [k for k in unreachable if k not in UNWIRED_RULES]
     test_only = sorted(live_or_test - live)
+    for k in sorted(UNWIRED_RULES):
+        if k in by_path and k not in unreachable:
+            print(f"NOTE: {k} is now reachable - drop it from UNWIRED_RULES")
 
     print(f"files={len(by_path)}  roots={len(roots)}  "
           f"reachable_from_product={len(live)}  test_only={len(test_only)}  "
-          f"orphans={len(orphans)}")
+          f"orphans={len(orphans)}  unwired_rules={len(unwired)}")
+
+    if unwired:
+        print("\nUNWIRED RULES (implemented from the book, no caller - a GAP, "
+              "not an orphan; do NOT delete):")
+        for k in unwired:
+            print(f"  {k}")
 
     if test_only:
         print("\nPRODUCTION-DEAD (reachable only from tests/):")

@@ -234,3 +234,56 @@ func test_endgame_fixture_reaches_the_black_job_gate() -> void:
 	QAScenarioLoader.apply(s, campaign)
 	assert_bool(bool(campaign.red_zone_licensed)).is_true()
 	assert_int(int(campaign.red_zone_turns_completed)).is_greater_equal(10)
+
+
+func test_the_forced_roll_section_is_actually_built() -> void:
+	## The factory case above proves the dialog OPENS. It cannot prove the UI got
+	## built: a runtime error inside _build_forced_roll_section() aborts _build_ui()
+	## and open() still hands back a non-null Window, so is_not_null() stays green
+	## over a dialog missing half its controls. Assert on the control itself.
+	##
+	## The section is what makes T9-47 / T9-48 / T9-51 reachable on device at all
+	## (docs/qa/PICKUP_2026-08-14.md section 3) - if it silently vanishes, the next
+	## device run quietly loses the only tool that reaches those rows.
+	var script = load("res://src/ui/screens/dev/QAScenarioDialog.gd")
+	assert_object(script).is_not_null()
+
+	var host := Node.new()
+	add_child(host)
+	var dlg = script.open(host, _make_campaign())
+	assert_object(dlg).is_not_null()
+
+	var picker: OptionButton = _first_option_button(dlg)
+	assert_object(picker).override_failure_message(
+		"forced-roll picker missing - _build_ui() aborted before building it"
+		).is_not_null()
+	assert_int(picker.item_count).override_failure_message(
+		"picker built but empty - FORCEABLE_ROLLS did not populate it"
+		).is_equal(dlg.FORCEABLE_ROLLS.size())
+
+	# Every entry must name a die the seam can actually satisfy, and a target value
+	# inside it. A typo here would hand QA a value that is discarded at roll time,
+	# and the tester would see a random roll and think the seam is broken.
+	for entry: Dictionary in dlg.FORCEABLE_ROLLS:
+		var sides: int = int(entry["sides"])
+		var target: int = int(entry["target"])
+		assert_bool(sides == 6 or sides == 10 or sides == 100).override_failure_message(
+			"%s declares D%d, which DiceManager has no hook for" % [
+				str(entry["key"]), sides]).is_true()
+		assert_int(target).override_failure_message(
+			"%s target %d is outside its own D%d" % [
+				str(entry["key"]), target, sides]).is_between(1, sides)
+
+	dlg.free()
+	host.free()
+
+
+## First OptionButton anywhere under `node`, or null.
+func _first_option_button(node: Node) -> OptionButton:
+	for child in node.get_children():
+		if child is OptionButton:
+			return child
+		var found: OptionButton = _first_option_button(child)
+		if found != null:
+			return found
+	return null

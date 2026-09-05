@@ -4,6 +4,7 @@ extends Resource
 ## Atomic save writer. All four cores share ONE implementation so the write path
 ## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+const SaveFileMigrationRef = preload("res://src/core/state/SaveFileMigration.gd")
 
 ## Five Parsecs Campaign Core Resource
 ## Framework Bible compliant: Simple data container with validation
@@ -17,7 +18,10 @@ const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 signal world_changed(world_data: Dictionary)
 
 ## Schema version for save file migration (CRITICAL for data integrity)
-@export var schema_version: int = 1
+## Must track SaveFileMigration.CURRENT_SCHEMA_VERSION, or a campaign created
+## today would be written as an old version and pointlessly re-migrated on every
+## load. Pinned by tests/unit/test_save_migration_origin.gd.
+@export var schema_version: int = 2
 
 @export var campaign_name: String = ""
 @export var campaign_id: String = ""
@@ -51,7 +55,20 @@ var victory_conditions: Dictionary = {}  # Victory condition configuration
 var victory_conditions_locked: bool = false  # Core Rules p.64: "cannot be changed once selected"
 
 # SPRINT 6.1: House rules configuration (persisted from wizard)
+#
+# TWO SEPARATE THINGS, deliberately not one array (2026-09-04):
+#   house_rules       - canonical ids from HouseRulesDefinitions. These SWITCH ON
+#                       MECHANICS, so only ids the app defines may appear here.
+#   house_rules_notes - the player's own house rules, as prose. Core Rules p.65
+#                       invites you to make house rules; it does not supply a
+#                       menu of them, and the app cannot enforce one it has never
+#                       heard of. Recorded so the table can see it, never matched.
+#
+# They were one free-text array until 2026-09-04, which is why no house rule ever
+# applied: the wizard stored whatever the player typed, and no line of prose ever
+# equalled a rule id.
 var house_rules: Array = []
+var house_rules_notes: String = ""
 
 # SPRINT 6.2: Story track setting (persisted from wizard)
 var story_track_enabled: bool = false
@@ -308,6 +325,15 @@ func get_house_rules() -> Array:
 	## Get house rules configuration
 	return house_rules.duplicate()
 
+func set_house_rules_notes(notes: String) -> void:
+	## The player's own house rules, recorded as prose (Core Rules p.65).
+	## Never consulted by any mechanic - see the field comment.
+	house_rules_notes = notes
+	_update_modified_time()
+
+func get_house_rules_notes() -> String:
+	return house_rules_notes
+
 ## SPRINT 6.2: Story Track Methods
 
 func set_story_track_enabled(enabled: bool) -> void:
@@ -400,6 +426,7 @@ func to_dictionary() -> Dictionary:
 			"campaign_crew_size": campaign_crew_size,
 			# SPRINT 6.1/6.2: Include house rules and story track in config
 			"house_rules": house_rules.duplicate(),
+			"house_rules_notes": house_rules_notes,
 			"story_track_enabled": story_track_enabled
 		},
 		"crew": crew_data,
@@ -419,6 +446,7 @@ func to_dictionary() -> Dictionary:
 		},
 		# SPRINT 6.1/6.2: Top-level for easy access
 		"house_rules": house_rules.duplicate(),
+		"house_rules_notes": house_rules_notes,
 		"story_track_enabled": story_track_enabled,
 		# Campaign crew size setting (Core Rules p.63)
 		"campaign_crew_size": campaign_crew_size,
@@ -651,6 +679,12 @@ func from_dictionary(data: Dictionary) -> void:
 		house_rules = data.get("house_rules", []).duplicate()
 	elif data.has("config") and data.config.has("house_rules"):
 		house_rules = data.config.get("house_rules", []).duplicate()
+
+	# Absent on every save written before 2026-09-04; "" is the correct default.
+	if data.has("house_rules_notes"):
+		house_rules_notes = str(data.get("house_rules_notes", ""))
+	elif data.has("config") and data.config.has("house_rules_notes"):
+		house_rules_notes = str(data.config.get("house_rules_notes", ""))
 
 	if data.has("story_track_enabled"):
 		story_track_enabled = data.get("story_track_enabled", false)
@@ -974,10 +1008,59 @@ static func load_from_file(path: String) -> FiveParsecsCampaignCore:
 	if data.is_empty():
 		return null
 
+	data = _migrate_if_needed(data, path)
+
 	var _Self = load("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 	var campaign = _Self.new()
 	campaign.from_dictionary(data)
 	return campaign
+
+## Run any pending schema migrations between reading the JSON and building the
+## Resource. THE ONLY migration entry point for 5PFH saves.
+##
+## Placed here rather than in from_dictionary() because migrations operate on the
+## RAW Dictionary - once from_dictionary() has run, a numeric origin has already
+## been read into a typed property and the original value is gone.
+##
+## A failed migration returns the ORIGINAL data rather than refusing to load: a
+## save that will not open is worse than one whose species strings are still
+## stale, and the str() guards throughout the codebase already tolerate the old
+## shape. The failure is pushed as a warning so it is visible in the device log.
+static func _migrate_if_needed(data: Dictionary, path: String) -> Dictionary:
+	# Only migrate something that IS a 5PFH campaign save.
+	#
+	# This loader is also the fallback path for partial and other-mode saves (see
+	# GameState.load_campaign_typed), and for hand-built test fixtures. Running a
+	# 5PFH migration over one of those reaches validation and emits a warning
+	# about a save that was never ours - observed live against a Bug Hunt routing
+	# fixture and a legacy-stash fixture.
+	#
+	# The shape checked here is deliberately the same one
+	# SaveFileMigration.REQUIRED_TOP_LEVEL validates, so anything the migration
+	# could not have validated is skipped BEFORE it is attempted rather than
+	# failing noisily afterwards.
+	for required: String in SaveFileMigrationRef.REQUIRED_TOP_LEVEL:
+		if not data.has(required):
+			return data
+	if not (data.get("crew", null) is Dictionary):
+		return data
+	if not (data.get("progress", null) is Dictionary):
+		return data
+
+	var from_version: int = SaveFileMigrationRef.read_schema_version(data)
+	if from_version <= 0:
+		# Pre-versioned save: treat as v1, which is what the first schema was.
+		from_version = 1
+	if not SaveFileMigrationRef.needs_migration(from_version):
+		return data
+
+	var migrated: Dictionary = SaveFileMigrationRef.migrate_save_data(
+		data, from_version, SaveFileMigrationRef.CURRENT_SCHEMA_VERSION)
+	if migrated.has("_migration_errors"):
+		push_warning("Save migration failed for %s: %s" % [
+			path, SaveFileMigrationRef.get_migration_status(migrated)])
+		return data
+	return migrated
 
 ## JSON-based save (consistent with load_from_file)
 

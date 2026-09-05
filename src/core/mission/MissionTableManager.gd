@@ -58,7 +58,7 @@ func roll_mission_objective(mission_type: String) -> Dictionary:
 	if entries.is_empty():
 		return _get_default_objective()
 
-	var roll: int = randi_range(1, 10)
+	var roll: int = _roll_die(10, "Mission Objective")
 	for entry in entries:
 		var r: Array = entry.get("roll_range", [0, 0])
 		if roll >= r[0] and roll <= r[1]:
@@ -106,7 +106,7 @@ func get_objective_definition(obj_type: String) -> Dictionary:
 ## conditions: Array of strings (e.g. ["quest_finale", "won_by_objective"])
 ## Returns: Dictionary with "credits", "roll", "modifiers_applied".
 func roll_mission_pay(conditions: Array = []) -> Dictionary:
-	var roll: int = randi_range(1, 6)
+	var roll: int = _roll_die(6, "Mission Pay")
 	var second_roll: int = 0
 	var modifiers_applied: Array = []
 
@@ -117,7 +117,7 @@ func roll_mission_pay(conditions: Array = []) -> Dictionary:
 
 	# Quest finale: roll twice, pick higher, +1
 	if "quest_finale" in conditions:
-		second_roll = randi_range(1, 6)
+		second_roll = _roll_die(6, "Mission Pay Reroll")
 		roll = maxi(roll, second_roll) + 1
 		modifiers_applied.append("quest_finale")
 
@@ -146,7 +146,7 @@ func roll_mission_pay(conditions: Array = []) -> Dictionary:
 ## is_corporation: true if patron is Corporation type (+1 to roll).
 ## Returns: Dictionary with "danger_pay", "roll", "bonus_pay_rule".
 func roll_danger_pay(is_corporation: bool = false) -> Dictionary:
-	var roll: int = randi_range(1, 10)
+	var roll: int = _roll_die(10, "Danger Pay")
 	if is_corporation:
 		roll += 1
 
@@ -171,7 +171,7 @@ func roll_danger_pay(is_corporation: bool = false) -> Dictionary:
 ## Only if Held the Field. Not after Invasion battles.
 ## Returns: Dictionary with "type", "description", "roll".
 func roll_battlefield_find() -> Dictionary:
-	var roll: int = randi_range(1, 100)
+	var roll: int = _roll_die(100, "Battlefield Find")
 	var entries: Array = _rewards_data.get(
 		"battlefield_finds", {}).get("entries", [])
 	for entry in entries:
@@ -197,7 +197,7 @@ func check_rival_tracking(rival_count: int,
 	if rival_count <= 0:
 		return {"tracked_down": false, "roll": 0}
 
-	var roll: int = randi_range(1, 6)
+	var roll: int = _roll_die(6, "Rival Tracking")
 	roll += decoy_count  # Decoys add to roll (harder for rivals)
 	var tracked: bool = roll <= rival_count
 	return {"tracked_down": tracked, "roll": roll}
@@ -215,7 +215,7 @@ func roll_rival_attack_type(
 			"roll": 0,
 		}
 
-	var roll: int = randi_range(1, 10)
+	var roll: int = _roll_die(10, "Rival Attack Type")
 	var entries: Array = _rival_data.get(
 		"rival_attack_types", {}).get("entries", [])
 	for entry in entries:
@@ -230,12 +230,36 @@ func roll_rival_attack_type(
 		"description": "Straight-up fight.", "roll": roll}
 
 
+# ── Dice routing ──
+
+## Roll 1..sides through the DiceManager autoload when one is reachable, so
+## every book-table roll lands in the shared roll history and can be forced by
+## the debug-only QA seam (queue_forced_result). Falls back to a bare
+## randi_range() when there is no autoload - unit tests instantiate this class
+## standalone and must keep working.
+##
+## Behaviour-neutral: DiceManager.legacy_randi_range() performs exactly one
+## randi_range(1, sides) draw, so a seeded caller sees an unchanged RNG stream.
+##
+## ⚠ This class extends RefCounted and every caller builds it with .new(), so
+## it is NEVER in the scene tree. A bare get_node_or_null("/root/DiceManager")
+## does not return null here - it ERRORS and ABORTS this function, silently
+## losing the roll. Engine.get_main_loop() is the only safe route.
+func _roll_die(sides: int, context: String) -> int:
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		var dm: Node = (loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+		if dm != null and dm.has_method("legacy_randi_range"):
+			return int(dm.legacy_randi_range(sides, context))
+	return randi_range(1, sides)
+
+
 # ── Loot Table (Core Rules pp.131-134) ──
 
 ## Roll D100 on the main Loot Table to determine loot category.
 ## Returns: Dictionary with "category", "action", "roll".
 func roll_loot_category() -> Dictionary:
-	var roll: int = randi_range(1, 100)
+	var roll: int = _roll_die(100, "Loot Category")
 	var entries: Array = _loot_data.get(
 		"loot_categories", {}).get("entries", [])
 	for entry in entries:
@@ -252,7 +276,7 @@ func roll_loot_category() -> Dictionary:
 ## Roll D100 on the Rewards Subtable.
 ## Returns: Dictionary with "type", "effect", "roll".
 func roll_rewards_subtable() -> Dictionary:
-	var roll: int = randi_range(1, 100)
+	var roll: int = _roll_die(100, "Rewards Subtable")
 	var entries: Array = _loot_data.get(
 		"rewards_subtable", {}).get("entries", [])
 	for entry in entries:
@@ -273,7 +297,7 @@ func roll_rewards_subtable() -> Dictionary:
 ## Returns: Dictionary with "type", "effect", "roll".
 func roll_notable_sight(
 		mission_type: String = "opportunity_patron") -> Dictionary:
-	var roll: int = randi_range(1, 100)
+	var roll: int = _roll_die(100, "Notable Sight")
 	var columns: Dictionary = _loot_data.get(
 		"notable_sights", {}).get("columns", {})
 	var entries: Array = columns.get(

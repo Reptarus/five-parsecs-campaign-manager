@@ -1,4 +1,21 @@
 # Tablet walk 2026-09-04 (Lenovo TB361FU, 1600x2560 @ density 320 = 800x1280 dp)
+
+> ## ✅ ALL ELEVEN FINDINGS CLOSED ON HARDWARE — deploy #16, 2026-09-04
+>
+> T10-01/03/04/05/06/08/10/11 verified on the device; T10-07 not reproduced; T10-02 and
+> T10-09 closed in deploy #15 (both had been MISDIAGNOSED in #14). Evidence per finding:
+> `TABLET_QA_SPRINT_2026-08.md` § Deploy #16.
+>
+> ⭐ **T10-06 is the one worth reading.** `progress.active_battle` is now structurally on
+> disk mid-battle, and after a real `am force-stop` the battle resumed with the same
+> round, phase, tier, objective, battlefield and casualty — *"[R1] Battle resumed —
+> Round 1, Reaction Roll. 6 crew and 6 enemies restored."*
+>
+> **Two NEW findings** opened by the same walk: **T11-01** (MED, the PreBattleUI footer
+> is clipped to ~13 px in landscape and the page will not scroll) and **T11-02** (LOW,
+> the Seize panel states its threshold two ways in one frame — correct outcome,
+> inconsistent display).
+
 Build: CLI `--export-debug` APK (export_format temporarily 0), commit 92466e57a.
 
 ## T10-01 — Crew Tasks "Resolve without them?" dialog renders COMPLETELY EMPTY

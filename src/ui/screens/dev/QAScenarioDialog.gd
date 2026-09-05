@@ -24,6 +24,34 @@ var _list: ItemList = null
 var _detail: RichTextLabel = null
 var _apply_button: Button = null
 
+## Rolls the seam can force, with the row each one is needed for.
+##
+## `key` is matched case-insensitively as a SUBSTRING of the live roll context,
+## which is why "Character Event" reaches a roll made as
+## "Character Event: <crew name>".
+##
+## `target` is the value that reaches the row QA is actually chasing, so the
+## tester does not have to look the table up on the device.
+const FORCEABLE_ROLLS: Array[Dictionary] = [
+	{"key": "Rival Attack Type", "sides": 10, "target": 1,
+		"note": "T9-48 - 1 = AMBUSH, the only battle that forbids Seize (p.91)"},
+	{"key": "Exploration Table", "sides": 100, "target": 51,
+		"note": "T9-47 - 51-53 \"I don't have a gambling problem!\" (discard 1 item)"},
+	{"key": "Trade Table", "sides": 100, "target": 76,
+		"note": "T9-47 - 76-78 \"A chance to unload some stuff\" (sell at 2cr)"},
+	{"key": "Character Event", "sides": 100, "target": 88,
+		"note": "T9-51 - 88-91 item damaged, 92-94 item lost (pp.128-130)"},
+	{"key": "Mission Objective", "sides": 10, "target": 1, "note": "p.89 objective"},
+	{"key": "Danger Pay", "sides": 10, "target": 1, "note": "p.83"},
+	{"key": "Battlefield Find", "sides": 100, "target": 1, "note": "pp.120-121"},
+	{"key": "Loot Category", "sides": 100, "target": 1, "note": "pp.131-134"},
+	{"key": "Notable Sight", "sides": 100, "target": 1, "note": "p.88"},
+]
+
+var _roll_picker: OptionButton = null
+var _roll_value: SpinBox = null
+var _roll_status: Label = null
+
 
 ## Open over `parent` against `campaign`. Returns null (and does nothing) when no
 ## campaign is loaded — a scenario is a DELTA, so there must be something to
@@ -124,6 +152,8 @@ func _build_ui() -> void:
 			+ "[/color]\n\nThis usually means the export filter dropped the folder — "
 			+ "verify by unzipping the APK, not by trusting the build log.")
 
+	_build_forced_roll_section(root)
+
 	var buttons := HBoxContainer.new()
 	buttons.alignment = BoxContainer.ALIGNMENT_END
 	buttons.add_theme_constant_override("separation", UIColors.SPACING_SM)
@@ -143,6 +173,131 @@ func _build_ui() -> void:
 	DialogStylesRef.style_primary_button(_apply_button)
 	_apply_button.pressed.connect(_on_apply_pressed)
 	buttons.add_child(_apply_button)
+
+
+## Force the next roll on a book table.
+##
+## WHY: three fixes have been stuck desk-verified since 2026-08-14 purely because
+## no in-app tool can reach their row - Rival AMBUSH is a D10 of 1, and the two
+## crew-task rows are 3-in-100 each (docs/qa/PICKUP_2026-08-14.md section 3).
+## Widening the shipped roll_range was declined twice, because it means testing a
+## build whose rules data differs from ship. This changes no data: the table is
+## read exactly as shipped, only the die is pinned.
+##
+## This one does NOT route through QAScenarioLoader, and that is deliberate. The
+## loader applies campaign-state DELTAS from JSON fixtures through owner setters;
+## a queued die is neither campaign state nor a fixture, so putting it there would
+## blur the one rule that keeps fixtures safe across a schema_version bump.
+func _build_forced_roll_section(root: VBoxContainer) -> void:
+	var sep := HSeparator.new()
+	root.add_child(sep)
+
+	var heading := Label.new()
+	heading.text = "Force the next roll (debug only)"
+	root.add_child(heading)
+
+	# HFlowContainer, not HBox: this dialog is used on the tablet in PORTRAIT, and
+	# a fixed row of four controls is exactly what put the original Apply button
+	# off-screen. Flow wraps instead of clipping.
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	row.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
+	root.add_child(row)
+
+	_roll_picker = OptionButton.new()
+	_roll_picker.custom_minimum_size = Vector2(260, UIColors.TOUCH_TARGET_MIN)
+	# add_item() WITHOUT an explicit id: passing -1 stores the INDEX as the id,
+	# which silently collides once the list is ever reordered. Selection is read
+	# back as an index into FORCEABLE_ROLLS instead.
+	for entry: Dictionary in FORCEABLE_ROLLS:
+		_roll_picker.add_item("%s (D%d)" % [str(entry["key"]), int(entry["sides"])])
+	_roll_picker.item_selected.connect(_on_roll_context_selected)
+	row.add_child(_roll_picker)
+
+	_roll_value = SpinBox.new()
+	_roll_value.min_value = 1
+	_roll_value.max_value = 10
+	_roll_value.step = 1
+	_roll_value.custom_minimum_size = Vector2(110, UIColors.TOUCH_TARGET_MIN)
+	row.add_child(_roll_value)
+
+	var queue_btn := Button.new()
+	queue_btn.text = "Queue Roll"
+	queue_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	DialogStylesRef.style_secondary_button(queue_btn)
+	queue_btn.pressed.connect(_on_queue_roll_pressed)
+	row.add_child(queue_btn)
+
+	var clear_btn := Button.new()
+	clear_btn.text = "Clear"
+	clear_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	DialogStylesRef.style_secondary_button(clear_btn)
+	clear_btn.pressed.connect(_on_clear_rolls_pressed)
+	row.add_child(clear_btn)
+
+	_roll_status = Label.new()
+	_roll_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	# COLOR_TEXT_MUTED, not TEXT_MUTED - see the blurb above for what that costs.
+	_roll_status.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+	root.add_child(_roll_status)
+
+	_roll_picker.select(0)
+	_on_roll_context_selected(0)
+
+
+## The DiceManager autoload, or null. This dialog IS in the tree, so the plain
+## lookup is safe here (unlike MissionTableManager, which is detached).
+func _dice_manager() -> Node:
+	return get_node_or_null("/root/DiceManager")
+
+
+func _on_roll_context_selected(idx: int) -> void:
+	if idx < 0 or idx >= FORCEABLE_ROLLS.size():
+		return
+	var entry: Dictionary = FORCEABLE_ROLLS[idx]
+	_roll_value.max_value = int(entry["sides"])
+	_roll_value.value = int(entry["target"])
+	_refresh_roll_status(str(entry["note"]))
+
+
+func _on_queue_roll_pressed() -> void:
+	var idx: int = _roll_picker.get_selected()
+	if idx < 0 or idx >= FORCEABLE_ROLLS.size():
+		return
+	var entry: Dictionary = FORCEABLE_ROLLS[idx]
+	var dm: Node = _dice_manager()
+	if dm == null or not dm.has_method("queue_forced_result"):
+		_refresh_roll_status("DiceManager unavailable - nothing queued.")
+		return
+	var value: int = int(_roll_value.value)
+	if not dm.queue_forced_result(str(entry["key"]), value):
+		# The seam refuses in a release build. Say so rather than implying success.
+		_refresh_roll_status("Refused - forced rolls are debug-build only.")
+		return
+	_refresh_roll_status("Queued %d for the next \"%s\" roll. %s" % [
+		value, str(entry["key"]), str(entry["note"])])
+
+
+func _on_clear_rolls_pressed() -> void:
+	var dm: Node = _dice_manager()
+	if dm != null and dm.has_method("clear_forced_results"):
+		dm.clear_forced_results()
+	_refresh_roll_status("Cleared.")
+
+
+func _refresh_roll_status(message: String) -> void:
+	if _roll_status == null:
+		return
+	var pending: String = ""
+	var dm: Node = _dice_manager()
+	if dm != null and dm.has_method("get_forced_results"):
+		var queued: Dictionary = dm.get_forced_results()
+		if not queued.is_empty():
+			var parts: Array[String] = []
+			for key: String in queued.keys():
+				parts.append("%s=%s" % [key, str(queued[key])])
+			pending = "  [pending: %s]" % ", ".join(parts)
+	_roll_status.text = message + pending
 
 
 func _on_selected(idx: int) -> void:

@@ -1088,8 +1088,14 @@ func _on_forge_licence() -> void:
 	if not str(result.get("reason", "")).is_empty():
 		lines.append(str(result["reason"]))
 	else:
-		lines.append("%s forges a License: 1D6 %d + Savvy %d = %d vs 6+." % [
-			best_name, int(result.get("roll", 0)), best_savvy,
+		# Show the Fake ID +1 when it applied. A displayed total that silently
+		# disagrees with its own breakdown is the trap this codebase keeps hitting.
+		var fake_id: int = int(result.get("fake_id_bonus", 0))
+		var bonus_text: String = ""
+		if fake_id > 0:
+			bonus_text = " + Fake ID %d" % fake_id
+		lines.append("%s forges a License: 1D6 %d + Savvy %d%s = %d vs 6+." % [
+			best_name, int(result.get("roll", 0)), best_savvy, bonus_text,
 			int(result.get("total", 0))])
 		lines.append("The forgery passes — License obtained free (p.72)."
 			if bool(result.get("success", false))

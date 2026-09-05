@@ -3,7 +3,6 @@ extends Control
 
 # Backend Service Integrations - using explicit preloads to fix linter issues
 const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.gd")
-const FPCM_HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const AdvancementService = preload("res://src/core/services/CharacterAdvancementService.gd")
 const LootSystemConstants = preload("res://src/core/systems/LootSystemConstants.gd")
 ## The p.131 Loot Table's third roll ("finally the exact item in question").
@@ -14,8 +13,6 @@ const AdvancementSystemClass = preload("res://src/core/character/advancement/Adv
 ## Core Rules p.123 Ability Increase Table — the XP SPEND, which is what the
 ## book actually has. Replaces the fabricated D6 "advancement roll".
 const AdvancementServiceClass = preload("res://src/core/services/CharacterAdvancementService.gd")
-const NarrativeInjuryDialog = preload(
-	"res://src/ui/components/postbattle/NarrativeInjuryDialog.gd")
 const PurchaseItemsComponent = preload(
 	"res://src/ui/screens/world/components/PurchaseItemsComponent.tscn")
 const StarsSystemClass = preload(
@@ -156,9 +153,6 @@ func _style_pending_result(_result_label: Label) -> void:
 	pass
 
 ## Helper to work around static function linter issues with InjurySystemService
-func _is_narrative_injuries_mode() -> bool:
-	# Use preloaded HouseRulesHelper (same logic as InjurySystemService.is_narrative_injuries_enabled)
-	return FPCM_HouseRulesHelper.is_enabled("narrative_injuries")
 
 var post_battle_steps: Array[Dictionary] = [
 	{"name": "1. Resolve Rival Status", "description": "Check if rivals follow you", "requires_roll": false, "has_inline_rolls": true},
@@ -1661,12 +1655,7 @@ func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 	panel.add_child(label)
 
 	var roll_button = Button.new()
-	# Check if narrative_injuries house rule is enabled
-	if _is_narrative_injuries_mode():
-		roll_button.text = "Choose Injury" if not is_casualty else "Choose Severity"
-		roll_button.tooltip_text = "Narrative Injuries: You decide the outcome!"
-	else:
-		roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
+	roll_button.text = "Roll Injury" if not is_casualty else "Roll Severity"
 	roll_button.custom_minimum_size.y = TOUCH_TARGET_MIN
 	roll_button.pressed.connect(
 		_on_injury_roll.bind(type, num, is_casualty, roll_button))
@@ -1674,7 +1663,7 @@ func _create_injury_panel(type: String, num: int, is_casualty: bool) -> Control:
 
 	var result_label = Label.new()
 	result_label.name = "injury_result_%s_%d" % [type.to_lower(), num]
-	result_label.text = "Not rolled" if not _is_narrative_injuries_mode() else "Not selected"
+	result_label.text = "Not rolled"
 	_style_pending_result(result_label)
 	panel.add_child(result_label)
 
@@ -2696,12 +2685,9 @@ func _on_injury_roll(type: String, num: int, is_casualty: bool, btn: Button = nu
 	## Handle injury severity roll or narrative selection using FPCM_InjuryService
 	if btn:
 		btn.disabled = true
-	# HOUSE RULE: narrative_injuries - Player chooses injury instead of rolling
-	if _is_narrative_injuries_mode():
-		_show_narrative_injury_dialog(type, num, is_casualty)
-		return
-
-	# Standard roll-based injury determination
+	# Core Rules p.122: injuries are ROLLED. A "narrative_injuries" house rule
+	# used to divert this into a player-choice dialog; it was invented content
+	# (tagged "source": "Community", no book page) and was removed 2026-09-04.
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll = 0
 
@@ -2714,41 +2700,6 @@ func _on_injury_roll(type: String, num: int, is_casualty: bool, btn: Button = nu
 	var injury_data = FPCM_InjuryService.determine_injury(roll)
 	_apply_injury_result(type, num, injury_data, roll)
 	_increment_inline_roll()
-
-func _show_narrative_injury_dialog(type: String, num: int, _is_casualty: bool) -> void:
-	## Show narrative injury selection dialog
-	var dialog = NarrativeInjuryDialog.new()
-	dialog.setup("Crew Member %s %d" % [type, num])
-
-	# Connect signals
-	dialog.injury_selected.connect(_on_narrative_injury_selected.bind(type, num))
-	dialog.dialog_closed.connect(_on_narrative_injury_cancelled.bind(type, num))
-
-	# Add as popup in center of screen
-	add_child(dialog)
-	dialog.anchor_left = 0.5
-	dialog.anchor_top = 0.5
-	dialog.anchor_right = 0.5
-	dialog.anchor_bottom = 0.5
-	dialog.position = -dialog.size / 2
-
-func _on_narrative_injury_selected(injury_data: Dictionary, type: String, num: int) -> void:
-	## Handle narrative injury selection from dialog
-	_apply_injury_result(type, num, injury_data, -1)  # -1 indicates narrative selection
-
-func _on_narrative_injury_cancelled(type: String, num: int) -> void:
-	## Handle narrative injury dialog cancelled - fall back to rolling
-	# Roll instead
-	var dice_manager = get_node_or_null("/root/DiceManager")
-	var roll = 0
-
-	if dice_manager:
-		roll = dice_manager.roll_d100("%s %d Injury (cancelled narrative)" % [type, num])
-	else:
-		roll = randi_range(1, 100)
-
-	var injury_data = FPCM_InjuryService.determine_injury(roll)
-	_apply_injury_result(type, num, injury_data, roll)
 
 func _apply_injury_result(type: String, num: int, injury_data: Dictionary, roll: int) -> void:
 	## Apply injury result to UI and step results

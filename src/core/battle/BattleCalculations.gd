@@ -310,10 +310,6 @@ static func calculate_weapon_damage(
 ) -> int:
 	var damage := weapon_damage
 
-	# HOUSE RULE brutal_combat: Critical = double damage instead of 2 hits
-	if is_critical and HouseRulesHelper.is_enabled("brutal_combat"):
-		damage *= 2
-
 	# Note: Weapon trait damage modifiers (devastating, powered) are now applied
 	# via get_weapon_trait_effects() in resolve_ranged_attack() — not duplicated here.
 	# Piercing is handled in save resolution.
@@ -725,10 +721,13 @@ static func resolve_ranged_attack(
 	# pipeline using the same target/weapon/raw_damage. Sprint A Bug 5
 	# (2026-05-24) replaced the fabricated damage=999 with this consumer of
 	# the critical_extra_hit effect flag set at the to-hit-resolution site
-	# above. House rule brutal_combat skips this in favor of double-damage
-	# (handled in calculate_weapon_damage).
-	if result.get("critical", false) and "critical" in weapon_traits \
-			and not HouseRulesHelper.is_enabled("brutal_combat"):
+	# above.
+	#
+	# This used to be skippable by a "brutal_combat" house rule that swapped the
+	# second hit for double damage. That rule was invented (tagged
+	# "source": "Community", no book page) and was removed 2026-09-04, so the
+	# printed p.51 behaviour now always applies.
+	if result.get("critical", false) and "critical" in weapon_traits:
 		var extra_save_roll: int = dice_roller.call()
 		var extra_save_result := resolve_saves(
 			extra_save_roll, target, weapon_traits, raw_damage, trait_effects

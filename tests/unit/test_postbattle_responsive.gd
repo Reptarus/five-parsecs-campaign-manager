@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 ## Post-Battle responsive / clarity contract (battle-flow UX pass, Jun 2026)
 ##
-## Instantiates the REAL PostBattleSequence + PostBattleSummarySheet (catching
+## Instantiates the REAL PostBattleSequence (catching
 ## runtime errors from the Phase-3 row-fit / chrome changes) and locks in:
 ##   1. _make_name_label wraps + ellipsizes + drops its fixed min-width helper
 ##   2. The StepsList nav PanelContainer resolves (so it can hide in portrait)
@@ -10,7 +10,6 @@ extends GdUnitTestSuite
 ## gdUnit4 v6.0.3. Run with -c, never --headless (project rule).
 
 const PostBattleScene := preload("res://src/ui/screens/postbattle/PostBattleSequence.tscn")
-const SummarySheetScene := preload("res://src/ui/components/postbattle/PostBattleSummarySheet.tscn")
 
 
 func test_make_name_label_is_atomic_with_ellipsis() -> void:
@@ -49,20 +48,3 @@ func test_app_bar_and_results_drawer() -> void:
 	assert_bool(ui._results_drawer.is_open()).override_failure_message(
 		"Results bottom drawer did not open").is_true()
 
-
-func test_summary_sheet_setup_and_columns() -> void:
-	var sheet: Control = auto_free(SummarySheetScene.instantiate())
-	add_child(sheet)
-	await get_tree().process_frame
-	sheet.setup({
-		"mission_title": "Test Mission",
-		"victory": true,
-		"rounds": 3,
-		"enemies_defeated": 2,
-		"casualties": 0,
-		"credits_earned": 5,
-		"loot": [{"item_name": "Boarding Saber", "type": "weapon", "value": 1}],
-	})
-	# Built without error; stats grid has a valid (responsive) column count.
-	assert_int(sheet.stats_section.columns).is_greater_equal(1)
-	assert_int(sheet.stats_section.columns).is_less_equal(2)

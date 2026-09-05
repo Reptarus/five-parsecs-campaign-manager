@@ -1,3 +1,7 @@
+> ⚠ **2026-09-04:** `PostBattleSummarySheet`, `BattlefieldFindCard` and
+> `NarrativeInjuryDialog` were deleted (unreachable from product and tests).
+> Rows below naming them describe components that no longer exist.
+
 # Post-Battle Components
 
 UI components for the post-battle resolution system.

@@ -503,16 +503,33 @@ func _rebuild_terrain_shapes() -> void:
 				# BEFORE the collision test, and store that exact rect.
 				var svs: ScalableVectorShape2D = _shape_library.create_vector_shape(
 					shape, local_scale)
+				# Parented here (not after placement) so the addon has built the
+				# curve by the time get_bounding_rect() is asked below. Draw order
+				# is unchanged - still one add per shape in the same sequence.
+				_terrain_container.add_child(svs)
 				var rot: float = 0.0
 				if max_rot > 0.0:
 					rot = placement_rng.randf_range(-max_rot, max_rot)
 				var stroke_pad: float = 1.0
 				if "stroke_width" in svs:
 					stroke_pad = maxf(float(svs.stroke_width) * 0.5, 0.0)
+				# BUG-101 defect B: the DRAWN body is not always w x h.
+				# create_vector_shape() sets rx = ry = 4.0 on every RECT, so a
+				# shape shorter than 8px cannot fit its own corner rounding and
+				# the tessellated body bulges to a ~8.004px floor. Reserving the
+				# DECLARED size under-reserves by the difference, which pushed
+				# small scatter pieces past the bottom edge (measured: 11 of 3898
+				# shapes, up to 0.82px, all on 2ft tables where the area-fit
+				# shrink makes shapes smallest). Ask the node what it actually
+				# draws. maxf() keeps the declared size as a floor in case the
+				# curve is not built yet and the rect comes back empty.
+				var body: Rect2 = svs.get_bounding_rect()
+				var draw_w: float = maxf(body.size.x, w)
+				var draw_h: float = maxf(body.size.y, h)
 				var cosr: float = absf(cos(rot))
 				var sinr: float = absf(sin(rot))
-				var half_x: float = (cosr * w + sinr * h) / 2.0 + stroke_pad
-				var half_y: float = (sinr * w + cosr * h) / 2.0 + stroke_pad
+				var half_x: float = (cosr * draw_w + sinr * draw_h) / 2.0 + stroke_pad
+				var half_y: float = (sinr * draw_w + cosr * draw_h) / 2.0 + stroke_pad
 				var pad: float = effective_padding / 2.0
 
 				# NOTE: NO lambdas here. A captured Array closure made the
@@ -529,14 +546,7 @@ func _rebuild_terrain_shapes() -> void:
 					var try_y: float = placement_rng.randf() * maxf(avail_h - h, 1.0)
 					var c := sector_origin + Vector2(
 						try_x + w / 2.0, try_y + h / 2.0)
-					if half_x * 2.0 >= grid_pc_w:
-						c.x = grid_pc_w / 2.0
-					else:
-						c.x = clampf(c.x, half_x, grid_pc_w - half_x)
-					if half_y * 2.0 >= grid_pc_h:
-						c.y = grid_pc_h / 2.0
-					else:
-						c.y = clampf(c.y, half_y, grid_pc_h - half_y)
+					c = _clamp_center_to_grid(c, half_x, half_y, grid_pc_w, grid_pc_h)
 					var fr := Rect2(c.x - half_x, c.y - half_y,
 						half_x * 2.0, half_y * 2.0).grow(pad)
 					var collides: bool = false
@@ -566,14 +576,7 @@ func _rebuild_terrain_shapes() -> void:
 						fb_x + w / 2.0, fb_y + h / 2.0)
 					var fb_retry: int = 0
 					while fb_retry < 16:
-						if half_x * 2.0 >= grid_pc_w:
-							c.x = grid_pc_w / 2.0
-						else:
-							c.x = clampf(c.x, half_x, grid_pc_w - half_x)
-						if half_y * 2.0 >= grid_pc_h:
-							c.y = grid_pc_h / 2.0
-						else:
-							c.y = clampf(c.y, half_y, grid_pc_h - half_y)
+						c = _clamp_center_to_grid(c, half_x, half_y, grid_pc_w, grid_pc_h)
 						var fr := Rect2(c.x - half_x, c.y - half_y,
 							half_x * 2.0, half_y * 2.0).grow(pad)
 						var coll: bool = false
@@ -586,6 +589,16 @@ func _rebuild_terrain_shapes() -> void:
 						# Nudge down a full footprint; re-clamped next pass.
 						c.y += half_y * 2.0 + effective_padding
 						fb_retry += 1
+					# BUG-101, third occurrence. The clamp runs at the TOP of this
+					# loop and the nudge at the BOTTOM, so a loop that EXHAUSTS its
+					# 16 retries leaves carrying the last un-clamped nudge. The two
+					# also oscillate (clamp pins to grid_h - half_y, the nudge pushes
+					# to grid_h + half_y + pad), so exhaustion is the COMMON case,
+					# not a rare one: measured 232 of 3898 shapes below the grid,
+					# overflow exactly 2*half_y + effective_padding (worst 101px on a
+					# 576px grid). Clamp once more so the invariant holds on EVERY
+					# exit path. Pinned by tests/unit/test_battlefield_shape_bounds.gd.
+					c = _clamp_center_to_grid(c, half_x, half_y, grid_pc_w, grid_pc_h)
 					final_center = c
 
 				# Record the EXACT drawn footprint (collision + cache agree).
@@ -600,7 +613,6 @@ func _rebuild_terrain_shapes() -> void:
 				# position so the DRAWN centre lands exactly on final_center
 				# (BUG-101).
 				var body_offset := Vector2(-w / 2.0, -h / 2.0)
-				_terrain_container.add_child(svs)
 				# Set offset AFTER add_child so _ready() wires dimensions_changed first
 				svs.offset = body_offset
 				if rot != 0.0:
@@ -610,6 +622,25 @@ func _rebuild_terrain_shapes() -> void:
 			_sector_placements[sr][sc] = positions
 
 	_update_terrain_transform()
+
+## Clamp a shape's DRAWN centre so its rotation- and stroke-aware footprint
+## stays inside the grid. This is the ONE place the bounds rule lives - it had
+## been written out inline three times, and the copy that was missing is what
+## let terrain escape (see the fallback loop above).
+##
+## A shape too large to fit is CENTRED instead: nothing can contain it, and
+## centring keeps the overflow symmetric rather than dumping it off one edge.
+func _clamp_center_to_grid(c: Vector2, half_x: float, half_y: float,
+		grid_w: float, grid_h: float) -> Vector2:
+	if half_x * 2.0 >= grid_w:
+		c.x = grid_w / 2.0
+	else:
+		c.x = clampf(c.x, half_x, grid_w - half_x)
+	if half_y * 2.0 >= grid_h:
+		c.y = grid_h / 2.0
+	else:
+		c.y = clampf(c.y, half_y, grid_h - half_y)
+	return c
 
 func _get_base_cell_size() -> float:
 	## The unzoomed cell size that makes the grid fill the container.

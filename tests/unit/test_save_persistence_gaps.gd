@@ -56,47 +56,43 @@ func test_battle_results_defaults_empty():
 	assert_dict(game_state.get_battle_results()).is_empty()
 
 
-func test_migration_v1_to_v2_adds_battle_results():
-	# Create v1 save data (missing battle_results)
+func test_migration_v1_to_v2_normalises_numeric_origin():
+	## REPLACED 2026-09-04. This case used to assert that v1->v2 ADDED a
+	## `battle_results` key, over a fixture shaped
+	## {schema_version, current_phase, turn_number, battle_results} at the top
+	## level. A census of 21 real save files found NONE of those three keys in any
+	## of them and schema_version nested under `meta` in all of them - so the test
+	## passed against a shape the app has never written, and the migration it
+	## proved would have rejected every real save.
+	##
+	## The step now does the job the save data actually needs: numeric crew
+	## `origin` (52% of records on disk) -> the GlobalEnums.Origin string.
 	var v1_data = {
-		"schema_version": 1,
-		"current_phase": 0,
-		"turn_number": 5,
-		"story_points": 2,
-		"reputation": 10
-		# battle_results intentionally missing
+		"meta": {"schema_version": 1, "campaign_id": "t"},
+		"crew": {"members": [{"character_name": "A", "origin": 7}]},
+		"progress": {"turns_played": 5},
 	}
 
-	# Migrate to v2
 	var migrated = SaveFileMigration.migrate_save_data(v1_data, 1, 2)
 
-	# Verify migration succeeded
-	assert_bool(migrated.has("_migration_errors")).is_false()
-	assert_int(migrated["schema_version"]).is_equal(2)
-
-	# Verify battle_results was added
-	assert_bool(migrated.has("battle_results")).is_true()
-	assert_dict(migrated["battle_results"]).is_not_null()
+	assert_bool(migrated.has("_migration_errors")).override_failure_message(
+		"migration failed: %s" % SaveFileMigration.get_migration_status(migrated)
+	).is_false()
+	assert_int(int(migrated["meta"]["schema_version"])).is_equal(2)
+	assert_str(str(migrated["crew"]["members"][0]["origin"])).is_equal("SWIFT")
 
 
-func test_migration_preserves_existing_battle_results():
-	# Create v1 data with existing battle_results
+func test_migration_leaves_a_string_origin_untouched():
 	var v1_data = {
-		"schema_version": 1,
-		"current_phase": 0,
-		"turn_number": 5,
-		"battle_results": {
-			"victory": true,
-			"loot": ["item1", "item2"]
-		}
+		"meta": {"schema_version": 1, "campaign_id": "t"},
+		"crew": {"members": [{"character_name": "A", "origin": "K'Erin"}]},
+		"progress": {"turns_played": 5},
 	}
 
-	# Migrate
 	var migrated = SaveFileMigration.migrate_save_data(v1_data, 1, 2)
 
-	# Verify existing data preserved
-	assert_bool(migrated["battle_results"]["victory"]).is_true()
-	assert_array(migrated["battle_results"]["loot"]).contains_exactly(["item1", "item2"])
+	assert_str(str(migrated["crew"]["members"][0]["origin"])).is_equal("K'Erin")
+	assert_int(int(migrated.get("_origin_values_converted", -1))).is_equal(0)
 
 
 func test_migration_handles_invalid_version():
@@ -113,9 +109,9 @@ func test_migration_handles_invalid_version():
 
 func test_migration_no_op_when_versions_match():
 	var data = {
-		"schema_version": 2,
-		"current_phase": 0,
-		"battle_results": {"victory": false}
+		"meta": {"schema_version": 2, "campaign_id": "t"},
+		"crew": {"members": []},
+		"progress": {"turns_played": 0},
 	}
 
 	var migrated = SaveFileMigration.migrate_save_data(data, 2, 2)

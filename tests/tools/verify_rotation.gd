@@ -94,6 +94,8 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_force_windowed()
+	_stub_legal_consent()
 	_load_requested_campaign()
 	print("=== ROTATION SWEEP: %d screens, one instance walked through %d sizes ==="
 		% [SCREENS.size(), STEPS.size()])
@@ -132,6 +134,64 @@ func _campaign_state() -> String:
 	return "campaign loaded"
 
 
+## See verify_layout.gd: a maximized/minimized window ignores window_set_size(),
+## and this sweep is ENTIRELY about what a resize does, so an unverified resize
+## makes every rotation assertion vacuous.
+## Satisfy the legal-consent gate IN MEMORY ONLY, for the duration of the sweep.
+##
+## MEASURED 2026-09-04: MainMenu._ready() checks needs_legal_consent() FIRST and
+## `return`s to the EULA screen before it reaches _on_viewport_resized(). This
+## machine's legal_consent.cfg records privacy version "1.0" while
+## LegalConsentManager.PRIVACY_VERSION is "1.1" (bumped 2026-08-11), so every
+## MainMenu the sweep instantiated had never run its responsive layout: the title
+## kept the .tscn's 800px offsets with autowrap OFF, and reported 16 failures
+## that do not exist in a consented app.
+##
+## ⚠ This sets the in-memory fields ONLY. It must NEVER call accept_eula() /
+## accept_privacy(), which write user://legal_consent.cfg and would record a
+## consent no human ever gave.
+func _stub_legal_consent() -> void:
+	var lcm := root.get_node_or_null("/root/LegalConsentManager")
+	if lcm == null:
+		return
+	lcm.eula_accepted = true
+	lcm.eula_accepted_version = lcm.EULA_VERSION
+	lcm.privacy_accepted = true
+	lcm.privacy_accepted_version = lcm.PRIVACY_VERSION
+
+func _force_windowed() -> void:
+	if DisplayServer.get_name() == "headless":
+		push_error("verify_rotation: running under --headless. Rotation cannot be "
+			+ "simulated there — DisplayServer returns dummy values. Run WITHOUT "
+			+ "--headless.")
+		quit(2)
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	var scr: int = DisplayServer.window_get_current_screen()
+	DisplayServer.window_set_position(
+		DisplayServer.screen_get_usable_rect(scr).position + Vector2i(8, 8))
+
+
+## Resize and PROVE it happened, POLLING rather than assuming a fixed frame count.
+##
+## MEASURED 2026-09-04: with a flat 3-frame wait the FIRST resize took and the
+## next five were refused 25 times each, every one reporting "got 393x851" — the
+## size the first one had set. The window manager simply had not applied the new
+## size yet, so a fixed wait made the sweep measure one geometry and call the
+## rest skips. Poll until it matches, bounded, then report honestly if it never
+## does.
+func _apply_size(w: int, h: int) -> bool:
+	DisplayServer.window_set_size(Vector2i(w, h))
+	for _i in range(40):
+		await process_frame
+		var got: Vector2i = DisplayServer.window_get_size()
+		if absi(got.x - w) <= 2 and absi(got.y - h) <= 2:
+			# Let the screen's own deferred layout settle at the NEW size.
+			for _j in range(3):
+				await process_frame
+			return true
+	return false
+
 func _walk_screen(path: String) -> void:
 	var short := path.get_file()
 	if not ResourceLoader.exists(path):
@@ -145,9 +205,10 @@ func _walk_screen(path: String) -> void:
 		return
 
 	# Build ONCE, at the first size.
-	DisplayServer.window_set_size(Vector2i(STEPS[0][0], STEPS[0][1]))
-	for _i in range(3):
-		await process_frame
+	if not await _apply_size(int(STEPS[0][0]), int(STEPS[0][1])):
+		_skip += 1
+		_findings.append("SKIP %s — the window refused the initial resize" % short)
+		return
 	var inst: Node = ps.instantiate()
 	if inst == null:
 		_skip += 1
@@ -164,7 +225,11 @@ func _walk_screen(path: String) -> void:
 	var shapes: Dictionary = {}     # step label -> layout shape string (compared)
 	var rm_state: Dictionary = {}   # step label -> ResponsiveManager answer (reported)
 	for step in STEPS:
-		DisplayServer.window_set_size(Vector2i(step[0], step[1]))
+		if not await _apply_size(int(step[0]), int(step[1])):
+			problems.append("the window refused the resize to %dx%d, so the "
+				% [int(step[0]), int(step[1])]
+				+ "rotation to '%s' was NOT tested" % String(step[2]))
+			continue
 		# The resize itself is what is under test: no re-instantiation, no second
 		# reserve_band_on(), nothing but the screen reacting to its viewport changing.
 		await _settle(inst)

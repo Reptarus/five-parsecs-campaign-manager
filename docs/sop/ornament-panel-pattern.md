@@ -1,3 +1,10 @@
+> ⚠ **SUPERSEDED 2026-09-04.** `OrnamentPanel` was deleted: it was
+> unreachable from product AND tests (see `lint_orphan_assets.py`).
+> `CalloutCard` is the live callout component. This document is kept for
+> the procedural 9-slice bracket technique, which is still the reference if
+> that chrome is ever rebuilt — but do not treat it as describing shipping
+> code.
+
 # Ornament Panel Pattern
 
 How we build rulebook-faithful panel chrome in the Five Parsecs UI.

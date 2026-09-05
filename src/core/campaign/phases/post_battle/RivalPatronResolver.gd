@@ -7,7 +7,6 @@ extends RefCounted
 
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
-const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const DifficultyModifiers = preload("res://src/core/systems/DifficultyModifiers.gd")
 const WorldTraitEffects = preload("res://src/core/world/WorldTraitEffects.gd")
 const PatronJobEffects = preload("res://src/core/patrons/PatronJobEffects.gd")
@@ -422,9 +421,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null
 		if npc_tracker and npc_tracker.has_method("track_patron_interaction"):
 			npc_tracker.track_patron_interaction(patron_id, "job_completed", {"turn": ctx.battle_result.get("turn", 0)})
-
-		if HouseRulesHelper.is_enabled("expanded_rumors"):
-			ctx.add_quest_rumor()
 
 	elif not ctx.mission_successful and ctx.battle_result.has("patron_id"):
 		var npc_tracker = Engine.get_main_loop().root.get_node_or_null("/root/NPCTracker") if Engine.get_main_loop() else null

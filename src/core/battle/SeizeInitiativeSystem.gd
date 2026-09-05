@@ -8,6 +8,8 @@ extends Resource
 ##
 ## Reference: Core Rules p.112 "Seizing the Initiative"
 
+const AdvancementSystemRef = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+
 # Signals
 signal initiative_rolled(result: InitiativeResult)
 signal modifiers_changed()
@@ -81,10 +83,14 @@ func _debug_log_initiative_roll(result: InitiativeResult) -> void:
 func _init() -> void:
 	_reset_modifiers()
 
-## Set crew data for savvy bonus and Feral detection (Sprint 26.3: Character-Everywhere)
+## Set crew data for savvy bonus, Feral detection and Security Training.
+##
+## `crew` is the DEPLOYED squad, which is what the p.125 Security Training rule
+## turns on: "If this crew member is part of your squad when fighting a battle".
 func set_crew_data(crew: Array) -> void:
 	highest_savvy = 0
 	has_feral = false
+	_set_security_training(_crew_has_security_training(crew))
 
 	for member in crew:
 		# Sprint 26.3: Crew members are now always Character objects
@@ -134,6 +140,33 @@ func set_motion_tracker(has_tracker: bool) -> void:
 		_add_modifier("motion_tracker", "Motion Tracker", 1)
 	else:
 		_remove_modifier("motion_tracker")
+
+## Advanced Training: Security (Core Rules p.125), +1 to Seize the Initiative
+## when the trained crew member is in the deployed squad.
+##
+## The book says "you MAY add +1". It is applied automatically, exactly as the
+## Motion Tracker and Scanner Bot bonuses above are - the option is never worth
+## declining, and leaving it to the player is how a purchased course goes
+## unnoticed.
+func _set_security_training(has_training: bool) -> void:
+	if has_training:
+		_add_modifier("security_training", "Security Training", 1)
+	else:
+		_remove_modifier("security_training")
+
+## True when ANY deployed crew member holds the Security course.
+##
+## Crew-wide rather than per-figure because the seize roll is made once for the
+## squad, and the book gates on the member merely being present. Note p.124:
+## "you cannot benefit from more than one crew member with the same training",
+## so a second trained member adds nothing - which a boolean gets right for free.
+func _crew_has_security_training(crew: Array) -> bool:
+	for member in crew:
+		if member == null:
+			continue
+		if AdvancementSystemRef.member_has_training(member, "security"):
+			return true
+	return false
 
 ## Add modifier for Scanner Bot
 func set_scanner_bot(has_bot: bool) -> void:

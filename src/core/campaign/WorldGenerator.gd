@@ -12,6 +12,7 @@ signal location_discovered(location_data: Dictionary)
 # Data files
 const LOCATION_TYPES_PATH = "res://data/location_types.json"
 const WORLD_TRAITS_PATH = "res://data/world_traits.json"
+const HouseRulesHelperRef = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Loaded data
 var _location_types: Array = []
@@ -206,6 +207,24 @@ func _generate_planetary_traits(planet_type: Dictionary) -> Array:
 	var rolled: String = _roll_world_trait(available_traits)
 	if not rolled.is_empty():
 		traits.append(rolled)
+		# WILD GALAXY, optional rule, Core Rules p.73, verbatim: "If you prefer a
+		# more chaotic and wild place to adventure, you may opt to roll twice for
+		# each world you visit. If the results would seem to contradict, ignore
+		# the second roll."
+		#
+		# The second roll is a fresh, INDEPENDENT D100 over the same table — the
+		# first result is deliberately NOT removed from `available_traits`, since
+		# removing it would re-weight every remaining roll_range band and the
+		# book says "roll twice", not "roll on the remainder".
+		#
+		# The only contradiction resolved here is a straight duplicate. Whether
+		# two DIFFERENT traits contradict is a judgement the book leaves to the
+		# player ("would SEEM to contradict"), and there is no contradiction
+		# table printed anywhere — inventing one would be fabricating game data.
+		if HouseRulesHelperRef.is_enabled("wild_galaxy"):
+			var second: String = _roll_world_trait(available_traits)
+			if not second.is_empty() and second != rolled:
+				traits.append(second)
 
 	return traits
 

@@ -485,3 +485,92 @@ surviving mention now says it is gone:
   90 call sites. Row marked RESOLVED, wiring entry removed.
 
 `docs/archive/**` left untouched — historical by definition.
+
+---
+
+## Sep 4 2026 — orphan sweep after fixing the lint that hid them
+
+`lint_orphan_assets.py` computed reachability from RAW source, so a comment naming
+a class counted as a reference. This repo's comments are unusually full of the
+names of files they explain are DEAD, so dead files were kept alive by their own
+obituaries. Fixed on both the src and tests sides; `orphans` went **0 → 11**.
+
+**Deleted (10 files + .uid siblings)** — each verified unreachable from product AND
+tests, and audited for rules held hostage:
+
+| File | Why it was safe |
+|---|---|
+| `core/campaign/phases/WorldPhase.gd` | 3 public funcs: 2 re-homed, 1 unreferenced. Its last reference was an UNUSED `const WorldPhase = preload(...)` at `WorldPhaseController.gd:50`, now removed |
+| `core/campaign/phases/TravelPhase.gd` | 10 public funcs: 2 re-homed, 7 unreferenced, 1 hostage (`attempt_forge_license`) — re-homed and FIXED first, see below |
+| `core/managers/ResourceManager.gd` | 6 re-homed; zero references |
+| `core/managers/ResourceTransaction.gd` | referenced only by ResourceManager; `EconomySystem` has its own inner class of the same name (a collision, not a reference) |
+| `core/systems/IGameSystem.gd` | an interface; all 6 methods re-homed |
+| `qol/BattleSetupWizard.gd` | QoL wrapper superseded by `BattleSimulatorSetup`; no book rules |
+| `ui/components/common/OverflowMenu.gd` | pure UI widget, no rules; removed from the CLAUDE.md widget table |
+| `ui/components/common/Tooltip.gd` | its ONLY reference was a self-`load()` at its own line 323 |
+| `ui/screens/world/components/CampaignEventComponent.gd` | superseded — live path is `campaign_events.json` + `CampaignEventEffects.gd` (5 consumers) |
+| `ui/screens/world/components/CharacterEventComponent.gd` | self-documented DEPRECATED, names its own replacement |
+| `ui/screens/world/WorldPhaseAutomationController.gd` | this doc already book-checked it: invented "Digital Dice / object pooling" scaffolding |
+
+**KEPT, and it is a finding, not an orphan:**
+`src/data/tactics/TacticsOperationalMap.gd` — *"Source: Five Parsecs: Tactics
+campaign rules pp.155-168"*, the whole operational layer (regions, zones, Army
+Strength, Cohesion, Player Battle Points). NONE of its mechanics exist elsewhere
+in `src/`. Deleting it deletes the chapter. Now tracked by the lint's new
+`UNWIRED_RULES` set, which requires a page cite and warns once the entry becomes
+reachable. **Wiring it is open work.**
+
+**Rules bug found while re-homing:** the p.72 forged-licence attempt did not apply
+the p.57 Fake ID **+1**. `OnboardItemService.license_bonus()` had one caller
+(`InterdictionRule.gd:156`, the p.75 roll). Fixed inside
+`NewWorldArrival.attempt_forged_licence()` so a caller cannot forget it again;
+`JobOfferComponent` now shows the bonus in its breakdown.
+
+⚠ **This doc's own full-suite gate is unrunnable.** Batching that many gdUnit4
+suites in one process segfaults at ~58 suites, on unmodified HEAD (proven with a
+throwaway worktree). Run `tests/unit` in batches of **≤40**: 7 batches,
+**3,068 cases, 0 failures**.
+
+---
+
+## Sep 4 2026 — the D-tier verification sprint (7 fixes, all detection-proven)
+
+Every row below was re-checked against the actual code, 21 real save files and
+the PDFs rather than against this backlog. That retired 3 entries as already
+fixed, corrected 1 plan assumption and 1 wrong page cite, and surfaced **five
+live defects nobody had written down**.
+
+| # | Defect | Evidence it was real | Pinned by |
+|---|---|---|---|
+| D-a | House rules never applied — TWO independent causes | 8 guarded call sites permanently in their default branch | `test_house_rules.gd` (18) |
+| D-b | Core Rules **p.24** Leader +1 Luck granted nowhere | `apply_leader_luck_bonus()` had 0 callers; `add_luck()` had exactly 1 — that dead function | `test_leader_luck_bonus.gd` (10) |
+| D-c | 4 dead Seize the Initiative producers | nothing read `mission_data["seize_initiative_modifier"]`; the Black Job +1 is recorded in CLAUDE.md as shipped Aug 7 | `test_seize_initiative_funnel.gd` (9) |
+| D-d | 3 of 7 Advanced Training courses had no effect | `security` / `pilot` / `mechanic` — purchasable and inert | `test_training_effects_applied.gd` (11) |
+| D-e | `ShipPanel` destroyed its own scene nodes every load | bound the parent section instead of the list | `test_ship_panel_traits_container.gd` (4) |
+| D-f | `SaveFileMigration` validated a schema no save has | 0 of 3 required keys present in any of 21 saves | `test_save_migration_origin.gd` (15) + a real-file probe |
+| D-g | 2 backend nodes instantiated and never invoked | 0 external callers across every public method of either | — (removal only) |
+
+**Stale, struck from this backlog:** the mechanics-map "Needs Wiring" rows (all
+six methods have live callers), the ShipPanel 0-3 debt fallback (fixed, with the
+reason at the site), and the equipment condition/quality remnants (they live only
+in files already production-dead).
+
+**Deliberately NOT deleted:** `ContactManager` and `RivalBattleGenerator` moved
+from "reachable" to `test_only` when their dead instantiation was removed.
+`RivalBattleGenerator` cites Core Rules p.91 ×5 and p.119 ×2. The p.91 rival
+battle types ARE live elsewhere (`BattleSetupRules.gd:30-31`), so these are
+parallel duplicates rather than a lost chapter — but that is a wire-or-delete
+call for the tier-7 triage, not something a wiring fix should decide.
+
+**Also removed:** the six `"source": "Community"` house rules (invented mechanics
+in `src/data/`, two carrying unsourced numeric values) and their consumers,
+including the `narrative_injuries` dialog. ⚠ That last one was a complete
+352-line UI, not a stub — it was unreachable because `is_enabled()` always
+returned false, but it is recoverable from git if the decision is revisited.
+
+**Verification:** 7 gating lints CLEAN · `lint_orphan_assets` `orphans=0,
+unwired_rules=1` · `verify_battle_ui` 137/0 · `verify_post_battle` 47/0 ·
+`verify_story_track` 9/0 · `--headless` parse-clean · full `tests/unit` in
+batches of <=38. Every fix reverted in isolation first to prove the test detects
+it; one revert came back GREEN and had to be redone faithfully (see CLAUDE.md,
+"a detection proof is only as discriminating as its fixture").

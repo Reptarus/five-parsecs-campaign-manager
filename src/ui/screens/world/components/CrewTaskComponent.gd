@@ -1761,7 +1761,20 @@ func _apply_faction_favor(favor_id: String, roll: int, faction_id: String) -> vo
 
 func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve table roll tasks (Trade, Explore)
-	var d100_roll: int = randi() % 100 + 1
+	##
+	## This is the ONLY live D100 into data/trade_table.json and
+	## data/exploration_table.json. (DataManager.get_trade_result /
+	## get_exploration_result are commented out in full and their only callers
+	## are in the dead phases/WorldPhase.gd - do not follow that trail.)
+	##
+	## Routed through DiceManager so the roll is recorded and so the debug-only
+	## QA seam can force a specific row: the "I don't have a gambling problem!"
+	## (explore 51-53) and "A chance to unload some stuff" (trade 76-78) rows are
+	## 3-in-100 each and were unreachable on device (T9-47).
+	var roll_context: String = "Trade Table"
+	if str(task.get("id", "")) == "explore":
+		roll_context = "Exploration Table"
+	var d100_roll: int = _roll_task_d100(roll_context)
 	result.roll = d100_roll
 	result.modified_roll = d100_roll
 	result.success = true # Table rolls always "succeed" - just determine outcome
@@ -2062,6 +2075,16 @@ func _resolve_damaged_item(crew_member, item_name: String, repaired: bool) -> vo
 			if entry_name == item_name:
 				equipment.remove_at(i)
 				break
+
+## D100 through the DiceManager autoload when present, so crew-task table
+## rolls appear in the roll history and can be forced by the debug QA seam.
+## Behaviour-neutral: roll_d100() is a single randi_range(1, 100) draw, the
+## same one this used to make inline.
+func _roll_task_d100(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm != null and dm.has_method("roll_d100"):
+		return int(dm.roll_d100(context))
+	return randi() % 100 + 1
 
 func _get_trade_table_result(roll: int) -> Dictionary:
 	## Get result from Trade Table (Core Rules p.79) — loaded from JSON via DataManager

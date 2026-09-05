@@ -143,6 +143,10 @@ static func apply(campaign: Resource, rng: RandomNumberGenerator = null) -> Dict
 ##
 ## Per-world and permanent ("for perpetuity"), so the record is keyed by planet id
 ## on progress_data rather than being a single campaign flag.
+## p.57 Fake ID lives here, not at the call site: a caller-supplied bonus is
+## exactly what went missing before (see attempt_forged_licence below).
+const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
+
 const LICENCE_REQUIRED_ON := 5      # "On a 5-6 the world requires a..."
 const FORGED_LICENCE_TARGET := 6    # "If the score is a 6+..."
 
@@ -243,7 +247,7 @@ static func attempt_forged_licence(
 	rng: RandomNumberGenerator = null
 ) -> Dictionary:
 	var out: Dictionary = {
-		"roll": 0, "natural_one": false, "total": 0,
+		"roll": 0, "natural_one": false, "total": 0, "fake_id_bonus": 0,
 		"success": false, "adds_rival": false, "reason": "",
 	}
 	if campaign == null or planet_id.is_empty():
@@ -264,7 +268,17 @@ static func attempt_forged_licence(
 	# high-Savvy character is no safer from being caught, which is the whole shape
 	# of the gamble.
 	out["natural_one"] = roll == 1
-	out["total"] = roll + maxi(0, savvy)
+	# p.57 Fake ID: "Add +1 to ALL attempts to obtain a license or other legal
+	# document." Resolved HERE rather than by the caller, because a caller-supplied
+	# bonus is precisely what went missing: the p.75 Interdiction roll applied it
+	# (InterdictionRule.gd:156) while this p.72 roll did not, so a Fake ID did
+	# nothing on the one roll the item is named for. One resolver, one place.
+	#
+	# It deliberately does NOT touch natural_one above: the book says "if the roll
+	# is a 1 BEFORE MODIFIERS", so a Fake ID cannot save you from being caught.
+	var fake_id: int = int(OnboardItemServiceRef.license_bonus(campaign))
+	out["fake_id_bonus"] = fake_id
+	out["total"] = roll + maxi(0, savvy) + fake_id
 	out["success"] = out["total"] >= FORGED_LICENCE_TARGET
 	out["adds_rival"] = out["natural_one"]
 

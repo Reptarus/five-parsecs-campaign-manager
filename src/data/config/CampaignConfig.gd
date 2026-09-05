@@ -31,6 +31,9 @@ const ValidationResult = preload("res://src/core/validation/ValidationResult.gd"
 
 # House Rules configuration (array of enabled rule IDs)
 @export var house_rules: Array[String] = []
+## The player's own house rules as prose (Core Rules p.65). Never matched
+## against a rule id - see HouseRulesDefinitions.
+@export var house_rules_notes: String = ""
 
 # Metadata and tracking
 @export var creation_date: String = ""
@@ -117,6 +120,7 @@ func to_dictionary() -> Dictionary:
 		"battle_difficulty_modifier": battle_difficulty_modifier,
 		"economic_modifier": economic_modifier,
 		"house_rules": house_rules.duplicate(),
+		"house_rules_notes": house_rules_notes,
 		"creation_date": creation_date,
 		"last_modified": last_modified,
 		"version": version
@@ -147,13 +151,19 @@ static func from_dictionary(data: Dictionary) -> CampaignConfig:
 	config.battle_difficulty_modifier = data.get("battle_difficulty_modifier", 1.0)
 	config.economic_modifier = data.get("economic_modifier", 1.0)
 
-	# House rules with type safety
+	# House rules with type safety. NOTE house_rules is Array[String]: a plain
+	# `=` from an untyped Array is REJECTED at runtime, which is why this appends
+	# element by element rather than assigning.
 	var hr = data.get("house_rules", [])
 	if hr is Array:
 		config.house_rules.clear()
 		for rule_id in hr:
 			if rule_id is String:
 				config.house_rules.append(rule_id)
+
+	# The player's own house rules, as prose (Core Rules p.65). Absent on every
+	# config written before 2026-09-04; "" is the correct default.
+	config.house_rules_notes = str(data.get("house_rules_notes", ""))
 
 	config.creation_date = data.get("creation_date", "")
 	config.last_modified = data.get("last_modified", "")

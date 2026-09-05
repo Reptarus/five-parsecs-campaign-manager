@@ -11,6 +11,7 @@ const ErrorLogger = preload("res://src/core/systems/ErrorLogger.gd")
 ## this so the type router and the campaign loaders agree on which file they are
 ## looking at — see the note on _detect_campaign_type.
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+const WindowStateRulesRef = preload("res://src/core/state/WindowStateRules.gd")
 
 ## Signals with proper type annotations
 signal state_changed
@@ -204,7 +205,10 @@ func _restore_window_state_at_boot() -> void:
 	if screen is int and screen >= 0:
 		win.current_screen = screen
 	var mode = wc.get_value("main", "mode", -1)
-	if mode is int and mode >= 0:
+	# WindowStateRules is the SSOT for this — see its docblock for the defect.
+	# MINIMIZED is transient, never a preference, and restoring it launches the
+	# app minimized (and makes a window refuse every resize).
+	if mode is int and WindowStateRulesRef.may_restore_mode(mode):
 		win.mode = mode
 	var pos = wc.get_value("main", "position", -1)
 	if pos is Vector2i:

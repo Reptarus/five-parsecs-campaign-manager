@@ -713,6 +713,11 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 	if campaign_config_data.has("house_rules"):
 		unified_campaign_state.campaign_config.house_rules = \
 			campaign_config_data.house_rules
+	# The player's own house rules travel separately from the rule ids, so that
+	# prose can never be mistaken for a mechanic id (Core Rules p.65).
+	if campaign_config_data.has("house_rules_notes"):
+		unified_campaign_state.campaign_config.house_rules_notes = \
+			str(campaign_config_data.house_rules_notes)
 	if campaign_config_data.has("victory_conditions"):
 		unified_campaign_state.campaign_config.victory_conditions = campaign_config_data.victory_conditions
 	# Narrative options (bool toggles)

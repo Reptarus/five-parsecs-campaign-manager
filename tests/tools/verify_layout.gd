@@ -62,7 +62,9 @@ const SCREENS: Array = [
 	"res://src/ui/screens/legal/LegalTextViewer.tscn",
 	"res://src/ui/screens/settings/SettingsScreen.tscn",
 	"res://src/ui/help/HelpScreen.tscn",
-	"res://src/ui/screens/tutorial/TutorialSelection.tscn",
+	# TutorialSelection.tscn was DELETED 2026-08-01 (dead onboarding chain, see
+	# CLAUDE.md "Deleted dead tutorial files"). It sat here for a month as a
+	# permanent SKIP row that read like a real skip.
 	"res://src/ui/screens/campaign/CampaignCreationUI.tscn",
 	"res://src/ui/screens/campaign/CampaignEditorScreen.tscn",
 	"res://src/ui/screens/campaign/CampaignDashboard.tscn",
@@ -116,6 +118,8 @@ func _process(_delta: float) -> bool:
 
 
 func _run() -> void:
+	_force_windowed()
+	_stub_legal_consent()
 	_load_requested_campaign()
 	print("=== LAYOUT SWEEP: %d screens x %d sizes ===" % [SCREENS.size(), SIZES.size()])
 	# STATE MATTERS AND IS NOT ALWAYS THE SAME. Several screens build from the current
@@ -181,6 +185,74 @@ func _campaign_state() -> String:
 	return "campaign loaded: %s" % (id if not id.is_empty() else "<unnamed>")
 
 
+## Put the window in a state where window_set_size() actually does something.
+##
+## MEASURED 2026-09-04: a windowed run reported the SAME design space
+## (1180x1888) for all six size specs — 690 measurements, one distinct size —
+## so the sweep silently measured one geometry six times and "156 passed" meant
+## nothing. Two causes, both live in the shipped app:
+##   * project.godot window/size/mode=2 (Maximized) — BUG-100's first-run default
+##   * GameState._restore_window_state_at_boot() replays user://window.ini, which
+##     on this machine holds mode=1 (MINIMIZED) at 800x1280
+## A maximized or minimized window ignores a resize request, and nothing checked
+## that the resize took. This forces WINDOWED first; _apply_size() then verifies.
+## Satisfy the legal-consent gate IN MEMORY ONLY, for the duration of the sweep.
+##
+## MEASURED 2026-09-04: MainMenu._ready() checks needs_legal_consent() FIRST and
+## `return`s to the EULA screen before it reaches _on_viewport_resized(). This
+## machine's legal_consent.cfg records privacy version "1.0" while
+## LegalConsentManager.PRIVACY_VERSION is "1.1" (bumped 2026-08-11), so every
+## MainMenu the sweep instantiated had never run its responsive layout: the title
+## kept the .tscn's 800px offsets with autowrap OFF, and reported 16 failures
+## that do not exist in a consented app.
+##
+## ⚠ This sets the in-memory fields ONLY. It must NEVER call accept_eula() /
+## accept_privacy(), which write user://legal_consent.cfg and would record a
+## consent no human ever gave.
+func _stub_legal_consent() -> void:
+	var lcm := root.get_node_or_null("/root/LegalConsentManager")
+	if lcm == null:
+		return
+	lcm.eula_accepted = true
+	lcm.eula_accepted_version = lcm.EULA_VERSION
+	lcm.privacy_accepted = true
+	lcm.privacy_accepted_version = lcm.PRIVACY_VERSION
+
+func _force_windowed() -> void:
+	if DisplayServer.get_name() == "headless":
+		push_error("verify_layout: running under --headless. DisplayServer returns "
+			+ "dummy values there, so window_set_size() does nothing and every "
+			+ "screen measures at one size. Run WITHOUT --headless.")
+		quit(2)
+		return
+	DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
+	# Park it at a usable-rect origin so a large size is never clipped by
+	# the taskbar or a second-monitor offset.
+	var scr: int = DisplayServer.window_get_current_screen()
+	DisplayServer.window_set_position(
+		DisplayServer.screen_get_usable_rect(scr).position + Vector2i(8, 8))
+
+
+## Resize and PROVE it happened, POLLING rather than assuming a fixed frame count.
+##
+## MEASURED 2026-09-04: with a flat 3-frame wait the FIRST resize took and the
+## next five were refused 25 times each, every one reporting "got 393x851" — the
+## size the first one had set. The window manager simply had not applied the new
+## size yet, so a fixed wait made the sweep measure one geometry and call the
+## rest skips. Poll until it matches, bounded, then report honestly if it never
+## does.
+func _apply_size(w: int, h: int) -> bool:
+	DisplayServer.window_set_size(Vector2i(w, h))
+	for _i in range(40):
+		await process_frame
+		var got: Vector2i = DisplayServer.window_get_size()
+		if absi(got.x - w) <= 2 and absi(got.y - h) <= 2:
+			# Let the screen's own deferred layout settle at the NEW size.
+			for _j in range(3):
+				await process_frame
+			return true
+	return false
+
 func _sweep_screen(path: String) -> void:
 	var short := path.get_file()
 	if not ResourceLoader.exists(path):
@@ -196,10 +268,14 @@ func _sweep_screen(path: String) -> void:
 		var w: int = size_spec[0]
 		var h: int = size_spec[1]
 		var label: String = size_spec[2]
-		DisplayServer.window_set_size(Vector2i(w, h))
-		# Two frames for the resize + one for the screen's own deferred layout.
-		for _i in range(3):
-			await process_frame
+		var resized: bool = await _apply_size(w, h)
+		if not resized:
+			var got: Vector2i = DisplayServer.window_get_size()
+			_skip += 1
+			_findings.append("SKIP %s @ %s — the window REFUSED the resize (asked "
+				% [short, label] + "%dx%d, got %dx%d), so this configuration was "
+				% [w, h, got.x, got.y] + "NOT measured")
+			continue
 		var inst: Node = ps.instantiate()
 		if inst == null:
 			_skip += 1
@@ -418,6 +494,15 @@ func _check_sibling_overlap(ctl: Control, problems: Array) -> void:
 			continue
 		var sr: Rect2 = _drawn_rect(sib, sib.get_global_rect())
 		if sr.size.x <= 0.0 or sr.size.y <= 0.0 or _is_backdrop(sr, ds):
+			continue
+		# CONTENT DRAWN INSIDE AN IMAGE IS A COMPOSITION, NOT A COLLISION.
+		# The printable sheets place field Labels on top of the official sheet
+		# PNG by design — data/sheets/core/*_fields.json IS a coordinate list for
+		# exactly that — and this check reported 698 of them at every size. The
+		# bug shape it was written for (the MainMenu showcase card growing over
+		# the social footer) is two controls PARTIALLY overlapping where neither
+		# contains the other, so that detection is unaffected.
+		if sr.encloses(r):
 			continue
 		var hit: Rect2 = r.intersection(sr)
 		# A few pixels of touching is kerning slop, not a covered control.

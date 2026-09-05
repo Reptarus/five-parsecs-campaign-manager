@@ -10,14 +10,16 @@
 ##   - Bg = COLOR_ELEVATED (matches existing glass card bg for continuity)
 ##
 ## NO SVG assets — pure StyleBoxFlat + Label composition. The .ai border
-## ornaments are PAGE-level chrome (handled by BookFrame); CalloutCard is
+## ornaments were PAGE-level chrome (handled by BookFrame, deleted 2026-09-04
+## as unreachable); CalloutCard is
 ## CARD-level chrome (handled here).
 ##
 ## Path-loaded (no class_name) per docs/sop/component-patterns.md.
 ## Consumers: preload + .new(), then add_content_child(<vbox or label>).
 extends PanelContainer
 
-## Pre-defined semantic color tokens. Mirror BookFrame's palette so the two
+## Pre-defined semantic color tokens. These mirrored BookFrame's palette (that
+## component is gone as of 2026-09-04) so the two
 ## layers (page chrome + callout cards) read as one design system.
 const COLOR_NEUTRAL := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_PRIMARY := UIColors.COLOR_CYAN

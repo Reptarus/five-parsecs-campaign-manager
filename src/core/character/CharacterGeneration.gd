@@ -15,7 +15,6 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 # DataManager accessed via autoload singleton (not preload)
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
-const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Data-driven character creation tables
 # Note: _skills_data + character_skills.json removed Sprint B Phase B.1
@@ -339,14 +338,13 @@ static func apply_table_results_to_character(character: Character, table_results
 				"class_result":
 					character.add_trait("Class: " + result_name)
 
-	# Apply XP bonus (unless rookie_crew house rule is enabled)
+	# Apply the creation-table XP bonus.
+	#
+	# A "rookie_crew" house rule used to zero this instead. It was invented
+	# (tagged "source": "Community", no book page) and was removed 2026-09-04.
 	var resources = table_results.get("resources", {})
 	var xp_bonus = resources.get("xp", 0)
-
-	# HOUSE RULE: rookie_crew - Starting crew begins with 0 XP
-	if HouseRulesHelper.is_enabled("rookie_crew"):
-		character.experience_points = 0
-	elif xp_bonus > 0:
+	if xp_bonus > 0:
 		character.experience_points += xp_bonus
 
 	# Apply bonus credits

@@ -7,7 +7,8 @@ extends RefCounted
 ## - Luck can be spent to reroll any one die
 ## - Humans can have up to 3 Luck points
 ## - Non-humans are limited to 1 Luck point
-## - Leaders get +1 Luck at campaign start
+## - Leaders get +1 Luck at campaign start (Core Rules p.24, NOT p.91-92;
+##   a Bot Leader receives none)
 ## - Luck refreshes at the start of each mission
 ##
 ## Usage:
@@ -127,7 +128,7 @@ static func reset_character_luck(character: Resource) -> void:
 #region Luck Caps
 
 ## Get maximum Luck for character based on species (Core Rules p.91)
-static func get_luck_cap(character: Resource) -> int:
+static func get_luck_cap(character: Variant) -> int:
 	if not character:
 		return NONHUMAN_LUCK_CAP
 
@@ -142,7 +143,7 @@ static func get_luck_cap(character: Resource) -> int:
 		return NONHUMAN_LUCK_CAP
 
 ## Check if character is at their Luck cap
-static func is_at_luck_cap(character: Resource) -> bool:
+static func is_at_luck_cap(character: Variant) -> bool:
 	if not character:
 		return true
 
@@ -152,7 +153,7 @@ static func is_at_luck_cap(character: Resource) -> bool:
 	return current_luck >= cap
 
 ## Apply Luck increase (clamped to species cap)
-static func add_luck(character: Resource, amount: int = 1) -> int:
+static func add_luck(character: Variant, amount: int = 1) -> int:
 	if not character:
 		return 0
 
@@ -161,40 +162,71 @@ static func add_luck(character: Resource, amount: int = 1) -> int:
 	var new_luck := mini(current_luck + amount, cap)
 	var actual_increase := new_luck - current_luck
 
-	# Set the new luck value
-	if character.has_method("set"):
-		character.set("luck", new_luck)
+	# Set the new luck value. Dictionary first - see _field() for why.
+	if character is Dictionary:
+		(character as Dictionary)["luck"] = new_luck
 	elif "luck" in character:
-		character.luck = new_luck
+		character.set("luck", new_luck)
 
 	if actual_increase > 0:
 		pass
 
 	return actual_increase
 
-## Apply Leader bonus (+1 Luck at campaign start) (Core Rules p.92)
-static func apply_leader_luck_bonus(character: Resource) -> bool:
-	if not character:
+## Apply the Leader's +1 Luck. **Core Rules p.24**, Crew Composition.
+##
+## BOOK, verbatim: "Once you have created all of your characters, pick one to be
+## the Leader. This character receives 1 Luck point and will never leave the crew
+## through random events, though they can certainly be slain. While you are free
+## to select a Bot as your Leader, they do not receive Luck if you do."
+##
+## THREE THINGS WERE WRONG HERE (2026-09-04):
+##  1. It had ZERO callers, and `add_luck()` had exactly one caller - this
+##     function. No other site in src/ granted the Leader their Luck point, so
+##     the rule was simply absent from play. (CharacterGeneration.gd:799 is the
+##     HUMAN SPECIES Luck of p.15, granted to every Human; :329 is the creation
+##     tables; Character.gd:337 is XP spend. None of them is this rule.)
+##  2. The docblock cited p.92. The rule is on p.24 - the same page CLAUDE.md
+##     already cites for the Leader's exemption from random-event departure.
+##  3. The Bot exclusion was missing entirely, so a Bot Leader would have been
+##     handed a Luck point the book explicitly denies.
+##
+## This is the SINGLE GRANT SITE for the rule, called once from
+## CampaignFinalizationService._create_campaign_resource(). Do not add a second.
+##
+## Returns true only when a point was actually added, so the caller can log it.
+## A non-Human Leader is capped at 1 Luck (p.15), so this can legitimately
+## return false for a character who is already at their cap.
+static func apply_leader_luck_bonus(character: Variant) -> bool:
+	if character == null:
 		return false
+	if not is_leader(character):
+		return false
+	# p.24: selecting a Bot as Leader is legal, but it receives no Luck.
+	if is_bot_character(character):
+		return false
+	return add_luck(character, 1) > 0
 
-	var is_leader := false
+## True when this character is the crew's Leader (the app calls it the captain).
+static func is_leader(character: Variant) -> bool:
+	if character == null:
+		return false
+	# `is_captain` is an @export PROPERTY on Character (Character.gd:130), never
+	# a method, so a has_method("is_captain") probe here is permanently false.
+	return bool(_field(character, "is_captain", false)) \
+		or bool(_field(character, "is_leader", false))
 
-	# Check for leader/captain status
-	if character.has_method("is_captain"):
-		is_leader = character.is_captain()
-	elif character.has_method("get"):
-		is_leader = character.get("is_leader") or character.get("is_captain") or character.get("captain")
-	elif "is_leader" in character:
-		is_leader = character.is_leader
-	elif "is_captain" in character:
-		is_leader = character.is_captain
-
-	if is_leader:
-		var added := add_luck(character, 1)
-		if added > 0:
-			return true
-
-	return false
+## True for a Bot. Mirrors AdvancementSystem._is_bot(): the authoritative marker
+## is the `is_bot` property, with species_id/origin as legacy fallbacks, matched
+## case-insensitively because species ids are spelled lowercase on disk.
+static func is_bot_character(character: Variant) -> bool:
+	if character == null:
+		return false
+	if bool(_field(character, "is_bot", false)):
+		return true
+	if str(_field(character, "species_id", "")).to_lower() == "bot":
+		return true
+	return str(_field(character, "origin", "")).to_lower() == "bot"
 
 #endregion
 
@@ -239,16 +271,29 @@ static func validate_crew_luck(crew: Array) -> Array:
 
 #region Private Helpers
 
-static func _get_luck_value(character: Resource) -> int:
-	if not character:
-		return 0
+## Read one field off a crew member of EITHER shape.
+##
+## Crew are Character RESOURCES during creation and Dictionaries once
+## CampaignFinalizationService._transform_crew_data_for_turn_system() has run
+## (and on every loaded save). The Dictionary branch MUST come first:
+## `has_method()` on a Dictionary is an invalid call that unwinds the caller, so
+## a Resource-only helper does not merely return a wrong answer on a Dictionary
+## - it silently aborts whatever called it. Same discipline as
+## AdvancementSystem.member_has_training().
+static func _field(character: Variant, key: String, default_value: Variant) -> Variant:
+	if character == null:
+		return default_value
+	if character is Dictionary:
+		var d: Dictionary = character
+		var dv: Variant = d.get(key, default_value)
+		return default_value if dv == null else dv
+	if key in character:
+		var v: Variant = character.get(key)
+		return default_value if v == null else v
+	return default_value
 
-	if character.has_method("get"):
-		return character.get("luck") if character.get("luck") != null else 0
-	elif "luck" in character:
-		return character.luck
-
-	return 0
+static func _get_luck_value(character: Variant) -> int:
+	return int(_field(character, "luck", 0))
 
 static func _get_character_id(character: Resource) -> String:
 	if character.has_method("get"):
@@ -278,33 +323,19 @@ static func _get_character_name(character: Resource) -> String:
 
 	return "Unknown"
 
-static func _get_species(character: Resource) -> String:
-	if character.has_method("get"):
-		var species = character.get("species")
-		if species:
-			return str(species)
-		species = character.get("origin")
-		if species:
-			return str(species)
-
-	if "species" in character:
-		return str(character.species)
-	if "origin" in character:
-		return str(character.origin)
+static func _get_species(character: Variant) -> String:
+	var species: String = str(_field(character, "species", ""))
+	if not species.is_empty():
+		return species
+	return str(_field(character, "origin", ""))
 
 	return "HUMAN"
 
-static func _get_species_id(character: Resource) -> String:
+static func _get_species_id(character: Variant) -> String:
 	## Get species_id for Strange Character checks
-	if character.has_method("get"):
-		var sid = character.get("species_id")
-		if sid:
-			return str(sid)
-	if "species_id" in character:
-		return str(character.species_id)
-	return ""
+	return str(_field(character, "species_id", ""))
 
-static func _is_human(character: Resource) -> bool:
+static func _is_human(character: Variant) -> bool:
 	var species := _get_species(character).to_upper()
 	return species == "HUMAN" or species == ""
 

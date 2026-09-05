@@ -8,6 +8,7 @@ const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd"
 ## Compendium setup-sequence options, incl. the p.94 Terrain Generation opt-in.
 const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const AdvancementSystemRef = preload("res://src/core/character/advancement/AdvancementSystem.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
 const ValidationManager = preload("res://src/core/systems/ValidationManager.gd")
@@ -902,6 +903,20 @@ func _crew_savvy_total(campaign: Resource) -> int:
 	return total
 
 
+## True when any crew member holds the p.125 Mechanic course.
+##
+## Reads the crew the same dual way the rest of this file does: get_crew_members()
+## when the campaign exposes it, else crew_data["members"].
+func _crew_has_mechanic_training(campaign: Resource) -> bool:
+	if campaign == null:
+		return false
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	return AdvancementSystemRef.crew_has_training(crew, "mechanic")
+
 func _process_free_hull_repair(campaign: Resource) -> void:
 	## Core Rules p.59, verbatim: "Damage is repaired at a rate of 1 Hull Point
 	## per campaign turn, but you can funnel credits into faster repairs."
@@ -929,7 +944,14 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 	var max_hull: int = int(ship.get("max_hull", current))
 	if current >= max_hull or max_hull <= 0:
 		return
-	ship["hull_points"] = mini(max_hull, current + 1)
+	# Advanced Training: Mechanic (Core Rules p.125) - "you may repair +1 Hull
+	# Point damage every campaign turn (meaning 2 points of damage are repaired
+	# per campaign turn)". The book states the total explicitly, so this is 1 + 1
+	# rather than a multiplier. Crew-wide, and p.124's "you cannot benefit from
+	# more than one crew member with the same training" means a second Mechanic
+	# adds nothing.
+	var repair_amount: int = 1 + (1 if _crew_has_mechanic_training(campaign) else 0)
+	ship["hull_points"] = mini(max_hull, current + repair_amount)
 
 	var journal = get_node_or_null("/root/CampaignJournal")
 	if journal and journal.has_method("create_entry"):
@@ -937,7 +959,8 @@ func _process_free_hull_repair(campaign: Resource) -> void:
 			"type": "event",
 			"auto_generated": true,
 			"title": "Hull repairs",
-			"description": "The crew patched 1 Hull Point over the campaign turn (%d/%d). Core Rules p.59." % [
+			"description": "The crew patched %d Hull Point(s) over the campaign turn (%d/%d). Core Rules p.59." % [
+				repair_amount,
 				int(ship["hull_points"]), max_hull],
 			"tags": ["ship", "upkeep"],
 		})

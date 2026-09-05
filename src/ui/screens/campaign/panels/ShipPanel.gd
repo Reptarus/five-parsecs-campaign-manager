@@ -376,16 +376,28 @@ func _initialize_components() -> void:
 	if hull_points_spinbox:
 		hull_points_spinbox.max_value = 100
 	
-	# Traits might be at different location
-	traits_container = content_node.get_node_or_null("Traits/Container")
+	# The traits LIST, not the section that contains it. ShipPanel.tscn is:
+	#     Traits (VBoxContainer)
+	#       |-- Label "Ship Traits:"                  <- header
+	#       +-- TraitsContainer (unique_name_in_owner) <- the list
+	#
+	# THE BUG THIS FIXES: this asked for "Traits/Container" - a node that does
+	# not exist, the child is named TraitsContainer - and then fell through to
+	# get_node_or_null("Traits"), which SUCCEEDS and binds the PARENT.
+	# _update_traits_display() frees every child of whatever is bound here, so
+	# each refresh deleted the header Label AND %TraitsContainer: the panel
+	# destroyed its own scene nodes, and any later %TraitsContainer lookup was
+	# resolving a freed node.
+	#
+	# Resolved by unique name, exactly like %DebtSpinBox above. A container
+	# whose children are rebuilt every refresh must never be the section node.
+	traits_container = get_node_or_null("%TraitsContainer")
 	if not traits_container:
-		traits_container = content_node.get_node_or_null("Traits")
-		if traits_container:
-			pass
-		else:
-			traits_container = _create_traits_section(content_node)
-	else:
-		pass
+		traits_container = content_node.get_node_or_null("Traits/TraitsContainer")
+	if not traits_container:
+		# Code-built fallback for a scene that genuinely lacks the section.
+		# _create_traits_section() returns the inner list, not the section.
+		traits_container = _create_traits_section(content_node)
 	
 	# Control buttons with fallbacks
 	generate_button = content_node.get_node_or_null("Controls/GenerateButton")

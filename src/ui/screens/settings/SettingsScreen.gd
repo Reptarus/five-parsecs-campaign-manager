@@ -20,6 +20,7 @@ var overlay_mode: bool = false
 
 const AccessibilitySettingsPanelScript = preload("res://src/ui/screens/settings/AccessibilitySettingsPanel.gd")
 const DifficultyTogglesPanelScript = preload("res://src/ui/screens/settings/DifficultyTogglesPanel.gd")
+const WindowStateRulesRef = preload("res://src/core/state/WindowStateRules.gd")
 
 # Deep Space theme colors
 const COLOR_BASE := UIColors.COLOR_PRIMARY
@@ -115,7 +116,10 @@ func _enter_tree() -> void:
 	if screen is int and screen >= 0:
 		win.current_screen = screen
 	var mode = wc.get_value("main", "mode", -1)
-	if mode is int and mode >= 0:
+	# WindowStateRules is the SSOT for this — see its docblock for the defect.
+	# MINIMIZED is transient, never a preference, and restoring it launches the
+	# app minimized (and makes a window refuse every resize).
+	if mode is int and WindowStateRulesRef.may_restore_mode(mode):
 		win.mode = mode
 	var pos = wc.get_value("main", "position", -1)
 	if pos is Vector2i:
@@ -136,7 +140,9 @@ func _exit_tree() -> void:
 		return
 	var wc := ConfigFile.new()
 	wc.set_value("main", "screen", win.current_screen)
-	wc.set_value("main", "mode", win.mode)
+	# Writing the transient MINIMIZED state is what poisoned window.ini in the
+	# first place; WindowStateRules is the SSOT for what may be persisted.
+	wc.set_value("main", "mode", WindowStateRulesRef.mode_to_persist(win.mode))
 	wc.set_value("main", "position", win.position)
 	wc.set_value("main", "size", win.size)
 	wc.save(_window_config_path)

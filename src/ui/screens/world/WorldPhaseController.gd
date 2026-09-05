@@ -47,7 +47,6 @@ const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/Re
 # Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
 
 # Five Parsecs dependencies
-const WorldPhase = preload("res://src/core/campaign/phases/WorldPhase.gd")
 const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/PsionicLegalityBadge.gd")
 

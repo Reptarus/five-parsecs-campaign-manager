@@ -2,6 +2,210 @@
 
 ---
 
+## 🟢 § Sep 3-4 2026 — battle-phase sprint, page walk, tablet deploys #14/#15/#16
+
+Branch `campaign-editor-and-fixits`, committed through `c4317b993`.
+Ledger: [qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md) deploys
+**#14**, **#15** and **#16** (#16 closed all 11 T10 findings on hardware). Per-finding detail:
+[qa/TABLET_FINDINGS_2026-09-04.md](qa/TABLET_FINDINGS_2026-09-04.md).
+
+| Gate | State |
+|---|---|
+| `tests/tools/verify_battle_ui.gd` | **137 / 0** (was 80 before the Sep 3 sprint) |
+| `tests/tools/verify_post_battle.gd` | **47 / 0** |
+| `tests/tools/verify_story_track.gd` | **9 / 0** |
+| Ten gating lints | **9 CLEAN**; `lint_orphan_assets` `orphans=0`, `test_only=34` |
+| Headless `--import` parse | **clean** |
+| `verify_layout` | **166 / 2** windowed with a campaign (was an effective 0/168) |
+| `verify_rotation` | **23 / 0 — PASS**, first green run |
+
+⭐ **The RED was harness misuse, and fixing it exposed a real desktop bug.**
+Both sweeps' docblocks say *"NOTE: no --headless — this needs a real window to resize"*,
+and the runs that produced `passed=0 failed=168` were headless. Godot 4.6 docs
+(class_displayserver): under `--headless` *"most functions from DisplayServer will return
+dummy values"* — so `window_set_size()` did nothing and all 168 configs measured at one
+size. Run windowed with `-- campaign=user://saves/<x>.save`:
+
+```
+godot --path . --script res://tests/tools/verify_layout.gd   -- campaign=user://saves/x.save
+godot --path . --script res://tests/tools/verify_rotation.gd -- campaign=user://saves/x.save
+```
+
+Three harness defects and one product defect came out of that:
+
+| Fix | What it was |
+|---|---|
+| **PRODUCT — `user://window.ini` could record `MODE_MINIMIZED`** | Both restore sites replayed it behind a `mode >= 0` check, so the app **launched minimized and re-minimized itself whenever the Settings screen opened**. A minimized window also silently ignores `window_set_size()`, which is what pinned the sweep to one geometry. New SSOT `src/core/state/WindowStateRules.gd`; `tests/unit/test_window_state_rules.gd` (5 cases) detection-proven — restoring MINIMIZED to `PERSISTABLE` fails exactly 2 |
+| Harness — no resize verification | The sweep now polls until `window_get_size()` matches and reports a SKIP with the asked/got sizes if it never does, instead of measuring the wrong rect |
+| Harness — the consent gate | `MainMenu._ready()` returns to the EULA before `_on_viewport_resized()` when `PRIVACY_VERSION` (1.1) differs from the stored consent (1.0), so every MainMenu measured had never run its responsive layout — 16 phantom failures. Consent is now stubbed **in memory only**; `accept_*()` is never called |
+| Harness — sheet-overlay false positive | 698 findings, all Labels over a TextureRect: the printable sheet places field labels on the artwork **by design**. The sibling-overlap check now skips a control fully enclosed by the sibling it covers; the MainMenu showcase-card shape it was written for (partial overlap, neither enclosing) still fires |
+
+Residual: **2 configs**, both `PrintSheetScreen` at the two smallest landscape sizes
+(733x338, 310x551), where sheet field labels crowd each other. Real but low-value —
+a 2764x1843 sheet previewed in 733x338.
+
+---
+
+### Sep 4 (later) — terrain escaped the grid (BUG-101, third occurrence)
+
+Reported live: *"battlefield generator is still creating shapes outside of the grid
+boundary."* Reproduced, and it was **two independent defects**, not one.
+
+`tests/tools/probe_terrain_bounds.gd` measures the drawn footprint
+(`svs.transform * svs.get_bounding_rect()`, grown by `stroke_width / 2`) against the
+placement-space grid rect, across 4 themes x 3 table sizes x 12 seeds.
+
+| State | Shapes outside grid (of 3,898) | Worst overflow |
+|---|---|---|
+| Before | 246 | **101.01 px** on a 576 px grid |
+| Revert cause A only | 227 | 101.0068 px |
+| Revert cause B only | 11 | 0.8224 px |
+| **Both fixed** | **0** | **0.0000 px** |
+
+**Cause A — the clamp had no copy on the exit path.** In the grid-distributed fallback the
+clamp sits at the TOP of the retry loop and the nudge `c.y += half_y * 2.0 +
+effective_padding` at the BOTTOM; its own comment said *"re-clamped next pass"*. On the
+16th pass there is no next pass. Worse, clamp and nudge **oscillate** (clamp pins to
+`grid_h - half_y`, nudge pushes to `grid_h + half_y + pad`), so all 16 retries re-test two
+positions and exhaustion is the COMMON case — hence 6% of shapes, not a rare few.
+Predicted overflow `2*half_y + pad` = 81.0 + 20.0 = 101.0; measured **101.0068**.
+
+**Cause B — the clamp reserved a size the shape does not draw.**
+`BattlefieldShapeLibrary.create_vector_shape()` sets `svs.rx = ry = 4.0` on every RECT, so
+a body shorter than 8 px cannot fit its own corner rounding and the tessellated curve
+bulges to a ~8.004 px floor. Reserving the DECLARED height under-reserves by the
+difference. Only `is_scatter` pieces on 2 ft tables shrink under that floor — exactly the
+distribution measured.
+
+**Fix**: the bounds rule is now one SSOT helper `_clamp_center_to_grid()` (it had been
+written out inline three times, and the missing copy WAS the bug), applied on every exit
+path; half-extents come from `svs.get_bounding_rect()` rather than the declared `w`/`h`.
+
+**Pinned** by `tests/unit/test_battlefield_shape_bounds.gd` — 2 cases, one broad sweep
+(catches A), one narrow on the 2 ft scatter combination (catches B), both detection-proven
+by isolated revert. **This invariant had never been asserted anywhere**: eight other
+`test_battlefield_*` suites exist and not one measured geometry against the grid, which is
+why it was "verified" visually twice and returned twice.
+
+⚠ Two traps worth carrying:
+- **My own first diagnostic lied.** It compared the drawn footprint against `child.size`,
+  and `ScalableVectorShape2D` reports `size` back from the REBUILT CURVE (8.004), not the
+  value assigned (6.29) — so it read `error = 0.000` while cause B was live. A check that
+  cannot disagree with the thing it is checking proves nothing.
+- **Operand order.** `Rect2 * Transform2D` is documented as the INVERSE transform
+  (`rect * transform == transform.inverse() * rect`); `Transform2D * Rect2` is forward. One
+  order away from silently measuring the wrong rectangle for the whole investigation.
+
+### Sep 4 (later) — debug-only forced-roll seam (unblocks T9-47 / T9-48 / T9-51)
+
+Three fixes have been stuck desk-verified since 2026-08-14 because no in-app tool can
+reach their row (`qa/PICKUP_2026-08-14.md` section 3). Widening the shipped `roll_range`
+was declined twice. `DiceManager.queue_forced_result(context_key, value)` now parks a value
+that the next matching roll consumes ONCE; both ends are gated on `OS.is_debug_build()`,
+and **no rules data changes** — the table is read exactly as shipped, only the die is
+pinned. Surfaced in the QA dialog (already debug-gated) as "Force the next roll".
+
+Routing fixed two dead trails found on the way:
+
+| Row | Live roll site | Was |
+|---|---|---|
+| T9-48 | `MissionTableManager.roll_rival_attack_type()` | bare `randi_range(1, 10)` |
+| T9-47 | `CrewTaskComponent._resolve_table_task()` | bare `randi() % 100 + 1` |
+| T9-51 | `PostBattleSequence._on_character_event_roll()` | already routed |
+
+⚠ **`DataManager.get_trade_result` / `get_exploration_result` are not the live path** —
+both are commented out in full (`##`) and their only callers are in the dead
+`phases/WorldPhase.gd`. The live Trade/Explore D100 is `CrewTaskComponent`.
+
+⚠ **`MissionTableManager` is RefCounted and always built with `.new()`**, so it reaches the
+autoload through `Engine.get_main_loop()`; a bare `get_node_or_null("/root/...")` there
+does not return null, it ERRORS and aborts the roll.
+
+All 10 of that file's book-table rolls now route through one `_roll_die()` helper.
+Behaviour-neutral: one `randi_range` draw per call either way, so a seeded caller sees an
+unchanged RNG stream.
+
+**Gates**: `tests/unit/test_dice_forced_results.gd` 11/11 (three consecutive runs) ·
+`test_qa_scenarios.gd` 16/16 · **323/323 across the 22 unit suites touching the changed
+files** · `verify_battle_ui` 137/0 · `verify_post_battle` PASS · `verify_story_track` 9/0 ·
+7 lints CLEAN · parse clean. Routing and dialog cases both detection-proven.
+
+**STILL OPEN**: the device leg. The tool exists and is tested; T9-47/48/51 are verified on
+hardware only after a deploy that forces each roll.
+
+⚠ One case of mine was a **10% flake by construction**: `assert(rolled != 10)` after an
+out-of-range value is discarded — discarding means the roll is genuinely random, and a
+random D10 returns 10 one time in ten. It aborted the suite at 6 of 11 cases while the
+runner still printed `PASSED`. Read the case COUNT.
+
+### Tablet findings T10-01..T10-11 — all 11 CLOSED ON HARDWARE (deploy #16, Sep 4)
+
+| Finding | Fix | Device-verified? |
+|---|---|---|
+| **T10-11** BLOCKER — World Phase nav unreachable | nav pinned outside the scroll when not `tight` | ✅ both orientations |
+| **T10-01** confirm dialog renders empty | `dialog_text` + `dialog_autowrap` (a Control `add_child`'d into a Window gets no layout pass while `wrap_controls` is false) | ✅ renders, names all 5 crew, autowrap follow-up verified |
+| **T10-02** ⚔ reads as a cancel ✗ | glyph removed from the CTA | ✅ cause corrected, see below |
+| **T10-09** touch-drag scroll "dead" | **NOT A DEFECT** — closed as not reproduced | ✅ |
+| T10-03 fabricated job objective | removed from card / title / briefing | ✅ all THREE surfaces |
+| T10-04 confirm opens behind the drawer | `OverlayLayer` 10 → 93 | ✅ Hit sheet + Mark Down confirm |
+| T10-05 every card control dead to touch | `KeywordTooltip` → `MOUSE_FILTER_IGNORE` | ✅ Hit opened from the drawer |
+| T10-06 checkpoint lost on process death | `gs.save_campaign()` flush | ✅ **on disk + survived a real `am force-stop`** |
+| T10-07 two exclusive dialogs stack | hide the first before showing the second | ✅ not reproduced (0 log hits) |
+| T10-08 undo survives a cancelled confirm | snapshot moved into the callback | ✅ reads plain "Undo" |
+| T10-10 world event re-rolls on restart | guard derived from persisted `world_events` | ✅ screen == dashboard == save |
+
+### ⭐ Deploy #15: BOTH remaining findings were MISDIAGNOSED in #14
+
+Neither correction was reachable by reading code.
+
+- **T10-09 was my measurement, not a defect.** The #14 "control" swiped the content
+  **upward** and the scrollbar **downward** — two variables, not one. With the view
+  already at the bottom the first had nothing left to travel. Measured with
+  `ScrollContainer.scroll_started` (Android-only; fires for a drag on the scrollable
+  area, never the scrollbar): the gesture **arrives**, the chain under the finger is
+  clean, and `scrollable_span` is only **168 px** (step 2) / 414 px (step 1).
+  Verified in both directions on both steps.
+- **T10-02's glyph was never missing.** A cmap parse of all four bundled `.ttf`s shows
+  they lack ✓ ✗ ★ too — glyphs this device demonstrably renders — so
+  `allow_system_fallback=true` is live. Magnified 8x from a device screencap, U+2694
+  draws as two crossed blades with crossguards. The defect is **legibility at ~16 px**,
+  not coverage. A `SystemFont` fallback would have changed nothing.
+
+### Tooling added
+
+- `src/ui/components/common/TouchChainProbe.gd` — **debug-only** (`attach()` returns
+  null in a release build). Control chain under the finger with each `mouse_filter`,
+  hit-testable controls on higher CanvasLayers, live scroll spans, and a sweep-staleness
+  re-run. Shipped because this defect class has cost four device deploys and **a
+  `--script` SceneTree probe cannot load these screens at all** — autoloads are not
+  registered there, so `WorldPhaseController.gd:1345`'s bare `TweenFX` fails to compile
+  and `_ready()` never runs. `tests/tools/probe_world_phase_drag.gd` is marked SUPERSEDED
+  for exactly this reason; **discard its numbers.**
+- `tests/unit/test_primary_cta_glyphs.gd` (2 cases) — reads `PackedScene.get_state()`
+  rather than scanning text; detection-proven.
+
+### Cleanup
+
+`BattleJournal.gd`/`.tscn` **DELETED** — orphaned by the Sep 3 sprint's Phase 7, superseded
+by `FPCM_UnifiedBattleLog` (90 write sites in TacticalBattleUI). `lint_orphan_assets`
+`orphans` back to **0**. `BattleTierController.TIER_COMPONENTS` **kept** and documented as
+design data — it has zero production callers and the live gate is
+`TacticalBattleUI._apply_tier_visibility()`. Full reasoning in
+[WIRING_CLEANUP_BACKLOG.md](WIRING_CLEANUP_BACKLOG.md).
+
+### Open
+
+- **Nothing from T10.** All 11 are closed on hardware — ledger deploy #16.
+- **T11-01 (MED, new)** — the PreBattleUI footer is clipped to ~13 px of a 48 dp control
+  in landscape and the page does not scroll (controlled: three swipes, both directions,
+  two columns, all byte-identical). The sliver is tappable, so not a blocker.
+- **T11-02 (LOW, new)** — the Seize panel shows "Need 8+" and "Total: 7 vs 10" in the
+  same frame. Algebraically the same test and the outcome is correct; it is a
+  presentation inconsistency only.
+- The Aug 8-14 sprint is still ⏸ PAUSED — see the section below.
+
+---
+
 ## 🟡 § Tablet QA on real hardware (Aug 8-14 2026) — ⏸ PAUSED at a clean stopping point
 
 **▶ Pick up here: [qa/PICKUP_2026-08-14.md](qa/PICKUP_2026-08-14.md)** — read before
@@ -58,7 +262,7 @@ Two full days of findings. The classes worth remembering:
 - The Encounter Log's scenario boxes need a battle fought **under the new build** —
   journal entries written before it carry no `stats` scenario keys and there is no
   backfill. Old blanks are expected, not a regression.
-- `scripts/scan_dead_has_method_guards.py` reports ~91 permanently-false-guard
+- `scripts/lint_dead_has_method_guards.py` (GATING since Sep 4 2026) reports 62 permanently-false-guard
   candidates in `src/` (REPORT-ONLY, exits 0). Most are legitimate plugin probes; the
   list needs triage before it can gate.
 

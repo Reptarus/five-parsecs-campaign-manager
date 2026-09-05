@@ -708,7 +708,13 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		preview_vbox.add_child(map_view)
 
 		# Store terrain data for passthrough to post-battle
-		_store_terrain_for_passthrough(sector_array, theme_name)
+		# NO terrain passthrough. This used to write a "battlefield_terrain"
+		# temp-data blob whose ONLY consumer was
+		# PostBattleSummarySheet._setup_battlefield_recap. That component was
+		# deleted 2026-09-04 (unreachable from product and tests), so the write
+		# had no reader left. The battlefield itself already survives the battle
+		# through GameState.set_battlefield_data() / active_battlefield, which is
+		# the persisted contract every other consumer reads.
 		return
 
 	# Fallback: render terrain suggestions as text
@@ -823,19 +829,6 @@ func _on_table_size_override(new_ft: float) -> void:
 	for child in battlefield_preview.get_children():
 		child.queue_free()
 	_setup_battlefield_preview({})
-
-## Store terrain data in GameStateManager temp-data for post-battle passthrough.
-## Consumed by PostBattleSummarySheet._setup_battlefield_recap on the next screen.
-## (Pre-Sprint-2 this targeted GameState.temp_data, which does not exist — dead code.
-## Retargeted to GameStateManager during Sprint 2 F1.)
-func _store_terrain_for_passthrough(sectors: Array, theme_name: String) -> void:
-	var gsm: Node = get_node_or_null("/root/GameStateManager")
-	if gsm == null or not gsm.has_method("set_temp_data"):
-		return
-	gsm.set_temp_data("battlefield_terrain", {
-		"sectors": sectors,
-		"theme_name": theme_name
-	})
 
 ## Text fallback for terrain data without structured sectors
 func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) -> void:

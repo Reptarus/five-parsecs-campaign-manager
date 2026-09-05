@@ -5953,3 +5953,132 @@ restoring the ⚔ gives exactly 1 failure naming the node and codepoint.
 - The tablet has a secure lock and re-dozes fast. `adb shell svc power stayon usb`
   first; a locked screen returns a 19,838-byte all-black screencap, which is the
   cheapest way to notice.
+
+---
+
+# Deploy #16 — 2026-09-04 — the seven desk-only T10 fixes, on hardware
+
+**Device**: Lenovo TB361FU, 1600x2560 @ density 320 = 800x1280 dp, **landscape**.
+**Build**: the deploy #15 APK already on the device (`lastUpdateTime=2026-09-04 10:29:37`,
+versionCode 3, targetSdk 35) — `c4317b993` added no runtime behaviour after it.
+**Campaigns**: T10-10/11 walked on the user's real `asdasdasd` (turn 21); everything
+destructive walked on the QA fixture `tablet_qa_run` (turn 9). The real campaign was
+pulled before the walk and **restored byte-identically afterwards** (SHA256
+`c052451a…`, verified equal).
+
+## Result: all 11 T10 findings are now closed on hardware
+
+| ID | Verified how |
+|---|---|
+| **T10-01** | Step 2, one crew assigned of six, "Resolve All Tasks (1)" → the dialog renders its title, "5 crew have no task and will lose their action for this turn:", **all five crew by name**, and the Core Rules pp.77-78 cite. Deploy #14 measured 900,000 px of ONE luminance value. **The `dialog_autowrap` follow-up is verified in the same frame** — the rules sentence wraps and is fully legible |
+| **T10-03** | All THREE surfaces clean. Job list: "Quest **Objective (rolled at deployment)**". JOB DETAILS: Patron / Type / Pay / Danger Pay / Time Frame / Requirement / Enemy / Danger / Hazards / Location — **no `OBJECTIVE:` line** (p.83's field set exactly). Mission Prep briefing: Enemy / Danger / Location / Pay, no objective. PreBattleUI: "Mission type: Quest Objective (rolled at deployment)", and the rolled objective (Move Through) agrees with the win text AND the map marker |
+| **T10-04** | Both overlay callers reachable from a drawer render **above** it, drawer visibly dimmed behind: the p.46 Hit sheet and the Mark Down confirm |
+| **T10-05** | "Hit" on an enemy card **in the Enemy drawer** opened the Hit sheet. Deploy #14: byte-identical screenshots for Stun/Hit/Action/Aim/Snap/?. Screens differ (`039ec413…` → `078f504c…`) |
+| **T10-06** | ⭐ See below — proven on disk AND across a real SIGKILL |
+| **T10-07** | **NOT REPRODUCED.** Zero `exclusive` lines in the whole session log across a MainMenu → Continue Campaign load and a dashboard → Load Campaign load |
+| **T10-08** | Mark Down → **Cancel** → the bottom-left control reads plain "Undo" (disabled), not "Undo Mark Down" |
+| **T10-09** | Re-confirmed NOT A DEFECT on the Begin-Turn entry path too: a content drag changed the screen |
+| **T10-10** | CURRENT EVENT identical on two entries to the World Phase in one turn, on the dashboard, and equal to `world_events[-1]` in the pulled save ("A supply glut drops market prices by 20%") |
+| **T10-11** | Nav footer (`1 2 3 4 ✓ 6`, Back, Next Step, Back to Dashboard) **present on the dashboard "Begin Turn 21" path** — the deploy #14 BLOCKER |
+| T10-02 | closed in deploy #15 |
+
+## ⭐ T10-06 — both halves, measured
+
+**The disk flush.** Deploy #14's proof of the defect was `grep -c active_battle` on the
+live save = **0**. Mid-battle now, pulled with `run-as`, `progress.active_battle` is
+**structurally present** (not the `active_battlefield` substring — that collision is what
+made an earlier check of mine read false-positive):
+
+```
+keys: battle_event_fired_round, casualties_this_round, crew, enemies, mission_data,
+      objective_progress, phase, psionic_uses, reaction_rolled, red_job_hold_denied,
+      red_job_tc, round, schema_version, seize_initiative_result, source_enemies, tier, turn
+round=1  phase=0  turn=8  crew=list(6)  enemies=list(6)  tier=1  seize={roll_total:7, success:false}
+```
+
+**The kill.** `adb shell am force-stop` (pid confirmed gone — SIGKILL, so no
+`NOTIFICATION_APPLICATION_PAUSED`), relaunch, Continue Campaign, Begin Turn 9:
+
+```
+[R1] Battle resumed — Round 1, Reaction Roll. 6 crew and 6 enemies restored.
+ENEMIES 5 / 6 active        (Salvage Team Lieutenant struck through)
+Casualties this round: 1 [+ End Phase Morale]
+OBJECTIVE  Move Through (marked on map)
+```
+
+Same mission, same objective, same battlefield, same round and phase, tier still
+[ASSISTED]. **Nothing was re-rolled** — which was the whole point: the app still matches
+the table the player physically built.
+
+⚠ One nuance against the plan's wording: there is **no "Battle in progress — Resume"
+pill**. The dashboard phase reads "Turn 9 — Mission" and "Begin Turn 9" lands back in the
+battle. Functionally correct; the affordance is implicit. Recorded as UX, not a defect.
+
+⚠ Only **one** casualty was marked before the kill, not two — the second Mark Down tap
+missed after the card list re-flowed. One is enough to prove restoration; the count is
+stated as measured.
+
+## Sprint fixes ALSO verified on hardware for the first time
+
+- **Phase 1 Battle Card at ASSISTED** — the tier where defect A actually bit (the
+  InitiativeCalculator overlay freed the checklist before a frame drew). Battle Card
+  (Objective/Condition/Notable Sight/Enemy/Battlefield) + the p.110 deployment card +
+  the checklist + a fixed Begin Battle footer all render. Deploy #14 only saw this at
+  LOG_ONLY.
+- **Phase 2 seize, the `_ready()`-late bug** — pre-battle advertised "Need 8+ on 2D6
+  (Savvy +2) — 42%"; the in-battle panel says "Highest Savvy: 2 · Need 8+ (42%)". The
+  seeded context survives the panel's own `_ready()`. 42% = P(2D6>=8) = 15/36.
+- **Phase 2 one advance affordance / round tags** — `[R0]` deployment, `[R1]` round-1
+  events, 5-phase strip.
+- **Phase 3** — no HP bar and no "x / y HP" anywhere; the Hit sheet quotes p.46 verbatim
+  against the figure's real Toughness (4); **"Credited to: Bryn Ito"** attribution picker
+  present.
+- **Phase 5 / P6 / T5-03 / T5-04** — SSOT tier copy verbatim with exactly 3 radios per
+  group; persistent emerald Record Result; "Proceed to Battle" in the fixed footer;
+  Mission Prep briefing populated.
+
+## NEW findings
+
+### 🟠 T11-01 (MEDIUM) — the PreBattleUI footer is clipped to ~13 px and the page will not scroll
+
+Landscape, 2560x1600. The footer bar begins at **y=1587** on a 1600-px screen, so ~13 px
+of a 48 dp (96 px) control is on screen. Measured by scanning for non-background rows:
+content at y=1587-1599, nothing between y=1563 and y=1587.
+
+**Controlled**: three swipes — content-up in the left column, content-down in the left
+column, content-up in the centre — all returned **byte-identical** screenshots
+(`aef61caf3738`). The page does not scroll in either direction from either column, so
+this is not an exhausted-direction artefact (the T10-09 lesson applied deliberately).
+
+The sliver *is* tappable — a tap at y=1595 launched the battle — so this is not a
+blocker. It is the same class as T5-03/T10-11 (a required control at the screen edge) on
+the screen that starts every battle.
+
+### 🟡 T11-02 (LOW) — the Seize panel states its threshold two different ways in one frame
+
+`InitiativeCalculator` shows "Need **8+** on 2D6 (42% chance)"
+(`calculate_required_roll()` = `SEIZE_INITIATIVE_TARGET(10) - savvy - mods`, compared
+against raw 2D6) and, four lines below, "Total: 7 vs **10**" (`roll_total` = 2D6 + savvy
++ mods, compared against the constant). Algebraically identical, and pass/fail comes from
+the `BattleCalculations.check_seize_initiative` SSOT, so **the outcome is correct** — but
+the player is shown two thresholds for one roll.
+
+⚠ Recorded honestly: I first read this as a rules defect ("an 8 or 9 would be wrongly
+failed") and the code disproves it — with savvy +2 a 2D6 of 8 gives roll_total 10 >= 10,
+SUCCESS. Verify before filing.
+
+## Method notes
+
+- **Locate buttons by colour before tapping.** Three taps missed because the button row
+  RE-FLOWS when a button appears or disappears (a third button on assign; a REQUIREMENT
+  line vanishing on licence purchase). A 30-line PIL locator that clusters the accent
+  blue / emerald and prints tap centres removed the whole class.
+- **`"key" in json.dumps(save)` is a substring test, not a structural one.**
+  `active_battle` matched `active_battlefield` and told me the checkpoint was on disk
+  when it was not. Walk the parsed tree. Same family as the `replace_all` word-boundary
+  trap.
+- **Git Bash rewrites BOTH adb path arguments.** `MSYS_NO_PATHCONV=1` protects the remote
+  path but then breaks a `/c/...` local path — keep the local one Windows-style
+  (`C:/Users/...`) and set the variable.
+- The device was left clean: `svc power stayon false`, `screen_off_timeout` untouched
+  (already 1800000), and the user's campaign restored SHA256-identical.

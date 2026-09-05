@@ -58,29 +58,95 @@ func set_auto_mode(enabled: bool) -> void:
 	if dice_system:
 		dice_system.auto_roll_enabled = enabled
 
+## ── DEBUG-ONLY FORCED RESULTS (QA seam) ───────────────────────
+## Some book table rows cannot be reached by playing: the Rival AMBUSH row is a
+## D10 of 1, and the two crew-task rows QA needs are D100 51-53 / 76-78. No
+## in-app tool forces a table roll, which left three verified fixes desk-only
+## (docs/qa/PICKUP_2026-08-14.md §3).
+##
+## queue_forced_result() parks a value that the NEXT roll whose context contains
+## `context_key` consumes, once. Both ends are gated on OS.is_debug_build(), so a
+## release export can neither queue a value nor consume one — the same gate the
+## QA scenario dialog uses. The shipped rules data is never touched.
+##
+## Matching is a case-insensitive SUBSTRING of the roll context, because contexts
+## carry runtime detail ("Character Event: Bryn Ito").
+var _forced_results: Dictionary = {} # lowercase key -> Array[int] (FIFO)
+
+## Queue `value` for the next roll whose context contains `context_key`.
+## Returns false in a release build, or on an empty key.
+func queue_forced_result(context_key: String, value: int) -> bool:
+	if not OS.is_debug_build():
+		return false
+	var key: String = context_key.strip_edges().to_lower()
+	if key.is_empty():
+		return false
+	if not _forced_results.has(key):
+		_forced_results[key] = []
+	_forced_results[key].append(value)
+	return true
+
+## Drop queued values — one key, or all of them when `context_key` is empty.
+func clear_forced_results(context_key: String = "") -> void:
+	if context_key.strip_edges().is_empty():
+		_forced_results.clear()
+	else:
+		_forced_results.erase(context_key.strip_edges().to_lower())
+
+## What is currently queued, for the QA dialog to display.
+func get_forced_results() -> Dictionary:
+	return _forced_results.duplicate(true)
+
+## Consume a queued value for `context` if one matches and is legal for the die.
+## Returns -1 when the roll should be random — always so in a release build.
+func _take_forced(context: String, min_value: int, max_value: int) -> int:
+	if not OS.is_debug_build() or _forced_results.is_empty():
+		return -1
+	var haystack: String = context.to_lower()
+	for key in _forced_results.keys():
+		if not haystack.contains(str(key)):
+			continue
+		var queue: Array = _forced_results[key]
+		if queue.is_empty():
+			_forced_results.erase(key)
+			continue
+		var value: int = int(queue.pop_front())
+		if queue.is_empty():
+			_forced_results.erase(key)
+		if value < min_value or value > max_value:
+			# Discard rather than clamp: clamping would silently hand QA a
+			# different row than it asked for, which is worse than rolling.
+			push_warning("DiceManager: forced result %d for '%s' is outside %d-%d — discarded" % [value, key, min_value, max_value])
+			return -1
+		return value
+	return -1
+
 ## REPLACEMENT METHODS FOR EXISTING RANDOM CALLS
 ## These replace direct randi() calls throughout the codebase
 
 ## Replace: randi() % 6 + 1
 func roll_d6(context: String = "D6 Roll") -> int:
-	var result: int = randi_range(1, 6)
-	_record_roll(result, context, "D6")
+	var forced: int = _take_forced(context, 1, 6)
+	var result: int = forced if forced > 0 else randi_range(1, 6)
+	_record_roll(result, context, "D6 (forced)" if forced > 0 else "D6")
 	dice_roll_requested.emit(context, "D6")
 	dice_result_ready.emit(result, context)
 	return result
 
 ## Replace: randi() % 10 + 1
 func roll_d10(context: String = "D10 Roll") -> int:
-	var result: int = randi_range(1, 10)
-	_record_roll(result, context, "D10")
+	var forced: int = _take_forced(context, 1, 10)
+	var result: int = forced if forced > 0 else randi_range(1, 10)
+	_record_roll(result, context, "D10 (forced)" if forced > 0 else "D10")
 	dice_roll_requested.emit(context, "D10")
 	dice_result_ready.emit(result, context)
 	return result
 
 ## Replace: randi() % 100 + 1
 func roll_d100(context: String = "D100 Roll") -> int:
-	var result: int = randi_range(1, 100)
-	_record_roll(result, context, "D100")
+	var forced: int = _take_forced(context, 1, 100)
+	var result: int = forced if forced > 0 else randi_range(1, 100)
+	_record_roll(result, context, "D100 (forced)" if forced > 0 else "D100")
 	dice_roll_requested.emit(context, "D100")
 	dice_result_ready.emit(result, context)
 	return result
@@ -97,8 +163,9 @@ func roll_d66(context: String = "D66 Roll") -> int:
 
 ## Replace: 2d6 rolls
 func roll_2d6(context: String = "2D6 Roll") -> int:
-	var result: int = randi_range(1, 6) + randi_range(1, 6)
-	_record_roll(result, context, "2D6")
+	var forced: int = _take_forced(context, 2, 12)
+	var result: int = forced if forced > 0 else randi_range(1, 6) + randi_range(1, 6)
+	_record_roll(result, context, "2D6 (forced)" if forced > 0 else "2D6")
 	dice_roll_requested.emit(context, "2D6")
 	dice_result_ready.emit(result, context)
 	return result

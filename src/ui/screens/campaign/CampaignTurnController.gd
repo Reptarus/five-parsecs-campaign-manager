@@ -334,29 +334,19 @@ func _initialize_backend_systems() -> void:
 	else:
 		push_warning("CampaignTurnController: PlanetDataManager autoload not available")
 
-	# Initialize ContactManager for persistent contact tracking
-	var ContactManagerScript = preload("res://src/core/world/ContactManager.gd")
-	if ContactManagerScript:
-		var contact_manager = ContactManagerScript.new()
-		add_child(contact_manager)
-		contact_manager.name = "BackendContactManager"
-		if contact_manager.has_signal("contact_discovered"):
-			contact_manager.contact_discovered.connect(_on_backend_contact_discovered)
-	else:
-		push_warning("CampaignTurnController: ContactManager not available")
-
-	# Initialize RivalBattleGenerator for rival encounters
-	var RivalBattleScript = preload("res://src/core/rivals/RivalBattleGenerator.gd")
-	if RivalBattleScript:
-		var rival_generator = RivalBattleScript.new()
-		add_child(rival_generator)
-		rival_generator.name = "BackendRivalGenerator"
-		if rival_generator.has_signal("rival_battle_generated"):
-			rival_generator.rival_battle_generated.connect(_on_backend_rival_battle_generated)
-		if rival_generator.has_signal("rival_defeated_permanently"):
-			rival_generator.rival_defeated_permanently.connect(_on_backend_rival_defeated)
-	else:
-		push_warning("CampaignTurnController: RivalBattleGenerator not available")
+	# NO BackendContactManager / BackendRivalGenerator. Both were add_child()ed
+	# on every load and then never invoked: zero external callers across every
+	# public method of either class, one handler that was `pass`, and two
+	# signals emitted only from methods nobody calls. Their state was never
+	# serialized either, so the nodes were pure allocation.
+	#
+	# lint_orphan_assets still reports both files as "reachable from product"
+	# because this function used to preload them. Reachability proves a file is
+	# LOADED, never that its API is USED. Removed 2026-09-04.
+	#
+	# The live equivalents: rival battles come through BattleSetupRules (the
+	# p.91 types at :30-31) and this controller; contacts and patrons through
+	# RivalPatronResolver and PatronJobManager.
 
 	# NO GalacticWarManager endgame wiring. That autoload drove a fabricated
 	# "war track" system (absent from both rulebooks) whose campaign_ending_
@@ -378,41 +368,23 @@ func _on_backend_planet_data_updated(planet_id: String, update_type: String) -> 
 	## Handle planet data updates from backend
 	pass
 
-func _on_backend_contact_discovered(_contact) -> void:
-	## Handle contact discovery from backend ContactManager
-	pass
-
-func _on_backend_rival_battle_generated(battle_data) -> void:
-	## Handle rival battle generation from backend RivalBattleGenerator
-	
-	# Store battle data for the battle sequence
-	battle_results["rival_battle_data"] = battle_data
-	
-	# Update battle UI if available
-	if battle_transition_ui and battle_transition_ui.has_method("set_rival_battle_data"):
-		battle_transition_ui.set_rival_battle_data(battle_data)
-
-func _on_backend_rival_defeated(_rival_id: String) -> void:
-	## Handle rival permanent defeat from backend
-	pass
-
 ## Post-Battle Phase Signal Handlers
 
-func _on_post_battle_rival_resolved(rivals_removed: Array) -> void:
-	## Handle rival resolution from PostBattlePhase - update backend RivalBattleGenerator
-	var rival_generator = get_node_or_null("BackendRivalGenerator")
-	if rival_generator:
-		for rival_id in rivals_removed:
-			if rival_generator.has_method("mark_rival_defeated"):
-				rival_generator.mark_rival_defeated(rival_id)
+func _on_post_battle_rival_resolved(_rivals_removed: Array) -> void:
+	## Rival removal is done by RivalPatronResolver._remove_rival() (:887),
+	## which mutates the campaign directly. This handler used to mirror the
+	## result into a BackendRivalGenerator node via mark_rival_defeated() - a
+	## method with ZERO definitions repo-wide, so the loop was a
+	## permanently-false branch feeding a node nothing else read.
+	##
+	## Kept as a connected no-op: rival_status_resolved is part of
+	## PostBattlePhase's published interface and is connected at :156.
+	pass
 
-func _on_post_battle_patron_resolved(patrons_added: Array) -> void:
-	## Handle patron resolution from PostBattlePhase - update backend ContactManager
-	var contact_manager = get_node_or_null("BackendContactManager")
-	if contact_manager:
-		for patron_id in patrons_added:
-			if contact_manager.has_method("register_patron_contact"):
-				contact_manager.register_patron_contact(patron_id)
+func _on_post_battle_patron_resolved(_patrons_added: Array) -> void:
+	## Patron addition is done by RivalPatronResolver via ctx.add_patron()
+	## (:369). Same story: register_patron_contact() has zero definitions.
+	pass
 
 func _on_post_battle_experience_awarded(xp_awards: Array) -> void:
 	## Handle experience awards from PostBattlePhase
@@ -1368,11 +1340,22 @@ func _initiate_battle_sequence() -> void:
 			SeizeInitiativeSystemClass.DifficultyMode.INSANITY)
 	# Outnumbered check
 	init_sys.set_outnumbered(enemies.size() > active_crew.size())
-	# Enemy-specific modifier from first enemy
-	var enemy_init_mod: int = first_enemy.get(
-		"seize_initiative_modifier", 0)
-	if enemy_init_mod != 0:
-		init_sys.set_enemy_modifier(enemy_init_mod,
+	# Seize the Initiative modifiers, from BOTH places they are produced.
+	#
+	# THE BUG THIS FIXES (2026-09-04): this read `first_enemy` only. Two live
+	# producers write to `mission_data` instead -- the Black Job +1 (Core Rules
+	# p.151, stamped at ~:1172) and the Introductory Campaign's +/-1 (stamped via
+	# _stamp_narrative_battle_config at :1153) -- and NOTHING anywhere read that
+	# key. Both modifiers were computed, stored, displayed in the prep card, and
+	# consumed by nothing. Ordering was never the problem: both writes land well
+	# before this point; the two halves simply addressed different dictionaries.
+	#
+	# They are SUMMED rather than one overriding the other because they are
+	# independent rules that can legitimately co-occur (a Black Job against an
+	# enemy category that already carries a modifier).
+	var total_init_mod: int = _seize_modifier_total(first_enemy, mission_data)
+	if total_init_mod != 0:
+		init_sys.set_enemy_modifier(total_init_mod,
 			first_enemy.get("type", "Enemy"))
 
 	# Difficulty index in InitiativeCalculator's dropdown order
@@ -1402,13 +1385,20 @@ func _initiate_battle_sequence() -> void:
 		# Deliberately NOT also flagged as hired_muscle — the calculator has its
 		# own -1 toggle for that rule and setting both would apply it twice.
 		"hired_muscle": false,
-		"enemy_modifier": enemy_init_mod,
+		# The SUM, so the in-battle calculator applies exactly what the
+		# pre-battle screen displayed (the p.112 target must not move).
+		"enemy_modifier": total_init_mod,
 		"enemy_name": first_enemy.get("type", "Enemy"),
 		# Core Rules p.91, Rival Ambush: "cannot roll to Seize the Initiative".
-		# The only scenario in the battle chapter that forbids the roll outright.
-		"can_seize": bool(setup_bundle.get("can_seize_initiative", true)),
-		"cannot_seize_reason": "" if setup_bundle.get("can_seize_initiative", true) \
-			else "Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)",
+		#
+		# ONE gate, two producers. `setup_bundle` carries the p.91 Ambush case;
+		# `mission_data["no_seize_initiative"]` is stamped by the Introductory
+		# Campaign (:1692) and had NO reader at all, so that scenario's ban was
+		# never enforced. Both funnel through this single field rather than a
+		# second mechanism -- a second place that can suppress the same roll is
+		# how the p.120 Rival payment rule ended up duplicated.
+		"can_seize": _can_seize_initiative(setup_bundle, mission_data),
+		"cannot_seize_reason": _cannot_seize_reason(setup_bundle, mission_data),
 	}
 
 	# Normalize data keys for downstream consumers
@@ -1626,6 +1616,35 @@ func _stamp_black_zone_objective(mission_data: Dictionary) -> void:
 	}
 	mission_data["victory_condition"] = str(row.get("description", ""))
 
+
+## The p.112 Seize the Initiative roll is allowed unless a rule forbids it.
+## Both producers are checked here so there is exactly one suppression point.
+## Every Seize the Initiative modifier that is not the crew Savvy base, summed.
+##
+## TWO PRODUCERS, and until 2026-09-04 only the first was read:
+##   first_enemy["seize_initiative_modifier"]  - encounter category + enemy traits
+##                                              (EnemyGenerator.gd:1580)
+##   mission_data["seize_initiative_modifier"] - the Black Job +1 (Core Rules
+##                                              p.151) and the Introductory
+##                                              Campaign +/-1
+## Extracted so the arithmetic can be asserted without running the whole
+## battle-launch sequence.
+func _seize_modifier_total(first_enemy: Dictionary, mission_data: Dictionary) -> int:
+	return int(first_enemy.get("seize_initiative_modifier", 0)) 		+ int(mission_data.get("seize_initiative_modifier", 0))
+
+func _can_seize_initiative(setup_bundle: Dictionary, mission_data: Dictionary) -> bool:
+	if not bool(setup_bundle.get("can_seize_initiative", true)):
+		return false
+	if bool(mission_data.get("no_seize_initiative", false)):
+		return false
+	return true
+
+func _cannot_seize_reason(setup_bundle: Dictionary, mission_data: Dictionary) -> String:
+	if not bool(setup_bundle.get("can_seize_initiative", true)):
+		return "Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)"
+	if bool(mission_data.get("no_seize_initiative", false)):
+		return "This introductory battle does not use Seize the Initiative"
+	return ""
 
 func _stamp_narrative_battle_config(mission_data: Dictionary) -> Dictionary:
 	## Stamp Story Track / Introductory Campaign identity + battle overrides onto
