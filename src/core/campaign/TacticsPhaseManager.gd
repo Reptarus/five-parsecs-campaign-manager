@@ -6,7 +6,15 @@ extends Node
 ##   POST_BATTLE → ADVANCEMENT → STRATEGIC
 ## Each phase must complete before the next begins.
 ## After STRATEGIC, the operational turn is complete.
-## Source: Five Parsecs: Tactics rulebook pp.155-168
+## Source: Five Parsecs: Tactics **pp.92-100** — "THE OPERATIONAL SYSTEM" in the
+## Campaign Play chapter (Cohesion, the Map, Operational Zones, Army Strength, the
+## 8-step Operational Turn at p.96, Commando Raids, Player Battle Points, and
+## Special Regions at p.100).
+## ⚠ CITE CORRECTED 2026-09-04 from "pp.155-168", which is the **Lifeforms
+## bestiary** chapter — 63 pages off. docs/rules/tactics_source.txt marks raw page N
+## with the PRINTED number on the next line (offset raw-2), verified at three points:
+## raw 94 -> p.92 "THE OPERATIONAL SYSTEM", raw 157 -> p.155 "Lifeforms/Hulkers",
+## raw 170 -> p.168 "Lifeforms/CREATURES".
 
 signal phase_changed(old_phase: int, new_phase: int)
 signal phase_completed(phase: int)

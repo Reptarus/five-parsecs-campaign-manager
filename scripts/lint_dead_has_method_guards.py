@@ -72,11 +72,23 @@ _ready _init _process _draw _input _gui_input get_stylebox get_font get_color
 # ---------------------------------------------------------------------------
 
 _PLATFORM = "platform/GDExtension API — only exists on some platforms, so has_method() is the correct probe"
-_DEAD_FILE = "sits in a file that is production-dead (tier-7 wire-or-delete backlog); goes away with the file"
+_DEAD_FILE = "sits in a file that is production-dead; goes away with the file"
 _NOT_A_CALL = "not a real guard — comment text or a dynamically built name"
 _DUCK = "duck-typed across two shapes; the live path uses the other branch"
+_SWEEP = ("defined only on a class deleted in the 2026-09-04 production-dead sweep;"
+          " the guard was never true in production and the fallback branch is the live path")
 
 ALLOWLIST: dict[str, str] = {
+    # --- lost their only definition in the 2026-09-04 production-dead sweep ---
+    # Each of these named a method defined ONLY on a class deleted that day
+    # (GameItem/GameGear/GameArmor/GameWeapon, ShipComponent, rivals/EnemyData).
+    # None was ever true in production: those classes had no product instantiation,
+    # so the guard already fell through to the branch that does the real work.
+    "get_id": _SWEEP,          # Ship.gd:104 — product never calls add_component()
+    "get_type": _SWEEP,        # Ship.gd:117 — same subsystem, never populated
+    "get_item_name": _SWEEP,   # CharacterCard.gd:783 — live items are Dictionaries
+    "get_weapons": _SWEEP,     # BattleTransitionUI.gd:232 — Dictionary branch precedes
+    "set_armor": _SWEEP,       # EquipmentManager.gd:792 — the `else` branch is live
     # --- GodotSteam ---------------------------------------------------------
     "activateGameOverlayToStore": _PLATFORM,
     "activateGameOverlayToWebPage": _PLATFORM,
@@ -102,16 +114,9 @@ ALLOWLIST: dict[str, str] = {
     "set_text_rendering_mode": _PLATFORM,
     "set_title": _PLATFORM,
     # --- inside production-dead files ---------------------------------------
-    "mark_unit_casualty": _DEAD_FILE,
-    "mark_unit_injured": _DEAD_FILE,
-    "modify_movement": _DEAD_FILE,
-    "set_parent_node": _DEAD_FILE,
     "get_current_scale_factor": _DEAD_FILE,
-    "get_current_turn": _DEAD_FILE,
-    "set_character_type": _DEAD_FILE,
     # --- not actually guards -------------------------------------------------
     "check_rival_encounter": _NOT_A_CALL,
-    "set_": _NOT_A_CALL,
     # --- pre-existing, a live fallback runs ---------------------------------
     # Each of these has a working branch after the guard, so the dead probe is
     # inert rather than harmful. They are recorded so the lint gates on NEW
@@ -120,7 +125,6 @@ ALLOWLIST: dict[str, str] = {
     "clear_pending_purchases": _DUCK,
     "create_patron": _DUCK,
     "expand_section_for_phase": _DUCK,
-    "generate_connections": _DUCK,
     "get_campaign": _DUCK,
     "get_campaign_state": _DUCK,
     "get_context": _DUCK,

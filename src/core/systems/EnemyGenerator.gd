@@ -611,6 +611,9 @@ func generate_enemies_as_dicts(
 	# could draw any encounter category at all.
 	var is_red_zone: bool = bool(mission_data.get("is_red_zone", false))
 	var is_black_zone: bool = bool(mission_data.get("is_black_zone", false))
+	# Compendium p.21 Psi-hunters — stamped onto mission_data by
+	# CampaignTurnController._apply_rival_ambush_override.
+	var is_psi_hunter: bool = bool(mission_data.get("is_psi_hunter", false))
 
 	# Step 1: Select enemy type FIRST (Core Rules pp.91-94)
 	var category: String = ""
@@ -876,6 +879,14 @@ func generate_enemies_as_dicts(
 		# thresholds, which would have given a 16-figure force only two.
 		if is_black_zone:
 			specialist_count = BLACK_ZONE_INITIAL_TEAMS
+		# Compendium p.21: "After generating the number and nature of enemies, add
+		# 1 additional Specialist enemy to their force." An ADDITION, so it applies
+		# AFTER the Red/Black Zone rows, which are REPLACEMENTS of the p.93
+		# thresholds — unlike the Insanity +1 above, which a zone row overwrites.
+		# It stays inside `uses_weapons` (errata v1.06: animals get no Specialists)
+		# and inside the clamp, so it cannot make a force entirely Specialists.
+		if is_psi_hunter:
+			specialist_count += 1
 		specialist_count = mini(specialist_count, maxi(0, enemy_count - 1))
 	# A Red Job always fields its Lieutenant, even below the p.93 count of 4.
 	var has_lieutenant: bool = (enemy_count >= 4) or is_red_zone
@@ -1227,6 +1238,19 @@ func generate_enemies_as_dicts(
 		promoted["toughness"] = mini(int(promoted.get("toughness", 3)) + 2, 6)
 		promoted["name"] = "%s (Battle-hardened)" % str(promoted.get("name", enemy_name))
 		promoted["better_leadership_promoted"] = true
+
+	# Compendium p.21: "Note on your record sheet that these Rivals are Psi-hunters
+	# in addition to their normal type." The tag belongs to the whole BAND, and the
+	# +1-vs-Psionic attack bonus is read off each enemy dict by
+	# BattleCalculations.psi_hunter_attack_bonus(). Stamped ONCE here, after the
+	# force is assembled, rather than inside the three separate append literals
+	# (basic figures, the Red Zone Captain, and Unique Individuals) - a per-literal
+	# stamp caught only the first, which is exactly the "one rule, three sites"
+	# trap this codebase keeps finding.
+	if is_psi_hunter:
+		for _e in enemies:
+			if _e is Dictionary:
+				_e["is_psi_hunter"] = true
 
 	return enemies
 

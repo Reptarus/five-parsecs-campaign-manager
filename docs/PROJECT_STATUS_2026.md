@@ -257,7 +257,7 @@ Deep audit of core rules + compendium integration. 8 issues investigated, 6 fixe
 - **PsionicManager legality**: Wired `roll_world_legality()` into WorldPhase (DLC-gated, writes to world data).
 - **LoanManager**: Fixed API mismatch (`game_state.credits` -> `add_credits()/remove_credits()`). Wired DLC-gated loan UI into TradePhasePanel + loan interest into UpkeepPhasePanel.
 - **Compendium names**: Character._generate_name() now delegates to compendium species-specific name tables for non-human origins.
-- **Non-issues**: MoraleSystem is stateless (morale on campaign.crew_morale). VictoryConditionTracker is dead code (EndPhasePanel handles victory).
+- **Non-issues**: MoraleSystem is stateless (morale on campaign.crew_morale). VictoryConditionTracker was dead code and was DELETED 2026-09-04 (EndPhasePanel + core/victory/VictoryChecker.gd handle victory).
 
 ---
 
@@ -371,7 +371,7 @@ Deep audit of all 37 ContentFlags across 4 DLC packs. Found that while data clas
 
 ## Known Minor Items (Not Bugs)
 
-- BattleSetupData/BattleResults use plain Dictionaries (not typed Resource classes)
+- Battle setup and results travel as plain Dictionaries, not typed Resource classes. The typed `BattleSetupData.gd` / `BattleResults.gd` scaffolds were DELETED 2026-09-04 (production-dead); the result contract is owned by `src/core/battle/BattleResultNormalizer.gd` (see `docs/BATTLE_RESULTS_CONTRACT.md`).
 - Memory leak warnings on quit from phase handler nodes (cosmetic)
 - Old `CampaignPhase` enum in GlobalEnums.gd deprecated — 3 files still reference it (Campaign.gd, GameCampaignManager.gd, ValidationManager.gd) for save-format compat; turn loop uses `FiveParsecsCampaignPhase`
 - GodotApplePlugins `.gdextension` error on Windows — expected, no iOS/macOS library available on Windows dev machines. Harmless, does not affect builds or exports

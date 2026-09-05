@@ -145,6 +145,13 @@ static func check(
 	result["rival_type"] = rival_type_of(picked)
 	result["is_elite"] = picked is Dictionary and bool(
 		(picked as Dictionary).get("is_elite", false))
+	# Compendium p.21: "Note on your record sheet that these Rivals are Psi-hunters
+	# in addition to their normal type." The tag rides with the Rival exactly like
+	# is_elite, because the three adjustments it carries (Seize the Initiative -2,
+	# +1 Specialist, +1 to attack a Psionic) are applied at BATTLE time, turns after
+	# the Rival was created.
+	result["is_psi_hunter"] = picked is Dictionary and bool(
+		(picked as Dictionary).get("is_psi_hunter", false))
 	result["reason"] = "Rolled %d against %d Rival(s) — %s tracked you down (Core Rules p.85)." % [
 		roll, rivals.size(), result["rival_name"]]
 	return result

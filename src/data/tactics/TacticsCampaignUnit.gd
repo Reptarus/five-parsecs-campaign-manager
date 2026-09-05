@@ -4,12 +4,16 @@ extends Resource
 ## TacticsCampaignUnit - Persistent unit in a Tactics campaign roster
 ## Tracks campaign progression: Campaign Points, veteran skills, casualties.
 ## Simplified from AoF CampaignUnit: drops dual-scale, squad pool, wounds.
-## Source: Five Parsecs: Tactics campaign rules pp.155-172
+## Source: Five Parsecs: Tactics **pp.106-107** — "CAMPAIGN PROGRESSION".
+## ⚠ CITE CORRECTED 2026-09-04 from "pp.155-172", which spans the **Lifeforms
+## bestiary** into **Items and Costs** — neither covers campaign progression.
 
-# Campaign progression constants (Tactics rulebook p.160)
-const CP_PER_BATTLE := 1
-const CP_PER_VICTORY := 1
-const CP_PER_SECONDARY_OBJECTIVE := 1
+# ⚠ The CP award is NOT owned here. Tactics pp.106-107 awards it per BATTLE, not
+# per unit, and TacticsCampaignCore.record_battle() is the single live grant site
+# (see TacticsCampaignCore.campaign_points_for()). The three flat constants that
+# used to sit here — 1 per battle, +1 win, +1 "secondary objective" — were
+# fabricated, cited to p.160 (a Lifeforms bestiary page), and are gone. Nothing
+# called this class's record_battle(); the live path is the Core's.
 
 # Identity
 @export var unit_id: String = ""

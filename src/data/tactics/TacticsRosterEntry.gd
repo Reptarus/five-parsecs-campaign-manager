@@ -4,7 +4,8 @@ extends Resource
 ## TacticsRosterEntry - One configured unit in a player's Tactics roster
 ## Simplified from AoF ArmyListEntry: drops combined units logic.
 ## Adds org_slot tracking for platoon composition validation.
-## Source: Five Parsecs: Tactics army building rules pp.81-88
+## Source: Five Parsecs: Tactics **pp.132-138** — the Army Builder chapter.
+## ⚠ CITE CORRECTED 2026-09-04 from "pp.81-88" (that is Scenario Types).
 
 # Base unit from the species book
 var base_profile: TacticsUnitProfile = null

@@ -94,9 +94,19 @@ py scripts/lint_data_ownership.py      # data-ownership violations (should stay 
 `has_method("name")`, `call\w*\(\s*["']name`, `Callable\(.*name`, `method="name"`
 in `**/*.tscn`, the `signal_variants` arrays in `SignalConnectionManager.gd`, and
 `tests/`. ANY hit → keep + record why. For a `/root/Name` lookup, ALSO grep
-`tests/` for a mock injection (test seam — see the DiceSystem lesson). Delete the
-`.uid` sibling with every `.gd`/`.tscn`. Every wave: headless compile + FULL suite
-(`-a tests/unit -a tests/integration -a tests/battle -c`) green before commit.
+`tests/` for a mock injection (test seam — see the DiceSystem lesson).
+
+**ALSO GREP THE UID (added 2026-09-04).** `uid://` is a SECOND reference form: Godot's
+ResourceUID exists so references survive a rename or move, so a `.tscn` can point at a
+script by UID with its path nowhere in the file — and this repo has **106 `uid://`
+references** in `src/` scenes. Read each candidate's UID out of its `.uid` sibling and
+grep THAT across `src/`, `tests/` and `project.godot` as well. A path-only grep can come
+back clean while a live scene still resolves the file. (The Sep 4 sweep ran this check:
+0 hits across all 39 — but it was not part of the protocol before.)
+
+Delete the `.uid` sibling with every `.gd`/`.tscn`. Every wave: headless compile + the suites green before commit. ⚠ The single-process
+FULL run SEGFAULTS at ~58 suites (proven pre-existing in a throwaway worktree at HEAD),
+so run `tests/unit` in batches of **≤38** and `tests/integration` (34 suites) in one go.
 
 Definition of done for the "clean slate": all four lints exit 0 (or every residual
 carries a justified `# lint:ignore` / allowlist entry), and the zero-caller +
@@ -309,46 +319,54 @@ absent from the repo) and `"new_campaign_tutorial"` + its scene, whose node name
 did not match the shared script's `@onready` paths, so none of its buttons had a
 handler. See `e33d3294`.
 
-### NOT deleted: 39 production-dead-but-test-referenced files
+### ✅ CLOSED 2026-09-04 — all 39 production-dead files deleted (`test_only` 39 → 0)
 
-These need a wire-or-delete decision each, so they are listed rather than swept.
+`lint_orphan_assets.py` now reports `files=557 reachable_from_product=556 test_only=0
+orphans=0 unwired_rules=1` and **exits 0 for the first time**. The one remaining entry
+is `src/data/tactics/TacticsOperationalMap.gd`, which is a book chapter with no caller
+(Tactics pp.92-100), not an orphan.
 
-**Built, documented, never wired into a screen** — deleting these throws away
-finished work; wiring them is a product call:
+**What went:** 11,349 lines / 364 KB across 39 files — battle scaffolds (`BattleResults`,
+`BattleSetupData`, `BattlefieldTypes`, `FPCM_BattleManager`, `FPCM_BattleState`,
+`PostBattleProcessor`), the Resource-based item model (`GameItem`, `GameGear`,
+`GameArmor`, `GameWeapon`, `ConsolidatedArmor`) the app abandoned for Dictionaries,
+mission/patron/rival generators, `EconomySystem` (842 lines, already disclaimed as dead
+by `UpkeepSystem.gd:277-282`), `BaseCharacterResource` + `character_base`, the terrain
+pair, `CampaignConfig`, `ShipData`/`ShipComponent`, `ContactManager`,
+`RivalBattleGenerator`, and the deprecated `ResponsiveContainer` shim. Plus 3 fabricated
+JSON tables whose only readers were deleted files, and 4 orphaned test fixtures with
+zero callers anywhere.
 
-| File | Note |
-|---|---|
-| `ui/components/postbattle/PostBattleSummarySheet.tscn` | `PreBattleUI.gd:648` still *produces* battlefield-recap data "consumed by PostBattleSummarySheet on the next screen" — a producer feeding a consumer that never runs |
-| `ui/components/postbattle/BattlefieldFindCard.{gd,tscn}` | post-battle finds card |
-| `ui/components/campaign/{QuickActionsFooter,StoryTrackSection,CampaignTurnProgressTracker}` | dashboard sections |
-| `ui/components/{mission/MissionStatusCard,world/WorldStatusCard}` | status cards |
-| `ui/components/common/{BookFrame,OrnamentPanel}` | CLAUDE.md documents both as live widget-library chrome; nothing references them |
-| `ui/components/ResponsiveContainer.gd` | superseded by `AdaptivePanelGroup` / `ResponsiveManager`? verify before deleting |
+**Every one was checked for a book chapter first, and none qualified.** Nine carried page
+cites; all nine proved duplicate-or-fabricated. The two that looked unique were killed by
+the PDF: `roll_background_event` cites p.14-15 for a d66 table (p.14 is Crew Type Tables,
+p.15 is Human Characters; the book's Background/Motivation/Class tables are **D100 at
+pp.24-27**) and grants "+1 to Leadership / Survival / Morale checks", none a Five Parsecs
+stat; `calculate_enemy_count` is superseded by `EnemyGenerator.gd:589-658`.
 
-**Superseded model/scaffold classes** (safe to delete once their suites are
-repointed or removed): `core/campaign/{Campaign,VictoryConditionTracker}`,
-`base/campaign/BaseMissionGenerator`, `{base/mission/mission_base,
-core/mission/base/mission}`, `game/campaign/FiveParsecsMissionGenerator{,Wrapper}`,
-`core/economy/loot/{GameGear,GameItem}`, `core/systems/items/GameArmor`,
-`core/character/Equipment/ConsolidatedArmor`, `core/rivals/Patron`,
-`core/patrons/PatronJobGenerator`, `data/{config/CampaignConfig,ship/ShipData}`,
-`core/character/{connections/CharacterConnections,tables/CharacterCreationTables}`,
-`core/terrain/TerrainRules`, `core/battle/{BattleSetupData,PostBattleProcessor}`,
-`core/systems/UniversalDataAccess`, `core/state/SerializableResource`,
-`ui/screens/world/WorldPhaseAutomationController`.
+**Test cost, and what was preserved.** 303 cases across 16 suites depended on them. Each
+suite was classified PURE-DEAD (dies with the scaffold) or MIXED (also covers live code)
+before anything was removed — that gate is what kept 21 live implant cases which the file
+name hid inside `test_equipment_classes.gd`. Preserved into new homes:
+`tests/unit/test_character_implants.gd` (21) and `tests/unit/test_dice_system_contexts.gd`
+(1 — DiceSystem had no other suite anywhere). Trimmed in place: `test_ship_system` 47→8
+(with a duck-typed stub, deliberately using `component_id` so it still exercises the third
+branch of `Ship.get_component_by_id`), `test_generator_wiring` 24→10,
+`test_edge_cases_negative` 12→3, `test_house_rules` 21→20 (repointed onto the live
+`ExpandedConfigPanel.get_campaign_config_data()` chokepoint). `test_expanded_connections`
+(22) was left untouched — its name invites confusion with the deleted
+`CharacterConnections.gd` and it is a wholly live suite.
 
-Two were book-checked and carry no unique Core Rules mechanic, so they are
-delete-not-wire: `VictoryConditionTracker` (the live path is
-`core/victory/VictoryChecker.gd` via `CampaignPhaseManager`; the tracker's own
-test emits the signal it then asserts on, so it proves nothing) and
-`WorldPhaseAutomationController` (invented "Digital Dice / object pooling /
-frame yielding" scaffolding).
+⚠ **Eleven of the removed cases asserted nothing at all** — 7 comment-only bodies in
+`test_edge_cases_negative` plus 10-of-13 in `test_battle_ui_components` guarded on an
+`event_bus` its own setup hard-sets to `null`. They reported PASS forever. Count asserting
+cases, not cases.
 
-**Worth wiring, not deleting:** `core/state/SaveFileMigration.gd` is a complete,
-tested, version-safe migration framework that production never calls
-(`CURRENT_SCHEMA_VERSION = 1`, no migrations registered). It is the correct home
-for the legacy `origin` float→String normalization that CLAUDE.md currently
-band-aids with `str()` guards at each call site.
+⚠ **The deletions exposed 8 new permanently-false `has_method` guards**, each naming a
+method defined only on a deleted class, each already falling through to the live branch.
+All are allowlisted in `lint_dead_has_method_guards.py` with the reason; 8 stale entries
+were dropped. A zero-caller `create_enhanced_character()` block (68 lines) in
+`CharacterGeneration.gd` went with them.
 
 ---
 

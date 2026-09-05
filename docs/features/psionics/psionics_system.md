@@ -194,7 +194,7 @@ func _process_enemy_turn(enemy: Character):
 ```
 
 ### Post-Battle Phase
-- `PostBattleProcessor.gd` needs to handle psionic advancement (spending XP).
+- Psionic advancement (spending XP) belongs in `src/core/campaign/phases/post_battle/ExperienceTrainingProcessor.gd`. ⚠ This line used to name `PostBattleProcessor.gd`, which was DELETED 2026-09-04 as production-dead — the live 14-step orchestrator is `src/core/campaign/phases/PostBattlePhase.gd` and its `post_battle/` subsystems.
 
 ## 5. DLC Gating
 

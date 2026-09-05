@@ -1,5 +1,10 @@
 # QOL Features - Implementation Guide
 
+> ⚠ **Stale integration targets (2026-09-04).** This plan names `PatronJobGenerator.gd`, which was **DELETED** as production-dead. Patron job
+> offers are owned by `src/ui/screens/world/components/JobOfferComponent.gd` + `PatronJobEffects` reading `data/patron_generation.json`.
+> (`BattleResultsManager.gd` named below is a DIFFERENT, live class — it was not touched.)
+
+
 **Created**: 2025-11-17  
 **Status**: Ready for Beta Implementation  
 **Total Effort**: 20-25 development days

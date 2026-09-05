@@ -2,6 +2,43 @@
 
 ---
 
+### 🔴 OPEN — Tactics rules accuracy (found 2026-09-04, NOT fixed)
+
+Correcting five wrong Tactics page cites exposed two data defects. One was fixed; one is
+open and recorded at the site.
+
+**FIXED — Campaign Points award.** `TacticsCampaignCore.record_battle()` awarded a flat
+1 CP, +1 win, +1 "secondary objective" — a maximum of **3** — cited "(p.160)", a page in
+the Lifeforms bestiary. Tactics **pp.106-107** (the book's index: "Campaign Points (CP)
+106") gives *"Roll three D6s and drop the lowest result. The sum of the two remaining
+dice is the base number of CP awarded"*, then either 1 CP per VP or **+3 victory / +2
+draw / +1 defeat**. The book's own worked example totals 11. Players were earning roughly
+a quarter of the currency that gates every unit upgrade, roster change and battle
+advantage. Pinned by `tests/unit/test_tactics_campaign_points.gd` (6 cases, built on the
+book's example), detection-proven.
+
+**OPEN — platoon composition.** `TacticsCompositionValidator` disagrees with Tactics
+**p.134** on four values:
+
+| Element | Book (p.134, verbatim) | Code |
+|---|---|---|
+| Leaders | "Leaders (1-2)" | `PLATOON_LEADER_COUNT := 1` |
+| Troops | "Troops (2-4)" | `MAX_TROOPS_PER_PLATOON := 5` |
+| Supports | "Supports (0-3; must be fewer than number of Troops)" | `:= 4`, and the relational clause is in the COMMENT but never enforced — the check is a flat compare |
+| Specialists | "Specialists (0-1 per 2 Troops)" | `:= 2`, flat |
+
+So the validator accepts illegal armies and rejects legal ones. Scoped as a Tactics
+rules-accuracy audit rather than fixed inline: Tactics is alpha-2
+(`CLOSED_ALPHA_PLAN.md:32,88`) and changing army-building validation needs its own tests
+and a look at existing saved armies. Recorded in the file's docblock so the next reader
+cannot miss it.
+
+### Production-dead sweep — CLOSED 2026-09-04
+
+`lint_orphan_assets.py`: `files=557 reachable_from_product=556 test_only=0 orphans=0 unwired_rules=1` (**exit 0**). 39 source files deleted (11,349 lines / 364 KB — all of it packed into every APK/AAB, since `export_filter="all_resources"` and Android tooling does not strip Godot's PCK), plus 3 fabricated JSON tables, 4 zero-caller test fixtures, 6 stale UI-test guides (1,616 lines) and a 68-line zero-caller block in `CharacterGeneration.gd`.
+
+All 8 gating lints CLEAN. Live coverage was preserved BEFORE anything was deleted, via a PURE-DEAD/MIXED classification of all 16 dependent suites — that gate is what caught 21 live implant cases hidden inside `test_equipment_classes.gd`, now `tests/unit/test_character_implants.gd`, and the sole `DiceSystem` case, now `tests/unit/test_dice_system_contexts.gd`. The one remaining `unwired_rules` entry is a book chapter with no caller (Tactics **pp.92-100** — cite corrected from a wrong pp.155-168, which is the Lifeforms bestiary).
+
 ## 🟢 § Sep 3-4 2026 — battle-phase sprint, page walk, tablet deploys #14/#15/#16
 
 Branch `campaign-editor-and-fixits`, committed through `c4317b993`.
@@ -612,7 +649,7 @@ A project-wide sweep (probe scripts vs the live 4.6 engine, crash repro, PDF ver
 
 **Final green baseline (2026-07-02, definitive)**: **129/129 suites, 1552/1552 test cases, 0 errors, 0 failures, 0 flaky, 0 crashes.** First fully-green complete run in project history. Known non-failure noise: 1669 orphan nodes across a handful of suites (cleanup follow-up, tracked below).
 
-**Still-open cleanup list** (verified dead/dormant, not yet removed — needs approval): `src/game/combat/CombatResolver.gd` (references nonexistent `GameEnums.UnitAction.SPECIAL_ABILITY`; zero scene refs), ~~`EquipmentManager.apply_gun_mod()` (zero callers)~~ (**gone, verified Sep 3 2026** — the function no longer exists anywhere; p.53 Gun Mods and Sights are owned by `src/core/equipment/WeaponModService.gd`), ~~~8 dangling `/root/CampaignManager` null-lookups~~ (**zero remain, verified Sep 3 2026** — `lint_autoload_lookups` is clean), ~~PatronRivalManager `threat_level` data-contract crash~~ (**CLOSED Sep 3 2026**, see the row below). Observed during MCP smoke, unattributed: ~10 engine-level "Lambda capture at index 0 was freed" errors on unusual scene-transition paths (MainMenu→legal_viewer→dashboard) — no GDScript backtrace; predates-sprint likelihood high (no new lambdas executed); worth a dedicated look. — Phase 4 (5 hard screens) + Phase 5 (device-QA matrix + 14-screen remediation) SHIPPED & verified. See "§ Responsive / Device QA" below. Prior 2026-05-17: BUG-101 RE-FIXED: 05-16 verify was premature — user re-reported residual 3-10px terrain bleed; true root cause empirically isolated (SVS draws body on rotated `offset`, not `position`), back-solved position + stroke envelope, MCP-verified 0/316 offenders across 10 distinct seeds. CLR-101: objective "dead center" confirmed verbatim rules-correct vs Core Rules PDF p.90 — kept position, added rule-cite label (user-chosen). objective-tracker 14/14 PASS. Prev 2026-05-16: Battle-UI Sweep BUG-100..106 filed; BUG-100/102/103/104/105 fixed+verified, BUG-106 umbrella)
+**Still-open cleanup list** — ✅ **CLOSED 2026-09-04.** `src/game/combat/CombatResolver.gd` was already deleted in the Jul 10 wiring-audit sprint (the whole `src/game/combat/` directory is gone); this line had gone stale. The wider dead-code backlog closed the same day: `lint_orphan_assets.py` now reports `test_only=0 orphans=0` and exits 0 for the first time, after 39 production-dead files (11,349 lines / 364 KB, all of it shipping in the APK) were removed. Historical entries follow: ~~`EquipmentManager.apply_gun_mod()` (zero callers)~~ (**gone, verified Sep 3 2026** — the function no longer exists anywhere; p.53 Gun Mods and Sights are owned by `src/core/equipment/WeaponModService.gd`), ~~~8 dangling `/root/CampaignManager` null-lookups~~ (**zero remain, verified Sep 3 2026** — `lint_autoload_lookups` is clean), ~~PatronRivalManager `threat_level` data-contract crash~~ (**CLOSED Sep 3 2026**, see the row below). Observed during MCP smoke, unattributed: ~10 engine-level "Lambda capture at index 0 was freed" errors on unusual scene-transition paths (MainMenu→legal_viewer→dashboard) — no GDScript backtrace; predates-sprint likelihood high (no new lambdas executed); worth a dedicated look. — Phase 4 (5 hard screens) + Phase 5 (device-QA matrix + 14-screen remediation) SHIPPED & verified. See "§ Responsive / Device QA" below. Prior 2026-05-17: BUG-101 RE-FIXED: 05-16 verify was premature — user re-reported residual 3-10px terrain bleed; true root cause empirically isolated (SVS draws body on rotated `offset`, not `position`), back-solved position + stroke envelope, MCP-verified 0/316 offenders across 10 distinct seeds. CLR-101: objective "dead center" confirmed verbatim rules-correct vs Core Rules PDF p.90 — kept position, added rule-cite label (user-chosen). objective-tracker 14/14 PASS. Prev 2026-05-16: Battle-UI Sweep BUG-100..106 filed; BUG-100/102/103/104/105 fixed+verified, BUG-106 umbrella)
 **Engine**: Godot 4.6-stable
 **Overall Coverage**: Data 100% verified (925/925 values), **generator wiring 16/16 OK**, **Compendium PDF-verified**, **Hardcoded data cleanup complete**, **30/30 UI issues fixed**. KeywordDB wired to 89-keyword JSON, 14 weapon trait definitions corrected to Core Rules p.51, BattlePhase fabricated payment removed, BattleEventsSystem wired to event_tables.json (24 events data-driven). See QA_RULES_ACCURACY_AUDIT.md for details.
 **Alpha context**: Closed alpha kickoff target Mon May 25, 2026. See §11 below for alpha-1 scope (Core + Compendium DLC only) and `docs/testing/ALPHA_1_QA_PLAN.md` for execution detail.

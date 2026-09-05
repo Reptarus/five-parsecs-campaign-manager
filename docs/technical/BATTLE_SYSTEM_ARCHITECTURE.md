@@ -1,5 +1,11 @@
 # Battle System Architecture
 
+> ⚠ **Stale in part (2026-09-04).** This document names classes deleted in the
+> production-dead sweep — see `docs/WIRING_CLEANUP_BACKLOG.md` § "CLOSED 2026-09-04".
+> Individually-corrected lines are marked inline; treat any other file path here as a
+> lead to verify against the repo, not as a statement of current structure.
+
+
 **Last Updated**: 2026-03-03
 **Engine**: Godot 4.6-stable
 **Status**: Fully wired, end-to-end battle flow working (standard + Bug Hunt)
@@ -68,7 +74,7 @@ CampaignPhaseManager (MISSION/BATTLE_SETUP/BATTLE_RESOLUTION phases)
 ### Core Battle Logic (37 files, 14,422 lines)
 
 Key files:
-- `FPCM_BattleManager.gd` (589 lines) — battle FSM, phase transitions
+- ~~`FPCM_BattleManager.gd` (589 lines) — battle FSM, phase transitions~~ **DELETED 2026-09-04** (production-dead). The live battle state machine is `src/core/battle/state/BattleStateMachine.gd`.
 - `FPCM_BattleState.gd` — serializable battle data
 - `BattleResolver.gd` (530 lines) — thin orchestrator, delegates to BattleCalculations
 - `BattleCalculations.gd` — actual combat math

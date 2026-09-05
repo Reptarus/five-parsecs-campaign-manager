@@ -600,6 +600,9 @@ static func build_encounter_data(check: Dictionary, attack: Dictionary) -> Dicti
 		# _apply_rival_ambush_override.
 		"rival_type": str(check.get("rival_type", "")),
 		"is_elite": bool(check.get("is_elite", false)),
+		# Compendium p.21 Psi-hunters. This function REBUILDS from a fixed key
+		# literal, so a key absent here is dropped no matter what check() produced.
+		"is_psi_hunter": bool(check.get("is_psi_hunter", false)),
 	}
 
 ## A Rival tracked the crew down (Core Rules p.85 Step 6), so the battle they had
@@ -624,6 +627,21 @@ func _apply_rival_ambush_override(mission_data: Dictionary, rival_enc: Dictionar
 	# p.91 attack type (Ambush / Brought Friends / Showdown / Assault / Raid) —
 	# consumed by BattleSetupRules to build the setup bundle.
 	mission_data["rival_attack_type"] = str(rival_enc.get("attack_type", "SHOWDOWN"))
+
+	# Compendium p.21 Psi-hunters, all three adjustments, verbatim:
+	#   "Seize the Initiative rolls against them must be taken at a -2 modifier."
+	#   "After generating the number and nature of enemies, add 1 additional
+	#    Specialist enemy to their force."
+	#   "Psi-hunters add +1 to their attack roll when shooting at or Brawling with
+	#    a Psionic character."
+	# All three were WRITTEN onto the Rival by RivalPatronResolver._append_rival and
+	# read by NOTHING until 2026-09-04. The -2 lands on mission_data, which
+	# _seize_modifier_total() already sums alongside first_enemy; the other two are
+	# consumed by EnemyGenerator and the battle resolvers off this same flag.
+	if bool(rival_enc.get("is_psi_hunter", false)):
+		mission_data["is_psi_hunter"] = true
+		mission_data["seize_initiative_modifier"] = int(
+			mission_data.get("seize_initiative_modifier", 0)) - 2
 
 	# p.92 — the same type, every time. Empty for a legacy String-shaped Rival and
 	# for a STARTING Rival, whose `type` is a faction category ("Corporate") rather

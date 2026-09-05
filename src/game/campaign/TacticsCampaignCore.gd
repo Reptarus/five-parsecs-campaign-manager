@@ -14,7 +14,12 @@ const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 ## - Campaign Points (CP) for unit upgrades
 ## - 8-step operational turns
 ## - Squad-based units with veteran skills
-## Source: Five Parsecs: Tactics rulebook pp.81-88, 155-168
+## Source: Five Parsecs: Tactics **pp.101-107** — the Campaign Play chapter
+## (campaign structure, Campaign Points at pp.106-107).
+## ⚠ CITE CORRECTED 2026-09-04 from "pp.81-88, 155-168". pp.81-88 is the **Scenario
+## Types** chapter (objectives + D100 tables) and pp.155-168 is the **Lifeforms
+## bestiary** — neither describes campaign state. The operational layer this core
+## stores in `operational_map` is pp.92-100.
 
 @export var schema_version: int = 1
 @export var campaign_name: String = ""
@@ -168,16 +173,65 @@ func spend_cp(amount: int) -> bool:
 ## BATTLE TRACKING
 ## ============================================================================
 
+## Award Campaign Points for a completed battle.
+##
+## Tactics **pp.106-107**, "CAMPAIGN PROGRESSION" (the book's own index lists
+## "Campaign Points (CP) 106"), verbatim:
+##   "CP are awarded after every campaign game played. Roll three D6s and drop the
+##    lowest result. The sum of the two remaining dice is the base number of CP
+##    awarded."
+##   "If the scenario played uses victory points (see page 73), 1 CP is awarded for
+##    every VP earned."
+##   "If the scenario did not us[e] victory points, award: 3 additional CP for a
+##    victory, 2 additional CP for a draw, and 1 additional CP for a defeat or
+##    inconclusive battle where neither side achieved anything."
+##   Worked example from the book: "If the roll is a 2, 3, and 5, the base award is
+##    8 CP. If I earned 3 VP in the battle, I would receive a total of 11 CP."
+##
+## ⚠ FIXED 2026-09-04. This used to award a flat 1, +1 for a win, +1 for a
+## "secondary objective" — a maximum of 3 CP — cited to "p.160", which is a page in
+## the **Lifeforms bestiary**. The book's base roll alone averages ~8.5 before any
+## bonus, so a Tactics campaign earned roughly a QUARTER of the progression currency
+## the book grants, and "secondary objective" is not a book category at all. CP gates
+## every unit upgrade, roster change and battle advantage, so this throttled the
+## whole campaign layer.
 func record_battle(result: Dictionary) -> void:
 	battle_history.append(result.duplicate(true))
-	# Award CP per Tactics rules (p.160)
-	var cp: int = 1  # CP per battle fought
-	if result.get("won", false):
-		cp += 1  # +1 for victory
-	if result.get("secondary_completed", false):
-		cp += 1  # +1 for secondary objective
-	earn_cp(cp)
+	earn_cp(campaign_points_for(
+		result, [randi_range(1, 6), randi_range(1, 6), randi_range(1, 6)]))
 	_update_modified_time()
+
+
+## The p.106-107 award as a pure function, so it can be asserted without a battle
+## and without touching the RNG.
+##
+## ⚠ The live producer (TacticsTurnController.gd:365/373) currently sets only
+## `won`, so today every battle takes the victory (+3) or defeat (+1) row. The
+## `draw` and `victory_points` keys are honoured here so that producer can be
+## extended without the rule being rewritten.
+static func campaign_points_for(result: Dictionary, dice: Array) -> int:
+	var rolled: Array[int] = []
+	for v in dice:
+		rolled.append(int(v))
+	rolled.sort()
+	# "Roll three D6s and drop the lowest result" — sum the two highest.
+	var base: int = 0
+	if rolled.size() >= 3:
+		base = rolled[rolled.size() - 1] + rolled[rolled.size() - 2]
+	else:
+		for v in rolled:
+			base += v
+
+	# "If the scenario played uses victory points ... 1 CP for every VP earned."
+	# The VP branch REPLACES the victory/draw/defeat ladder, it does not stack.
+	if result.has("victory_points"):
+		return base + maxi(0, int(result.get("victory_points", 0)))
+
+	if bool(result.get("won", false)):
+		return base + 3
+	if bool(result.get("draw", false)):
+		return base + 2
+	return base + 1
 
 
 func get_battles_played() -> int:

@@ -69,11 +69,30 @@ ALLOWLIST = {
 # with it"). Each entry MUST cite the pages it implements, and must be removed
 # from this set the moment it is wired - the lint warns if that happens.
 UNWIRED_RULES = {
-    # Five Parsecs: Tactics campaign rules pp.155-168 - the operational/strategic
-    # layer: regions, operational zones, Army Strength, Cohesion, Player Battle
-    # Points. Verified 2026-09-04: NONE of its mechanics (spend_pbp_commando_raid,
-    # is_player_victory, is_player_defeat, count_zones_by_status, add_battle_point)
-    # exist anywhere else in src/, so this is a dead CHAPTER, not a dead file.
+    # Five Parsecs: Tactics **pp.92-100** - "THE OPERATIONAL SYSTEM" in the
+    # Campaign Play chapter: Cohesion scores, the Map, Operational Zones, Army
+    # Strength, the 8-step Operational Turn (verbatim at p.96), Commando Raids
+    # and Player Battle Points, plus Special Regions (Option) at p.100.
+    #
+    # CITE CORRECTED 2026-09-04. This entry, and the docblocks in
+    # TacticsOperationalMap.gd / TacticsCampaignCore.gd / TacticsPhaseManager.gd,
+    # all said "pp.155-168". That is the **Lifeforms bestiary** chapter (species
+    # stat-blocks: Hulkers, the Major/Minor Powers, Creatures) - 63 pages off.
+    # docs/rules/tactics_source.txt marks raw page N with the PRINTED number on
+    # the next line, offset raw-2, verified at three points: raw 94 -> p.92
+    # "THE OPERATIONAL SYSTEM", raw 157 -> p.155 "Lifeforms/Hulkers",
+    # raw 170 -> p.168 "Lifeforms/CREATURES".
+    #
+    # ⚠ THE GAP IS THE WHOLE STRATEGIC LAYER, NOT JUST THIS FILE. Verified
+    # 2026-09-04: the class is never instantiated (TacticsCampaignCore.operational_map
+    # is a raw Dictionary, and four sites hand-roll its shape independently);
+    # `regions` is seeded [] at TacticsCreationCoordinator.gd:235 and nothing ever
+    # appends; is_player_victory()/is_player_defeat() have ZERO callers, so a
+    # campaign can drive Cohesion to 0 unnoticed; and
+    # TacticsOperationalMapPanel.gd:192 emits phase_completed(7, {}) - an EMPTY
+    # payload - so TacticsPhaseManager._apply_strategic_results() never runs.
+    # Wiring this file alone would not close the chapter. Tactics is alpha-2
+    # scope (docs/CLOSED_ALPHA_PLAN.md:32,88).
     "src/data/tactics/TacticsOperationalMap.gd",
 }
 
@@ -224,12 +243,22 @@ def main() -> int:
     live_or_test = reach(roots | test_roots)
 
     unreachable = sorted(set(by_path) - live_or_test)
+    test_only_all = sorted(live_or_test - live)
+
+    # UNWIRED_RULES applies to BOTH buckets (extended 2026-09-04). It used to
+    # filter `unreachable` only, so a file implementing a book chapter that
+    # happened to have ONE test keeping it alive landed in the undifferentiated
+    # PRODUCTION-DEAD list, where the next reader would treat it as a corpse.
+    # A book chapter is a GAP wherever it sits.
     unwired = [k for k in unreachable if k in UNWIRED_RULES]
+    unwired += [k for k in test_only_all if k in UNWIRED_RULES]
     orphans = [k for k in unreachable if k not in UNWIRED_RULES]
-    test_only = sorted(live_or_test - live)
+    test_only = [k for k in test_only_all if k not in UNWIRED_RULES]
+
+    # Only a PRODUCT caller closes the gap. Being reachable from tests/ does not.
     for k in sorted(UNWIRED_RULES):
-        if k in by_path and k not in unreachable:
-            print(f"NOTE: {k} is now reachable - drop it from UNWIRED_RULES")
+        if k in by_path and k in live:
+            print(f"NOTE: {k} is now reachable from product - drop it from UNWIRED_RULES")
 
     print(f"files={len(by_path)}  roots={len(roots)}  "
           f"reachable_from_product={len(live)}  test_only={len(test_only)}  "

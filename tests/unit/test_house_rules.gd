@@ -25,7 +25,6 @@ extends GdUnitTestSuite
 
 const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 const HouseRulesDefinitions = preload("res://src/data/house_rules_definitions.gd")
-const CampaignConfig = preload("res://src/data/config/CampaignConfig.gd")
 
 
 class StubCampaign extends Resource:
@@ -174,34 +173,46 @@ func test_an_empty_rule_id_is_never_enabled() -> void:
 	assert_bool(HouseRulesHelper.is_enabled("")).is_false()
 
 
-# --- config persistence ---------------------------------------------------
+# --- config persistence (live path) ---------------------------------------
+#
+# These used to drive src/data/config/CampaignConfig.gd. That class was deleted
+# 2026-09-04 as production-dead: nothing in src/ ever referenced it, and the real
+# carrier is the plain `local_campaign_config` Dictionary on ExpandedConfigPanel,
+# handed downstream through get_campaign_config_data().
 
-func test_campaign_config_stores_house_rules() -> void:
-	var config = CampaignConfig.new()
-	# house_rules is Array[String]. A plain `=` from an untyped Array literal is
-	# an INVALID ASSIGNMENT at runtime (it aborts the caller), so use assign().
-	config.house_rules.assign(["varied_armaments"])
-	assert_array(config.house_rules).contains(["varied_armaments"])
+func test_config_data_carries_rules_and_notes() -> void:
+	## get_campaign_config_data() REBUILDS its result from a fixed key literal
+	## (ExpandedConfigPanel.gd:1807-1826), so any key absent from that literal is
+	## silently dropped however the panel stored it. house_rules was missing
+	## entirely, which is why an enabled rule never reached the campaign. This is
+	## the chokepoint, so it is the thing worth asserting.
+	var panel = ConfigPanelScript.new()
+	auto_free(panel)
+	panel._on_house_rule_toggled(true, "wild_galaxy")
+	panel.local_campaign_config["house_rules_notes"] = "Rerolls cost a beer."
 
-
-func test_campaign_config_round_trips_rules_and_notes() -> void:
-	var config = CampaignConfig.new()
-	config.house_rules.assign(["wild_galaxy"])
-	config.house_rules_notes = "Rerolls cost a beer."
-	var data: Dictionary = config.to_dictionary()
-	assert_array(data.get("house_rules", [])).contains(["wild_galaxy"])
+	var data: Dictionary = panel.get_campaign_config_data()
+	assert_array(data.get("house_rules", [])).override_failure_message(
+		"the rule id must survive the fixed-key rebuild"
+	).contains(["wild_galaxy"])
 	assert_str(str(data.get("house_rules_notes", ""))).override_failure_message(
 		"the player's own house rules must persist alongside the rule ids,"
 		+ " in their own field"
 	).is_equal("Rerolls cost a beer.")
 
 
-func test_campaign_config_handles_missing_house_rules() -> void:
-	var config = CampaignConfig.new()
-	var restored = CampaignConfig.from_dictionary({})
-	assert_array(restored.house_rules).is_empty()
-	assert_str(restored.house_rules_notes).is_equal("")
-	assert_array(config.house_rules).is_empty()
+func test_config_data_defaults_when_house_rules_absent() -> void:
+	# A legacy or hand-edited config carries neither key; both must default
+	# safely rather than propagating null into the campaign.
+	var panel = ConfigPanelScript.new()
+	auto_free(panel)
+	panel.local_campaign_config.erase("house_rules")
+	panel.local_campaign_config.erase("house_rules_notes")
+
+	var data: Dictionary = panel.get_campaign_config_data()
+	assert_array(data.get("house_rules", [])).is_empty()
+	assert_str(str(data.get("house_rules_notes", "x"))).is_equal("")
+
 
 
 # --- wild_galaxy actually does something (it had ZERO consumers) ----------

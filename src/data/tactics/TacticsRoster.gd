@@ -5,6 +5,9 @@ extends Resource
 ## Replaces AoF ArmyList: 500/750/1000 pts, platoon/company org.
 ## Drops AoF hero-per-375, 35% cap, duplicate limit, combined units.
 ## Validation delegated to TacticsCompositionValidator.
+## Source: Five Parsecs: Tactics **p.133** "The Points System" + the Army Builder
+## chapter (p.132). ⚠ See TacticsCompositionValidator for an OPEN rules defect in
+## the platoon-composition limits.
 ## Source: Five Parsecs: Tactics army building rules pp.81-88
 
 enum OrgType {

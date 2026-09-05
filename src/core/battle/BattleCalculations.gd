@@ -547,6 +547,32 @@ static func resolve_saves(
 
 ## Resolve a complete ranged attack
 ## dice_roller should be a Callable that returns int (d6 result)
+## Compendium p.21, the third Psi-hunter adjustment, verbatim: "Psi-hunters add +1
+## to their attack roll when shooting at or Brawling with a Psionic character."
+##
+## BOTH halves must hold — a Psi-hunter shooting a non-Psionic gets nothing, and an
+## ordinary enemy shooting a Psionic gets nothing. Wired 2026-09-04; the flag had
+## been written onto the Rival by RivalPatronResolver._append_rival since the
+## Psi-hunter rule shipped and was read by nothing.
+static func psi_hunter_attack_bonus(attacker: Dictionary, target: Dictionary) -> int:
+	if not bool(attacker.get("is_psi_hunter", false)):
+		return 0
+	return 1 if is_psionic_character(target) else 0
+
+
+## A character is Psionic if they know at least one power — Character.gd:163
+## `psionic_powers: Array[String]`. The legacy single-power field and a plain
+## `is_psionic` flag are both accepted so a battle dict built from either shape
+## resolves correctly.
+static func is_psionic_character(unit: Dictionary) -> bool:
+	if bool(unit.get("is_psionic", false)):
+		return true
+	var powers: Variant = unit.get("psionic_powers", [])
+	if powers is Array and not (powers as Array).is_empty():
+		return true
+	return str(unit.get("psionic_power", "")).strip_edges() != ""
+
+
 static func resolve_ranged_attack(
 	attacker: Dictionary,
 	target: Dictionary,
@@ -626,7 +652,16 @@ static func resolve_ranged_attack(
 	result["hit_roll"] = hit_roll
 	result["hit_threshold"] = hit_threshold
 
-	if not check_hit(hit_roll, hit_threshold):
+	# Compendium p.21 Psi-hunter +1 vs a Psionic target.
+	# ⚠ Applied to the COMPARISON, never folded into hit_roll: the critical check
+	# below is `hit_roll == 6`, the NATURAL 6 of Core Rules p.51, so adding the
+	# bonus to the die would turn a natural 5 into a false critical.
+	var psi_bonus: int = psi_hunter_attack_bonus(attacker, target)
+	if psi_bonus != 0:
+		result["psi_hunter_bonus"] = psi_bonus
+		result["effects"].append("psi_hunter_attack_bonus")
+
+	if not check_hit(hit_roll + psi_bonus, hit_threshold):
 		return result
 
 	result["hit"] = true
@@ -853,7 +888,14 @@ static func resolve_brawl(
 		result["effects"].append("clumsy_penalty_defender")
 
 	# Calculate totals (Core Rules p.45: 1D6 + Combat Skill + weapon bonus)
-	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_clumsy_penalty
+	# Compendium p.21 Psi-hunter +1 when Brawling a Psionic. Added to the TOTAL,
+	# never to attacker_natural — the natural 6 (extra hit) and natural 1 (attacker
+	# takes a hit) checks below read the raw die.
+	var attacker_psi_bonus: int = psi_hunter_attack_bonus(attacker, defender)
+	if attacker_psi_bonus != 0:
+		result["psi_hunter_bonus"] = attacker_psi_bonus
+		result["effects"].append("psi_hunter_brawl_bonus")
+	var attacker_total: int = attacker_natural + attacker_skill + attacker_weapon_bonus + attacker_clumsy_penalty + attacker_psi_bonus
 	var defender_total: int = defender_natural + defender_skill + defender_weapon_bonus + defender_clumsy_penalty
 
 	result["attacker_total"] = attacker_total

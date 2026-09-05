@@ -1,19 +1,25 @@
 extends GdUnitTestSuite
 ## Generator Wiring Verification Tests
 ##
-## Ensures all 10 fixed generators produce data from canonical JSON
-## sources with correct value ranges. Prevents regression to fabricated data.
-## Tests use PUBLIC APIs only to avoid linter private-access warnings.
+## Ensures the live generators produce data from canonical JSON sources with correct
+## value ranges. Prevents regression to fabricated data. Public APIs only.
+##
+## Trimmed 2026-09-04 from 24 cases to 10. The removed cases drove
+## FiveParsecsMissionGenerator, PatronJobGenerator, RivalBattleGenerator, GameItem,
+## Patron and Rival — all production-dead and deleted. Their book mechanics are live
+## elsewhere: mission reward / Danger Pay / objectives in JobOfferComponent (which
+## also corrects WHEN the objective is shown, p.83 vs p.89), loot in LootProcessor,
+## rival acquisition in RivalPatronResolver + FactionSystem.
+##
+## One case was dropped rather than repointed: test_patron_type_mapping_all_factions
+## asserted that every GameEnums.FactionType maps to a Core Rules patron type. The
+## live app has no such mapping — it rolls a D10 on the p.78 patron table
+## (data/patron_types.json, data/patron_generation.json) — so the invariant existed
+## only to describe a fabricated bridge. Repointing it would have meant inventing the
+## mapping it claimed to verify.
 
-const FiveParsecsMissionGen = preload(
-	"res://src/game/campaign/FiveParsecsMissionGenerator.gd")
 const StartingEquipGen = preload(
 	"res://src/core/character/Equipment/StartingEquipmentGenerator.gd")
-# LootEconomyIntegrator removed — fabricated economy layer (Apr 2 2026)
-const GameItemClass = preload(
-	"res://src/core/economy/loot/GameItem.gd")
-const PatronJobGen = preload(
-	"res://src/core/patrons/PatronJobGenerator.gd")
 const StreetFightGen = preload(
 	"res://src/core/mission/StreetFightGenerator.gd")
 const CompendiumStreetFightsData = preload(
@@ -22,47 +28,9 @@ const SalvageJobGen = preload(
 	"res://src/core/mission/SalvageJobGenerator.gd")
 const StealthMissionGen = preload(
 	"res://src/core/mission/StealthMissionGenerator.gd")
-const RivalBattleGen = preload(
-	"res://src/core/rivals/RivalBattleGenerator.gd")
 const GameEnumsRef = preload(
 	"res://src/core/enums/GameEnums.gd")
-const PatronClass = preload("res://src/core/rivals/Patron.gd")
-const RivalClass = preload("res://src/core/rivals/Rival.gd")
 
-
-# =========================================================
-# 1. MISSION REWARD RANGE (Core Rules p.120: D6 + danger_pay)
-# =========================================================
-
-func test_mission_reward_within_core_rules_range() -> void:
-	# Mission reward: D6 base + danger_pay, expect 2-12, never >20
-	var gen = FiveParsecsMissionGen.new()
-	for i in range(100):
-		var reward: int = gen.calculate_mission_reward(2, 0)
-		assert_int(reward).is_greater(0)
-		assert_int(reward).is_less(21)
-
-func test_mission_reward_never_uses_hundreds() -> void:
-	# Regression: old code used difficulty*100 giving 200-500
-	var gen = FiveParsecsMissionGen.new()
-	for i in range(50):
-		var reward: int = gen.calculate_mission_reward(5, 0)
-		assert_int(reward).is_less(21)
-
-func test_mission_loot_credits_single_digit() -> void:
-	# Loot table credits should be 1-3, not 100-500
-	var gen = FiveParsecsMissionGen.new()
-	for i in range(50):
-		var loot: Array = gen.generate_loot_table(3)
-		for entry in loot:
-			if entry.get("type", "") == "credits":
-				assert_int(entry.amount).is_greater(0)
-				assert_int(entry.amount).is_less(10)
-
-
-# =========================================================
-# 2. STARTING CREDITS (Core Rules p.28: from campaign, not equip)
-# =========================================================
 
 func test_equipment_gen_produces_zero_credits() -> void:
 	# Equipment gen must NOT add credits
@@ -103,83 +71,7 @@ func test_stat_generation_never_exceeds_six() -> void:
 # 4. LOOT ECONOMY — GameItem API compatibility
 # =========================================================
 
-func test_game_item_has_required_api() -> void:
-	# GameItem must expose get_value, get_rarity, has_tag, item_tags
-	var item = GameItemClass.new()
-	assert_bool(item.has_method("get_value")).is_true()
-	assert_bool(item.has_method("get_rarity")).is_true()
-	assert_bool(item.has_method("has_tag")).is_true()
-	assert_bool(item.has_method("get_tags")).is_true()
-	assert_that(item.item_tags).is_not_null()
 
-func test_game_item_get_value_returns_int() -> void:
-	# get_value() must return a positive int, not crash
-	var item = GameItemClass.new()
-	var value: int = item.get_value()
-	assert_int(value).is_greater_equal(0)
-
-func test_game_item_rarity_defaults_to_common() -> void:
-	# Default GameItem rarity should be "Common"
-	var item = GameItemClass.new()
-	assert_str(item.get_rarity()).is_equal("Common")
-
-
-# =========================================================
-# 5. PATRON TYPE MAPPING — Core Rules p.83
-# =========================================================
-
-func test_patron_type_mapping_all_factions() -> void:
-	# All FactionType values must map to valid Core Rules types
-	var gen = PatronJobGen.new()
-	gen._initialize_job_data()
-	var expected: Array = [
-		"Corporation", "Local Government",
-		"Sector Government", "Wealthy Individual",
-		"Private Organization", "Secretive Group"
-	]
-	var patron = PatronClass.new()
-	for faction_val in [
-		GameEnumsRef.FactionType.CORPORATE,
-		GameEnumsRef.FactionType.IMPERIAL,
-		GameEnumsRef.FactionType.REBEL,
-		GameEnumsRef.FactionType.MERCENARY,
-		GameEnumsRef.FactionType.PIRATE,
-		GameEnumsRef.FactionType.ALIEN,
-	]:
-		patron.faction_type = faction_val
-		var mapped: String = gen._get_patron_type_string(patron)
-		assert_bool(mapped in expected).is_true()
-	gen.free()
-
-func test_patron_modifiers_have_core_rules_keys() -> void:
-	# patron_type_modifiers must have all 6 Core Rules keys
-	var gen = PatronJobGen.new()
-	gen._initialize_job_data()
-	var keys: Array = [
-		"Corporation", "Local Government",
-		"Sector Government", "Wealthy Individual",
-		"Private Organization", "Secretive Group"
-	]
-	for key in keys:
-		assert_bool(
-			gen.patron_type_modifiers.has(key)
-		).is_true()
-	gen.free()
-
-func test_patron_base_payment_in_template_range() -> void:
-	# Template base_payment values should be single-digit (4-8)
-	var gen = PatronJobGen.new()
-	gen._initialize_job_data()
-	for key in gen.job_templates:
-		var template: Dictionary = gen.job_templates[key]
-		var pay: int = template.get("base_payment", 0)
-		assert_int(pay).is_greater(0)
-		assert_int(pay).is_less(20)
-	gen.free()
-
-
-# =========================================================
-# 6. COMPENDIUM GENERATORS — JSON accessible via public API
 # =========================================================
 
 func test_street_fight_ref_data_accessible() -> void:
@@ -229,54 +121,3 @@ func test_salvage_credits_conversion_works() -> void:
 # 7. RIVAL BATTLE — Dict access + Rival API
 # =========================================================
 
-func test_rival_battle_weights_bracket_access() -> void:
-	# Dict bracket access must not crash (dot notation would)
-	var gen = RivalBattleGen.new()
-	gen._initialize_rival_data()  # _ready() doesn't fire in tests
-	assert_that(
-		gen.battle_type_weights["default"]).is_not_null()
-	assert_that(
-		gen.battle_type_weights["high_escalation"]).is_not_null()
-	assert_that(
-		gen.battle_type_weights["first_encounter"]).is_not_null()
-	gen.free()
-
-func test_rival_force_templates_accessible() -> void:
-	var gen = RivalBattleGen.new()
-	gen._initialize_rival_data()  # _ready() doesn't fire in tests
-	var template = gen.rival_force_templates["CRIMINAL_GANG"]
-	assert_that(template).is_not_null()
-	assert_int(template.base_size).is_greater(0)
-	gen.free()
-
-func test_rival_api_properties_exist() -> void:
-	# Rival must expose properties RivalBattleGenerator uses
-	var rival = RivalClass.new()
-	rival.rival_name = "Test Gang"
-	rival.rival_type = "CRIMINAL_GANG"
-	rival.reputation = 1
-	rival.active = true
-	rival.last_encounter_turn = 0
-	assert_str(rival.rival_name).is_equal("Test Gang")
-	assert_str(rival.rival_type).is_equal("CRIMINAL_GANG")
-	assert_int(rival.reputation).is_equal(1)
-	assert_bool(rival.active).is_true()
-
-
-# =========================================================
-# 8. MISSION GEN — JSON data loading via public API
-# =========================================================
-
-func test_mission_reward_consistent_across_types() -> void:
-	# All mission types should produce rewards in valid range
-	var gen = FiveParsecsMissionGen.new()
-	for mission_type in range(10):
-		var reward: int = gen.calculate_mission_reward(3, mission_type)
-		assert_int(reward).is_greater(0)
-		assert_int(reward).is_less(21)
-
-func test_mission_gen_objectives_from_json() -> void:
-	# generate_objectives() should return non-empty array
-	var gen = FiveParsecsMissionGen.new()
-	var objectives: Array = gen.generate_objectives(1)
-	assert_int(objectives.size()).is_greater(0)

@@ -1,5 +1,11 @@
 # Five Parsecs Campaign Manager - System Architecture Deep Dive
 
+> ⚠ **Stale in part (2026-09-04).** This document names classes deleted in the
+> production-dead sweep — see `docs/WIRING_CLEANUP_BACKLOG.md` § "CLOSED 2026-09-04".
+> Individually-corrected lines are marked inline; treat any other file path here as a
+> lead to verify against the repo, not as a statement of current structure.
+
+
 ## 📘 Introduction
 
 This document provides comprehensive technical documentation of all core systems in the Five Parsecs Campaign Manager. It serves as the definitive reference for developers working on or extending the codebase.
@@ -37,7 +43,7 @@ Campaign Manager
 │   └── ArmorSystem
 ├── World System
 │   ├── PlanetDataManager
-│   ├── ContactManager (Patrons/Rivals)
+│   ├── ContactManager (Patrons/Rivals)   ← DELETED 2026-09-04
 │   └── SectorManager
 ├── State Management
 │   ├── SaveManager
@@ -365,7 +371,7 @@ var creation_state: Dictionary = {
 
 ### BattleManager.gd
 
-**Location**: `src/core/battle/FPCM_BattleManager.gd`
+**Location**: ~~`src/core/battle/FPCM_BattleManager.gd`~~ — **DELETED 2026-09-04** (production-dead). Live equivalent: `src/core/battle/state/BattleStateMachine.gd`.
 **Type**: Node (Scene-specific)
 **Purpose**: Battle orchestration and turn management
 
@@ -728,7 +734,7 @@ func apply_trait_effects(world: PlanetData, campaign: Campaign) -> void:
 
 ### ContactManager.gd
 
-**Location**: `src/core/world/ContactManager.gd`
+**Location**: ~~`src/core/world/ContactManager.gd`~~ — **DELETED 2026-09-04**. Every public method had zero callers and its one connected handler was `pass`; patron/rival work lives in `RivalPatronResolver` and `FactionSystem`.
 **Purpose**: Patron and Rival relationship management
 
 **Contact Types**:

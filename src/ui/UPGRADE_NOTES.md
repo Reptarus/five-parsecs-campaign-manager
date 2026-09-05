@@ -34,7 +34,7 @@ state is never destroyed.
 
 ### ResponsiveContainer
 
-A new responsive container (`src/ui/components/ResponsiveContainer.gd`) provides:
+The responsive container is `src/ui/components/base/ResponsiveContainer.gd`. (A deprecated shim at `src/ui/components/ResponsiveContainer.gd` was deleted 2026-09-04 — it only extended the base class and push_warning()ed; nothing in `src/` used it.) It provides:
 
 - Automatic layout switching between horizontal and vertical based on available space
 - Scale-aware spacing and padding

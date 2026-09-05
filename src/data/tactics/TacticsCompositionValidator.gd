@@ -4,7 +4,25 @@ extends RefCounted
 ## TacticsCompositionValidator - Validates Tactics army roster composition
 ## Complete rewrite of AoF rules: platoon org (2-5 troops, 0-4 supports,
 ## 0-2 specialists per platoon), company org (2-4 platoons, leaders = platoon count).
-## Source: Five Parsecs: Tactics rulebook pp.81-88
+## Source: Five Parsecs: Tactics **pp.134-135** — "Infantry Platoon Organization"
+## and "Company Organization" in the Army Builder chapter (p.132; ToC p.5, index
+## "Army Builder 61, 132").
+## ⚠ CITE CORRECTED 2026-09-04 from "pp.81-88", which is the **Scenario Types**
+## chapter (objectives + D100 tables).
+##
+## 🔴 OPEN RULES DEFECT — the CONSTANTS BELOW DO NOT MATCH p.134. Verified
+## verbatim against docs/rules/tactics_source.txt (raw page 136 -> printed 134):
+##   "Leaders (1-2)"    — "A platoon must have one character, and may include a second."
+##   "Troops (2-4)"     — "A platoon must have 2 squads, and may take a total of 4."
+##   "Supports (0-3; must be fewer than number of Troops)"
+##   "Specialists (0-1 per 2 Troops)"
+## Against that: MAX_TROOPS_PER_PLATOON is 5 (book 4), MAX_SUPPORTS_PER_PLATOON is
+## 4 (book 3) AND its "must be fewer than troops" clause is stated in the comment
+## but never enforced — the check is a flat compare; MAX_SPECIALISTS_PER_PLATOON is
+## a flat 2 where the book scales it per 2 Troops; PLATOON_LEADER_COUNT is 1 where
+## the book allows a second. So the validator accepts illegal armies and rejects
+## legal ones. NOT FIXED 2026-09-04 — scoped as a Tactics rules-accuracy audit
+## (alpha-2 gamemode), recorded rather than silently corrected.
 
 # Platoon constraints (per-platoon)
 const MIN_TROOPS_PER_PLATOON := 2
