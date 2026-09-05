@@ -10,6 +10,20 @@ extends RefCounted
 ## ⚠ CITE CORRECTED 2026-09-04 from "pp.81-88", which is the **Scenario Types**
 ## chapter (objectives + D100 tables).
 ##
+## ⚠ ERRATA CHECKED 2026-09-04 — there is NONE for this rule. The repo errata
+## (docs/gameplay/rules/5P_errata_and_tweaks106.pdf, v1.06) is CORE RULES only:
+## zero occurrences of "Tactics", "platoon", "troops", "Support", "Army Builder"
+## or "Campaign Point" across all 5 pages. The official Modiphius FAQ
+## (modiphius.net/en-us/pages/five-parsecs-faq) covers only the core skirmish
+## game. The designer's own Tactics post (nordicweasel.posthaven.com) changes
+## combat only — activation, suppression, close combat, morale, Stun — not
+## composition. The p.134 text was re-verified against the SOURCE PDF
+## (docs/rules/Five Parsecs From Home - Tactics.pdf, index 135 = printed p.134;
+## the Tactics PDF offset is index MINUS one) and matches the text extraction
+## word for word. So the book stands and the constants below are simply wrong —
+## most likely Age of Fantasy values carried over by the "complete rewrite of
+## AoF rules" this file describes, never re-checked against Five Parsecs.
+##
 ## 🔴 OPEN RULES DEFECT — the CONSTANTS BELOW DO NOT MATCH p.134. Verified
 ## verbatim against docs/rules/tactics_source.txt (raw page 136 -> printed 134):
 ##   "Leaders (1-2)"    — "A platoon must have one character, and may include a second."

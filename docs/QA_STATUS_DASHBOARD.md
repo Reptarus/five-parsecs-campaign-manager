@@ -27,7 +27,7 @@ book's example), detection-proven.
 | Supports | "Supports (0-3; must be fewer than number of Troops)" | `:= 4`, and the relational clause is in the COMMENT but never enforced — the check is a flat compare |
 | Specialists | "Specialists (0-1 per 2 Troops)" | `:= 2`, flat |
 
-So the validator accepts illegal armies and rejects legal ones. Scoped as a Tactics
+So the validator accepts illegal armies and rejects legal ones. **Errata checked 2026-09-04 — there is none.** The repo errata (v1.06) is Core Rules only (0 hits for Tactics/platoon/troops/Support/Army Builder/Campaign Point across 5 pages); the Modiphius FAQ covers only the core skirmish game; the designer's Tactics post changes combat mechanics only. p.134 was re-verified against the source PDF and matches the extraction verbatim, so the book stands. The values look like Age of Fantasy holdovers from the "complete rewrite of AoF rules" the file describes. Scoped as a Tactics
 rules-accuracy audit rather than fixed inline: Tactics is alpha-2
 (`CLOSED_ALPHA_PLAN.md:32,88`) and changing army-building validation needs its own tests
 and a look at existing saved armies. Recorded in the file's docblock so the next reader
