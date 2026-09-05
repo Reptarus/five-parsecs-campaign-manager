@@ -1176,6 +1176,17 @@ func _apply_responsive_layout() -> void:
 	_reconcile_portrait_layout()
 	_reconcile_bars_portrait()
 
+	# T11-05: the overlay is sized responsively at BUILD time, so a rotation while it
+	# is open leaves a stale minimum wider than the new viewport. This function
+	# already re-fits left_panel / right_panel / phase_content_panel and the portrait
+	# rails on every resize; the overlay was simply never in the list. Height is
+	# re-fitted too, because the same rotation changes how much vertical room the
+	# scroll may claim.
+	if overlay_center != null and is_instance_valid(overlay_center) \
+			and overlay_center.visible:
+		_refit_overlay_widths()
+		_fit_overlay_height()
+
 func _apply_stage_visibility(stage: int) -> void:
 	## Control which panels are visible based on current battle stage
 	current_stage = stage
@@ -2166,6 +2177,11 @@ func _connect_component_signals() -> void:
 					unified_log.log_action("Reference", "Viewed: %s" % wname)
 			)
 
+## Marks a Control whose custom_minimum_size.x came from _overlay_width(), and
+## stores the desktop cap used, so _refit_overlay_widths() can reproduce it after
+## a rotation.
+const OVERLAY_CAP_META := "_fpcm_overlay_width_cap"
+
 ## Overlay Management
 
 ## Responsive max width for a modal overlay: fills a phone (minus scrim gutters)
@@ -2174,6 +2190,52 @@ func _connect_component_signals() -> void:
 func _overlay_width(desktop_cap: float = 560.0) -> float:
 	var vp_x: float = float(get_viewport().get_visible_rect().size.x)
 	return clampf(vp_x - 32.0, 280.0, desktop_cap)
+
+
+## Apply the responsive overlay width to `ctl` AND record the cap it came from.
+##
+## T11-05 (rotation sweep, 2026-09-04): `_overlay_width()` was correct, and was called at
+## all four sites - but only ever at BUILD time. Open an overlay in landscape (733 design
+## px, so the clamp returns the full 560 cap), rotate to portrait (338.79), and that 560
+## is a stale minimum. `OverlayCenter` is a full-rect CenterContainer with
+## `grow_horizontal = GROW_DIRECTION_BOTH`, so an over-minimum grows it in BOTH
+## directions and the overlay lands at x = -114.6: 114.6 px off the LEFT edge and the
+## same off the right, with its buttons unreachable on either side. Measured, not
+## inferred:
+##     OverlayCenter  min (568.0, 306.8)  rect [P: (-114.6035, 0.0), S: (568.0, 733.4)]
+##
+## Same shape as T11-01 and T11-04, and the same reason all three hid from a build-once
+## measurement: the value is baked at build time, so the defect only appears once the
+## viewport changes underneath it.
+##
+## The cap is stored PER NODE rather than assumed, because it is not uniform - the enemy
+## generation wizard uses 700.0 while everything else takes the 560.0 default, so a
+## blanket re-apply would silently shrink the wizard on desktop.
+func _set_overlay_width(ctl: Control, cap: float = 560.0) -> void:
+	if ctl == null or not is_instance_valid(ctl):
+		return
+	ctl.set_meta(OVERLAY_CAP_META, cap)
+	ctl.custom_minimum_size.x = _overlay_width(cap)
+
+
+## Re-apply every recorded overlay width against the CURRENT viewport.
+##
+## Walks the overlay subtree rather than naming nodes: two of the four sites size a
+## locally-created node (`modal_root` in the pre-battle checklist, and the wizard) that
+## no member variable points at, so a named-node re-fit would miss exactly the ones that
+## are hardest to notice.
+func _refit_overlay_widths() -> void:
+	if overlay_center == null or not is_instance_valid(overlay_center):
+		return
+	var stack: Array = [overlay_center]
+	while not stack.is_empty():
+		var n: Node = stack.pop_back()
+		for c in n.get_children():
+			stack.append(c)
+		if n is Control and (n as Control).has_meta(OVERLAY_CAP_META):
+			var ctl := n as Control
+			ctl.custom_minimum_size.x = _overlay_width(
+				float(ctl.get_meta(OVERLAY_CAP_META)))
 
 ## Device-keyed touch-target height (56 mobile / 48 else). Fallback 48.
 func _touch_h() -> int:
@@ -2209,7 +2271,7 @@ func _show_overlay(content_node: Control) -> void:
 			child.queue_free()
 	overlay_content.add_child(content_node)
 	# Drive the overlay width responsively so portrait phones don't overflow.
-	overlay_content.custom_minimum_size.x = _overlay_width()
+	_set_overlay_width(overlay_content)
 	_ensure_overlay_scroll()
 	call_deferred("_fit_overlay_height")
 	overlay_bg.visible = true
@@ -2254,7 +2316,7 @@ func _fit_overlay_height() -> void:
 		return
 	var available: float = maxf(160.0, vp.get_visible_rect().size.y - 32.0)
 	var wanted: float = overlay_content.get_combined_minimum_size().y
-	scroll.custom_minimum_size.x = _overlay_width()
+	_set_overlay_width(scroll)
 	scroll.custom_minimum_size.y = minf(wanted, available)
 
 func _hide_overlay() -> void:
@@ -2277,7 +2339,7 @@ func show_enemy_generation_overlay() -> void:
 		return
 	# Responsive width (clamp to viewport, up to a 700px desktop cap) so the
 	# wizard never overflows the ~321px portrait floor.
-	enemy_generation_wizard.custom_minimum_size.x = _overlay_width(700.0)
+	_set_overlay_width(enemy_generation_wizard, 700.0)
 	_show_overlay(enemy_generation_wizard)
 
 var _battle_event_fired_this_round: int = 0  # Track which round we already fired event for
@@ -2520,7 +2582,8 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	# always reachable regardless of scroll position.
 	var modal_root := VBoxContainer.new()
 	# Responsive width: 560 on desktop, shrinks to fit the portrait floor.
-	modal_root.custom_minimum_size = Vector2(_overlay_width(), 0)
+	modal_root.custom_minimum_size = Vector2(0, 0)
+	_set_overlay_width(modal_root)
 	modal_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	modal_root.add_theme_constant_override("separation", UIColors.SPACING_MD)
 

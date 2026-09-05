@@ -114,6 +114,8 @@ func _exit_tree() -> void:
 			coordinator.navigation_updated.disconnect(_on_navigation_updated)
 		if coordinator.step_changed.is_connected(_on_step_changed):
 			coordinator.step_changed.disconnect(_on_step_changed)
+		if coordinator.phase_warnings.is_connected(_on_phase_warnings):
+			coordinator.phase_warnings.disconnect(_on_phase_warnings)
 
 
 func _reset_campaign_scoped_autoloads() -> void:
@@ -156,6 +158,53 @@ func _reset_campaign_scoped_autoloads() -> void:
 func _connect_coordinator_signals() -> void:
 	coordinator.navigation_updated.connect(_on_navigation_updated)
 	coordinator.step_changed.connect(_on_step_changed)
+	coordinator.phase_warnings.connect(_on_phase_warnings)
+
+
+## Show what the advance gate found, in the header, where the player is already looking.
+##
+## These are NON-BLOCKING by design (see the comment on the composition check in
+## CampaignCreationStateManager._validate_crew_with_warnings): a half-finished crew
+## passes through illegal-looking intermediate states, so refusing to advance would
+## fight the player mid-edit. Showing the text costs nothing and is the whole
+## difference between "the app checked and disagrees" and "the app did not check".
+func _on_phase_warnings(_phase: int, warnings: Array) -> void:
+	if warnings.is_empty():
+		_clear_phase_warnings()
+		return
+	var label := _ensure_warning_label()
+	var lines: PackedStringArray = []
+	for w in warnings:
+		lines.append("• " + str(w))
+	label.text = "\n".join(lines)
+	label.visible = true
+
+
+func _clear_phase_warnings() -> void:
+	var header := get_node_or_null("MarginContainer/VBoxContainer/Header")
+	if header == null:
+		return
+	var label := header.get_node_or_null("__phase_warnings")
+	if label:
+		label.visible = false
+		label.text = ""
+
+
+func _ensure_warning_label() -> Label:
+	## Built in code rather than added to the .tscn, matching the two notice labels
+	## CrewPanel already creates the same way (__gutter_notice, __candidate_hint).
+	var header: Node = get_node_or_null("MarginContainer/VBoxContainer/Header")
+	if header == null:
+		return null
+	var existing := header.get_node_or_null("__phase_warnings")
+	if existing is Label:
+		return existing as Label
+	var label := Label.new()
+	label.name = "__phase_warnings"
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.add_theme_color_override("font_color", Color("#FBBF24"))
+	header.add_child(label)
+	return label
 
 func _connect_navigation_signals() -> void:
 	next_button.pressed.connect(_on_next_pressed)
@@ -354,6 +403,12 @@ func _push_campaign_crew_size(panel: Node) -> void:
 	var roster: int = int(cfg.get("starting_roster_size", configured))
 	if configured >= 4 and configured <= 6:
 		panel.apply_campaign_crew_size(configured, roster)
+	# Core Rules p.13 crew-creation method, from the same config dictionary. Guarded the
+	# same way as the size push above, so a panel build without the setter cannot break
+	# the step.
+	if panel.has_method("apply_crew_creation_method"):
+		panel.apply_crew_creation_method(
+			str(cfg.get("crew_creation_method", "miniatures")))
 
 func _fit_panel_to_step_bounds() -> void:
 	if current_panel:
@@ -391,6 +446,8 @@ func _on_next_pressed() -> void:
 	coordinator.advance_to_next_phase()
 
 func _on_back_pressed() -> void:
+	# A warning belongs to the step that raised it; going back must not carry it along.
+	_clear_phase_warnings()
 	if coordinator.current_step == 0:
 		# On Step 1, Cancel returns to MainMenu
 		var router = get_node_or_null("/root/SceneRouter")

@@ -19,9 +19,9 @@ enum UnitType {
 
 enum OrgSlot {
 	LEADER,         # Company/Platoon leader character
-	TROOP,          # Core troops (2-5 per platoon)
-	SUPPORT,        # Support units (0-4, fewer than troops)
-	SPECIALIST_SLOT, # Specialist attachments (0-2, one of each type)
+	TROOP,          # Core troops (2-4 per platoon, Tactics p.134)
+	SUPPORT,        # Support units (0-3 AND fewer than troops, p.134)
+	SPECIALIST_SLOT, # Specialists (0-1 per 2 troops, one of each type, p.134)
 	COMPANY_SUPPORT, # Company-level support (0-4, max = platoon count)
 }
 

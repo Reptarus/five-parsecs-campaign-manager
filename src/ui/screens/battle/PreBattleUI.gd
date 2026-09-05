@@ -123,13 +123,27 @@ func _ready() -> void:
 	if _so and _so.has_method("reserve_band_on"):
 		_so.reserve_band_on(self)
 
-	# This screen needs 561px of height; a phone in landscape has 338. Let it scroll
-	# there, and lay out exactly as before on anything taller.
+	# Let the content scroll whenever it does not FIT, and pin the footer below it.
+	#
+	# ⚠ T11-01 (fixed 2026-09-04) was TWO defects stacked here, either fatal alone.
+	# (1) This used to read "a phone in landscape has 338, let it scroll there, and
+	# lay out exactly as before on anything taller" — and ShortScreenScroll gated on
+	# viewport height < 620. A tablet in landscape has 689 design px, so the gate
+	# never fired, the scroll stayed DISABLED, and a DISABLED ScrollContainer
+	# propagates its child's minimum: the populated 4-pane group pushed the root
+	# MarginContainer 196.7 px past the viewport, and because it is anchored
+	# full-rect with grow_vertical = BOTH it grew in both directions. The page could
+	# not be swiped because the scroll was disabled, not because it was exhausted.
+	# (2) The trailing 0 meant EVERY child moved into the scroll — including
+	# FooterPanel. _setup_adaptive_panels() above still says the footer "stays put —
+	# always visible below the group", which was true when that comment was written
+	# and was undone eight lines later by this call. Confirm/Back now sit OUTSIDE
+	# the scroll, which is what a footer is for.
 	var _column := get_node_or_null("MarginContainer/VBoxContainer")
 	if _column is BoxContainer:
 		var _sss = load("res://src/ui/components/base/ShortScreenScroll.gd").new()
 		add_child(_sss)
-		_sss.setup(_column as BoxContainer, 0)
+		_sss.setup(_column as BoxContainer, 0, 620.0, 1)
 
 
 ## Reparent the 3 content panels (Mission / Battlefield / Crew) into an
@@ -137,6 +151,10 @@ func _ready() -> void:
 ## strip in portrait (master-detail). The FooterPanel (Confirm/Back) is a sibling
 ## of MainContent, so it stays put — always visible below the group. @onready vars
 ## above already cached their (now %-relative, reparent-proof) node references.
+##
+## ⚠ "It stays put" is only true because _ready() now pins it: the ShortScreenScroll
+## call below used to move every child of the VBox — footer included — into the
+## scroll, silently undoing this. See the T11-01 note at that call site.
 func _setup_adaptive_panels() -> void:
 	var left: Control = get_node_or_null("%LeftPanel")
 	var center: Control = get_node_or_null("%CenterPanel")

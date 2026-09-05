@@ -1,6 +1,7 @@
 # Android Verification: In-App Bug Reporter
 
-**Status**: BLOCKED on hardware (tablet replacement in transit, 2026-07-27)
+**Status**: BLOCKED on `support_config.cfg` ONLY (re-checked 2026-09-04). The hardware block was stale by a month - the tablet arrived 2026-08-02 and has since run sixteen deploys. The 28 checks below have simply never been run, and they need a real webhook config first (Workstream F). 
+⚠ The "known unrelated issue" note about `MainMenu._on_viewport_resized` arity is ALSO stale: the signature is `func _on_viewport_resized(_cols: int = 0)` and the error cannot occur.
 **Scope**: the bug reporter only. Not a general on-device pass.
 **Companion**: `docs/sop/visual-runtime-verification.md`, `reference_alpha_tester_adb_methodology` memory
 

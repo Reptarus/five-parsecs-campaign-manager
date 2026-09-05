@@ -1,6 +1,10 @@
 class_name CampaignCreationStateManager
 extends RefCounted
 
+## Core Rules p.13 crew-creation methods. The caps live in that SSOT, never here.
+const CrewCreationMethodsRef = preload(
+	"res://src/core/character/CrewCreationMethods.gd")
+
 ## Enterprise-grade Campaign Creation State Manager
 ## Provides centralized state management and validation for campaign creation workflow
 
@@ -59,6 +63,22 @@ signal validation_changed(is_valid: bool, errors: Array[String])
 signal phase_completed(phase: Phase)
 signal creation_completed(campaign_data: Dictionary)
 
+## Non-blocking warnings raised while ADVANCING off `phase`, so a screen can show them.
+##
+## Emitted on every advance, with an EMPTY array when the phase is clean, so a listener
+## can clear a previous notice without tracking step changes itself.
+##
+## Deliberately untyped `Array`: `_validate_phase_with_warnings()` builds its
+## `warnings` as a plain `[]`, and passing that into an `Array[String]` parameter
+## fails at runtime (the typed-return/untyped-body trap this project has hit before).
+##
+## Added Sep 5 2026 after the deploy #19 device walk. Every warning these validators
+## produce reached `push_warning()` and NOTHING ELSE — so a Standard-method crew with
+## two Bots was correctly detected, correctly worded, and completely invisible to the
+## player, who saw Next advance as if the crew were legal. A rule that is checked but
+## never shown is indistinguishable from a rule that is not checked.
+signal phase_warnings(phase: Phase, warnings: Array)
+
 func _init() -> void:
 	_initialize_state()
 
@@ -95,9 +115,13 @@ func advance_to_next_phase() -> bool:
 		push_warning("Cannot advance: Current phase has blocking errors: %s" % str(validation_result.blocking_errors))
 		return false
 	
-	# Allow progression if only warnings exist
+	# Allow progression if only warnings exist — but SAY SO ON SCREEN. The log line
+	# below is for a bug report; the signal is for the player. Emitted unconditionally
+	# (empty array when clean) so a listener can clear a stale notice.
+	var warn_list: Array = validation_result.warnings as Array
 	if validation_result.has_warnings:
-		push_warning("CampaignCreationStateManager: Advancing with warnings: %s" % str(validation_result.warnings))
+		push_warning("CampaignCreationStateManager: Advancing with warnings: %s" % str(warn_list))
+	phase_warnings.emit(current_phase, warn_list)
 
 	var next_phase_int: int = int(current_phase) + 1
 	if next_phase_int < int(Phase.FINAL_REVIEW) + 1:
@@ -528,6 +552,29 @@ func _validate_crew_with_warnings() -> Dictionary:
 			% [members.size() - required_size, members.size() - required_size, required_size])
 		result.blocks_progression = true
 		result.valid = false
+
+	# CORE RULES p.13 — the crew-creation method the player chose in the CONFIG step.
+	#
+	# Reported as WARNINGS, never blocking, and that is a deliberate difference from the
+	# over-size check above. Over-size is unambiguous: the roster is bigger than the
+	# campaign allows however you count it. A composition violation is not, because this
+	# validator can run while the step is still half-finished — species are assigned as
+	# the player works through the slots, so a legal Standard crew passes through
+	# illegal-looking intermediate states on its way to being finished. Blocking there
+	# would fight the player mid-edit.
+	#
+	# It must live HERE regardless: advance_to_next_phase() consults only this
+	# warnings-shaped validator, so a check added to the strict _validate_crew_phase()
+	# would be reachable by nothing (the same trap the over-size check above documents).
+	var method_id: String = str((campaign_data["config"] as Dictionary).get(
+		"crew_creation_method", "miniatures"))
+	var method: int = CrewCreationMethodsRef.method_from_id(method_id)
+	var composition_errors: Array = CrewCreationMethodsRef.validate(
+		members, method, maxi(required_size, members.size()))
+	if not composition_errors.is_empty():
+		for e in composition_errors:
+			(result.warnings as Array).append(String(e))
+		result.has_warnings = true
 
 	return result
 

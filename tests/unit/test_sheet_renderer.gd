@@ -69,6 +69,53 @@ func _make_data_context() -> Dictionary:
 	}
 
 
+## A crew_log context with EVERY addressed box populated.
+##
+## `_make_data_context()` fills three crew members with a name and a species, which
+## leaves most of the sheet blank — and a blank field cannot overlap anything, so the
+## overlap case measured a 1-pair margin against a real campaign's ~49. A detection
+## proof is only as discriminating as its fixture, so this one fills all 8 slots (the
+## manifest addresses `crew[0..6]` plus the captain) with stats, two weapons and text.
+func _dense_data_context() -> Dictionary:
+	var crew: Array = []
+	for i in range(8):
+		crew.append({
+			"character_id": "char_%d" % i,
+			# Long enough to exercise the widest boxes, as a real roster does.
+			"character_name": "Character Number %d" % i,
+			"species": "Genetic Uplift",
+			"character_class": "Soldier",
+			"reaction": 2, "speed": 5, "combat": 3,
+			"toughness": 4, "savvy": 2, "luck": 1,
+			"experience": 7,
+			"gear_text": "Stim-pack, Camo Cloak",
+			"notes": "Wounded in the last engagement",
+			"weapons": [
+				{"name": "Infantry Laser", "range": 30, "shots": 1,
+					"damage": 0, "traits": "Snap Shot"},
+				{"name": "Blast Pistol", "range": 8, "shots": 1,
+					"damage": 1, "traits": "Pistol"},
+			],
+		})
+	var ctx: Dictionary = _make_data_context()
+	var campaign: Dictionary = ctx["campaign"]
+	campaign["crew"] = crew
+	campaign["captain"] = crew[0]
+	campaign["stash_items_text"] = "Handgun, Blade, Colony Rifle"
+	campaign["patrons_count"] = 2
+	campaign["rivals_count"] = 1
+	campaign["quest_rumors"] = 3
+	campaign["notes"] = "Held the field at Gamma Prime"
+	campaign["story_track_label"] = "The Signal"
+	campaign["story_event"] = "Event 3"
+	campaign["story_clock"] = 4
+	campaign["ship"] = {
+		"name": "Far Runner", "hull_current": 35, "debt": 49,
+		"traits_text": "Fuel Hog", "upgrades_text": "Improved Shielding",
+	}
+	return ctx
+
+
 # ============================================================================
 # render_sheet — basic happy path
 # ============================================================================
@@ -171,29 +218,129 @@ func test_set_blank_mode_toggles_field_visibility() -> void:
 	var r: SheetRenderer = _make_renderer()
 	r.render_sheet("crew_log", _make_data_context())
 	r.set_blank_mode(true)
-	# All field nodes hidden after blank mode toggled on.
-	var visible_count: int = 0
-	for child in r.get_children():
-		# Skip the background — it remains visible in blank mode.
-		if child is TextureRect:
-			continue
-		if (child as Control).visible:
-			visible_count += 1
-	assert_int(visible_count).is_equal(0) \
-		.override_failure_message(
-			"blank_mode=true should hide all field overlays; %d still visible" \
-				% visible_count)
+	# Count the FIELD nodes, by their marker, anywhere in the subtree.
+	#
+	# This used to walk r.get_children() and skip TextureRects, i.e. it asserted a tree
+	# SHAPE ("field nodes are direct children of the renderer") while claiming to test a
+	# behaviour. The T11-06 fix moved the fields under a transformed FieldLayer and the
+	# case went red with blank mode working perfectly. What matters is that no VALUE is
+	# painted, so assert exactly that.
+	assert_int(_visible_field_count(r)).is_equal(0) 		.override_failure_message(
+			"blank_mode=true should hide all field overlays; %d still visible" 				% _visible_field_count(r))
 	# Toggle back.
 	r.set_blank_mode(false)
-	visible_count = 0
-	for child in r.get_children():
-		if child is TextureRect:
-			continue
-		if (child as Control).visible:
-			visible_count += 1
-	assert_int(visible_count).is_greater(0) \
-		.override_failure_message(
+	assert_int(_visible_field_count(r)).is_greater(0) 		.override_failure_message(
 			"blank_mode=false should restore field visibility")
+
+
+## Visible Controls carrying the field marker, anywhere under `n`. A hidden ancestor
+## hides its children, so `visible` alone would under-report — is_visible_in_tree() is
+## what "the player can see this value" actually means.
+func _visible_field_count(n: Node) -> int:
+	var count: int = 0
+	for child in n.get_children():
+		if child is Control and (child as Control).has_meta("sheet_src_rect"):
+			if (child as Control).is_visible_in_tree():
+				count += 1
+		count += _visible_field_count(child)
+	return count
+
+
+# ── T11-06: the field overlay is built at SOURCE scale ─────────────────────
+#
+# THE DEFECT, measured (tests/tools/probe_label_min_cache.gd):
+# `add_theme_font_size_override()` INVALIDATES a Control's minimum-size cache but does
+# not recompute it - the recomputation is deferred to the next frame. So `size = rect`
+# on the following line is clamped up to the PREVIOUS font's line height. Reordering
+# does not help: a brand-new, never-laid-out Label does the same thing, because its
+# first minimum is computed with the theme's DEFAULT font. Every field Label therefore
+# came out a flat 21 px tall at EVERY display scale, so on a phone the manifest boxes
+# shrank with the sheet while the text boxes did not, and fields painted over each
+# other - ~130 layout-sweep findings at the two smallest configs, none at desktop.
+#
+# The fix removes the dependency rather than fighting it: nodes are positioned and sized
+# in SOURCE pixels with their manifest font, and the display scale is one transform on
+# the FieldLayer. These two cases pin that, and are detection-proven by restoring the
+# per-node scaling.
+
+func test_field_nodes_keep_their_manifest_rect_at_every_display_size() -> void:
+	var r: SheetRenderer = _make_renderer()
+	r.render_sheet("crew_log", _make_data_context())
+	# Sizes spanning the sweep, smallest first — the defect only bound once the sheet
+	# was small enough for a box to fall under the default 21 px line height.
+	for box in [Vector2(360, 640), Vector2(421, 362), Vector2(1280, 800),
+			Vector2(1920, 1080)]:
+		r.size = box
+		var worst: float = 0.0
+		var worst_name: String = ""
+		for node in r._field_nodes:
+			var src: Rect2 = node.get_meta("sheet_src_rect")
+			var got := Rect2(node.position, node.size)
+			var err: float = maxf(absf(got.size.x - src.size.x),
+				absf(got.size.y - src.size.y))
+			if err > worst:
+				worst = err
+				worst_name = "%s src=%s got=%s" % [node.name, src, got]
+		assert_float(worst).is_less(0.01) 			.override_failure_message(
+				("field rects must stay in SOURCE pixels at renderer size %s; " 				+ "worst error %.2f px on %s") % [box, worst, worst_name])
+
+
+func test_no_two_populated_fields_overlap_at_a_phone_size() -> void:
+	var r: SheetRenderer = _make_renderer()
+	# The renderer's real box inside PrintSheetScreen at 851x393 (phone landscape),
+	# measured with tests/tools/probe_sheet_field_geometry.gd. This is the config the
+	# layout sweep failed on.
+	r.size = Vector2(421, 362)
+	r.render_sheet("crew_log", _dense_data_context())
+
+	var rects: Array = []
+	var names: Array = []
+	for node in r._field_nodes:
+		# A print form is MEANT to have empty boxes - a blank field paints nothing and
+		# cannot cover a neighbour, so counting it would report the sheet as broken for
+		# being blank. (CLAUDE.md: blank is a legitimate value, null is a bug.)
+		var txt: String = ""
+		if node is Label:
+			txt = (node as Label).text
+		elif node is RichTextLabel:
+			txt = (node as RichTextLabel).text
+		if txt.strip_edges().is_empty():
+			continue
+		var rect := Rect2(node.position, node.size)
+		if rect.size.x <= 0.0 or rect.size.y <= 0.0:
+			continue
+		rects.append(rect)
+		names.append(str(node.name))
+
+	# A floor on the fixture itself. The first version of this case populated only 3
+	# crew members and found a ONE-pair margin against the defect, which is the shape
+	# that lets a detection proof quietly stop detecting.
+	assert_int(rects.size()).is_greater(100) 		.override_failure_message(
+			("fixture rendered only %d populated fields; this case needs a DENSE "
+			+ "sheet or it stops discriminating") % rects.size())
+
+	var collisions: Array = []
+	for i in range(rects.size()):
+		for j in range(i + 1, rects.size()):
+			# grow(-0.5): a shared border is adjacency, not an overlap.
+			if (rects[i] as Rect2).grow(-0.5).intersects((rects[j] as Rect2).grow(-0.5)):
+				collisions.append("%s over %s" % [names[i], names[j]])
+	assert_int(collisions.size()).is_equal(0) 		.override_failure_message(
+			"populated fields must not overlap; %d pairs, first: %s" 				% [collisions.size(), collisions[0] if collisions.size() > 0 else ""])
+
+
+func test_the_field_layer_carries_the_display_scale() -> void:
+	var r: SheetRenderer = _make_renderer()
+	r.render_sheet("crew_log", _make_data_context())
+	r.size = Vector2(421, 362)
+	var layer: Control = r.get_node_or_null("FieldLayer") as Control
+	assert_object(layer).is_not_null() 		.override_failure_message("the renderer must own a FieldLayer")
+	# The layer's transform IS the display scale — if these diverge the fields no longer
+	# line up with the background PNG, which is the failure the shared _content_fit()
+	# exists to prevent.
+	assert_float(layer.scale.x).is_equal_approx(r._get_display_scale(), 0.0001)
+	assert_float(layer.scale.y).is_equal_approx(r._get_display_scale(), 0.0001)
+	assert_vector(layer.size).is_equal(Vector2(r.get_source_size()))
 
 
 func test_set_debug_overlay_does_not_crash() -> void:

@@ -40,7 +40,26 @@ func _find_theme_manager() -> void:
 
 func _setup_ui() -> void:
 	## Create accessibility settings UI
-	custom_minimum_size = Vector2(600, 400)
+	# T11-04: this used to be Vector2(600, 400), and the 600 made the WHOLE Settings
+	# screen unusable on a phone in portrait, which has a design space of 338.79 px.
+	#
+	# The floor bought nothing. This panel has exactly one consumer
+	# (SettingsScreen.gd:235), which adds it with size_flags_horizontal =
+	# SIZE_EXPAND_FILL - so its parent stretches it on any screen wide enough to
+	# matter, and the minimum only ever acted as a floor the column could not go
+	# below. It is not a floating dialog, where a width minimum would be doing real
+	# work.
+	#
+	# It propagated because the settings content sits in a ScrollContainer whose
+	# HORIZONTAL axis is SCROLL_MODE_DISABLED (correct - a settings page must not
+	# scroll sideways), and a disabled axis makes the ScrollContainer PROPAGATE its
+	# child's minimum on that axis instead of absorbing it. That is the T11-01
+	# mechanism, one axis over: measured chain 600 -> ScrollContainer 608 ->
+	# VBoxContainer 608 -> root MarginContainer 636, against a 338.79 px viewport,
+	# for 297.2 px of every settings row off the right edge.
+	#
+	# The height floor is kept: the vertical axis IS scrollable, so it costs nothing.
+	custom_minimum_size = Vector2(0, 400)
 
 	# Main container
 	var vbox = VBoxContainer.new()
@@ -60,6 +79,19 @@ func _setup_ui() -> void:
 
 	_theme_option_button = OptionButton.new()
 	_theme_option_button.custom_minimum_size = Vector2(0, 48)
+	# T11-04, second driver: an OptionButton reports its LONGEST ITEM's full text width
+	# as its minimum ("Deuteranopia (Red-Green Colorblind)" measures 297 px), which on a
+	# 360 dp phone - 310 px of design space - pushed the page 24.7 px off the right edge
+	# through the horizontally-DISABLED ScrollContainer above it. Same shape as the
+	# width floor below, but the number comes from a STRING, so it is invisible in the
+	# source and only a measurement with real font metrics finds it.
+	#
+	# Clipping rather than shortening the item text: the names are the accessibility
+	# conditions themselves and must stay accurate. This is the codebase's established
+	# answer to exactly this problem - see CharacterCard.gd:231-241, whose comment
+	# describes the same defect pushing the crew list into horizontal scroll.
+	_theme_option_button.clip_text = true
+	_theme_option_button.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	_theme_option_button.item_selected.connect(_on_theme_selected)
 	vbox.add_child(_theme_option_button)
 
@@ -271,6 +303,12 @@ func _create_standard_preview() -> void:
 	## Create preview for standard (non-accessibility) themes
 	var info = Label.new()
 	info.text = "Standard theme - no accessibility adjustments"
+	# T11-04: without this the label demands its full unwrapped width (measured 326 px)
+	# as a minimum, which with the 600 floor gone becomes the panel's new widest
+	# constraint - leaving only ~13 px of headroom on a phone in portrait, so a longer
+	# string or a larger accessibility font size would re-break the page. The file's
+	# three other descriptive labels (:68, :112, :148) already wrap; this one was missed.
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_preview_container.add_child(info)
 

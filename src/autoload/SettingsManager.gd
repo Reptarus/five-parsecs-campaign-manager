@@ -294,7 +294,72 @@ func _apply_ui_scale() -> void:
 	if short_axis <= 0.0:
 		short_axis = STRETCH_BASE
 	var stretch_cancel: float = STRETCH_BASE / short_axis
-	tree.root.content_scale_factor = TARGET_EFFECTIVE * get_ui_scale() * _dpi_scale() * stretch_cancel
+	# T11-07 FIX (2026-09-05) — the density term is GONE, and that is the whole bug.
+	#
+	# `stretch_cancel` exactly cancels the engine's square-base stretch, so the algebra
+	# collapses to:
+	#
+	#     effective_scale = engine_stretch * content_scale_factor
+	#                     = (short/1080) * TARGET * ui * dpi * (1080/short)
+	#                     = TARGET_EFFECTIVE * ui_scale * dpi
+	#
+	# TARGET_EFFECTIVE is ALREADY the final effective scale — "verified layout-safe",
+	# per the note above. Multiplying by the display density therefore DOUBLE-COUNTS it:
+	# the square base already maps design units onto the device's physical short axis.
+	# On any 2.0-density Android device the app rendered at 2.32x instead of 1.16x.
+	#
+	# MEASURED ON HARDWARE (Lenovo TB361FU, deploy #18, instrumented):
+	#   boot          dpi=1.000 -> content_scale=0.7830   main menu correct, all 10
+	#                                                     buttons visible, nothing clipped
+	#   first resize  dpi=2.000 -> content_scale=1.5660   title wraps and overflows,
+	#                                                     "Settings" pushed OFF-SCREEN,
+	#                                                     intro text clipped mid-sentence
+	#
+	# Screenshots of both states, same screen and same orientation, are the evidence.
+	#
+	# ⚠ THE BUG WAS MASKED BY AN AUTOLOAD ORDERING ACCIDENT, which is why it read as a
+	# rotation bug. This autoload is #2 in project.godot and ResponsiveManager is #24, so
+	# at _ready() `/root/ResponsiveManager` does not exist yet and Android has not yet
+	# reported its density — _dpi_scale() returned 1.0 and the app booted CORRECT BY
+	# ACCIDENT. The first resize supplied the real 2.0 and broke it, permanently, until
+	# a relaunch reset the read. That is T11-07 exactly: ~2x too large, content clipped
+	# top and bottom, button widths unchanged (container-driven) while their heights grew
+	# (content-driven), surviving further rotations and cured only by a restart.
+	#
+	# ⚠ It also explains why every "rotate out and back" control measured 0 px: the jump
+	# happens ONCE, on the first resize after launch, and each control rotated an app
+	# that had already taken it. The controls were sound; they all ran past the transition.
+	#
+	# ⚠ Do NOT "fix" this by re-applying the scale once the density is knowable. That was
+	# tried first and it is backwards — it makes the 1.5660 state permanent, i.e. it ships
+	# the defect as the default. The device screenshots settled the direction.
+	#
+	# _dpi_scale() is kept below, unused by this formula, because ResponsiveManager's
+	# breakpoint classification legitimately divides by the same value.
+	tree.root.content_scale_factor = TARGET_EFFECTIVE * get_ui_scale() * stretch_cancel
+
+	# T11-07 REGRESSION GUARD (debug builds only). Kept, not deleted.
+	#
+	# This is the app's ONE global scale knob and the only unbounded one — the
+	# ResponsiveManager font ladder is capped at 1.3/0.85, i.e. 1.53x worst case, and
+	# the tablet symptom is 1.8-2.4x. It also explains the control results that the
+	# ResponsiveManager hypothesis could not: `short_axis` is min(w, h), and the
+	# TB361FU is 2560x1600 landscape / 1600x2560 portrait, so a CLEAN rotation leaves
+	# short_axis at 1600 and the scale genuinely unchanged — which is exactly why
+	# "rotate out and back" measured 0 px. A transient window reading taken mid-config
+	# -change has a DIFFERENT short axis, rescales the whole app, and sticks: this runs
+	# only on size_changed, so nothing recomputes it until the next resize.
+	#
+	# It earned its keep: printing ALL the inputs is the only reason the real term was
+	# visible. Two hypotheses had already blamed the wrong one (a ResponsiveManager
+	# transient, then a stretch_cancel transient), and the log showed short_axis pinned
+	# at 1600 on every line while `dpi` moved 1.0 -> 2.0. Keep it: if content_scale ever
+	# differs between the boot line and the first resize line again, this is the defect
+	# coming back.
+	if OS.is_debug_build():
+		print("[T11-07] win=%dx%d short=%.0f stretch_cancel=%.4f ui=%.3f dpi=%.3f -> content_scale=%.4f" % [
+			int(win.x), int(win.y), short_axis, stretch_cancel,
+			get_ui_scale(), _dpi_scale(), tree.root.content_scale_factor])
 	# Recompute on every resize/rotation so the effective scale stays constant as
 	# the short axis (and thus the square-base stretch) changes. Idempotent connect.
 	if not tree.root.size_changed.is_connected(_apply_ui_scale):

@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-09-04.** A November 2025 week-by-week deployment plan whose dates and phases are long past; release steps now live in docs/RELEASE_SIGNING.md and docs/STORE_SUBMISSION_CHECKLIST.md.
+>
+> Kept for its history. It is NOT a worklist: do not pick items from it without re-checking them against the code first.
+
 # Five Parsecs Campaign Manager - Deployment Checklist
 
 **Document Version**: 1.0

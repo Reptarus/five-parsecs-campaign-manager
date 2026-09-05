@@ -30,6 +30,45 @@ PrintSheetScreen (tab bar, right rail, blank-mode toggle)
            ""          (PNG-only fallback toast)
 ```
 
+## The overlay is built in SOURCE pixels — do not scale per node
+
+`SheetRenderer` positions and sizes every field node in **source (2764x1843) pixels**
+with the **manifest's own** `font_size`, as children of a `FieldLayer` whose transform
+carries the display scale. `_content_fit()` computes that fit once and is the only
+place the letterbox is decided; the debug overlay reads the same function.
+
+**Why it must stay that way** (T11-06, Sep 5 2026). Scaling per node means giving each
+Label a scaled font and a scaled rect, and that is unfixable in Godot 4.6:
+`add_theme_font_size_override()` invalidates the minimum-size cache but does not
+recompute it until the next frame, so `size = rect` on the following line is clamped up
+to the *previous* font's line height. It is not an ordering bug — a brand-new,
+never-laid-out Label clamps the same way, because its first minimum uses the theme's
+DEFAULT font. The result was every field Label sitting at a flat **21 px** at every
+scale, and fields painting over each other once the sheet was small enough. Proof and
+counter-examples: `tests/tools/probe_label_min_cache.gd`.
+
+Consequences worth keeping in mind when editing this file:
+
+- **The preview and the export are now one layout.** The export clone is set to the
+  source size, where the layer's scale is 1.0 and its offset 0. A geometry change you
+  see on screen is the geometry that prints.
+- **A short box is now a real finding.** The clamp can still bind where a manifest rect
+  (after `label_inset` / `rule_offset`) is shorter than its font's line height at source
+  scale. Measured at introduction: **0 of 211 fields** across the three Core sheets. If
+  that count rises, the manifest or the font size is wrong — not the renderer.
+- **Anything that walks the field nodes must walk the SUBTREE.** They are no longer
+  direct children of the renderer. `_collect_text_layer()` and the export's re-adopt
+  both look for the `sheet_src_rect` meta recursively; a walk that finds nothing does
+  not error, it silently ships a PDF with an empty searchable layer. Verify with
+  `tests/tools/emit_sheet_pdf.gd` (`text_layer_entries=` must be non-zero) and read the
+  file back with PyPDF2.
+- **Do not make the layer a direct child of a Container.** Godot resets `scale` to
+  `Vector2(1, 1)` on a Control instantiated under a Container.
+
+Measure geometry with `tests/tools/probe_sheet_field_geometry.gd`, which prints each
+node's manifest rect beside the rect it actually has, plus the clamped-node and
+overlapping-pair counts.
+
 ## Adding a new sheet from a PNG source
 
 This is the path you'll use for ~every future sheet, since Modiphius

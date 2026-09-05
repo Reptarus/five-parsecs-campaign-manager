@@ -350,7 +350,22 @@ func _display_result(result: SeizeInitiativeSystem.InitiativeResult) -> void:
 			var applied := "" if mod.applied else " [color=gray](ignored)[/color]"
 			text += "  • %s: %s%d%s\n" % [mod.name, mod_sign, mod.value, applied]
 
-	text += "\n[b]Total: %d vs %d[/b]\n\n" % [result.roll_total, result.target_number]
+	# T11-02 (tablet deploy #16): this panel stated its threshold TWO ways in one
+	# frame. _update_probability() above frames the check as the RAW die against a
+	# reduced threshold ("Need 8+ on 2D6"); this line framed it as the MODIFIED
+	# total against the fixed target ("Total: 7 vs 10"). They are the same test -
+	#     roll >= target - savvy - mods   is   roll + savvy + mods >= target
+	# - and the outcome was always correct, but a player reading both in one frame
+	# had to do the algebra to see it. The threshold the pre-roll label promised is
+	# now shown beside the total.
+	#
+	# DERIVED FROM THIS RESULT, never re-queried: calculate_required_roll() reads the
+	# CURRENT modifiers, which can differ from the ones this roll was made under, and
+	# a displayed number that can disagree with the roll it describes is the defect
+	# being fixed, not a smaller version of it.
+	var needed: int = result.target_number - result.savvy_bonus - result.total_modifiers
+	text += "\n[b]Total: %d vs %d[/b]  [color=gray](2D6 needed %d+, rolled %d)[/color]\n\n" % [
+		result.roll_total, result.target_number, needed, result.base_roll]
 
 	# Result
 	if result.success:

@@ -316,14 +316,58 @@ when the project moves off 4.6.
 | Symptom | Helper | What it does |
 | --- | --- | --- |
 | Content clipped LEFT/RIGHT in portrait | `PortraitChrome` (`src/ui/components/base/`) | Trims a root MarginContainer's L/R margins in portrait to **16dp under 600dp wide, 24dp at or above it** (`PORTRAIT_GUTTER_DP` / `PORTRAIT_GUTTER_MEDIUM_DP`, derived to design px at runtime); restores the scene's original margin in landscape. 16dp is Material 3's *compact* margin — it is the phone value, not the every-portrait-window value, and holding it on a larger portrait window reads as content jammed against the frame. Also has `setup_offsets(content)` for a screen that pads with anchor offsets instead of a MarginContainer |
-| Content taller than the screen (phone landscape ~338 design px) | `ShortScreenScroll` (same directory) | Wraps everything after N pinned children in a ScrollContainer whose vertical scrolling is AUTO only while the viewport is short |
+| Content taller than the screen | `ShortScreenScroll` (same directory) | Wraps the children between N leading and M trailing pins in a ScrollContainer whose vertical scrolling is AUTO when the CONTENT does not fit, or when the viewport is shorter than `short_px` (default 620). Trailing pins stay BELOW the scroll — that is how a footer stays on screen |
 | Content under the floating gear/bug buttons | `SettingsOverlay.reserve_band_on(self)` | Pushes content DOWN by exactly the overlap that exists at this screen's position |
 
 All three are idempotent, self-wiring (they react to rotation), and safe to call from a
 screen's `_ready()`. **`ShortScreenScroll` toggles a flag rather than re-parenting on
 rotation** — the scroll exists always, and a DISABLED ScrollContainer propagates its
-child's minimum exactly like the plain container it replaced, so tall screens are byte
-for byte what they were.
+child's minimum exactly like the plain container it replaced, so **a tall screen whose
+content FITS is byte for byte what it was**.
+
+> ⚠ **That sentence used to stop at "tall screens are byte for byte what they were", and
+> the missing clause is T11-01** (found on a tablet 2026-09-04, fixed the same day).
+> The gate was `viewport.height < short_px` with `short_px` 620. A tablet in landscape
+> has a DESIGN height of **689**, so on that device the gate could not fire, the scroll
+> stayed DISABLED — and *propagating the child's minimum is exactly the wrong thing to do
+> when the child does not fit*. PreBattleUI's populated 4-pane group pushed its root
+> MarginContainer **196.7 px** past the viewport; that node is anchored full-rect with
+> `grow_vertical = 2`, so it grew in BOTH directions and took the footer off the bottom
+> and the header off the top. The page would not swipe because the scroll was **disabled,
+> not exhausted**.
+>
+> The tell was in the sweep's own numbers once its screens were populated: the config
+> with the LEAST height (phone landscape, 338 design px) **passed**, and the roomier
+> tablet landscape **failed** — because only the short one turned scrolling on. **"The
+> screen is short" and "the content does not fit" are different questions, and only the
+> second one matters.**
+>
+> The gate now asks both. The viewport clause was KEPT as a floor because it can only
+> ever turn scrolling ON, so no existing caller loses behaviour it already had.
+>
+> ⚠ **The fit measurement cannot be taken while the scroll is DISABLED.** In that state
+> the scroll has already propagated the content's minimum upward, so its own rect has
+> grown to fit and `content_min > scroll.size.y` is false *no matter how badly the screen
+> overflows* — the check reports "fits" precisely when it does not. `_apply_deferred()`
+> forces AUTO, waits for the layout, and measures there. Same shape as
+> [[reference_a_diagnostic_that_cannot_disagree]]: a check that cannot disagree with the
+> thing it is checking proves nothing.
+>
+> ⚠ **The content usually arrives after `_ready()`.** PreBattleUI is populated by its
+> navigator, so a one-shot measurement at `_ready()` measures an EMPTY screen and
+> concludes it fits. `ShortScreenScroll` connects the inner column's
+> `minimum_size_changed` (Godot 4.6 `class_control`: emitted "when the node's minimum
+> size changes") for exactly this reason. Without it the fix never fires on the screen it
+> was written for.
+
+**Pin the footer, not just the header.** `setup(column, pinned, short_px, pinned_trailing)`
+— the fourth argument keeps that many TRAILING children outside the scroll. PreBattle
+passed `0` for years while its own `_setup_adaptive_panels()` docblock promised the footer
+"stays put — always visible below the group"; the scroll helper, added below that code,
+silently moved it inside. **A confirm/back bar that scrolls away is a footer in name only,
+and no geometry sweep can see it** — content inside a scroll is *allowed* to exceed the
+viewport. That half of the contract is asserted structurally in
+`tests/unit/test_short_screen_scroll.gd` instead.
 
 **Ordering matters when a root grows both ways.** A vertical overflow on a `grow_vertical = 2`
 root re-centres the screen to a negative `y`, which puts the header back under the
@@ -338,6 +382,68 @@ row deep inside it refusing to shrink.
 
 - `tests/tools/verify_layout.gd` names the deepest control accounting for each overflow,
   inline in the finding (`[width driver: PanelContainer .../LeftColumn min=327x16]`).
+
+> ⚠ **RUN IT WITH A CAMPAIGN *AND* WITH ITS SCREENS POPULATED, or it measures the right
+> size and the wrong screen.** T11-01 reached hardware while this sweep was green, and
+> 1280x800 was already in its `SIZES` list — the sweep instantiated `PreBattle.tscn` and
+> measured it, but nothing had handed it a mission, a crew or a battlefield, so all four
+> of its panes were EMPTY. An empty pane is short; the overflow only exists once the
+> panes carry content. Screens that build from `GameState` self-populate in `_ready()`
+> and were always measured with real content; screens whose data arrives from their
+> NAVIGATOR were measured empty on every run, at every size. **"A screen was
+> instantiated" was being reported as "a screen was verified."**
+>
+> The sweep now has a `POPULATE` table and a `_populate_pre` / `_populate_post` pair
+> covering the three mechanisms the app itself uses — `SceneRouter.scene_contexts`,
+> `GameStateManager.set_temp_data()`, and a setup method the navigator calls after
+> `add_child()`. Populating it reproduced T11-01 at the desk on the first run and turned
+> up a second real finding (Compendium filter tabs 1.6dp under the touch floor) that had
+> been invisible because the screen had no items in it.
+>
+> **The fixtures invent nothing** — crew comes from the loaded campaign, the mission from
+> `BattleSimulatorSetup` (which reads the shipped `mission_templates.json` /
+> `enemy_types.json`), setup rules from `BattleSetupRules.compute()`, terrain from
+> `CampaignPhaseManager.generate_battlefield()`, and the post-battle result through
+> `BattleResultNormalizer`. A hand-typed literal would both fabricate game values and
+> drift from the producer, which is how a fixture ends up hiding the bug it was written
+> to catch.
+>
+> `-- populate=off` disables the layer, so the A/B that proves a finding is real differs
+> in exactly ONE variable rather than in "everything I changed since the last run".
+
+> ⚠ **The ROTATION sweep needs the same populate AND had a filter of its own that hid
+> the whole class.** `verify_rotation.gd`'s overflow check carried
+> `and not _is_backdrop(r, ds)` — an AREA test (`>= 80%` of the design area) borrowed
+> from `verify_layout`'s **overlay-collision** check, where it is correct: a full-screen
+> background merely SPANS the corner the gear buttons occupy. It is the wrong question
+> for **overflow**. A backdrop legitimately spans the screen; it does not legitimately
+> extend 196 px PAST it — and a node overflowing vertically has a *larger* area, so it
+> was guaranteed to be filtered. Proven: with the T11-01 gate reverted and screens
+> populated, the sweep still reported **23/23 PASS**; with the clause removed it reports
+> the three PreBattle findings. Both sweeps now share
+> `tests/tools/screen_populator.gd`. **Reusing a heuristic across two different
+> questions is how a harness goes blind.**
+>
+> ⚠ **A rotation finding can be ORDER-DEPENDENT.** Both sweeps walk every screen in one
+> process and share the same autoloads (SettingsOverlay's reserved band, SettingsManager,
+> GameState), so a screen can fail because of what ran before it.
+> `tests/tools/probe_rotation_divergence.gd` measures ONE screen in isolation three ways
+> — fresh-and-measured-once, same-instance-before-rotation, same-instance-after-a-round-trip
+> — which is what tells a real defect from contamination. It gave opposite verdicts to
+> two findings from the same run: SettingsScreen reproduced identically in isolation
+> (real), TacticalBattleUI did not reproduce at all (a lead). **Run it before filing
+> either.**
+>
+> ⚠ **Re-run any resize harness before believing one result — the SWEEPS included.**
+> The probe's first run called SettingsScreen clean and every run after it reported
+> 297.2 px with identical arithmetic: the first run had simply not resized the window
+> down yet, so the design space *was* the overflowing width and nothing exceeded it. The
+> geometry sweep flakes the same way — across five post-fix runs on an unchanged tree it
+> reported **166/2 four times and 160/8 once**, with no code difference between them.
+> These harnesses drive a real window manager, and a resize that lands late shifts what
+> gets measured. **One run is a sample, not a result**; take two before calling a delta a
+> regression, and diff the FINDING SET rather than the pass/fail counts — the re-run that
+> settled the 160/8 scare produced a zero-line diff against the known-good run.
 - `tests/tools/probe_widest.gd <scene> <w> <h> [x|y] [campaign=...]` prints the whole
   minimum-size chain for one screen at one size, excluding anything inside a
   ScrollContainer (which is allowed to overflow).
@@ -348,6 +454,73 @@ row deep inside it refusing to shrink.
   sizes and prints the resolved font-size distribution per size. Use it whenever type
   "looks the same everywhere" — it distinguishes "the ladder is flat" from "this screen
   pins its sizes", which the multiplier alone cannot. Windowed, like the sweeps.
+
+### A screen can resize the WINDOW out from under the sweep (T11-04, Sep 4 2026)
+
+`verify_layout.gd` measured SettingsScreen six times and passed it six times, at a size it
+never once achieved. `SettingsScreen._enter_tree()` restores `user://window.ini` and
+applies its saved size (`SettingsScreen.gd:127-129`), and `_exit_tree()` writes the current
+size back — so because the sweep builds a fresh instance per size, the screen snapped the
+window to whatever the PREVIOUS configuration had saved. It was measured **one size
+behind** on every row. A real defect (297.2 px of every settings row off a phone's right
+edge) was invisible at all six.
+
+`verify_rotation.gd` never had the hole: it builds once and re-applies a size per STEP,
+which overwrites the restore before it measures. **That, and nothing else, was why the two
+sweeps disagreed about this screen for a day.**
+
+Three transferable rules:
+
+1. **Re-assert the window size after the screen has entered the tree**, not only before.
+   A screen is not a passive subject: it can move the window, change `content_scale_factor`,
+   or push a modal.
+2. **REBUILD, do not merely re-resize.** Font sizes come from
+   `ResponsiveManager.get_responsive_font_size()` and are baked in at build time, so a
+   screen built at 1920x1080 and shrunk to 360x640 carries desktop text. The
+   re-resize-only version of this fix produced two "findings" (Labels needing 379 px and
+   321 px) that **vanished** once the screen was rebuilt at the requested size — desktop
+   fonts measured against a phone width. They were one step from being fixed as defects.
+3. **Order the repair so the screen's own persistence works for you.** Re-apply the size
+   BEFORE freeing the tainted instance: `_exit_tree()` saves the current size, so freeing
+   first would persist the hijacked one and the rebuilt instance would restore it again.
+
+⚠ Side effect, pre-existing and unavoidable: **running either sweep rewrites
+`user://window.ini`**, and `GameState` restores it at boot. That means the gdUnit4 window
+size — and therefore the ambient ResponsiveManager breakpoint, and therefore every font
+size — depends on what was run last. Any unit test that measures a real screen must PIN
+the configuration it claims to measure and restore it afterwards.
+
+### A disabled ScrollContainer axis propagates the minimum on THAT axis (T11-04)
+
+The horizontal twin of T11-01. Settings content lives in a ScrollContainer with
+`horizontal_scroll_mode = SCROLL_MODE_DISABLED` — correct, a settings page must not scroll
+sideways — and a disabled axis makes the ScrollContainer **propagate** its child's minimum
+on that axis rather than absorb it. So one hardcoded `custom_minimum_size.x = 600` deep
+inside a panel reached the screen root: 600 → ScrollContainer 608 → VBox 608 → root
+MarginContainer 636, against a 338.79 px viewport.
+
+**Three width drivers stack, and each is invisible until the one above it is gone**
+(297.2 → 24.7 → 3.7 → clean):
+
+| driver | why it is easy to miss |
+|---|---|
+| `custom_minimum_size.x = 600` on a panel | greppable — the only one that is |
+| an `OptionButton` reporting its longest ITEM (297 px) | the number comes from a STRING; invisible in source |
+| a row TITLE Label with autowrap OFF (184 px) | the row's DESCRIPTION already wrapped, so it looked handled |
+
+For the last two the codebase's own answer is `clip_text = true` +
+`text_overrun_behavior = OVERRUN_TRIM_ELLIPSIS` (see `CharacterCard.gd:231-241`, whose
+comment describes the identical defect pushing the crew list into horizontal scroll), or
+autowrap for prose. Shortening the strings was rejected: the OptionButton's items are the
+names of accessibility conditions.
+
+**Use a min-width spine to name the driver.** An overflow figure names the outermost
+consequence, never the cause. Walk DOWN the widest-minimum child at each level until a
+leaf; the last line is the node to fix. `tests/tools/probe_settings_width.gd` does this and
+found each driver in one line. ⚠ Start the walk at the first CONTAINER, not the root: a
+plain `Control` does not aggregate its children's minimums, so a root Control reports 0.0 —
+which is also how a test asserting on the root became a false green that passed with the
+defect restored.
 
 ### A desktop window pixel IS a device dp — layout QA is NOT device-blocked
 

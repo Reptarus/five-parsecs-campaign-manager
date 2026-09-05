@@ -1,6 +1,6 @@
 # NarrativeScreen Phase 1 — Foundation Build Plan
 
-**Status**: Draft — awaiting approval before implementation
+**Status**: Draft — SHIPPED 2026-05-22 (this header said 'awaiting approval' for three months after the feature landed) before implementation
 **Date**: 2026-05-21
 **Predecessor**: `docs/design/narrative_system_design.md` (full design, this plan implements its revised Phase 1 scope)
 **Related**: `docs/research/scene-stage-atmosphere.md` (atmosphere overlay, parked — slots in as a SceneStage sibling)

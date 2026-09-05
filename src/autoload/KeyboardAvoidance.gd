@@ -80,6 +80,9 @@ var _last_height: int = 0
 var _stable_readings: int = 0
 ## The scroll currently holding a spacer, so it can be cleaned up from anywhere.
 var _spacer_host: ScrollContainer = null
+## The Window currently displaced by _shift_window_up(), and the Y to put it back to.
+var _shifted_window: Window = null
+var _window_original_y: int = 0
 ## True while the keyboard is up and we are watching for it to close.
 var _holding: bool = false
 
@@ -120,9 +123,40 @@ func _ensure_headroom(scroll: ScrollContainer, needed: float) -> void:
 	_spacer_host = scroll
 
 
+## Move a Window up so the focused field clears the keyboard.
+##
+## The fallback for a dialog with no ScrollContainer. Only ever applied to a CHILD
+## window: shifting the root would move the whole application.
+##
+## The original Y is captured ONCE, on the first shift, and every later shift is
+## computed from that captured value rather than from the current position — moving
+## between two fields in the same dialog would otherwise stack shift onto shift and
+## walk the dialog off the top of the screen.
+func _shift_window_up(control: Control, shift: float) -> void:
+	var w := control.get_window()
+	if w == null or w == get_tree().root:
+		return
+	if _shifted_window != w:
+		_restore_window()
+		_shifted_window = w
+		_window_original_y = w.position.y
+	w.position.y = maxi(0, _window_original_y - int(ceil(shift)))
+	avoidance_applied.emit(control, shift)
+
+
+## Put a shifted Window back. Called from exactly the same places as
+## _clear_headroom(): a dialog left displaced after the keyboard closes is the same
+## class of leak as a spacer outliving its keyboard, and more visible.
+func _restore_window() -> void:
+	if _shifted_window != null and is_instance_valid(_shifted_window):
+		_shifted_window.position.y = _window_original_y
+	_shifted_window = null
+
+
 ## Remove the spacer. Called when the keyboard closes, and defensively on disarm —
 ## a spacer outliving its keyboard is dead space at the bottom of a form.
 func _clear_headroom() -> void:
+	_restore_window()
 	if _spacer_host == null or not is_instance_valid(_spacer_host):
 		_spacer_host = null
 		return
@@ -141,9 +175,32 @@ func _ready() -> void:
 	# and editor runs pay literally nothing.
 	if not DisplayServer.has_feature(DisplayServer.FEATURE_VIRTUAL_KEYBOARD):
 		return
-	var root_viewport := get_tree().root
-	if root_viewport and not root_viewport.gui_focus_changed.is_connected(_on_gui_focus_changed):
-		root_viewport.gui_focus_changed.connect(_on_gui_focus_changed)
+	_hook_viewport(get_tree().root)
+	# T11-11: EVERY Window is its own Viewport, so a control focused inside a dialog
+	# emits gui_focus_changed on THAT Window and never on the root. Connecting only
+	# to the root made this autoload structurally blind to all 15 `extends Window`
+	# subclasses in src/ — three of which take text input: BugReportDialog and
+	# CustomVictoryDialog (both player-facing) and QAScenarioDialog, which is where
+	# it was found. It presented as one debug screen's problem and was systemic.
+	#
+	# Hooked on node_added so it is ORDER-INDEPENDENT. Registering each dialog by
+	# hand is the shape that has already failed twice here: a fix ordered against
+	# SOME callers is not a fix, and the caller that gets forgotten is always the
+	# one added next.
+	get_tree().node_added.connect(_on_node_added)
+
+
+func _on_node_added(node: Node) -> void:
+	var w := node as Window
+	if w != null:
+		_hook_viewport(w)
+
+
+func _hook_viewport(vp: Viewport) -> void:
+	if vp == null:
+		return
+	if not vp.gui_focus_changed.is_connected(_on_gui_focus_changed):
+		vp.gui_focus_changed.connect(_on_gui_focus_changed)
 
 
 ## True when focusing `node` will raise the soft keyboard.
@@ -254,19 +311,22 @@ func _disarm() -> void:
 
 
 func _apply_avoidance(control: Control, keyboard_physical_height: int) -> void:
-	var viewport := get_viewport()
+	# The CONTROL's viewport, not this autoload's. They are the same thing only while
+	# the field lives in the main scene; for a field inside a Window they are two
+	# different viewports with two different visible rects, and measuring the wrong
+	# one silently produces a shift computed against the wrong height (T11-11).
+	var viewport := control.get_viewport()
 	if viewport == null:
 		return
 	var visible_rect := viewport.get_visible_rect()
 	var scroll := find_scrollable_ancestor(control)
-	if scroll == null:
-		return
 
 	# Get the field into the scroll's own viewport FIRST, so the geometry the shift
 	# is computed from is final. Done explicitly rather than by setting
 	# `follow_focus = true`, which would be a persistent mutation of a scene node
 	# for a transient need.
-	scroll.ensure_control_visible(control)
+	if scroll != null:
+		scroll.ensure_control_visible(control)
 
 	var keyboard_logical := to_logical_height(
 		keyboard_physical_height,
@@ -296,6 +356,16 @@ func _apply_avoidance(control: Control, keyboard_physical_height: int) -> void:
 			visible_rect.size.y, keyboard_logical, control_bottom, shift])
 
 	if shift <= 0.0:
+		return
+
+	# NO SCROLL TO WORK WITH. Two of the three text-taking dialogs (CustomVictoryDialog,
+	# QAScenarioDialog) build a plain VBox with no ScrollContainer anywhere, so the
+	# scroll strategy has nothing to move and the old code returned here having done
+	# nothing. A Window can be moved directly instead, which needs no scene surgery and
+	# no spacer — and unlike scrolling it cannot silently no-op, because a Window's
+	# position has no clamp to fight.
+	if scroll == null:
+		_shift_window_up(control, shift)
 		return
 
 	# Make the room BEFORE asking for it. On a page whose content already fits, the

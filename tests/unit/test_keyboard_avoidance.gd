@@ -334,3 +334,105 @@ func test_a_stale_shift_is_dropped_when_focus_has_already_moved() -> void:
 	# The guard is an identity comparison against the live armed control, so a
 	# resumed coroutine for `first` must find itself stale.
 	assert_bool(ka._armed_control == first).is_false()
+
+
+# ------------------------------------------------- Window dialogs (T11-11)
+#
+# Every case above this line lives in the ROOT viewport, and all 20 of them passed
+# while soft-keyboard avoidance did nothing whatsoever inside a dialog.
+#
+# Godot gives every Window its own Viewport, and gui_focus_changed is a Viewport
+# signal. _ready() connected to get_tree().root alone, so a field focused inside a
+# dialog announced itself on a Viewport nothing was listening to. That is all 15
+# `extends Window` subclasses in src/, three of which take text: BugReportDialog and
+# CustomVictoryDialog (both player-facing) and QAScenarioDialog, where it was found
+# on tablet deploy #17 and filed as one debug screen's problem.
+#
+# Second, independent cause: two of those three build a plain VBox with no
+# ScrollContainer, so even once the signal arrived the scroll strategy had nothing to
+# move and returned having done nothing. Either cause alone is fatal, which is why
+# both a signal case and a shift case are pinned here.
+
+
+func _ka_in_tree() -> Node:
+	var ka: Node = auto_free(KA.new())
+	add_child(ka)
+	return ka
+
+
+func test_a_window_entering_the_tree_gets_its_focus_signal_hooked() -> void:
+	var ka := _ka_in_tree()
+	var win: Window = auto_free(Window.new())
+	# Called directly rather than by adding the Window to the tree: _ready() only
+	# connects node_added when the platform reports a virtual keyboard, which no
+	# desktop test runner does. The hook itself is what is under test.
+	ka._on_node_added(win)
+	assert_bool(win.gui_focus_changed.is_connected(ka._on_gui_focus_changed)) \
+		.override_failure_message(
+			"A Window is its own Viewport; without this hook every dialog in the app "
+			+ "is invisible to keyboard avoidance."
+		).is_true()
+
+
+func test_hooking_the_same_window_twice_does_not_double_connect() -> void:
+	# node_added fires for every Node, and a dialog may be removed and re-added.
+	# A double connection would apply the shift twice for one focus.
+	var ka := _ka_in_tree()
+	var win: Window = auto_free(Window.new())
+	ka._on_node_added(win)
+	ka._on_node_added(win)
+	assert_int(win.gui_focus_changed.get_connections().size()).is_equal(1)
+
+
+func test_a_non_window_node_is_ignored() -> void:
+	var ka := _ka_in_tree()
+	var plain: Node = auto_free(Node.new())
+	ka._on_node_added(plain)  # must not throw
+
+
+func test_a_dialog_with_no_scroll_is_moved_and_put_back() -> void:
+	var ka := _ka_in_tree()
+	var win: Window = auto_free(Window.new())
+	add_child(win)
+	win.position = Vector2i(0, 500)
+	var field: LineEdit = auto_free(LineEdit.new())
+	win.add_child(field)
+
+	ka._shift_window_up(field, 120.0)
+	assert_int(win.position.y).override_failure_message(
+		"CustomVictoryDialog and QAScenarioDialog have no ScrollContainer, so moving "
+		+ "the Window is the only strategy left."
+	).is_equal(380)
+
+	ka._restore_window()
+	assert_int(win.position.y).override_failure_message(
+		"A dialog left displaced after the keyboard closes is the same leak as a "
+		+ "spacer outliving its keyboard, and more visible."
+	).is_equal(500)
+
+
+func test_moving_between_two_fields_does_not_stack_the_shift() -> void:
+	# The original Y is captured once. Recomputing from the CURRENT position would
+	# walk the dialog off the top of the screen as the player tabs through a form.
+	var ka := _ka_in_tree()
+	var win: Window = auto_free(Window.new())
+	add_child(win)
+	win.position = Vector2i(0, 500)
+	var a: LineEdit = auto_free(LineEdit.new())
+	var b: LineEdit = auto_free(LineEdit.new())
+	win.add_child(a)
+	win.add_child(b)
+
+	ka._shift_window_up(a, 100.0)
+	ka._shift_window_up(b, 100.0)
+	assert_int(win.position.y).is_equal(400)
+
+
+func test_the_root_window_is_never_moved() -> void:
+	# Shifting the root would move the whole application, not a dialog.
+	var ka := _ka_in_tree()
+	var field: LineEdit = auto_free(LineEdit.new())
+	add_child(field)
+	var before := get_tree().root.position.y
+	ka._shift_window_up(field, 200.0)
+	assert_int(get_tree().root.position.y).is_equal(before)

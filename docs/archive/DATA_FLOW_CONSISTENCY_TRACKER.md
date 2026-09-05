@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-09-04.** Its remaining rows name files deleted in the Jul 2026 and Sep 2026 sweeps, so every lead in it is a dead end.
+>
+> Kept for its history. It is NOT a worklist: do not pick items from it without re-checking them against the code first.
+
 # Five Parsecs Campaign Manager - Data Flow Consistency Tracker
 
 **Last Updated**: 2026-02-09

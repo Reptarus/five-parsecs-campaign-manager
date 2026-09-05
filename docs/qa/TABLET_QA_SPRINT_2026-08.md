@@ -6054,6 +6054,194 @@ The sliver *is* tappable — a tap at y=1595 launched the battle — so this is 
 blocker. It is the same class as T5-03/T10-11 (a required control at the screen edge) on
 the screen that starts every battle.
 
+#### ✅ FIXED 2026-09-04 (desk) — TWO stacked defects, either fatal alone
+
+**Root cause 1 — the gate asked the wrong question.** `ShortScreenScroll._apply()` turned
+scrolling on when `viewport.height < short_px` (620). The tablet's landscape **design**
+height is **689**, so the gate could not fire, the ScrollContainer stayed `DISABLED` —
+and a DISABLED ScrollContainer *propagates its child's minimum*. The populated 4-pane
+`AdaptivePanelGroup` (4 panes, `max_columns = 3` → 2 rows) therefore pushed the root
+`MarginContainer` **196.7 px** past the viewport; that node is anchored full-rect with
+`grow_vertical = 2`, so it grew in BOTH directions — footer off the bottom, header off
+the top. **This is why the three swipes were byte-identical: the scroll was disabled, not
+exhausted.** The controlled swipe test was right and its conclusion ("does not scroll")
+was literally true.
+
+**Root cause 2 — the footer was inside the scroll.** `PreBattleUI` called
+`setup(_column, 0)`, which moves *every* child into the scroll, footer included — while
+`_setup_adaptive_panels()` eight lines above still promised the footer "stays put —
+always visible below the group". True when written, undone by the helper added later.
+
+**Fixed**: the gate now also asks whether the CONTENT fits (measured with scrolling
+ENABLED — see the SOP note on why it cannot be measured in the DISABLED state), the
+viewport clause is kept as a floor so no existing caller loses behaviour, and
+`setup()` gained a `pinned_trailing` argument. PreBattle passes `1`, so Confirm/Back now
+sit outside the scroll.
+
+**Proven at the desk, not just asserted.** The layout sweep could not see this before
+because it never populated its screens (see below). Populated, it reproduces T11-01 on
+the first run and the failure pattern is the diagnosis restated:
+
+| config | design space | vs `short_px` 620 | scroll | before | after |
+| --- | --- | --- | --- | --- | --- |
+| phone landscape | 733x338 | 338 **<** 620 | AUTO | PASS | PASS |
+| small phone | 310x551 | 551 **<** 620 | AUTO | PASS | PASS |
+| phone portrait | 338x733 | 733 **>** 620 | DISABLED | **FAIL 91.8 px** | PASS |
+| tablet landscape | 1103x689 | 689 **>** 620 | DISABLED | **FAIL 196.7 px** | PASS |
+| desktop 1080p | 1655x931 | 931 **>** 620 | DISABLED | **FAIL 14.5 px** | PASS |
+
+The config with the LEAST room passed and the roomier ones failed. Sweep 161→166 passed;
+the 8 other `ShortScreenScroll` consumers are byte-identical across the runs (PrintSheetScreen's
+93 pre-existing findings are unchanged). Pinned by `tests/unit/test_short_screen_scroll.gd`
+(7 cases), **3 isolated detection proofs, all RED**.
+
+⚠ **Still open on hardware.** This is a DESK fix. It must be walked on the tablet in
+landscape at deploy #17 — the whole point of T11-01's class is that desk-green said
+nothing about the device.
+
+#### 🔎 The harness gap this exposed — `verify_layout.gd` never populated its screens
+
+1280x800 was already in the sweep's `SIZES`. The sweep instantiated `PreBattle.tscn` and
+measured it — with **all four panes empty**, because nothing had handed it a mission, a
+crew or a battlefield. An empty pane is short. Screens that build from `GameState`
+(CampaignDashboard) self-populate in `_ready()` and were always measured with real
+content; screens whose data arrives from their NAVIGATOR were measured empty on every
+run, at every size. **"A screen was instantiated" was being reported as "a screen was
+verified."**
+
+The sweep now carries a `POPULATE` table and a `_populate_pre` / `_populate_post` pair
+covering the three mechanisms the app itself uses (`SceneRouter.scene_contexts`,
+`GameStateManager.set_temp_data()`, and a setup method the navigator calls after
+`add_child()`). It found a second real defect immediately: the Compendium category filter
+tabs were **46.4dp** tall against the 48dp Material floor on phone portrait and small
+phone — invisible before because the screen had no items in it. ⚠ Two stacked constraints
+there and only the LARGER was operative: the button asked for 36 but the strip's own 40px
+minimum stretched it, so raising only the button would have changed nothing.
+
+`-- populate=off` disables the layer so the A/B differs in exactly one variable.
+
+#### 🔎 Desk session, same day — the ROTATION sweep had the same gap, plus one of its own
+
+Porting the populate layer to `verify_rotation.gd` (both sweeps now share
+`tests/tools/screen_populator.gd`; two copies of a fixture builder is how they drift)
+exposed a second, independent harness defect. **The rotation sweep could not see
+T11-01's defect class at all**: its overflow check carried
+
+```gdscript
+if off > EPS and not _parent_already_overflows(ctl, inst, off) \
+        and not _is_backdrop(r, ds):
+```
+
+`_is_backdrop` is an AREA test — `area >= 80% of the design area`. It is borrowed from
+`verify_layout`'s **overlay-collision** check, where the rationale is sound and
+documented (a full-screen background merely SPANS the corner the gear buttons occupy).
+It is the wrong question for **overflow**: a backdrop legitimately spans the screen, it
+does not legitimately extend 196 px past it — and a node overflowing vertically has a
+*larger* area, so it was guaranteed to be filtered. PreBattle's overflow lands on its
+root `MarginContainer`, which is precisely the shape the clause discarded.
+
+**Proven, not argued.** With the T11-01 gate reverted and screens populated, the sweep
+reported **23/23 PASS**. With the clause removed it reports:
+
+```
+FAIL PreBattle.tscn @ phone portrait (338x733): MarginContainer off-screen by 91.8 px AFTER RESIZE
+FAIL PreBattle.tscn @ phone portrait (back):    MarginContainer off-screen by 91.8 px AFTER RESIZE
+FAIL PreBattle.tscn @ tablet landscape (1103x689): MarginContainer off-screen by 108.2 px AFTER RESIZE
+```
+
+`verify_layout.gd` has never filtered backdrops out of its own overflow check; the two
+now match, and the dead helper went with the clause.
+
+**Two findings it then surfaced, with OPPOSITE verdicts** — which is why
+`tests/tools/probe_rotation_divergence.gd` was written before either was filed. It
+measures one screen in isolation three ways: fresh-and-measured-once (verify_layout's
+flow), same-instance-before-rotation, and same-instance-after-a-round-trip.
+
+| screen | fresh | pre-rotation | post-round-trip | verdict |
+| --- | --- | --- | --- | --- |
+| SettingsScreen | 297.2 px | 297.2 px | 297.2 px | **REAL** (T11-04) |
+| TacticalBattleUI | clean | clean | clean | **order-dependent** (T11-05, a lead) |
+
+**T11-04 — SettingsScreen does not fit a phone in portrait.** Its root MarginContainer
+measures **636.0 design px wide against a 338.79 px viewport**, deterministically across
+three consecutive runs. 636 is the design width of an **800 dp** window — the size the
+sweeps end on — and the screen has no `layout_class_changed` wiring and no resize
+handler at all, with hard `custom_minimum_size.x` values (180 / 120 / 50) inside HBoxes
+that never wrap. ⚠ **Recorded, not fixed, and not fully diagnosed**: `verify_layout.gd`
+still calls SettingsScreen clean at the same size and that contradiction is unexplained.
+Filing the fix before explaining that would be guessing.
+
+⚠ **A method note worth keeping.** The probe's FIRST run reported SettingsScreen clean
+and every run after it reported 297.2 px, with identical arithmetic. The first run was
+the anomaly: the window had not yet been resized down, so the design space *was* 636 and
+nothing overflowed relative to it. **Re-run a probe before believing its first answer** —
+one measurement of a resizing harness is a sample, not a result.
+
+#### 🔎 T11-04 root-caused and CLOSED, same day — and the cause was in the HARNESS too
+
+The contradiction above ("verify_layout still calls SettingsScreen clean at the same size,
+and that contradiction is unexplained") had one cause, and finding it needed no new theory,
+only the elimination of everything cheap first. Both sweeps list the screen; both use
+393x851; both compute `maxf(-pos, end - ds)` against `root.get_visible_rect().size`; the
+settle caps differ by 10 frames and that had already been tested; and it was not a hidden
+SKIP, because 28 screens x 6 sizes = 168 = 166 pass + 2 fail exactly.
+
+What survived elimination was the size the window is resized **from** — so that was
+measured, and the measurement showed something else entirely:
+
+```
+approach design space: (310.3448, 551.7241)     <- 360x640 applied and confirmed
+target design space  : (689.6552, 1103.448)   (window (800, 1280))
+```
+
+The target resize was applied and confirmed, and by measurement time the window was
+**800x1280 anyway**. `SettingsScreen._enter_tree()` restores `user://window.ini`
+(`SettingsScreen.gd:127-129`) and `_exit_tree()` writes the current size back, so the
+screen resized the window on entry — to whatever the PREVIOUS configuration had saved on
+the way out. `verify_layout` was measuring it **one size behind**, six times, and reporting
+six passes. `verify_rotation` re-applies a size per STEP, which overwrites the restore
+before it measures anything. That is the whole of the disagreement.
+
+**Both halves were real.** Disabling the restore (redirecting `_window_config_path`, so the
+user's real window.ini is never touched) and BUILDING the screen at 393x851 still gave
+297.2 px, with the root's combined minimum at **636.0** — not a stale rect and not a reflow
+latch, but a hard minimum wider than the viewport. A min-width spine tracer named the
+driver in one line: `PanelContainer custom_min.x 600.0`, i.e.
+`AccessibilitySettingsPanel._setup_ui()`. An **accessibility** panel was what made the
+settings page unusable on a small screen.
+
+Three drivers, each hidden behind the one above it: 297.2 → 24.7 → 3.7 → clean. The fixes
+are in `docs/QA_STATUS_DASHBOARD.md` § T11-04.
+
+⚠ **The harness fix had to REBUILD, not just re-resize.** Font sizes here come from
+`ResponsiveManager.get_responsive_font_size()` and are baked in at build time, so a screen
+built at 1920x1080 and then shrunk to 360x640 carries desktop text. The re-resize-only
+version of the fix produced two new "findings" — Labels needing 379 px and 321 px — which
+**disappeared** once the screen was rebuilt at the requested size. They were harness
+artifacts, and they were one step away from being fixed as defects.
+
+⚠ **My own pinning test was a FALSE GREEN, and the detection proof is what caught it.** The
+screen-level case asserted `root.get_combined_minimum_size().x` and PASSED with the 600 px
+floor restored: SettingsScreen's root is a plain `Control`, and a plain Control does not
+aggregate its children's minimums — only Containers do — so it reported 0.0 and the
+assertion was `0 < 360`, which no defect can fail. The probe had already printed the tell
+(`SettingsScreen Control min.x 0.00` directly above `MarginContainer min.x 636.00`) and I
+read past it. **Assert on the descendants, and never trust a case that has not been watched
+to fail.**
+
+⚠ **That suite was also ambient-dependent.** Its numbers moved with the gdUnit4 window
+size, which comes from `GameState`'s boot-time window.ini restore — a file that **either
+layout sweep rewrites**, because every SettingsScreen instance saves on the way out. It now
+pins ResponsiveManager to MOBILE in `before_test()` and restores in `after_test()` so it
+cannot become someone else's flake, and its header states exactly what it can and cannot
+catch.
+
+**Verified after the fixes:** layout sweep **166 passed / 2 failed / 0 skipped** (the 2 are
+PrintSheetScreen's pre-existing anchored-sibling overlaps; SettingsScreen is clean at all
+six sizes, with six NOTE lines recording the rebuild). Rotation sweep **22 passed / 1
+failed** (was 21/2 — T11-04 gone, T11-05 unchanged). 78 responsive test cases, 0 failures.
+All 11 lints exit 0, headless parse clean, `git diff -- data/` empty.
+
 ### 🟡 T11-02 (LOW) — the Seize panel states its threshold two different ways in one frame
 
 `InitiativeCalculator` shows "Need **8+** on 2D6 (42% chance)"
@@ -6082,3 +6270,471 @@ SUCCESS. Verify before filing.
   (`C:/Users/...`) and set the variable.
 - The device was left clean: `svc power stayon false`, `screen_off_timeout` untouched
   (already 1800000), and the user's campaign restored SHA256-identical.
+
+
+---
+
+## Deploy #17 — 2026-09-05 (versionCode **4**, Lenovo TB361FU, Android 16)
+
+First deploy carrying the Sep 4-5 desk work. Built via the CLI route
+(`gradle_build/export_format` 1 -> 0, `--export-debug`, preset restored afterwards);
+`scripts/verify_apk.py` PASS (57.1 MB, 2285 entries, no forbidden paths).
+
+**`version/code` bumped 3 -> 4 on purpose.** Deploy #16's APK reported versionCode 3 and
+`lastUpdateTime` 10:29, which had to be correlated against commit timestamps to work out
+what was actually on the device. The device should be able to answer "which build is
+this" by itself.
+
+### Scope honesty — two fixes are NOT reproducible on this hardware
+
+The tablet is **800 x 1280 dp portrait / 1280 x 800 dp landscape** (1600x2560 physical at
+density 320), which matches `verify_layout`'s "tablet portrait"/"tablet landscape" rows
+exactly. T11-04 and T11-06's overlaps both bound at ~338-851 design px and the sweep
+already recorded "none at tablet or desktop", so this device **cannot** exercise them.
+T11-05 likewise needs a 338 dp portrait width for the 560 px overlay cap to overflow.
+They are recorded as *not verified here*, not as passes.
+
+### PASS
+
+| Item | Evidence |
+|---|---|
+| **T11-06 device leg** | All three sheets render correctly; values sit under their captions, no field overlaps. **Save PDF** went through the native SAF picker (T9-10) and wrote 227,841 B. PyPDF2 read it back: 1 page, **792 x 612 pt**, **329 extractable chars**, all 8 expected values incl. both of Nyx Ward's weapons. This is the **`godotpdf`** backend, which desktop never exercises — the searchable text layer survived the T11-06 subtree-walk change on the device path. |
+| **T10-06 (re-confirmed)** | "Battle resumed — Round 1, Reaction Roll. 6 crew and 6 enemies restored." |
+| Dashboard / main menu rotation | **0 of 4,096,000 px** differ across rotate-out-and-back |
+| Record Result drawer | Renders correctly, correct scale |
+| Enemy drawer in portrait | Re-lays out correctly, Mark Down reachable |
+
+### NEW — T11-07 (MED): the battle screen's fonts break on a rapid double config change
+
+**Symptom.** `TacticalBattleUI` renders its text roughly **1.8-2x too large** and the
+content clips off the top and bottom of the screen. It **persists until the app is
+restarted** — it survives further rotations, and survives backgrounding and resuming.
+
+⚠ **It is NOT a zoom, and I filed it as one first.** Buttons keep their *width* and grow
+~2.4x in *height*: the width is container-driven and the height is font-driven. Reading it
+as a zoom sends you looking at viewport stretch instead of font scaling.
+
+**Deterministic repro** (twice, 0.4% / 0.5% pixel difference from the original
+observation; 85.7% from a clean battle screen):
+
+```
+# in a battle, landscape
+adb shell settings put system accelerometer_rotation 0   # a NO-OP write - already 0
+adb shell settings put system user_rotation 0            # rotate to portrait
+sleep 7
+adb shell settings put system user_rotation 1            # rotate back to landscape
+```
+
+**The whole finding is in that no-op write.** It changes nothing about the device; it just
+delivers a configuration-change broadcast ~100 ms before the rotation. Remove that one
+line and the identical sequence is **0 px** different from clean.
+
+**Controls run (each differing in ONE variable):**
+
+| control | result |
+|---|---|
+| Rotate out and back, battle screen | **0 px** |
+| Rapid double rotation (4 flips, 3 s apart) | **0 px** |
+| Enemy drawer open during rotation | **0 px** |
+| HOME then resume | **0 px** |
+| Full path including the PDF export | clean |
+| Dashboard / main menu, same rotation | **0 px** of 4,096,000 |
+| Auto-rotate toggle with NO rotation | **0 px** |
+| **Any extra config change immediately before a rotation** | **reproduces** |
+
+⚠ **The severity reading is the opposite of the obvious one.** A single clean adb rotation
+is *less* realistic than what hardware does: Android delivers several configuration
+updates around one physical turn (orientation, screenSize, smallestScreenSize, density,
+uiMode). So the case that passes is the artificial one, and the case that breaks is the
+one closer to a real rotation. Do not downgrade this as an adb artifact.
+
+**Not caused by the T11-05 fix.** The code added there runs only when
+`overlay_center.visible` is true, and this repro opens no overlay at all.
+
+**Hypothesis for the desk (NOT yet confirmed — do not record as cause).**
+`ResponsiveManager` classifies by `DisplayServer.window_get_size() /
+DisplayServer.screen_get_scale()`. During a rotation there is a window in which one of
+those has updated and the other has not, so a read taken then yields a bogus
+density-independent size and therefore the wrong breakpoint and font multiplier. If a
+screen bakes fonts on `layout_class_changed` from that transient reading and never
+recomputes, it stays wrong — which matches every observation, including persistence.
+**Open question the hypothesis does not yet explain: why the dashboard is unaffected.**
+Answer that before believing it.
+
+**Desk follow-up:** `verify_rotation` applies ONE size change per step and is green, so it
+is structurally blind to this. A regression guard needs a step that issues two size
+changes back to back with no frame between them.
+
+
+### Deploy #17 walk — results
+
+**PASS (12).**
+
+| # | Item | Evidence |
+|---|---|---|
+| 1 | T11-06 device leg | see above — `godotpdf`, 329 extractable chars |
+| 2 | T10-06 battle resume | "6 crew and 6 enemies restored" |
+| 3 | Dashboard + main-menu rotation | **0 of 4,096,000 px** differ |
+| 4 | Record Result drawer | renders correctly, correct scale |
+| 5 | Soft-keyboard avoidance, campaign name | field stays visible above the IME (field y~414, IME top y~655) |
+| 6 | Crew-size SSOT propagation | CONFIG "4 — Small Crew" -> CREW step "4 Total (Captain + 3 Crew)" |
+| 7 | Random captain generation | Ellis Ward, Human Enforcer, Military Outpost/Truth, with Rumors x1 / Story Pt x1 / Patron x1 attached |
+| 8 | **QA forced-roll seam (workstream B)** | live on hardware; all 5 contexts listed; receipt reads `Queued 51 for the next "Exploration Table" roll ... [pending: exploration table=[51]]`, and the hint tracks the selected context+value |
+| 9 | **Enemy-drawer touch-drag, landscape** (deploy #14 leftover) | **CLOSED** — swipe scrolls the drawer content (64.2% of the drawer region changed); the "Enemy Tracker" header stays pinned |
+| 10 | Memory, like-for-like | cold menu 142 MB native / 447 MB graphics; dashboard 203 / 448; print sheet **183** / 448 — against the ledger's 137 / 409 baseline. No regression, and the print sheet uses LESS native heap than the dashboard |
+| 11 | Scoped storage | app-private `files/` holds saves, options.cfg, legal_consent.cfg, logs, campaign_photos, shader_cache. `transfers/` and `portraits/` absent because nothing has created them — not a defect |
+| 12 | GodotHaru absent from the Android APK | **0** entries, as the SOP requires (desktop-only backend) |
+
+**NEW FINDINGS (5, beyond T11-07 above).**
+
+- **T11-08 (LOW)** — the Crew Creation Method card's hint hardcodes **"Core Rules p.13 — how
+  your six crew are chosen"**. Crew size is configurable 4/5/6; with the size set to 4 the
+  hint still says "six". Mine, from the E2 work.
+
+- **T11-09 (MED)** — ⚠ **the p.13 crew-creation method is NOT APPLIED on device.** With
+  **Standard** selected and crew size 4, `Randomize All` produced **Uri Vega (Bot)**,
+  **Cael Kovac (Bot)**, Trooper Orion Mendez (Human) — **two Bots**, where p.13 Standard
+  allows at most one. No violation warning appeared anywhere on the step, and **Next was
+  enabled and advanced to step 4**. So BOTH halves are inert: the `coerce_to_method()`
+  correction and the `_validate_phase_with_warnings()` report.
+  **Prime suspect, to verify at the desk, NOT yet confirmed:** `CampaignCreationUI` pushes
+  the method through `if panel.has_method("apply_crew_creation_method")`. A false guard
+  there fails silently and leaves `CrewPanel._crew_creation_method_id` at its
+  `"miniatures"` default — which allows any mix, exactly matching what was observed. That
+  is the dead-`has_method`-guard shape this project has now been bitten by six times, and
+  I wrote this one. Check the guard AND the push ordering before assuming which.
+
+- **T11-10 (LOW for alpha, BLOCKER for release)** — **neither Android plugin is built into
+  the APK.** dex string search: `BillingClient`, `com/android/billingclient`,
+  `GodotGooglePlayBilling` and `InappReview` are all **MISSING**, while control probes
+  (`org/godotengine`, `GodotLib`, `android/app/Activity`, `GodotPlugin`, `reptarus`) are
+  all FOUND — so the search method is sound. There is **no `android/plugins/` directory**,
+  which is where Godot 4 expects the `.gdap` + AAR for the Gradle build to pick them up;
+  the InappReview AARs exist at `InappReviewPlugin/bin/{debug,release}` but are not wired
+  in, and the Billing plugin is not present at all. Consequences: `StoreManager` falls back
+  to `OfflineStoreAdapter` (no purchases) and `ReviewManager` no-ops (no review prompts).
+  Harmless for a closed alpha with nothing to sell; it means **checklist section 5 cannot
+  be marked passed**, and it must be fixed before any store build.
+
+- **T11-11 (LOW, debug-only screen)** — in the QA Scenarios dialog, focusing the
+  forced-roll value spinner opens the soft keyboard **over** the "Queue Roll" / "Clear"
+  buttons, so the row cannot be completed without dismissing the IME first. The campaign
+  name field on the creation wizard handles this correctly, so the avoidance is wired
+  there and not here.
+
+- **T11-12 (LOW, UX)** — creation wizard steps 2 (Captain) and 3 (Crew) leave **~700-800 px
+  of empty vertical space** between the content card and the button row on a 1280x800
+  tablet. Nothing is broken or unreachable; the page just reads as unfinished at tablet
+  size.
+
+**NOT VERIFIABLE ON THIS HARDWARE (recorded, not passed).** T11-04, T11-05 and T11-06's
+overlap fix all bind below ~851 design px; the device is 800 dp wide even in portrait.
+
+**NOT COMPLETED.** T9-47 / T9-48 / T9-51 outcome verification. The seam that unblocks them
+is confirmed working on hardware (item 8), but reaching each roll needs a play session:
+Explore/Trade need a World Phase crew task, the Rival AMBUSH needs a rival battle, and the
+Character Event needs post-battle step 12. A queued Exploration roll of 51 is pending on
+the device.
+
+
+---
+
+## Desk pass after deploy #17 — 2026-09-05
+
+Five of the six findings the deploy #17 walk opened. Nothing committed.
+
+| id | outcome |
+|---|---|
+| **T11-09** (MED) | ✅ FIXED — coordinator whitelist did not name `crew_creation_method`; 4 wiring cases, detection-proven |
+| **T11-08** (LOW) | ✅ FIXED — hint no longer hardcodes "six" |
+| **T11-10** (BLOCKER) | ✅ review half FIXED and dex-verified · ❌ billing half BLOCKED (plugin absent from repo) |
+| **T11-11** (LOW→systemic) | ✅ FIXED — `KeyboardAvoidance` was blind to ALL 15 `Window` dialogs; 6 cases |
+| **T11-12** (LOW/UX) | ✅ CaptainPanel FIXED · CrewPanel judged NOT a defect |
+| **T11-07** (MED) | ❌ STILL OPEN — recorded hypothesis DISPROVED; no desk repro |
+
+### Two corrections to my own deploy #17 findings
+
+1. **T11-09's prime suspect was wrong.** I named the
+   `if panel.has_method("apply_crew_creation_method")` guard as the likely dead-guard.
+   It is live and `CrewPanel.apply_crew_creation_method()` exists (`CrewPanel.gd:239`).
+   Pattern-matching to the trap this codebase has hit six times cost a detour. The real
+   cause was one filter upstream.
+
+2. **T11-10's diagnosis was an engine major out of date.** I wrote that the fault was a
+   missing `android/plugins/` directory with `.gdap` files. Godot 4.6 has **deprecated**
+   the `.gdap` mechanism entirely; there should be no such directory. The *observation*
+   (both plugins absent from the dex) was correct and reproducible — the *explanation*
+   was wrong, and following it would have built a v1 layout the engine ignores.
+
+### T11-07 — what a day of desk work established
+
+The recorded hypothesis (a transient `ResponsiveManager` reading mid-rotation) is
+**disproved**, on two independent grounds: the font ladder is bounded at 1.3/0.85 so its
+worst case is 1.53x against a 1.8-2.4x symptom, and a probe driving it through three
+rotation sequences finds its breakpoint, multiplier and rescaled theme mutually
+consistent every time. `TacticalBattleUI._apply_responsive_layout()` is cleared too — it
+touches no font at all.
+
+No desk repro: with a genuine 2-event sequence inside the debounce against a 1-event
+control, the resolved type sizes are byte-identical.
+
+⚠ **The first version of that probe produced a false negative** — it modelled the repro
+literally (a same-size write, which emits no event at all), so both arms were identical
+by construction. It now counts the events it claims to cause and withholds a verdict
+otherwise. Two new tools: `tests/tools/probe_double_config_change.gd` and
+`tests/tools/probe_battle_font_blowup.gd`.
+
+**Next step is on the device**: log breakpoint/multiplier/resolved font size on every
+resize in a debug build, run the hardware repro, read `user://logs/godot.log`. The driver
+is not in the responsive ladder.
+
+### Gates
+
+`verify_layout` **168 passed / 0 failed** · all **8 gating lints exit 0** ·
+`test_crew_creation_methods` 21/0 · `test_keyboard_avoidance` 32/0 ·
+`test_crew_type_tables` + `test_starting_in_the_gutter_roster` +
+`test_compendium_difficulty_toggles` 59/0 combined · `git diff -- data/` = **0 lines**.
+
+Export preset restored to AAB (`export_format=1`), verification APK deleted,
+`version/code` left at 4 — this pass produced no deploy.
+
+
+### Post-pass addendum — the 2 suite failures were NOT a regression (2026-09-05)
+
+The full `tests/unit` run came back **3009 cases / 0 errors / 2 failures**, both in
+`test_stat_badge.gd::test_labels_have_correct_font_sizes` (expected 11, got 9).
+
+**It is a pre-existing environment-dependent test, and running `verify_layout` first is
+what tripped it.** `StatBadge.gd:129/137` sizes its labels with
+`ScreenChrome.font_size(FONT_SIZE_XS)` → `ResponsiveManager.get_responsive_font_size()`
+= `maxi(9, round(base * mult))`. The multiplier is 1.0 only at DESKTOP. Varying
+`user://window.ini` alone, with **no code change at all**:
+
+| window width | breakpoint | mult | result |
+|---|---|---|---|
+| 900 | DESKTOP | 1.00 | **PASS** |
+| 360 (what `verify_layout` leaves) | MOBILE | 0.85 | FAIL — 9 |
+| 1920 | WIDE | 1.15 | FAIL — 13 |
+| headless (width 0) | MOBILE | 0.85 | FAIL |
+
+`verify_layout` sweeps six sizes and leaves the last (small phone, 360x640) in
+`window.ini`; `GameState` restores it at boot. Both `StatBadge.gd` and the test are at
+their **committed** state, and none of this pass's edits touches StatBadge, ScreenChrome,
+ResponsiveManager or the theme.
+
+⚠ **Three plausible causes were disproved by measurement before the real one landed** —
+the persisted window size *alone* (it fails at 1920 too), a theme mutated on disk
+(`git status` on `sci_fi_theme.tres` is clean), and `get_theme_font_size()`'s explicit
+theme-type argument bypassing the node's override (a probe showed both forms return the
+same value). Recorded so none is re-tried.
+
+**Fixed** by asserting through the same transform the widget uses
+(`ScreenChrome.font_size(11)`), which is breakpoint-independent by construction and still
+fails if StatBadge stops using the XS rung.
+
+### Test runs no longer steal desktop focus
+
+gdUnit4 refuses `--headless` and exits 103 — the origin of this project's "never
+--headless" note — but prints its own override, **`--ignoreHeadlessMode`**. The batch
+runner now uses it, so a full run creates **one** window instead of eight.
+
+⚠ **It is not a free swap, and my first claim that the run was "byte-identical" was an
+overstatement from a single-suite sample — the full run disproved it within the hour.**
+Headless runs 270 of 271 suites correctly and **crashes one with signal 11**:
+`test_sheet_source_paths_resolve.gd`, isolated by bisecting 38 → 19 → 10 → 1, crashing
+**alone**. It builds a real `SheetRenderer` that loads and draws the sheet PNGs, so it
+needs a rendering device — and its own docblock already said *"never --headless (project
+rule)"*. Every other geometry suite in that batch passes headless individually, so this
+is a one-suite exception rather than a blanket ban. The runner now carries a
+`NEEDS_DISPLAY` list and runs those windowed in one final process.
+
+⚠ The crash takes the whole batch with it, and the runner reports `cases=PARSE_FAIL`
+rather than a failure — easy to skim past. Check for it.
+
+⚠ Still wrong for `verify_layout` / `verify_rotation` / the geometry probes, which need
+a real window — DisplayServer returns dummy values headless.
+
+⚠ Separately, `test_character_card.gd::test_instantiation_performance` failed once in a
+headless batch and passes 3/3 in isolation. It budgets **1 ms of wall clock** for a scene
+instantiate, so it is a pre-existing flake under process contention, not a headless
+incompatibility.
+
+⚠ Headless fixes the ambient breakpoint at MOBILE (window width reports 0). That is a
+*reproducible* configuration rather than "whatever ran last", which is an improvement,
+but any test written assuming DESKTOP type will flip.
+
+
+---
+
+## Deploy #18 + #19 — 2026-09-05: T11-07 ROOT-CAUSED AND FIXED on hardware
+
+Two builds in one session. #18 (versionCode 5) carried instrumentation; #19 (versionCode 6)
+carried the fix. Both `scripts/verify_apk.py` PASS.
+
+### The finding
+
+`SettingsManager._apply_ui_scale()` multiplied the global `content_scale_factor` by the
+display density. `stretch_cancel` already cancels the engine's square-base stretch
+exactly, so the algebra collapses to `effective = TARGET_EFFECTIVE * ui_scale * dpi` — and
+`TARGET_EFFECTIVE` (1.16) is ALREADY the final effective scale, documented at the site as
+"verified layout-safe". The density term double-counted it: **2.32x instead of 1.16x on
+any 2.0-density Android device.**
+
+**Deploy #18, instrumented — the formula's own inputs:**
+
+```
+boot          win=2560x1600 short=1600 stretch_cancel=0.6750 dpi=1.000 -> content_scale=0.7830
+first resize  win=1600x2560 short=1600 stretch_cancel=0.6750 dpi=2.000 -> content_scale=1.5660
+```
+
+`short_axis` is **1600 in both orientations**, so the stretch term never moves; the entire
+2.0x jump is the density term.
+
+**Visual A/B, same screen, same orientation, one variable:**
+
+| | `0.7830` (boot) | `1.5660` (after one rotation) |
+|---|---|---|
+| Title | one line, fits | wraps, overflows top-left |
+| Menu | all 10 buttons visible | **"Settings" off-screen**, "Planetfall" collides with footer |
+| Intro card | full text | clipped mid-sentence |
+| Footer | clean | overlapping the buttons |
+
+**Deploy #19, fixed — the same sequence:**
+
+```
+boot          dpi=1.000 -> content_scale=0.7830
+portrait      dpi=2.000 -> content_scale=0.7830
+back to land  dpi=2.000 -> content_scale=0.7830
+```
+
+Boot and post-rotation landscape screenshots are **BYTE-IDENTICAL**. Before the fix the
+same comparison differed. Portrait verified correct and complete.
+
+### Why it read as a rotation bug for four deploys
+
+⚠ **An autoload ordering accident masked it.** `SettingsManager` is autoload **#2**,
+`ResponsiveManager` is **#24**. At `_ready()` the RM node does not exist and Android has
+not yet reported its density, so `_dpi_scale()` returned 1.0 and **the app booted correct
+by accident**. The first resize supplied the real 2.0 and broke it until relaunch.
+
+⚠ **That is why every rotation control measured 0 px.** The jump happens ONCE, on the
+first resize after launch; each control rotated an app that had already taken it, so both
+captures sat at 1.5660. The controls were sound — they all ran past the transition.
+"The dashboard is immune" was false: the MAIN MENU is visibly broken at 1.5660.
+
+### Three wrong turns, recorded so they are not retried
+
+1. **Deploy #17 blamed a transient `ResponsiveManager` reading.** Disproved by arithmetic
+   (its ladder caps at 1.53x against a 1.8-2.4x symptom) and by a probe showing it
+   self-consistent through every sequence.
+2. **The desk pass then blamed a transient `stretch_cancel`.** The device prints
+   `short=1600` on every line. Also wrong.
+3. ⚠ **The first FIX was backwards.** A "resettle" that re-applies the scale once the
+   density is knowable makes **1.5660 permanent** — it ships the defect as the default.
+   Caught only because the reported symptom ("too large") contradicted the direction the
+   formula's own comments implied. **When a formula and the observed symptom disagree
+   about which value is right, the device decides — take the screenshot.**
+
+The debug-only log line is KEPT as a regression guard: if `content_scale` ever differs
+between the boot line and the first resize line again, the defect is back.
+
+### Also verified on deploy #18/#19
+
+- **T11-10 review plugin** — `InappReview`, `org/godotengine/plugin/inappreview` and
+  `com/google/android/play/core/review` all present in the dex (all three were MISSING at
+  deploy #17). Billing correctly absent — **parked by owner decision pending the LOI**.
+- Both builds install and boot cleanly; `verify_apk.py` PASS on each.
+
+**Not yet walked on #19:** T11-09 (crew method), T11-11 (keyboard in dialogs), T11-12
+(CaptainPanel spacing). The fixes are desk-verified and in the build; they need a UI pass.
+
+---
+
+## Deploy #19 — UI WALK (2026-09-05, versionCode 6, TB361FU HNQ05SR3)
+
+The build was already on the device from the #19 verification; this section is the **UI
+pass** the previous entry said was still owed for T11-09, T11-11 and T11-12. Landscape
+unless a step says otherwise. Every claim below is a screenshot or a device log line.
+
+### Walked and PASSED
+
+| Item | What was driven on the device | Evidence |
+|---|---|---|
+| **T11-07** | Boot landscape → portrait → back, rotation **verified at the window manager** each time | Three `[T11-07]` lines, `content_scale=0.7830` on all three while `dpi` went **1.000 → 2.000**; landscape before/after **byte-identical** (md5 `449ca051…`) |
+| **T11-08** | CONFIG step, CREW CREATION METHOD card | Blurb reads "Core Rules p.13 — how your crew are chosen"; the "six" is gone |
+| **T11-09** (coercion) | Standard + crew size 4, **seven** Randomize All rolls | Never more than 2 Primary Aliens or 1 Bot. Roll 6 (Feral + Bot + Human, Swift captain) sat on **both** caps at once and exceeded neither |
+| **T11-09** (detection) | Same crew, forced illegal by hand | Device log: `Standard Method: at most 1 Bot (p.13) - have 2` — right rule, right cite |
+| **T11-11** | BugReportDialog (a real `Window`), focused the lowest field | `[KeyboardAvoidance] … logical_vp_h=680.0 … field_bottom=519.0 shift=174.0`; field lifted clear, text typed, layout restored on dismiss |
+| **T11-12** | Captain step, empty **and** populated | Info block vertically centred in both states; stats legible |
+| **T10-06** (re-check) | Loaded a save that had a battle in progress | Resumed into Turn 9 Round 1: "Battle resumed — 6 crew and 6 enemies restored" |
+
+⭐ **The T11-07 rotation control is worth copying.** The first attempt produced three
+**byte-identical** captures and looked like a clean pass — because the rotation had not
+happened at all. `accelerometer_rotation` had reset itself to `1`, and **`user_rotation`
+writes are silently ignored while auto-rotate is on**. The rewritten control writes
+both settings, reads them back, and confirms `mCurrentRotation` at the window manager
+before capturing. *A control that cannot fail is not evidence; check that the stimulus
+was actually delivered.* (Same shape as `reference_instrument_the_probes_own_premise`.)
+
+⭐ **The strongest evidence was a log line, not a screenshot.** `KeyboardAvoidance` prints
+`logical_vp_h`, and the dialog's field measured **680.0** where the main-screen field
+measured **1379.3** — that number IS the control's own viewport, so the line proves the
+`control.get_viewport()` half of the T11-11 fix is live. The same log gave a **negative
+control** for free: the main-screen field logged `shift=0.0` because nothing occluded it.
+A fix that always shifts looks identical in a screenshot; only the log separates
+"correctly idle" from "not running at all".
+
+### Opened by this walk
+
+**T11-13 (MED) — a rules violation is detected, worded correctly, and never shown.**
+`CampaignCreationStateManager.advance_to_next_phase()` sent every non-blocking warning to
+`push_warning()` and nothing else, then advanced. On device the Standard-method breach was
+detected perfectly and the player saw a clean Next, so the app was indistinguishable from
+one that never checked. **Non-blocking is correct and deliberate** (a half-finished crew
+passes through illegal-looking intermediate states — the reason is documented at the check
+itself); the missing piece was purely the display. Fixed: `phase_warnings` is emitted on
+**every** advance (empty when clean, so a stale notice clears), relayed by the coordinator,
+and shown as an amber list in the wizard header. Three cases, each detection-proven by an
+isolated revert — including the relay on its own, which fails while the emit still works.
+
+**T11-14 (LOW-MED) — the character editor showed a background the character does not have.**
+`CharacterCreator._find_item_by_value()` matched a stored enum KEY against the dropdown's
+DISPLAY LABEL and returned **index 0** when nothing matched. That works only while every
+label transcribes its enum member word for word, and **3 of the 25** book backgrounds do
+not — the label keeps the book's wording while the member is abbreviated:
+
+    "Giant Overcrowded Dystopian City"  vs  GIANT_OVERCROWDED_CITY
+    "War Torn Hell Hole"                vs  WAR_TORN_HELLHOLE
+    "Comfortable Megacity Class"        vs  COMFORTABLE_MEGACITY
+
+Those three fell back to *"Peaceful High Tech Colony"* — a **valid index naming a real
+background**, so the form showed a plausible wrong answer rather than an obvious blank.
+Display-only: `edit_character()` selects via `select()` (which does not emit
+`item_selected`) and `_on_confirm_pressed()` re-reads nothing, so the stored value survives
+— confirmed on device, the member kept "Comfortable Megacity" after Confirm. Fixed by
+comparing KEY TO KEY through the same `GlobalEnums.to_string_value()` the write path uses,
+so the two directions cannot drift; the labels were left alone because **they are the
+book's names**. Class, Motivation and Origin were checked and are clean (0 mismatches).
+
+⚠ **Fixing the labels would have been the tempting wrong move.** Renaming
+"Comfortable Megacity Class" to match `COMFORTABLE_MEGACITY` makes the test pass and makes
+the app stop printing the book's own wording. When a display string and an internal key
+disagree, change the comparison, not the string the player reads.
+
+### Method note — how the seven rolls were read
+
+Seven full screencaps is a lot to eyeball and easy to skim. They were cropped to just the
+three "Name / Class · Species" bands and stacked into one contact sheet, so the whole
+sample is judged in a single image. The species classification was then confirmed against
+`data/character_species.json` → `crew_type_tables.primary_alien` (tagged *"Core Rules p.14
+… VERBATIM"*) rather than from memory — Bot is its own crew-type band (81-90), which is
+what makes "2 aliens + 1 bot" the correct reading of roll 6.
+
+### Still not walked
+
+- **T9-47 / T9-48 / T9-51** — the debug-only forced-roll seam is in the build, but reaching
+  it needs the Campaign Dashboard, and the loaded save resumes directly into a battle.
+  Deliberately not exited: abandoning a live battle is how a previous device run lost one.
+- Checklist §3 legibility as a formal pass (the battle screen read cleanly in both
+  orientations, but that is an observation, not the checklist).
+- A5 renderer lever (`gl_compatibility`) — still unmeasured.

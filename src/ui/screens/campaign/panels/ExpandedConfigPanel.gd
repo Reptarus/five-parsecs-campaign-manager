@@ -82,6 +82,10 @@ var local_campaign_config: Dictionary = {
 	"campaign_type": "standard",
 	"difficulty_level": GlobalEnums.DifficultyLevel.NORMAL,  # Default: STANDARD
 	"campaign_crew_size": 6,  # Core Rules p.63: 4, 5, or 6
+	# Core Rules p.13. Default is the Miniatures Method, which is what this wizard
+	# already did - "any combination of Primary Aliens, Bots, or Humans" - so an
+	# existing flow keeps its behaviour until a player chooses otherwise.
+	"crew_creation_method": "miniatures",
 	"victory_conditions": {},
 	"story_track_enabled": false,
 	"introductory_campaign": false,
@@ -110,6 +114,11 @@ var summary_label: Label
 
 # Crew size selector (Core Rules p.63)
 var crew_size_option: OptionButton
+const CrewCreationMethodsRef = preload(
+	"res://src/core/character/CrewCreationMethods.gd")
+
+var crew_method_option: OptionButton
+var crew_method_description: Label
 var crew_size_description: Label
 
 # Description labels for displaying option details
@@ -301,6 +310,7 @@ func _initialize_components() -> void:
 	# bearing for save routing and is untouched.) Offering a choice that changes
 	# nothing is worse than not offering it.
 	_build_crew_size_section(flow)
+	_build_crew_creation_method_section(flow)
 	_build_difficulty_section(flow)
 	_build_victory_conditions_section(flow)
 	_build_narrative_options_section(flow)
@@ -482,6 +492,84 @@ func _build_crew_size_section(parent: Control) -> void:
 		"Sets starting crew, deployment limit, and enemy number formula"
 	)
 	parent.add_child(card)
+
+## Core Rules p.13, "Selecting Your Crew" — the four methods.
+##
+## The audit ledger had this recorded as "OPEN by choice", i.e. a product decision about
+## whether to constrain species picking. Reading the page settled it as a rules gap
+## instead: the Miniatures Method allows "any combination of Primary Aliens, Bots, or
+## Humans", so this wizard's free choice was ALWAYS a book method. What was missing was
+## the choice itself, and the constraints the other three impose.
+##
+## CrewCreationMethods is the SSOT for the caps; nothing here restates a number.
+func _build_crew_creation_method_section(parent: Control) -> void:
+	crew_method_option = OptionButton.new()
+	_style_option_button(crew_method_option)
+
+	crew_method_description = Label.new()
+	crew_method_description.add_theme_font_size_override(
+		"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	crew_method_description.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	crew_method_description.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+
+	var content = VBoxContainer.new()
+	content.add_theme_constant_override("separation", SPACING_SM)
+	content.add_child(_create_labeled_input("Crew Creation Method", crew_method_option))
+	content.add_child(crew_method_description)
+
+	var card = _create_section_card(
+		"CREW CREATION METHOD",
+		content,
+		# T11-08: said "your six crew". Crew size is 4/5/6 (p.63) and is chosen in
+		# the card directly above this one, so the number was wrong on two of the
+		# three settings. The book's own p.13 text says "6 crew figures" because
+		# p.13 predates the reduced-crew option it then cross-references; the
+		# method applies at every size, so state no count here.
+		"Core Rules p.13 — how your crew are chosen"
+	)
+	parent.add_child(card)
+
+
+func _setup_crew_method_options() -> void:
+	if not crew_method_option:
+		return
+	crew_method_option.clear()
+	# ITEM ID, not index: this codebase has already been bitten by reading a selection
+	# back as the index when ids were assigned. Ids are the Method enum values.
+	for m in CrewCreationMethodsRef.all_methods():
+		crew_method_option.add_item(
+			CrewCreationMethodsRef.method_name(int(m)), int(m))
+	var saved: String = str(local_campaign_config.get(
+		"crew_creation_method", "miniatures"))
+	var want: int = CrewCreationMethodsRef.method_from_id(saved)
+	for i in range(crew_method_option.get_item_count()):
+		if crew_method_option.get_item_id(i) == want:
+			crew_method_option.select(i)
+			break
+	_update_crew_method_description()
+
+
+func _update_crew_method_description() -> void:
+	if not crew_method_option or not crew_method_description:
+		return
+	var idx: int = crew_method_option.selected
+	if idx < 0:
+		return
+	crew_method_description.text = CrewCreationMethodsRef.method_blurb(
+		crew_method_option.get_item_id(idx))
+
+
+func _on_crew_method_changed(index: int) -> void:
+	if not crew_method_option:
+		return
+	var method_id: int = crew_method_option.get_item_id(index)
+	local_campaign_config["crew_creation_method"] = \
+		CrewCreationMethodsRef.method_id(method_id)
+	_update_crew_method_description()
+	# Same tail as _on_crew_size_changed: this choice feeds the same completion gate.
+	_update_display()
+	_validate_and_complete()
+
 
 func _build_campaign_type_section(parent: Control) -> void:
 	## Build campaign type selector with card design
@@ -1167,6 +1255,8 @@ func _connect_signals() -> void:
 		campaign_type_option.item_selected.connect(_on_campaign_type_changed)
 	if crew_size_option:
 		crew_size_option.item_selected.connect(_on_crew_size_changed)
+	if crew_method_option:
+		crew_method_option.item_selected.connect(_on_crew_method_changed)
 	if difficulty_option:
 		difficulty_option.item_selected.connect(_on_difficulty_changed)
 	# Story track + intro campaign checkboxes connect in _build_narrative_options_section
@@ -1175,6 +1265,7 @@ func _setup_campaign_options() -> void:
 	## Setup campaign configuration options
 	_setup_campaign_type_options()
 	_setup_crew_size_options()
+	_setup_crew_method_options()
 	_setup_difficulty_options()
 	_setup_victory_conditions()
 	# Story track + intro campaign are checkboxes, no setup needed
@@ -1814,6 +1905,8 @@ func get_campaign_config_data() -> Dictionary:
 		"introductory_campaign": _intro_campaign_enabled,
 		"progressive_difficulty_options": local_campaign_config.get(
 			"progressive_difficulty_options", []),
+		"crew_creation_method": local_campaign_config.get(
+			"crew_creation_method", "miniatures"),
 		# This function REBUILDS its result from a fixed key literal, so a key
 		# that is not listed here is silently dropped no matter what the panel
 		# stored. house_rules was missing entirely.
@@ -1916,6 +2009,10 @@ func restore_panel_data(data: Dictionary) -> void:
 			house_rules_edit.text = str(data.house_rules_notes)
 
 	# Restore progressive difficulty options
+	if data.has("crew_creation_method"):
+		local_campaign_config["crew_creation_method"] = str(
+			data.crew_creation_method)
+		_setup_crew_method_options()
 	if data.has("progressive_difficulty_options"):
 		var prog_opts: Array = data.progressive_difficulty_options
 		local_campaign_config["progressive_difficulty_options"] = prog_opts

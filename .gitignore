@@ -38,6 +38,20 @@ data_*/
 *.framework
 *.xcframework
 
+# EXCEPTION: the InappReview plugin's AARs are a build INPUT, not an output.
+#
+# The blanket *.aar above is right for godot-lib.template_*.aar and everything under
+# android/build/ — those are produced by the build. These two are consumed BY it:
+# addons/InappReviewPlugin/InappReviewPlugin.gd returns these exact paths from
+# _get_android_libraries(), so without them the Android Gradle build fails with
+# "Transform's input file does not exist" and the Google Play review flow is silently
+# absent from the APK (T11-10, tablet deploy #17). ~9 KB for a reproducible build.
+#
+# ⚠ Godot 4 resolves those paths relative to addons/, so ONLY this copy matters. The
+# root-level InappReviewPlugin/bin/ is the deprecated v1 layout and stays ignored.
+!addons/InappReviewPlugin/bin/debug/*.aar
+!addons/InappReviewPlugin/bin/release/*.aar
+
 # Large art assets (not source code)
 Assets/BookImages/
 

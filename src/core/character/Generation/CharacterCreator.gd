@@ -166,6 +166,11 @@ var _bonus_tables: Dictionary = {}
 var _background_d100: Dictionary = {}
 var _class_d100: Dictionary = {}
 var _motivation_d100: Dictionary = {}
+## Species for the NEXT randomize, consumed once. Empty means roll normally.
+## Set by CrewPanel so a rolled crew can be corrected to the chosen p.13 method
+## before any character is built; see _on_randomize_pressed.
+var forced_species_id: String = ""
+
 ## Maps origin OptionButton item index → species_id string (Core Rules pp.15-22)
 var _origin_species_ids: Array[String] = []
 ## Responsive panel group wrapping CreationPanel + PreviewPanel (STACK in portrait)
@@ -1150,8 +1155,21 @@ func _on_randomize_pressed() -> void:
 	# and 3.8% Humans against 60%. Both live creation paths run through here
 	# (CaptainPanel:64, CrewPanel:236), as does the p.78 recruit rule, whose
 	# own text is "Each recruit rolls using the random method ... (see p.14)".
-	var rolled: Dictionary = SpeciesDataService.roll_crew_type()
-	var species_id: String = str(rolled.get("species_id", ""))
+	var species_id: String = ""
+	if not forced_species_id.is_empty():
+		# Core Rules p.13: the crew-creation METHOD constrains which species may appear,
+		# and those constraints are CREW-level (at most 2 Primary Aliens, at most 1 Bot)
+		# while this function creates ONE character and cannot know it is the third
+		# alien. So CrewPanel rolls the whole crew, corrects the list through
+		# CrewCreationMethods.coerce_to_method(), and hands each species back here.
+		#
+		# Consumed ONCE, like DiceManager.queue_forced_result: a forced value left set
+		# would silently apply to the next character created for any reason.
+		species_id = forced_species_id
+		forced_species_id = ""
+	else:
+		var rolled: Dictionary = SpeciesDataService.roll_crew_type()
+		species_id = str(rolled.get("species_id", ""))
 	var origin_idx: int = _origin_species_ids.find(species_id)
 	if species_id.is_empty() or origin_idx < 0:
 		# The tables are core-only, so every row resolves to a species that is
@@ -1495,26 +1513,31 @@ func _sync_ui_from_character() -> void:
 	if name_input:
 		name_input.text = _get_character_property(
 			current_character, "character_name", "")
+	# The enum name is passed so a stored enum KEY can be matched against the item IDS
+	# rather than only against the display labels — see _find_item_by_value. Origin,
+	# class and motivation happen to transcribe cleanly today; they are tagged anyway
+	# so a future label reworded to match the book cannot reintroduce the silent
+	# fall-back-to-item-0 that hit three of the backgrounds.
 	if origin_options:
 		var origin_val = _get_character_property(
 			current_character, "origin", 0)
 		origin_options.select(
-			_find_item_by_value(origin_options, origin_val))
+			_find_item_by_value(origin_options, origin_val, "origin"))
 	if background_options:
 		var bg_val = _get_character_property(
 			current_character, "background", 0)
 		background_options.select(
-			_find_item_by_value(background_options, bg_val))
+			_find_item_by_value(background_options, bg_val, "background"))
 	if class_options:
 		var cls_val = _get_character_property(
 			current_character, "character_class", 0)
 		class_options.select(
-			_find_item_by_value(class_options, cls_val))
+			_find_item_by_value(class_options, cls_val, "character_class"))
 	if motivation_options:
 		var mot_val = _get_character_property(
 			current_character, "motivation", 0)
 		motivation_options.select(
-			_find_item_by_value(motivation_options, mot_val))
+			_find_item_by_value(motivation_options, mot_val, "motivation"))
 	if confirm_btn:
 		confirm_btn.disabled = not _validate_character()
 
@@ -1524,7 +1547,7 @@ func _find_item_by_id(btn: OptionButton, id: int) -> int:
 			return i
 	return 0
 
-func _find_item_by_value(btn: OptionButton, value) -> int:
+func _find_item_by_value(btn: OptionButton, value, enum_name: String = "") -> int:
 	# Handle String values (enum names from Character properties)
 	if value is String:
 		for i in range(btn.item_count):
@@ -1533,6 +1556,38 @@ func _find_item_by_value(btn: OptionButton, value) -> int:
 			# Also check uppercase enum key vs display text
 			if btn.get_item_text(i).to_upper().replace(" ", "_").replace("'", "") == value:
 				return i
+		# THE TWO RULES ABOVE COMPARE A STORED ENUM KEY AGAINST A DISPLAY LABEL, so they
+		# only agree while the label is a word-for-word transcription of the key. Three of
+		# the 25 Core Rules p.13-27 background labels are NOT, because the label carries
+		# the book's wording and the enum member is abbreviated:
+		#
+		#     "Giant Overcrowded Dystopian City" vs GIANT_OVERCROWDED_CITY
+		#     "War Torn Hell Hole"               vs WAR_TORN_HELLHOLE
+		#     "Comfortable Megacity Class"       vs COMFORTABLE_MEGACITY
+		#
+		# For those three the function fell through to `return 0` and the dropdown showed
+		# item 0 ("Peaceful High Tech Colony") — a WRONG but entirely plausible-looking
+		# background, on a form the player is about to confirm. Found on the deploy #19
+		# device walk (Sep 5 2026): a crew member whose real background was Comfortable
+		# Megacity Class opened the editor reading "Peaceful High Tech Colony", while the
+		# preview beside it correctly said Comfortable Megacity.
+		#
+		# Fixing the LABELS would be the wrong direction — they are the book's names, and
+		# the book's names are what the player must see. So compare KEY TO KEY instead,
+		# through the same GlobalEnums function the write path uses
+		# (_on_background_changed's to_string_value), which makes the two directions
+		# symmetric and unable to drift apart.
+		if not enum_name.is_empty():
+			for i in range(btn.item_count):
+				if GlobalEnums.to_string_value(enum_name, btn.get_item_id(i)) == value:
+					return i
+		# Index 0 stays the fallback so callers always get a valid index, but say so —
+		# a silent wrong-but-valid answer is what let this sit unnoticed.
+		if OS.is_debug_build():
+			push_warning("CharacterCreator: no dropdown item matches %s value '%s'; "
+				% [enum_name if not enum_name.is_empty() else "<untagged>", str(value)]
+				+ "falling back to item 0 ('%s')" % (
+					btn.get_item_text(0) if btn.item_count > 0 else ""))
 		return 0
 	# Handle int values (enum ordinals)
 	return _find_item_by_id(btn, value as int)

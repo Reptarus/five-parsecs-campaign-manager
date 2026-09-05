@@ -1,7 +1,7 @@
 class_name FPCM_MoralePanicTracker
 extends PanelContainer
 
-## Enemy Morale — Core Rules pp.114-118
+## Enemy Morale — Core Rules pp.114-115 (round reference p.118)
 ##
 ## At the end of each round, if any enemies were killed in combat:
 ## - Roll 1D6 per casualty this round
@@ -46,7 +46,7 @@ var enemy_type_name: String = ""
 # Panic range (parsed from "1-2" format in enemy data)
 var panic_range_max: int = 2  # Upper bound — die <= this = bail
 
-# Modifiers (Core Rules pp.114-118)
+# Modifiers (Core Rules pp.114-115 (round reference p.118))
 var has_boss: bool = false
 var boss_killed_this_round: bool = false
 var is_stubborn: bool = false
@@ -117,7 +117,7 @@ func new_round() -> void:
 ## ── CORE MECHANIC: perform_morale_check() ───────────────────
 
 func perform_morale_check() -> Dictionary:
-	## The ONE morale mechanic (Core Rules pp.114-118)
+	## The ONE morale mechanic (Core Rules pp.114-115 (round reference p.118))
 	## Roll 1D6 per casualty. Each die within panic range = 1 bail.
 	var kills: int = casualties_this_round
 	var result: Dictionary = {

@@ -869,6 +869,13 @@ func _add_toggle_row(parent: VBoxContainer, label_text: String, initial: bool, a
 	label.text = label_text
 	label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	# T11-04, third driver: the DESCRIPTION below wraps (:881) and the TITLE did not, so
+	# each row demanded its title's full unwrapped width as a minimum. "Share Anonymous
+	# Usage Data" measures 184 px, and beside a ~70 px CheckButton that is a 254 px row
+	# in a 310 px design space - 3.7 px off the right edge of a 360 dp phone, through
+	# the horizontally-DISABLED ScrollContainer, after the two wider drivers were fixed.
+	# A row title is exactly the kind of text that should wrap on a narrow screen.
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	text_col.add_child(label)
 
 	if not description.is_empty():

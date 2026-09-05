@@ -78,12 +78,22 @@ const SCREENS: Array = [
 	"res://src/ui/screens/equipment/EquipmentGenerationScene.tscn",
 	"res://src/ui/screens/ships/ShipManager.tscn",
 	"res://src/ui/screens/world/WorldPhaseController.tscn",
-	# MissionSelectionUI.tscn is deliberately NOT in scope. Every one of its controls
-	# lives under a PopupPanel, which is a Window: it lays out against its OWN rect,
-	# not root.get_visible_rect(), so measuring it here compares two different
-	# coordinate spaces and reports overflow that cannot exist on screen. It needs
-	# Window-aware measurement (deferred, see docs/QA_STATUS_DASHBOARD.md), not a
-	# skip line that pretends the screen was checked.
+	# WHAT IS NOT MEASURED HERE, and it is not MissionSelectionUI.
+	#
+	# This list used to carry a note deferring MissionSelectionUI.tscn because its
+	# controls lived under a PopupPanel - a Window, which lays out against its OWN rect
+	# rather than root.get_visible_rect(), so measuring it here compared two coordinate
+	# spaces. That screen has since been DELETED (SceneRouter.gd:45 and
+	# WorldPhaseController.gd:2746 record the removal), and a note describing a deleted
+	# file as merely deferred sends the next reader looking for it.
+	#
+	# The underlying limitation is real and OUTLIVED the screen, so it is recorded here
+	# rather than dropped: **no control hosted in a Window is measured by this sweep.**
+	# Checked 2026-09-04 - none of the 28 scenes below declares a Window-derived node, so
+	# nothing in scope is silently skipped today. But every modal this app opens at
+	# RUNTIME is a Window (AcknowledgeDialog, ItemPreviewPopup, RulesPopup ...), and a
+	# sweep that instantiates a screen and never opens its dialogs cannot see any of them.
+	# Closing that needs per-Window measurement, not a longer SCREENS list.
 	"res://src/ui/screens/world/PatronRivalManager.tscn",
 	"res://src/ui/screens/battle/PreBattle.tscn",
 	"res://src/ui/screens/battle/TacticalBattleUI.tscn",
@@ -129,6 +139,7 @@ func _run() -> void:
 	# says NO CAMPAIGN is a FLOOR, not a clean bill of health. Print it so two runs are
 	# never silently compared across that boundary.
 	print("campaign state: %s" % _campaign_state())
+	print("populate: %s" % _populate_state())
 	for path in SCREENS:
 		await _sweep_screen(path)
 	print("\n================ RESULT ================")
@@ -253,6 +264,36 @@ func _apply_size(w: int, h: int) -> bool:
 			return true
 	return false
 
+## A SCREEN CAN RESIZE THE WINDOW OUT FROM UNDER THIS SWEEP (measured 2026-09-04).
+##
+## `SettingsScreen._enter_tree()` restores `user://window.ini` and applies its saved
+## size (SettingsScreen.gd:127-129), and `_exit_tree()` writes the current size back.
+## So this sweep was measuring SettingsScreen ONE SIZE BEHIND on every configuration:
+## the size the previous config had saved on the way out. Its six measurements were
+## six different geometries, none of them the size that had been requested, and a real
+## defect (T11-04: a 600 px width floor in AccessibilitySettingsPanel put 297.2 px of
+## every settings row off the right edge of a phone) never appeared at any of them.
+## The screen had effectively opted itself out of the sweep, and reported six passes.
+##
+## verify_rotation.gd never had this hole - it builds ONCE and re-applies a size per
+## STEP, which overwrites the restore before anything is measured. That is the entire
+## reason the two sweeps disagreed about this screen.
+##
+## REBUILDING, not just re-applying, is what makes the reading trustworthy. Font sizes
+## here come from `ResponsiveManager.get_responsive_font_size()` and are baked in at
+## build time, so a screen BUILT at 1920x1080 and then shrunk to 360x640 carries
+## desktop-sized text and measures differently from one built at 360x640. Only the
+## latter is what a phone renders, since `_enter_tree` returns early on Android
+## (`OS.has_feature("pc")` is false) and the restore cannot happen there at all.
+##
+## ⚠ SIDE EFFECT, pre-existing and unavoidable: running this sweep rewrites
+## `user://window.ini`, because every SettingsScreen instance saves on the way out.
+func _window_hijack_note(short: String, label: String, got: Vector2i,
+		w: int, h: int) -> String:
+	return ("NOTE %s @ %s - the screen changed the window to %dx%d on entry; "
+		% [short, label, got.x, got.y]
+		+ "freed and REBUILT at %dx%d so the measurement is the size asked for" % [w, h])
+
 func _sweep_screen(path: String) -> void:
 	var short := path.get_file()
 	if not ResourceLoader.exists(path):
@@ -276,6 +317,7 @@ func _sweep_screen(path: String) -> void:
 				% [short, label] + "%dx%d, got %dx%d), so this configuration was "
 				% [w, h, got.x, got.y] + "NOT measured")
 			continue
+		_populate_pre(path)
 		var inst: Node = ps.instantiate()
 		if inst == null:
 			_skip += 1
@@ -289,7 +331,38 @@ func _sweep_screen(path: String) -> void:
 		# six configs out of the sweep. Showing it is exactly what its caller does.
 		if inst is CanvasItem and not (inst as CanvasItem).visible:
 			(inst as CanvasItem).show()
+		_populate_post(inst, path)
 		await _settle(inst)
+		# A screen can resize the window on entry - see _window_hijack_note below.
+		var got: Vector2i = DisplayServer.window_get_size()
+		if absi(got.x - w) > 2 or absi(got.y - h) > 2:
+			_findings.append(_window_hijack_note(short, label, got, w, h))
+			# ORDER MATTERS. Re-apply the size BEFORE freeing: SettingsScreen._exit_tree()
+			# WRITES the current window size back to user://window.ini, so freeing first
+			# would persist the hijacked size and the rebuilt instance would restore it
+			# again. Re-applying first makes the screen save - and then restore - the size
+			# this configuration actually asked for.
+			if not await _apply_size(w, h):
+				inst.queue_free()
+				await process_frame
+				_skip += 1
+				_findings.append("SKIP %s @ %s - the window would not go back to %dx%d "
+					% [short, label, w, h] + "after the screen moved it, so this "
+					+ "configuration was NOT measured")
+				continue
+			inst.queue_free()
+			await process_frame
+			_populate_pre(path)
+			inst = ps.instantiate()
+			if inst == null:
+				_skip += 1
+				_findings.append("SKIP %s @ %s - the rebuild returned null" % [short, label])
+				continue
+			root.add_child(inst)
+			if inst is CanvasItem and not (inst as CanvasItem).visible:
+				(inst as CanvasItem).show()
+			_populate_post(inst, path)
+			await _settle(inst)
 		_apply_runtime_overlay_net(inst)
 		await _settle(inst)
 		_measure(inst, short, label)
@@ -720,3 +793,35 @@ func _measure(inst: Node, short: String, label: String) -> void:
 		_fail += 1
 		for p in problems:
 			_findings.append("FAIL %s @ %s (%dx%d): %s" % [short, label, int(ds.x), int(ds.y), p])
+
+
+## Per-screen data population lives in tests/tools/screen_populator.gd, SHARED with
+## the other windowed sweep — see that file for why both were measuring EMPTY screens
+## at the right sizes, and why its fixtures invent nothing. It is load()ed at runtime
+## and never preload()ed, per constraint 2 in this file's header.
+var _populator = null
+
+
+func _get_populator():
+	if _populator == null:
+		var cls = load("res://tests/tools/screen_populator.gd")
+		if cls != null:
+			_populator = cls.new(root)
+	return _populator
+
+
+func _populate_state() -> String:
+	var p = _get_populator()
+	return p.state_line() if p != null else "populator FAILED TO LOAD"
+
+
+func _populate_pre(path: String) -> void:
+	var p = _get_populator()
+	if p != null:
+		p.populate_pre(path)
+
+
+func _populate_post(inst: Node, path: String) -> void:
+	var p = _get_populator()
+	if p != null:
+		p.populate_post(inst, path)

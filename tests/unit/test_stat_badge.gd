@@ -172,7 +172,11 @@ func test_minimum_size_is_80x64():
 	assert_int(int(min_size.y)).is_greater_equal(64)
 
 func test_labels_have_correct_font_sizes():
-	"""Verify font sizes match design system (XS=11, SM=14)"""
+	"""Verify the badge uses the XS rung for its name and SM for its value.
+
+	Asserted through ScreenChrome.font_size(), NOT against the raw 11/14, because
+	StatBadge scales both by the ambient breakpoint — see the note at the assertions.
+	"""
 	if not is_instance_valid(badge):
 		push_warning("badge freed early, skipping")
 		return
@@ -199,15 +203,52 @@ func test_labels_have_correct_font_sizes():
 	else:
 		value_label = _find_label_with_text(badge, "8")
 
-	# Name label should be XS (11) - StatBadge uses FONT_SIZE_XS = 11
+	# The badge must use the XS rung for its name and the SM rung for its value —
+	# asserted THROUGH the same transform the widget uses, not against the raw
+	# constants.
+	#
+	# ⚠ This used to assert `is_equal(11)` / `is_equal(14)`, and it was a test whose
+	# result depended on the size of the window the test runner happened to boot in.
+	# StatBadge sets its sizes with `ScreenChrome.font_size(FONT_SIZE_XS)`
+	# (StatBadge.gd:129/137), which delegates to
+	# `ResponsiveManager.get_responsive_font_size()` = `maxi(9, round(base * mult))`.
+	# The multiplier is 1.0 ONLY at the DESKTOP breakpoint, so the raw constants were
+	# correct only when the ambient window happened to be 768-1023 px wide. Measured
+	# 2026-09-05 by varying `user://window.ini` alone, with no code change at all:
+	#
+	#   900 px  -> DESKTOP  x1.00 -> 11, 14   PASS
+	#   360 px  -> MOBILE   x0.85 ->  9, 12   FAIL
+	#   1920 px -> WIDE     x1.15 -> 13, 16   FAIL
+	#   headless (width 0)  -> MOBILE         FAIL
+	#
+	# `tests/tools/verify_layout.gd` sweeps six sizes and leaves the LAST one in
+	# `user://window.ini`, which `GameState` restores at boot — so running the layout
+	# sweep before the unit suite flipped this case red with nothing else changed.
+	# That is the cross-process channel CLAUDE.md warns about under T11-04: a unit
+	# test that depends on a screen configuration must PIN it, or must not depend on
+	# it. This one now does not depend on it, which is the stronger of the two.
+	var xs_expected: int = ScreenChrome.font_size(11)
+	var sm_expected: int = ScreenChrome.font_size(14)
+
 	if name_label:
 		var name_font_size: int = name_label.get_theme_font_size("font_size", "Label")
-		assert_int(name_font_size).is_equal(11)
+		assert_int(name_font_size).override_failure_message(
+			"Name label must use the XS rung through ScreenChrome.font_size()."
+		).is_equal(xs_expected)
 
-	# Value label should be SM (14) - StatBadge uses FONT_SIZE_SM = 14, not MD=16
 	if value_label:
 		var value_font_size: int = value_label.get_theme_font_size("font_size", "Label")
-		assert_int(value_font_size).is_equal(14)
+		assert_int(value_font_size).override_failure_message(
+			"Value label must use the SM rung (14), not MD (16)."
+		).is_equal(sm_expected)
+
+	# The rungs must stay DISTINCT and ordered, or the assertions above would still
+	# pass if StatBadge used one size for both — at MOBILE the 9 px floor collapses
+	# small rungs together, so this is only meaningful where the floor is not binding.
+	if xs_expected < sm_expected:
+		assert_int(xs_expected).override_failure_message(
+			"XS must be smaller than SM wherever the 9px floor is not binding."
+		).is_less(sm_expected)
 
 ## Helper Functions
 

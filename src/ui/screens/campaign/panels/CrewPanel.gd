@@ -3,6 +3,8 @@ extends Control
 # Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
 const RulesPopupClass = preload("res://src/ui/components/common/RulesPopup.gd")
+const CrewCreationMethodsRef = preload(
+	"res://src/core/character/CrewCreationMethods.gd")
 signal crew_updated(crew: Array)
 
 @onready var content = $Content
@@ -224,6 +226,22 @@ func _extra_candidate_slots() -> int:
 		return 0
 	return maxi(0, int(profile.get_extra_starting_characters()))
 
+## The p.13 crew-creation method, pushed in by CampaignCreationUI from the config the
+## CONFIG step owns — the same consume-do-not-duplicate discipline as
+## apply_campaign_crew_size() above, and for the same reason: a second opinion held here
+## is how the crew size came to disagree with campaign_crew_size.
+##
+## Defaults to the Miniatures Method: the least restrictive BOOK method, and exactly what
+## this panel did before the choice existed, so an older campaign is unaffected.
+var _crew_creation_method_id: String = "miniatures"
+
+
+func apply_crew_creation_method(method_id: String) -> void:
+	if method_id.strip_edges().is_empty():
+		return
+	_crew_creation_method_id = method_id
+
+
 func _on_randomize_pressed() -> void:
 	crew_members.clear()
 
@@ -231,8 +249,29 @@ func _on_randomize_pressed() -> void:
 	# choose between. The player trims back down to the crew size with Remove;
 	# validation refuses to advance while the roster is over size.
 	var extra: int = _extra_candidate_slots()
-	for i in range(selected_size - 1 + extra):
+	var total: int = selected_size - 1 + extra
+
+	# CORE RULES p.13 — apply the chosen crew-creation method.
+	#
+	# Rolled FIRST for the whole crew, then corrected, then built. The caps are
+	# crew-level ("at most 2 Primary Aliens, at most 1 Bot") while CharacterCreator
+	# builds one character at a time and cannot know it is the third alien, so
+	# correcting afterwards would mean rewriting species on a finished Character — and
+	# `origin` is a validated String property whose setter silently defaults on a bad
+	# value. Deciding the species up front leaves the whole existing creation path
+	# untouched: the creator still does the origin lookup, the enum-string conversion
+	# and the species constraints exactly as it does for a free roll.
+	var method: int = CrewCreationMethodsRef.method_from_id(_crew_creation_method_id)
+	var species_plan: Array = []
+	for _i in range(total):
+		var rolled: Dictionary = SpeciesDataService.roll_crew_type()
+		species_plan.append(str(rolled.get("species_id", "")))
+	species_plan = CrewCreationMethodsRef.coerce_to_method(species_plan, method)
+
+	for i in range(total):
 		character_creator.start_creation(CharacterCreator.CreatorMode.INITIAL_CREW)
+		if i < species_plan.size():
+			character_creator.forced_species_id = str(species_plan[i])
 		character_creator._on_randomize_pressed()
 		if character_creator.current_character:
 			crew_members.append(character_creator.current_character)

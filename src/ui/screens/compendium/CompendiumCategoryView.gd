@@ -154,7 +154,13 @@ func _build_ui() -> void:
 	_filter_scroll = ScrollContainer.new()
 	_filter_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_filter_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	_filter_scroll.custom_minimum_size.y = 40
+	# TWO stacked constraints, and only the LARGER one is operative: the strip's own
+	# minimum stretches the buttons inside it, so the 36 at _create_filter_button was
+	# never the number on screen — the sweep measured 40 design px (46.4dp), 1.6dp
+	# under the Material floor on phone portrait and small phone. Raising only the
+	# button would have changed nothing. Both are the shared constant now, which is
+	# what lines 102 and 168 of this same file already use.
+	_filter_scroll.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	outer.add_child(_filter_scroll)
 
 	_filter_bar = HBoxContainer.new()
@@ -227,7 +233,7 @@ func _build_filter_tabs() -> void:
 func _create_filter_button(label_text: String, filter_value: String) -> Button:
 	var btn := Button.new()
 	btn.text = label_text
-	btn.custom_minimum_size.y = 36
+	btn.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	btn.toggle_mode = true
 	btn.button_pressed = (filter_value == _active_filter)
 	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))

@@ -31,6 +31,14 @@ var _source_size: Vector2i = Vector2i(2764, 1843)
 # Tracks the field overlay nodes so they can be removed before re-render.
 var _field_nodes: Array[Control] = []
 
+## Every field node lives under this, positioned in SOURCE (2764x1843) pixels, and the
+## display scale is applied ONCE as this layer's transform. See _rescale_field_nodes().
+var _field_layer: Control = null
+
+## Name the export clone re-adopts the layer by. duplicate() copies the child nodes but
+## not the plain `var`, so the clone has to find it again.
+const FIELD_LAYER_NAME := "FieldLayer"
+
 # Background TextureRect (the official sheet PNG).
 var _background: TextureRect = null
 
@@ -85,9 +93,13 @@ func render_sheet(sheet_id: String, data_context: Dictionary) -> void:
 		_source_size = Vector2i(int(src_size_arr[0]), int(src_size_arr[1]))
 	_clear_field_nodes()
 	_ensure_background()
+	_ensure_field_layer()
 	_load_background_texture()
 	if not _blank_mode:
 		_populate_fields(data_context)
+	# The layer is sized to the source page; fit it into whatever box this Control
+	# currently has. `resized` keeps it correct from here.
+	_rescale_field_nodes()
 	queue_redraw()
 
 
@@ -176,9 +188,10 @@ func _collect_text_layer(sub_viewport: SubViewport) -> Array:
 	if _blank_mode or sub_viewport == null or sub_viewport.get_child_count() == 0:
 		return []
 	var out: Array = []
-	for child in sub_viewport.get_child(0).get_children():
-		if not child is Control:
-			continue
+	# Field nodes live under the clone's FieldLayer, so walk the subtree rather than
+	# the clone's direct children — this looked for them one level too high after the
+	# T11-06 restructure and would have shipped an EMPTY searchable layer with no error.
+	for child in _descendant_fields(sub_viewport.get_child(0)):
 		var ctl: Control = child
 		if not ctl.has_meta("sheet_src_rect"):
 			continue
@@ -204,6 +217,16 @@ func _collect_text_layer(sub_viewport: SubViewport) -> Array:
 	return out
 
 
+## Every Control in `n`'s subtree carrying the field marker, in tree order.
+func _descendant_fields(n: Node) -> Array:
+	var out: Array = []
+	for child in n.get_children():
+		if child is Control and (child as Control).has_meta("sheet_src_rect"):
+			out.append(child)
+		out.append_array(_descendant_fields(child))
+	return out
+
+
 ## Source resolution this sheet renders at (post-load).
 func get_source_size() -> Vector2i:
 	return _source_size
@@ -215,6 +238,40 @@ func _resolve_manifest_path(sheet_id: String) -> String:
 	# MVP: all 3 sheets live under data/sheets/core/. Future books extend
 	# via a sheet_id → book lookup; for now we infer "core" for the trio.
 	return "res://data/sheets/core/%s_fields.json" % sheet_id
+
+
+## The field layer is a plain Control sized to the SOURCE page. Field nodes are its
+## children at their manifest coordinates and manifest font sizes; fitting the page into
+## this Control is then a single transform on the layer, not 184 per-node rect
+## computations.
+##
+## WHY THIS SHAPE (T11-06, measured — do not "simplify" back to per-node scaling):
+## `add_theme_font_size_override()` invalidates a Control's minimum-size cache and
+## queues the recomputation for the NEXT frame, so a `size` assignment on the following
+## line is clamped against the PREVIOUS font's line height. That is not an ordering
+## mistake that can be fixed by reordering: tests/tools/probe_label_min_cache.gd shows a
+## brand-new, never-laid-out Label doing the same thing, because its first minimum is
+## computed with the theme's DEFAULT font. The consequence was that every field Label
+## was 21 px tall - the default line height - at every scale, so on a phone the boxes
+## shrank with the sheet while the text boxes did not, and they painted over each other.
+##
+## Building at source scale removes the dependency entirely: the only size a node is
+## ever given is its manifest rect, assigned once, and the clamp can bind only where the
+## manifest box is genuinely shorter than the line height at source scale - which is a
+## real defect worth seeing rather than one the scaling invented.
+##
+## It also makes the preview and the export the SAME layout. The export path sets the
+## clone to the source size, where this layer's scale is exactly 1.0 and its offset 0.
+func _ensure_field_layer() -> void:
+	if _field_layer != null and is_instance_valid(_field_layer):
+		return
+	_field_layer = Control.new()
+	_field_layer.name = FIELD_LAYER_NAME
+	_field_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# Top-left pivot, so `position` is the top-left of the scaled content.
+	_field_layer.pivot_offset = Vector2.ZERO
+	_field_layer.size = Vector2(_source_size)
+	add_child(_field_layer)
 
 
 func _ensure_background() -> void:
@@ -283,7 +340,7 @@ func _populate_fields(data_context: Dictionary) -> void:
 			# RichTextLabel names its theme size differently from Label.
 			node.set_meta("sheet_font_prop",
 				"normal_font_size" if node is RichTextLabel else "font_size")
-			add_child(node)
+			_field_layer.add_child(node)
 			_field_nodes.append(node)
 
 
@@ -365,22 +422,20 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 	var rect_src: Rect2 = _field_src_rect(field)
 	if rect_src.size.x <= 0.0:
 		return null
-	var rect_screen: Rect2 = _scale_rect_to_display(rect_src)
 	var ftype: String = str(field.get("type", "text"))
 	var value: Variant = _resolve_source(str(field.get("source", "")), ctx)
+	# The manifest's own font size and rect, used verbatim. The display scale is the
+	# field LAYER's transform (see _ensure_field_layer), never a per-node adjustment.
 	var font_size: int = int(field.get("font_size", 24))
 	var align: String = str(field.get("align", "left"))
-	# Scale font size to display, but keep a minimum so debug visibility holds.
-	var scale_factor: float = _get_display_scale()
-	var display_font_size: int = max(8, int(round(font_size * scale_factor)))
 
 	match ftype:
 		"text", "number":
 			var lbl := Label.new()
-			lbl.position = rect_screen.position
-			lbl.size = rect_screen.size
 			lbl.text = str(value) if value != null else ""
-			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
+			lbl.add_theme_font_size_override("font_size", font_size)
+			lbl.position = rect_src.position
+			lbl.size = rect_src.size
 			lbl.add_theme_color_override("font_color", Color.BLACK)
 			lbl.clip_text = true
 			lbl.horizontal_alignment = _h_align(align)
@@ -389,24 +444,23 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			return lbl
 		"multiline_text":
 			var rtl := RichTextLabel.new()
-			rtl.position = rect_screen.position
-			rtl.size = rect_screen.size
 			rtl.bbcode_enabled = false
 			rtl.fit_content = false
 			rtl.scroll_active = false
 			rtl.text = str(value) if value != null else ""
-			rtl.add_theme_font_size_override(
-				"normal_font_size", ScreenChrome.font_size(display_font_size))
+			rtl.add_theme_font_size_override("normal_font_size", font_size)
+			rtl.position = rect_src.position
+			rtl.size = rect_src.size
 			rtl.add_theme_color_override("default_color", Color.BLACK)
 			rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			return rtl
 		"checkbox":
 			var cb := Label.new()
-			cb.position = rect_screen.position
-			cb.size = rect_screen.size
 			# Filled checkbox if value is truthy; empty otherwise.
 			cb.text = "X" if _is_truthy(value) else ""
-			cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(display_font_size))
+			cb.add_theme_font_size_override("font_size", font_size)
+			cb.position = rect_src.position
+			cb.size = rect_src.size
 			cb.add_theme_color_override("font_color", Color.BLACK)
 			cb.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			cb.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -417,30 +471,38 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			return null
 
 
-## Re-derive every field overlay's geometry from its stored source rect. Called on
-## `resized`, so a sheet rendered before layout still lands correctly once the Control
-## gets its real box. Cheap: no manifest re-read and no source re-resolution, just
-## arithmetic over the nodes that already exist.
+## Fit the SOURCE-scale field layer into this Control's current box.
+##
+## Connected to `resized`, so a sheet rendered before layout still lands correctly once
+## the Control gets its real size — PrintSheetScreen renders during setup, when this
+## Control is still 0x0.
+##
+## This used to walk all 184 nodes re-assigning a font size and a scaled rect. That is
+## what T11-06 was: `Control.size` is clamped up to `get_combined_minimum_size()`, and a
+## font override does not refresh that minimum until the next frame, so every node was
+## clamped to the OLD font's line height — a flat 21 px at every scale. There is nothing
+## per-node left to do here, and nothing per-node should come back.
 func _rescale_field_nodes() -> void:
-	if _field_nodes.is_empty() or size.x <= 0.0 or size.y <= 0.0:
+	if _field_layer == null or not is_instance_valid(_field_layer):
 		return
-	var scale_factor: float = _get_display_scale()
-	for node in _field_nodes:
-		if not is_instance_valid(node) or not node.has_meta("sheet_src_rect"):
-			continue
-		var rect_screen: Rect2 = _scale_rect_to_display(node.get_meta("sheet_src_rect"))
-		node.position = rect_screen.position
-		node.size = rect_screen.size
-		var base_fs: int = int(node.get_meta("sheet_font_size", 24))
-		node.add_theme_font_size_override(
-			str(node.get_meta("sheet_font_prop", "font_size")),
-			ScreenChrome.font_size(max(8, int(round(base_fs * scale_factor)))))
+	var fit: Rect2 = _content_fit()
+	_field_layer.size = Vector2(_source_size)
+	_field_layer.position = fit.position
+	_field_layer.scale = Vector2(
+		fit.size.x / float(_source_size.x), fit.size.y / float(_source_size.y))
 	queue_redraw()
 
 
-func _scale_rect_to_display(rect_src: Rect2) -> Rect2:
-	var scale: float = _get_display_scale()
-	# Letterbox: keep aspect ratio, center inside this Control.
+## Where the source page lands inside this Control: aspect-preserved and centred, the
+## same letterbox the background TextureRect uses (STRETCH_KEEP_ASPECT_CENTERED).
+##
+## ONE function, two consumers — the field layer's transform and the debug overlay's
+## rects. They disagreed once already (the background was FIT_WIDTH_PROPORTIONAL while
+## the fields were computed against this fit), and a geometry divergence between two
+## implementations of one decision is invisible from either call site.
+func _content_fit() -> Rect2:
+	if size.x <= 0.0 or size.y <= 0.0 or _source_size.x <= 0 or _source_size.y <= 0:
+		return Rect2(Vector2.ZERO, Vector2(_source_size))
 	var src_aspect: float = float(_source_size.x) / float(_source_size.y)
 	var dst_aspect: float = size.x / max(1.0, size.y)
 	var content_w: float
@@ -451,24 +513,29 @@ func _scale_rect_to_display(rect_src: Rect2) -> Rect2:
 	else:
 		content_w = size.x
 		content_h = content_w / src_aspect
-	var offset_x: float = (size.x - content_w) * 0.5
-	var offset_y: float = (size.y - content_h) * 0.5
-	var content_scale: float = content_w / float(_source_size.x)
+	return Rect2((size.x - content_w) * 0.5, (size.y - content_h) * 0.5,
+		content_w, content_h)
+
+
+## A SOURCE rect in this Control's display coordinates. Used by the debug overlay only
+## — field nodes are positioned in source pixels under a transformed layer.
+func _scale_rect_to_display(rect_src: Rect2) -> Rect2:
+	var fit: Rect2 = _content_fit()
+	var content_scale: float = fit.size.x / float(_source_size.x)
 	return Rect2(
-		offset_x + rect_src.position.x * content_scale,
-		offset_y + rect_src.position.y * content_scale,
+		fit.position.x + rect_src.position.x * content_scale,
+		fit.position.y + rect_src.position.y * content_scale,
 		rect_src.size.x * content_scale,
 		rect_src.size.y * content_scale)
 
 
+## Uniform scale from source pixels to this Control's display pixels. Kept as the
+## public-ish reading of the fit for probes and tests; the renderer itself applies the
+## scale through _content_fit() / the field layer's transform.
 func _get_display_scale() -> float:
-	if size.x <= 0 or _source_size.x <= 0:
+	if _source_size.x <= 0:
 		return 1.0
-	var src_aspect: float = float(_source_size.x) / float(_source_size.y)
-	var dst_aspect: float = size.x / max(1.0, size.y)
-	if dst_aspect > src_aspect:
-		return size.y / float(_source_size.y)
-	return size.x / float(_source_size.x)
+	return _content_fit().size.x / float(_source_size.x)
 
 
 func _h_align(align: String) -> int:
@@ -616,7 +683,15 @@ func _set_manifest_for_export(manifest: Dictionary) -> void:
 	# otherwise correct sheet. Same defect as the on-screen case, one layer further out,
 	# and invisible until something actually rendered text.
 	_field_nodes.clear()
-	for child in get_children():
+	_field_layer = get_node_or_null(NodePath(FIELD_LAYER_NAME)) as Control
+	if _field_layer == null:
+		# Never silently — the same class of false guard that hid the missing
+		# DUPLICATE_SCRIPTS flag for weeks.
+		push_warning(
+			"SheetRenderer: export clone has no %s — overlay will not render." %
+			FIELD_LAYER_NAME)
+		return
+	for child in _field_layer.get_children():
 		if child is Control and (child as Control).has_meta("sheet_src_rect"):
 			_field_nodes.append(child)
 	_rescale_field_nodes()

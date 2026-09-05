@@ -48,8 +48,11 @@ const STEPS: Array = [
 
 const EPS := 0.5
 
-## Same A1 scope as verify_layout.gd, minus screens that cannot be measured against the
-## root rect (MissionSelectionUI's controls live under a PopupPanel — a Window).
+## Same A1 scope as verify_layout.gd. ⚠ Controls hosted in a Window are not measured
+## by either sweep - a Window lays out against its own rect, not root's. Nothing in
+## scope declares one today (checked 2026-09-04), but every runtime modal is a
+## Window, so no dialog geometry is covered here. The note this replaced cited
+## MissionSelectionUI, which has since been DELETED.
 const SCREENS: Array = [
 	"res://src/ui/screens/mainmenu/MainMenu.tscn",
 	"res://src/ui/screens/legal/EULAScreen.tscn",
@@ -100,6 +103,7 @@ func _run() -> void:
 	print("=== ROTATION SWEEP: %d screens, one instance walked through %d sizes ==="
 		% [SCREENS.size(), STEPS.size()])
 	print("campaign state: %s" % _campaign_state())
+	print("populate: %s" % _populate_state())
 	for path in SCREENS:
 		await _walk_screen(path)
 	print("\n================ RESULT ================")
@@ -209,6 +213,7 @@ func _walk_screen(path: String) -> void:
 		_skip += 1
 		_findings.append("SKIP %s — the window refused the initial resize" % short)
 		return
+	_populate_pre(path)
 	var inst: Node = ps.instantiate()
 	if inst == null:
 		_skip += 1
@@ -217,6 +222,7 @@ func _walk_screen(path: String) -> void:
 	root.add_child(inst)
 	if inst is CanvasItem and not (inst as CanvasItem).visible:
 		(inst as CanvasItem).show()
+	_populate_post(inst, path)
 	await _settle(inst)
 	_apply_runtime_overlay_net(inst)
 	await _settle(inst)
@@ -370,12 +376,6 @@ func _is_content(ctl: Control) -> bool:
 		or ctl is Slider or ctl is SpinBox or ctl is ItemList or ctl is Tree
 
 
-func _is_backdrop(r: Rect2, ds: Vector2) -> bool:
-	if ds.x <= 0.0 or ds.y <= 0.0:
-		return false
-	return (r.size.x * r.size.y) >= (ds.x * ds.y) * 0.8
-
-
 func _parent_already_overflows(ctl: Control, stop: Node, off: float) -> bool:
 	var ds: Vector2 = root.get_visible_rect().size
 	var p := ctl.get_parent()
@@ -414,10 +414,55 @@ func _measure(inst: Node, short: String, step: String, problems: Array) -> void:
 		var off: float = maxf(
 			maxf(-r.position.x, r.end.x - ds.x),
 			maxf(-r.position.y, r.end.y - ds.y))
-		if off > EPS and not _parent_already_overflows(ctl, inst, off) \
-				and not _is_backdrop(r, ds):
+		# WARNING: `and not _is_backdrop(r, ds)` used to be a third clause here, and
+		# it made this sweep STRUCTURALLY BLIND to T11-01's whole defect class.
+		# _is_backdrop is an AREA test (>= 80% of the design area) written for
+		# verify_layout's OVERLAY-COLLISION check, where the rationale is sound: a
+		# full-screen background merely SPANS the corner the gear buttons sit in.
+		# It is the wrong question for OVERFLOW. A backdrop legitimately spans the
+		# screen; it does not legitimately extend 196 px PAST it - and a node
+		# overflowing vertically has a LARGER area, so it was guaranteed to be
+		# filtered out. PreBattle's overflow lands on its root MarginContainer
+		# (full-rect, grow_vertical = BOTH), which is exactly the shape the clause
+		# discarded: with the T11-01 gate reverted and screens populated, this sweep
+		# still reported 23/23 PASS. verify_layout.gd has never filtered backdrops
+		# out of its own overflow check; this now matches it. Cascades are already
+		# suppressed by _parent_already_overflows().
+		if off > EPS and not _parent_already_overflows(ctl, inst, off):
 			problems.append("%s @ %s (%dx%d): %s off-screen by %.1f px AFTER RESIZE"
 				% [short, step, int(ds.x), int(ds.y), String(ctl.name), off])
 	if visible_controls < 3:
 		problems.append("%s @ %s: only %d visible Controls after resize — the screen "
 			% [short, step, visible_controls] + "did not survive the rotation")
+
+
+## Per-screen data population lives in tests/tools/screen_populator.gd, SHARED with
+## the other windowed sweep — see that file for why both were measuring EMPTY screens
+## at the right sizes, and why its fixtures invent nothing. It is load()ed at runtime
+## and never preload()ed, per constraint 2 in this file's header.
+var _populator = null
+
+
+func _get_populator():
+	if _populator == null:
+		var cls = load("res://tests/tools/screen_populator.gd")
+		if cls != null:
+			_populator = cls.new(root)
+	return _populator
+
+
+func _populate_state() -> String:
+	var p = _get_populator()
+	return p.state_line() if p != null else "populator FAILED TO LOAD"
+
+
+func _populate_pre(path: String) -> void:
+	var p = _get_populator()
+	if p != null:
+		p.populate_pre(path)
+
+
+func _populate_post(inst: Node, path: String) -> void:
+	var p = _get_populator()
+	if p != null:
+		p.populate_post(inst, path)

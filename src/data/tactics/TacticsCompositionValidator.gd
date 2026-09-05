@@ -24,26 +24,51 @@ extends RefCounted
 ## most likely Age of Fantasy values carried over by the "complete rewrite of
 ## AoF rules" this file describes, never re-checked against Five Parsecs.
 ##
-## 🔴 OPEN RULES DEFECT — the CONSTANTS BELOW DO NOT MATCH p.134. Verified
-## verbatim against docs/rules/tactics_source.txt (raw page 136 -> printed 134):
-##   "Leaders (1-2)"    — "A platoon must have one character, and may include a second."
-##   "Troops (2-4)"     — "A platoon must have 2 squads, and may take a total of 4."
+## ✅ FIXED 2026-09-04 against p.134, verbatim from docs/rules/tactics_source.txt
+## (raw marker 136 -> printed 134; the Tactics extract offset is marker MINUS two,
+## confirmed here by the "=== PAGE 137 ===" marker immediately preceding printed 135):
+##
+##   "Leaders (1-2)"   - "A platoon must have one character, and may include a second."
+##   "Troops (2-4)"    - "A platoon must have 2 squads, and may take a total of 4."
 ##   "Supports (0-3; must be fewer than number of Troops)"
 ##   "Specialists (0-1 per 2 Troops)"
-## Against that: MAX_TROOPS_PER_PLATOON is 5 (book 4), MAX_SUPPORTS_PER_PLATOON is
-## 4 (book 3) AND its "must be fewer than troops" clause is stated in the comment
-## but never enforced — the check is a flat compare; MAX_SPECIALISTS_PER_PLATOON is
-## a flat 2 where the book scales it per 2 Troops; PLATOON_LEADER_COUNT is 1 where
-## the book allows a second. So the validator accepts illegal armies and rejects
-## legal ones. NOT FIXED 2026-09-04 — scoped as a Tactics rules-accuracy audit
-## (alpha-2 gamemode), recorded rather than silently corrected.
+##
+## ⚠ WHERE THE OLD NUMBERS CAME FROM. They were not arbitrary: Leader 1, Troops 2-5 and
+## Supports 0-4 are exactly the **Armored Platoon** optional rule on p.135 -
+## "Leader (1): One vehicle. Troops (2-5): Each troop is a vehicle... Supports (0-4, must
+## be fewer in number than troops)". One organisation's limits had been applied to a
+## different one. The armored platoon is NOT modelled here (TacticsRoster.OrgType has
+## PLATOON and COMPANY only), and it should not be bolted onto the infantry limits: the
+## book gives it different units ("There are no weapon teams or specialists in an armored
+## platoon"), a same-type constraint on its first 3 vehicles, and mandatory transports for
+## its supports. Adding it is a roster-model change, recorded here rather than improvised.
+##
+## ⚠ ONE CLAIM IN THE OLD NOTE WAS WRONG and is corrected rather than deleted: it said the
+## "must be fewer than Troops" clause was "stated in the comment but never enforced - the
+## check is a flat compare". There are TWO checks, and the relational one was always live
+## (`support_count >= troop_count`, below). Only the flat cap was wrong.
+##
+## ⚠ ERRATA CHECKED 2026-09-04 - there is NONE for this rule. The repo errata
+## (docs/gameplay/rules/5P_errata_and_tweaks106.pdf, v1.06) is CORE RULES only: zero
+## occurrences of "Tactics", "platoon", "troops", "Support" or "Army Builder" across all
+## 5 pages. The official Modiphius FAQ covers only the core skirmish game, and the
+## designer's Tactics post changes combat only, not composition.
 
-# Platoon constraints (per-platoon)
-const MIN_TROOPS_PER_PLATOON := 2
-const MAX_TROOPS_PER_PLATOON := 5
-const MAX_SUPPORTS_PER_PLATOON := 4  # Must be fewer than troops
-const MAX_SPECIALISTS_PER_PLATOON := 2  # One of each type
-const PLATOON_LEADER_COUNT := 1  # Each platoon has 1 leader
+# Platoon constraints (per-platoon) - Tactics p.134, "Infantry Platoon Organization"
+const MIN_TROOPS_PER_PLATOON := 2       # "must have 2 squads"
+const MAX_TROOPS_PER_PLATOON := 4       # "may take a total of 4"
+const MAX_SUPPORTS_PER_PLATOON := 3     # "Supports (0-3 ...)" - AND fewer than Troops
+const MIN_PLATOON_LEADERS := 1          # "must have one character"
+const MAX_PLATOON_LEADERS := 2          # "and may include a second"
+## "Specialists (0-1 per 2 Troops)" - a RATIO, not a flat cap. The old flat 2 was right
+## only at the maximum troop count and let a 2-troop platoon take two specialists where
+## the book allows one.
+const TROOPS_PER_SPECIALIST := 2
+
+
+## Book cap on specialists for a platoon of `troop_count` squads (p.134).
+static func max_specialists_for(troop_count: int) -> int:
+	return maxi(0, troop_count) / TROOPS_PER_SPECIALIST
 
 # Company constraints
 const MIN_PLATOONS := 2
@@ -111,7 +136,7 @@ static func _validate_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[
 
 	var label: String = "Platoon %d" % (platoon_idx + 1)
 
-	# Troops: 2-5
+	# Troops: 2-4 (p.134)
 	if troop_count < MIN_TROOPS_PER_PLATOON:
 		errors.append("%s: Need at least %d troop units (have %d)" % [
 			label, MIN_TROOPS_PER_PLATOON, troop_count])
@@ -119,7 +144,9 @@ static func _validate_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[
 		errors.append("%s: Max %d troop units (have %d)" % [
 			label, MAX_TROOPS_PER_PLATOON, troop_count])
 
-	# Supports: 0-4, must be fewer than troops
+	# Supports: 0-3 AND strictly fewer than troops (p.134). Both clauses are
+	# real and neither implies the other: 3 supports with 3 troops passes the
+	# cap and fails the ratio; 4 supports with 5 troops does the reverse.
 	if support_count > MAX_SUPPORTS_PER_PLATOON:
 		errors.append("%s: Max %d support units (have %d)" % [
 			label, MAX_SUPPORTS_PER_PLATOON, support_count])
@@ -127,10 +154,12 @@ static func _validate_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[
 		errors.append("%s: Support count (%d) must be fewer than troop count (%d)" % [
 			label, support_count, troop_count])
 
-	# Specialists: 0-2, one of each type
-	if specialist_count > MAX_SPECIALISTS_PER_PLATOON:
-		errors.append("%s: Max %d specialist units (have %d)" % [
-			label, MAX_SPECIALISTS_PER_PLATOON, specialist_count])
+	# Specialists: 0-1 per 2 Troops (p.134), one of each type
+	var specialist_cap: int = max_specialists_for(troop_count)
+	if specialist_count > specialist_cap:
+		errors.append("%s: Max %d specialist units for %d troops (have %d) - the book "
+			% [label, specialist_cap, troop_count, specialist_count]
+			+ "allows 1 specialist per 2 troops")
 
 	# Check for duplicate specialist types within platoon
 	var specialist_types: Array[String] = []
@@ -145,12 +174,12 @@ static func _validate_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[
 					else:
 						specialist_types.append(name)
 
-	# Leader: exactly 1 per platoon
-	if leader_count == 0:
+	# Leaders: 1-2 per platoon (p.134)
+	if leader_count < MIN_PLATOON_LEADERS:
 		errors.append("%s: Needs a platoon leader" % label)
-	if leader_count > PLATOON_LEADER_COUNT:
-		errors.append("%s: Max %d leader (have %d)" % [
-			label, PLATOON_LEADER_COUNT, leader_count])
+	if leader_count > MAX_PLATOON_LEADERS:
+		errors.append("%s: Max %d leaders (have %d)" % [
+			label, MAX_PLATOON_LEADERS, leader_count])
 
 	return errors
 
@@ -200,10 +229,14 @@ static func get_limits_summary(org_type: int, points: int) -> String:
 	var lines: Array[String] = []
 	lines.append("Points: %d" % points)
 	if org_type == TacticsRoster.OrgType.PLATOON:
-		lines.append("1 Platoon Leader")
+		# These strings are what a player reads while building. They MUST be rendered
+		# from the same constants the validator enforces - a displayed limit that exists
+		# nowhere else is exactly how the p.134 mismatch survived unnoticed.
+		lines.append("%d-%d Platoon Leaders" % [MIN_PLATOON_LEADERS, MAX_PLATOON_LEADERS])
 		lines.append("%d-%d Troop units" % [MIN_TROOPS_PER_PLATOON, MAX_TROOPS_PER_PLATOON])
 		lines.append("0-%d Support units (fewer than troops)" % MAX_SUPPORTS_PER_PLATOON)
-		lines.append("0-%d Specialists (one of each type)" % MAX_SPECIALISTS_PER_PLATOON)
+		lines.append("Specialists: 1 per %d troops, one of each type"
+			% TROOPS_PER_SPECIALIST)
 	else:
 		lines.append("%d-%d Platoons" % [MIN_PLATOONS, MAX_PLATOONS])
 		lines.append("Per platoon: same as above")

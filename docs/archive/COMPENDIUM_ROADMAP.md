@@ -1,3 +1,7 @@
+> **ARCHIVED 2026-09-04.** Its unchecked items describe work that has shipped - it still says the Story Track is NOT IMPLEMENTED, which CLAUDE.md and CampaignPhaseManager contradict.
+>
+> Kept for its history. It is NOT a worklist: do not pick items from it without re-checking them against the code first.
+
 # Five Parsecs Campaign Manager - Compendium Integration Roadmap
 
 > **HISTORICAL PLANNING DOCUMENT** (February 2026)

@@ -98,3 +98,40 @@ func test_seized_threshold_via_ssot() -> void:
 	assert_int(result.target_number).is_equal(10)
 	assert_int(result.savvy_bonus).is_equal(4)
 	assert_int(result.total_modifiers).is_equal(1)
+
+
+func test_the_two_threshold_framings_are_the_same_test() -> void:
+	## T11-02 (tablet deploy #16): InitiativeCalculator states the seize threshold TWO
+	## ways in one frame. Before the roll it shows the RAW die against a reduced
+	## threshold ("Need 8+ on 2D6", from calculate_required_roll()); after the roll it
+	## shows the MODIFIED total against the fixed target ("Total: 7 vs 10").
+	##
+	## Those are the same test only because
+	##     roll >= TARGET - savvy - mods   <=>   roll + savvy + mods >= TARGET
+	## and the panel now prints both numbers side by side, so if that identity ever
+	## stopped holding a player would see two thresholds that genuinely disagree —
+	## which is worse than the presentation inconsistency it replaced.
+	##
+	## Asserted over the whole 2D6 range and a spread of savvy/modifier combinations
+	## rather than one example: a single case would pass for any formula that happens
+	## to agree at that point.
+	var target: int = BattleCalculations.SEIZE_INITIATIVE_TARGET
+	for savvy in [0, 1, 2, 3]:
+		for mods in [-3, -2, -1, 0, 1, 2]:
+			_s.highest_savvy = savvy
+			_s.set_enemy_modifier(mods)
+			var needed: int = _s.calculate_required_roll()
+			assert_int(needed).override_failure_message(
+				"required roll must be TARGET - savvy - mods (savvy=%d mods=%d)"
+				% [savvy, mods]
+			).is_equal(target - savvy - mods)
+			for roll in range(2, 13):
+				var raw_framing: bool = roll >= needed
+				var total_framing: bool = (roll + savvy + mods) >= target
+				assert_bool(raw_framing).override_failure_message(
+					"the two displays disagree at savvy=%d mods=%d roll=%d: "
+					% [savvy, mods, roll]
+					+ "'need %d+' says %s, 'total %d vs %d' says %s"
+					% [needed, str(raw_framing), roll + savvy + mods, target,
+						str(total_framing)]
+				).is_equal(total_framing)

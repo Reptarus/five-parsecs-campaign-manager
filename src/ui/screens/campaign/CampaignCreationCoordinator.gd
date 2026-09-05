@@ -17,6 +17,9 @@ const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggl
 signal navigation_updated(can_go_back: bool, can_go_forward: bool, can_finish: bool)
 signal phase_transition_requested(from_phase: CampaignCreationStateManager.Phase, to_phase: CampaignCreationStateManager.Phase)
 signal step_changed(step: int, total_steps: int)
+## Relayed from the state manager so the screen can show what the advance gate found.
+## Untyped Array for the same reason it is untyped there — see that signal's comment.
+signal phase_warnings(phase: CampaignCreationStateManager.Phase, warnings: Array)
 
 # PHASE 2 INTEGRATION: Unified state management signals  
 signal equipment_state_updated(equipment_data: Dictionary)
@@ -137,6 +140,14 @@ func _connect_state_manager_signals() -> void:
 		state_manager.state_updated.connect(_on_state_updated)
 		state_manager.phase_completed.connect(_on_phase_completed)
 		state_manager.validation_changed.connect(_on_validation_changed)
+		state_manager.phase_warnings.connect(_on_phase_warnings)
+
+
+func _on_phase_warnings(phase: CampaignCreationStateManager.Phase,
+		warnings: Array) -> void:
+	## Straight relay. The coordinator adds nothing — it exists so the screen
+	## listens to ONE object, per this project's parent/child signal contract.
+	phase_warnings.emit(phase, warnings)
 
 func _initialize_navigation_state() -> void:
 	## Initialize navigation state based on current phase
@@ -676,6 +687,20 @@ func update_campaign_config_state(campaign_config_data: Dictionary) -> void:
 		unified_campaign_state.campaign_config.campaign_crew_size = campaign_config_data.campaign_crew_size
 		# The p.34 roster depends on the size, so a size change re-derives it.
 		_refresh_starting_roster_size()
+	# Core Rules p.13 crew-creation method. Sits beside the crew size on purpose:
+	# both are crew-composition config, both are chosen at CONFIG, and both reach
+	# CrewPanel through the same CampaignCreationUI._push_campaign_crew_size().
+	#
+	# ⚠ THIS KEY WAS THE WHITELIST'S FOURTH VICTIM (T11-09, found on tablet deploy
+	# #17). The picker wrote it, the panel emitted it, CrewPanel's setter existed
+	# and its has_method guard was live — and the value died HERE, so
+	# _push_campaign_crew_size() read the "miniatures" default and a Standard crew
+	# rolled two Bots against a p.13 cap of one. The SAME drop killed the warning
+	# too, because the state manager is fed campaign_config below: one missing
+	# line, both halves of the feature inert.
+	if campaign_config_data.has("crew_creation_method"):
+		unified_campaign_state.campaign_config.crew_creation_method = \
+			campaign_config_data.crew_creation_method
 	# THIS IS A WHITELIST, and that is deliberate — it is what makes campaign
 	# state ownership auditable. But a key the panel collects and this list does
 	# not name is silently dropped, which is how Progressive Difficulty and the
