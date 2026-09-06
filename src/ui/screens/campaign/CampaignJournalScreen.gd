@@ -1,6 +1,9 @@
 class_name CampaignJournalScreen
 extends "res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd"
 
+## T11-32/T11-34. No class_name on that file, so it must be preloaded.
+const DisplayTextRef = preload("res://src/ui/components/common/DisplayText.gd")
+
 ## Campaign Journal viewer — multi-filter, two-pane, share-friendly.
 ## Why a class on its own screen: see audit at C:/Users/admin/.claude/plans —
 ## prior to v0.9.7 the autoload corpus had no UI. This is the canonical viewer.
@@ -887,13 +890,31 @@ func _show_entry_detail(entry: Dictionary) -> void:
 		var char_strs: Array[String] = []
 		for ch_v in characters:
 			var ch_id: String = str(ch_v)
-			char_strs.append("[url=character:%s]%s[/url]" % [ch_id, ch_id])
+			# T11-32: the Characters line printed the raw crew ID
+			# ("crew_1758...") because nothing resolved it. The campaign owns
+			# the name and offers an O(1) lookup for exactly this.
+			var ch_label: String = _crew_name_for_id(ch_id)
+			# The link TARGET stays the ID - that is what the click handler
+			# resolves - while only the visible text becomes the name.
+			char_strs.append("[url=character:%s]%s[/url]" % [ch_id, ch_label])
 		bb += ", ".join(char_strs) + "\n\n"
 
 	if not stats.is_empty():
 		bb += "[color=#%s]Details:[/color]\n" % COLOR_TEXT_SECONDARY.to_html(false)
 		for k in stats.keys():
-			bb += "  · %s: %s\n" % [str(k).capitalize(), str(stats[k])]
+			# T11-34: str() on a JSON-loaded number prints "6.0". Every value
+			# in this block came through JSON.parse, so every whole number was
+			# showing a decimal point on the device.
+			#
+			# ⚠ This used to call number(), which fixed the numbers and returns a
+			# String UNCHANGED — so `Enemy category: interested_parties` and
+			# `Notable sight: DOCUMENTATION` kept printing raw right beside the
+			# corrected figures, while the printed Encounter Log rendered both
+			# properly. Found by asserting this block against the pulled device
+			# save rather than a fixture (tests/tools/probe_deploy21_data.gd).
+			# stat_value() is the shared boundary the finding asked for.
+			bb += "  · %s: %s\n" % [
+				str(k).capitalize(), DisplayTextRef.stat_value(stats[k])]
 		bb += "\n"
 
 	if not player_notes.is_empty():
@@ -1165,6 +1186,47 @@ func _resolve_turn_for_share() -> int:
 	if not _filtered_entries.is_empty():
 		return int(_filtered_entries[0].get("turn_number", 0))
 	return -1
+
+
+## T11-32 - a crew ID resolved to the name the player gave that character.
+##
+## Falls back to the ID rather than to a placeholder: an entry can legitimately
+## name a character who has since died or left the crew, and the ID is at least a
+## true record of who it was. get_crew_member_by_id() is the campaign's own cached
+## O(1) lookup, so this costs nothing per row.
+func _crew_name_for_id(crew_id: String) -> String:
+	if crew_id.is_empty():
+		return ""
+	# ⚠ get_node_or_null() with an ABSOLUTE path ERRORS - it does not return
+	# null - when the node is outside the active scene tree, and an errored
+	# call aborts the enclosing function. This screen is always in the tree in
+	# production, but routing through Engine.get_main_loop().root makes the
+	# helper safe to call from a detached instance too (which is how a unit
+	# test can exercise it without standing up the whole journal UI).
+	var root: Node = null
+	if is_inside_tree():
+		root = get_tree().root
+	elif Engine.get_main_loop():
+		root = Engine.get_main_loop().root
+	if root == null:
+		return crew_id
+	var gs: Node = root.get_node_or_null("GameState")
+	if gs == null or not ("current_campaign" in gs):
+		return crew_id
+	var camp = gs.current_campaign
+	if camp == null or not camp.has_method("get_crew_member_by_id"):
+		return crew_id
+	var member: Variant = camp.get_crew_member_by_id(crew_id)
+	if member == null:
+		return crew_id
+	var display: String = ""
+	if member is Dictionary:
+		var md: Dictionary = member
+		display = str(md.get("character_name", md.get("name", "")))
+	elif "character_name" in member:
+		display = str(member.character_name)
+	display = display.strip_edges()
+	return display if not display.is_empty() else crew_id
 
 
 func _campaign_name() -> String:

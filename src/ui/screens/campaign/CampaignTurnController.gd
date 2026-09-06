@@ -516,10 +516,25 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 	# Story Event turn modifications can call this check off entirely. They were
 	# parsed, displayed by StoryPhasePanel, and enforced by nothing — so a turn
 	# the book says you cannot be attacked on still rolled for Rival attacks.
+	#
+	# T11-35: a Quest-time "Got Noticed" (Core Rules p.128) makes the NEXT
+	# campaign turn an automatic battle against that Rival. The flag is stamped
+	# on progress_data by CampaignEventEffects and consumed here, at the ONE p.85
+	# call site. Read BEFORE the check and cleared only once it has actually
+	# produced an encounter: if a Story Event suppresses Rival attacks this turn
+	# that prohibition wins, and the forced battle must survive to the next
+	# eligible turn rather than being silently spent.
+	var forced_rival_id: String = ""
+	if "progress_data" in campaign:
+		forced_rival_id = str(campaign.progress_data.get(
+			"forced_rival_battle", ""))
 	var check: Dictionary = RivalEncounterCheckClass.check(
-		rivals, decoy_count, null, _story_rival_suppression_reason())
+		rivals, decoy_count, null, _story_rival_suppression_reason(),
+		forced_rival_id)
 	if not check.get("has_encounter", false):
 		return
+	if not forced_rival_id.is_empty() and bool(check.get("forced", false)):
+		campaign.progress_data.erase("forced_rival_battle")
 
 	# p.91 attack type. A Rival you Tracked down yourself is always a Showdown;
 	# one that tracked YOU down rolls on the D10 table.
@@ -603,6 +618,14 @@ static func build_encounter_data(check: Dictionary, attack: Dictionary) -> Dicti
 		# Compendium p.21 Psi-hunters. This function REBUILDS from a fixed key
 		# literal, so a key absent here is dropped no matter what check() produced.
 		"is_psi_hunter": bool(check.get("is_psi_hunter", false)),
+		# T11-25 / T11-35 — Core Rules p.126 / p.128 "+1 when rolling for the
+		# number of enemies". Named here for exactly the reason the line above
+		# says: this literal is a chokepoint and an unnamed key is deleted.
+		"rival_enemy_count_bonus": int(
+			check.get("rival_enemy_count_bonus", 0)),
+		# T11-35 — whether this encounter was FORCED rather than rolled, so the
+		# caller can tell the flag was consumed.
+		"forced": bool(check.get("forced", false)),
 	}
 
 ## A Rival tracked the crew down (Core Rules p.85 Step 6), so the battle they had
@@ -642,6 +665,15 @@ func _apply_rival_ambush_override(mission_data: Dictionary, rival_enc: Dictionar
 		mission_data["is_psi_hunter"] = true
 		mission_data["seize_initiative_modifier"] = int(
 			mission_data.get("seize_initiative_modifier", 0)) - 2
+
+	# T11-25 / T11-35 — Core Rules p.126 Old Nemesis: this Rival "will ...
+	# receive +1 when rolling for the number of enemies in a battle"; p.128 Got
+	# Noticed grants the same while on a Quest. Same route as the psi-hunter
+	# adjustments above: stamped on the Rival at birth, carried through the
+	# encounter result, summed by EnemyGenerator at the enemy-count assembly.
+	var nemesis_bonus: int = int(rival_enc.get("rival_enemy_count_bonus", 0))
+	if nemesis_bonus != 0:
+		mission_data["rival_enemy_count_bonus"] = nemesis_bonus
 
 	# p.92 — the same type, every time. Empty for a legacy String-shaped Rival and
 	# for a STARTING Rival, whose `type` is a faction category ("Corporate") rather

@@ -1895,8 +1895,35 @@ func set_battlefield_data(data: Dictionary) -> void:
 		current_campaign.progress_data["active_battlefield"] = data.duplicate(true)
 	state_changed.emit()
 
-## Retrieve stored battlefield data
+## Retrieve stored battlefield data.
+##
+## T11-17 GUARD ON THE OWNER, NOT THE CACHE. `_battlefield_data` is a convenience
+## cache; the DURABLE owner is campaign.progress_data["active_battlefield"], which
+## set_battlefield_data() writes through to and load_campaign() restores (:695-699).
+## On device (deploy #19) a mid-battle force-stop + Continue came back with a
+## DIFFERENT terrain seed (4055150519 -> 341922859), i.e. TacticalBattleUI's
+## consume-first fallback found `stored_sectors` empty and generated a fresh table
+## over the one the player had physically built, then persisted it (:7896).
+##
+## Every static guard checked out — the restore is correct, the checkpoint was valid
+## (schema_version 1, turn 8 = turns_played 8.0), and clear_battlefield_data()'s only
+## caller is post-battle cleanup — so the cache was empty at read time for a reason
+## not visible in source. Rather than guess at the path that emptied it, read through
+## to the owner whenever the cache misses: a cache miss with a populated owner IS the
+## T11-17 signature, whichever path caused it. Same shape as the empty-container rule
+## (guard on the OWNER, never on the container's emptiness).
 func get_battlefield_data() -> Dictionary:
+	if not _battlefield_data.is_empty():
+		return _battlefield_data
+	if current_campaign != null and "progress_data" in current_campaign:
+		var owned: Variant = current_campaign.progress_data.get(
+			"active_battlefield", {})
+		if owned is Dictionary and not (owned as Dictionary).is_empty():
+			if OS.is_debug_build():
+				print("[T11-17] cache MISS, recovered from campaign owner: seed=",
+					(owned as Dictionary).get("seed", "?"), " sectors=",
+					(owned as Dictionary).get("sectors", []).size())
+			_battlefield_data = (owned as Dictionary).duplicate(true)
 	return _battlefield_data
 
 ## In-progress battle checkpoint (see FPCM_BattleCheckpoint). Mirrors the

@@ -11,6 +11,10 @@ const CharacterRef = preload("res://src/core/character/Character.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
 const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.gd")
+## T11-25. `is_known_enemy_type()` is the authority on whether a label already
+## names one of the 60 encounter-table enemies; select_enemy_for_mission()
+## rolls the book's own p.94 "Unknown Rival" column when it does not.
+const EnemyGeneratorRef = preload("res://src/core/systems/EnemyGenerator.gd")
 
 # Autoload references (resolved by PostBattlePhase orchestrator in _ready())
 var dice_manager: Variant = null
@@ -529,26 +533,60 @@ func remove_quest_rumor() -> void:
 	elif "quest_rumors" in gc:
 		gc.quest_rumors = maxi(0, int(gc.quest_rumors) - 1)
 
-func add_rival(rival_name: String) -> void:
-	## Adds an event-sourced rival to the canonical `rivals` list.
-	##
-	## This used to be gated on `if gc is Dictionary` alone. The live 5PFH campaign
-	## is a FiveParsecsCampaignCore RESOURCE, not a Dictionary, so the whole body was
-	## skipped and every event-granted rival was silently dropped. It used the RIGHT
-	## key and still wrote nothing, which is why it never looked wrong. Same class of
-	## defect as RivalPatronResolver's `active_rivals`, opposite cause.
+## Adds an event-sourced Rival to the canonical `rivals` list. Returns its id.
+##
+## HISTORY. This used to be gated on `if gc is Dictionary` alone. The live 5PFH
+## campaign is a FiveParsecsCampaignCore RESOURCE, not a Dictionary, so the whole
+## body was skipped and every event-granted rival was silently dropped. It used the
+## RIGHT key and still wrote nothing, which is why it never looked wrong.
+##
+## T11-25 - WHAT WAS WRONG WITH THE RECORD IT WROTE. Measured on device: the
+## Patrons & Rivals screen and the World Record Sheet both showed a Rival called
+## "Old nemesis (persistent, +1 enemies)" - an EFFECT STRING used as a name - of an
+## invented type. Three separate problems:
+##
+##  1. `type` was picked at random from ["Criminal", "Corporate", "Personal",
+##     "Gang"], a list that is in NEITHER rulebook. Core Rules p.119: "the type of
+##     opponents you just fought become your Rivals" - a Rival IS an enemy type.
+##     The book gives no separate table for an event-created Rival's type, so the
+##     p.94 encounter table's own "Unknown Rival" column is the only non-invented
+##     source. (That column has no Roving Threats band, matching p.101: "Enemies
+##     from this list never become Rivals.")
+##  2. `hostility` and `resources` were invented AND read by nothing, repo-wide.
+##  3. The shape disagreed with RivalPatronResolver._append_rival(), the other
+##     producer - which is why the Patrons & Rivals screen rendered "Unknown" for
+##     every field (T11-29). One concept, one shape.
+##
+## `opts` carries the book's per-event riders: `persistent` (p.126 "follow you from
+## planet to planet until resolved"), `enemy_count_bonus` (p.126 "+1 when rolling
+## for the number of enemies"), `origin`, `source_event`, and an explicit `type`.
+func add_rival(rival_name: String, opts: Dictionary = {}) -> String:
 	var gc = _get_current_campaign()
 	if gc == null:
-		return
+		return ""
+	var label: String = rival_name.strip_edges()
+	var resolved_type: String = _resolve_rival_type(label, opts)
 	var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
+	# Same shape as RivalPatronResolver._append_rival() - deliberately including
+	# threat_level, which has no consumer today: two producers emitting two shapes
+	# for one concept is the defect that made every display read "Unknown".
 	var rival := {
 		"id": rival_id,
-		"name": rival_name,
-		"type": ["Criminal", "Corporate", "Personal", "Gang"][randi() % 4],
-		"hostility": randi_range(3, 5),
-		"resources": randi_range(1, 3),
-		"source": "event"
+		"name": label,
+		"type": resolved_type,
+		"planet_id": str(battle_result.get("planet_id", "")),
+		"threat_level": 1,
+		"created_turn": int(battle_result.get("turn", 0)),
+		"origin": str(opts.get("origin", "campaign_event")),
 	}
+	if opts.has("source_event"):
+		rival["source_event"] = str(opts["source_event"])
+	# p.126 Old Nemesis riders. Written only when the event grants them, so a
+	# consumer can tell "no bonus" from "a bonus of zero".
+	if bool(opts.get("persistent", false)):
+		rival["persistent"] = true
+	if int(opts.get("enemy_count_bonus", 0)) != 0:
+		rival["enemy_count_bonus"] = int(opts["enemy_count_bonus"])
 	if gc is Dictionary:
 		var rivals: Array = gc.get("rivals", [])
 		rivals.append(rival)
@@ -556,9 +594,33 @@ func add_rival(rival_name: String) -> void:
 	elif "rivals" in gc:
 		gc.rivals.append(rival)
 	else:
-		return
+		return ""
 	if planet_data_manager and planet_data_manager.current_planet_id != "":
 		planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
+	return rival_id
+
+
+## Resolve a Rival's enemy TYPE without inventing one.
+##
+## Order: an explicit opts["type"] that is a real enemy type wins; else the label
+## itself if it already names one ("Enforcers" MUST stay Enforcers - the p.96
+## Cop-killer rule keys on it, and so do StoryTrackProcessor's "Corporate Hitmen"
+## and PaymentProcessor's roll_criminal_elements_name() result); else roll the p.94
+## Unknown Rival column.
+func _resolve_rival_type(label: String, opts: Dictionary) -> String:
+	var explicit: String = str(opts.get("type", "")).strip_edges()
+	if not explicit.is_empty() and EnemyGeneratorRef.is_known_enemy_type(explicit):
+		return explicit
+	if EnemyGeneratorRef.is_known_enemy_type(label):
+		return label
+	var generator = EnemyGeneratorRef.new()
+	var template: Dictionary = generator.select_enemy_for_mission("unknown_rival")
+	var rolled: String = str(template.get("name", ""))
+	if not rolled.is_empty():
+		return rolled
+	# The table failed to load. Blank is honest; a made-up type is not, and a
+	# non-empty bogus type would be honoured downstream as a battle PRESET.
+	return ""
 
 func remove_patron(patron_id: String) -> bool:
 	## Errata v1.06 (Core Rules p.119): "Failing a job you have accepted from a

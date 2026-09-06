@@ -68,6 +68,11 @@ const POPULATE: Dictionary = {
 	"res://src/ui/screens/compendium/CompendiumCategoryView.tscn": "compendium_category",
 	"res://src/ui/screens/legal/LegalTextViewer.tscn": "legal_viewer",
 	"res://src/ui/screens/equipment/EquipmentGenerationScene.tscn": "equipment_generation",
+	# T11-40. Added 2026-09-06. This screen was in verify_layout's SCREENS list all
+	# along and the sweep stayed green while the tablet clipped 27px off Next Step on
+	# a TALL step - because every one of its six phase panes was measured EMPTY, and
+	# an empty pane is short. Exactly the T11-01 shape, one screen along.
+	"res://src/ui/screens/world/WorldPhaseController.tscn": "world_phase",
 }
 
 var _root: Node = null
@@ -126,6 +131,34 @@ func populate_post(inst: Node, path: String) -> void:
 	var fn := "_post_" + key
 	if has_method(fn):
 		call(fn, inst)
+
+
+## WorldPhaseController is populated by its ORCHESTRATOR, not by _ready(): 
+## CampaignTurnController SHOWS this controller each turn rather than re-creating
+## it, and calls initialize_world_phase() afterwards. A sweep that only
+## instantiate()s the scene therefore measures six empty step panes forever.
+##
+## ⚠ The three arguments are read off the loaded campaign EXACTLY as
+## CampaignTurnController.gd:893-897 reads them - same keys, same fallbacks, same
+## order. Nothing is fabricated: a hand-built ship/world dict would populate the
+## screen with a shape the app never produces, which is the failure this whole
+## fixture layer exists to avoid.
+##
+## With no campaign loaded this is a NO-OP rather than a stub, so the run reports
+## an unpopulated screen instead of quietly measuring an invented one.
+func _post_world_phase(inst: Node) -> void:
+	if inst == null or not inst.has_method("initialize_world_phase"):
+		return
+	var gs := _root.get_node_or_null("/root/GameState")
+	if gs == null or not gs.has_method("get_current_campaign"):
+		return
+	var c = gs.get_current_campaign()
+	if c == null:
+		return
+	var ship_d: Dictionary = c.get("ship_data") if "ship_data" in c else {}
+	var crew_d: Array = c.crew_data.get("members", []) if "crew_data" in c else []
+	var world_d: Dictionary = c.get("world_data") if "world_data" in c else {}
+	inst.initialize_world_phase(ship_d, crew_d, world_d)
 
 
 func _set_scene_context(key: String, ctx: Dictionary) -> void:

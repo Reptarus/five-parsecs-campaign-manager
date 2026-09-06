@@ -436,3 +436,114 @@ func test_the_root_window_is_never_moved() -> void:
 	var before := get_tree().root.position.y
 	ka._shift_window_up(field, 200.0)
 	assert_int(get_tree().root.position.y).is_equal(before)
+
+
+# ============================================================================
+# T11-15 — the move-the-Window fallback has a CEILING, and must say so
+# ============================================================================
+#
+# THE FINDING (device, deploy #19). The QA dialog's SpinBox stayed under the
+# keyboard. The walk log:
+#     raw=760 window_h=1600 logical_vp_h=1268.0 -> kb_logical=602.3
+#     field_bottom=1165.0 shift=511.3
+# 511.3px was the right number. The dialog's own viewport is 1268 of 1379 logical
+# px, so the window sits ~64px below the top of the screen — and moving a window up
+# is bounded by exactly that. `_shift_window_up()` clamped correctly with
+# `maxi(0, _window_original_y - shift)` and then emitted the REQUESTED 511.3 as
+# though the field had been cleared.
+#
+# TWO independent causes, either fatal alone:
+#   1. The signal lied, so nothing could detect the shortfall.
+#   2. The dialog had no ScrollContainer, which is the ONLY reason it fell back to
+#      moving the window instead of scrolling — the strategy with no ceiling.
+# Both are fixed; each is asserted below.
+
+const QAScenarioDialogScript := preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
+const CustomVictoryDialogScript := preload(
+	"res://src/ui/components/victory/CustomVictoryDialog.gd")
+
+
+func _has_scroll(node: Node) -> bool:
+	for child in node.get_children():
+		if child is ScrollContainer:
+			return true
+		if _has_scroll(child):
+			return true
+	return false
+
+
+## The two dialogs the T11-11 gotcha names as scroll-less. With a ScrollContainer
+## present the headroom strategy applies and the ceiling never binds.
+func test_the_text_input_dialogs_have_something_to_scroll() -> void:
+	for pair: Array in [
+		["QAScenarioDialog", QAScenarioDialogScript],
+		["CustomVictoryDialog", CustomVictoryDialogScript],
+	]:
+		var dlg = auto_free(pair[1].new())
+		add_child(dlg)
+		await await_idle_frame()
+		assert_bool(_has_scroll(dlg)).override_failure_message(
+			"%s still has no ScrollContainer, so soft-keyboard avoidance falls back "
+			% pair[0] + "to moving the window — which can only surrender the gap the "
+			+ "window already sits below the top of the screen (measured: 64 of the "
+			+ "511 px needed)."
+		).is_true()
+
+
+## The signal must carry what was APPLIED. A listener told 511 when 64 moved has no
+## way to know the field is still covered — and neither does a test.
+func test_the_applied_shift_is_reported_not_the_requested_one() -> void:
+	var ka: Node = get_node_or_null("/root/KeyboardAvoidance")
+	assert_object(ka).override_failure_message(
+		"KeyboardAvoidance autoload missing."
+	).is_not_null()
+
+	var win := Window.new()
+	win.position = Vector2i(0, 64)   # the measured headroom on the device
+	win.size = Vector2i(600, 400)
+	add_child(win)
+	auto_free(win)
+	var field := LineEdit.new()
+	win.add_child(field)
+	await await_idle_frame()
+
+	var reported: Array[float] = []
+	var conn := func(_c: Control, shifted_by: float) -> void:
+		reported.append(shifted_by)
+	ka.avoidance_applied.connect(conn)
+	ka._shift_window_up(field, 511.3)
+	ka.avoidance_applied.disconnect(conn)
+	ka._restore_window()
+
+	assert_int(reported.size()).override_failure_message(
+		"avoidance_applied did not fire."
+	).is_equal(1)
+	assert_float(reported[0]).override_failure_message(
+		"Reported %.1f px of avoidance from a window that had 64 px to give. The "
+		% reported[0] + "requested value was being emitted as though it had been "
+		+ "applied, which is what made the shortfall invisible."
+	).is_equal_approx(64.0, 1.0)
+
+
+## ...and when the window CAN give what was asked, the reported value is the full
+## shift — otherwise the case above would pass against a signal that always lies low.
+func test_a_shift_that_fits_is_reported_in_full() -> void:
+	var ka: Node = get_node_or_null("/root/KeyboardAvoidance")
+	var win := Window.new()
+	win.position = Vector2i(0, 300)
+	win.size = Vector2i(600, 400)
+	add_child(win)
+	auto_free(win)
+	var field := LineEdit.new()
+	win.add_child(field)
+	await await_idle_frame()
+
+	var reported: Array[float] = []
+	var conn := func(_c: Control, shifted_by: float) -> void:
+		reported.append(shifted_by)
+	ka.avoidance_applied.connect(conn)
+	ka._shift_window_up(field, 120.0)
+	ka.avoidance_applied.disconnect(conn)
+	ka._restore_window()
+
+	assert_float(reported[0]).is_equal_approx(120.0, 1.0)

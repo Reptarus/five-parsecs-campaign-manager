@@ -18,9 +18,18 @@ signal back_requested
 ## SceneRouter for navigation.
 var overlay_mode: bool = false
 
+## Test seam for T11-27. When set, _navigate_from_settings() calls this instead
+## of SceneRouter so a test can assert the ORDER of unpause-then-route without
+## actually changing scenes. Signature: (key: String, ctx: Dictionary, add_history: bool)
+var route_override: Callable = Callable()
+
 const AccessibilitySettingsPanelScript = preload("res://src/ui/screens/settings/AccessibilitySettingsPanel.gd")
 const DifficultyTogglesPanelScript = preload("res://src/ui/screens/settings/DifficultyTogglesPanel.gd")
 const WindowStateRulesRef = preload("res://src/core/state/WindowStateRules.gd")
+## T11-26. No class_name on that file, so it must be preloaded like every other
+## consumer (SlideOverDrawer, TacticalBattleUI, WorldPhaseController).
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 # Deep Space theme colors
 const COLOR_BASE := UIColors.COLOR_PRIMARY
@@ -297,6 +306,24 @@ func _build_ui() -> void:
 	if not skip_a and not overlay_mode:
 		TweenFX.fade_in(scroll, 0.25)
 
+	# T11-26: let a touch-drag STARTED ON A CARD reach the ScrollContainer.
+	# Every section here is a bare PanelContainer built by
+	# _create_section_card(), and PanelContainer/HSeparator/CheckBox/
+	# OptionButton all default to MOUSE_FILTER_STOP, which marks the event
+	# HANDLED whether or not the widget uses it. Measured on device: dragging
+	# the bare background or the scrollbar scrolled; dragging inside any card
+	# did nothing, in BOTH scene and overlay mode.
+	#
+	# This screen `extends Control`, so it inherits neither
+	# BaseCampaignPanel._fix_touch_scroll_filters() nor BasePhasePanel's —
+	# it had no sweep at all. Run LAST, after every section exists: a sweep
+	# that runs before the children do is a fix that silently does nothing
+	# (TouchScrollOpener's own docblock). One pass is enough because this
+	# screen never rebuilds — it wires no layout_class_changed handler.
+	var _opened := TouchScrollOpenerRef.open_subtree(self)
+	if OS.is_debug_build():
+		print("[T11-26] SettingsScreen touch-scroll filters opened: ", _opened)
+
 
 # ============ AUDIO ============
 func _build_audio_section(parent: VBoxContainer) -> void:
@@ -534,9 +561,7 @@ func _build_expansions_section(
 	browse_btn.text = "Browse Expansions"
 	browse_btn.custom_minimum_size.y = 48
 	browse_btn.pressed.connect(func():
-		var router := get_node_or_null("/root/SceneRouter")
-		if router and router.has_method("navigate_to"):
-			router.navigate_to("store")
+		_navigate_from_settings("store")
 	)
 	btn_row.add_child(browse_btn)
 
@@ -574,11 +599,9 @@ func _build_legal_section(parent: VBoxContainer) -> void:
 		var file_path: String = doc_info[1]
 		var doc_title: String = doc_info[2]
 		btn.pressed.connect(func():
-			var router := get_node_or_null("/root/SceneRouter")
-			if router and router.has_method("navigate_to"):
-				router.navigate_to("legal_viewer", {
-					"file": file_path, "title": doc_title
-				})
+			_navigate_from_settings("legal_viewer", {
+				"file": file_path, "title": doc_title
+			})
 		)
 		card_vbox.add_child(btn)
 
@@ -816,9 +839,7 @@ func _on_delete_data_pressed() -> void:
 		if consent_mgr and consent_mgr.has_method("delete_all_user_data"):
 			consent_mgr.delete_all_user_data()
 		# Navigate to main menu (which will re-trigger EULA)
-		var router := get_node_or_null("/root/SceneRouter")
-		if router and router.has_method("navigate_to"):
-			router.navigate_to("main_menu", {}, false)
+		_navigate_from_settings("main_menu", {}, false)
 		dialog.queue_free()
 	)
 	dialog.canceled.connect(func(): dialog.queue_free())
@@ -1042,6 +1063,27 @@ func _on_report_bug_pressed() -> void:
 		"res://src/ui/components/common/BugReportDialog.gd"
 	)
 	DialogScript.show_report(self)
+
+## T11-27: navigating OUT of the settings screen while it is hosted in
+## SettingsOverlay must first let the overlay close, because the overlay sets
+## get_tree().paused = true (SettingsOverlay.gd:203) and TransitionManager's
+## fade tween is bound to a node that inherits that pause — so
+## `await _tween.finished` (TransitionManager.gd:284) never returns and
+## change_scene_to_file() is never reached. Emitting back_requested first runs
+## _hide_settings_overlay(), which unpauses (SettingsOverlay.gd:212).
+## Same trap the decorative fade at :287-294 already documents.
+func _navigate_from_settings(
+	key: String, ctx: Dictionary = {}, add_history: bool = true
+) -> void:
+	if overlay_mode:
+		back_requested.emit()
+		await get_tree().process_frame
+	if route_override.is_valid():
+		route_override.call(key, ctx, add_history)
+		return
+	var router := get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to(key, ctx, add_history)
 
 func _on_back_pressed() -> void:
 	if overlay_mode:

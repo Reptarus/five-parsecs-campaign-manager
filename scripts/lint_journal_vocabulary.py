@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Journal vocabulary lint - every create_entry() type/tag must be canonical.
+"""Journal vocabulary lint - every create_entry() type/tag/mood must be canonical.
 
 WHY THIS EXISTS
 ---------------
@@ -27,6 +27,22 @@ actually passed to a journal create_entry() call are in scope, which is what thi
 checks. A lint that cries wolf 200 times gets disabled, so the narrowing matters
 more than the catching.
 
+MOOD - the third vocabulary, added 2026-09-06 (T11-44)
+------------------------------------------------------
+This lint shipped covering `type` and `tags` and contained ZERO references to
+`mood`, so it reported CLEAN for a month while EIGHT producer sites wrote five
+spellings that are not in the vocabulary - `positive`, `negative`, `informative`,
+`discovery`, `bittersweet`. Every one fell through MOOD_STRING_TO_ENUM to
+Mood.NEUTRAL, so those entries rendered with the wrong label AND the wrong colour.
+It was found on a tablet only because the warning happened to survive in
+`godot.log`; the very defect class this lint exists to end, in the one field it
+did not look at. If you add a fourth journal vocabulary, add it here in the same
+commit.
+
+Validated against MOOD_STRING_TO_ENUM only - deliberately NOT against
+MOOD_LEGACY_ALIASES, which exists so entries already written into save files still
+render correctly. Old data is tolerated at runtime; new code is not.
+
 Exit 0 clean, 1 on any finding. Add `# lint:ignore` on the offending line for a
 deliberate exception.
 """
@@ -46,17 +62,20 @@ def canonical_sets():
     text = TYPES_FILE.read_text(encoding="utf-8")
     m = re.search(r"const STRING_TO_TYPE[^{]*\{(.*?)\n\}", text, re.S)
     m2 = re.search(r"const TAGS[^{]*\{(.*?)\n\}", text, re.S)
-    if not m or not m2:
+    # MOOD_STRING_TO_ENUM only. MOOD_LEGACY_ALIASES is for data already on disk.
+    m3 = re.search(r"const MOOD_STRING_TO_ENUM[^{]*\{(.*?)\n\}", text, re.S)
+    if not m or not m2 or not m3:
         print("lint_journal_vocabulary: could not parse JournalEntryTypes.gd", file=sys.stderr)
         sys.exit(2)
     return (
         set(re.findall(r'"([a-z_]+)"\s*:', m.group(1))),
         set(re.findall(r'"([a-z_]+)"\s*:', m2.group(1))),
+        set(re.findall(r'"([a-z_]+)"\s*:', m3.group(1))),
     )
 
 
 def main():
-    types, tags = canonical_sets()
+    types, tags, moods = canonical_sets()
     findings = []
 
     for path in sorted(SRC.rglob("*.gd")):
@@ -83,6 +102,35 @@ def main():
                     f"{rel}:{i + 1 + off}  non-canonical journal type '{mm.group(1)}'"
                     f"  (falls to CUSTOM; drops out of type-filtered views)")
 
+            # ⚠ Take the rest of the LINE, not just the next literal: one live site
+            # writes a ternary - `"mood": "positive" if found else "negative"` - and a
+            # single-literal match would have validated the true arm and silently
+            # skipped the false one. Both arms were wrong there.
+            # ⚠ But strip CALL ARGUMENTS first. Another live site reads its
+            # condition from a dict -
+            #   "mood": "somber" if d.get("detected", false) else "neutral"
+            # - and a naive sweep of the line reports the KEY "detected" as a bad
+            # mood. Both real arms there are canonical, so that is a pure false
+            # positive, and this lint's own docstring is about why a noisy lint gets
+            # disabled. Only parens attached to an identifier or subscript are
+            # removed, so a deliberate grouping - ("triumph" if x else "defeat") -
+            # is still checked.
+            for mm in re.finditer(r'"mood"\s*:\s*([^\n]*)', block):
+                off = block[:mm.start()].count("\n")
+                if "lint:ignore" in block_lines[off]:
+                    continue
+                expr = mm.group(1)
+                while True:
+                    stripped = re.sub(r'(?<=[\w\]])\([^()]*\)', '', expr)
+                    if stripped == expr:
+                        break
+                    expr = stripped
+                for mood in re.findall(r'"([a-z_]+)"', expr):
+                    if mood not in moods:
+                        findings.append(
+                            f"{rel}:{i + 1 + off}  non-canonical journal mood '{mood}'"
+                            f"  (falls to NEUTRAL; wrong label AND wrong colour)")
+
             for mm in re.finditer(r'"tags"\s*:\s*\[([^\]]*)\]', block):
                 off = block[:mm.start()].count("\n")
                 if "lint:ignore" in block_lines[off]:
@@ -93,6 +141,10 @@ def main():
                             f"{rel}:{i + 1 + off}  non-canonical journal tag '{tag}'"
                             f"  (renders unlabelled and uncoloured)")
 
+    # Two create_entry( calls within LOOKAHEAD lines of each other scan OVERLAPPING
+    # blocks, so one offending line can be reported twice. file:line makes identical
+    # strings the same finding, so a set is safe and the count stays honest.
+    findings = sorted(set(findings))
     if findings:
         print(f"lint_journal_vocabulary: {len(findings)} finding(s)\n")
         for f in findings:

@@ -10,6 +10,8 @@ extends PanelContainer
 ## EquipmentManager, ShipManager and PatronRivalManager path-preload
 ## AdaptivePanelGroup.
 const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+## T11-28 / T11-36.
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
 
 ## Dark card with cyan left border, icon, title, description, and arrow.
 ## Used as a dashboard hub navigation element — replaces plain button lists.
@@ -45,7 +47,16 @@ func _ready() -> void:
 			setup(_pending_icon, _pending_title, _pending_desc)
 		_has_pending = false
 	# Touch/click handling
-	gui_input.connect(_on_gui_input)
+	# T11-28/T11-36: was `gui_input.connect(_on_gui_input)`, whose handler fired on
+	# the press DOWN and listened to the mouse AND touch families at once. With
+	# emulate_touch_from_mouse=true (project.godot:109) and emulate_mouse_from_touch
+	# at its default true, ONE tap arrived as both and emitted card_pressed TWICE —
+	# across 52 references on 6 screens. TapGesture listens to the mouse family only
+	# (which already carries every touch) and fires on release.
+	TapGestureRef.connect_tap(self, func() -> void:
+		TweenFX.press(self, 0.15)
+		card_pressed.emit()
+	)
 	mouse_entered.connect(_on_hover_enter)
 	mouse_exited.connect(_on_hover_exit)
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -132,14 +143,6 @@ func _build_ui() -> void:
 	arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(arrow)
-
-func _on_gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		TweenFX.press(self, 0.15)
-		card_pressed.emit()
-	elif event is InputEventScreenTouch and event.pressed:
-		TweenFX.press(self, 0.15)
-		card_pressed.emit()
 
 func _on_hover_enter() -> void:
 	var style: StyleBoxFlat = get_theme_stylebox("panel").duplicate()

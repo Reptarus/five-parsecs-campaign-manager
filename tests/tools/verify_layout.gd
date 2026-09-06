@@ -14,16 +14,34 @@ extends SceneTree
 ## the button column. Configuration is the input to layout; this measures the
 ## OUTPUT.
 ##
-## ── THE MEASUREMENT THAT MAKES IT POSSIBLE ───────────────────────────────────
+## ── THE MEASUREMENT THAT MAKES IT POSSIBLE ──────────────────────────────
 ## On Windows DisplayServer.screen_get_scale() is 1.0, and
 ## SettingsManager._apply_ui_scale() cancels the square-1080 base stretch
-## (stretch_cancel = 1080 / short_axis). The result is that on BOTH desktop and
-## device the design space is (window_dp / EFFECTIVE_SCALE). So a desktop window
-## sized to a device's dp reproduces that device's layout arithmetic exactly:
-## 393x851 gives MOBILE / portrait / 1 column / 56px touch target and a design
-## space of 338.79 x 733.42, and 338.79 * 1.16 == 393.0.
-## The ratio is DERIVED per-measurement below, never hardcoded, so a change to
-## SettingsManager.TARGET_EFFECTIVE cannot silently invalidate the dp checks.
+## (stretch_cancel = 1080 / short_axis), so on BOTH desktop and device the design
+## space is (window_size / EFFECTIVE_SCALE). The ratio is DERIVED per-measurement
+## below, never hardcoded, so a change to SettingsManager.TARGET_EFFECTIVE cannot
+## silently invalidate the checks.
+##
+## ⚠ CORRECTED 2026-09-06 (T11-47) — THAT WINDOW SIZE IS PIXELS, NOT dp.
+## This docblock used to say "window_dp", and that a desktop window sized to a
+## device's dp reproduces that device's layout arithmetic. **That was true only
+## while content_scale_factor still multiplied by display density.** T11-07 removed
+## the density term, so:
+##
+##     design = window_PIXELS / 1.16          (both platforms, after T11-07)
+##     design = window_pixels / (1.16 * dpi)  (device only, BEFORE T11-07)
+##
+## Measured both ways: this desktop at a 1280x800 window computes
+## content_scale 1.5660 and a design space of 1103x689; the TB361FU is 2560x1600
+## PHYSICAL (confirmed from the walk screenshots), computes content_scale 0.7830,
+## and its design space is 2560/1.16 x 1600/1.16 = **2207 x 1379** — exactly TWICE
+## the row named "tablet landscape" below. So the dp rows no longer name the
+## devices they are named after; they are simply smaller screens, which is still a
+## useful ladder but is NOT the tablet. The two TRUE-PIXEL rows added below are.
+##
+## The transferable part: a harness whose premise is an equation about PRODUCTION
+## code is invalidated silently when that code is fixed. Nothing here failed; the
+## rows just stopped meaning what their names say.
 ##
 ## ── HARNESS CONSTRAINTS (inherited from verify_post_battle.gd; do not relax) ──
 ##  1. All work runs in _process() on frame >= 2, NEVER _initialize(): under
@@ -47,6 +65,14 @@ const SIZES: Array = [
 	[1280, 800, "tablet landscape"],
 	[1920, 1080, "desktop 1080p"],
 	[360, 640, "small phone"],
+	# T11-47. TRUE PIXEL geometry of the QA tablet (TB361FU, 2560x1600 confirmed from
+	# the deploy #21/22 screenshots), which after T11-07 is what actually reproduces
+	# its layout — design space 2207x1379, twice the "tablet landscape" row above.
+	# Kept ALONGSIDE the dp ladder rather than replacing it: the smaller rows still
+	# exercise real breakpoints, and silently re-pointing them would invalidate every
+	# verdict already recorded against those names.
+	[2560, 1600, "TB361FU landscape (true px)"],
+	[1600, 2560, "TB361FU portrait (true px)"],
 ]
 
 ## Core Rules-independent UX floor: Material/Android minimum touch target.

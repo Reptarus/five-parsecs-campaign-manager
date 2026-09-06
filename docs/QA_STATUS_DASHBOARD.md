@@ -2,6 +2,56 @@
 
 ---
 
+### ✅ CLOSED ON HARDWARE — the T11 acceptance list (deploys #21/#22, Sep 5-6 2026)
+
+Deploy #19's walk plus the dry run left 21 desk-fixed findings with no device verdict.
+**Deploys #21 and #22 gave every one of them a verdict on the tablet**, and the walk closed
+**T9-51** as well — both of its rows, from a stronger control than was planned (two cycles
+restored the identical save, so the queued roll was the only variable). Record:
+[docs/qa/TABLET_FINDINGS_2026-09-05.md](qa/TABLET_FINDINGS_2026-09-05.md);
+ledger [docs/qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md) § #21/#22.
+
+**Two recorded verdicts were corrected rather than quietly amended.** T11-20's evidence
+cited the dashboard, which derives its turn as `turns_played + 1` and never reads
+`turn_number` — it renders identically with and without the fix, so the citation proved
+nothing (the verdict was right; the artifact is now the persisted counter). T11-42's cause
+was wrong: nothing drops the button labels; a non-wrapping prose Label set a 609 px
+container minimum against a 380 px window and pushed their centred text out of the visible
+rect.
+
+---
+
+### 🟡 DESK-FIXED 2026-09-06, AWAITING A REBUILD — T11-40..T11-47
+
+T11-41 / T11-42 / T11-43 / T11-44 / T11-45 are fixed, and `lint_journal_vocabulary.py` now
+covers the **mood** vocabulary it had never looked at (detection-proven on both a plain
+literal and a ternary's `else` half). Gates: **11 lints exit 0**, 167 unit cases / 14
+suites / 0 failures, layout sweep `passed=217 failed=7 skipped=0` with the 7 proven
+pre-existing by a `populate=off` control, `git diff -- data/` unchanged at the two sheet
+manifests.
+
+⚠ **The "installed APK matches source" invariant is now deliberately ended — a rebuild is
+required before any further device work.**
+
+**Still open:**
+
+- **T11-40** — half done. The harness gap is closed (the layout sweep had listed
+  WorldPhaseController all along while measuring it EMPTY) and the sweep was run, but the
+  product fix is deliberately unwritten: two hypotheses were killed by measurement and the
+  remaining one is unverified. ⚠ The sweep **structurally cannot** close this row — its
+  off-screen assertion correctly exempts content inside a `ScrollContainer`, and the nav is
+  inside one; the closure belongs in a unit test, as T11-01 did.
+- **T11-46** — `GameState.advance_turn()` has zero callers while live code names it "the
+  MONOTONIC authority" for `turns_played`. Wire it or correct the comment; owner's call.
+- **T11-47** — the layout sweep's device-equivalence premise was invalidated by the T11-07
+  fix. `design = window_px / 1.16` on both platforms now, so the tablet's design space is
+  **2207x1379**, twice the row named "tablet landscape". Docblock corrected and true-pixel
+  rows added; every "tablet" verdict recorded between T11-07 and now was measured at half
+  the device's design space.
+- **T9-48** — knowingly out of scope (needs a Rival AMBUSH D10 of 1).
+
+---
+
 ### 🔴 OPEN — Tactics rules accuracy (found 2026-09-04, NOT fixed)
 
 Correcting five wrong Tactics page cites exposed two data defects. One was fixed; one is

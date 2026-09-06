@@ -334,13 +334,42 @@ func _populate_fields(data_context: Dictionary) -> void:
 			# recompute geometry from it later without rebuilding (and re-resolving)
 			# every field. Stored here, where the field dict is already in hand.
 			var src_rect: Rect2 = _field_src_rect(field)
-			if src_rect.size.x > 0.0:
-				node.set_meta("sheet_src_rect", src_rect)
+			# The manifest id, so a geometry probe can pair a node back to the field
+			# that produced it. Without it the only way to check the T11-22 invariant
+			# below ("the box grows UP, so its bottom stays on the rule") is a pixel
+			# scan, and in a dense table every strip under a rule belongs to the next
+			# row — so the exclusion needed to avoid false positives also hides the
+			# real 4-5px shift. Cheap, and the T11-06 geometry probe wants it too.
+			node.set_meta("sheet_field_id", str(field.get("id", "")))
 			node.set_meta("sheet_font_size", int(field.get("font_size", 24)))
 			# RichTextLabel names its theme size differently from Label.
 			node.set_meta("sheet_font_prop",
 				"normal_font_size" if node is RichTextLabel else "font_size")
 			_field_layer.add_child(node)
+			# T11-22 - a band shorter than its own text takes the space from the
+			# TOP, never from the bottom.
+			#
+			# _field_src_rect() ends the box just above the field's WRITING RULE.
+			# Correcting the baked rule_offset to the nearest rule (it used to
+			# point at the next box's top border) shortened 24 crew-log fields to
+			# 32px against a 36px line height, and a Control cannot be shorter
+			# than its own minimum - so the Label grew DOWNWARD and put the value
+			# back across the border the correction had just moved it off.
+			#
+			# Growing UPWARD instead keeps the baseline on the rule and spends
+			# the difference on the printed caption band, which is the trade this
+			# file already declares ("better to overlap a caption than to
+			# silently drop the value").
+			#
+			# Measured AFTER add_child, from the node's own minimum: the manifest
+			# font size alone does not give a line height, and guessing a ratio
+			# would be a second source of truth for something the engine knows.
+			var min_h: float = node.get_combined_minimum_size().y
+			if min_h > src_rect.size.y:
+				src_rect.position.y -= (min_h - src_rect.size.y)
+				src_rect.size.y = min_h
+			if src_rect.size.x > 0.0:
+				node.set_meta("sheet_src_rect", src_rect)
 			_field_nodes.append(node)
 
 

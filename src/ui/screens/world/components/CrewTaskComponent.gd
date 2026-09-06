@@ -332,9 +332,27 @@ static func crew_key(member) -> String:
 static func confirm_dialog_size(viewport: Vector2) -> Vector2i:
 	# 0.8 leaves the dialog visibly inside the screen on every device tested;
 	# the floors keep it usable if the viewport is reported as tiny.
+	#
+	# T11-21 - the HEIGHT here is now a CAP, not a demand. 0.8 of the viewport on
+	# BOTH axes reserved ~80% of a 1379px-tall screen for a five-line message,
+	# which reads as a full-screen takeover for a confirmation. The caller shrinks
+	# to the content's real height and re-centres AFTER layout (see
+	# _shrink_dialog_to_content) - it cannot be done here, because the content
+	# minimum is not knowable until the dialog has been laid out at this width.
 	var w: float = maxf(280.0, viewport.x * 0.8)
 	var h: float = maxf(200.0, viewport.y * 0.8)
 	return Vector2i(int(w), int(h))
+
+
+## The height a confirmation dialog should settle at, given what it needs and what
+## the screen allows. Pure and static so it is assertable without a Window.
+##
+## Clamped BELOW by 200 (a dialog must stay big enough to hold its own buttons)
+## and ABOVE by the same 0.8 cap the initial popup uses, so shrinking can never
+## make it grow.
+static func confirm_dialog_height(content_min_y: float, viewport_y: float) -> int:
+	var cap: float = maxf(200.0, viewport_y * 0.8)
+	return int(clampf(content_min_y, 200.0, cap))
 
 
 static func _member_get(member, key: String, default = null):
@@ -703,8 +721,40 @@ func _on_resolve_all_pressed() -> void:
 	dialog.confirmed.connect(_resolve_all_tasks)
 	dialog.close_requested.connect(dialog.queue_free)
 	var vp: Viewport = get_viewport()
-	dialog.popup_centered(confirm_dialog_size(
-		vp.get_visible_rect().size if vp != null else Vector2(800, 600)))
+	var vp_size: Vector2 = (
+		vp.get_visible_rect().size if vp != null else Vector2(800, 600))
+	dialog.popup_centered(confirm_dialog_size(vp_size))
+	# T11-21: shrink to what the message actually needs. Deferred by one frame
+	# on purpose - get_contents_minimum_size() is only truthful once the dialog
+	# has been laid out AT THIS WIDTH, because dialog_autowrap means the height
+	# depends on the width. Measuring before layout returns the pre-wrap value,
+	# which is the min-size-cache trap this project has already paid for.
+	_shrink_dialog_to_content.call_deferred(dialog, vp_size)
+
+
+## T11-21 - fit the confirmation to its message and re-centre it.
+##
+## THE DEFECT (device, deploy #19). confirm_dialog_size() returns 0.8 of the
+## viewport on BOTH axes, so a five-line confirmation reserved roughly 80% of a
+## 1379px screen - a full-screen takeover for a yes/no question, with the message
+## marooned in the middle of a mostly empty frame.
+##
+## The WIDTH stays as it was: dialog_autowrap needs a width to wrap against, and
+## the 0.8 width is what keeps the label from setting its own (the earlier fix
+## documented above). Only the height is reclaimed.
+func _shrink_dialog_to_content(dialog: Window, vp_size: Vector2) -> void:
+	if dialog == null or not is_instance_valid(dialog):
+		return
+	var needed: float = dialog.get_contents_minimum_size().y
+	if needed <= 0.0:
+		return
+	var target: int = confirm_dialog_height(needed, vp_size.y)
+	if target >= dialog.size.y:
+		return  # never grow - the cap already bounded the popup
+	var centre: int = int(dialog.position.y + dialog.size.y / 2.0)
+	dialog.size = Vector2i(dialog.size.x, target)
+	dialog.position = Vector2i(
+		dialog.position.x, maxi(0, centre - target / 2))
 
 
 func _resolve_all_tasks() -> void:

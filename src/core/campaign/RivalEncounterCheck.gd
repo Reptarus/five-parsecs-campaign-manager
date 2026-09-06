@@ -91,9 +91,16 @@ static func tracked_rival_ids_from_tasks(task_results: Array) -> Array:
 ## `rng` may be null (a fresh randomized RandomNumberGenerator is used); pass one
 ## for deterministic tests. Returns a dict shaped for battle_results/mission_data:
 ##   has_encounter, rival_id, rival_name, roll, rival_count, decoy_bonus, reason
+##
+## `forced_rival_id` (T11-35, Core Rules p.128 "Got Noticed"): when the previous
+## turn's Campaign Event fired on a Quest, "the next campaign turn is
+## automatically a battle against the new Rival" - so that Rival is returned
+## WITHOUT rolling. Suppression still wins over it: a Story Event that forbids
+## Rival attacks this turn is an absolute, and the caller leaves the flag set so
+## the forced battle lands on the next eligible turn instead of being lost.
 static func check(
 	rivals: Array, decoy_count: int = 0, rng: RandomNumberGenerator = null,
-	suppressed_reason: String = ""
+	suppressed_reason: String = "", forced_rival_id: String = ""
 ) -> Dictionary:
 	var result: Dictionary = {
 		"has_encounter": false,
@@ -118,6 +125,22 @@ static func check(
 		result["reason"] = "No Rivals to check (Core Rules p.85)."
 		return result
 
+	# T11-35: the p.128 forced battle. No D6 - the book says the turn IS a battle
+	# against that Rival. Placed after the suppression and empty-list guards so a
+	# Story Event's prohibition still wins and a deleted Rival cannot force a
+	# battle against nobody.
+	if not forced_rival_id.is_empty():
+		for candidate: Variant in rivals:
+			if rival_id_of(candidate) != forced_rival_id:
+				continue
+			result["has_encounter"] = true
+			result["forced"] = true
+			_stamp_rival(result, candidate)
+			result["reason"] = ("%s forces a battle this turn (Core Rules p.128 - "
+				% result["rival_name"]
+				+ "Got Noticed while on a Quest).")
+			return result
+
 	var gen: RandomNumberGenerator = rng
 	if gen == null:
 		gen = RandomNumberGenerator.new()
@@ -135,6 +158,18 @@ static func check(
 	# "Select the exact Rival at random from those on your list."
 	var picked: Variant = rivals[gen.randi_range(0, rivals.size() - 1)]
 	result["has_encounter"] = true
+	_stamp_rival(result, picked)
+	result["reason"] = "Rolled %d against %d Rival(s) — %s tracked you down (Core Rules p.85)." % [
+		roll, rivals.size(), result["rival_name"]]
+	return result
+
+
+## Copy everything the battle needs to know about the chosen Rival onto `result`.
+##
+## Factored out so the p.85 rolled encounter and the p.128 FORCED encounter cannot
+## drift: a forced battle that quietly dropped is_elite or the enemy-count bonus
+## would be a different fight from the same Rival tracking you down normally.
+static func _stamp_rival(result: Dictionary, picked: Variant) -> void:
 	result["rival_id"] = rival_id_of(picked)
 	result["rival_name"] = rival_name_of(picked)
 	# p.92, verbatim: "Once a Rival has been established, they will always be the
@@ -152,6 +187,11 @@ static func check(
 	# the Rival was created.
 	result["is_psi_hunter"] = picked is Dictionary and bool(
 		(picked as Dictionary).get("is_psi_hunter", false))
-	result["reason"] = "Rolled %d against %d Rival(s) — %s tracked you down (Core Rules p.85)." % [
-		roll, rivals.size(), result["rival_name"]]
-	return result
+	# T11-25 / T11-35 — Core Rules p.126 Old Nemesis: the Rival will "receive +1
+	# when rolling for the number of enemies in a battle"; p.128 Got Noticed adds
+	# the same +1 while on a Quest. Carried the same way is_psi_hunter is, because
+	# EnemyGenerator must apply it at battle time and has no other way to know which
+	# Rival it is fighting.
+	result["rival_enemy_count_bonus"] = int(
+		(picked as Dictionary).get("enemy_count_bonus", 0)) \
+		if picked is Dictionary else 0

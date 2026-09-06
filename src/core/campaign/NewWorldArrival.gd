@@ -44,6 +44,19 @@ static func is_elite_rival(rival: Variant) -> bool:
 	return bool(rival.get("is_elite", false))
 
 
+## T11-25 - Core Rules p.126 Old Nemesis: "They will follow you from planet to
+## planet UNTIL RESOLVED." That is not a better follow roll like the Compendium
+## p.49 Elite band; it is no roll at all, so the flag is checked BEFORE the D6
+## rather than folded into the target number.
+##
+## NOTE this is the RIVAL flag. `is_persistent_patron` above is a different rule
+## for a different entity (p.84 Patron Benefits) and the two must not be merged.
+static func is_persistent_rival(rival: Variant) -> bool:
+	if not (rival is Dictionary):
+		return false
+	return bool(rival.get("persistent", false))
+
+
 ## True when a Patron entry carries the p.84 Benefits Subtable "Persistent" mark.
 ##
 ## The flag has three spellings in the wild — `is_persistent`, `persistent`, and
@@ -92,6 +105,10 @@ static func apply(campaign: Resource, rng: RandomNumberGenerator = null) -> Dict
 	if "rivals" in campaign and campaign.rivals is Array:
 		var following: Array = []
 		for rival: Variant in campaign.rivals:
+			# T11-25: an Old Nemesis (p.126) follows UNCONDITIONALLY - no D6.
+			if is_persistent_rival(rival):
+				following.append(rival)
+				continue
 			# Compendium p.49 lowers the target to 4+ for an Elite Rival.
 			var target: int = ELITE_FOLLOW_TARGET if is_elite_rival(rival) \
 				else FOLLOW_TARGET

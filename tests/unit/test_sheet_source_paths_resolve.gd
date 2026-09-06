@@ -55,7 +55,12 @@ func _make_campaign() -> Resource:
 	c.story_points = 9
 	c.ship_debt = 49
 	c.patrons = []
-	c.rivals = [{"name": "Feral Jackals"}]
+	# T11-25: the "Rival Type" box on the World Record Sheet prints `type`, not
+	# `name` (Core Rules Appendix X p.181 captions it "Rival Type" over "Notes",
+	# and p.119 makes a Rival an enemy type). A fixture carrying only a name
+	# would leave that box blank and read as a regression.
+	c.rivals = [{"id": "r1", "name": "Feral Jackals", "type": "Feral Jackals",
+		"persistent": true, "enemy_count_bonus": 1}]
 	# Captain + 7 crew so every crew[0..6] slot the manifest addresses is populated.
 	# A real campaign caps at 6; using 8 here tests the MAPPING, not the fixture size.
 	# The captain carries a weapon AND a gear item: the Crew Log prints them in two
@@ -308,6 +313,35 @@ func test_every_manifest_source_resolves_against_a_real_campaign() -> void:
 
 ## Half two: the values are the RIGHT ones. Resolution alone would pass if the builder
 ## returned "" for everything, which would print an empty sheet just as happily.
+## T11-25 - the World Record Sheet's Rival block, whose two captions
+## (Core Rules Appendix X p.181) are "Rival Type" over "Notes".
+##
+## The Type box was being handed the Rival's NAME, so the device walk found it
+## printing "Old nemesis (persistent, +1 enemies)" - an effect string - under a
+## caption asking for a type. Asserted at the RESOLVED value rather than at
+## _contact_rows(), because the manifest source path is half of the contract.
+func test_the_rival_type_box_prints_the_enemy_type_not_the_name() -> void:
+	var r: Node = _renderer()
+	var ctx: Dictionary = _ctx()
+
+	var box: Variant = r._resolve_source("campaign.rival_rows[0].name", ctx)
+	assert_str(str(box)).override_failure_message(
+		"The box captioned 'Rival Type' resolved to '%s'. It must carry the "
+		% str(box) + "enemy TYPE (p.119: 'the type of opponents you just fought "
+		+ "become your Rivals')."
+	).is_equal("Feral Jackals")
+
+	# ...and the Notes box carries the identity plus the p.126 riders, which are
+	# what a player has to remember between sessions.
+	var notes: String = str(r._resolve_source("campaign.rival_rows[0].detail", ctx))
+	assert_str(notes).contains("follows you")
+	assert_str(notes).contains("+1 enemies")
+
+	# An unused row stays blank. A print form is meant to have empty boxes.
+	assert_str(str(r._resolve_source("campaign.rival_rows[2].name", ctx))).is_empty()
+	assert_str(str(r._resolve_source("campaign.rival_rows[2].detail", ctx))).is_empty()
+
+
 func test_the_resolved_values_are_the_campaigns_actual_values() -> void:
 	var r: Node = _renderer()
 	var ctx: Dictionary = _ctx()

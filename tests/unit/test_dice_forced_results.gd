@@ -152,3 +152,155 @@ func test_a_forced_rival_roll_still_reads_the_shipped_table() -> void:
 	assert_str(str(raid.get("type", ""))).override_failure_message(
 		"D10 of 9 must select RAID (rival_involvement.json roll_range 9-10)"
 		).is_equal("RAID")
+
+
+# ============================================================================
+# T11-19 — the seam must reach the BACKEND Character Event, not just the button
+# ============================================================================
+#
+# THE DEFECT (device, deploy #19). Queueing a Character Event value did nothing.
+# PostBattleSequence's per-crew button already routed through
+# DiceManager.roll_d100("Character Event: <name>") (:2171) — but the path that
+# actually fires when the orchestrator resolves step 13,
+# CharacterEventEffects.process_character_event(), used a bare randi_range(1, 100).
+# So the fix that was supposed to unblock T9-51 (rows 88-91 / 92-94, desk-verified
+# only since 2026-08-14) could not be exercised in play.
+#
+# ⚠ THIS CASE MUST USE THE AUTOLOAD, not the fresh _dm instance the rest of the suite
+# builds. CharacterEventEffects is RefCounted and reaches /root/DiceManager through
+# Engine.get_main_loop().root — a bare get_node_or_null("/root/...") from a RefCounted
+# ERRORS and aborts the enclosing function rather than returning null. Queueing on a
+# detached instance would therefore assert against a DiceManager the production code
+# never consults, and pass whether or not the fix is present.
+
+const CampaignEventEffectsScript = preload(
+	"res://src/core/campaign/phases/post_battle/CampaignEventEffects.gd")
+const CharacterEventEffectsScript = preload(
+	"res://src/core/campaign/phases/post_battle/CharacterEventEffects.gd")
+const PostBattleContextClass = preload(
+	"res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const CampaignCoreScript = preload(
+	"res://src/game/campaign/FiveParsecsCampaignCore.gd")
+
+
+func _ctx_with_one_human() -> Variant:
+	var campaign = CampaignCoreScript.new()
+	campaign.from_dictionary({
+		"campaign_id": "t11_19",
+		"crew": {"members": [
+			# Human, so the Precursor double-roll branch cannot fire and consume a
+			# second queued value — the single-roll path is what is under test.
+			{"character_id": "c1", "character_name": "Bryn Ito",
+				"origin": "human", "species_id": "human"},
+		]},
+	})
+	var ctx = PostBattleContextClass.new()
+	ctx.campaign = campaign
+	ctx.crew_participants = ["c1"]
+	ctx.battle_result = {"victory": true, "won": true, "turn": 1}
+	return ctx
+
+
+func test_a_forced_value_reaches_the_backend_character_event() -> void:
+	var autoload_dm: Node = get_node_or_null("/root/DiceManager")
+	assert_object(autoload_dm).override_failure_message(
+		"/root/DiceManager autoload missing — the production path cannot be tested."
+	).is_not_null()
+	autoload_dm.clear_forced_results()
+	# Matching is a case-insensitive SUBSTRING, so this is the key a tester types.
+	autoload_dm.queue_forced_result("character event", 88)
+
+	var effects = CharacterEventEffectsScript.new()
+	var event: Dictionary = effects.process_character_event(_ctx_with_one_human())
+	autoload_dm.clear_forced_results()
+
+	assert_int(int(event.get("roll", -1))).override_failure_message(
+		"The backend Character Event rolled %s instead of the queued 88 — the "
+		% [event.get("roll", "?")] + "forced-roll seam does not reach it."
+	).is_equal(88)
+	# ...and 88 must land on the row the book puts there, not merely be echoed back.
+	# character_events.json: [88, 91] = "Don't Make Them Like They Used To"
+	# (type item_damage). Asserting the ROW proves the value drove the lookup.
+	assert_str(str(event.get("name", ""))).is_equal(
+		"Don't Make Them Like They Used To")
+	assert_str(str(event.get("type", ""))).is_equal("item_damage")
+
+
+func test_the_92_94_row_is_reachable_too() -> void:
+	var autoload_dm: Node = get_node_or_null("/root/DiceManager")
+	autoload_dm.clear_forced_results()
+	autoload_dm.queue_forced_result("character event", 93)
+
+	var effects = CharacterEventEffectsScript.new()
+	var event: Dictionary = effects.process_character_event(_ctx_with_one_human())
+	autoload_dm.clear_forced_results()
+
+	assert_int(int(event.get("roll", -1))).is_equal(93)
+	assert_str(str(event.get("name", ""))).is_equal("Where Did It Go")
+
+
+## T11-19b - the CAMPAIGN event is a different roll on a different step from the
+## CHARACTER event above, and it was the one the seam did not reach. Without it
+## T11-25 (Old Nemesis) and T11-35 (Got Noticed) are 3-in-100 per battle and
+## cannot be walked on device.
+func test_a_forced_value_reaches_the_backend_campaign_event() -> void:
+	var autoload_dm: Node = get_node_or_null("/root/DiceManager")
+	assert_object(autoload_dm).override_failure_message(
+		"/root/DiceManager autoload missing - the production path cannot be tested."
+	).is_not_null()
+	autoload_dm.clear_forced_results()
+	autoload_dm.queue_forced_result("campaign event", 21)
+
+	var effects = CampaignEventEffectsScript.new()
+	var event: Dictionary = effects.process_campaign_event(_ctx_with_one_human())
+	autoload_dm.clear_forced_results()
+
+	assert_int(int(event.get("roll", -1))).override_failure_message(
+		"The backend Campaign Event rolled %s instead of the queued 21 - the "
+		% [event.get("roll", "?")] + "forced-roll seam does not reach it."
+	).is_equal(21)
+	# 21 must land on the row the BOOK puts there, not merely be echoed back.
+	# campaign_events.json [21, 23] = "Old Nemesis" (Core Rules p.126).
+	# Asserting the ROW proves the value drove the lookup.
+	assert_str(str(event.get("name", ""))).is_equal("Old Nemesis")
+
+
+func test_the_got_noticed_row_is_reachable_too() -> void:
+	var autoload_dm: Node = get_node_or_null("/root/DiceManager")
+	autoload_dm.clear_forced_results()
+	autoload_dm.queue_forced_result("campaign event", 89)
+
+	var effects = CampaignEventEffectsScript.new()
+	var event: Dictionary = effects.process_campaign_event(_ctx_with_one_human())
+	autoload_dm.clear_forced_results()
+
+	assert_int(int(event.get("roll", -1))).is_equal(89)
+	# The rolls are 89-91, NOT the 88-91 an earlier working note claimed.
+	assert_str(str(event.get("name", ""))).is_equal("Got Noticed")
+
+
+## Both keys contain the word "Event", and matching is a case-insensitive
+## SUBSTRING, so this is the case that would catch one queue eating the other.
+func test_the_campaign_and_character_queues_do_not_consume_each_other() -> void:
+	var autoload_dm: Node = get_node_or_null("/root/DiceManager")
+	autoload_dm.clear_forced_results()
+	autoload_dm.queue_forced_result("campaign event", 21)
+	autoload_dm.queue_forced_result("character event", 88)
+
+	var campaign_effects = CampaignEventEffectsScript.new()
+	var campaign_event: Dictionary = campaign_effects.process_campaign_event(
+		_ctx_with_one_human())
+	var character_effects = CharacterEventEffectsScript.new()
+	var character_event: Dictionary = character_effects.process_character_event(
+		_ctx_with_one_human())
+	autoload_dm.clear_forced_results()
+
+	assert_int(int(campaign_event.get("roll", -1))).override_failure_message(
+		"The campaign event took %s - the character-event queue was consumed by it."
+		% [campaign_event.get("roll", "?")]).is_equal(21)
+	assert_int(int(character_event.get("roll", -1))).override_failure_message(
+		"The character event took %s - the campaign-event queue was consumed by it."
+		% [character_event.get("roll", "?")]).is_equal(88)
+	assert_str(str(campaign_event.get("name", ""))).is_equal("Old Nemesis")
+	assert_str(str(character_event.get("name", ""))).is_equal(
+		"Don't Make Them Like They Used To")

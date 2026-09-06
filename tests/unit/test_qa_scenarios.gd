@@ -278,12 +278,105 @@ func test_the_forced_roll_section_is_actually_built() -> void:
 	host.free()
 
 
+func test_qa_scenario_dialog_shows_its_list() -> void:
+	## T11-39, found on deploy #21. The dialog opened with the forced-roll row and
+	## ~900px of EMPTY SPACE where the scenario list and detail pane belong, so the
+	## whole fixture feature was unreachable on device.
+	##
+	## WHY THE CASE ABOVE DID NOT CATCH IT. That one proves the forced-roll section
+	## was BUILT, and it was — the list was built too. It was built with zero height.
+	## "A control exists" is not "a control is visible", and every assertion here is
+	## chosen to fail in that state.
+	##
+	## THE CAUSE. The T11-15 fix wrapped the content in a ScrollContainer so
+	## soft-keyboard avoidance had something to move. Godot 4.6 (gui_containers.html):
+	## a ScrollContainer "accepts a single child node and adds scrollbars if the child
+	## node's size exceeds the container's dimensions. BOTH VERTICAL AND HORIZONTAL
+	## SIZE OPTIONS ARE RESPECTED." Only size_flags_HORIZONTAL was set on the inner
+	## VBox, so the scroll sized it to its minimum height and the `split` below could
+	## claim no leftover space — and _list carried custom_minimum_size.y = 0, so it
+	## collapsed to nothing rather than merely looking cramped.
+	##
+	## The T11-15 fix was itself detection-proven and desk-green. A fix can solve its
+	## own finding and break its neighbour; the guard is asserting the neighbour.
+	var script = load("res://src/ui/screens/dev/QAScenarioDialog.gd")
+	assert_object(script).is_not_null()
+
+	var host := Node.new()
+	add_child(host)
+	var dlg = script.open(host, _make_campaign())
+	assert_object(dlg).is_not_null()
+
+	var list: ItemList = _first_item_list(dlg)
+	assert_object(list).override_failure_message(
+		"scenario ItemList missing - _build_ui() aborted before building it"
+		).is_not_null()
+	assert_int(list.item_count).override_failure_message(
+		"the list built but is EMPTY - no fixtures loaded from data/qa_scenarios/"
+		).is_greater(0)
+	# The regression itself: a zero minimum height is what let it vanish entirely.
+	assert_float(list.custom_minimum_size.y).override_failure_message(
+		"the scenario list has NO minimum height, so a container that sizes to "
+		+ "content collapses it to nothing - this is exactly T11-39"
+		).is_greater(0.0)
+
+	# ...and the flag whose absence caused it. Assert the wiring, not just the floor:
+	# the floor alone would leave the list cramped at 240px inside a full-height
+	# dialog, which is a different bug wearing the same clothes.
+	var scroll: ScrollContainer = _first_scroll_container(dlg)
+	assert_object(scroll).override_failure_message(
+		"no ScrollContainer - the T11-15 keyboard-avoidance strategy has nothing "
+		+ "to scroll and falls back to moving the Window, which has a hard ceiling"
+		).is_not_null()
+	var inner: Control = null
+	for child in scroll.get_children():
+		if child is Control:
+			inner = child
+			break
+	assert_object(inner).is_not_null()
+	# SIZE_EXPAND, not SIZE_EXPAND_FILL. SIZE_EXPAND_FILL is the COMPOSITE
+	# (SIZE_FILL | SIZE_EXPAND == 3) and a Container defaults to SIZE_FILL == 1, so
+	# masking against the composite returns 1 — non-zero — for the exact default
+	# state this bug is made of. The first version of this assertion did that and
+	# stayed GREEN through a faithful revert. SIZE_EXPAND is the discriminating bit.
+	assert_bool((inner.size_flags_vertical & Control.SIZE_EXPAND) != 0
+		).override_failure_message(
+		"the ScrollContainer's child does not EXPAND_FILL vertically, so the scroll "
+		+ "sizes it to its minimum and every EXPAND_FILL below it gets nothing"
+		).is_true()
+
+	dlg.free()
+	host.free()
+
+
 ## First OptionButton anywhere under `node`, or null.
 func _first_option_button(node: Node) -> OptionButton:
 	for child in node.get_children():
 		if child is OptionButton:
 			return child
 		var found: OptionButton = _first_option_button(child)
+		if found != null:
+			return found
+	return null
+
+
+## First ItemList anywhere under `node`, or null.
+func _first_item_list(node: Node) -> ItemList:
+	for child in node.get_children():
+		if child is ItemList:
+			return child
+		var found: ItemList = _first_item_list(child)
+		if found != null:
+			return found
+	return null
+
+
+## First ScrollContainer anywhere under `node`, or null.
+func _first_scroll_container(node: Node) -> ScrollContainer:
+	for child in node.get_children():
+		if child is ScrollContainer:
+			return child
+		var found: ScrollContainer = _first_scroll_container(child)
 		if found != null:
 			return found
 	return null

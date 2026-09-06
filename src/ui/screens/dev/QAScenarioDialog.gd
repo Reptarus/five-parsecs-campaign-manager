@@ -41,6 +41,13 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 		"note": "T9-47 - 76-78 \"A chance to unload some stuff\" (sell at 2cr)"},
 	{"key": "Character Event", "sides": 100, "target": 88,
 		"note": "T9-51 - 88-91 item damaged, 92-94 item lost (pp.128-130)"},
+	# T11-19b. The CAMPAIGN event is a different roll from the CHARACTER event
+	# above and lives on a different step (p.125 step 12 vs step 13); it was the
+	# one the seam did not reach, which is why T11-25 and T11-35 could not be
+	# walked. 21-23 is Old Nemesis, 89-91 is Got Noticed. Neither key is a
+	# substring of the other, so the two cannot consume each other's queue.
+	{"key": "Campaign Event", "sides": 100, "target": 21,
+		"note": "T11-25 - 21-23 Old Nemesis; T11-35 - 89-91 Got Noticed (needs an active Quest)"},
 	{"key": "Mission Objective", "sides": 10, "target": 1, "note": "p.89 objective"},
 	{"key": "Danger Pay", "sides": 10, "target": 1, "note": "p.83"},
 	{"key": "Battlefield Find", "sides": 100, "target": 1, "note": "pp.120-121"},
@@ -109,9 +116,47 @@ func _build_ui() -> void:
 		margin.add_theme_constant_override("margin_" + side, UIColors.SPACING_MD)
 	add_child(margin)
 
+	# T11-15 - a ScrollContainer between the margin and the content, so soft-keyboard
+	# avoidance has something to move.
+	#
+	# KeyboardAvoidance has two strategies. The good one appends headroom to a
+	# ScrollContainer and scrolls the focused field clear; the fallback MOVES THE
+	# WINDOW, and that one has a hard ceiling - a window cannot go above the top of
+	# the screen, so it can only surrender the gap it already sits below it.
+	# Measured on the tablet: this dialog asked for 511.3px of avoidance and had 64px
+	# to give, leaving the field under the keyboard. This dialog had no
+	# ScrollContainer at all, which is the ONLY reason it took the fallback.
+	#
+	# horizontal_scroll_mode DISABLED: a form must not scroll sideways, and a
+	# disabled axis propagates its child's minimum rather than absorbing it, which is
+	# what keeps the dialog's own width honest.
+	var _kb_scroll := ScrollContainer.new()
+	_kb_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_kb_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_kb_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(_kb_scroll)
+
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", UIColors.SPACING_SM)
-	margin.add_child(root)
+	root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# T11-39. size_flags_VERTICAL is load-bearing and was missing, which disabled
+	# the whole scenario feature on deploy #21: the dialog opened with the forced-roll
+	# row and ~900px of empty space where the list and detail pane belong.
+	#
+	# Godot 4.6, gui_containers.html: a ScrollContainer "accepts a single child node
+	# and adds scrollbars if the child node's size exceeds the container's
+	# dimensions. BOTH VERTICAL AND HORIZONTAL SIZE OPTIONS ARE RESPECTED." With only
+	# the horizontal flag set, the scroll sized this VBox to its MINIMUM height, so
+	# `split` below could claim no leftover space no matter what its own flags said -
+	# and _list carried custom_minimum_size.y = 0, so the collapse went all the way to
+	# nothing rather than merely looking cramped.
+	#
+	# This regression arrived with the T11-15 ScrollContainer wrapper. That fix was
+	# detection-proven and desk-green; what no test asserted was that the list was
+	# still VISIBLE afterwards. A fix can solve its own finding and break its
+	# neighbour - test_qa_scenario_dialog_shows_its_list now pins it.
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_kb_scroll.add_child(root)
 
 	var blurb := Label.new()
 	blurb.text = ("Applies a state DELTA to the loaded campaign through the normal owner "
@@ -131,7 +176,11 @@ func _build_ui() -> void:
 	root.add_child(split)
 
 	_list = ItemList.new()
-	_list.custom_minimum_size = Vector2(280, 0)
+	# T11-39: a real minimum HEIGHT, not just width. The 0 here is what turned a
+	# missing size flag into an invisible feature rather than a cramped one - inside
+	# a ScrollContainer nothing else establishes a floor. 240 shows ~4 scenarios (all
+	# four fixtures fit) and still leaves room on a phone in portrait.
+	_list.custom_minimum_size = Vector2(280, 240)
 	_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_list.item_selected.connect(_on_selected)
 	split.add_child(_list)
@@ -269,6 +318,15 @@ func _on_queue_roll_pressed() -> void:
 	if dm == null or not dm.has_method("queue_forced_result"):
 		_refresh_roll_status("DiceManager unavailable - nothing queued.")
 		return
+	# T11-43. A Godot SpinBox parses its LineEdit text into `.value` only on
+	# focus-loss or submit, so a value TYPED and immediately followed by a button
+	# press is read at its pre-edit value: the walk typed 89 and queued 21, the
+	# figure the dropdown had auto-filled. apply() commits the pending text first.
+	# ⚠ This matters more than a debug nit reads: the whole point of the seam is
+	# to reach a table row that cannot otherwise be reached, so a silently wrong
+	# value arms a completely different rule and the tester verifies the wrong one.
+	if _roll_value.has_method("apply"):
+		_roll_value.apply()
 	var value: int = int(_roll_value.value)
 	if not dm.queue_forced_result(str(entry["key"]), value):
 		# The seam refuses in a release build. Say so rather than implying success.

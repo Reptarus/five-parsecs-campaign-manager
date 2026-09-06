@@ -1,5 +1,9 @@
 extends PanelContainer
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+## T11-41. The ONE shared number-to-text boundary. Do not add a private copy
+## here - three disagreeing copies of the species-name logic is how T11-31
+## happened, and this drawer was the fifth surface to print raw floats.
+const DisplayTextRef = preload("res://src/ui/components/common/DisplayText.gd")
 
 ## Battle Results Input Form — LOG_ONLY Tier
 ##
@@ -116,6 +120,12 @@ func _build_ui() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = "Record the outcome of your tabletop battle"
+	# T11-18: prose in a 480px drawer must WRAP. With autowrap off this
+	# Label demanded its full single-line width (measured: 422px for the
+	# casualties hint), which propagated 422 -> card 454 -> form 502 and
+	# pushed the panel past the drawer's edge in landscape. Only the
+	# outermost number is visible in a sweep; the Label is the cause.
+	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	subtitle.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	subtitle.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -177,8 +187,23 @@ func _build_ui() -> void:
 	# === OUTCOME SECTION ===
 	var outcome_section := _create_section("OUTCOME")
 	var outcome_card: VBoxContainer = outcome_section[1]
-	var outcome_row := HBoxContainer.new()
-	outcome_row.add_theme_constant_override("separation", UIColors.SPACING_LG)
+	# T11-18: HFlow, not HBox. This row holds the Battle Result OptionButton, the
+	# "Held the field" CheckBox AND the "Rounds fought" SpinBox side by side, and
+	# an HBox has no way to give width back when they do not fit. The drawer is
+	# `wide`, i.e. min_panel_width 480, and in LANDSCAPE SlideOverDrawer clamps to
+	# minf(480, viewport.x * 0.5) = 480 - flush with the screen edge, so the AUTO
+	# horizontal scroll clipped at the panel border and the rightmost control fell
+	# off. Portrait was unaffected because the drawer becomes a near-full-width
+	# sheet there, which is why this showed up in one orientation only.
+	#
+	# ⚠ MEASURED SHARE OF THE FIX, so nobody re-derives it: the form demanded 502px.
+	# Wrapping the prose hint Labels alone took it to 432 - already inside 480, so
+	# THAT was the primary driver, not this row. Switching these two rows to HFlow
+	# takes it to 342. Both are kept: 48px of headroom is thin against a longer
+	# string or a larger UI scale, and 138px is not.
+	var outcome_row := HFlowContainer.new()
+	outcome_row.add_theme_constant_override("h_separation", UIColors.SPACING_LG)
+	outcome_row.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
 
 	var outcome_left := VBoxContainer.new()
 	outcome_left.add_theme_constant_override("separation", UIColors.SPACING_SM)
@@ -260,8 +285,10 @@ func _build_ui() -> void:
 	# === ENEMIES SECTION ===
 	var enemy_section := _create_section("ENEMIES")
 	var enemy_card: VBoxContainer = enemy_section[1]
-	var enemy_row := HBoxContainer.new()
-	enemy_row.add_theme_constant_override("separation", UIColors.SPACING_MD)
+	# T11-18 — same row, same drawer. See _create_ui's outcome_row above.
+	var enemy_row := HFlowContainer.new()
+	enemy_row.add_theme_constant_override("h_separation", UIColors.SPACING_MD)
+	enemy_row.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
 
 	var defeated_label := Label.new()
 	defeated_label.text = "Defeated:"
@@ -289,6 +316,7 @@ func _build_ui() -> void:
 	var cas_card: VBoxContainer = cas_section[1]
 	var cas_hint := Label.new()
 	cas_hint.text = "Check crew members who were killed or removed from play"
+	cas_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	cas_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	cas_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	cas_card.add_child(cas_hint)
@@ -308,6 +336,7 @@ func _build_ui() -> void:
 	var inj_card: VBoxContainer = inj_section[1]
 	var inj_hint := Label.new()
 	inj_hint.text = "Check crew members who were injured but survived"
+	inj_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	inj_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	inj_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	inj_card.add_child(inj_hint)
@@ -337,6 +366,7 @@ func _build_ui() -> void:
 
 	var xp_hint := Label.new()
 	xp_hint.text = "Optional. Leave as \"Nobody\" if it did not happen."
+	xp_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	xp_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	xp_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	xp_card.add_child(xp_hint)
@@ -601,7 +631,20 @@ func _get_crew_display(member) -> String:
 	var react = _safe_get(member, "reactions", _safe_get(member, "reaction", 0))
 	var tough = _safe_get(member, "toughness", 0)
 	var spd = _safe_get(member, "speed", 4)
-	return "%s  CS:%s R:%s T:%s Spd:%s" % [name_str, str(combat), str(react), str(tough), str(spd)]
+	# T11-41. Godot's JSON parser returns EVERY number as a float, so a stat read
+	# back from a save prints "3.0" here while the battle crew rail on the SAME
+	# screen prints "3" - two surfaces in one screenshot disagreeing about one
+	# character's stats. None of these four can legitimately be fractional:
+	# Combat Skill, Reactions and Toughness are integers, and Speed is a whole
+	# number of inches (Core Rules p.94). All four therefore route through the
+	# shared boundary rather than through raw str().
+	return "%s  CS:%s R:%s T:%s Spd:%s" % [
+		name_str,
+		DisplayTextRef.number(combat),
+		DisplayTextRef.number(react),
+		DisplayTextRef.number(tough),
+		DisplayTextRef.number(spd),
+	]
 
 func _get_crew_name(member) -> String:
 	if member is Dictionary:

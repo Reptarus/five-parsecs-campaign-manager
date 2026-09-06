@@ -292,6 +292,10 @@ var current_turn: int = 0
 var _is_bug_hunt_mode: bool = false
 var _is_planetfall_mode: bool = false
 var _battle_mode_id: String = ""  # "" = standard 5PFH; gates No-Minis auto-resolve routing
+## T11-17. Set ONLY by _on_regenerate_terrain_pressed(); consumed once by
+## _persist_battlefield_contract(). A new seed may overwrite the campaign's saved
+## table only when the PLAYER asked for it.
+var _regenerate_requested: bool = false
 ## Battle stage enum — controls progressive disclosure UI
 enum BattleStage {
 	TIER_SELECT,
@@ -7168,6 +7172,26 @@ func _populate_setup_tab(mission_data) -> void:
 	if bf_data.get("sectors", []) is Array:
 		stored_sectors = bf_data.get("sectors", [])
 	var sector_data: Dictionary
+	# T11-17 instrumentation. Prints on BOTH arms on purpose: a log with no line
+	# at all means this function never ran, which is a different diagnosis from
+	# "it took the fallback". `owner_has` is read straight from the campaign so a
+	# cache/owner disagreement is visible at the moment of the decision.
+	if OS.is_debug_build():
+		var _gs_dbg = get_node_or_null("/root/GameState")
+		var _owner_n: int = 0
+		var _camp_dbg = _gs_dbg.get("current_campaign") if _gs_dbg else null
+		if _camp_dbg != null and "progress_data" in _camp_dbg:
+			var _ab: Variant = _camp_dbg.progress_data.get("active_battlefield", {})
+			if _ab is Dictionary:
+				var _secs: Variant = (_ab as Dictionary).get("sectors", [])
+				if _secs is Array:
+					_owner_n = (_secs as Array).size()
+		print("[T11-17] setup branch=",
+			"CONSUME" if not stored_sectors.is_empty() else "FALLBACK",
+			 " stored_sectors=", stored_sectors.size(),
+			 " owner_sectors=", _owner_n,
+			 " standalone=", _is_standalone_battle(),
+			 " bf_seed=", bf_data.get("seed", "?"))
 	if not stored_sectors.is_empty():
 		# CONSUME-FIRST: the persisted contract is the SSOT.
 		sector_data = bf_data
@@ -7687,6 +7711,9 @@ func _on_regenerate_terrain_pressed() -> void:
 			if regen_settings and regen_settings.has_method("get_table_size_ft") \
 			else 3.0
 
+	# T11-17: the player explicitly asked for a new table, so the persist guard
+	# must let this seed change through. One-shot; the guard clears it.
+	_regenerate_requested = true
 	var regen_seed_rng := RandomNumberGenerator.new()
 	regen_seed_rng.randomize()
 	var new_sector_data: Dictionary = (
@@ -7879,6 +7906,37 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 	# Carry over campaign-path context a re-persist shouldn't lose
 	var prev: Dictionary = gs.get_battlefield_data() \
 		if gs.has_method("get_battlefield_data") else {}
+	# T11-17: DO NOT replace a saved table with a differently-seeded one unless
+	# the player pressed Regenerate.
+	#
+	# On device (deploy #19) a mid-battle force-stop + Continue came back with seed
+	# 4055150519 -> 341922859: the consume-first branch above found `stored_sectors`
+	# empty, took the FALLBACK generator, and this function then persisted the
+	# result over the contract - destroying the terrain the player had physically
+	# laid out on the table. Standalone modes legitimately use that same generator
+	# (and already returned above), so the fallback itself cannot go; what must not
+	# happen is the WRITE-BACK clobbering a campaign's existing layout.
+	#
+	# Belt to GameState.get_battlefield_data()'s braces: that guard stops the cache
+	# going empty in the first place, this one refuses the destructive write even
+	# if it does. Either alone would have saved the table.
+	var prev_sectors: Array = []
+	if prev.get("sectors", []) is Array:
+		prev_sectors = prev.get("sectors", [])
+	var prev_seed: int = int(prev.get("seed", 0))
+	var new_seed: int = int(sector_data.get("seed", 0))
+	var player_asked: bool = _regenerate_requested
+	_regenerate_requested = false  # one-shot, whatever we decide below
+	if not prev_sectors.is_empty() and new_seed != prev_seed and not player_asked:
+		push_warning(
+			"[T11-17] Refused to overwrite the saved battlefield (seed "
+			+ str(prev_seed) + ", " + str(prev_sectors.size())
+			+ " sectors) with a regenerated one (seed " + str(new_seed)
+			+ "). No Regenerate was requested, so this is the resume-time "
+			+ "fallback firing over a table the player already built."
+		)
+		return
+
 	var obj_json: Array = []
 	for obj in obj_positions:
 		if obj is Dictionary:

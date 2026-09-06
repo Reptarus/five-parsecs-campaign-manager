@@ -82,9 +82,30 @@ func _create_ui() -> void:
 	margin.add_theme_constant_override("margin_bottom", SPACING_XL)
 	add_child(margin)
 
+	# T11-15 - a ScrollContainer between the margin and the content, so soft-keyboard
+	# avoidance has something to move.
+	#
+	# KeyboardAvoidance has two strategies. The good one appends headroom to a
+	# ScrollContainer and scrolls the focused field clear; the fallback MOVES THE
+	# WINDOW, and that one has a hard ceiling - a window cannot go above the top of
+	# the screen, so it can only surrender the gap it already sits below it.
+	# Measured on the tablet: this dialog asked for 511.3px of avoidance and had 64px
+	# to give, leaving the field under the keyboard. This dialog had no
+	# ScrollContainer at all, which is the ONLY reason it took the fallback.
+	#
+	# horizontal_scroll_mode DISABLED: a form must not scroll sideways, and a
+	# disabled axis propagates its child's minimum rather than absorbing it, which is
+	# what keeps the dialog's own width honest.
+	var _kb_scroll := ScrollContainer.new()
+	_kb_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_kb_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_kb_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	margin.add_child(_kb_scroll)
+
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_LG)
-	margin.add_child(vbox)
+	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_kb_scroll.add_child(vbox)
 
 	# === HEADER ===
 	var header := _create_header()

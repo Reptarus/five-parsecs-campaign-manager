@@ -83,6 +83,14 @@ signal precursor_event_chosen(chosen_event: Dictionary)
 signal illegal_salvage_checked(check: Dictionary)
 ## The chosen consequence has been applied.
 signal illegal_salvage_resolved(result: Dictionary)
+## T11-25 - Core Rules p.126 Old Nemesis: "Select a prior Rival, or roll up a
+## new one." Emitted ONLY when the campaign already has Rivals to select from;
+## with none, the roll-up branch is the only one available and fires directly.
+## `choice` carries prompt + options[{id, label}]; the UI calls
+## resolve_nemesis_choice(). Modelled on illegal_salvage_checked above.
+signal nemesis_choice_required(choice: Dictionary)
+## The selected nemesis has been applied.
+signal nemesis_choice_resolved(result: Dictionary)
 signal traveler_event_occurred(results: Array)
 signal manipulator_bonus_earned(bonus: int)
 signal bitter_day_sp_earned()  ## "A Bitter Day" (Core Rules p.67): +1 SP for holding field after character death
@@ -234,6 +242,7 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 			var skip_event: Dictionary = _campaign_events.process_campaign_event(_ctx)
 			_campaign_events.finalize_event(skip_event, _ctx)
 			campaign_event_occurred.emit(skip_event)
+			_mirror_pending_nemesis_choice()
 		# Steps 13, 13b/c and 14, then completion — the same tail every other
 		# path takes, so the Precursor choice and the Faction steps behave
 		# identically on a rest turn.
@@ -415,6 +424,10 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	var campaign_event: Dictionary = _campaign_events.process_campaign_event(_ctx)
 	_campaign_events.finalize_event(campaign_event, _ctx)
 	campaign_event_occurred.emit(campaign_event)
+	# T11-25: the p.126 Old Nemesis branch defers to the player. Subsystems here
+	# are RefCounted and never emit (see the architecture note in CLAUDE.md), so
+	# the orchestrator mirrors the pending pick and raises the signal.
+	_mirror_pending_nemesis_choice()
 
 	# Step 13: Character Events
 	_process_character_event_step()
@@ -448,6 +461,11 @@ const SalvageJobGeneratorRef = preload("res://src/core/mission/SalvageJobGenerat
 ## resolve_illegal_salvage_choice(). Public so a UI can re-present the prompt if
 ## it was dismissed — an unresolved consequence must not evaporate.
 var pending_illegal_salvage: Dictionary = {}
+
+## T11-25 - the p.126 Old Nemesis pick, mirrored off CampaignEventEffects after
+## step 12 runs. Public for the same reason as the line above: a prompt the
+## player dismissed must be re-presentable rather than silently lost.
+var pending_nemesis_choice: Dictionary = {}
 
 
 func _process_illegal_salvage_check() -> void:
@@ -544,6 +562,30 @@ func apply_story_completion_effects(
 	_ensure_subsystems()
 	_sync_context()
 	return _story_track.apply_event_effects(effects, _ctx, won)
+
+## T11-25 - move any pending Old Nemesis pick off the subsystem and announce it.
+func _mirror_pending_nemesis_choice() -> void:
+	if _campaign_events == null:
+		return
+	if _campaign_events.pending_nemesis_choice.is_empty():
+		return
+	pending_nemesis_choice = _campaign_events.pending_nemesis_choice.duplicate(true)
+	nemesis_choice_required.emit(pending_nemesis_choice)
+
+
+## PUBLIC API: apply the Old Nemesis pick (a prior Rival's id, or "roll_new").
+##
+## Core Rules p.126: the riders attach to the SELECTED Rival, so picking a prior
+## one must not also create a new one - which is why nothing is created until
+## this is called.
+func resolve_nemesis_choice(option_id: String) -> Dictionary:
+	_ensure_subsystems()
+	_sync_context()
+	var result: Dictionary = _campaign_events.resolve_nemesis_choice(option_id, _ctx)
+	pending_nemesis_choice = {}
+	nemesis_choice_resolved.emit(result)
+	return result
+
 
 func apply_campaign_event_effect(event_title: String) -> String:
 	## PUBLIC API: Apply campaign event effects (called by CampaignEventComponent).
@@ -822,7 +864,8 @@ func _log_traveler_events(results: Array) -> void:
 					"description": (
 						"%s revealed a Quest lead (rolled %d)."
 						% [char_name, roll]),
-					"mood": "discovery",
+					# T11-44: was "discovery" (not in the vocabulary, fell to NEUTRAL).
+					"mood": "exciting",
 					"tags": ["traveler", "quest", "strange_character"],
 				})
 
@@ -838,7 +881,8 @@ func _log_manipulator_bonus(bonus: int) -> void:
 			"description": (
 				"Manipulator crew member(s) contributed %d"
 				+ " bonus story point(s)." % bonus),
-			"mood": "discovery",
+			# T11-44: was "discovery" (not in the vocabulary, fell to NEUTRAL).
+			"mood": "exciting",
 			"tags": [
 				"manipulator", "story_points",
 				"strange_character"],
@@ -902,7 +946,10 @@ func _log_bitter_day_sp() -> void:
 			"description": (
 				"The crew held the field despite losing a"
 				+ " comrade. Gained 1 story point."),
-			"mood": "bittersweet",
+			# T11-44: was "bittersweet" (not in the vocabulary, fell to NEUTRAL). The
+			# p.67 beat is holding the field at the cost of a comrade - somber is the
+			# closest bucket the five-mood palette has.
+			"mood": "somber",
 			"tags": ["story_points", "bitter_day", "held_field"],
 		})
 

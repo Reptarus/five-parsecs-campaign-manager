@@ -123,25 +123,4 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="Controls" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
-layout_mode = 2
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 8
-alignment = 1
-
-[node name="GeneratePatronButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Generate Patron"
-
-[node name="GenerateRivalButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Generate Rival"
-
-[node name="ManageJobsButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Manage Jobs"
-
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GeneratePatronButton" to="." method="_on_generate_patron_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/GenerateRivalButton" to="." method="_on_generate_rival_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/ManageJobsButton" to="." method="_on_manage_jobs_pressed"]

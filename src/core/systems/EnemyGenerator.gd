@@ -53,10 +53,51 @@ var _pending_leadership_promotion: bool = false
 ## once per battle.
 static var _known_enemy_names: Dictionary = {}
 
+## T11-24 - enemy NAME -> its full row. Same load-once shape as the names cache
+## above; the Encounter Log consults it once per sheet build.
+static var _stat_blocks: Dictionary = {}
+
 
 ## True when `name` is one of the 60 enemy names the encounter tables can roll.
 ## An empty or unknown name means "roll normally" — never pin it as a preset,
 ## because EnemyGenerator honours ANY non-empty `enemy_type` as a preset (:576).
+## T11-24 - the full printed stat block for one enemy name, or {} if it is not one
+## of the 60 encounter-table enemies.
+##
+## The Encounter Log prints Panic / Speed / Combat / Toughness / AI beside the
+## enemy's name, and data/enemy_types.json is their canonical owner (keys:
+## numbers, panic, speed, combat_skill, toughness, ai). Lives HERE, beside
+## is_known_enemy_type(), rather than in the sheet builder: one class reads that
+## file, so the sheet cannot drift from what the generator fields.
+##
+## Returns {} rather than a partial record for a Rival, a Unique Individual or a
+## Bug Hunt swarm - none of which are rows in that table. The sheet leaves those
+## boxes BLANK, which is a legitimate value on a print form and a great deal more
+## honest than a made-up stat line.
+static func get_enemy_stat_block(enemy_name: String) -> Dictionary:
+	var probe: String = enemy_name.strip_edges()
+	if probe.is_empty():
+		return {}
+	if _stat_blocks.is_empty():
+		var file := FileAccess.open("res://data/enemy_types.json", FileAccess.READ)
+		if file == null:
+			return {}
+		var parsed: Variant = JSON.parse_string(file.get_as_text())
+		file.close()
+		if not (parsed is Dictionary):
+			return {}
+		for category in (parsed as Dictionary).get("enemy_categories", []):
+			if not (category is Dictionary):
+				continue
+			for enemy in (category as Dictionary).get("enemies", []):
+				if not (enemy is Dictionary):
+					continue
+				var n: String = str((enemy as Dictionary).get("name", ""))
+				if not n.is_empty():
+					_stat_blocks[n] = (enemy as Dictionary).duplicate(true)
+	return (_stat_blocks.get(probe, {}) as Dictionary).duplicate(true)
+
+
 static func is_known_enemy_type(enemy_name: String) -> bool:
 	var probe: String = enemy_name.strip_edges()
 	if probe.is_empty():
@@ -719,8 +760,25 @@ func generate_enemies_as_dicts(
 	# ("entry 54-65 above is unaffected"), so this site just reads the number.
 	var quest_enemy_mod: int = int(mission_data.get("quest_enemy_bonus", 0))
 
+	# T11-25 / T11-35 - this particular RIVAL brings extra bodies.
+	#
+	# Core Rules p.126 (Old Nemesis, rolls 21-23): the Rival "will follow you from
+	# planet to planet until resolved and receive +1 when rolling for the number of
+	# enemies in a battle." p.128 (Got Noticed, rolls 89-91) grants the same +1
+	# while the crew is on a Quest. Both were written into a returned STRING and
+	# applied nowhere.
+	#
+	# It rides the SAME route the psi-hunter adjustments take: stamped onto the
+	# Rival at birth, copied onto the encounter result by
+	# RivalEncounterCheck._stamp_rival(), and read here off mission_data. Added to
+	# the sum like every other modifier, and therefore correctly discarded by the
+	# Red Job replacement below (p.150: "no other modifiers are applied up or
+	# down") rather than surviving it.
+	var rival_nemesis_mod: int = int(
+		mission_data.get("rival_enemy_count_bonus", 0))
+
 	var enemy_count: int = maxi(1, base_count + numbers_mod + trait_enemy_mod
-		+ patron_enemy_mod + grudge_mod + quest_enemy_mod)
+		+ patron_enemy_mod + grudge_mod + quest_enemy_mod + rival_nemesis_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier

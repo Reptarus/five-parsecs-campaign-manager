@@ -151,6 +151,7 @@ func bind_campaign(campaign: Resource) -> void:
 	# a turn that already had one. Must stay AFTER the reset and BEFORE the controller's
 	# phase check at :121, which this function is called from (:108).
 	_restore_phase_from_campaign(campaign)
+	_restore_turn_number_from_campaign(campaign)
 
 	# The post-battle handler caches its own campaign reference, and
 	# PostBattleContext._get_current_campaign() PREFERS that cached value over
@@ -670,7 +671,9 @@ func _on_character_event_expired(member: Variant, effect: Dictionary, campaign: 
 					"characters_involved": [char_id] if char_id != "" else [],
 					"tags": ["character_event", "business_elsewhere", "return"],
 					"auto_generated": true,
-					"mood": "positive",
+					# T11-44: was "positive", which is not in the vocabulary and fell to
+					# NEUTRAL. A crew member back with XP and a Loot roll is a gain.
+					"mood": "triumph",
 				})
 
 		"item_lost_recovery":
@@ -698,7 +701,10 @@ func _on_character_event_expired(member: Variant, effect: Dictionary, campaign: 
 					"characters_involved": [char_id] if char_id != "" else [],
 					"tags": ["character_event", "item_recovery"],
 					"auto_generated": true,
-					"mood": "positive" if item_found else "negative",
+					# T11-44: was "positive"/"negative", neither in the vocabulary, so BOTH
+					# arms of the p.130 recovery roll rendered identically NEUTRAL - the one
+					# entry whose whole point is which way the roll went.
+					"mood": "exciting" if item_found else "defeat",
 				})
 
 		_:
@@ -1110,6 +1116,47 @@ func _restore_phase_from_campaign(campaign: Resource) -> void:
 	# Without this the latch would be clear and the first dashboard visit could still
 	# walk into start_new_turn() before any phase transition re-armed it.
 	_turn_start_in_flight = true
+
+## T11-20 - put the TURN NUMBER back, not just the phase.
+##
+## THE DEFECT (device, deploy #19). Completing a cycle left the campaign turn
+## counter where it was: the walk finished a turn, pressed "Continue to Next
+## Cycle", and the pulled save still read turns_played 8.
+##
+## WHY. `turn_number` is session state on this autoload and bind_campaign() resets
+## it to 0 for a new campaign identity - correctly, because carrying campaign A's
+## turn into B used to raise B's count permanently. But the RESTORE half was never
+## written, and the persisted counter is derived from this one:
+## CampaignTurnController._on_campaign_turn_started() writes
+##     progress_data["turns_played"] = max(current, turn_number - 1)
+## The max() exists so a stale LOW value cannot lower a real count - and that is
+## exactly what freezes it here. After a reload turn_number restarts at 0, so the
+## write is max(8, 0) = 8, then max(8, 1) = 8 ... and turns_played cannot move
+## again until turn_number has climbed past 9. Measured on the probe: turn_number
+## 0 -> 1 -> 2 while turns_played sat at 8 throughout.
+##
+## Neither half is wrong on its own, which is why this survived: the reset is
+## right, the max() is right, and together they lose the count. The missing piece
+## is the restore.
+##
+## ⚠ THE +1 IS NOT COSMETIC. `turns_played` is the COMPLETED count while
+## `turn_number` identifies the turn IN PROGRESS. A save written mid-turn has the
+## turn still in flight - which is precisely what _restore_phase_from_campaign()
+## has just determined by finding a real stored phase - so its turn_number is one
+## ahead of the completed count. A save written between turns is not, and adding
+## the +1 there would skip a turn on every load.
+##
+## Must run AFTER _restore_phase_from_campaign(), which sets the flag it reads.
+func _restore_turn_number_from_campaign(campaign: Resource) -> void:
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	if not (campaign.progress_data is Dictionary):
+		return
+	var played: int = int(campaign.progress_data.get("turns_played", 0))
+	if played <= 0:
+		return  # a fresh campaign starts at 0, which the reset already did
+	turn_number = played + 1 if _turn_start_in_flight else played
+
 
 func complete_current_phase() -> void:
 	## Complete the current phase and advance to the next one
@@ -1981,7 +2028,9 @@ func _on_intro_turn_started(turn: int, title: String) -> void:
 		"title": "Introductory Campaign: %s" % title,
 		"description": "Turn %d of 5 — learning core mechanics." \
 			% turn,
-		"mood": "informative",
+		# T11-44: was "informative" (not in the vocabulary). A tutorial milestone is
+		# factual, which is what neutral means.
+		"mood": "neutral",
 		"tags": ["introductory_campaign"],
 	})
 
@@ -2029,7 +2078,8 @@ func _on_intro_phase_unlocked(phase_name: String) -> void:
 		"type": "milestone",
 		"title": "New Mechanic Unlocked: %s" % phase_name,
 		"description": "The %s phase is now available." % phase_name,
-		"mood": "informative",
+		# T11-44: was "informative" (not in the vocabulary).
+		"mood": "neutral",
 		"tags": ["introductory_campaign", "unlock"],
 	})
 

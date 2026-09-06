@@ -17,10 +17,18 @@ const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_BORDER := UIColors.COLOR_BORDER
 const TOUCH_TARGET_MIN := 48
+## T11-42. The popup used to hard-fix its width at MIN_WIDTH and never widen for
+## content, which is what pushed the option labels outside the visible rect.
+## MAX_WIDTH matches the cap the rest of this codebase uses for centred overlays
+## (560; the enemy-generation wizard is the one 700 exception). Both are in DESIGN
+## px under the square-1080 `canvas_items`+`expand` base, where the design width is
+## >= 1080 in BOTH orientations - so 560 cannot run off a phone the way T11-05 did.
+const MIN_WIDTH := 380
+const MAX_WIDTH := 560
 
 func _init() -> void:
 	title = "Choose Reward"
-	size = Vector2i(380, 100)  # Width fixed, height adjusted in show_choices()
+	size = Vector2i(MIN_WIDTH, 100)  # both axes re-fit in show_choices()
 	transient = true
 	exclusive = true
 	unresizable = true
@@ -36,8 +44,11 @@ func show_choices(result_name: String, options: Array,
 	## calling if the titlebar should change too.
 	## Build the popup UI and display it
 	# Calculate height: header(~60) + description(~30) + separator(~10) + buttons(56 each) + padding(32)
+	# ⚠ T11-42: this is now only a FLOOR. Wrapping the subtitle makes its height
+	# depend on how many lines the prose takes at this width, which a constant
+	# cannot know - so _fit_height_to_content() corrects it once laid out.
 	var estimated_height: int = 130 + (options.size() * 64)
-	size = Vector2i(380, estimated_height)
+	size = Vector2i(MIN_WIDTH, estimated_height)
 
 	# Background panel
 	var panel := PanelContainer.new()
@@ -77,6 +88,17 @@ func show_choices(result_name: String, options: Array,
 		subtitle.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 		subtitle.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		# T11-42 - THE fix, and it is this line rather than anything on the
+		# buttons. `result_name` is prose (CampaignEventEffects passes a ~100-char
+		# p.126 prompt), and a Label with autowrap OFF reports the WHOLE string as
+		# its minimum width: measured 609 px against this Window's fixed 380.
+		# Being the widest child it set the VBox minimum, every SIZE_EXPAND_FILL
+		# button was stretched to 577 px, and their CENTRED labels were pushed
+		# clean past the window's right clip - three blank blue buttons, on the
+		# one screen whose entire purpose is presenting a p.126 choice.
+		# The buttons' own labels needed only 363 px and always fitted; the
+		# overflow figure named the consequence, not the cause (T11-18).
+		subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(subtitle)
 
 	# Separator
@@ -89,9 +111,23 @@ func show_choices(result_name: String, options: Array,
 	button_container.add_theme_constant_override("separation", 8)
 	vbox.add_child(button_container)
 
+	# T11-42 second-order guard. Correcting the width defect by wrapping the
+	# subtitle turns its height into a content-dependent value, and the constant
+	# above would then clip the buttons off the BOTTOM - trading a horizontal
+	# defect for a vertical one, which is exactly what the T11-22 correction did
+	# before it was caught. Deferred because a freshly built Control reports its
+	# real minimum only once the layout has run.
+	call_deferred("_fit_to_content")
+
 	for option_name in options:
 		var btn := Button.new()
 		btn.text = str(option_name)
+		# T11-42 regression guard, not the fix. Wrapping the subtitle above is what
+		# restores these labels; this stops a future long OPTION string from
+		# re-widening the container the same way. Ellipsis over silent clipping so
+		# a truncated option still reads as truncated.
+		btn.clip_text = true
+		btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
@@ -133,6 +169,39 @@ func show_choices(result_name: String, options: Array,
 func _on_option_selected(option_name: String) -> void:
 	item_chosen.emit(option_name)
 	queue_free()
+
+## Grow the popup to whatever its content actually needs, on BOTH axes.
+##
+## GROW ONLY. Shrinking here would fight the floor computed above and could hide a
+## button, and the floor is the conservative number of the two.
+##
+## ⚠ Width and height are corrected for OPPOSITE reasons and both are needed.
+## Width: an option label longer than MIN_WIDTH would otherwise be ellipsised, and
+## this popup presents a Core Rules p.126 CHOICE whose option text carries the
+## effect - "Old nemesis (persistent, +1 enemies)" trimmed mid-clause is a worse
+## failure than it looks. Height: wrapping the subtitle (see show_choices) made its
+## height depend on the line count, which the constant cannot know - and clipping
+## the buttons off the BOTTOM instead is exactly the trade the T11-22 correction
+## made before it was caught.
+func _fit_to_content() -> void:
+	var needed: Vector2 = get_contents_minimum_size()
+	var w: int = clampi(int(ceil(needed.x)), MIN_WIDTH, MAX_WIDTH)
+	var h: int = maxi(size.y, int(ceil(needed.y)))
+	if w == size.x and h == size.y:
+		return
+	size = Vector2i(w, h)
+	# The subtitle wraps, so a WIDER window needs FEWER lines and a narrower one
+	# more. Re-measure once at the settled width rather than trusting a height
+	# computed against the previous one.
+	await get_tree().process_frame
+	# The popup is modal and will not normally be freed inside one frame, but a
+	# coroutine that resumes onto a freed Window errors rather than no-ops.
+	if not is_inside_tree():
+		return
+	var settled: Vector2 = get_contents_minimum_size()
+	if settled.y > float(size.y):
+		size = Vector2i(size.x, int(ceil(settled.y)))
+
 
 func _on_close_requested() -> void:
 	# Player must choose — don't allow closing without a selection

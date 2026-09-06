@@ -66,10 +66,6 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 		return {"type": "none", "name": "No Event"}
 
 	var random_crew = eligible[randi() % eligible.size()]
-	var event_roll: int = randi_range(1, 100)
-	var character_event: Dictionary = _get_character_event(event_roll)
-	character_event["crew_id"] = random_crew
-	character_event["roll"] = event_roll
 
 	# `eligible` holds crew_id STRINGS, and get_character_origin() takes the
 	# CHARACTER. Handed a String it falls through both branches — `"origin" in
@@ -77,6 +73,9 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	# for everyone. So the Precursor comparison below was permanently false and
 	# the species' signature advantage could never fire, no matter what the
 	# orchestrator did with the result. Resolve the member first.
+	#
+	# T11-19: this block MOVED ABOVE the roll so the roll's context can name the
+	# character, exactly as the UI path does. Pure reads, no behaviour change.
 	var selected_member: Variant = ctx.get_crew_member(random_crew)
 	var origin: String = ""
 	if selected_member != null:
@@ -92,11 +91,18 @@ func process_character_event(ctx: PostBattleContextClass) -> Dictionary:
 	var event_char_name: String = "Unknown"
 	if selected_member != null and ctx.has_method("get_char_name"):
 		event_char_name = ctx.get_char_name(selected_member)
+
+	var event_roll: int = _roll_event_d100(
+		"Character Event: " + event_char_name)
+	var character_event: Dictionary = _get_character_event(event_roll)
+	character_event["crew_id"] = random_crew
+	character_event["roll"] = event_roll
 	character_event["character_name"] = event_char_name
 
 	# Precursor double-roll (Core Rules p.17 + p.126).
 	if origin == "precursor":
-		var second_roll: int = randi_range(1, 100)
+		var second_roll: int = _roll_event_d100(
+			"Character Event (Precursor second roll): " + event_char_name)
 		var second_event: Dictionary = _get_character_event(second_roll)
 		second_event["crew_id"] = random_crew
 		second_event["roll"] = second_roll
@@ -182,6 +188,32 @@ func _can_spend_story_point(ctx: PostBattleContextClass) -> bool:
 	if campaign != null and "story_points" in campaign:
 		return int(campaign.story_points) > 0
 	return false
+
+## T11-19 — route the p.126 D100 through DiceManager so the debug forced-roll seam
+## reaches it.
+##
+## THE DEFECT. QAScenarioDialog's "Force the next roll" parks a value that the next
+## roll whose CONTEXT contains the key consumes. The UI's per-crew button already
+## called DiceManager.roll_d100("Character Event: <name>")
+## (PostBattleSequence.gd:2171) — but the BACKEND path, which is the one that fires
+## when the orchestrator resolves step 13, used a bare randi_range(1, 100). So
+## queueing a value did nothing on the path the device walk actually took, and
+## T9-51's 88-94 row stayed unreachable in play.
+##
+## ⚠ This class is RefCounted, so it must reach the autoload through
+## Engine.get_main_loop().root. A bare get_node_or_null("/root/...") from a
+## RefCounted does not return null — it ERRORS and ABORTS the enclosing function,
+## which would silently kill the whole Character Event step (the MissionTableManager
+## trap). The randi_range fallback covers a genuinely absent autoload (unit tests
+## constructing this class outside a tree).
+func _roll_event_d100(context: String) -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice and dice.has_method("roll_d100"):
+		return int(dice.roll_d100(context))
+	return randi_range(1, 100)
+
 
 func _get_character_event(roll: int) -> Dictionary:
 	## Get character event based on D100 roll from JSON data file (Core Rules p.128-130)
@@ -339,7 +371,9 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 						"characters_involved": [cid] if cid != "" else [],
 						"tags": ["character_event", "departure", "swift"],
 						"auto_generated": true,
-						"mood": "negative",
+						# T11-44: was "negative" (not in the vocabulary, fell to NEUTRAL).
+						# A crew member gone for good is somber, not a battle defeat.
+						"mood": "somber",
 					})
 				return "%s (Swift) has business elsewhere: Never returns. Replaced with new Swift character." % char_name
 			ctx.apply_character_status_effect(character, {

@@ -146,6 +146,35 @@ const MOOD_STRING_TO_ENUM: Dictionary = {
 	"triumphant": Mood.TRIUMPH,
 }
 
+## T11-44. Moods that exist ONLY in already-persisted journal entries.
+##
+## Eight producer sites used to write these five spellings. Every one fell through
+## MOOD_STRING_TO_ENUM to Mood.NEUTRAL, so the entry rendered with the wrong label
+## AND the wrong colour - silently, because validate_entry() only push_warning()s.
+## The producers are fixed; this map exists for the entries those producers already
+## WROTE INTO SAVE FILES, which no source change can reach.
+##
+## ⚠ Deliberately SEPARATE from MOOD_STRING_TO_ENUM rather than merged into it.
+## MOOD_STRING_TO_ENUM is the authoring vocabulary that
+## `scripts/lint_journal_vocabulary.py` enforces on new code; folding these in would
+## make "positive" legal to write again and quietly re-open the finding. Old data is
+## tolerated, new code is not - which is why is_canonical_mood() below does NOT
+## consult this map.
+##
+## Each mapping is grounded in what the entries actually said, not in the word:
+##   positive     "<name> Returns" (+XP, +Loot roll) / "Lost Item Found!"
+##   negative     "Lost Item Gone for Good" / "<name> Has Left the Crew"
+##   informative  Introductory Campaign milestones and mechanic unlocks
+##   discovery    Traveler's Gift (a Quest lead) / Manipulator Insight (+SP)
+##   bittersweet  "A Bitter Day" - held the field, lost a comrade (p.67)
+const MOOD_LEGACY_ALIASES: Dictionary = {
+	"positive": Mood.TRIUMPH,
+	"negative": Mood.DEFEAT,
+	"informative": Mood.NEUTRAL,
+	"discovery": Mood.EXCITING,
+	"bittersweet": Mood.SOMBER,
+}
+
 const TAGS: Dictionary = {
 	"stars_of_the_story": {"label": "Stars of the Story", "color": UIColors.COLOR_PURPLE},
 	"emergency": {"label": "Emergency", "color": UIColors.COLOR_RED},
@@ -321,17 +350,29 @@ static func get_all_type_strings() -> Array[String]:
 		out.append(s)
 	return out
 
+## T11-44. THE single mood lookup. There used to be three copies of
+## `MOOD_STRING_TO_ENUM.get(x, NEUTRAL)` in this file, so teaching the reader about
+## the legacy spellings meant remembering all three - the shape that produced three
+## disagreeing species-name implementations (T11-31).
+static func resolve_mood(m) -> int:
+	if m is int:
+		return m
+	var s: String = str(m)
+	if MOOD_STRING_TO_ENUM.has(s):
+		return MOOD_STRING_TO_ENUM[s]
+	return MOOD_LEGACY_ALIASES.get(s, Mood.NEUTRAL)
+
 static func mood_to_color(m) -> Color:
-	var em: int = m if m is int else MOOD_STRING_TO_ENUM.get(str(m), Mood.NEUTRAL)
-	return MOOD_COLORS.get(em, MOOD_COLORS[Mood.NEUTRAL])
+	return MOOD_COLORS.get(resolve_mood(m), MOOD_COLORS[Mood.NEUTRAL])
 
 static func mood_to_label(m) -> String:
-	var em: int = m if m is int else MOOD_STRING_TO_ENUM.get(str(m), Mood.NEUTRAL)
-	return MOOD_LABELS.get(em, "Neutral")
+	return MOOD_LABELS.get(resolve_mood(m), "Neutral")
 
 static func mood_from_string(s: String) -> int:
-	return MOOD_STRING_TO_ENUM.get(s, Mood.NEUTRAL)
+	return resolve_mood(s)
 
+## ⚠ Deliberately does NOT consult MOOD_LEGACY_ALIASES - see the note there. A
+## legacy mood RENDERS correctly but is not canonical to WRITE.
 static func is_canonical_mood(s: String) -> bool:
 	return MOOD_STRING_TO_ENUM.has(s)
 
@@ -360,7 +401,12 @@ static func validate_entry(data: Dictionary) -> bool:
 		push_warning("Journal entry has non-canonical type: '%s'" % t)
 		ok = false
 	var m: String = str(data.get("mood", ""))
-	if not m.is_empty() and not MOOD_STRING_TO_ENUM.has(m):
+	# T11-44. A KNOWN legacy spelling is not a warning: it comes off disk, it renders
+	# correctly through resolve_mood(), and warning would spam the log once per loaded
+	# entry for data that is already handled. New code cannot introduce one - that is
+	# the lint's job, statically, where it can be fixed. An UNKNOWN mood still warns.
+	if not m.is_empty() and not MOOD_STRING_TO_ENUM.has(m) \
+			and not MOOD_LEGACY_ALIASES.has(m):
 		push_warning("Journal entry has non-canonical mood: '%s'" % m)
 		ok = false
 	var tags: Array = data.get("tags", [])

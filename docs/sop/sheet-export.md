@@ -56,6 +56,38 @@ Consequences worth keeping in mind when editing this file:
   (after `label_inset` / `rule_offset`) is shorter than its font's line height at source
   scale. Measured at introduction: **0 of 211 fields** across the three Core sheets. If
   that count rises, the manifest or the font size is wrong — not the renderer.
+  ⚠ **UPDATED Sep 5 2026 (T11-22).** Correcting the baker's rule search took 24 crew-log
+  fields below their own line height, so `_populate_fields()` now grows such a band
+  **UPWARD** into the printed caption rather than letting the Label grow downward through
+  the box border. The count above is therefore no longer the whole guard — but a band that
+  needs growing is still worth looking at, because it means the caption inset and the rule
+  leave less room than the font needs.
+
+### ⚠ The baker takes the NEAREST rule, not the farthest (T11-22, Sep 5 2026)
+
+`scripts/bake_sheet_label_insets.py::rule_offset()` searches from `h-6` to `h+18` below a
+field for the horizontal rule the value is written on. It used to return `spanning[-1]` —
+the FARTHEST match in that window — and on a two-row layout that window reaches the NEXT
+structure down.
+
+Measured on `assets/sheets/core/crew_log.png`: `captain_name`'s box bottom is y=774, the
+rule that CLOSES ITS OWN BOX is at y=777-778, and the TOP border of the Weapon box beneath
+it is at y=790. The baked offset pointed at 790. **128 of 184 crew-log fields** were
+mis-baked; a before/after render of the same campaign shows the captain's name struck
+through by its own box border in the old build.
+
+Rules for anyone touching this:
+
+- A field is written on the **first** line beneath it, never on a later line that happens
+  to fall inside the search window.
+- Take the bottom of the **first contiguous run**, not `spanning[0]`: a printed rule is
+  2-3px thick and a baseline on its top edge sits inside the stroke.
+- **Verify against the artwork, not the prediction.** The row that prompted this said "40
+  row-2 weapon fields"; the real scope was 128. Scan the field's own column for every
+  spanning rule in the neighbourhood and read which one closes its box.
+- `tests/unit/test_sheet_field_mapping.gd` guards it with `rule_offset <= rect.h + 12`.
+  **12 is measured**: legitimate rules on these three sheets sit 2-9px below their box (the
+  40 weapon fields are the +9 case), and the defect produced +16 and worse.
 - **Anything that walks the field nodes must walk the SUBTREE.** They are no longer
   direct children of the renderer. `_collect_text_layer()` and the export's re-adopt
   both look for the `sheet_src_rect` meta recursively; a walk that finds nothing does

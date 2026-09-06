@@ -1,6 +1,12 @@
 class_name SheetDataContext
 extends RefCounted
 
+## T11-30. Presentation-only helpers shared with the journal and ship screens.
+const DisplayTextRef = preload("res://src/ui/components/common/DisplayText.gd")
+## T11-24. EnemyGenerator owns data/enemy_types.json; the sheet reads through it
+## rather than opening the file a second time.
+const EnemyGeneratorRef = preload("res://src/core/systems/EnemyGenerator.gd")
+
 ## Builds the data context the sheet manifests resolve against (T9-09, Aug 9 2026).
 ##
 ## WHY THIS EXISTS. The field manifests in `data/sheets/core/*.json` are hand-calibrated
@@ -129,7 +135,8 @@ static func _build_campaign(campaign: Object) -> Dictionary:
 		"patron_rows": _contact_rows(
 			campaign.get("patrons") if "patrons" in campaign else [], 3, "benefit"),
 		"rival_rows": _contact_rows(
-			campaign.get("rivals") if "rivals" in campaign else [], 3, "notes"),
+			campaign.get("rivals") if "rivals" in campaign else [], 3, "notes",
+			true),
 		"stash_items_text": _join_names(stash),
 		"story_track_label": _story_label(campaign),
 		"story_event": _story_event_number(campaign),
@@ -148,7 +155,7 @@ static func _empty_campaign() -> Dictionary:
 		"campaign_name": "", "credits": 0, "story_points": 0,
 		"patrons_count": 0, "rivals_count": 0, "stash_items_text": "",
 		"patron_rows": _contact_rows([], 3, "benefit"),
-		"rival_rows": _contact_rows([], 3, "notes"),
+		"rival_rows": _contact_rows([], 3, "notes", true),
 		"story_track_label": "", "story_event": "", "story_clock": "",
 		"quest_rumors": 0, "notes": "",
 		"progress_data": {"turns_played": ""},
@@ -324,22 +331,12 @@ static func _build_character(m: Dictionary) -> Dictionary:
 ##     primitive_character -> "Primitive Character"  (book: Primitive)
 ## Legacy saves store `origin` as a numeric enum, so a non-matching id is normal
 ## and must fall back to something printable rather than to "".
+## T11-31: delegates to SpeciesDataService.display_name(), the one implementation.
+## The sheet keeps a BLANK fallback rather than the dashboard's "Unknown": a print
+## form is meant to have empty boxes, and a word that looks like a value is worse
+## than nothing there.
 static func _species_display_name(species_id: String) -> String:
-	if species_id.is_empty():
-		return ""
-	var species: Dictionary = SpeciesDataService.get_species(species_id)
-	var display: String = str(species.get("name", ""))
-	if not display.is_empty():
-		return display
-	# Unknown id (legacy numeric origin, or a species not in the JSON). Printing
-	# the raw token beats printing nothing on a form the player reads.
-	#
-	# ⚠ capitalize() takes the RAW snake_case id — that is the input it is built
-	# for ("not_a_real_species" -> "Not A Real Species"). Replacing the
-	# underscores FIRST and passing "not a real species" returns
-	# "Not aA rReal sSpecies", because it also inserts a space before each
-	# interior capital it produces. Observed, not theorised.
-	return species_id.capitalize()
+	return SpeciesDataService.display_name(species_id, species_id, "")
 
 
 static func _stat(m: Dictionary, key: String) -> Variant:
@@ -561,19 +558,91 @@ static func _campaign_array(campaign: Object, prop: String) -> Array:
 ## The artwork prints THREE "Patron + Benefit" blocks and THREE "Rival Type + Notes"
 ## blocks. Padded to that count so an empty slot resolves to a blank box rather than
 ## null — a print form is meant to have empty boxes.
-static func _contact_rows(source: Variant, rows: int, note_key: String) -> Array:
+## Rows for the World Record Sheet's Local Patrons / Local Rivals blocks.
+##
+## The two blocks are NOT symmetrical, and the printed captions say so. Core
+## Rules Appendix X (p.181) captions them:
+##
+##     Patron   | Rival Type
+##     Benefit  | Notes
+##
+## So a Patron row is name-over-benefit, but a Rival row is TYPE-over-notes -
+## the first Rival box asks for the enemy type, not a name. T11-25: it was being
+## handed `name`, which on device printed "Old nemesis (persistent, +1 enemies)"
+## under a caption reading "Rival Type". p.119 is why the book asks for a type:
+## "the type of opponents you just fought become your Rivals."
+## One printed stat from the enemy's row in data/enemy_types.json.
+##
+## Blank when the name is not one of the 60 encounter-table enemies. A combat
+## skill of 0 is a REAL value (Gangers have it), so the emptiness test is on the
+## record, never on the number - returning "" for a 0 would silently blank a
+## correct stat line.
+static func _enemy_stat(enemy_name: String, key: String) -> String:
+	if enemy_name.strip_edges().is_empty():
+		return ""
+	var block: Dictionary = EnemyGeneratorRef.get_enemy_stat_block(enemy_name)
+	if block.is_empty() or not block.has(key):
+		return ""
+	var raw: Variant = block[key]
+	# Print the stat the way the BOOK prints it (Core Rules p.94 table header
+	# ROLL / ENEMY / NUMBERS / PANIC / SPEED / COMBAT SKILL / TOUGHNESS / AI;
+	# the Gangers row reads "+2  1-2  4\"  +0  3  A"). Combat Skill is a signed
+	# modifier and Speed carries the inch mark, so dropping either would print
+	# something the player cannot match against the page.
+	if key == "combat_skill":
+		return "%+d" % int(raw) if (raw is int or raw is float) else str(raw)
+	if key == "speed":
+		return "%s\"" % DisplayTextRef.number(raw)
+	return DisplayTextRef.number(raw)
+
+
+static func _contact_rows(
+	source: Variant, rows: int, note_key: String, is_rival: bool = false
+) -> Array:
 	var out: Array = []
 	var list: Array = source if source is Array else []
 	for i in range(rows):
 		var entry: Dictionary = {}
 		if i < list.size() and list[i] is Dictionary:
 			entry = list[i]
+		if is_rival:
+			out.append({
+				"name": str(entry.get("type", "")),
+				"detail": _rival_notes(entry, note_key),
+			})
+			continue
 		out.append({
 			"name": str(entry.get("name", "")),
-			# Rivals print a "Type" caption; patrons print "Benefit".
 			"detail": str(entry.get(note_key, entry.get("type", ""))),
 		})
 	return out
+
+
+## The Rival "Notes" box: who they are plus the riders a player must remember
+## between sessions. Blank for an empty row - a print form is meant to have empty
+## boxes, and inventing a placeholder there would be worse than nothing.
+static func _rival_notes(entry: Dictionary, note_key: String) -> String:
+	if entry.is_empty():
+		return ""
+	var explicit: String = str(entry.get(note_key, ""))
+	if not explicit.is_empty():
+		return explicit
+	var parts: Array = []
+	var nm: String = str(entry.get("name", ""))
+	if not nm.is_empty():
+		parts.append(nm)
+	# Core Rules p.126 riders, spelled out because the sheet is what the player
+	# reads at the table - a flag nobody can see is the T11-13 shape again.
+	if bool(entry.get("persistent", false)):
+		parts.append("follows you")
+	var bonus: int = int(entry.get("enemy_count_bonus", 0))
+	if bonus != 0:
+		parts.append("%+d enemies" % bonus)
+	if bool(entry.get("is_elite", false)):
+		parts.append("Elite")
+	if bool(entry.get("is_psi_hunter", false)):
+		parts.append("Psi-hunters")
+	return ", ".join(PackedStringArray(parts))
 
 
 static func _build_journal(entries: Array) -> Dictionary:
@@ -614,9 +683,25 @@ static func _build_journal(entries: Array) -> Dictionary:
 			# (Criminal Elements / Hired Muscle / Interested Parties / Roving
 			# Threats, pp.94-103). Falls back to the individual enemy's name when
 			# only that was recorded — a real answer beats an empty box.
-			"encounter_type": category if not category.is_empty() else enemy_name,
+			# T11-30: the pp.94-103 categories are stored snake_case
+			# ("interested_parties") and printed verbatim on the Encounter Log.
+			# The book sets them in Title Case; the p.89 Notable Sights do NOT
+			# get this treatment and keep their own sentence-case label.
+			"encounter_type": DisplayTextRef.title_case(
+				category if not category.is_empty() else enemy_name),
 			"enemy_type": enemy_name,
 			"enemy_category": category,
+			# T11-24 - the Encounter Log prints a stat line beside the enemy
+			# name (Panic / Speed / Combat / Toughness / AI, read off the
+			# artwork's own captions). Sourced from the file that owns those
+			# numbers rather than from the journal, which never recorded them.
+			# Every value is BLANK for an enemy that is not a row in that
+			# table - a Rival, a Unique Individual, a Bug Hunt swarm.
+			"enemy_panic": _enemy_stat(enemy_name, "panic"),
+			"enemy_speed": _enemy_stat(enemy_name, "speed"),
+			"enemy_combat": _enemy_stat(enemy_name, "combat_skill"),
+			"enemy_toughness": _enemy_stat(enemy_name, "toughness"),
+			"enemy_ai": _enemy_stat(enemy_name, "ai"),
 			"enemy_count": int(st.get("enemy_count", last_battle.get("enemy_count", 0))) \
 				if (st.has("enemy_count") or last_battle.has("enemy_count")) else "",
 			"result": _first_non_empty(st, last_battle, ["battle_result", "result"]),
@@ -659,10 +744,14 @@ static func _sight_label(stats: Dictionary) -> String:
 		return ""
 	if raw.to_upper() == "NOTHING":
 		return "None"
-	var words: String = raw.to_lower().replace("_", " ").strip_edges()
-	if words.is_empty():
+	# T11-34: this transform used to be spelled out here, and the Campaign Journal
+	# had no equivalent — so the same DOCUMENTATION token printed "Documentation"
+	# on the sheet and "DOCUMENTATION" in the journal. It now lives on DisplayText
+	# beside title_case(), which is what the other half of the finding needed, so
+	# the two surfaces cannot drift apart again.
+	var name: String = DisplayTextRef.sentence_case(raw)
+	if name.is_empty():
 		return ""
-	var name: String = words.substr(0, 1).to_upper() + words.substr(1)
 	return _join_parts([name, str(stats.get("notable_sight_effect", ""))], " — ")
 
 

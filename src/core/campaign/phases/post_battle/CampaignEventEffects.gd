@@ -26,12 +26,46 @@ func process_campaign_event(_ctx: PostBattleContextClass) -> Dictionary:
 	## a fabricated rule on the wrong step, and it starved the real one: the
 	## correct producer in CharacterEventEffects had no consumer, so a Precursor
 	## selected for step 13 lost the event entirely. See that file for the fix.
-	var event_roll: int = randi_range(1, 100)
+	var event_roll: int = _roll_campaign_d100()
 	var campaign_event: Dictionary = _get_campaign_event(event_roll)
 	# finalize_event() journals event.get("roll", 0) and nothing ever wrote the
 	# key, so every campaign-event journal entry recorded a roll of 0.
 	campaign_event["roll"] = event_roll
 	return campaign_event
+
+
+## T11-19b - route the p.125 step-12 D100 through DiceManager so the debug
+## forced-roll seam reaches it.
+##
+## THE DEFECT. T11-19 fixed exactly this shape one file over, in
+## CharacterEventEffects._roll_event_d100(), and stopped there. This sibling kept
+## a bare randi_range(1, 100), so QAScenarioDialog could not force a CAMPAIGN
+## event - which left T11-25 (Old Nemesis, rolls 21-23) and T11-35 (Got Noticed,
+## 89-91) unreachable on device at 3-in-100 per battle. A seam that reaches one of
+## two sibling rolls is not a seam.
+##
+## roll_campaign_event() had ZERO callers repo-wide before this - a dead provider,
+## not dead code. It is the semantically correct API for this step, so it is wired
+## rather than routed around; it prefixes "Event: ", giving the context
+## "Event: Campaign Event", which the seam's case-insensitive SUBSTRING match
+## reaches with the key "Campaign Event". Checked for collisions: the only other
+## contexts carrying the word are "Character Event: <name>" and "Faction Event",
+## and neither contains "campaign event".
+##
+## WARNING: this class is RefCounted, so it must reach the autoload through
+## Engine.get_main_loop().root. A bare get_node_or_null("/root/...") from a
+## RefCounted does not return null - it ERRORS and ABORTS the enclosing function,
+## which would silently kill the whole Campaign Event step (the MissionTableManager
+## trap). The randi_range fallback covers a genuinely absent autoload, which is the
+## case for unit tests that construct this class outside a tree.
+func _roll_campaign_d100() -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice and dice.has_method("roll_campaign_event"):
+		return int(dice.roll_campaign_event("Campaign Event"))
+	return randi_range(1, 100)
+
 
 func finalize_event(event: Dictionary, ctx: PostBattleContextClass) -> void:
 	## Apply the event effects after selection.
@@ -72,6 +106,85 @@ func _get_campaign_event(roll: int) -> Dictionary:
 			return result
 	return {"type": "none", "name": "No Event", "description": "Nothing significant occurs"}
 
+## T11-25 - set by the "Old Nemesis" branch when the campaign already has Rivals,
+## because Core Rules p.126 gives the PLAYER the choice: "Select a prior Rival, or
+## roll up a new one." Read and cleared by PostBattlePhase, which owns the signal
+## (subsystems here are RefCounted and never emit - see the architecture note in
+## CLAUDE.md). Modelled on `PostBattlePhase.pending_illegal_salvage`, the existing
+## post-battle pick pattern.
+var pending_nemesis_choice: Dictionary = {}
+
+
+## Rivals the campaign already has, in a shape the chooser can label.
+func _prior_rivals(ctx: PostBattleContextClass) -> Array:
+	var campaign: Variant = ctx.campaign
+	if campaign == null and ctx.game_state:
+		campaign = ctx.game_state.current_campaign
+	if campaign == null:
+		return []
+	var raw: Variant = []
+	if campaign is Dictionary:
+		raw = (campaign as Dictionary).get("rivals", [])
+	elif "rivals" in campaign:
+		raw = campaign.rivals
+	if not (raw is Array):
+		return []
+	var out: Array = []
+	for r in (raw as Array):
+		if r is Dictionary:
+			out.append(r)
+	return out
+
+
+## Apply the p.126 Old Nemesis riders to a Rival the player already had.
+##
+## "They will follow you from planet to planet until resolved and receive +1 when
+## rolling for the number of enemies in a battle" - both riders attach to the
+## SELECTED Rival, so picking a prior one must not also create a new one.
+func resolve_nemesis_choice(
+	option_id: String, ctx: PostBattleContextClass
+) -> Dictionary:
+	var result: Dictionary = {"option": option_id, "applied": false, "detail": ""}
+	if pending_nemesis_choice.is_empty():
+		result["detail"] = "No nemesis choice is pending."
+		return result
+	pending_nemesis_choice = {}
+	if option_id == "roll_new" or option_id.is_empty():
+		var new_id: String = ctx.add_rival(NEMESIS_LABEL, _nemesis_opts())
+		result["applied"] = not new_id.is_empty()
+		result["rival_id"] = new_id
+		result["detail"] = "Old nemesis: rolled up a new persistent Rival (+1 to enemy numbers)."
+		return result
+	for rival in _prior_rivals(ctx):
+		if str(rival.get("id", "")) != option_id:
+			continue
+		rival["persistent"] = true
+		rival["enemy_count_bonus"] = int(rival.get("enemy_count_bonus", 0)) + 1
+		rival["source_event"] = "Old Nemesis"
+		result["applied"] = true
+		result["rival_id"] = option_id
+		result["detail"] = ("%s is now an old nemesis: they follow the crew from "
+			% str(rival.get("name", "That Rival"))
+			+ "planet to planet and add +1 to enemy numbers.")
+		return result
+	result["detail"] = "That Rival no longer exists."
+	return result
+
+
+## The name and riders a NEW old-nemesis Rival is created with. Kept in one place
+## so the chooser's two branches cannot drift.
+const NEMESIS_LABEL := "Old nemesis"
+
+
+func _nemesis_opts() -> Dictionary:
+	return {
+		"persistent": true,
+		"enemy_count_bonus": 1,
+		"origin": "campaign_event",
+		"source_event": "Old Nemesis",
+	}
+
+
 func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 	## Apply campaign event effects based on event title (Core Rules p.126-128)
 	## All 28 events from the D100 Campaign Events Table
@@ -110,8 +223,37 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			return "Mouthed off: +1 Rival"
 
 		"Old Nemesis":
-			ctx.add_rival("Old nemesis (persistent, +1 enemies)")
-			return "Old nemesis: +1 persistent Rival (+1 to enemy numbers)"
+			## Core Rules p.126, rolls 21-23, verbatim: "An old nemesis has tracked
+			## you down. Select a prior Rival, or roll up a new one. They will follow
+			## you from planet to planet until resolved and receive +1 when rolling
+			## for the number of enemies in a battle."
+			##
+			## T11-25. This used to pass the EFFECT STRING as the Rival's NAME -
+			## the device walk found a Rival literally called "Old nemesis
+			## (persistent, +1 enemies)" on the World Record Sheet - and applied
+			## neither of the two riders anywhere. The "select a prior Rival" half
+			## of the rule was not modelled at all.
+			var priors: Array = _prior_rivals(ctx)
+			if priors.is_empty():
+				# Nothing to select FROM, so the book's other branch is the only one
+				# available - roll up a new one, no prompt.
+				ctx.add_rival(NEMESIS_LABEL, _nemesis_opts())
+				return "Old nemesis: rolled up a new persistent Rival (+1 to enemy numbers)"
+			var options: Array = []
+			for rival in priors:
+				var rtype: String = str(rival.get("type", ""))
+				var rname: String = str(rival.get("name", "Rival"))
+				var label: String = rname if rtype.is_empty() else "%s (%s)" % [rname, rtype]
+				options.append({"id": str(rival.get("id", "")), "label": label})
+			options.append({"id": "roll_new", "label": "Roll up a new Rival"})
+			pending_nemesis_choice = {
+				"event": "Old Nemesis",
+				"prompt": ("An old nemesis has tracked you down (Core Rules p.126). "
+					+ "Select a prior Rival, or roll up a new one. They follow you from "
+					+ "planet to planet until resolved and add +1 to enemy numbers."),
+				"options": options,
+			}
+			return "Old nemesis: select a prior Rival, or roll up a new one"
 
 		"Shady Deal":
 			return "Shady deal: Give 1 item, roll on Trade Table"
@@ -267,8 +409,39 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			return "Time on your hands: 2 random crew roll on Exploration Table"
 
 		"Got Noticed":
-			ctx.add_rival("Unwanted attention")
-			return "Got noticed: +1 Rival (forced battle next turn if on Quest, +1 enemies)"
+			## Core Rules p.128, rolls 89-91, verbatim: "You got noticed by someone
+			## you'd rather avoid. Add a Rival. If you currently are on a Quest, the
+			## next campaign turn is automatically a battle against the new Rival,
+			## and they will add +1 to the number of enemies."
+			##
+			## T11-35. Both riders were named in the returned STRING and applied
+			## nowhere. Note the scope: the conditional governs the whole second
+			## sentence, so the forced battle AND the +1 enemies are BOTH
+			## Quest-only - which is also how the shipped table encodes it
+			## (campaign_events.json: quest_forced_battle / enemy_bonus_if_quest).
+			## Off-Quest the event is a plain "Add a Rival".
+			var on_quest: bool = (
+				ctx.game_state != null
+				and ctx.game_state.has_method("has_active_quest")
+				and bool(ctx.game_state.has_active_quest())
+			)
+			var notice_opts: Dictionary = {"origin": "campaign_event",
+				"source_event": "Got Noticed"}
+			if on_quest:
+				notice_opts["enemy_count_bonus"] = 1
+			var notice_id: String = ctx.add_rival("Unwanted attention", notice_opts)
+			if not on_quest:
+				return "Got noticed: +1 Rival"
+			# Next-turn flag on progress_data, the same home "Rumors of War" uses
+			# above - it rides the existing campaign serialization, so the forced
+			# battle survives a save between the two turns.
+			var camp: Variant = ctx.campaign
+			if camp == null and ctx.game_state:
+				camp = ctx.game_state.current_campaign
+			if camp != null and "progress_data" in camp and not notice_id.is_empty():
+				camp.progress_data["forced_rival_battle"] = notice_id
+			return ("Got noticed: +1 Rival - on a Quest, so next campaign turn is "
+				+ "automatically a battle against them, and they add +1 to enemy numbers")
 
 		"Time to Go":
 			return "Time to go! +1 Rival each turn you stay on this planet"

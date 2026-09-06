@@ -119,3 +119,73 @@ func test_full_save_load_round_trip() -> void:
 		.is_equal(1)
 	assert_float(float(stored.get("notable_sight", {}).get(
 		"distance_inches", 0.0))).is_equal_approx(9.0, 0.001)
+
+
+# ============================================================================
+# T11-17 — the cache is a convenience; the CAMPAIGN is the owner
+# ============================================================================
+#
+# DEVICE EVIDENCE (deploy #19). A mid-battle force-stop followed by Continue came
+# back with a different terrain seed (4055150519 -> 341922859), i.e. the terrain the
+# player had physically laid out on their table had been regenerated and saved over.
+# TacticalBattleUI is consume-first: it only generates when `stored_sectors` is empty,
+# and it writes the result back through set_battlefield_data().
+#
+# EVERY STATIC GUARD CHECKED OUT. load_campaign() restores active_battlefield
+# (GameState.gd:695-699); the checkpoint was valid (schema_version 1, turn 8 =
+# turns_played 8.0); clear_battlefield_data()'s only caller is the post-battle
+# cleanup in CampaignTurnController. So the runtime cache was empty at read time for
+# a reason not visible in source, and the fix cannot be "stop the path that empties
+# it" — that path has not been identified.
+#
+# Instead: guard on the OWNER. campaign.progress_data["active_battlefield"] is the
+# durable record that set_battlefield_data() writes through to, so a cache miss with
+# a populated owner is the T11-17 signature whatever caused it. Same shape as the
+# empty-container rule that bit SalvageLedger: guard on the owner, never on the
+# container's emptiness.
+
+## Simulate the exact failure state: the owner still holds the table (it survived the
+## save, which the device pull confirmed) but the runtime cache is empty.
+func test_a_cache_miss_reads_the_table_back_from_the_campaign() -> void:
+	GameState.set_battlefield_data(_sample_contract())
+	# Empty ONLY the cache — do not touch the owner. clear_battlefield_data() erases
+	# both, which is correct for post-battle cleanup and useless for reproducing this.
+	GameState._battlefield_data = {}
+
+	var got: Dictionary = GameState.get_battlefield_data()
+	assert_bool(got.is_empty()).override_failure_message(
+		"get_battlefield_data() returned {} while the campaign still held the "
+		+ "contract. That empty read is what makes TacticalBattleUI take its "
+		+ "FALLBACK generator and overwrite the player's table."
+	).is_false()
+	assert_int(int(got.get("seed", 0))).is_equal(987654321)
+	assert_int((got.get("sectors", []) as Array).size()).is_equal(2)
+
+
+## ...and the recovered value is re-cached, so the recovery costs one lookup, not one
+## per call.
+func test_the_recovered_contract_is_re_cached() -> void:
+	GameState.set_battlefield_data(_sample_contract())
+	GameState._battlefield_data = {}
+	var _first: Dictionary = GameState.get_battlefield_data()
+
+	assert_bool(GameState._battlefield_data.is_empty()).override_failure_message(
+		"The owner-recovery path did not repopulate the cache."
+	).is_false()
+
+
+## The guard must not invent a table where there genuinely is none — a standalone
+## battle and a fresh campaign both legitimately read empty, and returning something
+## there would break the consume-first branch in the other direction.
+func test_an_empty_owner_still_reads_empty() -> void:
+	GameState.clear_battlefield_data()
+	assert_bool(GameState.get_battlefield_data().is_empty()).is_true()
+
+
+## An empty progress_data is a LEGAL state, not a "no campaign" sentinel. Asserted
+## explicitly because guarding on container emptiness is the exact mistake that
+## silently disabled salvage for every fresh campaign.
+func test_a_campaign_with_empty_progress_data_does_not_error() -> void:
+	GameState.current_campaign.progress_data = {}
+	GameState._battlefield_data = {}
+	assert_bool(GameState.get_battlefield_data().is_empty()).is_true()

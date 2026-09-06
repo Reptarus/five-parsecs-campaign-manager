@@ -1,6 +1,9 @@
 class_name ShipManagerUI
 extends Control
 
+## T11-33. No class_name on that file, so it must be preloaded.
+const DisplayText = preload("res://src/ui/components/common/DisplayText.gd")
+
 const ShipComponentQuery = preload("res://src/core/ship/ShipComponentQuery.gd")
 
 ## AdaptivePanelGroup preloaded by path (responsive 3-pane → vertical stack in
@@ -208,12 +211,15 @@ func _refresh_display() -> void:
 
 	current_hull.max_value = ship_data.get("max_hull", 30)
 	current_hull.value = ship_data.get("hull_points", 30)
-	max_hull.text = "/ " + str(ship_data.get("max_hull", 30))
+	# T11-33: Godot's JSON parser returns every number as a FLOAT, so a hull of
+	# 35 came back as 35.0 and str() printed "/ 35.0" on the device.
+	max_hull.text = "/ " + DisplayText.number(ship_data.get("max_hull", 30))
 
 	debt_amount.value = ship_data.get("debt", 0)
 
 	fuel_level.text = ship_data.get("fuel", "Empty")
-	cost_amount.text = str(_calculate_travel_cost()) + " credit"
+	# T11-33: was always the singular "credit", and printed a float.
+	cost_amount.text = DisplayText.pluralize(_calculate_travel_cost(), "credit")
 
 	_refresh_traits()
 	_refresh_upgrades()

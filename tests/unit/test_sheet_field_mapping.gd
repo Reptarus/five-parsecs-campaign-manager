@@ -159,6 +159,51 @@ func test_non_checkbox_fields_have_non_empty_source() -> void:
 					% [path, str(missing_source)])
 
 
+
+## T11-22 - a field must be written on the rule that closes ITS OWN box.
+##
+## THE DEFECT. scripts/bake_sheet_label_insets.py searched from the box bottom to
+## h+18 and returned `spanning[-1]` - the FARTHEST spanning rule in that window.
+## On a two-row layout the window reaches the next structure down, so the baked
+## offset pointed at a line belonging to something else. Measured on
+## assets/sheets/core/crew_log.png: `captain_name` has its box bottom at y=774 and
+## its own closing rule at y=777-778, but baked 78, putting the baseline on y=790 -
+## the NEXT line. 128 of the 184 crew-log fields were affected; every value the
+## player wrote in those boxes straddled a border.
+##
+## THE BOUND IS MEASURED, NOT CHOSEN. Legitimate rules on these three sheets sit
+## between 2 and 9 px below their box (the 40 weapon fields are the +9 case, and
+## the artwork confirms the ONLY rule in range there is 9px down). The defect
+## produced +16 and worse. 12 therefore separates them with room on both sides
+## while still failing every bad value: before the baker fix this case reports 168
+## crew-log fields over the line, after it reports 0.
+const MAX_RULE_OVERSHOOT := 12
+
+
+func test_no_field_is_written_on_a_rule_below_its_own_box() -> void:
+	for path in MANIFEST_PATHS:
+		var data: Dictionary = _load_manifest(path)
+		if data.is_empty():
+			continue
+		var offenders: Array[String] = []
+		for field_v in data.get("fields", []):
+			var field: Dictionary = field_v
+			var rect: Array = field.get("rect", [])
+			if rect.size() < 4:
+				continue
+			var h: int = int(rect[3])
+			var rule: int = int(field.get("rule_offset", 0))
+			if rule > h + MAX_RULE_OVERSHOOT:
+				offenders.append("%s (rule_offset %d vs box height %d)"
+					% [str(field.get("id", "?")), rule, h])
+		assert_array(offenders).override_failure_message(
+			"%s: these fields are written on a rule more than %dpx below their "
+				% [path, MAX_RULE_OVERSHOOT] + "own box, i.e. on a line belonging "
+				+ "to something else: %s. Re-run scripts/bake_sheet_label_insets.py."
+				% [offenders]
+		).is_empty()
+
+
 # ============================================================================
 # Helpers
 # ============================================================================

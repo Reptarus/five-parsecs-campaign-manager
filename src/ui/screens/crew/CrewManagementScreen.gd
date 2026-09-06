@@ -5,6 +5,8 @@ extends CampaignScreenBase
 
 const MAX_CREW_SIZE := 8
 const CharacterCardScene := preload("res://src/ui/components/character/CharacterCard.tscn")
+## T11-28. No class_name on that file, so it must be preloaded.
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
 
 # ============ NODE REFERENCES ============
 @onready var crew_grid: GridContainer = %CrewGrid
@@ -167,9 +169,11 @@ func _create_character_card_entry(character) -> void:
 			display_name, subtitle, stats)
 		crew_grid.add_child(card)
 
-		# Make dict-based cards clickable → navigate to character details
-		card.gui_input.connect(
-			_on_dict_card_clicked.bind(character)
+		# Make dict-based cards tappable → navigate to character details.
+		# T11-28: fires on RELEASE, so dragging the crew list to scroll it no
+		# longer navigates away mid-gesture.
+		TapGestureRef.connect_tap(
+			card, _on_dict_card_tapped.bind(character)
 		)
 
 func _update_crew_count() -> void:
@@ -196,15 +200,19 @@ func _get_max_crew_size() -> int:
 			return n
 	return MAX_CREW_SIZE
 
-## Prettify an origin/species value for display: a String enum ("assault_bot" →
-## "Assault Bot"), a legacy numeric enum via the existing resolver, else "Unknown".
+## T11-31 - the species/origin name, from the file that owns it.
+##
+## TWO defects lived in the four lines this replaces, and the device walk saw
+## both:
+##   1. A String with no underscore was returned VERBATIM, so the stored enum key
+##      "KERIN" printed as "KERIN" while the Campaign Dashboard, one tap away,
+##      printed "K'Erin" for the same crew member.
+##   2. A legacy NUMERIC origin was resolved through
+##      `_resolve_background_name()`, i.e. against GlobalEnums.BACKGROUND - the
+##      wrong enum entirely, so origin 4 (KERIN) rendered as Background[4].
+##      Numeric origins are 52% of crew records across the 21 real save files.
 func _format_origin_display(val) -> String:
-	if val is String and not (val as String).strip_edges().is_empty():
-		var s := (val as String).strip_edges()
-		return s.capitalize() if "_" in s else s
-	if val is int or val is float:
-		return _resolve_background_name(int(val))
-	return "Unknown"
+	return SpeciesDataService.display_name(val, "", "Unknown")
 
 # ============ CHARACTER CARD SIGNAL HANDLERS ============
 
@@ -278,19 +286,20 @@ func _on_back_pressed() -> void:
 			"res://src/ui/screens/campaign/CampaignDashboard.tscn"
 		)
 
-func _on_dict_card_clicked(event: InputEvent, char_dict: Dictionary) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		# Convert dict to Character Resource for the details screen
-		var character := Character.new()
-		character.from_dictionary(char_dict)
-		var gsm = get_node_or_null("/root/GameStateManager")
-		if gsm and gsm.has_method("set_temp_data"):
-			gsm.set_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER, character)
-			# Store the source dict so CharacterDetailsScreen can write changes back
-			gsm.set_temp_data("source_crew_dict", char_dict)
-			# Pass crew list for swipe navigation
-			_store_crew_list_for_swipe(gsm, character)
-			gsm.navigate_to_screen("character_details")
+## T11-28: renamed from _on_dict_card_clicked and no longer takes the InputEvent —
+## TapGesture owns the tap-vs-drag discrimination now, so this only runs on a real tap.
+func _on_dict_card_tapped(char_dict: Dictionary) -> void:
+	# Convert dict to Character Resource for the details screen
+	var character := Character.new()
+	character.from_dictionary(char_dict)
+	var gsm = get_node_or_null("/root/GameStateManager")
+	if gsm and gsm.has_method("set_temp_data"):
+		gsm.set_temp_data(gsm.TEMP_KEY_SELECTED_CHARACTER, character)
+		# Store the source dict so CharacterDetailsScreen can write changes back
+		gsm.set_temp_data("source_crew_dict", char_dict)
+		# Pass crew list for swipe navigation
+		_store_crew_list_for_swipe(gsm, character)
+		gsm.navigate_to_screen("character_details")
 
 func _store_crew_list_for_swipe(gsm: Node, selected_character: Character) -> void:
 	if not current_campaign:
@@ -346,12 +355,14 @@ func _resolve_background_name(val) -> String:
 			return keys[idx].capitalize()
 	return "Unknown"
 
+## T11-31 - the class name in the book's spelling.
+##
+## A String was returned VERBATIM, so the stored key "BOUNTY_HUNTER" printed as
+## "BOUNTY_HUNTER" on the crew card. GlobalEnums.get_class_display_name() already
+## handles both the int and String forms and produces the p.27 spelling
+## ("Bounty Hunter"), so this is a delegation rather than a second copy.
 func _resolve_class_name(val) -> String:
-	if val is String:
-		return val
-	if val is int or val is float:
-		var idx := int(val)
-		var keys: Array = GlobalEnums.CharacterClass.keys()
-		if idx >= 0 and idx < keys.size():
-			return keys[idx].capitalize()
-	return "Unknown"
+	# Returns "Unknown" rather than "" on purpose: the caller at :133-139 keys
+	# on that exact string to fall back to parsing the character's traits, so a
+	# blank here would silently disable the captain-card fallback.
+	return GlobalEnums.get_class_display_name(val)

@@ -11,6 +11,12 @@ static var _strange_ids: Array[String] = []  # IDs in the strange_characters arr
 static var _crew_type_tables: Dictionary = {}  # p.14 Crew Type Tables
 static var _loaded: bool = false
 
+## T11-31. Preloaded as a SCRIPT, not reached through the /root/GlobalEnums
+## autoload node: this class is a static RefCounted with no tree, and an
+## autoload lookup from there does not return null - it ERRORS and aborts the
+## enclosing function. The members used here are plain enums on the script.
+const GlobalEnumsRef = preload("res://src/core/systems/GlobalEnums.gd")
+
 static func _ensure_loaded() -> void:
 	if _loaded:
 		return
@@ -95,6 +101,99 @@ static func get_stat_modifiers(species_id: String) -> Dictionary:
 
 static func get_species_name(species_id: String) -> String:
 	return get_species(species_id).get("name", "")
+
+
+## ── T11-31: the ONE species display name ───────────────────────────────────
+##
+## THE DEFECT (device, deploy #19). Manage Crew printed raw enum keys - "KERIN",
+## "HUMAN", "FERAL" - while the Campaign Dashboard, one tap away, printed
+## "K'Erin" and "Human" correctly for the same crew. Three implementations
+## existed:
+##
+##   CampaignDashboard._species_to_display()      correct (reads the JSON)
+##   SheetDataContext._species_display_name()     correct-ish (id path only)
+##   CrewManagementScreen._format_origin_display() broken - returned an
+##       underscore-free key untouched, so "KERIN" passed straight through
+##
+## and they could not agree, because agreeing was nobody's job. This is that job.
+##
+## ⚠ WHY NOT JUST REFORMAT THE ID. `capitalize()`/`to_pascal_case()` get three of
+## the 28 wrong, and they are wrong in the book's own words:
+##     kerin          -> "Kerin"          book: K'Erin        (apostrophe)
+##     genetic_uplift -> "GeneticUplift"  book: Genetic Uplift (pascal eats the
+##                                        space it just inserted)
+##     de_converted   -> "DeConverted"    book: De-converted   (hyphen)
+## `data/character_species.json` OWNS the printed name for all 28 ids, so it is
+## READ, never reconstructed.
+##
+## ⚠ RESOLUTION ORDER MATTERS. `species_id` is the canonical String id on every
+## post-migration save and is tried first. `origin` is the legacy field: across
+## 21 real save files it is numeric in 52% of crew records (4 float / 69 int /
+## 59 String), and Godot's JSON parser returns both numeric forms as float - so
+## the numeric branch must accept float as well as int, and `value is int` would
+## be permanently false on loaded data.
+##
+## `fallback` is what an unresolvable EMPTY value renders as. The dashboard has
+## always shown "Unknown" on a crew card; the printable sheet must show a blank
+## box (blank is a legitimate value on a print form, and inventing a word there
+## would be worse). Neither is more correct, so the caller says.
+static func display_name(
+	value: Variant, species_id: String = "", fallback: String = ""
+) -> String:
+	# 1. The canonical id.
+	var sid: String = species_id.strip_edges()
+	if not sid.is_empty():
+		var by_id: String = str(get_species(sid).get("name", ""))
+		if not by_id.is_empty():
+			return by_id
+
+	if value is String:
+		var raw: String = (value as String).strip_edges()
+		if raw.is_empty() or raw == "Unknown":
+			return fallback
+		# 2. The value may BE an id ("genetic_uplift") or an already-correct
+		#    display name ("Genetic Uplift", "K'Erin"). Normalise both to the id
+		#    and read the owning file, so a name that is already right is handed
+		#    back untouched rather than reformatted into something wrong.
+		var by_token: String = str(get_species(_to_species_id(raw)).get("name", ""))
+		if not by_token.is_empty():
+			return by_token
+		# 3. Not a species at all (a class, a background, a DLC id we do not
+		#    ship). capitalize() takes the RAW snake_case token - that is the
+		#    input it is built for. Replacing underscores FIRST and passing
+		#    "not a real species" returns "Not aA rReal sSpecies", because it
+		#    also inserts a space before each interior capital it produces.
+		#    Observed, not theorised.
+		return raw.capitalize()
+
+	# 4. Legacy numeric origin. `is int` is deliberately NOT used: JSON.parse
+	#    returns every number as float, so it would be false on exactly the
+	#    saves this branch exists for.
+	if value is int or value is float:
+		var idx: int = int(value)
+		var keys: Array = GlobalEnumsRef.Origin.keys()
+		if idx >= 0 and idx < keys.size():
+			var key: String = str(keys[idx])
+			# The enum key IS the id for every species row (KERIN -> kerin), so
+			# try the owning file before falling back to formatting the key.
+			var by_enum: String = str(get_species(key.to_lower()).get("name", ""))
+			if not by_enum.is_empty():
+				return by_enum
+			return key.capitalize()
+
+	return fallback
+
+
+## A display name or an id, normalised to the id `character_species.json` uses.
+##
+## The three transforms are the three ways the book's names differ from their ids:
+## an apostrophe (K'Erin), a hyphen (De-converted, Emo-suppressed, Bio-upgrade),
+## and a space (Genetic Uplift, Assault Bot, Unity Agent).
+static func _to_species_id(token: String) -> String:
+	return token.to_lower() \
+		.replace("'", "") \
+		.replace("-", "_") \
+		.replace(" ", "_")
 
 
 ## ── Core Rules p.14 "Crew Type Tables" — the Random Method (p.13) ─────────

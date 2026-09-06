@@ -403,7 +403,19 @@ static func apply_enemy_delta(
 	if delta > 0:
 		for _i in range(delta):
 			var extra: Dictionary = (out[-1] as Dictionary).duplicate(true)
-			extra["name"] = "%s (%s)" % [extra.get("name", "Enemy"), label]
+			# T11-45. Name the addition from the BASE ENEMY TYPE, never from the
+			# figure it was duplicated off. The role downgrade below is correct and
+			# was already here, but building the name off out[-1] meant that when
+			# the last figure happened to be a Specialist the roster read
+			# "<Type> Specialist (Reinforcement)" with role "standard" - the name
+			# contradicting the role on the same line. On a companion app the roster
+			# IS the instruction, so the player fields the wrong figure.
+			# `type` is the base type every generated figure carries; the name is
+			# only a fallback for a hand-built dict that lacks it.
+			var base_name: String = str(extra.get("type", extra.get("name", "Enemy")))
+			if base_name.strip_edges().is_empty():
+				base_name = "Enemy"
+			extra["name"] = "%s (%s)" % [base_name, label]
 			# A duplicated figure must not clone a unique role — the book adds a
 			# rank-and-file body, not a second Lieutenant or Unique Individual.
 			extra["role"] = "standard"

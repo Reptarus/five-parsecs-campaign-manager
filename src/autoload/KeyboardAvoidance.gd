@@ -68,6 +68,10 @@ const STABLE_READINGS_REQUIRED := 2
 
 ## Emitted after a successful adjustment. Exists so QA and tests can observe that
 ## avoidance actually ran, rather than inferring it from a screenshot.
+## `shifted_by` is what was ACTUALLY applied, which for the move-the-Window
+## strategy can be less than what was needed: that strategy cannot move a window
+## above the top of the screen (T11-15). A listener that needs to know the field
+## is genuinely clear must compare this against the shift it expected.
 signal avoidance_applied(control: Control, shifted_by: float)
 
 ## Reserved name for the headroom spacer. Distinctive so a container walk can
@@ -140,8 +144,27 @@ func _shift_window_up(control: Control, shift: float) -> void:
 		_restore_window()
 		_shifted_window = w
 		_window_original_y = w.position.y
-	w.position.y = maxi(0, _window_original_y - int(ceil(shift)))
-	avoidance_applied.emit(control, shift)
+	# T11-15 - report what was APPLIED, not what was REQUESTED.
+	#
+	# This strategy has a HARD CEILING of `_window_original_y`: a window cannot
+	# move above the top of the screen, so it can only ever surrender the gap it
+	# already sits below the top. Measured on the tablet (deploy #19), the QA
+	# dialog asked for 511.3px of avoidance and had 64px to give:
+	#   raw=760 window_h=1600 logical_vp_h=1268.0 -> kb_logical=602.3
+	#   field_bottom=1165.0 shift=511.3
+	# The clamp below was already correct; the SIGNAL was not, and it emitted the
+	# requested 511.3 as though the field had been cleared. Anything listening -
+	# including a test - was told the avoidance had worked.
+	var target_y: int = maxi(0, _window_original_y - int(ceil(shift)))
+	var applied: float = float(_window_original_y - target_y)
+	w.position.y = target_y
+	if OS.is_debug_build() and applied + 0.5 < shift:
+		print("[T11-15] window shift SHORT: requested %.1f, applied %.1f "
+			% [shift, applied]
+			+ "(window sits %d px from the top, which is all it can give). "
+			% _window_original_y
+			+ "A dialog that needs more than this must scroll, not move.")
+	avoidance_applied.emit(control, applied)
 
 
 ## Put a shifted Window back. Called from exactly the same places as

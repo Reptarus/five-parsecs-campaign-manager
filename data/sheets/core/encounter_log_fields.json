@@ -99,6 +99,76 @@
       "rule_offset": 134
     },
     {
+      "id": "enemy_panic_1",
+      "type": "number",
+      "rect": [
+        719,
+        677,
+        167,
+        130
+      ],
+      "font_size": 34,
+      "source": "journal.last_battle.enemy_panic",
+      "label_inset": 0,
+      "rule_offset": 134
+    },
+    {
+      "id": "enemy_speed_1",
+      "type": "number",
+      "rect": [
+        893,
+        677,
+        167,
+        130
+      ],
+      "font_size": 34,
+      "source": "journal.last_battle.enemy_speed",
+      "label_inset": 0,
+      "rule_offset": 134
+    },
+    {
+      "id": "enemy_combat_1",
+      "type": "number",
+      "rect": [
+        1067,
+        677,
+        167,
+        130
+      ],
+      "font_size": 34,
+      "source": "journal.last_battle.enemy_combat",
+      "label_inset": 0,
+      "rule_offset": 134
+    },
+    {
+      "id": "enemy_toughness_1",
+      "type": "number",
+      "rect": [
+        1241,
+        677,
+        167,
+        130
+      ],
+      "font_size": 34,
+      "source": "journal.last_battle.enemy_toughness",
+      "label_inset": 0,
+      "rule_offset": 134
+    },
+    {
+      "id": "enemy_ai_1",
+      "type": "number",
+      "rect": [
+        1415,
+        677,
+        345,
+        130
+      ],
+      "font_size": 34,
+      "source": "journal.last_battle.enemy_ai",
+      "label_inset": 0,
+      "rule_offset": 134
+    },
+    {
       "id": "outcome_notes",
       "type": "multiline_text",
       "rect": [

@@ -184,3 +184,67 @@ func test_submit_forwards_kills_by_character_from_the_prefill() -> void:
 	# and calls .size(). An int there aborts that whole function.
 	assert_bool(kbc["id_alpha"] is Array).is_true()
 	assert_int((kbc["id_alpha"] as Array).size()).is_equal(2)
+
+
+# ============================================================================
+# T11-18 — the form must fit the drawer that hosts it
+# ============================================================================
+#
+# THE DEFECT (device, deploy #19, landscape only). "Record Battle Result" opens in a
+# `wide` SlideOverDrawer, i.e. min_panel_width 480 (TacticalBattleUI._make_drawer),
+# and in landscape SlideOverDrawer clamps the panel to minf(480, viewport.x * 0.5)
+# = 480 — flush with the screen edge. The OUTCOME row was an HBoxContainer holding
+# the Battle Result OptionButton, the "Held the field" CheckBox AND the "Rounds
+# fought" SpinBox side by side; its combined minimum exceeded 480, the AUTO
+# horizontal scroll clipped at the panel border, and the rightmost child — the
+# SpinBox stepper — fell off the screen where nothing could reach it.
+#
+# Portrait was fine, because the drawer becomes a near-full-width sheet there. That
+# is why a geometry sweep at one orientation would not have found it.
+#
+# HFlowContainer wraps its children at the container border instead of demanding
+# the width, which is the file's own established pattern for exactly this
+# (PostBattleSequence uses it for the same reason).
+
+## The number the drawer actually gives this form in landscape.
+const WIDE_DRAWER_WIDTH := 480.0
+
+
+func test_the_form_fits_the_wide_drawer_it_is_hosted_in() -> void:
+	var form := _make_form({})
+	await await_idle_frame()
+
+	var needed: float = form.get_combined_minimum_size().x
+	assert_float(needed).override_failure_message(
+		"The form demands %.1f px but the wide drawer is %.1f px in landscape, so "
+		% [needed, WIDE_DRAWER_WIDTH]
+		+ "the rightmost control is clipped off the screen edge. Rows that hold "
+		+ "several controls side by side must be HFlowContainer, not HBoxContainer."
+	).is_less_equal(WIDE_DRAWER_WIDTH)
+
+
+## Constrained to the real drawer width, no row may still be demanding more than it
+## has — which is the state that produces the clip.
+func test_no_row_overflows_when_the_form_is_constrained() -> void:
+	var form := _make_form({})
+	form.custom_minimum_size.x = WIDE_DRAWER_WIDTH
+	form.size = Vector2(WIDE_DRAWER_WIDTH, 900)
+	await await_idle_frame()
+	await await_idle_frame()
+
+	var offenders: Array[String] = []
+	_collect_overflowing(form, WIDE_DRAWER_WIDTH, offenders)
+	assert_array(offenders).override_failure_message(
+		"These containers demand more width than the drawer gives them: %s"
+		% [offenders]
+	).is_empty()
+
+
+func _collect_overflowing(node: Node, limit: float, out: Array[String]) -> void:
+	for child in node.get_children():
+		if child is BoxContainer or child is FlowContainer:
+			var c := child as Container
+			if c.get_combined_minimum_size().x > limit:
+				out.append("%s (%s, needs %.1f)"
+					% [c.name, c.get_class(), c.get_combined_minimum_size().x])
+		_collect_overflowing(child, limit, out)

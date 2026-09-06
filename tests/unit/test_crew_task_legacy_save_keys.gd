@@ -147,6 +147,47 @@ func test_the_confirm_dialog_keeps_a_usable_floor() -> void:
 	assert_int(size.y).is_greater_equal(200)
 
 
+# ── T11-21: the confirmation must not read as a full-screen takeover ─────────
+#
+# THE FINDING (device, deploy #19). confirm_dialog_size() returns 0.8 of the
+# viewport on BOTH axes, so a five-line yes/no confirmation reserved roughly 80% of
+# a 1379px screen with its message marooned in a mostly empty frame.
+#
+# The WIDTH stays at 0.8 deliberately: dialog_autowrap needs a width to wrap
+# against, and that value is what stops the built-in label setting its own (the
+# earlier fix these cases sit beside). Only the height is reclaimed, and only AFTER
+# layout - the content height is not knowable until the dialog has been laid out at
+# its final width, because wrapping makes height a function of width.
+
+func test_a_short_message_settles_well_under_half_the_screen() -> void:
+	# A five-line message needs roughly 300px. On a 1379px screen the old code
+	# reserved 1103.
+	var h: int = CrewTaskComponentScript.confirm_dialog_height(300.0, 1379.0)
+	assert_int(h).override_failure_message(
+		"A 300px message settled at %dpx on a 1379px screen." % h
+	).is_equal(300)
+	assert_float(float(h) / 1379.0).override_failure_message(
+		"The confirmation still occupies %.0f%% of the screen height."
+		% [100.0 * h / 1379.0]
+	).is_less(0.5)
+
+
+## The cap is unchanged: a genuinely long message must still be bounded by the
+## screen, which is the defect the 0.8 was introduced to fix in the first place.
+func test_a_long_message_is_still_capped_by_the_screen() -> void:
+	var h: int = CrewTaskComponentScript.confirm_dialog_height(5000.0, 1379.0)
+	assert_int(h).override_failure_message(
+		"A long message escaped the 0.8 cap and would push its buttons off-screen."
+	).is_equal(int(1379.0 * 0.8))
+
+
+## ...and the floor is unchanged, so the buttons cannot be squeezed out the other way.
+func test_a_tiny_message_keeps_the_usable_floor() -> void:
+	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 1379.0)) 		.is_greater_equal(200)
+	# A tiny VIEWPORT must not drive the height below the floor either.
+	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 10.0)) 		.is_greater_equal(200)
+
+
 # ── T9-41: the equipment id the transfer service can actually match ───────────
 
 ## The silent one. Both transfer paths read `member.character_id`, which is absent

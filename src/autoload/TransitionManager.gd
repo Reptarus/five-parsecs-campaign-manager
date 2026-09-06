@@ -79,6 +79,24 @@ func fade_to_scene(scene_path: String, duration: float = DEFAULT_DURATION, fade_
 		push_error("TransitionManager: Scene file not found: " + scene_path)
 		return
 
+	# T11-27: this node declares no process_mode, so it INHERITS the tree pause.
+	# create_tween() binds the tween to the calling node and the default
+	# TWEEN_PAUSE_BOUND makes it stop with that node — so `await
+	# _fade_out()` below never returns while the tree is paused, and the
+	# change_scene_to_file() further down is never reached. The 5s safety
+	# timer still fires (create_timer's process_always defaults to true), so
+	# the symptom is a dead button plus a lone "Safety timeout" line. The
+	# callers unpause first; this is the loud tell if a new one forgets.
+	# NOTE: push_error/push_warning go to Android LOGCAT, never to
+	# user://logs/godot.log — check logcat when a transition looks dead.
+	if get_tree().paused:
+		push_error(
+			"TransitionManager: fade_to_scene('" + scene_path
+			+ "') called while SceneTree.paused is true. The bound fade tween "
+			+ "cannot advance, so the scene change will never happen. "
+			+ "Unpause before navigating (see SettingsOverlay T11-27)."
+		)
+
 	_is_transitioning = true
 	transition_started.emit()
 

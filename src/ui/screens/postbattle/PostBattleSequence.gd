@@ -467,6 +467,10 @@ func _connect_backend_signals() -> void:
 		if not post_battle_phase.illegal_salvage_checked.is_connected(_on_backend_illegal_salvage):
 			post_battle_phase.illegal_salvage_checked.connect(_on_backend_illegal_salvage)
 
+	if post_battle_phase.has_signal("nemesis_choice_required"):
+		if not post_battle_phase.nemesis_choice_required.is_connected(_on_backend_nemesis_choice):
+			post_battle_phase.nemesis_choice_required.connect(_on_backend_nemesis_choice)
+
 	if post_battle_phase.has_signal("salvage_banked_to_campaign"):
 		if not post_battle_phase.salvage_banked_to_campaign.is_connected(_on_backend_salvage_banked):
 			post_battle_phase.salvage_banked_to_campaign.connect(_on_backend_salvage_banked)
@@ -776,6 +780,61 @@ func _on_backend_illegal_salvage(check: Dictionary) -> void:
 	if nm and nm.has_method("show_warning"):
 		nm.show_warning("Authorities on your trail — you must answer for the job.")
 	_show_illegal_salvage_choice(check)
+
+
+## T11-25 - Core Rules p.126 Old Nemesis, rolls 21-23: "Select a prior Rival, or
+## roll up a new one."
+##
+## The backend has already rolled the event (a roll is not a decision) but has
+## deliberately created NOTHING yet, because the riders attach to whichever Rival
+## the player names. Reuses ItemChoicePopup, the same component the p.137 salvage
+## consequence uses, and for the same reason: it refuses to close without a
+## selection, and this is a choice the player does not get to walk away from.
+func _on_backend_nemesis_choice(choice: Dictionary) -> void:
+	var labels: Array = []
+	var id_by_label: Dictionary = {}
+	for opt_v in choice.get("options", []):
+		var opt: Dictionary = opt_v
+		var label: String = str(opt.get("label", ""))
+		if label.is_empty():
+			continue
+		labels.append(label)
+		id_by_label[label] = str(opt.get("id", ""))
+	if labels.is_empty():
+		return
+
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "An Old Nemesis"
+	add_child(popup)
+	popup.item_chosen.connect(
+		func(chosen_label: String) -> void:
+			_apply_nemesis_choice(str(id_by_label.get(chosen_label, ""))))
+	popup.show_choices(
+		str(choice.get("prompt", "Select a prior Rival, or roll up a new one.")),
+		labels,
+		"Face Them")
+
+
+func _apply_nemesis_choice(option_id: String) -> void:
+	# `_post_battle_phase` (member, underscore) NOT `post_battle_phase` - the
+	# latter is a LOCAL inside _connect_backend_signals(); see the note on
+	# _apply_illegal_salvage_choice below, where referencing the wrong one would
+	# be a parse error that takes the whole wizard down.
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp):
+		var phase_manager = get_node_or_null("/root/CampaignPhaseManager")
+		if phase_manager and phase_manager.has_method("get_phase_handler"):
+			pbp = phase_manager.get_phase_handler("post_battle")
+	if pbp == null or not pbp.has_method("resolve_nemesis_choice"):
+		return
+	var result: Dictionary = pbp.resolve_nemesis_choice(option_id)
+	var detail: String = str(result.get("detail", ""))
+	if detail.is_empty():
+		return
+	_add_result_to_log(detail)
+	var nm: Node = get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_info"):
+		nm.show_info(detail)
 
 
 func _show_illegal_salvage_choice(check: Dictionary) -> void:

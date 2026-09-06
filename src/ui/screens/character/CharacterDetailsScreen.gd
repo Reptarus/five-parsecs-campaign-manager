@@ -873,7 +873,7 @@ func _on_save_pressed() -> void:
 		current_character.player_notes = notes_edit.text
 
 	# Write changes back to the source crew dict (if this was a dict-based character).
-	# Without this, notes/edits are lost because _on_dict_card_clicked creates a copy.
+	# Without this, notes/edits are lost because _on_dict_card_tapped creates a copy.
 	_sync_character_to_source_dict()
 
 	# Mark campaign as modified (needs save)

@@ -1,5 +1,8 @@
 extends FiveParsecsCampaignPanel
 
+## T11-28. No class_name on that file, so it must be preloaded.
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
+
 ## Library hub screen — responsive category grid with global search bar.
 ## Each category displayed as a HubFeatureCard with game-icons.net SVG icon.
 ## Search debounces 300ms and shows flat result list across all categories.
@@ -336,10 +339,10 @@ func _create_search_result_row(item: Dictionary, index: int) -> PanelContainer:
 	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	hbox.add_child(arrow)
 
-	# Click handler
-	panel.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-			_show_item_detail(item)
+	# T11-28: tap, not press-down — a search result opened the instant a finger
+	# touched it to scroll the result list.
+	TapGestureRef.connect_tap(panel, func() -> void:
+		_show_item_detail(item)
 	)
 
 	return panel

@@ -220,6 +220,18 @@ func _unhandled_input(event: InputEvent) -> void:
 
 
 func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
+	# T11-27 order-independent guard. The overlay pauses the SceneTree, and a
+	# tree-bound tween does not advance while paused — so TransitionManager's
+	# fade stalls on `await _tween.finished` and change_scene_to_file() is
+	# never reached, leaving a dead-looking button. SceneRouter.navigate_to()
+	# emits scene_changed SYNCHRONOUSLY on the line after it calls
+	# fade_to_scene() (SceneRouter.gd), i.e. before that coroutine resumes
+	# from its first await, so unpausing here is always in time. Guarding the
+	# CALLEE this way means any future navigating control added inside the
+	# overlay is covered without having to remember this trap (the T9-50
+	# lesson: a fix ordered against SOME callers is not a fix).
+	if _settings_panel and _settings_panel.visible:
+		_hide_settings_overlay()
 	_update_visibility()
 	# Safety net so no screen can draw under these buttons just because nobody
 	# remembered to wire it up — and the only route for a screen whose script has no

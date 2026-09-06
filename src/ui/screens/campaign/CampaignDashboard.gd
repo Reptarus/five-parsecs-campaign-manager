@@ -2,6 +2,10 @@
 # Extends CampaignScreenBase for shared deep-space theming + responsive layout
 extends CampaignScreenBase
 
+## T11-16. FPCM_BattleCheckpoint has a class_name, but this screen preloads its
+## references explicitly (see the note on the other consts), so it is named here.
+const BattleCheckpointRef = preload("res://src/core/battle/BattleCheckpoint.gd")
+
 const GameEnums = preload(
 	"res://src/core/enums/GameEnums.gd")
 const CharacterHistoryPanelClass = preload(
@@ -737,60 +741,16 @@ func _get_crew_members(campaign) -> Array:
 		return campaign.crew_data.get("members", [])
 	return []
 
-## The species' printed name, from the file that owns it.
-##
-## `data/character_species.json` carries a `name` for all 28 species ids and is
-## their canonical owner, so it is READ rather than reformatted. Falls back to
-## _enum_to_display for anything not in the JSON (classes, backgrounds, legacy
-## numeric origins).
-##
-## ⚠ Do NOT reformat the id instead. `_enum_to_display` string-formats, and it got
-## three of the 28 wrong on the crew cards — observed on device:
-##     kerin          -> "Kerin"          (book: K'Erin — apostrophe)
-##     genetic_uplift -> "GeneticUplift"  (book: Genetic Uplift — to_pascal_case
-##                                         eats the space it just inserted)
-##     de_converted   -> "DeConverted"    (book: De-converted)
-## Same defect and same fix as SheetDataContext._species_display_name(); the sheet
-## and the dashboard must not disagree about a crew member's species.
-## ⚠ Read `species_id` FIRST. It is the canonical String id on every post-migration
-## save; `origin` is the legacy field and carries a numeric enum as a FLOAT on
-## pre-migration saves (observed: `origin=7.0`), which only the enum path can read.
-## On new saves `origin` holds an already-formatted display string ("Genetic
-## Uplift") — and `_enum_to_display` then ran `to_pascal_case()` over it and ATE
-## the space, which is where "GeneticUplift" came from. It was mangling a value
-## that was already right.
+## T11-31: this logic MOVED to SpeciesDataService.display_name(), which is now the
+## one implementation the dashboard, the crew screen and the printable sheets all
+## share. It used to live here and be correct here only — Manage Crew, one tap
+## away, printed "KERIN" for the same crew member. "Unknown" is passed as this
+## surface's fallback because a crew card has always shown that for an empty
+## value; the sheet passes "" instead, because a print form wants a blank box.
 func _species_to_display(member_value, species_id_value = null) -> String:
-	if species_id_value is String and not (species_id_value as String).is_empty():
-		var by_id: Dictionary = SpeciesDataService.get_species(species_id_value)
-		var name_by_id: String = str(by_id.get("name", ""))
-		if not name_by_id.is_empty():
-			return name_by_id
-	if member_value is String and not (member_value as String).is_empty() \
-			and member_value != "Unknown":
-		# A display string that is ALREADY a known species name — hand it back
-		# untouched rather than reformatting it.
-		var by_name: Dictionary = SpeciesDataService.get_species(
-			str(member_value).to_lower().replace(" ", "_").replace("'", ""))
-		var name_by_name: String = str(by_name.get("name", ""))
-		if not name_by_name.is_empty():
-			return name_by_name
-	return _enum_to_display(member_value, GlobalEnums.Origin)
+	var sid: String = str(species_id_value) if species_id_value is String else ""
+	return SpeciesDataService.display_name(member_value, sid, "Unknown")
 
-
-func _enum_to_display(value, enum_dict: Dictionary) -> String:
-	## Convert an enum int (or string) to a readable display name.
-	## e.g. 6 → "Soulless", "WORKING_CLASS" → "Working Class"
-	if value is String:
-		if value.is_empty() or value == "Unknown":
-			return "Unknown"
-		# Already a string name — just clean it up
-		return value.replace("_", " ").to_pascal_case().replace("  ", " ")
-	var int_val := int(value)
-	for key in enum_dict:
-		if enum_dict[key] == int_val:
-			# key is like "SOULLESS" or "WORKING_CLASS" — make readable
-			return str(key).replace("_", " ").capitalize()
-	return str(value)
 
 func _build_crew_card(member) -> PanelContainer:
 	var is_dict := member is Dictionary
@@ -807,9 +767,11 @@ func _build_crew_card(member) -> PanelContainer:
 		species = _species_to_display(
 			member.get("origin", member.get("species", "Unknown")),
 			member.get("species_id", null))
-		char_class = _enum_to_display(
-			member.get("character_class", member.get("class", "Unknown")),
-			GlobalEnums.CharacterClass)
+		# T11-31: _enum_to_display ran to_pascal_case(), which ATE the space it
+		# had just inserted - "BOUNTY_HUNTER" rendered as "BountyHunter".
+		# get_class_display_name() produces the book's p.27 spelling.
+		char_class = GlobalEnums.get_class_display_name(
+			member.get("character_class", member.get("class", "Unknown")))
 		is_captain = member.get("is_captain", false)
 		stats = {
 			"C": member.get("combat", 0),
@@ -825,9 +787,8 @@ func _build_crew_card(member) -> PanelContainer:
 		species = _species_to_display(
 			member.species if "species" in member else "Unknown",
 			member.species_id if "species_id" in member else null)
-		char_class = _enum_to_display(
-			member.character_class if "character_class" in member else "Unknown",
-			GlobalEnums.CharacterClass)
+		char_class = GlobalEnums.get_class_display_name(
+			member.character_class if "character_class" in member else "Unknown")
 		is_captain = member.is_captain \
 			if "is_captain" in member else false
 		stats = {
@@ -1958,14 +1919,41 @@ func _update_phase_ui(phase) -> void:
 		var pd: Dictionary = campaign.progress_data \
 			if "progress_data" in campaign else {}
 		turn = pd.get("turns_played", 0) + 1
+	# T11-16 - a battle already in progress must not be advertised as a new turn.
+	#
+	# THE FINDING (device, deploy #19). After force-stopping mid-battle and
+	# reopening the campaign, the dashboard read "Begin Turn 9" and offered a
+	# button that resumed the SAVED BATTLE from turn 8. The checkpoint was intact
+	# and the resume worked correctly - only the affordance lied, and it lied in
+	# the direction that invites a player to think their battle was lost.
+	#
+	# ⚠ CORRECTION to the finding as originally written: it claimed `game_phase`
+	# was absent from the save. It is not - it is `meta.game_phase` ("active"),
+	# written by FiveParsecsCampaignCore. The original note read the TOP level.
+	# The state that actually distinguishes the two cases is the battle
+	# checkpoint, which is what is read here.
+	var resuming: bool = false
+	if campaign and "progress_data" in campaign:
+		var pd2: Dictionary = campaign.progress_data
+		resuming = BattleCheckpointRef.is_valid(
+			pd2.get("active_battle", {}), int(pd2.get("turns_played", 0)))
 	if phase_label:
-		phase_label.text = "Turn %d — %s" % [turn, phase_name]
+		if resuming:
+			# The checkpoint stamps turns_played, the COMPLETED count, so the
+			# battle belongs to the turn in progress - the same number the
+			# button shows.
+			phase_label.text = "Turn %d — Battle in progress" % turn
+		else:
+			phase_label.text = "Turn %d — %s" % [turn, phase_name]
 	if action_button:
 		# M3: pressing this from the dashboard ENTERS the campaign turn (the World
 		# Phase is the first interactive step). The old "Next: <phase>" used the
 		# dashboard's own phase enum (next = Story), which is decoupled from the
 		# turn controller's flow → it promised "Story" but landed on Travel/Upkeep.
-		action_button.text = "Begin Turn %d" % turn
+		if resuming:
+			action_button.text = "Resume Battle — Turn %d" % turn
+		else:
+			action_button.text = "Begin Turn %d" % turn
 
 func _get_next_phase(current) -> int:
 	var FPC = GameEnums.FiveParcsecsCampaignPhase

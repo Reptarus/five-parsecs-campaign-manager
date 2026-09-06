@@ -6738,3 +6738,81 @@ what makes "2 aliens + 1 bot" the correct reading of roll 6.
 - Checklist §3 legibility as a formal pass (the battle screen read cleanly in both
   orientations, but that is an observation, not the checklist).
 - A5 renderer lever (`gl_compatibility`) — still unmeasured.
+
+
+## Deploys #21 and #22 — 2026-09-05/06 (versionCode 7, TB361FU HNQ05SR3, 2560x1600)
+
+Full record, row by row with its evidence artifact:
+[docs/qa/TABLET_FINDINGS_2026-09-05.md](TABLET_FINDINGS_2026-09-05.md) § deploy #21 / #22.
+This section is the ledger entry only.
+
+**The whole T11 acceptance list is now closed on hardware.** Deploy #19's walk plus the dry
+run left 21 desk-fixed findings with no device verdict; #21 and #22 gave every one of them a
+verdict, and opened seven more.
+
+### The method that made it affordable
+
+The previous plan budgeted ~2.5 h of device time, one battle per forced roll. The walk took
+about 90 minutes, and the saving was not cleverness:
+
+1. **Census the save before planning the walk.** Six of thirteen rows needed no play-through
+   at all — the pulled device save already held every broken shape (`hull_points: 35.0`,
+   `enemy_category: "interested_parties"`, six raw `char_*` ids, both an int and a float
+   `casualties` in one file). The fixture the previous plan was built around was
+   unnecessary.
+2. **Snapshot and restore a PLAYED save; never author one.** `CampaignJournal.create_entry()`
+   passes `stats` through wholesale, so a fabricated entry sails through the chokepoint and
+   renders perfectly while bypassing the producer the row exists to test. Restoring a real
+   save pays the expensive part — *reaching* battle state — once instead of once per row.
+3. ⚠ **The restore route is not the obvious one.** `run-as PKG sh -c 'cat > files/saves/x'`
+   is **denied by SELinux** even though `run-as ls` and `run-as cat` both succeed. The route
+   that works is `adb push` → `/data/local/tmp/` → `run-as PKG cp`. Write BOTH `<id>.save`
+   and `<id>.save.bak` with the same bytes, or `read_json_with_fallback()` can load a
+   mismatched generation. Every restore also needs a force-stop: `bind_campaign()`
+   early-returns when the campaign id is unchanged, so a save cannot be hot-swapped in —
+   and the force-stop wipes the in-memory forced-roll queue, which is what dictates the
+   arm-after-relaunch ordering.
+
+### Verdicts
+
+- **PASS on hardware:** T11-15, T11-16 (both branches), T11-17, T11-18, T11-19, T11-20,
+  T11-21, T11-22, T11-23, T11-24, T11-25, T11-30, T11-32, T11-33, T11-34, T11-35, T11-37,
+  T11-38, T11-39. **T11-07** re-confirmed across an unplanned overnight rotation
+  (`content_scale` held 0.7830 while `dpi` moved 1.000 → 2.000 across three samples).
+- **⭐ T9-51 CLOSED on hardware**, from a stronger control than was planned — both cycles
+  restored the identical save, so the queued roll was the only variable, and the two arms
+  landed on `[88,91]` and `[92,94]`, exactly T9-51's scope. The deploy #19 line calling it
+  "unverifiable on device" is corrected at the row.
+- **Opened:** T11-40 (World Phase footer below the fold), T11-41, T11-42, T11-43, T11-44,
+  T11-45, and later T11-46 / T11-47 at the desk.
+- **Knowingly out of scope:** T9-48 (needs a Rival AMBUSH D10 of 1).
+
+### Two corrections to previously recorded verdicts
+
+- **T11-20's evidence was cited to a reading that cannot disagree.** The dashboard derives
+  its turn as `turns_played + 1` and never reads `turn_number`, so it renders "Begin Turn
+  10" identically with and without the fix. The verdict was right; the citation is now the
+  persisted counter in `save_C1_turn10.json` (`turns_played = 9`, an **int** — a float
+  would have come out of `JSON.parse`, an int was written by that session).
+- **T11-42's recorded cause was wrong** and is corrected at the row. Nothing "drops" the
+  labels; a non-wrapping prose `Label` set a 609 px container minimum against a 380 px
+  window and pushed the buttons' centred text outside the visible rect.
+
+## Desk pass — 2026-09-06
+
+Applied after every device leg closed, so the "installed APK matches source" invariant the
+walk ran under is deliberately ended. **A rebuild is required before further device work.**
+
+- **Fixed:** T11-41, T11-42, T11-43, T11-44 (8 producer sites + a legacy-alias map for
+  entries already in saves + `lint_journal_vocabulary.py` extended to the third vocabulary,
+  detection-proven both arms), T11-45.
+- **T11-40:** harness half closed (the layout sweep populates WorldPhaseController now, and
+  the sweep was RUN); product fix deliberately not written — two hypotheses were killed by
+  measurement and the third is unverified. Detail at the row.
+- **Opened at the desk:** **T11-46** (live code names a zero-caller function as its
+  authority) and **T11-47** (the layout sweep's device-equivalence premise was silently
+  invalidated by the T11-07 fix — its "tablet" rows were half the device's design space).
+- **Gates:** 11 lints exit 0 · 167 unit cases across 14 suites, 0 failures · layout sweep
+  `passed=217 failed=7 skipped=0` at eight sizes, the 7 proven pre-existing by a
+  `populate=off` control returning the identical numbers · `git diff -- data/` still lists
+  only the two sheet manifests. Nothing is committed.

@@ -1,5 +1,10 @@
 extends FiveParsecsCampaignPanel
 
+## T11-28. Neither file declares a class_name, so both must be preloaded.
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+
 ## Responsive item list for a single compendium category.
 ## Shows filter tabs (with humanized labels), search within category,
 ## and tapping an item opens a RulesPopup detail view.
@@ -346,6 +351,14 @@ func _populate_item_list() -> void:
 			row = _create_rich_item_row(item, i)
 		_item_list.add_child(row)
 
+	# T11-28: the rows are PanelContainers, which default to MOUSE_FILTER_STOP,
+	# and a STOP control marks the event HANDLED — so a drag that started on a
+	# row never reached the ScrollContainer and the list would not scroll.
+	# Run it HERE, after the rows exist and on EVERY repopulate: filtering and
+	# searching rebuild the list, and a sweep over an empty container is a fix
+	# that silently does nothing.
+	TouchScrollOpenerRef.open_subtree(_item_list)
+
 	# Staggered entrance animations
 	_animate_rows_entrance()
 
@@ -476,12 +489,14 @@ func _create_rich_item_row(item: Dictionary, index: int) -> PanelContainer:
 		panel.add_theme_stylebox_override("panel", base_s)
 	)
 
-	# Click handler with press feedback
-	panel.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed:
-			if event.button_index == MOUSE_BUTTON_LEFT:
-				TweenFX.press(panel, 0.15)
-				_show_item_detail(item)
+	# T11-28: fire on the TAP, not the press DOWN. Acting on `event.pressed`
+	# meant that touching a row to SCROLL the list opened its detail popup
+	# immediately — measured on device, and it cost two misdiagnoses during
+	# the walk (a near-miss scrollbar drag opened "Punks" and the large pixel
+	# diff read as a successful scroll).
+	TapGestureRef.connect_tap(panel, func() -> void:
+		TweenFX.press(panel, 0.15)
+		_show_item_detail(item)
 	)
 
 	return panel
@@ -555,12 +570,11 @@ func _create_compact_item_row(item: Dictionary, index: int) -> PanelContainer:
 		panel.add_theme_stylebox_override("panel", base_s)
 	)
 
-	# Click handler with press feedback
-	panel.gui_input.connect(func(event: InputEvent) -> void:
-		if event is InputEventMouseButton and event.pressed:
-			if event.button_index == MOUSE_BUTTON_LEFT:
-				TweenFX.press(panel, 0.15)
-				_show_item_detail(item)
+	# T11-28 — see _create_rich_item_row. This is the MOBILE row, i.e. the one
+	# a finger actually lands on.
+	TapGestureRef.connect_tap(panel, func() -> void:
+		TweenFX.press(panel, 0.15)
+		_show_item_detail(item)
 	)
 
 	return panel

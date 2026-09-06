@@ -255,10 +255,26 @@ static func _apply_narrative(
 		gsm.set_story_track_enabled(bool(block["story_track_enabled"]))
 		applied.append("story_track_enabled = %s" % str(bool(block["story_track_enabled"])))
 
-	# Rivals and Patrons are generated rather than declared. Their dicts have a
-	# schema PatronRivalManager reads field-by-field, and a hand-authored literal
-	# in a fixture would drift from it the first time a field is added. Counts
-	# keep the fixture readable and the shapes correct.
+	# Rivals and Patrons are generated rather than declared: a hand-authored dict
+	# literal in a fixture drifts from the producer the first time a field is
+	# added, and a count keeps the fixture readable.
+	#
+	# CORRECTED 2026-09-05 (T11-38). This comment used to justify the choice by
+	# saying the dicts "have a schema PatronRivalManager reads field-by-field".
+	# That is no longer true and naming a stale consumer is worse than naming
+	# none: PatronRivalManager was rewritten in the T11-29 fix and now reads
+	# `origin` / `planet_id` / `created_turn` (its _rival_provenance, :283-294),
+	# which `_create_starting_rival()` does not emit. So a fixture rival renders
+	# with an EMPTY provenance line.
+	#
+	# That is deliberately NOT worked around here. A census of 40 real save files
+	# found 25 rival records and ZERO carrying those three keys — every shipped
+	# rival has this shape, so the fixture is faithful to production and papering
+	# over it in QA would hide the real defect. What it does mean for a device
+	# walk: capture the untouched campaign BEFORE applying a fixture, or a blank
+	# provenance line cannot be attributed to either source.
+	#
+	# The canonical producer is RivalPatronResolver._append_rival (:835-845).
 	var rivals: int = int(block.get("rivals", 0))
 	if rivals > 0 and gsm and gsm.has_method("set_rivals"):
 		var built: Array = []
