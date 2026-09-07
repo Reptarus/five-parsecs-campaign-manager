@@ -768,7 +768,46 @@ func _create_info_row(
 	lbl.text = label
 	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	lbl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	# T11 "Corporate Label" (2026-09-06). This row rendered the VALUE as a 1px-wide,
+	# 9-line slab on the tablet's Rivals card, and the name label above is why.
+	#
+	# MEASURED (tests/tools/probe_label_clip_min.gd), FONT_SIZE_SM:
+	#   plain Label, autowrap off  -> min (327, 23)   <- reports its FULL text width
+	#   + clip_text                -> min (  1, 23)
+	#   the autowrapping VALUE     -> min (  1, 855)  <- 855 px tall at 1 px wide
+	#
+	# In a BoxContainer an EXPAND_FILL child gets its own minimum plus a share of the
+	# SURPLUS. `CampaignDashboard._create_info_row(r_name, r_type, ...)` passes a rival
+	# NAME as the label, and "Old nemesis (persistent, +1 enemies)" needs 327 px — which
+	# exhausts a ~384 px portrait column on its own. Surplus zero, so "Corporate" was
+	# handed exactly its 1 px minimum and AUTOWRAP_WORD_SMART degraded to one glyph per
+	# line. The 855 above is that slab measured directly.
+	#
+	# ⚠ clip_text ALONE IS NOT THE FIX, and it looks like one. It takes this label's
+	# minimum to 1 px — but SIZE_SHRINK_BEGIN hands a child exactly its minimum, so the
+	# name would not be clipped, it would VANISH, on all 49 call sites, while a geometry
+	# sweep reported clean (nothing overflows when everything is 1 px). Godot Controls
+	# have a minimum and no maximum, so "natural width when it fits, capped when it does
+	# not" cannot be expressed on the Control; sharing the row is a CONTAINER decision.
+	# Hence EXPAND_FILL on both children with a stretch ratio, and clip_text so this one
+	# can never demand its full width again.
+	#
+	# ⚠ CharacterCard.gd:228-244 documents this same trap and its labels are NOT a
+	# precedent for the flags used here: they sit in a VBoxContainer, where children are
+	# stretched to the container width regardless, so a 1 px minimum is harmless there.
+	# Same defect, different container, different remedy.
+	#
+	# The 1:2 split is a product judgement, recorded rather than hidden: on the tablet's
+	# ~384 px portrait column the name gets ~128 px (~14 characters) and the value ~256,
+	# and on the 800 px desktop form the name gets ~266 px (~29 characters). Short
+	# labels are visually unchanged — the name still sits at the left edge and the
+	# right-aligned value still ends at the right edge.
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.size_flags_stretch_ratio = 1.0
+	lbl.clip_text = true
+	lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# Nothing becomes unrecoverable: the full string stays reachable on hover/long-press.
+	lbl.tooltip_text = label
 	hbox.add_child(lbl)
 
 	var val_lbl := Label.new()
@@ -780,6 +819,11 @@ func _create_info_row(
 	# single long value can't force the row wider than a ~384px portrait column.
 	# Desktop is visually unchanged (value still right-aligned at the row edge).
 	val_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# T11: the value is the payload, so it takes the larger share of the row (see the
+	# block on the name label above for the measurements and why this is a ratio).
+	# Keeping autowrap here is deliberate — with a guaranteed share it now wraps to a
+	# readable width instead of degrading to one glyph per line.
+	val_lbl.size_flags_stretch_ratio = 2.0
 	val_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hbox.add_child(val_lbl)
 

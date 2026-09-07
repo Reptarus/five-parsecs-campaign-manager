@@ -17,9 +17,28 @@ extends SceneTree
 ## screen_get_scale 2.0, so 1280x800 dp landscape and 800x1280 dp portrait. On
 ## Windows screen_get_scale() is 1.0, so setting those numbers directly as window
 ## pixels reproduces the same dp classification: 1280 -> WIDE, 800 -> DESKTOP.
+##
+## ⚠ T11-47 (2026-09-06) — THAT CLAIM IS TRUE AND IT IS NOT ENOUGH. It is kept, not
+## deleted, because the breakpoint half is correct: ResponsiveManager classifies on
+## `window_get_size() / screen_get_scale()`, so 1280 px here and 2560 px at scale 2.0
+## really do land in the same bucket. What it does not carry is the ROOM. After the
+## T11-07 density fix the net effective scale is `TARGET_EFFECTIVE * ui_scale` with NO
+## density term, so design space is `window_px / 1.16` on every platform:
+##
+##     this probe at 1280x800  ->  1103 x  689 design px
+##     the real TB361FU        ->  2207 x 1379 design px   (2560x1600 panel)
+##
+## Half the linear room and a QUARTER of the area, inside the same breakpoint. That is
+## the regime where a screen stops overflowing and starts under-filling instead, so a
+## clean result here is evidence about the breakpoint logic and not about the device.
+## Reproduce the tablet with its PANEL size; the dp constants below are kept because
+## this probe is about config-change SEQUENCING, where the bucket is what matters.
 
 const TABLET_LANDSCAPE := Vector2i(1280, 800)
 const TABLET_PORTRAIT := Vector2i(800, 1280)
+## True-panel geometry, for when a reading needs the device's actual room (see above).
+const TABLET_LANDSCAPE_TRUE_PX := Vector2i(2560, 1600)
+const TABLET_PORTRAIT_TRUE_PX := Vector2i(1600, 2560)
 
 var _rm: Node = null
 var _theme: Theme = null

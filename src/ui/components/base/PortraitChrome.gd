@@ -25,8 +25,13 @@ extends Node
 ##   https://m3.material.io/foundations/layout/grids-spacing/spacing
 ##
 ## Expressed in dp and converted per-measurement, because this project's design space
-## is NOT dp — it is dp / ~1.16 (SettingsManager._apply_ui_scale() cancels the square
-## 1080 base stretch). Hardcoding a design-px number silently changes the physical
+## is NOT dp — it is `window_px / ~1.16` (SettingsManager._apply_ui_scale() cancels the
+## square 1080 base stretch).
+## ⚠ T11-47 (2026-09-06): this read "it is dp / ~1.16". The divisor applies to raw
+## WINDOW PIXELS — the net effective scale has no density term after the T11-07 fix —
+## and dp only equals px where screen_get_scale() is 1.0. Deriving the ratio live, which
+## _gutter_design_px() already does, is what makes this correct on both; the unit in the
+## prose was the only thing wrong. Hardcoding a design-px number silently changes the physical
 ## margin if that scale ever moves; the ratio is derived live in _gutter_design_px(),
 ## the same way tests/tools/verify_layout.gd derives it for its dp assertions.
 const PORTRAIT_GUTTER_DP := 16.0

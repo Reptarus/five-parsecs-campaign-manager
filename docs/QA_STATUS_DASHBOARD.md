@@ -2,6 +2,89 @@
 
 ---
 
+### ✅ DESK PASS — the T11 tail (2026-09-06/07), all detection-proven
+
+Four desk items closed. Gates: **285 suites / 3,127 cases / 0 failures** headless plus the
+one `NEEDS_DISPLAY` suite windowed (**27 cases**) = **3,154**; all **11** `scripts/lint_*.py`
+exit 0; `git diff -- data/` empty; layout sweep **224 passed / 0 failed** at 8 sizes;
+rotation sweep **23 / 0** at 9 steps.
+
+**T11-47 — the formula that broke it is finally guarded.** The harness docblocks were
+already corrected; what remained was six sibling probes carrying the stale premise and,
+much more importantly, that **nothing anywhere asserted `SettingsManager._apply_ui_scale()`**.
+`tests/unit/test_content_scale_formula.gd` (4 cases) now does. ⭐ It is testable at all
+only because `_dpi_scale()` prefers `ResponsiveManager.get_screen_scale()`, which returns a
+plain member — writing it lets a 1.0-density desktop pretend to be a 2.0-density tablet.
+That matters because **T11-07 shipped precisely since desktop density is 1.0**, making the
+offending `* _dpi_scale()` exactly 1.0 on every machine that ran the gates: a green desk
+suite was not evidence, it was the term being invisible. The suite asserts the INVARIANT
+(density-independence, linearity in the user slider, and that the two do not interact),
+never the constant, and instruments its own premise first so the density case cannot pass
+vacuously. Detection-proven by re-introducing the density term and by dropping the slider.
+⚠ Scope, stated rather than implied: headless pins `stretch_cancel` at 1.0, so the
+window-size cancellation is NOT exercised there — that half is the sweeps' true-pixel rows.
+
+**T11 "Corporate Label" — fixed, and the obvious fix was a trap.**
+`CampaignScreenBase._create_info_row()` rendered the value as a 1px-wide 9-line slab.
+Measured (`tests/tools/probe_label_clip_min.gd`): a plain Label reports its FULL text width
+(**327 px**) while the autowrapping value reports **1 x 855**. `CampaignDashboard:1474`
+passes a rival NAME as the row LABEL, so 327 px exhausted a ~384 px column and "Corporate"
+got its 1 px minimum. ⭐ **`clip_text` alone would have been worse:** it does bound the
+minimum to 1 px (verified — Godot documents this for `Button`, NOT for `Label`), but
+`SIZE_SHRINK_BEGIN` hands a child exactly its minimum, so the name would have VANISHED on
+all 49 call sites while a geometry sweep reported clean. `CharacterCard.gd:228-244` is not
+a precedent here: its labels sit in a **VBox**, where children stretch to the container
+width regardless. Fix is container-level — EXPAND_FILL on both with a 1:2 ratio, plus
+clip_text/ellipsis/tooltip on the name. Pinned by
+`tests/unit/test_info_row_label_starvation.gd` (5 cases, RENDERED rects), detection-proven
+four ways including the clip_text-alone trap.
+
+⚠ **The layout sweep is NOT the guard for that fix, and 224/0 must not be read as
+validating it.** Controlled A/B: reverting the fix left the sweep at **224/0**. The fixture
+does contain rivals (one literally `Executive Guard` / `Corporate`), so the A/B was not
+vacuous — but both names are ~15 characters and nothing starves. More fundamentally the
+sweep detects OVERFLOW while this defect is STARVATION: with the long name the row's
+minimum is 227 px inside a 384 px row, and the value's compensating growth is vertical and
+absorbed by a ScrollContainer. Structurally invisible, like a footer scrolling out of view.
+
+**T11 "Select Crew renders header-only" — fixed.** Four panes against `max_columns = 3`
+leave Crew alone on grid row 2; `AdaptivePanelGroup` has no row-height logic, and with
+`ShortScreenScroll` enabling correctly (T11-01) the inner column settles at its combined
+minimum, so the surplus is ZERO and row 2 gets only the pane's own minimum — which was
+header-sized, because a ScrollContainer contributes ZERO minimum on its scroll axis.
+`PreBattle.tscn` now gives it `custom_minimum_size = Vector2(0, 144)` = 3 x the 48 px touch
+floor the screen already asserts. ⚠ The existing
+`test_prebattle_responsive_layout.gd:82-96` is the cautionary tale: it asserts
+`custom_minimum_size` and `autowrap_mode` — CONSTRUCTION properties — so it passed
+cheerfully throughout. The new case asserts the RENDERED rect.
+
+⚠ **A comment corrected at the same site:** `PreBattleUI.gd` justified `max_columns = 3`
+by saying the wide FORCES table wraps to row 2. It does not and never did — the add order
+is Mission(0)/Forces(1)/Battlefield(2)/Crew(3), so Forces is in row 1 and **Crew** is the
+pane alone on row 2. The comment described an intent the ordering does not produce, which
+is part of why nobody looked at the pane that actually landed there.
+
+#### 🔧 Two HARNESS defects found while verifying, both pre-existing
+
+1. **`verify_rotation.gd` had no window-hijack guard, and it produced a FALSE FAILURE.**
+   `SettingsScreen` restores `user://window.ini` in `_enter_tree()`, so it moves the window
+   after the harness sized it and bakes its fonts at the restored breakpoint; this sweep
+   walks one instance and never rebuilds. Proven with ONE variable, nothing else changed:
+   `window.ini = 1600x2560` → **22/1 FAIL**; `= 393x851` → **23/0 PASS**. And 1600x2560 is
+   exactly what `verify_layout.gd` leaves behind (its last SIZES row is the TB361FU
+   true-pixel portrait), so **running the two sweeps in their natural order made the second
+   fail on the first one's leftovers.** `verify_layout` has had this guard since T11-04;
+   `verify_rotation` now has it too, rebuilding ONCE at the walk's first size (the
+   one-instance contract is untouched). Re-verified: hostile state now 23/0 with a NOTE.
+2. **`test_prebattle_responsive_layout.gd` claimed "never --headless (project rule)".**
+   That rule was superseded on 2026-09-05 by `--ignoreHeadlessMode`; the suite runs clean
+   headless (re-verified 5/5). Corrected at the docblock.
+
+⚠ **Not run / not done:** T9-47's device walk and the A5 `gl_compatibility` A/B both need
+hardware and are untouched by this pass.
+
+---
+
 ### ✅ CLOSED ON HARDWARE — the T11 acceptance list (deploys #21/#22, Sep 5-6 2026)
 
 Deploy #19's walk plus the dry run left 21 desk-fixed findings with no device verdict.
@@ -71,10 +154,9 @@ remaining are among the seven already filed.**
 
 ---
 
-### 🔴 OPEN — Tactics rules accuracy (found 2026-09-04, NOT fixed)
+### ✅ CLOSED — Tactics rules accuracy (found 2026-09-04, closed 2026-09-06)
 
-Correcting five wrong Tactics page cites exposed two data defects. One was fixed; one is
-open and recorded at the site.
+Correcting five wrong Tactics page cites exposed two data defects. Both are now fixed.
 
 **FIXED — Campaign Points award.** `TacticsCampaignCore.record_battle()` awarded a flat
 1 CP, +1 win, +1 "secondary objective" — a maximum of **3** — cited "(p.160)", a page in
@@ -86,21 +168,54 @@ a quarter of the currency that gates every unit upgrade, roster change and battl
 advantage. Pinned by `tests/unit/test_tactics_campaign_points.gd` (6 cases, built on the
 book's example), detection-proven.
 
-**OPEN — platoon composition.** `TacticsCompositionValidator` disagrees with Tactics
-**p.134** on four values:
+**FIXED — platoon composition.** ⚠ **This row was stale for a day and is corrected
+rather than deleted.** It was filed 2026-09-04 as an open defect whose table cited
+`PLATOON_LEADER_COUNT` and `MAX_TROOPS_PER_PLATOON := 5`; those identifiers stopped
+existing on **2026-09-05** in `d432df8d6`, which rewrote the constants against p.134 and
+added `tests/unit/test_tactics_composition_p134.gd` — a both-directions suite, because a
+validator that only ever rejects is as broken as one that only ever accepts. The
+validator now enforces Leaders **1-2**, Troops **2-4**, Supports **0-3** *and* the
+"fewer than Troops" clause, and Specialists as the **0-1 per 2 Troops ratio** rather
+than a flat cap.
 
-| Element | Book (p.134, verbatim) | Code |
+**FIXED 2026-09-06 — a FABRICATED specialist rule, found in the part nobody re-read.**
+While retiring this row, `TacticsCompositionValidator._validate_platoon()` was found to
+reject any platoon holding two specialists that share a `unit_id`, commented *"one of
+each type"*. **p.134 states one specialist rule and it is a ratio:** *"A platoon may have
+1 specialist unit per 2 troops selected."* The invented restriction **rejected legal
+armies** — the same defect class as the row above, sitting beside it.
+
+The book states type-composition rules plainly when it has one, and the only two places
+it does so nearby both contradict the deleted check:
+
+| Where | Book text | Direction |
 |---|---|---|
-| Leaders | "Leaders (1-2)" | `PLATOON_LEADER_COUNT := 1` |
-| Troops | "Troops (2-4)" | `MAX_TROOPS_PER_PLATOON := 5` |
-| Supports | "Supports (0-3; must be fewer than number of Troops)" | `:= 4`, and the relational clause is in the COMMENT but never enforced — the check is a flat compare |
-| Specialists | "Specialists (0-1 per 2 Troops)" | `:= 2`, flat |
+| p.134, Troops | "The platoon does not have to consist of all the same type." | an explicit permission to **mix** |
+| p.135, Armored Platoon | "The first 3 vehicles selected for this section must be the same type" | a same-type **requirement**, inverted |
 
-So the validator accepts illegal armies and rejects legal ones. **Errata checked 2026-09-04 — there is none.** The repo errata (v1.06) is Core Rules only (0 hits for Tactics/platoon/troops/Support/Army Builder/Campaign Point across 5 pages); the Modiphius FAQ covers only the core skirmish game; the designer's Tactics post changes combat mechanics only. p.134 was re-verified against the source PDF and matches the extraction verbatim, so the book stands. The values look like Age of Fantasy holdovers from the "complete rewrite of AoF rules" the file describes. Scoped as a Tactics
-rules-accuracy audit rather than fixed inline: Tactics is alpha-2
-(`CLOSED_ALPHA_PLAN.md:32,88`) and changing army-building validation needs its own tests
-and a look at existing saved armies. Recorded in the file's docblock so the next reader
-cannot miss it.
+⭐ **Where it came from.** `TacticsRoster.gd` records that this rewrite *"Drops AoF
+hero-per-375, 35% cap, **duplicate limit**, combined units"* — so Age of Fantasy had a
+duplicate limit, Tactics has none, and the rewrite dropped it from the roster and left it
+standing in the validator. The old wrong constants had the same shape (lifted from the
+p.135 Armored Platoon). **A rule deleted in one file and kept in its sibling** is the
+transferable shape here.
+
+⚠ **The invention had propagated into the test fixture meant to police this file.**
+`test_tactics_composition_p134.gd`'s `_add()` helper gave every unit a unique id with the
+comment *"a platoon may not take two specialists of the SAME type ... would fail that
+separate rule"* — so the suite was quietly built never to construct the case that would
+have exposed it. Corrected at the site.
+
+Also wired: **`get_limits_summary()` was a zero-caller function** (reachable only from its
+own test) whose docstring claimed the strings are "what a player reads while building".
+The caps were correct, tested, and displayed to nobody — the builder announced a limit
+only *after* one was broken. It now renders in `TacticsRosterPanel` above the error list
+and for an empty roster too. Pinned by 8 cases (3 new), **all three arms
+detection-proven by isolated revert**: restoring the duplicate check, un-wiring the
+summary, and restoring the "one of each type" clause each fail exactly one case.
+
+⚠ Armored platoons remain unmodelled, deliberately — the book gives them different
+units, a same-type constraint and mandatory transports; recorded at the validator.
 
 ### Production-dead sweep — CLOSED 2026-09-04
 
@@ -236,8 +351,11 @@ unchanged RNG stream.
 files** · `verify_battle_ui` 137/0 · `verify_post_battle` PASS · `verify_story_track` 9/0 ·
 7 lints CLEAN · parse clean. Routing and dialog cases both detection-proven.
 
-**STILL OPEN**: the device leg. The tool exists and is tested; T9-47/48/51 are verified on
-hardware only after a deploy that forces each roll.
+~~**STILL OPEN**: the device leg. The tool exists and is tested; T9-47/48/51 are verified on
+hardware only after a deploy that forces each roll.~~ **Mostly closed 2026-09-06.** The seam
+was used on hardware to force **T9-48** (deploy #23) and again to force the AMBUSH that
+verified **T11-48** (deploy #24); **T9-51** closed on #21/#22. **T9-47** (Explore 51-53 /
+Trade 76-78) is the only one of the three still needing a walk.
 
 ⚠ One case of mine was a **10% flake by construction**: `assert(rolled != 10)` after an
 out-of-range value is discarded — discarding means the roll is genuinely random, and a
@@ -488,7 +606,9 @@ design data — it has zero production callers and the live gate is
   `verify_layout` re-run after the change: **168 passed / 0 failed**.
 - **Deploy #14 leftover CLOSED** — enemy-drawer touch-drag in landscape scrolls correctly.
 - **Workstream B seam verified on hardware** — the debug forced-roll queue works and
-  reports its pending state; T9-47/48/51 outcomes still need a play session to reach.
+  reports its pending state. ⚠ Corrected 2026-09-06: of the three, **T9-51** closed on
+  #21/#22 and **T9-48** on #23 (forced through this very seam); only **T9-47** still needs
+  a walk.
 - **T11-07 (MED)** — ✅ **ROOT-CAUSED AND FIXED 2026-09-05, confirmed on hardware.**
 
   **It was never a rotation bug and never screen-local.** `SettingsManager._apply_ui_scale()`

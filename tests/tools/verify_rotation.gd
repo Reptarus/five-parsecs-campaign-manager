@@ -37,6 +37,20 @@ extends SceneTree
 
 ## Instance-once, then walk. Portrait and landscape of the SAME device, so a failure
 ## isolates rotation rather than a size change.
+##
+## ⚠ T11-47 — THESE ARE dp, AND dp IS NOT WHAT THE DEVICE GIVES YOU (note added
+## 2026-09-06; verify_layout.gd:57-76 got the same correction and this file was the
+## sibling nobody came back to). The CLI contract here is raw WINDOW PIXELS, and after
+## the T11-07 density fix the net effective scale is `TARGET_EFFECTIVE * ui_scale` on
+## every platform with NO density term — so design space is `window_px / 1.16`, and a
+## 2.0-density tablet's 2560x1600 panel is NOT reproduced by passing its 1280x800 dp.
+## The rows below labelled "tablet" therefore name a device they no longer reproduce:
+## at 1280x800 this sweep measures 1103x689 of design space, where the real TB361FU
+## has 2207x1379 — twice the room, which is exactly the regime where a screen stops
+## overflowing and starts under-filling instead.
+## The true-px triple is kept ALONGSIDE the dp ladder rather than replacing it: the
+## smaller rows still exercise real breakpoints, and silently re-pointing them would
+## invalidate every verdict already recorded against those names.
 const STEPS: Array = [
 	[393, 851, "phone portrait"],
 	[851, 393, "phone landscape"],
@@ -44,6 +58,12 @@ const STEPS: Array = [
 	[800, 1280, "tablet portrait"],
 	[1280, 800, "tablet landscape"],
 	[800, 1280, "tablet portrait (back)"],
+	# T11-47. TRUE PIXEL geometry of the QA tablet (TB361FU, 2560x1600 confirmed from
+	# the deploy #21/22 screenshots). A rotation triple, not a pair: the latch this
+	# sweep exists to catch only shows on the way BACK.
+	[1600, 2560, "TB361FU portrait (true px)"],
+	[2560, 1600, "TB361FU landscape (true px)"],
+	[1600, 2560, "TB361FU portrait (back, true px)"],
 ]
 
 const EPS := 0.5
@@ -224,6 +244,62 @@ func _walk_screen(path: String) -> void:
 		(inst as CanvasItem).show()
 	_populate_post(inst, path)
 	await _settle(inst)
+
+	# ⚠ WINDOW-HIJACK GUARD (2026-09-06). verify_layout.gd has had this since T11-04;
+	# this sweep did not, and the gap produced a REAL FALSE FAILURE.
+	#
+	# `_apply_size(STEPS[0])` above is not enough on its own: SettingsScreen restores
+	# `user://window.ini` in _enter_tree() (SettingsScreen.gd:127-129), so it moves the
+	# window AFTER the harness sized it, and bakes its ResponsiveManager font sizes at
+	# whatever breakpoint that restored size lands in. This sweep then walks that one
+	# instance and never rebuilds — by design, since re-instantiating is exactly what it
+	# exists NOT to do — so the screen carries the wrong type for the whole walk.
+	#
+	# MEASURED, one variable, nothing else changed:
+	#     window.ini = 1600x2560  ->  22 passed / 1 FAILED
+	#                                 (SettingsScreen @ phone portrait, a MarginContainer
+	#                                  112.2 px off-screen AFTER RESIZE)
+	#     window.ini =  393x851   ->  23 passed / 0 failed
+	# and 1600x2560 is precisely what verify_layout.gd leaves behind, because its last
+	# SIZES row is the TB361FU true-pixel portrait. So running the two sweeps in their
+	# natural order made the second one fail on the first one's leftovers.
+	#
+	# Rebuilding ONCE here does not weaken the contract: the walk still uses a single
+	# instance across every step. It only guarantees that instance was built at the size
+	# the walk starts from.
+	var w0: int = int(STEPS[0][0])
+	var h0: int = int(STEPS[0][1])
+	var got: Vector2i = DisplayServer.window_get_size()
+	if absi(got.x - w0) > 2 or absi(got.y - h0) > 2:
+		_findings.append("NOTE %s - the screen changed the window to %dx%d on entry; "
+			% [short, got.x, got.y]
+			+ "freed and REBUILT at %dx%d so the walk starts from the size asked for"
+			% [w0, h0])
+		# ORDER MATTERS, and it is the same order verify_layout.gd documents: re-apply
+		# the size BEFORE freeing. SettingsScreen._exit_tree() WRITES the current window
+		# size back to user://window.ini, so freeing first would persist the hijacked
+		# size and the rebuilt instance would simply restore it again.
+		if not await _apply_size(w0, h0):
+			inst.queue_free()
+			await process_frame
+			_skip += 1
+			_findings.append("SKIP %s - the window would not go back to %dx%d after "
+				% [short, w0, h0] + "the screen moved it, so the walk was NOT run")
+			return
+		inst.queue_free()
+		await process_frame
+		_populate_pre(path)
+		inst = ps.instantiate()
+		if inst == null:
+			_skip += 1
+			_findings.append("SKIP %s - the rebuild returned null" % short)
+			return
+		root.add_child(inst)
+		if inst is CanvasItem and not (inst as CanvasItem).visible:
+			(inst as CanvasItem).show()
+		_populate_post(inst, path)
+		await _settle(inst)
+
 	_apply_runtime_overlay_net(inst)
 	await _settle(inst)
 

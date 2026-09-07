@@ -196,8 +196,16 @@ func get_mission_grid_columns() -> int:
 ## rule: even a wide portrait tablet (1536-wide -> WIDE by width alone) shows one
 ## focused column / tab strip, never a cramped multi-column grid. Only LANDSCAPE
 ## uses the multi-column width ladder, so desktop callers are unaffected.
-## (360dp is the most common phone width; at our effective ~1.12 scale that is
-## ~321 design px -- far too tight for 2 columns. See plan: device baseline.)
+## (360dp is the most common phone width -- far too tight for 2 columns.
+## ⚠ T11-47 (2026-09-06): this used to read "at our effective ~1.12 scale that is ~321
+## design px", and BOTH halves were stale. TARGET_EFFECTIVE was bumped 1.12 -> 1.16
+## (SettingsManager.gd:280,290), and the divisor applies to raw WINDOW PIXELS rather
+## than dp, because the net effective scale carries no density term after the T11-07
+## fix. So 360 *px* is ~310 design px, while a 2.0-density 360dp phone is a 720px panel
+## and ~620 design px -- twice the room, same breakpoint.
+## The conclusion is unaffected: portrait-is-one-column is phone-first product policy,
+## not a computed threshold, so the figure was illustration and never the reason.
+## See plan: device baseline.)
 func get_effective_columns() -> int:
 	if is_portrait():
 		return 1

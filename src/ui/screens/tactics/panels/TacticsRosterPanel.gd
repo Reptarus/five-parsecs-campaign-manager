@@ -25,6 +25,10 @@ const TOUCH_TARGET_MIN := _UC.TOUCH_TARGET_MIN
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
 
 var _UnitProfile: GDScript
+## Loaded at runtime rather than preloaded by class_name, matching _UnitProfile above —
+## this panel deliberately carries no parse-time dependency on the tactics data layer.
+var _Validator: GDScript
+var _Roster: GDScript
 
 var _coordinator = null
 var _species_book = null
@@ -35,6 +39,7 @@ var _points_label: Label
 var _available_list: VBoxContainer
 var _roster_list: VBoxContainer
 var _validation_box: VBoxContainer
+var _limits_label: Label
 var _main_container: Control
 var _entry_counter: int = 0
 
@@ -48,6 +53,8 @@ func _scaled_font(base: int) -> int:
 
 func _ready() -> void:
 	_UnitProfile = load("res://src/data/tactics/TacticsUnitProfile.gd")
+	_Validator = load("res://src/data/tactics/TacticsCompositionValidator.gd")
+	_Roster = load("res://src/data/tactics/TacticsRoster.gd")
 	_build_ui()
 
 
@@ -124,10 +131,22 @@ func _build_ui() -> void:
 	_roster_list.add_theme_constant_override("separation", SPACING_SM)
 	_main_container.add_child(_roster_list)
 
+	# Composition limits — the caps a player builds against, always visible.
+	_limits_label = Label.new()
+	_limits_label.name = "LimitsSummary"
+	_limits_label.add_theme_font_size_override("font_size", _scaled_font(11))
+	_limits_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	_limits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	outer.add_child(_limits_label)
+
 	# Validation messages
 	_validation_box = VBoxContainer.new()
 	_validation_box.add_theme_constant_override("separation", 2)
 	outer.add_child(_validation_box)
+
+	# Populate the caps at construction: refresh() only reaches _update_validation()
+	# once a species book exists, and the limits do not depend on one.
+	_refresh_limits_summary()
 
 
 func _rebuild_available_list() -> void:
@@ -322,9 +341,38 @@ func _update_points_display() -> void:
 		_points_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 
 
+## Refresh the composition caps, rendered from the SAME constants the validator enforces.
+## ⚠ TacticsCompositionValidator.get_limits_summary() was a ZERO-CALLER function until
+## 2026-09-06 — reachable only from its own test — while its docstring claimed the
+## strings are "what a player reads while building". The caps were correct, tested, and
+## shown to nobody; the builder announced a limit only AFTER one was broken. Wiring it
+## here is what makes that docstring true, and the text is set even for an EMPTY roster,
+## which is exactly when a player most needs to know what they may take.
+## ⚠ This is a PERSISTENT label built once in _build_ui() (like _points_label), not a
+## child of _validation_box: that box is cleared with queue_free(), which is deferred, so
+## anything re-added there in the same frame can briefly stack with what it replaced.
+func _refresh_limits_summary() -> void:
+	if not _limits_label or not _Validator or not _Roster:
+		return
+
+	var org_str: String = "platoon"
+	var points: int = 500
+	if _coordinator and "config_data" in _coordinator:
+		org_str = str(_coordinator.config_data.get("org_type", "platoon"))
+		points = int(_coordinator.config_data.get("points_limit", 500))
+	# Same String -> enum conversion as TacticsCreationCoordinator._build_temp_roster(),
+	# so the summary can never describe a different organisation than the one validated.
+	var org_type: int = _Roster.OrgType.COMPANY if org_str == "company" \
+		else _Roster.OrgType.PLATOON
+
+	_limits_label.text = _Validator.get_limits_summary(org_type, points)
+
+
 func _update_validation() -> void:
 	for child in _validation_box.get_children():
 		child.queue_free()
+
+	_refresh_limits_summary()
 
 	if _roster_entries.is_empty():
 		return

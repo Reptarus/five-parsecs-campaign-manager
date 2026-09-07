@@ -29,14 +29,19 @@ func _make_roster() -> TacticsRoster:
 	return r
 
 
-func _add(r: TacticsRoster, slot: int, count: int = 1) -> void:
+func _add(r: TacticsRoster, slot: int, count: int = 1, shared_id: String = "") -> void:
 	for _i in range(count):
 		_uid += 1
 		var p := TacticsUnitProfile.new()
 		p.org_slot = slot
-		# Unique ids: a platoon may not take two specialists of the SAME type, and a
-		# shared id would fail that separate rule and mask the one under test.
-		p.unit_id = "u%d" % _uid
+		# Ids are unique by default only so failure messages name distinct units.
+		# ⚠ This comment used to read: "a platoon may not take two specialists of the SAME
+		# type, and a shared id would fail that separate rule and mask the one under test".
+		# That rule was FABRICATED and was deleted on 2026-09-06 — so the invention had
+		# propagated into the fixture design of the very suite meant to police this file,
+		# and the fixture was quietly built to never exercise it. Pass `shared_id` to
+		# construct the case the old comment was steering away from.
+		p.unit_id = shared_id if shared_id != "" else "u%d" % _uid
 		p.unit_name = "Unit %d" % _uid
 		p.points_cost = 0
 		var e := TacticsRosterEntry.new()
@@ -112,6 +117,29 @@ func test_a_platoon_may_take_a_second_leader() -> void:
 	assert_str(_errors(_legal(2, 0, 0, 3))).contains("Max 2 leaders")
 
 
+func test_two_specialists_of_the_same_type_are_legal() -> void:
+	# p.134 states ONE specialist rule: "A platoon may have 1 specialist unit per 2 troops
+	# selected." It is a ratio and nothing else. The validator additionally rejected two
+	# specialists sharing a unit_id, commented "one of each type" — an invented
+	# restriction that REJECTED LEGAL ARMIES. Deleted 2026-09-06; this is its detection
+	# proof, and it fails before the deletion and passes after.
+	#
+	# The book states type-composition rules plainly when it has one, and the only two
+	# places it does so near here both contradict the deleted check:
+	#   p.134 Troops  — "The platoon does not have to consist of all the same type."
+	#   p.135 Armored — "The first 3 vehicles ... must be the same type" (a REQUIREMENT)
+	var r := _make_roster()
+	_add(r, TacticsUnitProfile.OrgSlot.LEADER, 1)
+	_add(r, TacticsUnitProfile.OrgSlot.TROOP, 4)
+	# 4 troops earn exactly 2 specialists, so the RATIO is satisfied with nothing to
+	# spare — the only thing that could reject this roster is the deleted rule.
+	_add(r, TacticsUnitProfile.OrgSlot.SPECIALIST_SLOT, 2, "sniper_team")
+	assert_str(_errors(r)).override_failure_message(
+		"Tactics has no duplicate restriction: 4 troops earn 2 specialists and the book "
+		+ "never requires them to differ"
+	).is_empty()
+
+
 func test_the_printed_limits_match_the_enforced_limits() -> void:
 	# A displayed limit that exists nowhere else is how the p.134 mismatch survived: the
 	# builder told players one thing while the validator enforced another.
@@ -120,3 +148,40 @@ func test_the_printed_limits_match_the_enforced_limits() -> void:
 	assert_str(summary).contains("2-4 Troop units")
 	assert_str(summary).contains("0-3 Support units")
 	assert_str(summary).contains("1-2 Platoon Leaders")
+	# The summary printed the fabricated rule too, so deleting the check without the
+	# string would have left the builder still advertising it to players.
+	assert_str(summary).override_failure_message(
+		"the fabricated 'one of each type' specialist clause must be gone from the "
+		+ "player-facing summary, not just from the validator"
+	).not_contains("one of each")
+
+
+func test_the_roster_panel_actually_displays_the_limits() -> void:
+	# ⚠ get_limits_summary() was a ZERO-CALLER function until 2026-09-06 — reachable only
+	# from the case above — while its docstring claimed the strings are "what a player
+	# reads while building". A string-only assertion is exactly what let that stand: the
+	# caps were correct, tested, and rendered by nobody. This case asserts the SCREEN.
+	var script: GDScript = load(
+		"res://src/ui/screens/tactics/panels/TacticsRosterPanel.gd")
+	assert_object(script).override_failure_message(
+		"TacticsRosterPanel.gd failed to load — a parse error in it also lands here"
+	).is_not_null()
+
+	var panel: Control = script.new()
+	add_child(panel)
+	auto_free(panel)
+	await get_tree().process_frame
+
+	# owned=false: the panel builds its tree in code, so nothing has an owner and the
+	# default owned=true search returns null (the ShipPanel trap, CLAUDE.md Gotchas).
+	var lbl: Node = panel.find_child("LimitsSummary", true, false)
+	assert_object(lbl).override_failure_message(
+		"the roster panel must render a LimitsSummary label"
+	).is_not_null()
+
+	# Defaults with no coordinator are PLATOON / 500 pts, so the platoon caps apply.
+	assert_str(lbl.text).override_failure_message(
+		"the label must carry the validator's own summary, not a hand-written copy"
+	).contains("2-4 Troop units")
+	assert_str(lbl.text).contains("0-3 Support units")
+	assert_str(lbl.text).contains("1-2 Platoon Leaders")

@@ -6742,6 +6742,7 @@ what makes "2 aliens + 1 bot" the correct reading of roll 6.
 
 ## Deploys #21 and #22 — 2026-09-05/06 (versionCode **6**, TB361FU HNQ05SR3, 2560x1600)
 
+⚠ **versionCode was NOT bumped for these two deploys** — the #19 APK is versionCode 6 and
 so is this one, which is why build identity had to be proven by a POSITIVE MARKER instead:
 `[T11-26] SettingsScreen touch-scroll filters opened: 52`, a print that does not exist in
 the previous build. (An earlier draft of this heading said versionCode 7; corrected against
@@ -6874,8 +6875,9 @@ failures, 0 errors, no signal 11.** Exit 101 is gdUnit4's orphan code, not a fai
 
 ## Desk pass after deploy #23 — 2026-09-06 (T11-48 + T11-40 fixed)
 
-Both rows opened by the #23 walk are fixed, detection-proven and pinned. **Neither has
-a device verdict — deploy #24 is the open step.**
+Both rows opened by the #23 walk are fixed, detection-proven and pinned. ~~**Neither has
+a device verdict — deploy #24 is the open step.**~~ **SUPERSEDED 2026-09-06 — deploy #24 was
+walked and BOTH PASS**; see § Deploy #24 at the end of this file.
 
 - **T11-48** — three parts: a new `BattleSetupRules.apply_crew_selection()` (pure
   static, beside its enemy-side analogue), `PreBattleUI.setup_crew_selection()` made

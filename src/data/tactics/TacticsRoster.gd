@@ -4,11 +4,18 @@ extends Resource
 ## TacticsRoster - A player's complete Tactics army roster
 ## Replaces AoF ArmyList: 500/750/1000 pts, platoon/company org.
 ## Drops AoF hero-per-375, 35% cap, duplicate limit, combined units.
+## ⚠ "duplicate limit" above is load-bearing: Tactics has NO duplicate restriction, and
+## a fabricated duplicate-specialist check survived in TacticsCompositionValidator until
+## 2026-09-06 because the drop was applied here and not there.
 ## Validation delegated to TacticsCompositionValidator.
 ## Source: Five Parsecs: Tactics **p.133** "The Points System" + the Army Builder
-## chapter (p.132). ⚠ See TacticsCompositionValidator for an OPEN rules defect in
-## the platoon-composition limits.
-## Source: Five Parsecs: Tactics army building rules pp.81-88
+## chapter (p.132).
+## ✅ The platoon-composition limits this pointed at as "an OPEN rules defect" were FIXED
+## on 2026-09-04 (`d432df8d6`) against p.134 and are pinned both directions by
+## tests/unit/test_tactics_composition_p134.gd. Nothing here is open.
+## ⚠ A second "Source: ... pp.81-88" line was deleted 2026-09-06: pp.81-88 is the
+## **Scenario Types** chapter, not army building — the same bad cite corrected across
+## five Tactics files on 2026-09-04.
 
 enum OrgType {
 	PLATOON,        # Single platoon (~500 pts)

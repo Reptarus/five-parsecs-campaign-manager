@@ -11,8 +11,16 @@ extends SceneTree
 ##   godot --path <root> --script res://tests/tools/probe_widest.gd -- <scene> <w> <h> [axis]
 ##
 ##   <scene>  res:// path to a .tscn
-##   <w> <h>  WINDOW size in device dp (design space is this / ~1.16)
+##   <w> <h>  WINDOW size in RAW PIXELS (design space is this / ~1.16)
 ##   [axis]   "x" (default) or "y"
+##
+## ⚠ T11-47 (2026-09-06): the <w> <h> line above said "device dp" and that was wrong.
+## After the T11-07 density fix the net effective scale is `TARGET_EFFECTIVE * ui_scale`
+## with NO density term, so design space is `window_px / 1.16` on every platform and a
+## 2.0-density tablet is reproduced by its 2560x1600 PANEL, not by its 1280x800 dp.
+## Passing dp here measures HALF the linear room the device has (a quarter of the area),
+## which is how a screen can probe clean and still be wrong on hardware. The "/ ~1.16"
+## half of that line was always right — only the unit was.
 
 var _include_scrolled := false
 var _frame := 0

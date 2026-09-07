@@ -30,8 +30,23 @@ extends SceneTree
 ##   godot --path . --script res://tests/tools/probe_battle_font_blowup.gd
 
 const BATTLE := "res://src/ui/screens/battle/TacticalBattleUI.tscn"
+## ⚠ T11-47 (2026-09-06) — THESE ARE THE TABLET'S dp, NOT ITS PANEL. The TB361FU is
+## 2560x1600 physical at screen_get_scale 2.0, so 1280x800 is its dp. After the T11-07
+## density fix the net effective scale is `TARGET_EFFECTIVE * ui_scale` with NO density
+## term, so design space is `window_px / 1.16` on every platform:
+##
+##     these constants  ->  1103 x  689 design px
+##     the real device  ->  2207 x 1379 design px
+##
+## The BREAKPOINT is identical either way (ResponsiveManager divides by screen_get_scale),
+## so the responsive font sizes this probe reads are the same in both — but the boxes
+## holding them are HALF the linear size here. A font blowup is a ratio of glyph to box,
+## so this probe is the harsher of the two: a blowup seen at these constants is not by
+## itself evidence of one on hardware. Re-measure with TABLET_*_TRUE_PX before filing.
 const TABLET_LANDSCAPE := Vector2i(1280, 800)
 const TABLET_PORTRAIT := Vector2i(800, 1280)
+const TABLET_LANDSCAPE_TRUE_PX := Vector2i(2560, 1600)
+const TABLET_PORTRAIT_TRUE_PX := Vector2i(1600, 2560)
 
 var _started := false
 var _frame := 0

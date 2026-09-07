@@ -177,8 +177,36 @@ func _setup_adaptive_panels() -> void:
 	var group := AdaptivePanelGroupClass.new()
 	group.name = "AdaptiveContent"
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
-	# 4 panes but max 3 columns: on desktop the wide 8-col Forces table wraps to
-	# its own full-width row 2 rather than cramming into a quarter-width column.
+	# 4 panes but max 3 columns, so one pane wraps to its own full-width second row
+	# rather than every pane cramming into a quarter-width column.
+	#
+	# ⚠ CORRECTED 2026-09-06. This comment used to say the wide 8-col FORCES table is
+	# what wraps to row 2. It is not, and never was: the add_pane order below is
+	# Mission(0) / Forces(1) / Battlefield(2) / Crew(3), so a 3-column GridContainer
+	# puts 0-2 on row 1 and leaves **Crew** alone on row 2. The comment described an
+	# intent the ordering does not produce, which is part of why nobody looked at the
+	# pane that actually landed there.
+	#
+	# ⚠ AND THAT PANE ASKS FOR NOTHING. AdaptivePanelGroup holds a plain GridContainer
+	# with no row-height logic — _show_grid() sets `columns` and visibility only — so a
+	# row gets its own minimum plus a share of any surplus. Now that ShortScreenScroll
+	# enables correctly (T11-01), the inner column settles at its COMBINED MINIMUM, so
+	# the surplus is ZERO and row 2 receives exactly the Crew pane's own minimum. That
+	# minimum was header-sized, because the crew list lives in a ScrollContainer and a
+	# ScrollContainer contributes ZERO minimum on its scroll axis — while row 1 is tall
+	# because PreBattle.tscn gives PreviewContent a hard custom_minimum_size of (0, 300).
+	# The pane was visible and correctly laid out; it simply requested nothing, so
+	# "Select Crew" rendered as a header with no list under it.
+	#
+	# FIX: PreBattle.tscn now gives that ScrollContainer `custom_minimum_size =
+	# Vector2(0, 144)`, mirroring what PreviewContent already does one pane over.
+	# 144 = 3 x UIColors.TOUCH_TARGET_MIN (48), the touch floor this very screen already
+	# asserts in test_prebattle_responsive_layout.gd — three crew rows visible, the rest
+	# scrolling. The number is derived from an existing constant, not invented; how many
+	# rows should be visible is a product call.
+	# ✅ No footer risk: ShortScreenScroll pins the footer OUTSIDE the scroll (see
+	# _sss.setup(..., 1) above), so a taller scroll child lengthens the scroll range
+	# instead of pushing Confirm/Back off the bottom.
 	group.max_columns = 3
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL

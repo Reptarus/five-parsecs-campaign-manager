@@ -1524,7 +1524,14 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 
 	# Every box below is derived from the LIVE design space, never hardcoded.
 	# SettingsManager._apply_ui_scale() cancels the square-1080 base stretch, so the
-	# design space is always `window_dp / 1.16` -- only ~339 wide at a 393dp phone,
+	# design space is always `window_px / 1.16` -- only ~339 wide at a 393px window,
+	# ⚠ T11-47 (2026-09-06): this said `window_dp` and the unit was wrong. The net
+	# effective scale carries NO density term after the T11-07 fix, so the divisor
+	# applies to raw WINDOW PIXELS, not dp. The two coincide only where
+	# screen_get_scale() is 1.0 (desktop, and the MCP measurement cited below); on a
+	# 2.0-density phone the same 393dp is a 786px panel and ~678 design px, i.e. twice
+	# the room. The rule the paragraph exists to state is unchanged and still right:
+	# derive from the live rect, never hardcode.
 	# NOT the ~1080 the old constants assumed. Those constants sized the title at
 	# 473px inside a 339px space (clipped 67px off BOTH edges) and left it 103px
 	# UNDERNEATH the button column, so the app title was unreadable on the first

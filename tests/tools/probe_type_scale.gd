@@ -20,6 +20,15 @@ extends SceneTree
 ## several rungs of the ladder, and a fix that only moved titles would look
 ## complete from a single sample.
 
+## ⚠ T11-47 (2026-09-06): w/h are raw WINDOW PIXELS, and the device names are dp-era
+## labels. After the T11-07 density fix the net effective scale carries NO density term,
+## so design space is `window_px / 1.16` and a 2.0-density tablet needs its 2560x1600
+## PANEL to be reproduced, not its 1280x800 dp.
+## These rows are deliberately LEFT AS THEY ARE: this probe reports the font-size
+## DISTRIBUTION, which is driven by the ResponsiveManager breakpoint — and the breakpoint
+## divides by screen_get_scale(), so a dp-sized window lands in the same bucket the device
+## does. The ladder is therefore still valid for what this probe measures. It is NOT valid
+## for anything about fit or overflow; use verify_layout.gd's true-px rows for that.
 const SIZES := [
 	{"label": "small phone", "w": 360, "h": 780},
 	{"label": "phone", "w": 393, "h": 851},

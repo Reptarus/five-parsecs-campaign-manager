@@ -57,10 +57,17 @@ func _run() -> void:
 
 func _probe(path: String, w: int, h: int, label: String) -> void:
 	var short := path.get_file()
-	print("\n---- %s @ %s (%dx%d dp) ----" % [short, label, w, h])
+	# T11-47: these are raw window PIXELS, not dp. Design space is window_px divided by
+	# the net effective scale, which after the T11-07 fix carries NO density term — so a
+	# dp-sized window gives HALF the linear room a 2.0-density device has, in the same
+	# breakpoint. The design space is MEASURED below rather than computed from 1.16, so
+	# this probe cannot start lying if TARGET_EFFECTIVE moves.
+	print("\n---- %s @ %s (%dx%d px) ----" % [short, label, w, h])
 
 	# 1. FRESH INSTANCE, MEASURED ONCE — reproduces verify_layout's flow exactly.
 	await _apply_size(w, h)
+	var ds: Vector2 = root.get_visible_rect().size
+	print("     design space: %.0f x %.0f" % [ds.x, ds.y])
 	var a := await _build_and_measure(path)
 	print("  A  fresh instance, measured once      : %s" % a)
 

@@ -2,8 +2,14 @@ class_name TacticsCompositionValidator
 extends RefCounted
 
 ## TacticsCompositionValidator - Validates Tactics army roster composition
-## Complete rewrite of AoF rules: platoon org (2-5 troops, 0-4 supports,
-## 0-2 specialists per platoon), company org (2-4 platoons, leaders = platoon count).
+## Platoon org (1-2 leaders, 2-4 troops, 0-3 supports, 0-1 specialists per 2 troops),
+## company org (2-4 platoons, leaders = platoon count).
+## ⚠ THIS SUMMARY WAS STALE UNTIL 2026-09-06: it still recited the pre-fix numbers
+## ("2-5 troops, 0-4 supports, 0-2 specialists") directly above the constants that had
+## already been corrected on 2026-09-04. Whoever fixed the constants updated the block
+## that JUSTIFIES them and not the one-line summary above it — so the file argued with
+## itself, and the wrong half is the half a reader skims first. If you change a limit,
+## change it here too.
 ## Source: Five Parsecs: Tactics **pp.134-135** — "Infantry Platoon Organization"
 ## and "Company Organization" in the Army Builder chapter (p.132; ToC p.5, index
 ## "Army Builder 61, 132").
@@ -154,25 +160,36 @@ static func _validate_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[
 		errors.append("%s: Support count (%d) must be fewer than troop count (%d)" % [
 			label, support_count, troop_count])
 
-	# Specialists: 0-1 per 2 Troops (p.134), one of each type
+	# Specialists: 0-1 per 2 Troops (p.134). That RATIO is the whole rule.
 	var specialist_cap: int = max_specialists_for(troop_count)
 	if specialist_count > specialist_cap:
 		errors.append("%s: Max %d specialist units for %d troops (have %d) - the book "
 			% [label, specialist_cap, troop_count, specialist_count]
 			+ "allows 1 specialist per 2 troops")
 
-	# Check for duplicate specialist types within platoon
-	var specialist_types: Array[String] = []
-	for entry in roster.get_entries_for_platoon(platoon_idx):
-		if entry is TacticsRosterEntry:
-			if entry.get_org_slot() == TacticsUnitProfile.OrgSlot.SPECIALIST_SLOT:
-				if entry.base_profile:
-					var name: String = entry.base_profile.unit_id
-					if name in specialist_types:
-						errors.append("%s: Duplicate specialist type '%s'" % [
-							label, entry.base_profile.unit_name])
-					else:
-						specialist_types.append(name)
+	## ⚠ DO NOT RE-ADD A DUPLICATE-SPECIALIST CHECK (deleted 2026-09-06).
+	## A check here rejected two specialists sharing a `unit_id`, commented "one of each
+	## type". It has NO textual basis and rejected legal armies. p.134 says only:
+	##   "Specialists (0-1 per 2 Troops)" / "A platoon may have 1 specialist unit per
+	##    2 troops selected."
+	## The book states type-composition rules plainly when it has one, and the only two
+	## places it does so near here both CONTRADICT the deleted check:
+	##   p.134 Troops    - "The platoon does not have to consist of all the same type."
+	##                     (an explicit permission to MIX, i.e. the opposite restriction)
+	##   p.135 Armored   - "The first 3 vehicles selected for this section must be the
+	##                     same type" (a same-type REQUIREMENT, and inverted at that)
+	## ⭐ WHERE IT CAME FROM: `TacticsRoster.gd` records that this rewrite "Drops AoF
+	## hero-per-375, 35% cap, **duplicate limit**, combined units" - so Age of Fantasy
+	## had a duplicate limit, Tactics has none, and the "complete rewrite of AoF rules"
+	## this file describes dropped it from the ROSTER and left it standing HERE. A rule
+	## deleted in one file and kept in its sibling is the shape to watch for: the old
+	## wrong constants had the same story (lifted from the p.135 Armored Platoon, see
+	## the header), so this validator has now been contaminated by its AoF ancestry and
+	## by the wrong page of its own book, once each.
+	## Verified against docs/rules/tactics_source.txt raw 9138-9150 and 9206-9208
+	## (Tactics offset = raw marker MINUS two, re-confirmed at marker 138 -> folio 136);
+	## a repo-wide search of the book text for a duplicate/one-of-each restriction on
+	## specialists returns ZERO hits.
 
 	# Leaders: 1-2 per platoon (p.134)
 	if leader_count < MIN_PLATOON_LEADERS:
@@ -235,8 +252,7 @@ static func get_limits_summary(org_type: int, points: int) -> String:
 		lines.append("%d-%d Platoon Leaders" % [MIN_PLATOON_LEADERS, MAX_PLATOON_LEADERS])
 		lines.append("%d-%d Troop units" % [MIN_TROOPS_PER_PLATOON, MAX_TROOPS_PER_PLATOON])
 		lines.append("0-%d Support units (fewer than troops)" % MAX_SUPPORTS_PER_PLATOON)
-		lines.append("Specialists: 1 per %d troops, one of each type"
-			% TROOPS_PER_SPECIALIST)
+		lines.append("Specialists: 1 per %d troops" % TROOPS_PER_SPECIALIST)
 	else:
 		lines.append("%d-%d Platoons" % [MIN_PLATOONS, MAX_PLATOONS])
 		lines.append("Per platoon: same as above")
