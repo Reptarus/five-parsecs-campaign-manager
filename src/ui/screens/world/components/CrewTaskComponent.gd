@@ -3953,7 +3953,46 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 	## Matching goes through the same `item_display_name()` the dialog labelled the
 	## button with, so the thing removed is exactly the thing the player clicked.
 	## Removes ONE entry — "lose one item" means one, even with duplicates.
+	## ⚠ OPEN FINDING (deploy #25, 2026-09-07) — THIS SYMPTOM IS BACK, AND EVERY STATIC
+	## EXPLANATION HAS BEEN ELIMINATED. Measured on hardware with forced rolls:
+	## Exploration 51 announced "Discarded: Shatter Axe" and Trade 76 announced
+	## "Sold 1 weapon(s) for 2 credits", CREDITS MOVED CORRECTLY (18 -> 17 = -3 upkeep
+	## +2 sale) — and the pulled save still held BOTH items:
+	##     Bryn Ito  ['Shatter Axe'] -> ['Shatter Axe']
+	##     Dex Kovac ['Blade']       -> ['Blade']
+	## So the player is PAID for a weapon they keep. Device logs were clean: a silent
+	## missing write, not an aborted call.
+	##
+	## RULED OUT at the desk, each by reading the code and by
+	## tests/unit/test_crew_task_item_removal.gd (5 cases, all green):
+	##   - this function's matching logic (removes a plain-String entry correctly)
+	##   - item_display_name() on String entries (returns the string)
+	##   - crew_key() vs _get_crew_member_by_id() drifting again (they agree on
+	##     character_id, which every member in the save carries) — the T9-40 shape
+	##   - Array.duplicate() losing element references through the two shallow copies
+	##     the real path performs (WorldPhaseController, then initialize_crew_tasks)
+	##   - the event dict not carrying crew_member (base.duplicate() is shallow)
+	##   - serialization dropping it (`"crew": crew_data` writes the live reference)
+	##   - a crew write-back from the world phase overwriting it (there is none)
+	## The dialog also DISPLAYED the right items, which it reads off the same
+	## crew_member — so the member is neither null nor a stranger.
+	##
+	## Hence this instrumentation instead of a seventh hypothesis. T11-07's guard is the
+	## precedent: printing ALL the inputs is what finally made that term visible after
+	## two wrong diagnoses. Read this on the next device run and the answer is in it.
+	if OS.is_debug_build():
+		var _shape: String = "null"
+		if crew_member is Dictionary:
+			_shape = "Dictionary"
+		elif crew_member is Object:
+			_shape = "Object"
+		print("[ITEM-REMOVE] want=%s member=%s id=%s equip_before=%s" % [
+			item_name, _shape,
+			("-" if crew_member == null else str(_member_get(crew_member, "character_id", "?"))),
+			("-" if crew_member == null else str(_get_crew_equipment(crew_member)))])
 	if crew_member == null or item_name.is_empty():
+		if OS.is_debug_build():
+			print("[ITEM-REMOVE] ABORT: member null or empty name — nothing removed")
 		return
 	var equip: Array = []
 	if crew_member is Dictionary:
@@ -3961,11 +4000,20 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 	elif crew_member is Object and "equipment" in crew_member:
 		equip = crew_member.equipment
 	else:
+		if OS.is_debug_build():
+			print("[ITEM-REMOVE] ABORT: member has no readable equipment array")
 		return
 	for i in range(equip.size()):
 		if CrewTaskEventDialogScript.item_display_name(equip[i]) == item_name:
 			equip.remove_at(i)
+			if OS.is_debug_build():
+				# Re-read through the MEMBER, not through `equip`: if these disagree,
+				# `equip` is a copy and that is the whole defect.
+				print("[ITEM-REMOVE] removed at %d; equip_local=%s member_now=%s" % [
+					i, str(equip), str(_get_crew_equipment(crew_member))])
 			return
+	if OS.is_debug_build():
+		print("[ITEM-REMOVE] NO MATCH for %s in %s" % [item_name, str(equip)])
 
 func _apply_sick_bay(crew_member, turns: int) -> void:
 	## Place crew member in sick bay for `turns` campaign turns.

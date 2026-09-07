@@ -2,6 +2,72 @@
 
 ---
 
+### ✅ DEPLOY #25 WALKED (2026-09-07, versionCode 9) — T9-47 CLOSED, and a new defect
+
+Built from `f02cc9acf`, `verify_apk.py` PASS, export preset restored (only `version/code`
+moved). Device: Lenovo TB361FU, landscape 2560x1600.
+
+**✅ T9-47 — CLOSED. The last open T9 row, open since 2026-08-14.**
+Both rows were armed at once from the QA dialog and the queue reported its own state,
+`[pending: exploration table=[51], trade table=[76]]` — confirmation that
+`DiceManager._forced_results` really does hold independent per-key FIFO queues.
+* **51-53** rendered *"Gambling problem"* (Bryn Ito · Explore) with the book text
+  *"You must discard 1 item carried by the crew member. Soulless ignore this result."*
+  and an item picker.
+* **76-78** rendered *"A chance to unload some stuff"* (Dex Kovac · Trade),
+  *"A revolutionary will buy any weapons for 2 credits each, provided they are not
+  damaged"*, **Total: 2 credits**, then *"Sold 1 weapon(s) for 2 credits"*.
+* Campaign state: credits **18 → 17** = −3 upkeep (paid on screen, p.76 High Cost world
+  trait correctly counting crew as 2 higher) **+2 sale**. `Results: 2/2 succeeded`.
+
+⚠ One correction to the plan's expectation: both rows act on the item **carried by the
+crew member** (`Character.equipment`), not the ship stash. The stash was unchanged, which
+is correct.
+
+**✅ T11 "Corporate Label" — PASS on hardware.** The Rivals card renders
+`Old nemesis (persiste…` → **`Corporate` on one legible line**, ellipsis and `LOCAL`
+badge intact. On deploy #24 that same row was a 1px-wide, 9-line vertical slab.
+
+#### 🔴 NEW — crew-task item loss is announced and PAID, but the item is never removed
+
+The same save that recorded the +2 credits still holds both items:
+
+| character | before | after | the UI said |
+|---|---|---|---|
+| Bryn Ito | `['Shatter Axe']` | `['Shatter Axe']` | "Discarded: Shatter Axe" |
+| Dex Kovac | `['Blade']` | `['Blade']` | "Sold 1 weapon(s) for 2 credits" |
+
+**The player is paid for a weapon they keep** — a repeatable credit source — and a p.82-class
+item-loss penalty does not bite. Device logs were clean (0 warn/error), so this is a silent
+missing write, not an aborted call.
+
+⚠ **`_remove_from_crew_equipment()` was ALREADY FIXED for this exact symptom on
+2026-08-13**, so the obvious cause is taken. Every static explanation has now been
+eliminated, each by reading the code and by `tests/unit/test_crew_task_item_removal.gd`
+(5 cases, all green):
+
+* the matching logic — it removes a plain-String entry correctly
+* `item_display_name()` on String entries — returns the string
+* `crew_key()` vs `_get_crew_member_by_id()` drifting again (the T9-40 shape) — they agree
+  on `character_id`, which every member in the save carries
+* `Array.duplicate()` losing element references through the two shallow copies the real
+  path performs
+* the event dict not carrying `crew_member` — `base.duplicate()` is shallow
+* serialization dropping it — `to_dictionary()` writes `"crew": crew_data`, the live ref
+* a world-phase crew write-back overwriting it — there is none
+
+The dialog also **displayed the right items**, which it reads off the same `crew_member`,
+so the member is neither null nor a stranger. Both halves of the `SELL_WEAPONS` branch run
+from one block, and the credit half demonstrably fired.
+
+⭐ **Instrumented rather than guessed at.** A debug-only `[ITEM-REMOVE]` print now reports
+the member shape, its id, the equipment before, and — after the erase — re-reads through
+the MEMBER rather than the local array, so a copy-vs-reference divergence names itself.
+T11-07 is the precedent: printing all the inputs is what made that term visible after two
+wrong diagnoses. **The next device run answers this.**
+
+---
+
 ### ✅ DESK PASS — the T11 tail (2026-09-06/07), all detection-proven
 
 Four desk items closed. Gates: **285 suites / 3,127 cases / 0 failures** headless plus the
