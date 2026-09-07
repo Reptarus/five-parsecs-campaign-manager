@@ -92,6 +92,22 @@ func _measure(label: String, populator) -> void:
 	await process_frame
 	await process_frame
 
+	# Re-decide the layout now that the window size has actually settled.
+	#
+	# ⚠ WITHOUT THIS THE PROBE MEASURES A STALE DECISION, and it looks exactly like a
+	# product bug. The instance is added right after window_set_size(), so _ready()
+	# runs _apply_vertical_compaction() while get_visible_rect() still reports the
+	# PREVIOUS size - the same one-size-behind trap as T11-04. That produced a
+	# 2560x1600 row showing a TIGHT arrangement beside a relaxed decision, which was
+	# read as an arrangement/decision desync in the product. It is not: on the device
+	# the size is real at _ready(), and a rotation re-fires this through
+	# size_changed / _on_layout_class_changed. Calling it here is the faithful
+	# stand-in for the signal the device delivers, NOT something the product skips.
+	if inst.has_method("_apply_vertical_compaction"):
+		inst._apply_vertical_compaction()
+		await process_frame
+		await process_frame
+
 	var vp: Vector2 = root.get_visible_rect().size
 	var dp_ratio: float = float(DisplayServer.window_get_size().x) / maxf(1.0, vp.x)
 	print("")
@@ -162,5 +178,52 @@ func _measure(label: String, populator) -> void:
 				% [nm2, visible_px, bc2.size.y,
 					("  << %.1f px CLIPPED at the scroll edge" % cut) if cut > 0.5 else ""])
 
+	# ── T11-40 DIAGNOSIS: is the tight/relaxed decision LATCHED? ──────────────
+	# _phase_viewport_budget() subtracts the minimum of every visible non-Phase child
+	# of ContentColumn. _apply_nav_pinning() MOVES Controls/HSeparator2/Footer out of
+	# that column whenever the layout is relaxed. So the same screen at the same size
+	# can compute two different budgets depending on where the nav currently lives -
+	# and each state would measure in the direction that preserves itself. The
+	# docblock is careful to keep the UNITS monotonic; node LOCATION is a second
+	# input that moves with the answer. Measure it rather than reasoning about it.
+	await _budget_probe(inst)
+
 	inst.queue_free()
 	await process_frame
+
+
+func _budget_probe(inst: Node) -> void:
+	if not inst.has_method("_phase_viewport_budget"):
+		print("  !! _phase_viewport_budget() not found - layout refactored")
+		return
+	var min_px: float = 320.0
+	if "MIN_PHASE_VIEWPORT_DESIGN_PX" in inst:
+		min_px = float(inst.MIN_PHASE_VIEWPORT_DESIGN_PX)
+	var short_px: float = 620.0
+	if "SHORT_VIEWPORT_DESIGN_PX" in inst:
+		short_px = float(inst.SHORT_VIEWPORT_DESIGN_PX)
+	var vp_y: float = root.get_visible_rect().size.y
+
+	print("  BUDGET (threshold %.0f, short-screen cutoff %.0f, viewport %.1f):"
+		% [min_px, short_px, vp_y])
+	print("     as-found            budget %.1f   tight=%s"
+		% [inst._phase_viewport_budget(), str(inst._is_tight())])
+
+	# Force each pinning state and re-measure. If these two disagree the decision is
+	# self-preserving, and the fix is to subtract the nav wherever it lives.
+	for want_tight: bool in [true, false]:
+		inst._apply_nav_pinning(want_tight)
+		await process_frame
+		await process_frame
+		print("     nav pinned=%-5s     budget %.1f   tight=%s"
+			% [str(not want_tight), inst._phase_viewport_budget(), str(inst._is_tight())])
+
+	# Name the subtrahends. If one child dominates, THAT is the cause, not a latch.
+	var scroll2: Node = inst.get_node_or_null("MarginContainer/VBoxContainer/ContentScroll")
+	var col: Node = scroll2.get_node_or_null("ContentColumn") if scroll2 else null
+	if col:
+		print("     ContentColumn children subtracted from the budget:")
+		for ch: Node in col.get_children():
+			if ch is Control and (ch as Control).visible and str(ch.name) != "PhaseContainer":
+				print("        %-18s min.y %.1f" % [ch.name,
+					(ch as Control).get_combined_minimum_size().y])

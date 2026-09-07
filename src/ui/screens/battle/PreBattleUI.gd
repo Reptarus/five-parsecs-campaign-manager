@@ -878,6 +878,18 @@ func setup_crew_selection(
 ) -> void:
 	if not crew_selection_panel:
 		return
+	# T11-48. IDEMPOTENT. This used to clear neither the panel nor the selection,
+	# so a second call (Back then forward, or any re-entry) stacked a duplicate
+	# button list on top of the first AND inherited the previous picks: the
+	# pre-select loop below only fills while `selected_crew.size() < _max_deploy`,
+	# so an already-full selection left every NEW button rendering unpressed while
+	# the stale picks stayed live. That was cosmetic for as long as nothing
+	# consumed get_selected_crew(); now that the battle actually deploys it, a
+	# stale selection is the wrong crew on the table.
+	for stale in crew_selection_panel.get_children():
+		crew_selection_panel.remove_child(stale)
+		stale.queue_free()
+	selected_crew.clear()
 	_max_deploy = max_deploy
 
 	var crew_list := VBoxContainer.new()

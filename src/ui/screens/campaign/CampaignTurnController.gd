@@ -813,12 +813,38 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 	## Handle campaign turn start — sync turn into progress_data so dashboard reads it
 	var campaign: Resource = GameState.current_campaign if GameState else null
 	if campaign and "progress_data" in campaign:
-		# NON-REGRESSING sync. GameState.advance_turn() is the MONOTONIC authority for
-		# turns_played (it does += 1 at each turn's RETIREMENT). This turn-start sync
-		# must only ever RAISE turns_played, never lower it: on a loaded/re-derived
-		# path cpm.turn_number can be stale (stuck at the loaded turn), and the old
-		# unconditional `turns_played = turn_number - 1` clobbered advance_turn's
-		# already-incremented value back down — re-freezing the campaign at that turn.
+		# NON-REGRESSING sync, and in standard 5PFH it is the SOLE WRITER of
+		# turns_played. The write must only ever RAISE the value, never lower it: on a
+		# loaded/re-derived path cpm.turn_number can be stale (stuck at the loaded
+		# turn), and the old unconditional `turns_played = turn_number - 1` clobbered
+		# the higher stored value back down — re-freezing the campaign at that turn.
+		#
+		# ⚠ CORRECTED 2026-09-06 (T11-46). This comment used to open "GameState
+		# .advance_turn() is the MONOTONIC authority for turns_played (it does += 1 at
+		# each turn's RETIREMENT)", and described the max() below as a non-regressing
+		# sync running BESIDE that authority. THAT COLLABORATION DOES NOT HAPPEN.
+		# GameState.advance_turn() (GameState.gd:1665) has one definition and ZERO
+		# callers in src/ — every advance_turn() call site in the codebase resolves to
+		# a DIFFERENT class through a `campaign.has_method("advance_turn")` guard on
+		# the CAMPAIGN object (BugHuntCampaignCore:311, PlanetfallCampaignCore:555,
+		# TacticsCampaignCore:354, IntroductoryCampaignManager:91), never on GameState.
+		# Its only caller repo-wide is its own unit test. So there is no second,
+		# monotonic writer keeping this value honest — which is exactly why T11-20's
+		# freeze was TOTAL rather than partial (measured pre-fix: turn_number 0 -> 1 ->
+		# 2 while turns_played sat at 8).
+		#
+		# ⚠ Do NOT "fix" that by deleting advance_turn(): it is the correct monotonic
+		# implementation and its docblock records a real historical defect. Wiring the
+		# 5PFH turn advance through it is a live option, but it is a BEHAVIOUR change
+		# to a counter whose current fix was verified on hardware, so it is the owner's
+		# call, not a tidy-up. The guard against a second writer appearing is
+		# scripts/lint_data_ownership.py, which owns this key.
+		#
+		# ⭐ The transferable part: live code named a zero-caller function as its
+		# authority, and no lint could see it — the function is not orphaned (a test
+		# reaches it) and there is no has_method guard to flag. The only artefact was a
+		# COMMENT asserting a collaboration. When a comment names a collaborator, grep
+		# the collaborator.
 		var derived: int = turn_number - 1
 		var current: int = int(campaign.progress_data.get("turns_played", 0))
 		campaign.progress_data["turns_played"] = max(current, derived)
@@ -827,9 +853,13 @@ func _on_campaign_turn_started(turn_number: int) -> void:
 
 func _on_campaign_turn_completed(turn_number: int) -> void:
 	## Handle campaign turn completion
-	# QA-FIX BUG-08: Removed duplicate increment_turns_played() call.
-	# GameState.advance_turn() already sets progress_data["turns_played"].
-	# The extra GameStateManager.increment_turns_played() caused double-counting.
+	# QA-FIX BUG-08: Removed duplicate increment_turns_played() call, because the
+	# turn-start sync in _on_campaign_turn_started() already writes turns_played and
+	# the extra GameStateManager.increment_turns_played() caused double-counting.
+	# ⚠ CORRECTED 2026-09-06 (T11-46): this used to justify the removal with
+	# "GameState.advance_turn() already sets progress_data['turns_played']". It does
+	# not run in 5PFH — it has zero callers. See the long note in
+	# _on_campaign_turn_started() above for the full trace.
 	self.campaign_turn_completed.emit(turn_number)
 
 	# Auto-start next turn (production behavior)
@@ -2775,6 +2805,19 @@ func _on_deployment_confirmed() -> void:
 		# QA-FIX: Initialize BEFORE show() so _battle_initialized = true prevents
 		# _check_standalone_mode from firing the tier selection overlay
 		var crew_data = _deployable(game_state.get_active_crew()) if game_state.has_method("get_active_crew") else []
+		# T11-48. Field the crew the player SELECTED, not the whole roster. This
+		# line used to be the end of it, and PreBattleUI.get_selected_crew() had
+		# ZERO callers repo-wide - so the p.91 Ambush reduction, the p.88 Small
+		# Encounter sit-out and the p.84 Small Squad ceiling were each computed,
+		# passed into setup_crew_selection(), enforced in the widget, printed in the
+		# briefing, and then discarded. ⚠ Note this handler ALREADY reaches into
+		# pre_battle_ui for selected_tier and selected_representation_mode a few
+		# lines down: the boundary was crossed for those two and not for the crew,
+		# which is exactly why it read as wired. Full note + the fallback rule:
+		# BattleSetupRules.apply_crew_selection().
+		if pre_battle_ui and pre_battle_ui.has_method("get_selected_crew"):
+			crew_data = BattleSetupRulesClass.apply_crew_selection(
+				crew_data, pre_battle_ui.get_selected_crew())
 		var enemy_data = game_state.get_current_enemies() if game_state.has_method("get_current_enemies") else []
 		var mission_data = game_state.get_current_mission() if game_state.has_method("get_current_mission") else null
 

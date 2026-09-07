@@ -1486,6 +1486,384 @@ basis can miss a finding.
 
 ## Not reachable this walk
 
-- **T9-48** (Rival AMBUSH, D10=1) — queued and still pending; needs an actual Rival attack,
-  which is a per-turn D6 gate. Would take several turns of grinding.
+- ~~**T9-48** (Rival AMBUSH, D10=1) — queued and still pending; needs an actual Rival
+  attack, which is a per-turn D6 gate. Would take several turns of grinding.~~
+  ✅ **CORRECTED 2026-09-06 — CLOSED on deploy #23.** The reasoning above was wrong in a
+  useful way: it treated the p.85 Rival-tracking D6 as the gate, when the D1 snapshot
+  already carried `forced_rival_battle` armed, so the encounter was guaranteed and only
+  the p.91 attack-type D10 was left to force. **No grinding was needed — the row was
+  one restore and one queued roll away for three sprints.** See § deploy #23.
 - Checklist §3 legibility as a formal pass; A5 `gl_compatibility` measurement (needs a rebuild).
+
+
+## Deploy #23 — 2026-09-06 (versionCode 7, TB361FU HNQ05SR3, 2560x1600)
+
+The rebuild that carries the Sep 6 desk pass. **Every fix it carries has a hardware
+verdict, T9-48 is closed, and the walk opened one new finding.** Build identity was
+provable from the artifact alone this time (`versionCode 6 -> 7`), so no marker print was
+needed.
+
+Method: three restores of saves this campaign actually produced
+(`save_S3_presubmit.json` once, `save_save_D1_forcedbattle.json` twice), each followed by
+a force-stop, a relaunch, and arming the forced-roll queue from the dashboard.
+
+### Verdicts
+
+| Row | Verdict | Evidence |
+|---|---|---|
+| **T11-41** whole floats in the drawer | **PASS** | `A3_drawer_crew_2x.png` — all six lines read `CS:3 R:2 T:4 Spd:5`, with the battle rail's `C3 T4 Sv2 R2` in the SAME frame. #22 showed `CS:3.0 R:2.0 T:4.0 Spd:5.0`. |
+| **T11-42** blank nemesis buttons | **PASS** | `A4_nemesis_2x.png` — all three labels legible, the p.126 prose WRAPPED across five lines, buttons inside the window (popup measured **455 device px, about 392 design px**, inside the 380-560 clamp). |
+| **T11-43** SpinBox reads the pre-edit value | **PASS, twice** | `A1_queued_row.png`: typed 89 over an auto-filled 21 and pressed Queue without leaving the field, status read *Queued 89 ... [pending: campaign event=[89]]*. Repeated on a D10 in `B1_queued_row.png` (*Queued 2* over an auto-filled 1). |
+| **T11-44** non-canonical moods | **PASS, both halves** | *Producer:* a full battle + post-battle + turn rollover wrote 5 new journal entries, **every one canonical**, and **zero** `non-canonical mood` warnings in godot.log AND logcat (0 warn/error in 17,413 logcat lines). *Legacy alias:* `B0_lostitem_2x.png` — the turn-8 entry stored as `mood: "positive"` now renders **Triumph** with an emerald title where #22 rendered Neutral in grey. |
+| **T11-45** reinforcement keeps the wrong role name | **PASS, strong control** | `save_B1.json` — the last GENERATED figure is a Specialist, and the addition reads **`Black Dragon Mercs (Reinforcement)` role=standard**. Pre-fix that same roster produced *Black Dragon Mercs Specialist (Reinforcement)* with `role: standard`, the name contradicting the role on one line. |
+| **T9-48** prohibition rendered as a modifier | **CLOSED ON HARDWARE** | see below |
+| **T11-48** | **NEW, OPEN** | see below |
+
+**Re-confirmed in passing:** T11-15 (the QA dialog shifted up and kept the field under
+edit visible while the IME was open), T11-16 (*Resume Battle — Turn 9* after a restore),
+T11-17 (`cache MISS, recovered from campaign owner: seed=2982481273.0 sectors=16` — the
+seed survived the restore), T11-18 (the Record Result drawer renders complete in landscape
+with no horizontal clipping), T11-20 (turn advanced 9 -> 10 across the rollover), T11-21
+(the *Resolve without them?* dialog at **24.8%** of viewport height, citing pp.77-78),
+T11-25 (`resources.rivals` stayed at 2 and Feral Jackals gained `persistent` +
+`enemy_count_bonus`), T11-27 and T11-37 (**0** paused-tree errors, **0** safety timeouts
+across all three legs), and the **T9-44 erase list** (an accepted Deliver / Sector Agent /
+Zealots job leaked **0 of 16** Patron keys into the rival battle).
+
+### T9-48 — CLOSED ON HARDWARE, open since 2026-08-14
+
+The prohibition branch needed a Rival **AMBUSH** (`roll_range [1,1]` on a D10, about 10%
+per ambush), which is why three sprints failed to reach it. It turned out to be one tap
+away the whole time: the D1 snapshot sits at Mission Prep with `forced_rival_battle`
+armed, and `MissionTableManager.roll_rival_attack_type()` routes its D10 through
+`DiceManager.legacy_randi_range()` — a forceable context key already in the QA dropdown.
+
+**A one-variable A/B, identical restore, only the queued roll differing:**
+
+| | B1 (queued **2**) | B2 (queued **1**) |
+|---|---|---|
+| `rival_attack_type` | `BROUGHT_FRIENDS` | **`AMBUSH`** |
+| Seize block on screen | *Need 7+ on 2D6 (Savvy +2) — 58% chance* (blue) | **amber: *Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)*, and NO roll line at all** |
+| `setup_rules.can_seize_initiative` | `true` | **`false`** |
+| `setup_rules.crew_cap_delta` | `0` | **`-1`** |
+| `setup_rules.enemy_delta` | `1` | `0` |
+
+Evidence: `B2_seize_2x.png` / `B1_seize_2x.png`, `save_B2.json` / `save_B1.json`.
+Measured on 2026-08-13 this same surface rendered *Need 8+ on 2D6 (Savvy +2) — 42%
+chance* for an Ambush: the normal 7+ with the p.91 Rival -1 applied, i.e. **a harder roll
+rather than no roll, which is the most convincing possible wrong answer.** It now prints
+the prohibition and suppresses the roll.
+
+⚠ The briefing also states the other half — *Deploy one fewer crew than standard* — and
+`crew_cap_delta = -1` is computed and stamped. **That half does NOT bind. See T11-48.**
+
+### T11-48 — the crew the player selects is discarded; three deployment rules never bind (MEDIUM, NEW)
+
+Found by checking a number rather than assuming it: the AMBUSH battle deployed **CREW 6/6**
+(`B2_rail.png`) under a cap that had just been computed as **5**.
+
+`PreBattleUI` is correct throughout. `setup_crew_selection(crew, max_deploy)` pre-selects
+up to the cap (`:922-925`), `_on_character_selected()` refuses a toggle past it
+(`:937-943`), and `_update_deploy_label()` prints *Deploying N / M max*. The caller is
+correct too: `CampaignTurnController._launch_pre_battle_directly()` computes
+`deploy_limit = campaign_crew_size + crew_cap_delta`, applies the p.84 `crew_cap_max`
+ceiling AFTER the deltas, and passes it in (`:1837-1847`).
+
+**Then nothing reads the answer.** `_on_deployment_confirmed()` rebuilds the battle crew
+from scratch:
+
+```gdscript
+var crew_data = _deployable(game_state.get_active_crew())   # :2777 - the WHOLE roster
+```
+
+`PreBattleUI.get_selected_crew()` (`:1151`) has **ZERO callers repo-wide** (`src/` and
+`tests/`), and the `crew_selected` signal is emitted twice inside PreBattleUI and
+connected by nobody. ⚠ The same handler DOES reach into PreBattleUI on the adjacent lines
+for `selected_representation_mode` (`:2768`) and `selected_tier` (`:2784`) — so the tier
+and the combat mode cross the boundary and the crew does not.
+
+**Three book rules ride on that discarded value:**
+
+- p.91 Rival **Ambush** — *you can deploy one crew member less than standard* (`crew_cap_delta -1`)
+- p.88 **Small Encounter** — *a random crew member sits out* (same delta path)
+- p.84 **Small Squad** — *You cannot deploy more than 4 crew* (`crew_cap_max`, the absolute ceiling)
+
+⚠ **The comment at `:1835-1836` says the cap "was previously always the full campaign crew
+size, so neither ever bit".** The fix that comment describes went into COMPUTING
+`deploy_limit` correctly, and the computed value still never reaches the battle. This is
+the implemented-but-never-called shape with the extra twist that a previous fix already
+landed on the producing half.
+
+⚠ Separately, and possibly why nobody noticed: on this tablet in landscape the Select Crew
+panel renders **empty and below the fold**, and the Mission Info column would not scroll to
+it across four attempted gestures (`B2_selectcrew.png`). So the player cannot see the
+*Deploying N / M max* label either. Whether that is a second defect or the same layout
+family as T11-40 is **not established** — recorded as observed, not diagnosed, because
+guessing a cause is what produced the wrong T11-42 note.
+
+**NOT fixed here.** It is outside this sprint's scope (verify the five carried fixes plus
+T9-48), it changes battle composition, and it needs its own detection proof plus a unit
+test pinning "the deployed crew equals the selected crew" across all three cap sources.
+
+### T11-46 — CLOSED at the desk (comment corrected, no behaviour change)
+
+Owner's decision: correct the comment, leave `GameState.advance_turn()` alone. Applied at
+`CampaignTurnController._on_campaign_turn_started()` (the `max()` write is named as the
+SOLE 5PFH writer, with the full zero-caller trace and the reason deleting `advance_turn()`
+would be wrong), at `_on_campaign_turn_completed()` (**a second stale comment making the
+same claim, found while fixing the first**), and as a docblock note on
+`GameState.advance_turn()` itself. Re-routing the 5PFH turn advance stays available as an
+owner's call; it is a behaviour change to a counter whose fix was just verified on
+hardware, so it is not a tidy-up.
+
+### T11-40 — the latch is PROVEN (diagnosis only, no fix this sprint)
+
+`tests/tools/probe_world_phase_footer.gd` now measures `_phase_viewport_budget()` in BOTH
+pinning states at the same size. **The budget depends on where the nav currently lives:**
+
+| window | viewport | nav INSIDE ContentColumn | nav PINNED outside | threshold |
+|---|---|---|---|---|
+| 1280x800 | 689.7 | **244.7 -> tight** | **502.7 -> relaxed** | 320 |
+| 2560x1600 | 1379.3 | 925.3 -> relaxed | 1190.3 -> relaxed | 320 |
+| 1600x2560 | 2206.9 | 1757.9 -> relaxed | 2015.9 -> relaxed | 320 |
+
+The 1280x800 row is a genuine **latch**: 244.7 < 320 keeps the nav inside, which keeps the
+budget at 244.7; 502.7 > 320 keeps it outside, which keeps the budget at 502.7. **Both
+states are stable fixed points, so the layout is decided by whichever one it happens to
+reach first.** The delta is **258.0 px**, exactly `Controls 134 + HSeparator2 4 + Footer 48
++ 3 x RELAXED_SEPARATION_PX 24` — the nav's own contribution, subtracted only while it is
+inside the column.
+
+**The docblock at `_phase_viewport_budget()` is careful to keep the UNITS monotonic (it
+measures in fixed RELAXED units precisely to stop the answer feeding back). Node LOCATION
+is a second input, and it moves with the answer.**
+
+⚠ **A correction to the earlier note in this document.** It said landscape "resolves TIGHT
+while portrait resolves RELAXED" at the device size. Measured: at 2560x1600 `_is_tight()`
+returns **false** in both pinning states — but the VBox children listing shows the nav
+still INSIDE `ContentScroll`, i.e. the **tight ARRANGEMENT with a relaxed DECISION**. The
+two are out of sync, which is why the footer sits below the fold on a screen the code
+considers roomy. That is a sharper statement of T11-40 than the original.
+
+At max scroll every nav control is 100% visible at both landscape sizes, so this remains a
+first-paint scroll-offset problem, not a clipping one — and the sweep still cannot see it,
+because content inside a `ScrollContainer` is legitimately allowed to exceed the viewport.
+
+**Fix shape (unwritten, for the owner):** make the budget location-independent — subtract
+the nav's minimum wherever it lives, or exclude it symmetrically — and re-apply
+`_apply_nav_pinning()` whenever the decision changes. Closure belongs in a unit test
+asserting the two budgets are EQUAL, plus the 733x338 phone-on-its-side case the tight
+branch exists for.
+
+### Walk-method defect found and fixed (affects how #21/#22 were driven)
+
+`walk21.py`'s `_wait()` shelled out to Windows `timeout /t N /nobreak`. That command
+**aborts instantly** with *Input redirection is not supported* whenever stdin is not a
+console, which it is not under this harness — so **every wait in the deploy #21 and #22
+walks was a no-op**, covered up by adb's own latency. Measured on #23: a tap followed by a
+screenshot returned a **byte-identical** frame and `walk21.py diff` reported *IDENTICAL —
+the control did nothing*, which reads exactly like a dead button. Replaced with
+`time.sleep`. ⚠ It did not invalidate the #21/#22 verdicts, which were artifact-based, but
+it is a live false-negative generator for any screenshot-driven step.
+
+### Gates
+
+Full `tests/unit` headless in 9 batches of at most 34 suites: **281 suites, 3,094 cases, 0
+failures, 0 errors, no signal 11.** Exit 101 on several batches is gdUnit4's ORPHAN code
+(269 suites report `0 orphans`, 10 report some), not a failure. ⚠ The runner's own crash
+heuristic produced a FALSE POSITIVE by matching the `crash_site` battlefield theme; it was
+checked against `signal 11` / `SIGSEGV` before being believed.
+
+
+## The desk pass after deploy #23 — 2026-09-06, T11-48 and T11-40 FIXED
+
+Both were opened by the deploy #23 walk and are now fixed at the desk, each
+detection-proven by isolated revert and pinned by a new unit suite. **Neither has a
+device verdict yet** — they need a deploy #24.
+
+### T11-48 — FIXED (the selection now reaches the battle)
+
+| Part | Change | Where |
+|---|---|---|
+| The rule | New `apply_crew_selection(roster, chosen)`, a pure static beside `apply_enemy_delta()` — its enemy-side analogue — so it is testable with no tree, matching that file's stated design | `BattleSetupRules.gd` |
+| The widget | `setup_crew_selection()` made IDEMPOTENT: it cleared neither the panel nor `selected_crew`, so a re-entry stacked a duplicate button list and kept the OLD picks (the pre-select loop only fills up to `_max_deploy`, so every new button rendered unpressed while stale picks stayed live) | `PreBattleUI.gd` |
+| The consumer | `_on_deployment_confirmed()` now filters the roster through the rule | `CampaignTurnController.gd` |
+
+**Identity is `FPCM_BattleCheckpoint.member_key()`**, the rule the battle checkpoint
+already filters a roster with, and whose docblock asks callers to reuse it so two
+copies cannot drift. Object equality would have been the wrong tool: the selection
+holds the items handed to `setup_crew_selection()` while the handler re-reads
+`get_active_crew()`, so whether those are the same instances is an implementation
+detail of the getter.
+
+**Every ambiguous input returns the roster untouched** — an empty selection, a
+selection carrying no usable key, or a filter matching nobody. An empty selection
+means the selector never ran (its caller guards on a non-empty roster, and Confirm
+stays disabled while nothing is picked), NOT that the player chose to field nobody.
+Fielding an empty force off a matching failure would be worse than the defect.
+
+**Pinned by `tests/unit/test_deployment_selection.gd` (17 cases)**: the filtering, the
+four fallbacks, the three cap SOURCES each to its page, the ceiling-after-deltas
+ordering, an end-to-end pass through a real `PreBattleUI`, and the call site itself.
+
+⚠ **The call site is asserted deliberately.** Every other case in that suite calls the
+rule directly and would STILL PASS with the handler ignoring it again — which is
+precisely what T11-48 was. The scan is anchored on the enabling form
+(`crew_data = BattleSetupRulesClass.apply_crew_selection`) and paired with a
+`can_instantiate()` case, because a source scan proves the right words are present and
+never that the file compiles.
+
+**Detection-proven, three arms, one at a time** (gdUnit4 aborts a suite after its
+first failure, so a batched revert would hide which case is load-bearing):
+
+| Reverted | Case that went red |
+|---|---|
+| the consumer stops calling the rule | `test_the_confirm_handler_actually_consumes_the_selection` |
+| the widget stops clearing its state | `test_setup_crew_selection_is_idempotent` |
+| the rule stops filtering | `test_a_selection_of_five_fields_exactly_those_five` |
+
+⚠ **A fixture-shape correction worth keeping.** The first Small Squad case put
+`max_deploy_crew` at the TOP level of `mission_data` and read 0. The real shape hangs
+the condition off the job (`{"conditions": ["small_squad"]}`) and
+`PatronJobEffects._resolve()` accepts a bare id, so the 4 now comes out of the shipped
+`data/patron_generation.json` instead of being retyped in the test.
+
+### T11-40 — FIXED (the budget no longer depends on the layout it produces)
+
+`_phase_viewport_budget()` subtracted the minimum of every visible non-Phase child of
+`ContentColumn`, and `_apply_nav_pinning()` moves Controls / HSeparator2 / Footer out
+of that column when relaxed. The nav is now subtracted ALWAYS, by name, wherever it is
+parented, and the column loop skips those three names so nothing is counted twice.
+
+That is not merely consistent, it is correct: the nav costs its height in both
+arrangements — inside the column it is scrolled content, pinned outside it sits
+between the scroll and the screen edge.
+
+**Measured before and after, same probe, same campaign:**
+
+| window | viewport | nav inside | nav pinned | after the fix |
+|---|---|---|---|---|
+| 1280x800 | 689.7 | 244.7 -> tight | 502.7 -> relaxed | **244.7 both -> tight** |
+| 2560x1600 | 1379.3 | 925.3 | 1190.3 | **921.3 both -> relaxed** |
+| 1600x2560 | 2206.9 | 1757.9 | 2015.9 | **1757.9 both -> relaxed** |
+
+At the true device size the nav is now PINNED and the footer ends at y 1279 of a
+1379.3 px viewport — fully on screen. That is T11-40's symptom resolved. The 1280x800
+row stays TIGHT, which is correct: it is the genuinely cramped case the tight branch
+exists for, and scrolling to the nav there beats pinning it.
+
+**Pinned by `tests/unit/test_world_phase_budget.gd` (4 cases)** and detection-proven:
+reverting to the pre-fix body fails
+`test_the_budget_does_not_depend_on_where_the_nav_is_parented` immediately. The cases
+are deliberately SIZE-INDEPENDENT — headless gives a dummy DisplayServer where
+`window_set_size()` does nothing, so a case pinned to 1280x800 would assert against
+whatever rect the harness happened to provide. The invariant needs no particular size.
+
+⚠ **A probe artifact was corrected rather than filed as a finding.** The first run
+showed 2560x1600 with a relaxed DECISION beside a tight ARRANGEMENT, which reads like
+a product desync. It is the probe: it adds the instance immediately after
+`window_set_size()`, so `_ready()` decides on the PREVIOUS size — the same
+one-size-behind trap as T11-04. The probe now re-runs `_apply_vertical_compaction()`
+once the size has settled, which is the faithful stand-in for the `size_changed` /
+`layout_class_changed` the device delivers. In the product both triggers are wired.
+
+### Gates
+
+Layout sweep at eight sizes: **passed=222 failed=2**, and WorldPhaseController passes
+at every size. ⚠ **That is NOT a like-for-like improvement on the 217/7 recorded
+above** — the desktop fixture campaign was replaced with the walk's D1 snapshot for
+the probe, so the journal and galaxy screens render different content. The claim that
+holds is the narrow one: **no NEW failures, and the two that remain are among the
+seven already filed** (the `CampaignDashboard` "Corporate" Label slab).
+
+
+## Deploy #24 walked on hardware — 2026-09-06. T11-48 PASS, T11-40 PASS
+
+`build/deploy24.apk`, **versionCode 8**, installed over #23 and md5-verified against
+the built artifact on the device (`c84bfffe08867e8995312d4c1ff8ad6e`, both sides).
+Lenovo TB361FU, landscape (`mCurrentRotation=ROTATION_90`), fixture
+`walk21/save_save_D1_forcedbattle.json` restored and md5-verified into BOTH `.save`
+and `.save.bak`, then force-stopped so `bind_campaign()` re-reads it.
+
+### T11-48 — PASS. The selection now reaches the table.
+
+Forced the p.91 attack-type D10 to **1 = AMBUSH** from the QA dialog after the
+relaunch (the force-stop wipes `DiceManager._forced_results`, so it must be armed from
+the dashboard), then walked all six World Phase steps to the battle.
+
+**A one-variable A/B against deploy #23's own artifact.** `save_B2.json` was pulled
+from the SAME snapshot, the SAME forced roll and the SAME rival on the pre-fix build,
+so every input below is identical and exactly one output moved:
+
+| | deploy #23 (vc7, pre-fix) | deploy #24 (vc8, fixed) |
+|---|---|---|
+| mission | Rival Attack: Unwanted attention | *same* |
+| `rival_attack_type` | AMBUSH | AMBUSH |
+| `setup_rules.crew_cap_delta` | -1 | -1 |
+| `setup_rules.can_seize_initiative` | false | false |
+| `campaign_crew_size` | 6 | 6 |
+| roster (`crew.members`) | 6 | 6 |
+| **`progress.active_battle.crew`** | **6** | **5** |
+
+The battle screen agrees with the save: the crew rail reads **`CREW 5 / 5`** and
+`ACTIVATED 0/5`, listing Bryn Ito, Dex Kovac, Yuri Drake, Mars Stark and Finn Mendez.
+**Nyx Ward sat the battle out** — which is the p.91 Ambush reduction, on the table,
+for the first time.
+
+⭐ **The fixture is what makes this discriminating.** All six crew are ACTIVE, none
+in Sick Bay and none carrying a `skip_next_battle` status, so `_deployable()` filters
+nobody — the only thing in the app that can turn 6 into 5 here is
+`BattleSetupRules.apply_crew_selection()`. Had a crew member been unavailable for any
+other reason, a 5 would have proved nothing.
+
+⚠ **The `Deploying 5 / 5 max` counter was NOT read on screen, and that is not a
+failure of the fix.** The Select Crew pane is pane 4 of 4 against `max_columns = 3`, so
+it wraps to row 2 and is allocated header height only at 2560x1600 — the same
+clipping recorded at the deploy #23 row above, present in `B2_selectcrew.png` on the
+PRE-FIX build (where the header was additionally sliced mid-glyph). It is therefore
+**pre-existing and NOT a regression from this fix**; if anything the header now renders
+whole. The selection still binds because `setup_crew_selection()` pre-selects up to
+`_max_deploy` programmatically, which is precisely what the save then proves. Note the
+outer scroll IS live — dragging the scrollbar at x=2532 scrolls the page — but a
+touch-swipe over any pane does not reach it; recorded as observed, not diagnosed.
+
+Artifacts: `V3_queued_crop.png` (roll armed), `VP_prebattle.png` (the amber
+*"Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)"* with no
+"Need N+ on 2D6" line), `X2_battle.png` (`CREW 5 / 5`), `save_V_ambush.json`.
+
+### T11-40 — PASS. Measured with the finding's own instrument.
+
+The original row was established by a one-variable control: the same `Next Step` button
+on the same screen, differing only in the step's content height. Both arms were re-run
+on #24 and the raw column at **x=2400** re-walked, exactly as the row describes.
+
+| Step | Content | deploy #23 (pre-fix) | deploy #24 |
+|---|---|---|---|
+| 4 · Assign Equipment | short | y 1447-1510, h=**64**, 89 px bg below | y 1381-1446, h=**66**, **122 px** below |
+| 2 · Crew Tasks | tall | y 1554-1590, h=**37**, 9 px bg below | y 1381-1446, h=**66**, **122 px** below |
+
+The 27 px that used to be cut are back: the label is no longer sliced mid-stroke, the
+bottom border renders, and `← Back to Dashboard` sits at y 1507-1562 with 37 px of
+page background beneath it.
+
+⭐ **The stronger result is that the button stopped MOVING.** The row's diagnosis
+was *"it tracks content height — the footer is not pinned, it flows"*. On #24 the
+Crew Tasks content grew from a 61 px band to a 94 px band when the task results
+rendered, and the button stayed at **y 1381..1446 through both**, and reported the
+identical rect on Steps 1, 2 and 4. The budget no longer depends on the arrangement it
+produces, which is the desk fix reproducing on hardware.
+
+Artifacts: `V9_s1_after.png`, `VC_tasksdone.png`, `VK_s3_after.png`, and the column
+scans from `col_t1140.py`.
+
+### Regressions checked, none found
+
+`logcat` **0 warn/error** across the walk; `Safety timeout = 0` (T11-37 holds);
+paused-tree errors **0** (T11-27 holds); `godot.log` clean of `SCRIPT ERROR` /
+`Nonexistent` / `Invalid call` / `Parse Error`; `[T11-07] dpi=1.000 ->
+content_scale=0.7830` (the density double-count stays fixed); `[T11-17] branch=CONSUME
+bf_seed=3803264237` (the battlefield contract was consumed, not regenerated).
+
+The tablet was handed back on `walk21/dev_now_0906.json` — the exact state it was
+in before this walk, md5-verified into both `.save` and `.save.bak` — with the app
+force-stopped and `svc power stayon` restored to false.

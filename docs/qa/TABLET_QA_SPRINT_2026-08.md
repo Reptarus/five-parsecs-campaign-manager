@@ -6740,7 +6740,12 @@ what makes "2 aliens + 1 bot" the correct reading of roll 6.
 - A5 renderer lever (`gl_compatibility`) — still unmeasured.
 
 
-## Deploys #21 and #22 — 2026-09-05/06 (versionCode 7, TB361FU HNQ05SR3, 2560x1600)
+## Deploys #21 and #22 — 2026-09-05/06 (versionCode **6**, TB361FU HNQ05SR3, 2560x1600)
+
+so is this one, which is why build identity had to be proven by a POSITIVE MARKER instead:
+`[T11-26] SettingsScreen touch-scroll filters opened: 52`, a print that does not exist in
+the previous build. (An earlier draft of this heading said versionCode 7; corrected against
+`export_presets.cfg` and the findings doc's own build-identity note.)
 
 Full record, row by row with its evidence artifact:
 [docs/qa/TABLET_FINDINGS_2026-09-05.md](TABLET_FINDINGS_2026-09-05.md) § deploy #21 / #22.
@@ -6816,3 +6821,93 @@ walk ran under is deliberately ended. **A rebuild is required before further dev
   `passed=217 failed=7 skipped=0` at eight sizes, the 7 proven pre-existing by a
   `populate=off` control returning the identical numbers · `git diff -- data/` still lists
   only the two sheet manifests. Nothing is committed.
+
+
+## Deploy #23 — 2026-09-06 (versionCode 7, TB361FU HNQ05SR3, 2560x1600)
+
+Row-by-row record with evidence artifacts:
+[docs/qa/TABLET_FINDINGS_2026-09-05.md](TABLET_FINDINGS_2026-09-05.md) § deploy #23.
+This section is the ledger entry only.
+
+The rebuild carrying the Sep 6 desk pass. **All five fixes verified on hardware, T9-48
+closed after three sprints, one new finding opened.** Build identity was provable from the
+artifact alone (versionCode 6 -> 7), so the marker-print workaround #21 needed was not
+required.
+
+### Verdicts
+
+- **PASS:** T11-41, T11-42, T11-43 (twice, on two different dice), T11-44 (producer AND
+  legacy-alias halves), T11-45.
+- **T9-48 CLOSED ON HARDWARE** — the prohibition branch, open since 2026-08-14. Reached by
+  forcing the p.91 `Rival Attack Type` D10 to 1 on a snapshot that already had
+  `forced_rival_battle` armed. One-variable A/B against a BROUGHT_FRIENDS run from the
+  identical restore.
+- **T11-46 closed at the desk** — comment corrected (owner's decision), no behaviour
+  change. A second stale comment making the same claim was found while fixing the first.
+- **T11-40 diagnosed, not fixed** (owner scoped it diagnose-only). The latch is PROVEN:
+  the same screen at 1280x800 computes a viewport budget of **244.7 or 502.7** depending
+  only on where the nav currently lives, against a threshold of 320 — both states are
+  stable fixed points.
+- **NEW: T11-48** — `PreBattleUI.get_selected_crew()` has zero callers;
+  `_on_deployment_confirmed()` rebuilds the battle crew from the whole roster, so the p.91
+  Ambush cap, the p.88 Small Encounter sit-out and the p.84 Small Squad ceiling all fail to
+  bind. Measured: 6/6 deployed under a computed cap of 5. NOT fixed — out of scope, changes
+  battle composition, needs its own detection proof and test.
+- **Re-confirmed in passing:** T11-15, T11-16, T11-17, T11-18, T11-20, T11-21, T11-25,
+  T11-27, T11-37, and the T9-44 Patron erase list (0 of 16 keys leaked).
+
+### Method note worth keeping
+
+`walk21.py`'s `_wait()` used Windows `timeout /t N /nobreak`, which **aborts instantly when
+stdin is not a console** — so every wait in the #21 and #22 walks was a no-op, masked by
+adb's own latency. On #23 it produced a byte-identical before/after frame and the harness
+reported *IDENTICAL — the control did nothing*, which is indistinguishable from a dead
+button. Replaced with `time.sleep`. The #21/#22 verdicts stand (they were artifact-based),
+but this is a live false-negative generator for screenshot-driven steps.
+
+### Gates
+
+Full `tests/unit` headless, 9 batches of at most 34 suites: **281 suites, 3,094 cases, 0
+failures, 0 errors, no signal 11.** Exit 101 is gdUnit4's orphan code, not a failure.
+`git diff -- data/` still lists only the two sheet manifests. Nothing is committed.
+
+
+## Desk pass after deploy #23 — 2026-09-06 (T11-48 + T11-40 fixed)
+
+Both rows opened by the #23 walk are fixed, detection-proven and pinned. **Neither has
+a device verdict — deploy #24 is the open step.**
+
+- **T11-48** — three parts: a new `BattleSetupRules.apply_crew_selection()` (pure
+  static, beside its enemy-side analogue), `PreBattleUI.setup_crew_selection()` made
+  idempotent, and `_on_deployment_confirmed()` actually consuming the selection. The
+  p.91 Ambush reduction, the p.88 Small Encounter sit-out and the p.84 Small Squad
+  ceiling now all bind. 17 cases, 3 detection arms proven one at a time.
+- **T11-40** — `_phase_viewport_budget()` subtracts the nav wherever it is parented,
+  so the tight/relaxed decision no longer depends on the arrangement it produces. At
+  the true device size the nav is now pinned and the footer is fully on screen. 4
+  cases, detection-proven.
+- Gates: layout sweep 222/2 with WorldPhaseController green at all eight sizes; the
+  two remaining failures are among the seven already filed. ⚠ Not a like-for-like
+  comparison with the earlier 217/7 — the fixture campaign changed.
+
+
+## Deploy #24 — 2026-09-06 (T11-48 PASS, T11-40 PASS on hardware)
+
+versionCode 8, md5-verified on the device against the built APK. Both rows opened by
+the #23 walk now have a device verdict.
+
+- **T11-48 PASS** — forced AMBUSH from the same D1 snapshot as #23's `save_B2.json`.
+  Every input identical (AMBUSH, `crew_cap_delta -1`, `can_seize false`, crew_size 6,
+  roster 6); `active_battle.crew` moved **6 -> 5**. The battle rail reads `CREW 5 / 5`
+  and Nyx Ward sits out — the p.91 Ambush reduction on the table. The fixture is
+  discriminating because all six crew are ACTIVE, so `_deployable()` filters nobody.
+- **T11-40 PASS** — re-measured with the finding's own instrument at x=2400. Crew
+  Tasks (the tall repro step) went h=**37** with 9 px below to h=**66** with 122 px
+  below, and the button now reports the SAME rect on steps 1/2/4 and does not move when
+  content grows. The footer stopped flowing with content height.
+- Clean: 0 logcat warn/error, Safety timeout 0, paused-tree 0, T11-07 and T11-17
+  telemetry both still correct.
+- ⚠ Carried forward, pre-existing: the Select Crew pane renders header-only at
+  2560x1600 (pane 4 of 4 against `max_columns = 3`). Same on the PRE-FIX build, so not
+  a regression. Deployment still binds because the pre-select is programmatic.
+- Device handed back on `dev_now_0906.json`, force-stopped, stayon false.

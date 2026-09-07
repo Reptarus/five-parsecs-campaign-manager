@@ -21,34 +21,53 @@ rect.
 
 ---
 
-### 🟡 DESK-FIXED 2026-09-06, AWAITING A REBUILD — T11-40..T11-47
+### ✅ CLOSED ON HARDWARE — deploy #23 (2026-09-06, versionCode 7)
 
-T11-41 / T11-42 / T11-43 / T11-44 / T11-45 are fixed, and `lint_journal_vocabulary.py` now
-covers the **mood** vocabulary it had never looked at (detection-proven on both a plain
-literal and a ternary's `else` half). Gates: **11 lints exit 0**, 167 unit cases / 14
-suites / 0 failures, layout sweep `passed=217 failed=7 skipped=0` with the 7 proven
-pre-existing by a `populate=off` control, `git diff -- data/` unchanged at the two sheet
-manifests.
+The rebuild carrying the Sep 6 desk pass has been walked. **T11-41 / T11-42 / T11-43 /
+T11-44 / T11-45 all PASS on the tablet**, and **T9-48 is CLOSED** — the p.91 Ambush
+prohibition branch, open since 2026-08-14, reached by forcing the attack-type D10 on a
+snapshot that already had a rival battle armed. Record:
+[docs/qa/TABLET_FINDINGS_2026-09-05.md](qa/TABLET_FINDINGS_2026-09-05.md) § deploy #23;
+ledger [docs/qa/TABLET_QA_SPRINT_2026-08.md](qa/TABLET_QA_SPRINT_2026-08.md) § #23.
 
-⚠ **The "installed APK matches source" invariant is now deliberately ended — a rebuild is
-required before any further device work.**
+**T11-46 is closed** (comment corrected; `GameState.advance_turn()` left alone by owner's
+decision). Gates: **281 suites / 3,094 cases / 0 failures** headless, `git diff -- data/`
+unchanged.
 
-**Still open:**
+### ✅ FIXED AND VERIFIED ON HARDWARE 2026-09-06 (deploy #24) — T11-48 and T11-40
 
-- **T11-40** — half done. The harness gap is closed (the layout sweep had listed
-  WorldPhaseController all along while measuring it EMPTY) and the sweep was run, but the
-  product fix is deliberately unwritten: two hypotheses were killed by measurement and the
-  remaining one is unverified. ⚠ The sweep **structurally cannot** close this row — its
-  off-screen assertion correctly exempts content inside a `ScrollContainer`, and the nav is
-  inside one; the closure belongs in a unit test, as T11-01 did.
-- **T11-46** — `GameState.advance_turn()` has zero callers while live code names it "the
-  MONOTONIC authority" for `turns_played`. Wire it or correct the comment; owner's call.
-- **T11-47** — the layout sweep's device-equivalence premise was invalidated by the T11-07
-  fix. `design = window_px / 1.16` on both platforms now, so the tablet's design space is
-  **2207x1379**, twice the row named "tablet landscape". Docblock corrected and true-pixel
-  rows added; every "tablet" verdict recorded between T11-07 and now was measured at half
-  the device's design space.
-- **T9-48** — knowingly out of scope (needs a Rival AMBUSH D10 of 1).
+Both were opened by the deploy #23 walk, fixed at the desk (each detection-proven by
+isolated revert and pinned by a new unit suite), and **both now PASS on the tablet**
+(deploy #24, versionCode 8, md5-verified on device). **T11-48**: from the same D1
+snapshot and the same forced AMBUSH as deploy #23's pre-fix artifact, with every
+input identical, `active_battle.crew` moved **6 -> 5** and the battle rail reads
+`CREW 5 / 5` with one crew member sitting out — the p.91 Ambush reduction on the
+table. **T11-40**: re-measured with the finding's own instrument at x=2400, the tall
+Crew Tasks step went h=**37** with 9 px below to h=**66** with 122 px below, and the
+button no longer moves between steps or when content grows. Detail:
+[docs/qa/TABLET_FINDINGS_2026-09-05.md](qa/TABLET_FINDINGS_2026-09-05.md) § deploy #24.
+
+- **T11-48** — the crew the player selects now reaches the battle. Three parts: a new
+  `BattleSetupRules.apply_crew_selection()` (pure static, beside its enemy-side
+  analogue `apply_enemy_delta()`), `PreBattleUI.setup_crew_selection()` made idempotent,
+  and `_on_deployment_confirmed()` actually consuming the selection. The **p.91 Rival
+  Ambush** reduction, the **p.88 Small Encounter** sit-out and the **p.84 Small Squad**
+  ceiling all bind again. Identity comes from `BattleCheckpoint.member_key()`, the rule
+  the checkpoint already filters with. Every ambiguous input returns the roster
+  untouched, because an empty selection means the selector never ran, not that the
+  player chose to field nobody. **17 cases**, 3 detection arms proven one at a time.
+- **T11-40** — `_phase_viewport_budget()` now subtracts the nav wherever it is
+  parented, so the tight/relaxed decision no longer depends on the arrangement it
+  produces. The latch is gone: 1280x800 reports **244.7 in both states** where it used
+  to report 244.7 or 502.7 against a threshold of 320. At the true device size the nav
+  is pinned and the footer ends at y 1279 of a 1379.3 px viewport, fully on screen.
+  **4 cases**, detection-proven.
+
+Gates: layout sweep **222 passed / 2 failed** at eight sizes, WorldPhaseController
+green at every one. ⚠ Not a like-for-like improvement on the earlier 217/7 — the
+desktop fixture campaign was swapped for the walk snapshot, so the journal and galaxy
+screens render different content. The claim that holds: **no new failures, and the two
+remaining are among the seven already filed.**
 
 ---
 

@@ -426,3 +426,50 @@ static func apply_enemy_delta(
 		for _i in range(mini(-delta, out.size() - 1)):
 			out.pop_back()
 	return out
+
+
+## The crew the player actually CHOSE, filtered out of the live roster.
+##
+## T11-48. The deployment cap is computed in THIS file - `crew_cap_delta` for the
+## p.91 Rival Ambush ("you can deploy one crew member less than standard") and the
+## p.88 Small Encounter ("a random crew member sits out"), `crew_cap_max` for the
+## p.84 Small Squad ("You cannot deploy more than 4 crew") - then handed to
+## PreBattleUI.setup_crew_selection(), pre-selected there and enforced on every
+## toggle. And then it was thrown away: CampaignTurnController
+## ._on_deployment_confirmed() rebuilt the battle crew from
+## `_deployable(get_active_crew())`, and PreBattleUI.get_selected_crew() had ZERO
+## callers repo-wide. All three rules were computed, printed in the briefing, and
+## never bit; any crew the player DESELECTED still fought. Measured on the tablet
+## (deploy #23): 6/6 deployed in an Ambush whose crew_cap_delta was -1.
+##
+## Identity is FPCM_BattleCheckpoint.member_key(), the same rule the battle
+## checkpoint filters a roster with, and its docblock asks callers to reuse it
+## precisely so two copies cannot drift. Object equality would be the wrong tool
+## here anyway: the selection holds the items handed to setup_crew_selection()
+## while the caller re-reads get_active_crew() at confirm time, so whether those
+## are the same instances is an implementation detail of the getter.
+##
+## ORDER comes from the ROSTER, never from the selection, so the fielded list keeps
+## the campaign's crew order however the player clicked.
+##
+## ⚠ Returns the roster UNCHANGED on every ambiguous input: an empty selection, a
+## selection carrying no usable key, or a filter that matches nobody. An empty
+## selection means the selector never ran - its caller guards on a non-empty roster
+## and PreBattleUI keeps Confirm disabled while nothing is picked - NOT that the
+## player chose to field nobody. Sending an empty force into a battle off a
+## matching failure would be a worse defect than the one this fixes.
+static func apply_crew_selection(roster: Array, chosen: Array) -> Array:
+	if roster.is_empty() or chosen.is_empty():
+		return roster
+	var keys: Dictionary = {}
+	for pick in chosen:
+		var k: String = FPCM_BattleCheckpoint.member_key(pick)
+		if not k.is_empty():
+			keys[k] = true
+	if keys.is_empty():
+		return roster
+	var out: Array = []
+	for member in roster:
+		if keys.has(FPCM_BattleCheckpoint.member_key(member)):
+			out.append(member)
+	return out if not out.is_empty() else roster

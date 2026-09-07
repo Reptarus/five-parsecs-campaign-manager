@@ -355,10 +355,39 @@ func _phase_viewport_budget() -> float:
 	var column: Node = scroll.get_node_or_null("ContentColumn") if scroll else null
 	if column is VBoxContainer:
 		for child in column.get_children():
+			# _PINNED_NAV_NAMES are handled below, wherever they currently live, so
+			# they must NOT also be counted here or they land in the sum twice.
 			if child is Control and (child as Control).visible \
-					and str(child.name) != "PhaseContainer":
+					and str(child.name) != "PhaseContainer" \
+					and not _PINNED_NAV_NAMES.has(str(child.name)):
 				budget -= (child as Control).get_combined_minimum_size().y \
 					+ RELAXED_SEPARATION_PX
+
+	# T11-40. Subtract the nav ALWAYS, wherever it is parented.
+	#
+	# This used to be part of the loop above, which meant the answer depended on the
+	# arrangement the answer produces: _apply_nav_pinning() MOVES Controls /
+	# HSeparator2 / Footer out of ContentColumn whenever the layout is relaxed, so
+	# they were subtracted while tight and not subtracted while relaxed. MEASURED on
+	# a 1280x800 viewport (689.7 design px): 244.7 with the nav inside, 502.7 with it
+	# pinned, against MIN_PHASE_VIEWPORT_DESIGN_PX = 320 - so BOTH states are stable
+	# fixed points and the layout latched to whichever it reached first. The delta is
+	# exactly the nav's own minimum plus its separations.
+	#
+	# Subtracting it unconditionally is not merely consistent, it is CORRECT: the nav
+	# occupies its height in both arrangements - inside the column it is scrolled
+	# content, pinned outside it sits between the scroll and the screen edge. Either
+	# way the step area does not get that space.
+	#
+	# The docblock above keeps the UNITS monotonic on purpose. Node LOCATION was a
+	# second input, and it moved with the answer.
+	for nav_name: String in _PINNED_NAV_NAMES:
+		var nav: Node = column.get_node_or_null(nav_name) if column else null
+		if nav == null:
+			nav = vbox.get_node_or_null(nav_name)
+		if nav is Control and (nav as Control).visible:
+			budget -= (nav as Control).get_combined_minimum_size().y \
+				+ RELAXED_SEPARATION_PX
 	return budget
 
 

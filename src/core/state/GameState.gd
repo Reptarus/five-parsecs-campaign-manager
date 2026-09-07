@@ -1661,7 +1661,21 @@ func set_turn_number(value: int) -> bool:
 	return false
 
 ## Advances the turn number by 1 and syncs to campaign progress_data
-## Called by CampaignPhaseManager at end of turn cycle (RETIREMENT phase start)
+##
+## ⚠ ZERO CALLERS IN src/ (verified 2026-09-06, T11-46). This docblock used to say
+## "Called by CampaignPhaseManager at end of turn cycle (RETIREMENT phase start)"
+## and CampaignTurnController's turn-start sync cited it as "the MONOTONIC authority
+## for turns_played". Neither is true: nothing in src/ calls THIS method. Every
+## advance_turn() call site resolves to a different class via a
+## `campaign.has_method("advance_turn")` guard on the CAMPAIGN object
+## (BugHuntCampaignCore, PlanetfallCampaignCore, TacticsCampaignCore,
+## IntroductoryCampaignManager); the only caller repo-wide is
+## tests/unit/test_turn_counter_advance.gd. In standard 5PFH the sole writer of
+## turns_played is CampaignTurnController._on_campaign_turn_started().
+##
+## KEPT DELIBERATELY, not deleted: the implementation is correct and the note below
+## records a real historical defect. Wiring the 5PFH turn advance through it is the
+## open option (owner's call) — see the T11-46 block in CampaignTurnController.
 func advance_turn() -> void:
 	# turns_played is the AUTHORITATIVE campaign turn counter (dashboard + World
 	# Phase both read turns_played + 1 as the current turn). Increment it MONOTONICALLY
