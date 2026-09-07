@@ -77,6 +77,7 @@ const POPULATE: Dictionary = {
 
 var _root: Node = null
 var _fixture_cache: Dictionary = {}
+var _device_mission_cache: Dictionary = {}
 
 
 func _init(tree_root: Node) -> void:
@@ -100,12 +101,18 @@ func state_line() -> String:
 	if not enabled():
 		return "OFF (-- populate=off) — screens measured EMPTY, as before this layer"
 	var f: Dictionary = battle_fixture()
-	return "%d screens hooked | fixture: crew=%d enemies=%d mission_keys=%d%s" % [
+	var dev: Dictionary = device_pre_battle_mission()
+	return "%d screens hooked | fixture: crew=%d enemies=%d mission_keys=%d%s | PreBattle mission: %s" % [
 		POPULATE.size(),
 		(f.get("crew", []) as Array).size(),
 		(f.get("enemies", []) as Array).size(),
 		(f.get("mission", {}) as Dictionary).size(),
 		"" if f.get("crew_is_real", false) else "  (crew GENERATED - no campaign)",
+		("DEVICE (%d keys, %d-char briefing)" % [
+			dev.size(), str(dev.get("description", "")).length()]
+			if not dev.is_empty()
+			else "GENERATED - the device fixture is missing, so the Mission pane "
+				+ "measures ~440 px SHORT and cannot reproduce the landscape defect"),
 	]
 
 
@@ -235,13 +242,72 @@ func battle_fixture() -> Dictionary:
 
 # ── the per-screen hooks ────────────────────────────────────────────────────
 
+## The mission a REAL device run produced, or {} when the file is absent.
+##
+## ⚠ WHY THIS EXISTS, and it is the sharpest lesson this file has learned twice:
+## a POPULATED SCREEN CAN STILL BE UNDER-POPULATED. `battle_fixture()` builds its
+## mission from BattleSimulatorSetup, which stamps none of the keys
+## CampaignTurnController stamps on the way into a battle - no `initiative_context`,
+## no `setup_rules` checklist, no `terrain_guide`, no `objective_details`, no
+## deployment condition, and a one-line description instead of a p.85 Rival briefing.
+## Measured 2026-09-07 on the tablet design space (2207x1379): with the generated
+## mission PreBattleUI's Mission pane is 679 px tall and the shipped 3-column layout
+## FITS; with the device mission it is 1042-1120 px and the Crew pane lands below the
+## fold - which is exactly the defect the hardware reported and the sweep did not.
+##
+## The file is VERBATIM device output (see its own `_source` key), so it fabricates
+## nothing. Absent, this returns {} and the caller falls back to the generated mission,
+## measuring exactly what it measured before.
+func device_pre_battle_mission() -> Dictionary:
+	if not _device_mission_cache.is_empty():
+		return _device_mission_cache
+	var path := "res://tests/fixtures/device/prebattle_rival_attack_mission_2026-09-06.json"
+	if not FileAccess.file_exists(path):
+		return {}
+	var parsed = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if not (parsed is Dictionary):
+		return {}
+	var m = (parsed as Dictionary).get("mission", {})
+	if not (m is Dictionary) or (m as Dictionary).is_empty():
+		return {}
+	_device_mission_cache = _restore_ints(m)
+	return _device_mission_cache
+
+
+## JSON hands every number back as a float; the dict a screen normally receives holds
+## ints. Whole-number floats go back to int, everything else is left alone - without
+## this a `%d`-formatted count renders as "4.0" and an `int()` cast silently truncates
+## somewhere the screen never expected a float.
+func _restore_ints(v: Variant) -> Variant:
+	if v is float:
+		var f: float = v
+		if f == floorf(f) and absf(f) < 1e9:
+			return int(f)
+		return f
+	if v is Dictionary:
+		var out := {}
+		for k in (v as Dictionary):
+			out[k] = _restore_ints((v as Dictionary)[k])
+		return out
+	if v is Array:
+		var arr := []
+		for e in (v as Array):
+			arr.append(_restore_ints(e))
+		return arr
+	return v
+
+
 func _post_pre_battle(inst: Node) -> void:
 	## Reproduces CampaignTurnController._launch_pre_battle_directly()
 	## (CampaignTurnController.gd:1786-1820): setup_preview, then
 	## setup_crew_selection with the p.63/p.85 deploy limit, then the deployment
 	## condition. Same three calls, same order.
 	var f: Dictionary = battle_fixture()
-	var mission: Dictionary = (f.get("mission", {}) as Dictionary).duplicate(true)
+	var mission: Dictionary = device_pre_battle_mission()
+	if mission.is_empty():
+		mission = (f.get("mission", {}) as Dictionary).duplicate(true)
+	else:
+		mission = mission.duplicate(true)
 	if inst.has_method("setup_preview") and not mission.is_empty():
 		inst.setup_preview(mission)
 	var crew: Array = f.get("crew", [])

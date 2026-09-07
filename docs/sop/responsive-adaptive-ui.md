@@ -83,6 +83,76 @@ A `@tool` container for **local** two-pane horizontal↔vertical switching of on
 
 `unique_name_in_owner=true` on each pane node; `_setup_adaptive_panels()` called AFTER `@onready` resolves: grab panes via `%`, `main_content = pane.get_parent()`, `vbox = main_content.get_parent()`, create the group at `main_content.get_index()`, `add_pane()` each (reparents once), `main_content.queue_free()`, store `_panel_group`. Header/footer/controls are SIBLINGS of MainContent → stay outside. `@onready` caches object refs that SURVIVE reparent; only RE-RESOLVED `$`-paths break (migrate to `%`). `add_pane` forces `EXPAND_FILL` but NOT `custom_minimum_size` — clear clip-causing min-widths separately. `focus_pane(index)` index = `add_pane` order; STACK for browse, TABS for master-detail (wire selection → `focus_pane`).
 
+### `max_columns` must be >= the pane count, or one pane wraps below the fold
+
+**Set `max_columns` to the number of panes.** It is a CEILING, not a demand:
+`_columns_that_fit()` still drops columns below `MIN_COLUMN_DESIGN_PX` (320), so a narrow
+viewport gets fewer on its own. Set below the pane count it guarantees a wrapped orphan
+row on every screen wide enough to have avoided one. This has now bitten twice —
+`ShipManager.gd:104-108` and `PreBattleUI` — and the second time it put the crew list a
+player must act on below the fold in landscape.
+
+**A wrapped row cannot be rescued by sizing.** From the engine source
+(`scene/gui/grid_container.cpp`, NOTIFICATION_SORT_CHILDREN): a row/column minimum is the
+MAX of its children's; expanded rows and columns split the leftover space **equally**
+(`remaining_space / expanded.size()`); one whose own minimum exceeds that share is dropped
+from the expanded set and gets **exactly its minimum**; and `size_flags_stretch_ratio` is
+**never read** in that file. So the orphan row gets the pane's own minimum plus an equal
+share of a surplus that is zero once `ShortScreenScroll` settles the column at its combined
+minimum.
+
+**The corollary that catches people: ONE non-wrapping Label sizes the whole row.** A
+Label with `autowrap_mode = AUTOWRAP_OFF` reports its full TEXT WIDTH as its minimum;
+because an oversize column takes its minimum and only the REST is split evenly, that Label
+decides every column. Measured on PreBattleUI with a mission pulled off the device:
+un-wrapped, the columns come out 1136 / 328 / 328 / 327 and the page hangs 103-299 px off
+BOTH side edges below the WIDE bucket; wrapped, 528 / 528 / 528 / 527 and zero overflow.
+Prose in a pane wraps, always.
+
+### A screen inside a ScrollContainer must OPEN ITS STOP CHROME after population
+
+`Container` defaults to `MOUSE_FILTER_PASS`, but `PanelContainer` sets STOP in its own
+constructor ("Has visible stylebox, so stop by default"), and so do HSeparator, CheckBox,
+OptionButton and Button. `Viewport::_gui_call_input` stops Mouse, ScreenDrag and
+ScreenTouch at the first STOP control it reaches; the ONLY exception is a WHEEL event via
+`Control.mouse_force_pass_scroll_events`. **So the mouse wheel scrolling your page on
+desktop is not evidence a finger will** — that one property is the entire difference, and
+it is how this shipped twice.
+
+Call `TouchScrollOpener.open_subtree(<the scroll>)` **after every populating entry point**,
+not once: a sweep that runs before its children exist is a fix that silently does nothing.
+It is idempotent and STOP -> PASS only, so re-running is free, and PASS still offers the
+event to the control FIRST — a drag that starts on a Button scrolls the page without
+toggling it (`BaseButton` clears `press_attempt` on `NOTIFICATION_SCROLL_BEGIN`) while a
+tap still works. Assert BOTH halves, or "it scrolls now" hides a list nobody can select
+from.
+
+### Testing geometry AND gestures headless (2026-09-07)
+
+Two things this SOP used to say were impossible without a window:
+
+- **Column counts.** `AdaptivePanelGroup._columns_that_fit()` reads
+  `get_viewport().get_visible_rect().size.x`. Build the screen under a **SubViewport**
+  sized to the DESIGN space (window px / `SettingsManager.TARGET_EFFECTIVE`) and that call
+  returns the SubViewport's size — a device's column arithmetic with no window at all.
+  ⚠ A screen added straight to the test root instead sees the square 1080 stretch base
+  (3 columns), so a rendered 4-column assertion there can only ever fail.
+  ⚠ `ResponsiveManager` classifies the real window, which a SubViewport cannot change;
+  pin `current_viewport_size` / `is_landscape` / `current_breakpoint` (plain members) and
+  restore them in `after_test`.
+- **Touch drags.** "Godot does not deliver InputEvents headless" is true of the OS input
+  path, not of `Viewport.push_input()`, which locally applies an event through
+  `Control._gui_input()` — the exact chain STOP interrupts. `ScrollContainer` arms its
+  touch drag when `DisplayServer.is_touchscreen_available()` is true, whose base
+  implementation returns `Input.is_emulating_touch_from_mouse()`, and this project sets
+  `input_devices/pointing/emulate_touch_from_mouse=true`. Instrument that premise first:
+  if it is false every drag reads as blocked, which looks exactly like the defect.
+  Hold still for ~14 frames before releasing, or the residual drag speed starts INERTIA
+  and the scroll keeps moving past your assertion.
+
+Worked example of both: `tests/tools/probe_prebattle_landscape.gd` and the last six cases
+of `tests/unit/test_prebattle_responsive_layout.gd`.
+
 ### Verifying a migration when full-instantiation is blocked
 
 Manager screens with pre-existing `_ready` crashes (e.g. `var x: Panel = _create_*_panel()` where the factory returns `PanelContainer`, or missing data JSONs) **halt the `--debug` MCP run**, so a full-instantiation probe can't reach the group. Verify those via: parse-check (`load()` every touched script + scene headless), git-diff review against this recipe (confirm unique-names added, footer outside, focus index, landscape restore), and ONE clean live probe of a screen whose `_setup_adaptive_panels()` runs FIRST in `_ready` (ShipManager) — the pattern is identical across screens.

@@ -1825,7 +1825,38 @@ PRE-FIX build (where the header was additionally sliced mid-glyph). It is theref
 whole. The selection still binds because `setup_crew_selection()` pre-selects up to
 `_max_deploy` programmatically, which is precisely what the save then proves. Note the
 outer scroll IS live — dragging the scrollbar at x=2532 scrolls the page — but a
-touch-swipe over any pane does not reach it; recorded as observed, not diagnosed.
+touch-swipe over any pane does not reach it.
+
+✅ **DIAGNOSED AND FIXED 2026-09-07**, and it was TWO independent defects, either fatal
+alone. **(A) the orphan row**: `max_columns = 3` against four panes puts Crew alone on
+grid row 2, and row 1's height is the MISSION pane's content — 1042-1120 design px for a
+real rival-attack briefing against a ~1222 px budget — so row 2 starts below the fold.
+Fixed by `max_columns = 4` plus autowrap on the mission description Label, whose
+un-wrapped minimum (measured **1134 px**) was also starving every other column and pushing
+the whole page off BOTH side edges below the WIDE bucket (measured 103 / 299 / 281 px).
+**(B) the swallowed swipe**: every surface under a finger is `MOUSE_FILTER_STOP` by
+CONSTRUCTION — `PanelContainer`'s own constructor sets it ("Has visible stylebox, so stop
+by default") — and `Viewport::_gui_call_input` stops Mouse, ScreenDrag and ScreenTouch at
+the first STOP control, excepting only WHEEL events via
+`mouse_force_pass_scroll_events`. That is precisely why the SCROLLBAR worked and the swipe
+did not, and why the desktop mouse wheel never showed it. PreBattleUI now calls
+`TouchScrollOpener.open_subtree()` after each of its three populating entry points.
+
+⭐ Both halves are reproducible at the desk, headless, by
+`tests/tools/probe_prebattle_landscape.gd` — a SubViewport supplies the design space that
+`_columns_that_fit()` reads, and `Viewport.push_input()` drives a real drag through the
+STOP/PASS chain (`ScrollContainer` arms its touch drag off
+`DisplayServer.is_touchscreen_available()`, whose base implementation returns
+`Input.is_emulating_touch_from_mouse()`, which this project enables). Detection-proven:
+`-- cols=3` fails with 5 of 6 and 6 of 6 crew buttons off screen.
+
+✅ **VERIFIED ON DEPLOY #27** (versionCode 11, 2026-09-07): landscape renders **four panes
+in one row** with all six crew buttons and `Deploying 5 / 5 max` legible, and a finger
+swipe over the Mission body **scrolls the page** (frame md5 `03169a7a` → `0d0300ac`), with
+`[TouchChainProbe:PreBattle] scroll_started on ContentScroll — THE GESTURE ARRIVED` in
+`godot.log` on every swipe. Portrait unchanged. ⭐ And the counter this row records as
+unreadable is now readable — it shows the p.91 Ambush cap binding live (`5 / 5 max`, one
+crew member deselected on a six-crew roster), which #24 could only prove from the save.
 
 Artifacts: `V3_queued_crop.png` (roll armed), `VP_prebattle.png` (the amber
 *"Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)"* with no

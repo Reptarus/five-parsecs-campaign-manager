@@ -27,6 +27,14 @@ const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePa
 ## PortraitChrome preloaded by path (stale-class_name avoidance) — trims the root
 ## MarginContainer L/R margins in portrait to reclaim width on the 360dp floor.
 const PortraitChromeClass = preload("res://src/ui/components/base/PortraitChrome.gd")
+## The shared STOP -> PASS sweep that lets a touch-drag reach ContentScroll. Same
+## preload-by-path form as WorldPhaseController.gd:43-44, the screen this is copied from.
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+## Referenced only for SCROLL_NAME — the name ShortScreenScroll gives the scroll it
+## builds. Naming it through the component keeps _content_scroll() from drifting off it.
+const ShortScreenScrollRef = preload(
+	"res://src/ui/components/base/ShortScreenScroll.gd")
 
 ## Signals
 signal crew_selected(crew: Array)
@@ -145,6 +153,22 @@ func _ready() -> void:
 		add_child(_sss)
 		_sss.setup(_column as BoxContainer, 0, 620.0, 1)
 
+	# Debug-only: name what is under the finger when a drag goes nowhere. attach()
+	# returns null in a release build, so a player can never reach any of it. Its
+	# scroll_started line is the discriminator the device walk reads — per the Godot
+	# 4.6 docs that signal fires ONLY for a touch drag on the scrollable area (never
+	# the scrollbar, the wheel or the keyboard), on Android/iOS or wherever
+	# emulate_touch_from_mouse is set, which this project sets (project.godot:109).
+	var _probe := TouchChainProbe.attach(self, "PreBattle")
+	if _probe:
+		var _cs := _content_scroll()
+		if _cs != null:
+			_probe.watch_scroll(_cs, ShortScreenScrollRef.SCROLL_NAME)
+			# The staleness verdict has to compare like with like: this is the same
+			# subtree _open_touch_chain() sweeps, not the whole screen (which would
+			# count the __phase_bg ColorRect production deliberately leaves alone).
+			_probe.set_sweep_root(_cs)
+
 
 ## Reparent the 3 content panels (Mission / Battlefield / Crew) into an
 ## AdaptivePanelGroup so they sit side-by-side in landscape and collapse to a tab
@@ -177,8 +201,30 @@ func _setup_adaptive_panels() -> void:
 	var group := AdaptivePanelGroupClass.new()
 	group.name = "AdaptiveContent"
 	group.portrait_mode = AdaptivePanelGroupClass.PortraitMode.TABS
-	# 4 panes but max 3 columns, so one pane wraps to its own full-width second row
-	# rather than every pane cramming into a quarter-width column.
+	# FOUR panes, FOUR columns: a ceiling, not a demand.
+	#
+	# AdaptivePanelGroup still drops columns below its own MIN_COLUMN_DESIGN_PX (320) via
+	# _columns_that_fit(), so a narrow viewport gets fewer columns on its own — this only
+	# stops the grid WRAPPING a pane onto a second row on a screen wide enough for four.
+	# Same fix, same component, same reasoning as ShipManager.gd:104-108, which hit this
+	# with its own fourth pane.
+	#
+	# ⭐ THE GRID RULE, verified against the engine source rather than inferred
+	# (scene/gui/grid_container.cpp, NOTIFICATION_SORT_CHILDREN): a column's minimum is the
+	# MAX of its children's minimums; expanded columns share the leftover width EQUALLY
+	# (`remaining_space.width / col_expanded.size()`); a column whose own minimum exceeds
+	# that equal share is dropped from the expanded set and receives EXACTLY its minimum.
+	# `size_flags_stretch_ratio` is never read in that file. So a wrapped orphan row cannot
+	# be shaped, and ONE oversize child sizes the whole row. Measured on the tablet design
+	# space (2207x1379) with a mission pulled off the device: at max_columns = 4 with the
+	# description NOT wrapping, the columns come out 1136 / 328 / 328 / 327; with it
+	# wrapping, 528 / 528 / 528 / 527. Four columns is the shape; the autowrap at
+	# _setup_mission_info() is what makes them even.
+	#
+	# ⚠ DESKTOP CHANGES SHAPE, DELIBERATELY. 1920x1080 is WIDE, so it also goes to four
+	# ~390 px columns instead of today's 3 + Crew below the fold, and the Mission pane
+	# becomes tall and scrolls. That was the owner's call (2026-09-07) over the
+	# alternatives of a per-screen column floor or a supporting-pane rail.
 	#
 	# ⚠ CORRECTED 2026-09-06. This comment used to say the wide 8-col FORCES table is
 	# what wraps to row 2. It is not, and never was: the add_pane order below is
@@ -187,9 +233,9 @@ func _setup_adaptive_panels() -> void:
 	# intent the ordering does not produce, which is part of why nobody looked at the
 	# pane that actually landed there.
 	#
-	# ⚠ AND THAT PANE ASKS FOR NOTHING. AdaptivePanelGroup holds a plain GridContainer
+	# ⚠ AND THAT PANE ASKED FOR NOTHING. AdaptivePanelGroup holds a plain GridContainer
 	# with no row-height logic — _show_grid() sets `columns` and visibility only — so a
-	# row gets its own minimum plus a share of any surplus. Now that ShortScreenScroll
+	# row gets its own minimum plus an EQUAL share of any surplus. Now that ShortScreenScroll
 	# enables correctly (T11-01), the inner column settles at its COMBINED MINIMUM, so
 	# the surplus is ZERO and row 2 receives exactly the Crew pane's own minimum. That
 	# minimum was header-sized, because the crew list lives in a ScrollContainer and a
@@ -207,7 +253,61 @@ func _setup_adaptive_panels() -> void:
 	# ✅ No footer risk: ShortScreenScroll pins the footer OUTSIDE the scroll (see
 	# _sss.setup(..., 1) above), so a taller scroll child lengthens the scroll range
 	# instead of pushing Confirm/Back off the bottom.
-	group.max_columns = 3
+	#
+	# ⚠ HARDWARE VERDICT (deploy #26, TB361FU, 2026-09-07) — HALF CONFIRMED.
+	#   PORTRAIT 1600x2560: PASS, and it is not this floor that saves it — the group
+	#     drops to TABS (Mission | Forces | Battlefield | Crew), so Crew gets a whole
+	#     tab. All 6 crew render as buttons AND "Deploying 6 / 6 max" is legible — the
+	#     counter CLAUDE.md records as unreadable at 2560x1600.
+	#     ⚠ That also corrects the plan's claim that TABS is "structurally unreachable":
+	#     it is unreachable in LANDSCAPE, where _columns_that_fit() returns 6. Rotate and
+	#     it is the normal presentation.
+	#   LANDSCAPE 2560x1600: STILL BROKEN, and worse than "header-only" — the pane gets
+	#     ~30 px, so the words "Select Crew" are themselves CLIPPED MID-GLYPH against the
+	#     pinned footer, and the page WILL NOT SCROLL to reveal the list (swipes at five
+	#     x-positions left the frame byte-identical, md5 56241bbef25b426c5a99db38cdf338a0).
+	#     So a 144 px minimum on the pane is not sufficient: in landscape the row-2 pane
+	#     is not merely short, it has no room AND the outer scroll is not taking the
+	#     gesture. Do NOT record the Select Crew row as closed on the strength of the
+	#     portrait pass — landscape is the configuration the finding was filed in.
+	#
+	# ⭐ ROOT-CAUSED AT THE DESK 2026-09-07 (tests/tools/probe_prebattle_landscape.gd),
+	# and it was TWO defects, either fatal alone:
+	#   A. the orphan row above, whose row-1 height is the MISSION pane's content — ~1042
+	#      to 1120 design px for a real rival-attack mission, against a ~1222 px budget the
+	#      device shrinks further (this screen is embedded under CampaignTurnController's
+	#      header, so content starts ~143 px down, not 68). Fixed by the four columns here.
+	#   B. the page not scrolling: every surface under a finger is MOUSE_FILTER_STOP by
+	#      construction (PanelContainer's own constructor sets it — "Has visible stylebox,
+	#      so stop by default"), and viewport.cpp stops Mouse/ScreenDrag/ScreenTouch there
+	#      unless it is a WHEEL event. Fixed by _open_touch_chain() below.
+	#
+	# ✅ DEPLOY #27 (versionCode 11, TB361FU, 2026-09-07) — BOTH HALVES CONFIRMED ON
+	# HARDWARE, in the orientation the finding was filed in.
+	#   LANDSCAPE 2560x1600: FOUR panes in ONE ROW — Mission Info | Enemy Forces |
+	#     Battlefield Preview | Select Crew — with all SIX crew buttons rendered and
+	#     "Deploying 5 / 5 max" legible at the top of the pane. The briefing wrapped to
+	#     three lines inside its own column instead of sizing every column.
+	#   THE SWIPE: a finger drag over the Mission body SCROLLED THE PAGE (the frame
+	#     changed — md5 03169a7a -> 0d0300ac — revealing the rest of the Before You
+	#     Deploy checklist and the Deployment Condition block, footer still pinned). On
+	#     #26 five swipe positions left the frame byte-identical. The log carries
+	#     `[TouchChainProbe:PreBattle] scroll_started on ContentScroll — THE GESTURE
+	#     ARRIVED` on every swipe, which per the 4.6 docs fires ONLY for a touch drag on
+	#     the scrollable area — the gesture reached the container, it was not merely a
+	#     frame that happened to differ.
+	#   PORTRAIT 1600x2560: unchanged — still TABS, Crew tab shows all six and the
+	#     counter. No regression from the four-column change.
+	# ⭐ INCIDENTAL, and it closes a row this file recorded as unreadable: the p.91
+	# Ambush cap is VISIBLY BOUND here — "Deploying 5 / 5 max" with Nyx Ward
+	# deselected, on a six-crew roster. T11-48 was verified on #24 from the SAVE
+	# because the counter could not be read at 2560x1600; it can now.
+	# ⚠ THE SWEEP FIXTURE COULD NOT SEE (A): screen_populator's generated mission gave the
+	# Mission pane 679 px and the 3+1 layout FIT. The pane only overflows once the mission
+	# carries what CampaignTurnController actually stamps — initiative_context, setup_rules,
+	# terrain_guide, objective_details, a deployment condition. A populated screen can still
+	# be under-populated.
+	group.max_columns = 4
 	group.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	group.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(group)
@@ -221,6 +321,46 @@ func _setup_adaptive_panels() -> void:
 	group.add_pane(right, "Crew")
 	_panel_group = group
 	main_content.queue_free()  # now empty; footer untouched
+
+## The outer page scroll ShortScreenScroll builds in _ready(), or null before it has.
+func _content_scroll() -> ScrollContainer:
+	var n := get_node_or_null(
+		"MarginContainer/VBoxContainer/" + ShortScreenScrollRef.SCROLL_NAME)
+	return n as ScrollContainer
+
+
+## Let a touch-drag over this page reach ContentScroll.
+##
+## WHY IT IS NEEDED AT ALL: every surface under a finger here is MOUSE_FILTER_STOP by
+## CONSTRUCTION — PanelContainer's constructor sets it ("Has visible stylebox, so stop
+## by default", scene/gui/panel_container.cpp) and so do HSeparator, CheckBox,
+## OptionButton and Button — and Viewport::_gui_call_input stops Mouse, ScreenDrag and
+## ScreenTouch at the first STOP control it reaches. Only WHEEL events are excepted
+## (Control.mouse_force_pass_scroll_events), which is exactly why the desktop mouse
+## wheel scrolled this page while a finger on the tablet did nothing.
+## Measured 2026-09-07 on the populated screen: 31 controls opened; before the sweep a
+## synthetic drag over the Mission body left scroll_vertical at 0 with no
+## scroll_started, after it the page moved and the signal fired.
+##
+## WHY IT RUNS AFTER EACH SETUP CALL, not once: CampaignTurnController populates in
+## three steps (setup_preview -> setup_crew_selection -> set_deployment_condition) and
+## every one of them ADDS STOP controls. A sweep that runs before its children exist is
+## a fix that silently does nothing — the exact way the World Phase step area stayed
+## dead through two rebuild paths. open_subtree() is idempotent and STOP -> PASS only,
+## so re-running it is free.
+##
+## ⚠ Deferred one frame: several panes finish building deferred themselves, and a
+## sweep that runs first would walk a tree its own stimulus has not populated yet.
+func _open_touch_chain() -> void:
+	call_deferred("_open_touch_chain_now")
+
+
+func _open_touch_chain_now() -> void:
+	var scroll := _content_scroll()
+	if scroll == null:
+		return
+	TouchScrollOpenerRef.open_subtree(scroll)
+
 
 ## Trim the root MarginContainer's L/R margins in portrait (reclaims ~32px on the
 ## 360dp floor) and restore them in landscape. PortraitChrome self-wires to
@@ -291,6 +431,7 @@ func set_deployment_condition(condition: Dictionary) -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", _scaled_font(14))
 	mission_info_panel.add_child(desc)
+	_open_touch_chain()
 
 ## Setup the UI with mission data
 func setup_preview(data: Dictionary) -> void:
@@ -302,6 +443,7 @@ func setup_preview(data: Dictionary) -> void:
 	_setup_enemy_info(data)
 	_setup_battlefield_preview(data)
 	_setup_scenario_rules(data)
+	_open_touch_chain()
 	preview_updated.emit()
 
 func _setup_scenario_rules(data: Dictionary) -> void:
@@ -434,6 +576,19 @@ func _setup_mission_info(data: Dictionary) -> void:
 
 	var mission_desc := Label.new()
 	mission_desc.text = data.get("description", "No description available")
+	# A non-wrapping Label reports its FULL TEXT WIDTH as its minimum, and this is the
+	# widest child in the pane: measured 1134 px for a 124-character rival-attack briefing
+	# (765 for an 82-character one) against a title of 297 and headers under 215. Because
+	# GridContainer gives an oversize column exactly its minimum and splits only the rest
+	# equally, that one Label sized every column — and below the WIDE bucket it pushed the
+	# whole page off BOTH edges (grow-both re-centres the overflow): measured 23 px at
+	# desktop 1080p, 299 px at 1103x689, 96 px at phone landscape, all pre-existing and all
+	# invisible to the sweep because its fixture's description is short. Wrapped, every
+	# configuration measures 0.0 overflow. Same family as T11-42 and T11-18.
+	# ⚠ Safe here, unlike the T11 "Corporate Label" trap: this Label sits in a plain VBox,
+	# where children are stretched to the container width, NOT in an HBox with
+	# SIZE_SHRINK_BEGIN where a 1 px minimum would make the text vanish.
+	mission_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	var battle_type := Label.new()
 	battle_type.text = "Battle Type: " + GlobalEnums.BattleType.keys()[data.get("battle_type", 0)]
@@ -966,6 +1121,7 @@ func setup_crew_selection(
 
 	crew_selection_panel.add_child(crew_list)
 	_update_deploy_label()
+	_open_touch_chain()
 	crew_selected.emit(selected_crew)
 	_update_confirm_button()
 

@@ -3953,8 +3953,11 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 	## Matching goes through the same `item_display_name()` the dialog labelled the
 	## button with, so the thing removed is exactly the thing the player clicked.
 	## Removes ONE entry — "lose one item" means one, even with duplicates.
-	## ⚠ OPEN FINDING (deploy #25, 2026-09-07) — THIS SYMPTOM IS BACK, AND EVERY STATIC
-	## EXPLANATION HAS BEEN ELIMINATED. Measured on hardware with forced rolls:
+	## ⚠ NOT REPRODUCED on deploy #26 (2026-09-07). The row below was filed off
+	## deploy #25 as a confirmed defect; it is downgraded here rather than deleted,
+	## because the #25 measurement is real and unexplained — see "WHAT CHANGED".
+	##
+	## FILED (deploy #25, 2026-09-07). Measured on hardware with forced rolls:
 	## Exploration 51 announced "Discarded: Shatter Axe" and Trade 76 announced
 	## "Sold 1 weapon(s) for 2 credits", CREDITS MOVED CORRECTLY (18 -> 17 = -3 upkeep
 	## +2 sale) — and the pulled save still held BOTH items:
@@ -3979,7 +3982,40 @@ func _remove_from_crew_equipment(crew_member, item_name: String) -> void:
 	##
 	## Hence this instrumentation instead of a seventh hypothesis. T11-07's guard is the
 	## precedent: printing ALL the inputs is what finally made that term visible after
-	## two wrong diagnoses. Read this on the next device run and the answer is in it.
+	## two wrong diagnoses.
+	##
+	## ⭐ WHAT CHANGED — the device run happened (deploy #26, versionCode 10, built
+	## from HEAD with these prints). THE REMOVAL WORKS, in three runs:
+	##   1. Trade 76 alone (Dex Kovac)                        -> Blade removed, persisted
+	##   2. Explore 51 + Trade 76 together (#25's exact pair) -> BOTH removed, persisted
+	##   3. repeat of 2                                       -> BOTH removed, persisted
+	## The prints are unambiguous — member found by character_id, correct equip_before,
+	## erase at index 0, and re-reading THROUGH THE MEMBER returns []:
+	##     [ITEM-REMOVE] want=Blade member=Dictionary id=char_690708_7921 equip_before=["Blade"]
+	##     [ITEM-REMOVE] removed at 0; equip_local=[] member_now=[]
+	## The pulled save then showed Bryn Ito [] and Dex Kovac [], credits +2 for the sale.
+	## So `equip` is NOT a detached copy and the whole "the write is wrong" family is dead.
+	##
+	## ⚠ The fix was NOT this commit: `git show dfe398615 -- <this file>` is PURE
+	## ADDITIONS (comments + `if OS.is_debug_build(): print(...)`), zero deletions. Prints
+	## cannot repair a write. So #25 and #26 genuinely differ and the cause is not here.
+	##
+	## ⚠ THE #25 RECORD HAS A KNOWN FLAW, found while auditing it: two consecutive walk
+	## frames are BYTE-IDENTICAL (md5 fdd2020bbb9afb7a494744dec0f49a37) —
+	## walk21/T947_20_itemsel.png == walk21/T947_21_next_event.png — so a tap in that
+	## sequence did nothing and the frames do not show the steps they are labelled as.
+	## That does not by itself explain the saved state (credits 18 -> 17 needs both the
+	## upkeep and the sale, and "Discarded: Shatter Axe" did render), so it is a flaw in
+	## the evidence, not a proven explanation.
+	##
+	## Checked and DISCONFIRMED as the differing variable: upkeep was paid on #25 and not
+	## in any #26 run. Paying upkeep cannot matter — UpkeepPhaseComponent keeps its own
+	## shallow copy (`crew_data = crew.duplicate()`, :146) and never writes members back,
+	## and the ONLY assignment to campaign `crew_data["members"]` repo-wide is a defensive
+	## init inside FiveParsecsCampaignCore.add_crew_member().
+	##
+	## KEEP THESE PRINTS. They are debug-only and they answered this in one run; if the
+	## symptom returns, the next run names the cause instead of starting a fourth sprint.
 	if OS.is_debug_build():
 		var _shape: String = "null"
 		if crew_member is Dictionary:

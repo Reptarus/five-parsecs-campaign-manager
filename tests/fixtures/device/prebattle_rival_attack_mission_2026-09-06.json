@@ -1,0 +1,560 @@
+{
+  "_source": "progress.current_mission, pulled from a Lenovo TB361FU during the deploy #24 walk (2026-09-06). Produced by CampaignTurnController._launch_pre_battle_directly() -> the p.85 Rival attack path; carries initiative_context, setup_rules, terrain.terrain_guide, objective_details and deployment_condition, which is exactly what the generated BattleSimulatorSetup fixture does NOT carry.",
+  "_provenance_warning": "VERBATIM device output - do not hand-edit values. Every number here came back through JSON, so ints are floats; restore whole floats to int before handing this to a screen (tests/tools/screen_populator.gd does). Game values are the app's own rolls, not authored data: this file is NOT a rules source.",
+  "mission": {
+    "battle_type": 1,
+    "crew_in_field": 6,
+    "deployment": {
+      "condition_id": "SURPRISE_ENCOUNTER",
+      "description": "The enemy can't act in the first round.",
+      "effects": {
+        "enemy_skip_round": 1.0
+      },
+      "effects_summary": "• Enemy cannot act in Round 1",
+      "title": "Surprise Encounter"
+    },
+    "deployment_condition": {
+      "condition_id": "SURPRISE_ENCOUNTER",
+      "description": "The enemy can't act in the first round.",
+      "effects": {
+        "enemy_skip_round": 1.0
+      },
+      "effects_summary": "• Enemy cannot act in Round 1",
+      "title": "Surprise Encounter"
+    },
+    "description": "Unwanted attention has tracked you down (Core Rules p.85). Deploy one fewer crew than standard. Cannot Seize the Initiative.",
+    "difficulty_mode": 0,
+    "enemy_category": "hired_muscle",
+    "enemy_force": {
+      "ai": "T",
+      "category": "hired_muscle",
+      "category_name": "Hired Muscle",
+      "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+      "combat_skill": 2,
+      "count": 8,
+      "elite": false,
+      "numbers": "+1",
+      "panic": "1-2",
+      "seize_initiative_modifier": -1,
+      "special_rules": [
+        "Stubborn: Ignore first casualty for Morale check"
+      ],
+      "speed": 5,
+      "toughness": 4,
+      "type": "Black Dragon Mercs",
+      "units": [
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 2,
+          "elite": false,
+          "is_leader": true,
+          "name": "Black Dragon Mercs Lieutenant",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 2,
+          "role": "lieutenant",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Military Rifle",
+            "Blade"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "standard",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Military Rifle"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "standard",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Military Rifle"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "standard",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Military Rifle"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "standard",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Military Rifle"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs Specialist",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "specialist",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Shell Gun"
+          ]
+        },
+        {
+          "ai": "T",
+          "category": "hired_muscle",
+          "category_name": "Hired Muscle",
+          "category_rules": "Someone has hired goons to stop you. -1 to Seize the Initiative (cumulative with enemy modifiers).",
+          "combat_skill": 1,
+          "elite": false,
+          "is_leader": false,
+          "name": "Black Dragon Mercs Specialist",
+          "numbers": "+1",
+          "panic": "1-2",
+          "reactions": 1,
+          "role": "specialist",
+          "seize_blocked": false,
+          "seize_initiative_modifier": -1,
+          "seize_unmodified": false,
+          "special_rules": [
+            "Stubborn: Ignore first casualty for Morale check"
+          ],
+          "speed": 5,
+          "toughness": 4,
+          "type": "Black Dragon Mercs",
+          "weapon_traits": [],
+          "weapons": [
+            "Shell Gun"
+          ]
+        },
+        {
+          "ai": "C",
+          "category": "hired_muscle",
+          "combat_skill": 1,
+          "is_fearless": true,
+          "is_unique_individual": true,
+          "luck": 1,
+          "name": "Engineer Tech",
+          "reactions": 1,
+          "role": "unique",
+          "special_rules": [],
+          "speed": 6,
+          "toughness": 4,
+          "type": "Engineer Tech",
+          "unique_id": "engineer_tech",
+          "weapons": [
+            "Blast Pistol"
+          ]
+        }
+      ],
+      "weapons": [
+        "Military Rifle",
+        "Blade"
+      ]
+    },
+    "enemy_is_elite": false,
+    "enemy_is_invasion_threat": false,
+    "enemy_type": "Black Dragon Mercs",
+    "initiative_context": {
+      "can_seize": false,
+      "cannot_seize_reason": "Ambushed by a Rival — no Seize the Initiative roll (Core Rules p.91)",
+      "difficulty_index": 0,
+      "enemy_modifier": -1,
+      "enemy_name": "Black Dragon Mercs",
+      "highest_savvy": 2,
+      "hired_muscle": false,
+      "modifiers": [
+        {
+          "applied": true,
+          "key": "outnumbered",
+          "name": "Outnumbered",
+          "value": 1
+        },
+        {
+          "applied": false,
+          "key": "enemy_type",
+          "name": "Black Dragon Mercs (ignored - Feral)",
+          "value": -1
+        }
+      ],
+      "outnumbered": true,
+      "required_roll": 7,
+      "success_probability": 58.3333333333333
+    },
+    "invasion_threat_modifier": 0,
+    "is_invasion": false,
+    "location": "Gamma Prime",
+    "mission_objective": "Access",
+    "mission_source": "rival",
+    "notable_sight": {
+      "effect": "Gain 1 credit.",
+      "roll": 75,
+      "type": "SHINY_BITS"
+    },
+    "objective_details": {
+      "description": "Reach a computer console at the center of the battlefield and gain access. Roll 1D6+Savvy, scoring 6+ to succeed. Costs a Combat Action per attempt, up to 2 characters per round. Soulless within 6 inches. Engineer/Bot add +1. A natural 1 means the system is hardened; a second natural 1 means total failure. Engineers ignore natural 1s.",
+      "name": "Access",
+      "placement_rules": "Console placed at exact table center.",
+      "roll": 5,
+      "type": "ACCESS",
+      "victory_condition": "Successfully access the console (1D6+Savvy, 6+ needed)."
+    },
+    "placement_rules": "Console placed at exact table center.",
+    "planet_id": "planet_10",
+    "representation_mode": "play_on_table",
+    "rival_attack_type": "AMBUSH",
+    "rival_encounter": {
+      "attack_description": "Deploy one fewer crew than standard. Cannot Seize the Initiative.",
+      "attack_type": "AMBUSH",
+      "decoy_bonus": 0,
+      "forced": true,
+      "has_encounter": true,
+      "is_elite": false,
+      "is_psi_hunter": false,
+      "reason": "Unwanted attention forces a battle this turn (Core Rules p.128 - Got Noticed while on a Quest).",
+      "rival_count": 3,
+      "rival_enemy_count_bonus": 1,
+      "rival_id": "rival_228764_194",
+      "rival_name": "Unwanted attention",
+      "rival_type": "Black Dragon Mercs",
+      "roll": 0
+    },
+    "rival_enemy_count_bonus": 1,
+    "rival_id": "rival_228764_194",
+    "rival_name": "Unwanted attention",
+    "selected_tier": 0,
+    "setup_rules": {
+      "can_seize_initiative": false,
+      "crew_cap_delta": -1,
+      "crew_cap_max": 0,
+      "early_leave_is_casualty": false,
+      "enemy_delta": 0,
+      "flee_before_round": 4,
+      "force_enemy_ai": {},
+      "hold_rounds": 0,
+      "loss_penalties": [],
+      "no_win_condition": true,
+      "panic_range_delta": 0,
+      "round_one": {
+        "enemy_skips": true
+      },
+      "setup_notes": [
+        "Fleeing before round 4 costs a random crew member a random carried item (p.91).",
+        "Ambush: deploy one crew member fewer, and you cannot roll to Seize the Initiative (p.91).",
+        "Surprise Encounter: the enemy cannot act in round 1 (p.88)."
+      ],
+      "sources": [
+        "Rival attack: Ambush (Core Rules p.91)",
+        "Deployment condition: Surprise Encounter (Core Rules p.88)"
+      ]
+    },
+    "source": "rival",
+    "terrain": {
+      "combat_notes": [
+        "Deployment condition in effect: SURPRISE_ENCOUNTER"
+      ],
+      "deployment_condition": {
+        "condition_id": "SURPRISE_ENCOUNTER",
+        "description": "The enemy can't act in the first round.",
+        "effects": {
+          "enemy_skip_round": 1.0
+        },
+        "effects_summary": "• Enemy cannot act in Round 1",
+        "title": "Surprise Encounter"
+      },
+      "enemy_ai": "T",
+      "enemy_count": 8,
+      "enemy_markers": [
+        {
+          "position": [
+            6.0,
+            21.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            6.0,
+            22.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            8.0,
+            21.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            11.0,
+            22.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            11.0,
+            20.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            11.0,
+            23.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            18.0,
+            22.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        },
+        {
+          "position": [
+            16.0,
+            23.0
+          ],
+          "status": "alive",
+          "team": "enemy"
+        }
+      ],
+      "generated_at_turn": 10,
+      "mission_objective": "Access",
+      "notable_sight": {
+        "angle": 4.93523406982422,
+        "distance_inches": 8.0,
+        "effect": "Gain 1 credit.",
+        "name": "Shiny Bits",
+        "rule": "Placed 8\" from the center — move into contact and forego other actions that round to claim (Core Rules p.89)",
+        "type": "SHINY_BITS"
+      },
+      "objective_positions": [
+        {
+          "grid_pos": [
+            12.0,
+            12.0
+          ],
+          "label": "Access",
+          "rule": "Console at exact center of battlefield (Core Rules p.90)",
+          "type": "center"
+        },
+        {
+          "grid_pos": [
+            13.1786947250366,
+            6.79854583740234
+          ],
+          "label": "Sight: Shiny Bits",
+          "rule": "Placed 8\" from the center — move into contact and forego other actions that round to claim (Core Rules p.89)",
+          "type": "notable_sight"
+        }
+      ],
+      "schema_version": 1,
+      "sector_rerolls": {},
+      "sectors": [
+        {
+          "features": [],
+          "label": "NW1"
+        },
+        {
+          "features": [],
+          "label": "NW2"
+        },
+        {
+          "features": [],
+          "label": "NW3"
+        },
+        {
+          "features": [],
+          "label": "NW4"
+        },
+        {
+          "features": [],
+          "label": "NE1"
+        },
+        {
+          "features": [],
+          "label": "NE2"
+        },
+        {
+          "features": [],
+          "label": "NE3"
+        },
+        {
+          "features": [],
+          "label": "NE4"
+        },
+        {
+          "features": [],
+          "label": "SW1"
+        },
+        {
+          "features": [],
+          "label": "SW2"
+        },
+        {
+          "features": [],
+          "label": "SW3"
+        },
+        {
+          "features": [],
+          "label": "SW4"
+        },
+        {
+          "features": [],
+          "label": "SE1"
+        },
+        {
+          "features": [],
+          "label": "SE2"
+        },
+        {
+          "features": [],
+          "label": "SE3"
+        },
+        {
+          "features": [],
+          "label": "SE4"
+        }
+      ],
+      "seed": 386955108,
+      "summary": "Terrain Generation is off — lay out the table as you like.\nCore Rules p.109 suggests a Standard Terrain Set for a 3.0 ft table.",
+      "table_size_ft": 3.0,
+      "terrain_guide": {
+        "suggestions": [
+          "Set up a battlefield (2x2 or 3x3 feet)",
+          "Standard Terrain Set: 3 Large, 6 Small, 3 Linear features (Core Rules p.109)",
+          "At least 2 climbable, 1 elevated, 1 enterable feature",
+          "Place a terrain feature at the center for objective missions",
+          "Deployment: Surprise Encounter"
+        ]
+      },
+      "theme": "player_defined",
+      "theme_name": "Your Table",
+      "visibility_limit": "",
+      "world_traits": []
+    },
+    "title": "Rival Attack: Unwanted attention",
+    "victory_condition": "Successfully access the console (1D6+Savvy, 6+ needed).",
+    "world_traits": [
+      "high_cost"
+    ]
+  }
+}
