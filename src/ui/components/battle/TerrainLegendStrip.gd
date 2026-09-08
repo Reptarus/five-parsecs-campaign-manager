@@ -9,7 +9,7 @@ extends HFlowContainer
 ## docked on the map surface (map-primary redesign).
 
 const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_TEXT_SECONDARY := Color("#808080")
+const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 func _init() -> void:
 	name = "TerrainLegendStrip"

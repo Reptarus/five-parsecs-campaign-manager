@@ -293,13 +293,13 @@ func _on_search_submitted(query: String) -> void:
 	var results: Array[Dictionary] = _content_loader.search(query)
 	if results.is_empty():
 		_content_label.text = "[color=%s]No results found for:[/color] [b]%s[/b]\n\nTry different keywords." % [
-			"#808080", query]
+			UIColors.HEX_TEXT_SECONDARY, query]
 		_title_label.text = "SEARCH RESULTS"
 		return
 
 	# Build search results display
 	var bbcode := "[font_size=22][b]Search Results for: %s[/b][/font_size]\n\n" % query
-	bbcode += "[color=#808080]Found %d result(s)[/color]\n\n" % results.size()
+	bbcode += "[color=#9ca3af]Found %d result(s)[/color]\n\n" % results.size()
 
 	for result in results:
 		var r: Dictionary = result

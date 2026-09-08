@@ -113,8 +113,15 @@ ALLOWLIST: dict[str, str] = {
     "set_subject": _PLATFORM,
     "set_text_rendering_mode": _PLATFORM,
     "set_title": _PLATFORM,
-    # --- inside production-dead files ---------------------------------------
-    "get_current_scale_factor": _DEAD_FILE,
+    # --- reason CORRECTED 2026-09-07 ----------------------------------------
+    # Was recorded as _DEAD_FILE ("goes away with the file"). That reason had
+    # ROTTED: ResponsiveContainer.gd is production-LIVE — instanced by
+    # CharacterDetailsScreen.tscn and PostBattleSequence.tscn, and
+    # lint_orphan_assets.py reports orphans=0 test_only=0. The entry stays
+    # (the guard IS permanently false) but it is duck-typed, not dead-file:
+    # _update_from_theme() still queue_sort()s when the probe fails, and
+    # _on_scale_changed() sets _scale_factor on the live path.
+    "get_current_scale_factor": _DUCK,  # ResponsiveContainer.gd:262
     # --- not actually guards -------------------------------------------------
     "check_rival_encounter": _NOT_A_CALL,
     # --- pre-existing, a live fallback runs ---------------------------------

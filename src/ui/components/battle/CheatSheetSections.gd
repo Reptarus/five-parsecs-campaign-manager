@@ -46,7 +46,7 @@ const NEUTRAL_CHARACTERS_PATH := "res://data/RulesReference/NeutralCharacters.js
 const COLOR_HEAD := "#4FC3F7"
 const COLOR_WARN := "#D97706"
 const COLOR_BAD := "#DC2626"
-const COLOR_MUTED := "#808080"
+const COLOR_MUTED := UIColors.HEX_TEXT_SECONDARY
 
 
 ## ============================================================================
@@ -484,7 +484,7 @@ Nothing prevents trading crew later.
     may forego an item or give it to the Stash, where it becomes
     commonly available.
 
-[color=#808080]These are suggestions. If the players are in tune with each other,
+[color=#9ca3af]These are suggestions. If the players are in tune with each other,
 omit anything that gets in the way — though each player should stay
 responsible for their own crew figures.[/color]"""
 
@@ -561,6 +561,6 @@ Throw, immune to Morale. Linked weapons count as one with +1 Shot.
   Point Fire: nearest target in sight
   Priority Fire: a specific target type, +1 to Hit
 
-[color=#808080]Rewards guidance (pp.170-171): up to 3 extra credits without
+[color=#9ca3af]Rewards guidance (pp.170-171): up to 3 extra credits without
 worrying, no more than 1 bonus XP for surviving, and 1-3 Quest
 Rumors is fine. These are the book\'s own ceilings.[/color]"""

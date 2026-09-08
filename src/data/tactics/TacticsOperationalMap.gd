@@ -6,13 +6,28 @@ extends Resource
 ## No Tactica equivalent — entirely new for Tactics gamemode.
 ## Source: Five Parsecs: Tactics **pp.92-100** — "THE OPERATIONAL SYSTEM" in the
 ## Campaign Play chapter (Cohesion, the Map, Operational Zones, Army Strength, the
-## 8-step Operational Turn at p.96, Commando Raids, Player Battle Points, and
+## Operational Turn at p.96, Commando Raids, Player Battle Points, and
 ## Special Regions at p.100).
 ## ⚠ CITE CORRECTED 2026-09-04 from "pp.155-168", which is the **Lifeforms
 ## bestiary** chapter — 63 pages off. docs/rules/tactics_source.txt marks raw page N
 ## with the PRINTED number on the next line (offset raw-2), verified at three points:
 ## raw 94 -> p.92 "THE OPERATIONAL SYSTEM", raw 157 -> p.155 "Lifeforms/Hulkers",
 ## raw 170 -> p.168 "Lifeforms/CREATURES".
+##
+## ⚠ CORRECTED AGAIN 2026-09-07: this said "the **8-step** Operational Turn". The
+## book's own summary list on p.96 does stop at eight — but the body carries a ninth
+## section, **"Step 9: Adjust Cohesion scores" (p.99)**, and that step is the campaign's
+## END CONDITION: a region lost costs 1 Cohesion, 0 Cohesion defeats a faction, and the
+## campaign is won when one faction remains. Building a turn loop from the summary list
+## alone yields one that can never finish, which is what happened — `is_player_victory()`
+## and `is_player_defeat()` below implement Step 9 and had no caller for months.
+##
+## The RULES (dice pools, tables, caps) live in
+## `src/core/campaign/TacticsOperationalRules.gd`, read from
+## `data/tactics/tactics_campaign_config.json`. This Resource is the STATE.
+
+const TacticsOperationalRulesRef = preload(
+	"res://src/core/campaign/TacticsOperationalRules.gd")
 
 ## Zone status
 enum ZoneStatus {
@@ -86,22 +101,59 @@ func count_zones_by_status(status: ZoneStatus) -> int:
 	return count
 
 
-## Apply a Player Battle Point (earned from tabletop victory)
-func add_battle_point() -> void:
-	player_battle_points += 1
+## Apply a Player Battle Point (earned from tabletop victory).
+##
+## ⚠ p.96 caps this and the cap was MISSING until 2026-09-07: "a specific army cannot
+## gain more than 2 PBP in a single operational turn, and cannot have more than 3 saved
+## up overall. Any excess points are discarded without any effects." The per-turn cap
+## belongs to the awarding step (TacticsOperationalRules.award_battle_points), which
+## sees the whole turn's battles; the SAVED cap belongs here, because this is the field.
+## Returns the number actually banked, so a caller can report what was discarded.
+func add_battle_point(count: int = 1) -> int:
+	var cap: int = TacticsOperationalRulesRef.max_saved_battle_points()
+	var before: int = player_battle_points
+	player_battle_points = mini(player_battle_points + maxi(count, 0), cap)
+	return player_battle_points - before
 
 
-## Spend PBP on a commando raid (damages enemy Army Strength in a zone)
-func spend_pbp_commando_raid(zone_id: String, amount: int = 1) -> bool:
-	if player_battle_points < amount:
-		return false
+## Spend PBP on a commando raid against a zone — Tactics **p.99**, Step 5.
+##
+## ⚠ This used to spend the points and deduct exactly 1 Army Strength, which is not the
+## rule: the book requires a D6 PER POINT COMMITTED, where any 1-2 loses ALL the points
+## committed against that region, every 6 costs the target 1 Army Strength, and that
+## damage lands even when the points are lost. A guaranteed hit made raids strictly
+## better than the printed rule.
+##
+## `rng` is injectable so a test can seed it. Returns the raid receipt from
+## TacticsOperationalRules.resolve_commando_raid() plus "spent"/"zone_id", or {} if the
+## raid could not be attempted at all — an empty result means "nothing happened", which
+## is different from a raid that rolled badly.
+func spend_pbp_commando_raid(
+		zone_id: String, amount: int = 1,
+		rng: RandomNumberGenerator = null) -> Dictionary:
+	if amount <= 0 or player_battle_points < amount:
+		return {}
 	var zone: Dictionary = get_zone(zone_id)
 	if zone.is_empty():
-		return false
+		return {}
+
+	var gen: RandomNumberGenerator = rng
+	if gen == null:
+		gen = RandomNumberGenerator.new()
+		gen.randomize()
+
+	var receipt: Dictionary = TacticsOperationalRulesRef.resolve_commando_raid(
+		amount, gen)
+	# The points are committed either way; "pbp_lost" reports whether they were
+	# additionally forfeited, which the book distinguishes from simply being spent.
 	player_battle_points -= amount
-	var current: int = zone.get("enemy_army_strength", 0)
-	zone["enemy_army_strength"] = maxi(current - 1, 0)
-	return true
+	var damage: int = int(receipt.get("army_strength_damage", 0))
+	if damage > 0:
+		var current: int = zone.get("enemy_army_strength", 0)
+		zone["enemy_army_strength"] = maxi(current - damage, 0)
+	receipt["spent"] = amount
+	receipt["zone_id"] = zone_id
+	return receipt
 
 
 ## Advance to next operational turn

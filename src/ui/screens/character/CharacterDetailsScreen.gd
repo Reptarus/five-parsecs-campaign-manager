@@ -663,7 +663,7 @@ func _update_species_rules_display() -> void:
 	rules_label.scroll_active = false
 	var bbcode := ""
 	for rule in rules:
-		bbcode += "[color=#808080]• %s[/color]\n" % str(rule)
+		bbcode += "[color=#9ca3af]• %s[/color]\n" % str(rule)
 	rules_label.text = bbcode
 	container.add_child(rules_label)
 
@@ -691,7 +691,7 @@ func _update_equipment_display() -> void:
 		return
 
 	if not "equipment" in current_character or current_character.equipment.size() == 0:
-		equipment_rich_text.text = "[color=#808080]No equipment[/color]"
+		equipment_rich_text.text = "[color=#9ca3af]No equipment[/color]"
 		return
 
 	# Load equipment database for weapon detail lookups
@@ -721,10 +721,10 @@ func _update_equipment_display() -> void:
 				if i < traits_arr.size() - 1:
 					traits_str += ", "
 			if traits_str.is_empty():
-				traits_str = "[color=#808080]—[/color]"
+				traits_str = "[color=#9ca3af]—[/color]"
 
 			weapons_bbcode += "  %s\n" % name_formatted
-			weapons_bbcode += "    [color=#808080]Range:[/color] %s  [color=#808080]Shots:[/color] %s  [color=#808080]Dmg:[/color] %s  [color=#808080]Traits:[/color] %s\n" % [range_val, shots_val, dmg_val, traits_str]
+			weapons_bbcode += "    [color=#9ca3af]Range:[/color] %s  [color=#9ca3af]Shots:[/color] %s  [color=#9ca3af]Dmg:[/color] %s  [color=#9ca3af]Traits:[/color] %s\n" % [range_val, shots_val, dmg_val, traits_str]
 		else:
 			# Gear / Armor / Unknown — simple bullet
 			var formatted_item := _format_equipment_with_keywords(item_str)
@@ -739,7 +739,7 @@ func _update_equipment_display() -> void:
 		bbcode += "[color=#4FC3F7]GEAR & ARMOR[/color]\n" + gear_bbcode
 
 	if bbcode.is_empty():
-		bbcode = "[color=#808080]No equipment[/color]"
+		bbcode = "[color=#9ca3af]No equipment[/color]"
 
 	equipment_rich_text.text = bbcode.strip_edges()
 

@@ -58,7 +58,7 @@ const DEUTERANOPIA_THEME := {
 
 	# Text - unchanged (safe for deuteranopia)
 	"text_primary": Color("#E0E0E0"),
-	"text_secondary": Color("#808080"),
+	"text_secondary": UIColors.COLOR_TEXT_SECONDARY,
 	"text_disabled": Color("#404040"),
 
 	# Accent - blue is safe
@@ -104,7 +104,7 @@ const PROTANOPIA_THEME := {
 
 	# Text
 	"text_primary": Color("#E0E0E0"),
-	"text_secondary": Color("#808080"),
+	"text_secondary": UIColors.COLOR_TEXT_SECONDARY,
 	"text_disabled": Color("#404040"),
 
 	# Accent
@@ -150,7 +150,7 @@ const TRITANOPIA_THEME := {
 
 	# Text
 	"text_primary": Color("#E0E0E0"),
-	"text_secondary": Color("#808080"),
+	"text_secondary": UIColors.COLOR_TEXT_SECONDARY,
 	"text_disabled": Color("#404040"),
 
 	# Accent - use red/pink instead of blue
@@ -323,14 +323,20 @@ static func _simulate_tritanopia(color: Color) -> Color:
 # ============ HELPER FUNCTIONS ============
 
 static func _get_default_dark_theme() -> Dictionary:
-	## Fallback default dark theme (matches BaseCampaignPanel).
+	## Fallback default dark theme.
+	## ⚠ This used to claim it "matches BaseCampaignPanel" and it does NOT:
+	## BaseCampaignPanel takes its palette from UIColors (base #0a0d14,
+	## elevated #111827), while this returns the older #1A1A2E / #252542.
+	## Only text_secondary was reconciled (it failed WCAG AA at #808080);
+	## the backgrounds are deliberately left alone, since changing them here
+	## would restyle every colourblind theme rather than fix a contrast bug.
 	return {
 		"base": Color("#1A1A2E"),
 		"elevated": Color("#252542"),
 		"input": Color("#1E1E36"),
 		"border": Color("#3A3A5C"),
 		"text_primary": Color("#E0E0E0"),
-		"text_secondary": Color("#808080"),
+		"text_secondary": UIColors.COLOR_TEXT_SECONDARY,
 		"text_disabled": Color("#404040"),
 		"accent": Color("#2D5A7B"),
 		"accent_hover": Color("#3A7199"),

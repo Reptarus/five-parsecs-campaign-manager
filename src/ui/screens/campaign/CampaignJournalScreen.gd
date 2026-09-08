@@ -832,7 +832,7 @@ func _update_results_label() -> void:
 
 func _render_empty_detail() -> void:
 	_detail_richtext.text = (
-		"[center][color=#808080][i]No entries match these filters.[/i]"
+		"[center][color=#9ca3af][i]No entries match these filters.[/i]"
 		+ "\n\nUse Reset Filters to clear all active filters.[/color][/center]")
 	if _detail_actions_row != null:
 		_detail_actions_row.visible = false

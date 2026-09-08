@@ -34,6 +34,8 @@ var _battle_setup: Control
 var _post_battle: Control
 var _op_map: Control
 var _battle_indicator: Control  # Shown during BATTLE phase
+## "Play another battle this turn" (Tactics p.96). Read by _battle_payload().
+var _another_check: CheckBox
 
 ## UI refs
 var _turn_label: Label
@@ -262,12 +264,28 @@ func _connect_signals() -> void:
 	phase_manager.campaign_turn_started.connect(_on_turn_started)
 	phase_manager.campaign_turn_completed.connect(_on_turn_completed)
 
+	# ⚠ FORWARD THE PAYLOAD. These three lambdas used to be `func(_p, _d):
+	# phase_manager.complete_current_phase()` — dropping the dictionary the panel
+	# had just emitted. `complete_current_phase(result_data := {})` then ran with
+	# an empty dict, so EVERY `data.has(...)` branch in TacticsPhaseManager's six
+	# _apply_* consumers was permanently false: orders, intel, scenario,
+	# deployed_units, story_event, skills_acquired, cp_spent, roster_changes,
+	# operational_map_update and pbp_spent all had a correct consumer and no
+	# producer that could reach it. `play_another` was dropped too, which made
+	# MAX_BATTLES_PER_TURN unreachable (:129-137) — a Tactics turn could only ever
+	# hold one battle.
+	#
+	# This is the transport half. It is worth nothing on its own: the three panels
+	# must also emit a real payload instead of `{}`. Both halves are needed, and
+	# each is independently detection-proven in
+	# tests/unit/test_tactics_turn_payload.gd — reverting THIS line alone must turn
+	# that suite red, or the suite is not testing the wiring.
 	_battle_setup.phase_completed.connect(
-		func(_p, _d): phase_manager.complete_current_phase())
+		func(_p, d): phase_manager.complete_current_phase(d))
 	_post_battle.phase_completed.connect(
-		func(_p, _d): phase_manager.complete_current_phase())
+		func(_p, d): phase_manager.complete_current_phase(d))
 	_op_map.phase_completed.connect(
-		func(_p, _d): phase_manager.complete_current_phase())
+		func(_p, d): phase_manager.complete_current_phase(d))
 
 
 func _on_turn_started(turn: int) -> void:
@@ -303,6 +321,11 @@ func _on_phase_changed(_old: int, new_phase: int) -> void:
 			_battle_setup.show_phase(new_phase)
 		4:  # BATTLE
 			_battle_indicator.visible = true
+			# Offer "play another" only while the p.96 ceiling still allows one.
+			if is_instance_valid(_another_check) and phase_manager:
+				_another_check.visible = phase_manager.can_play_another_battle()
+				if not _another_check.visible:
+					_another_check.button_pressed = false
 		5, 6:  # POST_BATTLE → ADVANCEMENT
 			_post_battle.visible = true
 			_post_battle.show_phase(new_phase)
@@ -325,6 +348,16 @@ func _hide_all_panels() -> void:
 	_post_battle.visible = false
 	_op_map.visible = false
 	_battle_indicator.visible = false
+
+
+## The BATTLE phase payload. `battle_result` drives both `record_battle()` (CP, p.107)
+## and the Player Battle Point award (p.96); `play_another` drives the loop back to
+## BATTLE_PREP. Both were being dropped before 2026-09-07 — the first by the controller
+## lambda, the second because nothing ever set it.
+func _battle_payload(won: bool) -> Dictionary:
+	var play_another: bool = (
+		is_instance_valid(_another_check) and _another_check.button_pressed)
+	return {"battle_result": {"won": won}, "play_another": play_another}
 
 
 func _create_battle_indicator() -> VBoxContainer:
@@ -361,24 +394,31 @@ func _create_battle_indicator() -> VBoxContainer:
 	win_btn.text = "Victory"
 	win_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	win_btn.pressed.connect(func():
-		phase_manager.complete_current_phase(
-			{"battle_result": {"won": true}}))
+		phase_manager.complete_current_phase(_battle_payload(true)))
 	btn_box.add_child(win_btn)
 
 	var lose_btn := Button.new()
 	lose_btn.text = "Defeat"
 	lose_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	lose_btn.pressed.connect(func():
-		phase_manager.complete_current_phase(
-			{"battle_result": {"won": false}}))
+		phase_manager.complete_current_phase(_battle_payload(false)))
 	btn_box.add_child(lose_btn)
 
-	# Play another battle option
-	var another_btn := Button.new()
-	another_btn.text = "Play Another Battle"
-	another_btn.custom_minimum_size = Vector2(0, 44)
-	another_btn.visible = false  # Shown after first battle
-	btn_box.add_child(another_btn)
+	# Play-another option (Tactics p.96: "you may have multiple battles per campaign
+	# turn"). ⚠ This was a Button with `visible = false` and NO `pressed` connection at
+	# all — the `play_another` key had no producer, so TacticsPhaseManager's loop back
+	# to BATTLE_PREP (:129-137) and its MAX_BATTLES_PER_TURN ceiling were unreachable
+	# and a Tactics turn could only ever hold one battle.
+	#
+	# It is a CheckBox rather than a button on purpose: a third button would complete
+	# the phase with no battle result at all, losing the win/loss the PBP award (p.96)
+	# is computed from. The player records the outcome; this only says whether another
+	# battle follows.
+	_another_check = CheckBox.new()
+	_another_check.text = "Play another battle this turn"
+	_another_check.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	_another_check.visible = false  # Shown once a battle has been fought
+	btn_box.add_child(_another_check)
 
 	var spacer_bot := Control.new()
 	spacer_bot.size_flags_vertical = Control.SIZE_EXPAND_FILL

@@ -179,7 +179,7 @@ func _build_scout_info() -> void:
 	_add_info_text(
 		"[b]Scout Discovery:[/b] Optional D100 roll on the Scout Discovery table.")
 	_add_info_text(
-		"[color=#808080]Assigning a scout character gives them bonus XP on certain results.[/color]")
+		"[color=#9ca3af]Assigning a scout character gives them bonus XP on certain results.[/color]")
 
 
 func _populate_scout_select() -> void:

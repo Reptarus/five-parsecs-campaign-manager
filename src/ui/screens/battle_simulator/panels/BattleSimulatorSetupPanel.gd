@@ -15,7 +15,7 @@ const COLOR_ACCENT := Color("#2D5A7B")
 const COLOR_ACCENT_HOVER := Color("#3A7199")
 const COLOR_FOCUS := Color("#4FC3F7")
 const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
+const COLOR_TEXT_SEC := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_SUCCESS := Color("#10B981")
 
 # SPACING_XS was USED (twice) but never declared, and this panel extends Control
@@ -342,11 +342,11 @@ func _refresh_previews() -> void:
 		var crew_text := ""
 		for member in context.get("crew", []):
 			crew_text += "[color=#4FC3F7]%s[/color]  " % member.get("character_name", "?")
-			crew_text += "[color=#808080]CS[/color] %d  " % member.get("combat_skill", 0)
-			crew_text += "[color=#808080]React[/color] %d  " % member.get("reactions", 0)
-			crew_text += "[color=#808080]Tough[/color] %d  " % member.get("toughness", 0)
-			crew_text += "[color=#808080]Spd[/color] %d  " % member.get("speed", 0)
-			crew_text += "[color=#808080]Savvy[/color] %d\n" % member.get("savvy", 0)
+			crew_text += "[color=#9ca3af]CS[/color] %d  " % member.get("combat_skill", 0)
+			crew_text += "[color=#9ca3af]React[/color] %d  " % member.get("reactions", 0)
+			crew_text += "[color=#9ca3af]Tough[/color] %d  " % member.get("toughness", 0)
+			crew_text += "[color=#9ca3af]Spd[/color] %d  " % member.get("speed", 0)
+			crew_text += "[color=#9ca3af]Savvy[/color] %d\n" % member.get("savvy", 0)
 		_crew_preview.text = crew_text.strip_edges()
 
 	# Enemy preview
@@ -364,7 +364,7 @@ func _refresh_previews() -> void:
 			]
 			var rules: Array = first_enemy.get("special_rules", [])
 			if not rules.is_empty():
-				enemy_text += "\n[color=#808080]Rules: %s[/color]" % ", ".join(rules)
+				enemy_text += "\n[color=#9ca3af]Rules: %s[/color]" % ", ".join(rules)
 		_enemy_preview.text = enemy_text
 
 

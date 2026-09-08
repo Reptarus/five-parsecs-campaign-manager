@@ -230,7 +230,7 @@ static func format_implant_list(implants: Array) -> String:
 	## Returns:
 	## BBCode string with bullet points
 	if implants.is_empty():
-		return "[color=#808080]No implants[/color]"
+		return "[color=#9ca3af]No implants[/color]"
 
 	var formatted_lines: Array[String] = []
 	for implant in implants:

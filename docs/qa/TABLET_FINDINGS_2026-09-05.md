@@ -423,9 +423,21 @@ and 52 matches the 51 the desk test measures (the mobile branch builds one extra
 | **T11-29** Patrons & Rivals | **PASS.** No "Unknown" anywhere; the three fabricating buttons (Generate Patron / Generate Rival / Manage Jobs) are gone; rows now lead with the enemy TYPE. |
 | **T11-31** display-name SSOT | **PASS.** Manage Crew reads "Genetic Uplift / Enforcer", "Traveler / Ganger", **"K'Erin / Enforcer"** (the apostrophe — this was `KERIN`) and "Mutant / **Bounty Hunter**" (was `BOUNTY_HUNTER`). |
 | **T11-36** HubFeatureCard | **PASS, with one unexplained miss.** 5 of 6 plain `adb input tap`s navigated, one navigation each. The miss was the FIRST tap after arriving on the dashboard; the same card and coordinate then navigated twice in a row, and a 120ms press worked immediately. Recorded rather than explained away. |
-| **T11-16** premise | **CORRECTED from the pulled save**: `meta.game_phase = "active"` IS present. The resume branch was NOT exercised — this save has no `active_battle`, so "Begin Turn 9" is correct for it. Still owed: force-stop mid-battle and re-open. |
+| **T11-16** premise | **CORRECTED from the pulled save**: `meta.game_phase = "active"` IS present. The resume branch was NOT exercised — this save has no `active_battle`, so "Begin Turn 9" is correct for it. ~~Still owed: force-stop mid-battle and re-open.~~ ✅ **DONE on deploy #21** — after a real process death (pid 8687 → none → 18749) the dashboard read **"Resume Battle — Turn 9"**, which with Pass A's negative branch pins BOTH directions on the same campaign. See the verdict row further down this file. |
 
-### Not walked on deploy #20
+### Not walked on deploy #20 — ✅ ALL FOURTEEN CLOSED ON DEPLOY #21
+
+⚠ **This list is HISTORY, not a worklist.** Every row below was walked and passed on
+deploy #21 — see `docs/qa/TABLET_QA_SPRINT_2026-08.md:6784`, "PASS on hardware: T11-15,
+T11-16 (both branches), T11-17, T11-18, T11-19, T11-20, T11-21, T11-22, T11-23, T11-24,
+T11-25, T11-30, T11-32, T11-33, T11-34, T11-35 ...".
+
+⭐ The heading was accurate when written and became misleading the moment #21 ran, which
+is the hazard of an append-only ledger: a SCOPED claim keeps reading as a CURRENT one
+because nothing marks the difference. It cost a full re-planning cycle on 2026-09-07,
+when this list was read as the outstanding device work and the mid-battle force-stop was
+ranked as the top remaining item — four months after it had passed. **When a section is
+scoped to one deploy, say so in the heading.**
 
 T11-15 (keyboard shortfall on the QA dialog), T11-17 (needs a mid-battle force-stop),
 T11-18 (Record Battle Result drawer), T11-19/T11-25/T11-35 (need forced campaign-event

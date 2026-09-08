@@ -167,7 +167,9 @@ func test_secondary_text_uses_small_font_and_secondary_color():
 	var font_size = difficulty_label.get_theme_font_size("font_size")
 	assert_that(font_size).is_equal(14)
 
-	# Assert: Font color is COLOR_TEXT_SECONDARY (#808080)
+	# Assert: Font color is COLOR_TEXT_SECONDARY (#9ca3af)
+	# ⚠ The old comment said #808080, which was never the token — it was a
+	# hardcoded drift that failed WCAG AA. Corrected 2026-09-07.
 	# Note: Color assertions skipped - theme colors may vary depending on when theme is applied
 
 ## Section Icon Tests

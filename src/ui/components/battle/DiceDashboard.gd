@@ -171,7 +171,7 @@ func _update_display() -> void:
 					last_roll_label.modulate = Color("#FFFFFF")  # White
 		else:
 			last_roll_label.text = "No rolls yet"
-			last_roll_label.modulate = Color("#808080")  # Gray
+			last_roll_label.modulate = UIColors.COLOR_TEXT_SECONDARY
 
 	# Update roll history display
 	if roll_history:

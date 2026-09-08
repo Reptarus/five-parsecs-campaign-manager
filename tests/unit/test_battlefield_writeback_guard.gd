@@ -164,3 +164,39 @@ func test_re_persisting_the_same_seed_is_allowed() -> void:
 		"An in-battle update carrying the SAME seed was refused, so marker moves "
 		+ "and sector re-rolls would stop persisting."
 	).contains(["updated in battle"])
+
+
+## The Regenerate permission is a ONE-SHOT, and it used to leak past two exits.
+##
+## `_persist_battlefield_contract()` consumes `_regenerate_requested`, but the
+## standalone guard returns ABOVE that line, and `_reset_battle_state()` never cleared
+## it either. This screen is REUSED between battles, so a Regenerate pressed during a
+## standalone battle stayed armed into the next one — and that flag is the single thing
+## that lets a differently-seeded table overwrite a saved one, which is the T11-17
+## defect this whole suite exists to prevent.
+func test_a_standalone_regenerate_does_not_stay_armed_for_the_next_battle() -> void:
+	var ui := await _make_ui()
+
+	# Arm the permission, then take the STANDALONE exit, which returns before the
+	# consume. A non-empty _battle_mode_id is what makes _is_standalone_battle() true.
+	ui._regenerate_requested = true
+	ui._battle_mode_id = "bug_hunt"
+	_persist(ui, _regenerated())
+
+	assert_bool(ui._regenerate_requested).override_failure_message(
+		"The Regenerate permission survived the standalone early-return, so the NEXT "
+		+ "battle on this reused screen would be allowed to overwrite a saved table."
+	).is_false()
+
+
+## The other exit: a new battle must never inherit the previous battle's permission.
+func test_resetting_the_screen_disarms_the_regenerate_permission() -> void:
+	var ui := await _make_ui()
+	ui._regenerate_requested = true
+
+	ui._reset_battle_state()
+
+	assert_bool(ui._regenerate_requested).override_failure_message(
+		"_reset_battle_state() runs on every new battle and must disarm the one-shot; "
+		+ "otherwise battle 2 inherits battle 1's permission to regenerate."
+	).is_false()

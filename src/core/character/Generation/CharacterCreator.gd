@@ -1666,7 +1666,7 @@ func _update_preview() -> void:
 		var psi_data: Dictionary = _load_psionic_powers()
 		for pid in current_character.psionic_powers:
 			var pname: String = psi_data.get(pid, {}).get("name", pid.capitalize())
-			bbcode += "[color=#808080]• %s[/color]\n" % pname
+			bbcode += "[color=#9ca3af]• %s[/color]\n" % pname
 
 	# Species rules for Strange Characters (Core Rules pp.19-22)
 	var sp_rules: Array = _get_character_property(
@@ -1674,7 +1674,7 @@ func _update_preview() -> void:
 	if sp_rules is Array and not sp_rules.is_empty():
 		bbcode += "\n[color=#D97706]Species Rules:[/color]\n"
 		for rule in sp_rules:
-			bbcode += "[color=#808080]• %s[/color]\n" % str(rule)
+			bbcode += "[color=#9ca3af]• %s[/color]\n" % str(rule)
 
 	preview_info.text = bbcode
 

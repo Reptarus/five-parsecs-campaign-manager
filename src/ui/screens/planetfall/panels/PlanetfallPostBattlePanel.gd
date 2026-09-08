@@ -539,7 +539,7 @@ func _resolve_enemy_info() -> void:
 		_add_result_bbcode(
 			"\n  +%d Mission Data (total: %d)" % [md_gained, md_total])
 		_add_result_bbcode(
-			"  [color=#808080]Breakthrough check will occur at Step 12.[/color]")
+			"  [color=#9ca3af]Breakthrough check will occur at Step 12.[/color]")
 
 
 ## ============================================================================

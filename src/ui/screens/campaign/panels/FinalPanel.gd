@@ -1396,7 +1396,7 @@ func _create_validation_feedback_panel(errors: Array) -> PanelContainer:
 		# Error messages with bulleted list
 		var error_text := "[color=#DC2626]❌ Issues to fix:[/color]\n"
 		for error in errors:
-			error_text += "[color=#808080]• %s[/color]\n" % error
+			error_text += "[color=#9ca3af]• %s[/color]\n" % error
 		message_label.text = error_text
 	
 	content.add_child(message_label)

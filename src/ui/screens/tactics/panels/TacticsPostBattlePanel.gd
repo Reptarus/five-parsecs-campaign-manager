@@ -27,6 +27,13 @@ var _content: VBoxContainer
 var _phase_title: Label
 var _complete_btn: Button
 
+## What this panel resolved. These are keys TacticsPhaseManager has always waited for
+## and never received, because both _on_complete() branches emitted `{}`.
+var _story_event: Dictionary = {}
+var _cp_spent: int = 0
+var _purchases: Array = []
+var _roster_changes: Array = []
+
 
 func _scaled_font(base: int) -> int:
 	var rm = get_node_or_null("/root/ResponsiveManager")
@@ -115,10 +122,62 @@ func _build_post_battle_content() -> void:
 		"Review unit losses from this battle. "\
 		+ "Destroyed units can be replaced by spending CP during Advancement.")
 
-	# Story event check
-	_add_card("Story Events",
-		"Roll on the D100 story event table to see "\
-		+ "if anything changes on the strategic level.")
+	# Story event check — Tactics pp.102-104, a real D100 table in
+	# data/tactics/tactics_story_events.json (21 rows). It used to be DESCRIBED here and
+	# never rolled; `_apply_post_battle_results()` waits for a `story_event` key that no
+	# producer sent, so campaign.story_events could never grow.
+	if _story_event.is_empty():
+		_add_card("Story Events",
+			"Roll on the D100 story event table to see "\
+			+ "if anything changes on the strategic level.")
+		var roll_btn := Button.new()
+		roll_btn.text = "Roll Story Event (D100)"
+		roll_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+		roll_btn.pressed.connect(_on_roll_story_event)
+		_content.add_child(roll_btn)
+	else:
+		_add_card("Story Event — %s (rolled %d)" % [
+				str(_story_event.get("name", "?")),
+				int(_story_event.get("roll", 0))],
+			str(_story_event.get("description", "")) + "\n\n"
+			+ str(_story_event.get("player_effect", "")))
+
+
+func _story_event_table() -> Array:
+	var f := FileAccess.open(
+		"res://data/tactics/tactics_story_events.json", FileAccess.READ)
+	if f == null:
+		return []
+	var json := JSON.new()
+	if json.parse(f.get_as_text()) != OK or not (json.data is Dictionary):
+		return []
+	var e: Variant = (json.data as Dictionary).get("events", [])
+	return e if e is Array else []
+
+
+func _on_roll_story_event() -> void:
+	var table: Array = _story_event_table()
+	if table.is_empty():
+		# No table, no event. Never fabricate a row — an unrolled event is a far
+		# smaller problem than an invented one appearing in the campaign log.
+		return
+	var roll: int = randi_range(1, 100)
+	for row in table:
+		if not (row is Dictionary):
+			continue
+		var r: Dictionary = row
+		if roll >= int(r.get("roll_min", 0)) and roll <= int(r.get("roll_max", -1)):
+			_story_event = r.duplicate(true)
+			_story_event["roll"] = roll
+			break
+	_rebuild_for_current_phase()
+
+
+## The two content builders are chosen by phase; re-enter through show_phase() so a
+## roll redraws the same phase rather than guessing which builder to call.
+func _rebuild_for_current_phase() -> void:
+	var current: int = _phase_manager.current_phase if _phase_manager else 5
+	show_phase(current)
 
 
 func _build_advancement_content() -> void:
@@ -132,13 +191,50 @@ func _build_advancement_content() -> void:
 		var cp: int = 0
 		if _campaign.has_method("get_available_cp"):
 			cp = _campaign.get_available_cp()
+		var remaining: int = maxi(cp - _cp_spent, 0)
 		var cp_lbl = Label.new()
-		cp_lbl.text = "CP Available to Spend: %d" % cp
+		cp_lbl.text = "CP Available to Spend: %d" % remaining
 		cp_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 		cp_lbl.add_theme_color_override("font_color",
-			COLOR_SUCCESS if cp > 0 else COLOR_TEXT_SEC)
+			COLOR_SUCCESS if remaining > 0 else COLOR_TEXT_SEC)
 		cp_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_content.add_child(cp_lbl)
+
+		# The three purchases the card above describes, made actionable. Without these
+		# `cp_spent` had no producer, so CP accumulated and could never be spent.
+		# ⚠ Only the SPEND is recorded here; the campaign is debited by
+		# TacticsPhaseManager._apply_advancement_results() through spend_cp(), which is
+		# the mutation API. Spending twice in one visit is why this tracks a running
+		# total rather than emitting one purchase.
+		if remaining > 0:
+			var row := HBoxContainer.new()
+			row.add_theme_constant_override("separation", SPACING_SM)
+			_content.add_child(row)
+			for label in ["Unit Upgrade", "Roster Change", "Battle Advantage"]:
+				var b := Button.new()
+				b.text = "%s (1 CP)" % label
+				b.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+				b.pressed.connect(_on_spend_cp.bind(str(label)))
+				row.add_child(b)
+
+		if not _purchases.is_empty():
+			var log_lbl := Label.new()
+			log_lbl.text = "Committed: " + ", ".join(PackedStringArray(_purchases))
+			log_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+			log_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+			log_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			_content.add_child(log_lbl)
+
+
+func _on_spend_cp(purchase: String) -> void:
+	_cp_spent += 1
+	_purchases.append(purchase)
+	# ⚠ Deliberately NOT emitting a `roster_changes` entry here. That consumer
+	# (_reinforce_unit / _replace_unit) matches on `unit_id`, and this panel has no unit
+	# picker yet — an entry with an empty id would match nothing and silently do
+	# nothing, which is worse than not sending one. The CP is still charged, because
+	# that is what the player chose. Add the picker and the key together.
+	_rebuild_for_current_phase()
 
 
 func _add_card(card_title: String, body: String) -> void:
@@ -174,7 +270,20 @@ func _add_card(card_title: String, body: String) -> void:
 	_content.add_child(card)
 
 
+## Emit what this phase resolved. Was `phase_completed.emit(current, {})` for both the
+## POST_BATTLE and ADVANCEMENT phases, so `story_event`, `skills_acquired`, `cp_spent`
+## and `roster_changes` all had consumers that could never fire.
 func _on_complete() -> void:
 	var current: int = _phase_manager.current_phase \
 		if _phase_manager else 5
-	phase_completed.emit(current, {})
+	var data: Dictionary = {}
+	match current:
+		5:  # POST_BATTLE
+			if not _story_event.is_empty():
+				data["story_event"] = _story_event.duplicate(true)
+		6:  # ADVANCEMENT
+			if _cp_spent > 0:
+				data["cp_spent"] = _cp_spent
+			if not _roster_changes.is_empty():
+				data["roster_changes"] = _roster_changes.duplicate(true)
+	phase_completed.emit(current, data)

@@ -298,6 +298,10 @@ func initialize_resources(data: Dictionary) -> void:
 	reputation = data.get("reputation", 0)
 	patrons = data.get("patrons", []).duplicate()
 	rivals = data.get("rivals", []).duplicate()
+	# Normalise here as well as on load, for the same reason _normalize_crew_stat_keys()
+	# is called from both: a resource set built outside from_dictionary() would
+	# otherwise keep the legacy shape.
+	_normalize_rival_records()
 	var rumors = data.get("quest_rumors", [])
 	quest_rumors = rumors.size() if rumors is Array else rumors
 	_update_modified_time()
@@ -536,6 +540,66 @@ func _normalize_crew_stat_keys() -> void:
 			member["reactions"] = member["reaction"]
 
 
+## Repair legacy Rival records whose NAME is an effect string (T11-25).
+##
+## The producer bug is fixed and hardware-verified, but it wrote records that survive in
+## every save made before the fix, and nothing repaired them: `CampaignDashboard.gd`
+## renders `rival.get("name", "Unknown")` raw, so the dashboard RIVALS panel and the
+## Patrons & Rivals screen both print `Old nemesis (persistent, +1 enemies)` where a
+## name belongs — and so does the printed World Record Sheet.
+##
+## ⚠ **The original name is unrecoverable** — the producer overwrote it with the effect
+## text. Nothing here invents one. Every value written below is read out of the record
+## itself: the display name becomes the record's own `type` (which is what the fixed
+## producer emits, and what T11-29/T11-38 made the rows lead with), and the two flags
+## are parsed from the very string being replaced.
+##
+## THE SIGNATURE, from a census of 27 real saves (153 rival records, 4 distinct
+## key-sets): the malformed shape is the only one carrying BOTH `resources` and
+## `source`; the three healthy shapes use `source_character` / `source_event` and
+## `strength` / `enemy_count_bonus`. Requiring the key pair AND an effect-string name
+## keeps this from touching a legitimately parenthesised name.
+##
+## Fixed HERE, at the load chokepoint, for the same reason `_normalize_crew_stat_keys()`
+## gives above: `rivals` has one owner but is serialized to two places
+## (`resources.rivals` and `crew.rivals`), and teaching each read site to sanitise would
+## have to be repeated everywhere and one site would always be missed.
+func _normalize_rival_records() -> void:
+	if not (rivals is Array):
+		return
+	var effect_re := RegEx.new()
+	# "+1 enemies", "+2 enemy" — capture the count rather than assuming 1.
+	effect_re.compile("\\+(\\d+)\\s+enem")
+	for r in rivals:
+		if not (r is Dictionary):
+			continue
+		var rival: Dictionary = r
+		if not (rival.has("resources") and rival.has("source")):
+			continue
+		var name_text := str(rival.get("name", ""))
+		if not (name_text.contains("(") and name_text.ends_with(")")):
+			continue
+
+		var type_text := str(rival.get("type", ""))
+		# No type either? Leave the record alone. A blank name is a worse outcome than
+		# a wrong one, and there is nothing in the record to build a name from.
+		if type_text.is_empty():
+			continue
+
+		var parenthetical := name_text.substr(name_text.find("(")).to_lower()
+		if parenthetical.contains("persistent"):
+			rival["persistent"] = true
+		var m := effect_re.search(parenthetical)
+		if m:
+			rival["enemy_count_bonus"] = int(m.get_string(1))
+
+		# Keep what was displayed, so the repair is auditable rather than silent.
+		rival["legacy_name"] = name_text
+		rival["name"] = type_text
+		rival.erase("resources")
+		rival.erase("source")
+
+
 func _backfill_crew_species() -> void:
 	if not (crew_data is Dictionary):
 		return
@@ -661,6 +725,7 @@ func from_dictionary(data: Dictionary) -> void:
 		reputation = res.get("reputation", 0)
 		patrons = res.get("patrons", []).duplicate()
 		rivals = res.get("rivals", []).duplicate()
+		_normalize_rival_records()
 		quest_rumors = res.get("quest_rumors", 0)
 	else:
 		credits = progress_data.get("credits", 0) if progress_data.get("credits") != null else 0

@@ -272,7 +272,7 @@ func _on_roll_tension() -> void:
 	var result: Dictionary = CompendiumSalvageRef.roll_tension(_tension)
 	var text := _instruction_display.text
 	if result.is_empty():
-		text += "\n\n[color=#808080](Salvage Jobs DLC not enabled)[/color]"
+		text += "\n\n[color=#9ca3af](Salvage Jobs DLC not enabled)[/color]"
 	else:
 		text += "\n\n[color=#D97706][b]TENSION CHECK:[/b] %s[/color]" % result.get("instruction", "No change")
 		if result.get("new_tension", _tension) != _tension:

@@ -134,7 +134,7 @@ func _show_clock_view() -> void:
 		text += "[color=#D97706][b]The clock has reached zero![/b][/color]\n"
 		text += "Next turn will be a Story Event."
 	else:
-		text += "[color=#808080]The clock ticks down at the end "
+		text += "[color=#9ca3af]The clock ticks down at the end "
 		text += "of each campaign turn based on battle results.[/color]"
 
 	_set_keyword_text(_details_rtl, text)
@@ -225,7 +225,7 @@ func _show_evidence_view() -> void:
 	text += "Each turn: Roll 1D6 + %d evidence. " % evidence
 	text += "On [b]7+[/b]: location found!\n"
 	text += "Otherwise: +1 evidence, play normal turn.\n\n"
-	text += "[color=#808080]Core Rules Appendix V p.158[/color]"
+	text += "[color=#9ca3af]Core Rules Appendix V p.158[/color]"
 
 	_set_keyword_text(_details_rtl, text)
 	_restrictions_vbox.visible = false

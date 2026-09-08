@@ -23,6 +23,11 @@ signal campaign_turn_completed(turn_number: int)
 signal operational_turn_started(op_turn: int)
 signal operational_turn_completed(op_turn: int)
 signal navigation_updated(can_back: bool, can_forward: bool)
+## Tactics p.99 Step 9 — "player", "enemy" or "inconclusive". Emitted the moment either
+## side's Cohesion reaches 0. ⚠ A declared-but-never-emitted signal is what
+## scripts/lint_signal_wiring.py exists to catch, so if this ever stops being emitted
+## the lint will say so rather than the campaign silently losing its end condition.
+signal campaign_ended(result: String)
 
 enum Phase {
 	NONE = -1,
@@ -68,6 +73,17 @@ var operational_turn: int = 0
 
 ## How many battles fought this operational turn (1-3 allowed)
 var battles_this_turn: int = 0
+## Tabletop results this operational turn, for the p.96 Player Battle Point award.
+## Both are needed: the book cancels the two sides' points 1-for-1 in the same Zone.
+var battle_wins_this_turn: int = 0
+var battle_losses_this_turn: int = 0
+## PBP held when this operational turn began. The award is recomputed from the running
+## tally after every battle rather than incremented, so playing a second battle in the
+## same turn cannot push the total past the p.96 per-turn cap of 2.
+var _pbp_at_turn_start: int = 0
+
+const OperationalRulesRef = preload(
+	"res://src/core/campaign/TacticsOperationalRules.gd")
 const MAX_BATTLES_PER_TURN := 3
 
 var _phase_complete: Dictionary = {}
@@ -89,6 +105,11 @@ func start_new_turn() -> void:
 	turn_number += 1
 	operational_turn += 1
 	battles_this_turn = 0
+	# Tactics p.96 caps PBP at 2 gained per OPERATIONAL TURN, so the tally has to be
+	# per-turn state rather than per-battle.
+	battle_wins_this_turn = 0
+	battle_losses_this_turn = 0
+	_pbp_at_turn_start = _current_battle_points()
 
 	if campaign:
 		if campaign.has_method("advance_turn"):
@@ -240,6 +261,30 @@ func _apply_battle_results(data: Dictionary) -> void:
 	if data.has("battle_result") and campaign.has_method("record_battle"):
 		campaign.record_battle(data.battle_result)
 
+	# ⭐ Step 2, Player Battle Points (Tactics p.96). This had NO PRODUCER anywhere:
+	# `player_battle_points` was only ever decremented, so the resource the whole
+	# operational layer spends could never be earned. The book: "Award 1 Player Battle
+	# Point (1 PBP) for every tabletop battle victory in an Operational Zone", 0 for a
+	# draw or inconclusive result, both sides' points cancel 1-for-1 in the same Zone,
+	# max 2 gained per operational turn and max 3 held.
+	#
+	# ⚠ A tabletop defeat is read as an enemy victory, which is what earns THEM a point
+	# and triggers the cancellation. That holds for the two-faction campaign this model
+	# supports; the state carries no enemy PBP field, so nothing here tries to bank the
+	# enemy's side of it.
+	if data.has("battle_result"):
+		var br: Variant = data.battle_result
+		if br is Dictionary:
+			var brd: Dictionary = br
+			# Absent `won` means the result was never recorded either way — treat it as
+			# inconclusive (0 PBP) rather than assuming a defeat.
+			if brd.has("won"):
+				if bool(brd.get("won", false)):
+					battle_wins_this_turn += 1
+				else:
+					battle_losses_this_turn += 1
+		_award_battle_points()
+
 	# Apply casualties to campaign units
 	var casualties: Dictionary = data.get("casualties", {})
 	for unit_id in casualties:
@@ -252,6 +297,30 @@ func _apply_battle_results(data: Dictionary) -> void:
 				if cu["current_models"] <= 0:
 					cu["is_destroyed"] = true
 				break
+
+
+## Guard on the OWNER, not on the container's emptiness: an operational map with no
+## zones yet is a legal state, and treating an empty dict as "no campaign" is how the
+## salvage ledger silently disabled itself for every fresh campaign.
+func _operational_map_dict() -> Dictionary:
+	if campaign == null or not ("operational_map" in campaign):
+		return {}
+	var m: Variant = campaign.operational_map
+	return m if m is Dictionary else {}
+
+
+func _current_battle_points() -> int:
+	return int(_operational_map_dict().get("player_battle_points", 0))
+
+
+## Recompute this operational turn's PBP from the running tally (p.96).
+func _award_battle_points() -> void:
+	var m: Dictionary = _operational_map_dict()
+	if m.is_empty():
+		return
+	var res: Dictionary = OperationalRulesRef.award_battle_points(
+		battle_wins_this_turn, battle_losses_this_turn, _pbp_at_turn_start)
+	m["player_battle_points"] = int(res.get("total", _pbp_at_turn_start))
 
 
 func _apply_post_battle_results(data: Dictionary) -> void:
@@ -316,13 +385,52 @@ func _apply_strategic_results(data: Dictionary) -> void:
 		if update.has("focus_zone_id"):
 			campaign.operational_map["focus_zone_id"] = update.focus_zone_id
 
-	# PBP spending (commando raids)
+	# PBP spending (commando raids). Never let it go negative: the panel is the only
+	# producer today, but a payload is untrusted input once anything else can emit one.
 	if data.has("pbp_spent"):
-		campaign.operational_map["player_battle_points"] = \
-			campaign.operational_map.get("player_battle_points", 0) - data.pbp_spent
+		campaign.operational_map["player_battle_points"] = maxi(
+			int(campaign.operational_map.get("player_battle_points", 0))
+			- int(data.pbp_spent), 0)
+
+	# ⭐ Step 9 — Adjust Cohesion scores (Tactics p.99). This step is ABSENT from the
+	# book's own 8-step summary list on p.96 and present as a section on p.99, which is
+	# why every step list in this project stopped at 8 and no code path ever ended a
+	# Tactics campaign. "Each time a region is lost, the Cohesion score of the losing
+	# faction is reduced by 1"; at 0 the faction is defeated; "The campaign is won when
+	# only one faction remains", and if all remaining factions reach 0 together the war
+	# is inconclusive.
+	#
+	# `regions_lost` / `enemy_regions_lost` are optional: absent means no region changed
+	# hands this turn, which is the common case and must not cost anybody Cohesion.
+	var player_lost: int = int(data.get("regions_lost", 0))
+	var enemy_lost: int = int(data.get("enemy_regions_lost", 0))
+	if player_lost > 0 or enemy_lost > 0:
+		var om: Dictionary = campaign.operational_map
+		if player_lost > 0:
+			om["player_cohesion"] = OperationalRulesRef.cohesion_after_region_loss(
+				int(om.get("player_cohesion", 5)), player_lost)
+		if enemy_lost > 0:
+			om["enemy_cohesion"] = OperationalRulesRef.cohesion_after_region_loss(
+				int(om.get("enemy_cohesion", 5)), enemy_lost)
+
+	_check_campaign_end()
 
 	# Clear current battle data for next turn
 	campaign.current_battle = {}
+
+
+## Step 9's consequence. `TacticsOperationalMap.is_player_victory()` and
+## `.is_player_defeat()` have existed and been correct since the file was written, with
+## ZERO callers — so a Tactics campaign could drive either side's Cohesion to 0 and
+## nothing noticed. Emitting rather than mutating keeps the decision with the UI.
+func _check_campaign_end() -> void:
+	var m: Dictionary = _operational_map_dict()
+	if m.is_empty():
+		return
+	var result: String = OperationalRulesRef.campaign_result(
+		int(m.get("player_cohesion", 5)), int(m.get("enemy_cohesion", 5)))
+	if result != "":
+		campaign_ended.emit(result)
 
 
 func _reinforce_unit(change: Dictionary) -> void:

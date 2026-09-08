@@ -56,6 +56,16 @@ const COLOR_TEXT_PRIMARY := Color("#f3f4f6")   # Bright white text
 const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray secondary text
 const COLOR_TEXT_MUTED := Color("#6b7280")     # Muted labels/hints
 
+# ── BBCode hex strings ───────────────────────────────────────────────────────
+# RichTextLabel "[color=#...]" needs a String, not a Color, and a const
+# expression cannot call .to_html() — so BBCode consumers had no token to
+# reference and hardcoded a literal instead (that is how #808080 spread to 25
+# sites). These MUST track the Color consts above; pinned by
+# tests/unit/test_ui_color_tokens.gd, which fails if the two ever disagree.
+const HEX_TEXT_PRIMARY := "#f3f4f6"
+const HEX_TEXT_SECONDARY := "#9ca3af"
+const HEX_TEXT_MUTED := "#6b7280"
+
 # ── Legacy Aliases (backward compatibility) ──────────────────────────────────
 const COLOR_BASE := COLOR_PRIMARY
 const COLOR_ELEVATED := COLOR_SECONDARY

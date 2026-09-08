@@ -9,7 +9,7 @@ const TacticalBattleScene := preload("res://src/ui/screens/battle/TacticalBattle
 
 const COLOR_BASE := Color("#1A1A2E")
 const COLOR_TEXT := Color("#E0E0E0")
-const COLOR_TEXT_SEC := Color("#808080")
+const COLOR_TEXT_SEC := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_ACCENT := Color("#2D5A7B")
 const MAX_FORM_WIDTH := 800  # ISSUE-040: responsive centering
 

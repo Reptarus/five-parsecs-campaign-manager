@@ -589,7 +589,7 @@ func _add_entry_to_journal(entry: Dictionary) -> void:
 			display_text
 		)
 	if not entry.get("details", "").is_empty():
-		display_text += " [color=#808080](%s)[/color]" % entry.details
+		display_text += " [color=#9ca3af](%s)[/color]" % entry.details
 
 	text_label.text = display_text
 	text_label.add_theme_font_size_override("normal_font_size", 12)

@@ -212,7 +212,7 @@ func _build_footer(parent: VBoxContainer) -> void:
 	if _store_mgr:
 		var platform: String = _store_mgr.get_platform_name()
 		_status_label.text = (
-			"[color=#808080]%s[/color]" % platform)
+			"[color=#9ca3af]%s[/color]" % platform)
 	hbox.add_child(_status_label)
 
 func _create_dev_banner() -> PanelContainer:
@@ -381,7 +381,7 @@ func _on_restore_completed(
 			_store_mgr.is_offline_mode() if _store_mgr else true)
 	if owned_ids.is_empty():
 		_show_status(
-			"[color=#808080]No purchases to restore[/color]")
+			"[color=#9ca3af]No purchases to restore[/color]")
 	else:
 		_show_status(
 			"[color=#10B981]Restored %d purchase(s)[/color]" % (

@@ -4385,9 +4385,9 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 		power_lbl.scroll_active = false
 		var tags: Array[String] = []
 		if pdata.get("affects_robotic_targets", false):
-			tags.append("[color=#808080]Robotic OK[/color]")
+			tags.append("[color=#9ca3af]Robotic OK[/color]")
 		if pdata.get("target_self", false):
-			tags.append("[color=#808080]Self OK[/color]")
+			tags.append("[color=#9ca3af]Self OK[/color]")
 		if pdata.get("persists", false):
 			tags.append("[color=#D97706]Persists[/color]")
 		var tag_str: String = (" — " + " | ".join(tags)) if not tags.is_empty() else ""
@@ -4694,10 +4694,10 @@ func _ai_variation_lines(type_name: String) -> Array:
 
 	var rules: Dictionary = CompendiumDifficultyTogglesRef.AI_VARIATION_RULES
 	for line in rules.get("group_actions", []):
-		lines.append("  [color=#808080]%s[/color]" % str(line))
+		lines.append("  [color=#9ca3af]%s[/color]" % str(line))
 	var impossible: String = str(rules.get("impossible_actions", ""))
 	if impossible != "":
-		lines.append("  [color=#808080][i]%s[/i][/color]" % impossible)
+		lines.append("  [color=#9ca3af][i]%s[/i][/color]" % impossible)
 	return lines
 
 
@@ -4713,7 +4713,7 @@ func _ai_errata_lines(type_name: String) -> Array:
 	# assumed to always be aware of your characters and should act accordingly,
 	# even if they are behind a terrain feature."
 	out.append("")
-	out.append("[color=#808080][i]Errata: the AI always knows where your crew are — even behind terrain — unless a special rule says otherwise.[/i][/color]")
+	out.append("[color=#9ca3af][i]Errata: the AI always knows where your crew are — even behind terrain — unless a special rule says otherwise.[/i][/color]")
 
 	if name_lc.begins_with("defensive"):
 		# "Defensive AI considers any terrain within one move to be 'Adjacent'
@@ -5212,6 +5212,13 @@ func _reset_battle_state() -> void:
 			and round_tracker.has_method("reset"):
 		# Back to round 0, which is what _begin_combat's guard reads.
 		round_tracker.reset()
+
+	# The Regenerate permission is per-battle and MUST NOT survive into the next one on
+	# this reused screen: it is the single thing that allows a differently-seeded table
+	# to overwrite a saved one (the T11-17 defect). `_persist_battlefield_contract()`
+	# consumes it, but only on the paths that reach the consume — so clear it here too,
+	# where every new battle passes.
+	_regenerate_requested = false
 
 	# The results form is built once and reused by design (_ensure_results_form_
 	# drawer returns early when it exists), so a new battle MUST drop it or the
@@ -7462,7 +7469,7 @@ func _populate_setup_tab(mission_data) -> void:
 	var notable_count: int = sector_data.get("notable_count", 0)
 	_add_setup_text(
 		"Notable features: %d | Grid: 4x4 sectors" % notable_count,
-		Color("#808080"))
+		UIColors.COLOR_TEXT_SECONDARY)
 
 	_add_setup_separator()
 
@@ -7543,7 +7550,7 @@ func _populate_setup_tab(mission_data) -> void:
 			_add_setup_text(sight_effect, Color("#9ca3af"))
 		_add_setup_text(
 			"Placed 2D6+2\" from center in random direction.",
-			Color("#808080"))
+			UIColors.COLOR_TEXT_SECONDARY)
 		_add_setup_separator()
 
 	# Section 5: Compendium GAME OPTIONS the player switched on.
@@ -7593,7 +7600,7 @@ func _populate_setup_tab(mission_data) -> void:
 				"No Escalation table for %s AI — the Compendium p.46 table covers "
 				% _ai_type_name(str(esc_force.get("ai", "A")))
 				+ "Aggressive, Cautious, Defensive, Rampage, Tactical and Beast only.",
-				Color("#808080"))
+				UIColors.COLOR_TEXT_SECONDARY)
 		_add_setup_separator()
 
 	# Section 5b: Dramatic Combat (Compendium p.87). Adjusted Shooting is already
@@ -7778,7 +7785,7 @@ func _on_regenerate_terrain_pressed() -> void:
 	var header := Label.new()
 	header.text = "SECTOR LAYOUT"
 	header.add_theme_font_size_override("font_size", _scaled_font(12))
-	header.add_theme_color_override("font_color", Color("#808080"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	header.uppercase = true
 	setup_content.add_child(header)
 	setup_content.move_child(header, insert_idx)
@@ -7902,6 +7909,14 @@ func _persist_battlefield_contract(sector_data: Dictionary,
 	# player had already built for their next campaign mission, and it survived the
 	# save. Standalone battles have no campaign to persist to; keep them in memory.
 	if _is_standalone_battle():
+		# ⚠ CONSUME THE ONE-SHOT BEFORE RETURNING (2026-09-07). This early return sits
+		# ABOVE the `_regenerate_requested = false` below, so a Regenerate press during
+		# a standalone battle used to leave the permission ARMED — and this screen is
+		# REUSED between battles, so it carried into the next one. That flag is the
+		# single thing that lets a differently-seeded table overwrite a saved one, i.e.
+		# precisely the T11-17 defect the guard below exists to prevent. Same family as
+		# `_reset_battle_state()`, which also does not clear it.
+		_regenerate_requested = false
 		return
 	# Carry over campaign-path context a re-persist shouldn't lose
 	var prev: Dictionary = gs.get_battlefield_data() \
@@ -8078,7 +8093,7 @@ func _add_setup_section_header(text: String) -> void:
 	var label := Label.new()
 	label.text = text
 	label.add_theme_font_size_override("font_size", _scaled_font(12))
-	label.add_theme_color_override("font_color", Color("#808080"))
+	label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	label.uppercase = true
 	setup_content.add_child(label)
 
@@ -8233,7 +8248,7 @@ func _rebuild_grid_setup_section(mission_dict: Dictionary,
 	var header := Label.new()
 	header.text = "GRID-BASED MOVEMENT"
 	header.add_theme_font_size_override("font_size", _scaled_font(12))
-	header.add_theme_color_override("font_color", Color("#808080"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	header.uppercase = true
 	_grid_setup_section.add_child(header)
 	for grid_inst in grid_instructions:

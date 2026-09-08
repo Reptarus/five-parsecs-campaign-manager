@@ -103,14 +103,14 @@ func _on_reroll_pressed() -> void:
 func _build_bbcode(sector_label: String, features: Array) -> String:
 	var bbcode: String = "[b][font_size=18]Sector %s[/font_size][/b]\n\n" % sector_label
 	if features.is_empty():
-		bbcode += "[color=#808080]Open ground — no terrain features placed here.[/color]"
+		bbcode += "[color=#9ca3af]Open ground — no terrain features placed here.[/color]"
 		return bbcode
 
 	for feat: String in features:
 		if feat.begins_with("NOTABLE:"):
 			bbcode += "[color=#10B981][b]%s[/b][/color]\n" % feat
 		elif feat.begins_with("Scatter:"):
-			bbcode += "[color=#808080]%s[/color]\n" % feat
+			bbcode += "[color=#9ca3af]%s[/color]\n" % feat
 		else:
 			bbcode += "%s\n" % feat
 

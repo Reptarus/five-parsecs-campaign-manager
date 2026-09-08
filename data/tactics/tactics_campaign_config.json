@@ -1,57 +1,282 @@
 {
-	"_source": "Five Parsecs: Tactics rulebook pp.81-88, 155-168",
-	"points_tiers": {
-		"small": {"label": "Small / Learning Game", "points": 500, "typical_force": "~1 platoon"},
-		"standard": {"label": "Standard Game", "points": 750, "typical_force": "Sizable force"},
-		"large": {"label": "Large Game", "points": 1000, "typical_force": "Full evening game"}
-	},
-	"organization": {
-		"platoon": {
-			"label": "Platoon",
-			"min_troops": 2,
-			"max_troops": 5,
-			"max_supports": 4,
-			"max_specialists": 2,
-			"leaders_per_platoon": 1,
-			"support_rule": "Must have fewer supports than troops"
-		},
-		"company": {
-			"label": "Company",
-			"min_platoons": 2,
-			"max_platoons": 4,
-			"max_company_leaders": "Equal to platoon count",
-			"max_company_supports": "Equal to platoon count"
-		}
-	},
-	"campaign_progression": {
-		"cp_per_battle": 1,
-		"cp_per_victory": 1,
-		"cp_per_secondary_objective": 1,
-		"spending": {
-			"unit_upgrade": {"cost": 1, "description": "Acquire a veteran skill for one unit"},
-			"roster_change": {"cost": 1, "description": "Add or replace a unit in the roster"},
-			"battle_advantage": {"cost": 1, "description": "One-time bonus for next battle"}
-		}
-	},
-	"operational_turn_steps": [
-		{"step": 1, "name": "Play Tabletop Battles", "description": "Fight 1-3 battles on the tabletop"},
-		{"step": 2, "name": "Apply Player Battle Points", "description": "+1 PBP per tabletop victory"},
-		{"step": 3, "name": "Resolve Operational Combat", "description": "Roll dice pool for each contested zone"},
-		{"step": 4, "name": "Operational Orders", "description": "D6 table: Construct Defense, Continued Offensive, New Offensive, etc."},
-		{"step": 5, "name": "Commando Raids", "description": "Spend PBP to damage enemy Army Strength in a zone"},
-		{"step": 6, "name": "Redeploy Forces", "description": "Move Army Strength between adjacent zones"},
-		{"step": 7, "name": "Open New Zones", "description": "Open new operational zones, select focus"},
-		{"step": 8, "name": "Player Commitments", "description": "Choose where to commit forces next turn"}
-	],
-	"starting_values": {
-		"player_cohesion": 5,
-		"enemy_cohesion": 5,
-		"player_battle_points": 0
-	},
-	"mixed_army_rules": {
-		"pickup_max_species": 2,
-		"scenario_limit": "Any combination that makes narrative sense"
-	},
-	"veteran_skill_categories": ["squad", "sergeant", "individual", "vehicle"],
-	"scenario_types": ["skirmish", "battle", "grand_battle", "evolving_objective"]
+  "_source": "Five Parsecs: Tactics rulebook. Operational System pp.92-99; army organization p.134; Campaign Points pp.106-107.",
+  "points_tiers": {
+    "small": {
+      "label": "Small / Learning Game",
+      "points": 500,
+      "typical_force": "~1 platoon"
+    },
+    "standard": {
+      "label": "Standard Game",
+      "points": 750,
+      "typical_force": "Sizable force"
+    },
+    "large": {
+      "label": "Large Game",
+      "points": 1000,
+      "typical_force": "Full evening game"
+    }
+  },
+  "organization": {
+    "platoon": {
+      "label": "Platoon",
+      "min_troops": 2,
+      "max_troops": 5,
+      "max_supports": 4,
+      "max_specialists": 2,
+      "leaders_per_platoon": 1,
+      "support_rule": "Must have fewer supports than troops"
+    },
+    "company": {
+      "label": "Company",
+      "min_platoons": 2,
+      "max_platoons": 4,
+      "max_company_leaders": "Equal to platoon count",
+      "max_company_supports": "Equal to platoon count"
+    }
+  },
+  "campaign_progression": {
+    "cp_per_battle": 1,
+    "cp_per_victory": 1,
+    "cp_per_secondary_objective": 1,
+    "spending": {
+      "unit_upgrade": {
+        "cost": 1,
+        "description": "Acquire a veteran skill for one unit"
+      },
+      "roster_change": {
+        "cost": 1,
+        "description": "Add or replace a unit in the roster"
+      },
+      "battle_advantage": {
+        "cost": 1,
+        "description": "One-time bonus for next battle"
+      }
+    }
+  },
+  "operational_turn_steps": [
+    {
+      "step": 1,
+      "name": "Play all Intended Tabletop Battles",
+      "page": 96,
+      "description": "Each player-controlled force is assigned to an Operational Zone; track which battles were fought in which Zone. The book sets no cap: 'any number of tabletop battles', one per operational turn by default."
+    },
+    {
+      "step": 2,
+      "name": "Apply Player Battle Points",
+      "page": 96,
+      "description": "Award 1 PBP per tabletop victory in an Operational Zone; 0 for a draw or inconclusive battle. Points earned by both sides in the same Zone cancel 1-for-1."
+    },
+    {
+      "step": 3,
+      "name": "Resolve Battles",
+      "page": 97,
+      "description": "A battle takes place in every Operational Zone, resolved with the Operational Combat system. Where several battles occur in one Zone, apply each result before resolving the next."
+    },
+    {
+      "step": 4,
+      "name": "Carry out Operational Orders",
+      "page": 98,
+      "description": "Each faction rolls D6 on the Operational Orders table. Apply Army Strength and Zone changes first, then any Operational Combats. If two sides attack the same Zone, both get +1 Combat Die in the FIRST combat resolved there."
+    },
+    {
+      "step": 5,
+      "name": "Carry out Commando Raids",
+      "page": 99,
+      "description": "Commit unspent PBP against the same or an adjacent region and roll 1D6 per point."
+    },
+    {
+      "step": 6,
+      "name": "Redeploy Forces",
+      "page": 99,
+      "description": "Each faction may redeploy 1 point of Army Strength provided both armies are connected through a series of friendly territories, even if some are under attack."
+    },
+    {
+      "step": 7,
+      "name": "Open new Zones; Select new Focus",
+      "page": 99,
+      "description": "Each faction that won an Operational Zone attacks an adjacent region. Attacker rolls the highest of two D6 for Army Strength; the defender rolls 1D6."
+    },
+    {
+      "step": 8,
+      "name": "Choose Player Commitments",
+      "page": 99,
+      "description": "Assign each player army to an Operational Zone for the coming turn."
+    },
+    {
+      "step": 9,
+      "name": "Adjust Cohesion Scores",
+      "page": 99,
+      "description": "Each time a region is lost, the losing faction's Cohesion drops by 1. At 0 that faction is defeated. The campaign is won when only one faction remains; if all remaining factions reach 0 together the war is inconclusive.",
+      "_note": "ABSENT from the book's own 8-step summary list on p.96 but present as a section on p.99. It is the campaign end condition, so omitting it leaves a turn loop that can never finish."
+    }
+  ],
+  "starting_values": {
+    "player_cohesion": 5,
+    "enemy_cohesion": 5,
+    "player_battle_points": 0,
+    "_source_note": "p.93: 'If in doubt, begin Cohesion at 5 for each side.' Cohesion is a pacing control, so a different starting value is a legitimate campaign choice."
+  },
+  "mixed_army_rules": {
+    "pickup_max_species": 2,
+    "scenario_limit": "Any combination that makes narrative sense"
+  },
+  "veteran_skill_categories": [
+    "squad",
+    "sergeant",
+    "individual",
+    "vehicle"
+  ],
+  "scenario_types": [
+    "skirmish",
+    "battle",
+    "grand_battle",
+    "evolving_objective"
+  ],
+  "_provenance_warning": "CITE CORRECTED 2026-09-07 from 'pp.81-88, 155-168'. Neither was this chapter: pp.81-88 is Scenario Types and pp.155-168 is the Lifeforms bestiary -- the same 63-page miscite fixed in the three Tactics .gd files on 2026-09-04, missed here because this file had no reader. docs/rules/tactics_source.txt marks the RAW page in '=== PAGE N ===' and the PRINTED folio on the next line (offset raw-2): raw 94 -> printed 92 'THE OPERATIONAL SYSTEM'. Verify against the page before changing a value here; do not invent one.",
+  "operational_system": {
+    "_source": "Tactics pp.95-99",
+    "army_strength_generation": {
+      "page": 95,
+      "in_or_adjacent_to_friendly_territory": "2d6_pick_highest",
+      "not_connected_to_friendly_territory": "1d6"
+    },
+    "player_battle_points": {
+      "page": 96,
+      "award_per_victory": 1,
+      "award_per_draw_or_inconclusive": 0,
+      "both_sides_cancel_one_for_one": true,
+      "max_gain_per_operational_turn": 2,
+      "max_saved_total": 3,
+      "excess_discarded_without_effect": true,
+      "scope": "Zone- and army-specific; may be saved between operational turns."
+    },
+    "operational_combat": {
+      "page": 97,
+      "base_combat_dice": 1,
+      "bonus_enemy_not_adjacent_to_own_territory": 1,
+      "army_strength_advantage_threshold": 2,
+      "bonus_for_army_strength_advantage": 1,
+      "combat_dice_per_pbp_spent": 1,
+      "assault_option": {
+        "page": 98,
+        "requires_army_strength_advantage": 1,
+        "extra_combat_dice": 1,
+        "army_strength_penalty_if_not_won": 1
+      },
+      "outcomes_in_order": [
+        {
+          "id": "both_multiple_sixes",
+          "condition": "Both sides rolled two or more 6s",
+          "outcome": "A devastating major battle",
+          "both_lose_army_strength": 1,
+          "refight_immediately": true,
+          "refight_dice_adjustment": -1,
+          "refight_dice_minimum": 1
+        },
+        {
+          "id": "one_multiple_sixes",
+          "condition": "Only one side rolled two or more 6s",
+          "outcome": "A grand tactical success",
+          "winner_gains_army_strength": 1,
+          "loser_loses_army_strength": 1,
+          "refight_if_winner_now_stronger": true,
+          "refight_dice_adjustment": -1,
+          "refight_dice_minimum": 1
+        },
+        {
+          "id": "single_high_die",
+          "condition": "One side rolled a single-die result higher than any of the opponent's dice",
+          "outcome": "One side gains the upper hand",
+          "loser_loses_army_strength": 1
+        },
+        {
+          "id": "tie_high",
+          "condition": "Highest die for both sides is the same (a 5 or 6)",
+          "outcome": "Brutal attrition fighting",
+          "both_lose_army_strength": 1
+        },
+        {
+          "id": "tie_low",
+          "condition": "Highest die for both sides is the same (a 1, 2, 3 or 4)",
+          "outcome": "Inconclusive fighting"
+        }
+      ],
+      "_resolution_note": "Consult the outcome rows IN ORDER, top down, and use only the FIRST match -- the book states this explicitly. A roll can satisfy several rows."
+    },
+    "operational_orders": {
+      "page": 98,
+      "die": "1d6",
+      "table": [
+        {
+          "roll": 1,
+          "name": "Construct Defense",
+          "effect": "One region in the faction's territory becomes a Defensible region. If not using the optional terrain types, increase Army Strength by +1 instead."
+        },
+        {
+          "roll": 2,
+          "name": "Continued Offensive",
+          "effect": "The faction immediately fights again in an Operational Zone where it has equal or higher Army Strength."
+        },
+        {
+          "roll": 3,
+          "name": "New Offensive",
+          "effect": "The faction attacks any region adjacent to its territory and fights immediately. Generate Army Strength normally for each side."
+        },
+        {
+          "roll": 4,
+          "name": "Renewed Effort",
+          "effect": "Select an Operational Zone. Increase Army Strength by +1 and fight another battle."
+        },
+        {
+          "roll": 5,
+          "name": "Raiding",
+          "effect": "If the enemy has a higher Army Strength in any Operational Zone, adjust it by -1."
+        },
+        {
+          "roll": 6,
+          "name": "Bolster Positions",
+          "effect": "The weakest army increases Army Strength by +1."
+        }
+      ],
+      "same_zone_contested_bonus_dice": 1,
+      "less_eventful_variant": "Optional: carry out only a single Operational Order each campaign turn, randomly selecting which faction acts."
+    },
+    "commando_raids": {
+      "page": 99,
+      "target": "the same or any adjacent region",
+      "die_per_pbp_committed": "1d6",
+      "all_committed_pbp_lost_on_any_roll_in": [
+        1,
+        2
+      ],
+      "army_strength_damage_per_roll_of": 6,
+      "army_strength_damage_amount": 1,
+      "damage_applies_even_if_pbp_lost": true
+    },
+    "redeploy": {
+      "page": 99,
+      "army_strength_points": 1,
+      "requires": "both armies connected through a series of friendly territories",
+      "ai_behaviour": "The AI reinforces an army reduced to 1-2 Army Strength, drawing from the strongest army present."
+    },
+    "open_new_zones": {
+      "page": 99,
+      "attacker_army_strength": "2d6_pick_highest",
+      "defender_army_strength": "1d6"
+    },
+    "cohesion": {
+      "page": 99,
+      "loss_per_region_lost": 1,
+      "defeated_at": 0,
+      "campaign_won_when": "only one faction remains",
+      "all_reach_zero_together": "inconclusive -- both sides completely exhausted",
+      "_note": "Cohesion is often lower than the number of territories, so a faction can lose while still holding territory and fielding armies."
+    },
+    "army_destruction": {
+      "page": 98,
+      "at_zero_army_strength": "The army can no longer contest the region; the Operational Zone ceases to exist and the area falls to the survivors.",
+      "mutual_destruction": "The Operational Zone still ceases to exist and the region becomes neutral."
+    }
+  }
 }

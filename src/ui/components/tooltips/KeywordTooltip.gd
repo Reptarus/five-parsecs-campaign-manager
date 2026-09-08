@@ -123,7 +123,7 @@ func format_keyword_text(keyword_data: Dictionary) -> String:
 	
 	# Related keywords (clickable)
 	if related.size() > 0:
-		bbcode += "[color=#808080]Related:[/color] "
+		bbcode += "[color=#9ca3af]Related:[/color] "
 		for i in range(related.size()):
 			var related_term: String = related[i]
 			bbcode += "[url=keyword:%s][color=#4FC3F7]%s[/color][/url]" % [related_term, related_term]

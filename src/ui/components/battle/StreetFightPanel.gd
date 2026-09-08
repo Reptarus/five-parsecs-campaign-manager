@@ -234,7 +234,7 @@ func _on_roll_suspect_action() -> void:
 	var result: Dictionary = CompendiumStreetFightsRef.roll_suspect_action()
 	var text := _instruction_display.text
 	if result.is_empty():
-		text += "\n\n[color=#808080](Street Fights DLC not enabled)[/color]"
+		text += "\n\n[color=#9ca3af](Street Fights DLC not enabled)[/color]"
 	else:
 		text += "\n\n[color=#D97706][b]SUSPECT ACTION:[/b] %s[/color]" % result.get("instruction", "No action")
 	_instruction_display.text = text
@@ -244,7 +244,7 @@ func _on_roll_city_marker() -> void:
 	var action: Dictionary = CompendiumStreetFightsRef.roll_city_marker_action()
 	var text := _instruction_display.text
 	if action.is_empty():
-		text += "\n\n[color=#808080](Street Fights DLC not enabled)[/color]"
+		text += "\n\n[color=#9ca3af](Street Fights DLC not enabled)[/color]"
 	else:
 		text += "\n\n[color=#10B981][b]CITY MARKER:[/b] %s[/color]" % action.get("instruction", "No effect")
 	_instruction_display.text = text
@@ -254,7 +254,7 @@ func _on_roll_building_type() -> void:
 	var result: Dictionary = CompendiumStreetFightsRef.roll_building_type()
 	var text := _instruction_display.text
 	if result.is_empty():
-		text += "\n\n[color=#808080](Street Fights DLC not enabled)[/color]"
+		text += "\n\n[color=#9ca3af](Street Fights DLC not enabled)[/color]"
 	else:
 		text += "\n\n[color=#4FC3F7][b]BUILDING:[/b] %s[/color]" % result.get("instruction", "Unknown type")
 	_instruction_display.text = text

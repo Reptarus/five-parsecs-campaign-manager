@@ -265,7 +265,7 @@
 
 ### Typography
 - [ ] All font sizes match design system (XS=11, SM=14, MD=16, LG=18, XL=24)
-- [ ] Font colors match design system (primary=#E0E0E0, secondary=#808080)
+- [ ] Font colors match design system (primary=#E0E0E0, secondary=#9ca3af)
 - [ ] No font rendering artifacts or aliasing issues
 
 ### Colors

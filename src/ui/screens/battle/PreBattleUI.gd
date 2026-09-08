@@ -515,7 +515,7 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 		trow.text = "▦  %s" % terrain_lines[i]
 		trow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		trow.add_theme_font_size_override("font_size", _scaled_font(14))
-		trow.add_theme_color_override("font_color", Color("#808080"))
+		trow.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		mission_info_panel.add_child(trow)
 
 	for i in range(notes.size()):
@@ -705,7 +705,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		lbl.text = h
 		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lbl.add_theme_font_size_override("font_size", _scaled_font(10))
-		lbl.add_theme_color_override("font_color", Color("#808080"))
+		lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		grid.add_child(lbl)
 
 	# Data row
@@ -819,7 +819,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 			cat_rules_rtl.add_theme_font_size_override(
 				"normal_font_size", _scaled_font(11))
 			cat_rules_rtl.add_theme_color_override(
-				"default_color", Color("#808080"))  # COLOR_TEXT_SECONDARY
+				"default_color", UIColors.COLOR_TEXT_SECONDARY)
 			cat_rules_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			KeywordLinker.attach(cat_rules_rtl, _ensure_keyword_tooltip())
 			container.add_child(cat_rules_rtl)
@@ -984,7 +984,7 @@ func _build_table_size_override(current_ft: float) -> Control:
 	var hint := Label.new()
 	hint.text = "(p.108 — dice unchanged)"
 	hint.add_theme_font_size_override("font_size", _scaled_font(11))
-	hint.add_theme_color_override("font_color", Color("#808080"))
+	hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	row.add_child(hint)
 	return row
 
@@ -1202,7 +1202,7 @@ func _build_tier_selector() -> void:
 	var desc := Label.new()
 	desc.text = "How much should the app track for you?"
 	desc.add_theme_font_size_override("font_size", _scaled_font(12))
-	desc.add_theme_color_override("font_color", Color("#808080"))
+	desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(desc)
 
@@ -1285,7 +1285,7 @@ func _build_representation_selector() -> void:
 	var desc := Label.new()
 	desc.text = "How do you want to fight this battle?"
 	desc.add_theme_font_size_override("font_size", _scaled_font(12))
-	desc.add_theme_color_override("font_color", Color("#808080"))
+	desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	card.add_child(desc)
 

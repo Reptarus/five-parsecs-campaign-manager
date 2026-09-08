@@ -2,7 +2,158 @@
 
 ---
 
-### ✅ SELECT CREW IN LANDSCAPE — fixed at the desk (2026-09-07), deploy #27 owes the verdict
+### ✅ THE TACTICS TURN PASSED NO DATA — all six channels repaired (2026-09-07)
+
+Found while deciding whether to wire or delete `TacticsOperationalMap.gd`, the project's
+only `unwired_rules` file. The lint reported **one** unwired file; the real gap was the
+whole turn.
+
+**The transport was broken.** All three Tactics panels emitted
+`phase_completed.emit(<phase>, {})`, and `TacticsTurnController._connect_signals()` wired
+them with `func(_p, _d): phase_manager.complete_current_phase()` — **discarding even
+that**. Every branch of the six `_apply_*` consumers in `TacticsPhaseManager` is keyed on
+`data.has(...)`, so all of them were permanently false.
+
+| Channel | Consumer | Was |
+|---|---|---|
+| `orders` / `intel` / `scenario` / `deployed_units` | `_apply_phase_results:197` | dead |
+| `battle_result` | `_apply_battle_results:235` | **live** — the one working path |
+| `casualties` | `_apply_battle_results:244` | dead |
+| `story_event` | `_apply_post_battle_results:257` | dead |
+| `skills_acquired` / `cp_spent` / `roster_changes` | `_apply_advancement_results:271` | dead |
+| `operational_map_update` / `pbp_spent` | `_apply_strategic_results:302` | dead |
+| `play_another` | `complete_current_phase:131` | dead — so `MAX_BATTLES_PER_TURN` was unreachable |
+
+⭐ **Three rules gaps that wiring alone could not close**, now extracted from **Tactics
+pp.95-99** (source text raw-2 offset, confirmed at raw PAGE 94 → printed 92):
+
+* **Step 2, Player Battle Points (p.96)** had **no producer anywhere** —
+  `player_battle_points` was only ever *decremented*, so the resource the whole
+  operational layer spends could never be earned. The book's caps existed nowhere in the
+  code: **1 PBP per victory, 0 for a draw, both sides cancel 1-for-1, max 2 gained per
+  operational turn, max 3 held, excess discarded "without any effects"**.
+* **Step 5, Commando Raids (p.99)** was implemented as "spend the points, deal exactly
+  −1 Army Strength". The book requires **1D6 per point committed**: any **1-2** loses
+  every point committed against that region, every **6** costs the target 1 Army
+  Strength, "and this damage applies even if the committed PBP are lost". A guaranteed
+  hit made raids strictly better than the printed rule.
+* **Step 9 (p.99) was missing entirely.** ⚠ The book's *own* 8-step summary list on p.96
+  omits it, and every step list in this project was built from that list — but the body
+  carries **"Step 9: Adjust Cohesion scores"**, which is the campaign's END CONDITION.
+  `is_player_victory()` / `is_player_defeat()` were correct and had **zero callers**, so a
+  Tactics campaign could drive either side's Cohesion to 0 and nothing noticed.
+
+🔧 **Four data defects in `data/tactics/tactics_campaign_config.json`**, none
+previously visible because **no `.gd` file reads it**: its `_source` cited "pp.81-88,
+155-168" (Scenario Types and the Lifeforms bestiary — the same 63-page miscite fixed in
+three `.gd` files on 2026-09-04, missed here for want of a reader); step 1 claimed
+"Fight 1-3 battles" (the code's own `MAX_BATTLES_PER_TURN` leaking into the data as a
+rule — the book says "any number", one by default); step 6 said "between adjacent zones"
+where the book says "connected through a series of friendly territories"; and step 9 was
+absent. It is now the SSOT, read by `src/core/campaign/TacticsOperationalRules.gd`.
+
+⚠ **Not a shipping defect.** `MainMenu.gd:14` sets `A1_BUILD := true` and the Tactics
+button answers with a coming-soon note instead of navigating, so none of this is
+reachable by an alpha tester. It is fixed because the record — `unwired_rules=1` on a
+single file — understated it badly enough that the next reader would have mis-scoped it.
+
+| Gate | Result |
+|---|---|
+| `tests/unit/test_tactics_operational_rules.gd` | **27 cases**, new — the book's tables, RNG-free where possible |
+| `tests/unit/test_tactics_turn_payload.gd` | **13 cases**, new — asserts campaign STATE, never that a signal fired |
+| All five Tactics suites | **63 cases, 0 failures** |
+| Detection, one arm at a time | restore the three lambdas → the keystone case **FAILS**; restored → green |
+
+---
+
+### 🔧 CHECKLIST §3 — the desk half, measured (2026-09-07)
+
+§3 of `docs/testing/TABLET_CHECKLIST_2026-08-02.md` is *"Physical legibility and thumb
+reach — HIGH, subjective by nature"*, and its own preamble rules out signing it off from
+screenshots: *"Measurement says ≥48dp; only a hand says whether it is comfortable."*
+What CAN be settled at the desk, so the device pass is judgement rather than guesswork:
+
+**Font rungs → design px** (`ResponsiveManager:257-269`, `maxi(9, round(base * mult))`):
+
+| rung | MOBILE | TABLET | DESKTOP | WIDE | ULTRAWIDE |
+|---|---|---|---|---|---|
+| `FONT_SIZE_XS` (11) — §3 box 1 | **9** | 10 | 11 | 13 | 14 |
+| checklist bullets (14) | 12 | 13 | 14 | 16 | 18 |
+| checklist header (16) | 14 | 15 | 16 | 18 | 21 |
+
+⚠ The XS rung hits the **9 px floor** at MOBILE — that is literally box 1's subject
+("captions readable at arm's length"), and 9 px is the same band T10-02 recorded as
+*"illegible at size"*.
+
+**WCAG contrast of the Before You Deploy checklist** (`PreBattleUI._setup_scenario_rules`,
+hardcoded hex with no token and no contrast check), against card `#111827`:
+
+| element | ratio | verdict |
+|---|---|---|
+| header `#4FC3F7` (`:498`) | 8.85 | PASS AA |
+| win line `#10B981` (`:505`) | 6.99 | PASS AA |
+| **terrain rows `#808080` (`:514`)** | **4.49** | ⚠ **fails AA (4.5 needed)** |
+| bullet rows (theme default `#f3f4f6`) | 16.12 | PASS AA |
+
+⚠ **The row above was RIGHT about the measurement and WRONG about the scope, and the
+correction is the finding.** It was first written as "the terrain rows miss AA by 0.01",
+i.e. one screen's nit. It was never checked whether `#808080` was even the theme's
+colour. **It is not.**
+
+### ✅ THE SECONDARY-TEXT TOKEN — 67 drifted sites, all routed (2026-09-07)
+
+The canonical token is `UIColors.COLOR_TEXT_SECONDARY` = **`#9ca3af`**, and it passes AA
+comfortably. `#808080` was a **hardcoded drift** at **67 sites across 27 files**:
+
+| background | `#808080` | `#9ca3af` |
+|---|---|---|
+| `#111827` UIColors card | **4.49** ⚠ fails AA | 6.99 passes |
+| `#1A1A2E` a11y theme base | **4.32** ⚠ fails | 6.72 passes |
+| `#252542` a11y theme elevated | **3.74** ⚠ fails | 5.82 passes |
+
+⭐ **Two things hid it, and both are the shape this project keeps meeting.**
+
+1. **`TerrainLegendStrip.gd:12` declared `const COLOR_TEXT_SECONDARY := Color("#808080")`**
+   — the token's own NAME bound to a different value. Grepping the token returned two
+   colours and neither looked wrong. `PreBattleUI.gd:822` went further and wrote
+   `Color("#808080")  # COLOR_TEXT_SECONDARY`, a comment asserting a token it was not
+   using.
+2. **`AccessibilityThemes.gd` opens with *"Complies with WCAG 2.1 Level AA standards for
+   visual accessibility"*** and then set `text_secondary` to the failing grey in all
+   **three** colourblind palettes. It is live via `ThemeManager._apply_colorblind_variant()`
+   and `AccessibilitySettingsPanel`, so that shipped. Same irony as T11-04, where the
+   *accessibility* panel's 600 px floor was what broke the settings page on a phone.
+
+⚠ **My own first census undercounted it 2.6x.** Grepping `"#808080"` (the quoted-literal
+form) finds 25 sites and is structurally blind to `[color=#808080]` **embedded inside a
+longer string literal**, which is where the other 42 lived. When a value can appear both
+as a token and inside prose, grep BOTH shapes — and count occurrences, not lines: one
+weapon-stat row in `CharacterDetailsScreen.gd:727` carries four on a single line.
+
+**Fix**: `UIColors` gained `HEX_TEXT_{PRIMARY,SECONDARY,MUTED}` so BBCode consumers have a
+token at all (a const expression cannot call `.to_html()`, which is why they had none and
+reached for a literal). Guarded by `tests/unit/test_ui_color_tokens.gd` — **8 cases**,
+which assert the INVARIANT (the token clears AA on the backgrounds in play) rather than
+the constant, instrument their own premise first so nothing can pass vacuously, and are
+detection-proven on two independent arms.
+
+⚠ **A SECOND, larger gap is REPORTED and deliberately NOT changed.**
+`COLOR_TEXT_MUTED` (`#6b7280`) measures **3.67** on the card — also below AA. WCAG exempts
+"inactive user interface components" and `COLOR_TEXT_DISABLED` aliases this rung, which
+would excuse it — but of its **126 consumers** most are not disabled states:
+`WeaponTableDisplay` prints weapon DAMAGE in it, `JournalEntryTypes` colours entry labels
+with it, and `NotificationManager.gd:243` uses it for an **active** close button. Raising
+it is a palette decision with a 126-site visual footprint that compresses the
+primary/secondary/muted hierarchy — an owner call, not a silent edit inside a sprint about
+a different colour. The suite pins it at the 3.0 floor so it cannot degrade further, and
+passes if it is later raised.
+
+⚠ Still device-bound, and not signed off here: all four §3 boxes. Record reading
+distance and screen brightness with the tick, not just the tick.
+
+---
+
+### ✅ SELECT CREW IN LANDSCAPE — FIXED AND VERIFIED ON HARDWARE (deploy #27, 2026-09-07)
 
 Deploy #26 left this half-open: PASS in portrait, **still broken in landscape** — the
 Select Crew pane got ~30 px so its own title was clipped mid-glyph, and the page would not
@@ -109,8 +260,18 @@ at 2560x1600. It can now.
 Device left clean: pre-walk save restored byte-for-byte from a fresh backup (80,528 bytes),
 `accelerometer_rotation` back to 1, `svc power stayon false`.
 
-⚠ **Still owed** (unchanged by this pass): checklist §3 legibility, and the A5
-`gl_compatibility` measurement — for which deploy #27 is the BASELINE arm.
+⚠ **Still owed** (unchanged by this pass): **§3 of `docs/testing/TABLET_CHECKLIST_2026-08-02.md`** — *"Physical legibility and thumb reach"*, four
+unticked boxes — and the A5 `gl_compatibility` measurement, for which deploy #27 is the
+BASELINE arm.
+
+⚠ **"Checklist §3" is a DOCUMENT section, not the in-app "Before You Deploy" checklist.**
+That block has no numbered sections, and the two are named in one sentence only where a
+swipe verdict mentions scrolling to reveal it. Spelling the path out because the short
+form sent a 2026-09-07 planning pass looking for it in `PreBattleUI`.
+
+⚠ And §3 **cannot be signed off from screenshots**: its own preamble reads *"Measurement
+says ≥48dp; only a hand says whether it is comfortable."* Reading distance and screen
+brightness are the measurement.
 
 ---
 
@@ -1176,9 +1337,16 @@ Two full days of findings. The classes worth remembering:
 - The Encounter Log's scenario boxes need a battle fought **under the new build** —
   journal entries written before it carry no `stats` scenario keys and there is no
   backfill. Old blanks are expected, not a regression.
-- `scripts/lint_dead_has_method_guards.py` (GATING since Sep 4 2026) reports 62 permanently-false-guard
-  candidates in `src/` (REPORT-ONLY, exits 0). Most are legitimate plugin probes; the
-  list needs triage before it can gate.
+- ~~`scripts/lint_dead_has_method_guards.py` … needs triage before it can gate.~~
+  ✅ **CLOSED — it gates, and it is clean.** Re-measured 2026-09-07: **59 total, 59
+  allowlisted, 0 NEW, 0 stale**, exit 0. ⚠ The struck text was self-contradictory (it said
+  both "GATING since Sep 4 2026" and "REPORT-ONLY, exits 0") and its triage was already
+  done at promotion. ⭐ **59 is not 59 open defects** — the honest split is **20 platform /
+  GDExtension probes** (GodotSteam 3, Google Play Billing 4, Apple StoreKit 2, libharu 11)
+  where `has_method()` is the *correct* call because the class genuinely may not exist;
+  **37 inert dead branches** with a live fallback beside them (32 duck-typed + 5 orphaned
+  by the Sep 4 sweep) — tidy-up, never a defect fix; and **2 bookkeeping** entries. Zero
+  are live bugs.
 
 ---
 

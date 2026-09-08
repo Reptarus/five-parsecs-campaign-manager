@@ -317,7 +317,7 @@ func _resolve_track_info() -> void:
 	## Step 12 resolution. Planetfall p.68.
 	_add_result_bbcode("Enemy Information and Mission Data tracked.")
 	_add_result_bbcode(
-		"[color=#808080]Full tracking will be automated when battle results are wired.[/color]")
+		"[color=#9ca3af]Full tracking will be automated when battle results are wired.[/color]")
 
 
 func _resolve_replacements() -> void:

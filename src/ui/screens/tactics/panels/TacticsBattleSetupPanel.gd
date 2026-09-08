@@ -27,6 +27,15 @@ var _phase_title: Label
 var _phase_desc: Label
 var _complete_btn: Button
 
+## What this panel resolved, per phase. These are the four keys
+## TacticsPhaseManager._apply_phase_results() has always waited for and never received.
+## ⚠ `_scenario` is kept ACROSS rebuilds on purpose: it used to be re-rolled inside
+## _rebuild_phase_content(), so navigating away and back changed the scenario silently.
+var _orders_zone_id: String = ""
+var _recon_conducted: bool = false
+var _scenario: String = ""
+var _deployed_units: Array = []
+
 
 func _scaled_font(base: int) -> int:
 	var rm = get_node_or_null("/root/ResponsiveManager")
@@ -115,24 +124,137 @@ func _rebuild_phase_content(phase: int) -> void:
 		child.queue_free()
 
 	match phase:
-		0:  # Orders
+		0:  # Orders — pick the Operational Zone this force is committed to.
 			_add_info_card("Battle Plan",
 				"Choose your operational approach for this turn. "\
 				+ "Your battle plan affects AI behavior and deployment options.")
+			_add_zone_picker()
 		1:  # Recon
 			_add_info_card("Intelligence Report",
 				"Observation tests reveal enemy composition. "\
 				+ "Better intel means fewer surprises during battle.")
+			_add_recon_toggle()
 		2:  # Battle Prep
-			var scenario_type = ["Skirmish", "Battle",
-				"Grand Battle", "Evolving Objective"][randi() % 4]
-			_add_info_card("Scenario: %s" % scenario_type,
+			# ⚠ The scenario used to be rolled with `randi() % 4` INSIDE this rebuild,
+			# displayed, and then discarded — `_apply_phase_results()` waits for a
+			# `scenario` key that no producer ever sent. Worse, rebuilding the phase
+			# re-rolled it, so leaving and returning silently changed the scenario the
+			# player had just read. It is now chosen once, kept in `_scenario`, and
+			# emitted. The four names are the book's own scenarios (Skirmish p.74,
+			# Grand Battle p.79, Evolving Objective p.80) and are read from
+			# data/tactics/tactics_campaign_config.json rather than retyped here.
+			if _scenario.is_empty():
+				_scenario = _pick_scenario()
+			_add_info_card("Scenario: %s" % _scenario.capitalize().replace("_", " "),
 				"Battlefield conditions generated. "\
 				+ "Review the scenario briefing before deploying.")
+			_add_scenario_picker()
 		3:  # Deployment
 			_add_info_card("Deployment Zone",
 				"Place your forces in the deployment zone. "\
 				+ "Consider terrain, cover, and objectives.")
+			_add_deployment_summary()
+
+
+## The Operational Zones the campaign actually has. Empty until zones exist, in which
+## case the phase still completes — it simply reports no assignment, which is honest.
+func _zones() -> Array:
+	if _campaign == null or not ("operational_map" in _campaign):
+		return []
+	var m: Variant = _campaign.operational_map
+	if not (m is Dictionary):
+		return []
+	var z: Variant = (m as Dictionary).get("zones", [])
+	return z if z is Array else []
+
+
+func _add_zone_picker() -> void:
+	var zones: Array = _zones()
+	if zones.is_empty():
+		return
+	var picker := OptionButton.new()
+	for z in zones:
+		if z is Dictionary:
+			picker.add_item(str((z as Dictionary).get(
+				"name", (z as Dictionary).get("id", "Zone"))))
+			picker.set_item_metadata(picker.item_count - 1,
+				str((z as Dictionary).get("id", "")))
+	if picker.item_count > 0:
+		picker.select(0)
+		if _orders_zone_id.is_empty():
+			_orders_zone_id = str(picker.get_item_metadata(0))
+	picker.item_selected.connect(func(i: int) -> void:
+		_orders_zone_id = str(picker.get_item_metadata(i)))
+	_content.add_child(picker)
+
+
+func _add_recon_toggle() -> void:
+	var cb := CheckBox.new()
+	cb.text = "Observation conducted"
+	cb.button_pressed = _recon_conducted
+	cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	cb.toggled.connect(func(on: bool) -> void: _recon_conducted = on)
+	_content.add_child(cb)
+
+
+func _scenario_types() -> Array:
+	var f := FileAccess.open(
+		"res://data/tactics/tactics_campaign_config.json", FileAccess.READ)
+	if f == null:
+		return []
+	var json := JSON.new()
+	if json.parse(f.get_as_text()) != OK or not (json.data is Dictionary):
+		return []
+	var t: Variant = (json.data as Dictionary).get("scenario_types", [])
+	return t if t is Array else []
+
+
+func _pick_scenario() -> String:
+	var types: Array = _scenario_types()
+	if types.is_empty():
+		return ""
+	return str(types[randi() % types.size()])
+
+
+func _add_scenario_picker() -> void:
+	var types: Array = _scenario_types()
+	if types.is_empty():
+		return
+	var picker := OptionButton.new()
+	var sel := 0
+	for i in range(types.size()):
+		picker.add_item(str(types[i]).capitalize().replace("_", " "))
+		picker.set_item_metadata(i, str(types[i]))
+		if str(types[i]) == _scenario:
+			sel = i
+	picker.select(sel)
+	picker.item_selected.connect(func(i: int) -> void:
+		_scenario = str(picker.get_item_metadata(i)))
+	_content.add_child(picker)
+
+
+func _add_deployment_summary() -> void:
+	_deployed_units = _campaign_unit_ids()
+	if _deployed_units.is_empty():
+		return
+	var lbl := Label.new()
+	lbl.text = "Deploying %d unit(s)." % _deployed_units.size()
+	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	_content.add_child(lbl)
+
+
+func _campaign_unit_ids() -> Array:
+	var out: Array = []
+	if _campaign == null or not ("campaign_units" in _campaign):
+		return out
+	var units: Variant = _campaign.campaign_units
+	if not (units is Array):
+		return out
+	for u in units:
+		if u is Dictionary and not bool((u as Dictionary).get("is_destroyed", false)):
+			out.append(str((u as Dictionary).get("unit_id", "")))
+	return out
 
 
 func _add_info_card(card_title: String, body: String) -> void:
@@ -168,7 +290,28 @@ func _add_info_card(card_title: String, body: String) -> void:
 	_content.add_child(card)
 
 
+## Emit what this phase actually resolved.
+##
+## ⚠ This used to be `phase_completed.emit(current, {})`. All four branches of
+## TacticsPhaseManager._apply_phase_results() are keyed on `data.has(...)`, so an empty
+## payload meant ORDERS, RECON, BATTLE_PREP and DEPLOYMENT each ran their consumer and
+## wrote nothing. A key is included only when this panel genuinely has a value for it —
+## an absent key means "not resolved", which the consumer already treats correctly, and
+## is very different from sending an empty string.
 func _on_complete() -> void:
 	var current: int = _phase_manager.current_phase \
 		if _phase_manager else 0
-	phase_completed.emit(current, {})
+	var data: Dictionary = {}
+	match current:
+		0:
+			if not _orders_zone_id.is_empty():
+				data["orders"] = {"focus_zone_id": _orders_zone_id}
+		1:
+			data["intel"] = {"observation_conducted": _recon_conducted}
+		2:
+			if not _scenario.is_empty():
+				data["scenario"] = _scenario
+		3:
+			if not _deployed_units.is_empty():
+				data["deployed_units"] = _deployed_units.duplicate()
+	phase_completed.emit(current, data)
