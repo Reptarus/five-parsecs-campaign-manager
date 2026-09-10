@@ -1,5 +1,7 @@
 extends Control
 class_name SimpleCharacterCreator
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 ## Enhanced Character Creator for Five Parsecs
 ## Includes Origin (species), Background, Motivation with rulebook descriptions
@@ -68,6 +70,18 @@ func _ready() -> void:
 	_connect_signals()
 	_style_buttons()
 	_make_dialog_responsive()
+
+	# §2: open the touch chain — HERE, at the true end of _ready().
+	#
+	# ⚠ **This _ready() is a COROUTINE**: it awaits two frames above before
+	# _initialize_ui_components() builds anything. The usual shortcut of putting
+	# `call_deferred` at the TOP of a function — sound for a plain function, because
+	# deferred calls run once it returns — is WRONG here: the deferred call would fire
+	# at the end of frame 0, while this function is still suspended at its first await
+	# and the UI does not exist. Same trap as
+	# UpkeepPhaseComponent._build_travel_section(), where it was measured reporting
+	# "opened 0" on every call.
+	_open_touch_chain()
 
 	pass # _ready() completed
 
@@ -952,3 +966,21 @@ func _on_luck_down() -> void:
 	if current_character and current_character.luck > 1:
 		current_character.luck -= 1
 		_update_stats_display()
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

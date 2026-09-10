@@ -165,8 +165,11 @@ func _create_character_card_entry(character) -> void:
 		if is_captain:
 			display_name = "[Captain] " + name_str
 		var subtitle := "%s / %s" % [bg_name, cls_name]
+		# T11-51: pass the BARE name as the identity. `display_name` carries the
+		# "[Captain] " prefix, and the factory derives the avatar initial and
+		# colour from the identity — otherwise the captain's avatar reads `[`.
 		var card := _create_character_card(
-			display_name, subtitle, stats)
+			display_name, subtitle, stats, "", name_str)
 		crew_grid.add_child(card)
 
 		# Make dict-based cards tappable → navigate to character details.

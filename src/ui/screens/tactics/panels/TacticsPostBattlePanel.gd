@@ -181,11 +181,27 @@ func _rebuild_for_current_phase() -> void:
 
 
 func _build_advancement_content() -> void:
-	_add_card("Spend Campaign Points",
-		"Use your earned CP to improve your force:\n"\
-		+ "- Unit Upgrade (1 CP): Acquire a veteran skill\n"\
-		+ "- Roster Change (1 CP): Add or replace a unit\n"\
-		+ "- Battle Advantage (1 CP): One-time bonus for next battle")
+	# ⚠ THIS BODY IS GENERATED FROM TacticsCampaignCore.CP_PURCHASES, never written
+	# out here. It used to be a prose literal reading "- Unit Upgrade (1 CP): Acquire
+	# a veteran skill" — a price the book does not charge, since p.107 prices Gain
+	# Veteran Skill at **4 CP**. A mechanic's numbers in a UI literal drift from the
+	# mechanic by construction; the card and the buttons below now render from the
+	# same array, so the prose a player reads is the CP they are charged.
+	var seen_groups: PackedStringArray = PackedStringArray()
+	var body_lines: PackedStringArray = PackedStringArray()
+	for entry in TacticsCampaignCore.CP_PURCHASES:
+		var grp: String = str(entry.get("group", ""))
+		if not seen_groups.has(grp):
+			seen_groups.append(grp)
+			body_lines.append("[%s]" % grp)
+		body_lines.append("- %s (%d CP): %s" % [
+			str(entry.get("name", "")),
+			int(entry.get("cost", 0)),
+			str(entry.get("desc", ""))])
+	_add_card("Spend Campaign Points (Tactics pp.107-108)",
+		"Use your earned CP to improve your force:
+" + "
+".join(body_lines))
 
 	if _campaign:
 		var cp: int = 0
@@ -207,15 +223,24 @@ func _build_advancement_content() -> void:
 		# the mutation API. Spending twice in one visit is why this tracks a running
 		# total rather than emitting one purchase.
 		if remaining > 0:
-			var row := HBoxContainer.new()
-			row.add_theme_constant_override("separation", SPACING_SM)
-			_content.add_child(row)
-			for label in ["Unit Upgrade", "Roster Change", "Battle Advantage"]:
+			# ⚠ HFlowContainer, not HBox: thirteen priced purchases will not fit one row
+			# at any sane width, and an HBox would drive the panel's minimum width past
+			# the viewport -- the T11-18 / T11-42 shape.
+			var flow := HFlowContainer.new()
+			flow.add_theme_constant_override("h_separation", SPACING_SM)
+			flow.add_theme_constant_override("v_separation", SPACING_SM)
+			_content.add_child(flow)
+			for entry in TacticsCampaignCore.CP_PURCHASES:
+				var cost: int = int(entry.get("cost", 0))
 				var b := Button.new()
-				b.text = "%s (1 CP)" % label
+				b.text = "%s (%d CP)" % [str(entry.get("name", "")), cost]
+				b.tooltip_text = str(entry.get("desc", ""))
 				b.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
-				b.pressed.connect(_on_spend_cp.bind(str(label)))
-				row.add_child(b)
+				# ⚠ CHECK THE PRICE YOU CHARGE AGAINST THE PRICE YOU CHECK. A 4 CP
+				# veteran skill must not be reachable on 2 remaining CP.
+				b.disabled = cost > remaining
+				b.pressed.connect(_on_spend_cp.bind(str(entry.get("id", ""))))
+				flow.add_child(b)
 
 		if not _purchases.is_empty():
 			var log_lbl := Label.new()
@@ -226,9 +251,23 @@ func _build_advancement_content() -> void:
 			_content.add_child(log_lbl)
 
 
-func _on_spend_cp(purchase: String) -> void:
-	_cp_spent += 1
-	_purchases.append(purchase)
+func _on_spend_cp(purchase_id: String) -> void:
+	var entry: Dictionary = TacticsCampaignCore.cp_purchase(purchase_id)
+	var cost: int = int(entry.get("cost", 0))
+	# ⚠ An unknown id costs 0, and 0 means REFUSE, never "free". Charging 0 would
+	# hand the player a purchase the book prices at 1-4 CP for nothing.
+	if cost <= 0:
+		push_warning("[Tactics] unknown CP purchase id: %s" % purchase_id)
+		return
+	var available: int = 0
+	if _campaign and _campaign.has_method("get_available_cp"):
+		available = _campaign.get_available_cp()
+	# ⚠ The AUTHORITY on affordability. The button's `disabled` is a courtesy;
+	# this is the check that cannot be bypassed by a stale rebuild.
+	if cost > available - _cp_spent:
+		return
+	_cp_spent += cost
+	_purchases.append("%s (%d CP)" % [str(entry.get("name", "")), cost])
 	# ⚠ Deliberately NOT emitting a `roster_changes` entry here. That consumer
 	# (_reinforce_unit / _replace_unit) matches on `unit_id`, and this panel has no unit
 	# picker yet — an entry with an empty id would match nothing and silently do

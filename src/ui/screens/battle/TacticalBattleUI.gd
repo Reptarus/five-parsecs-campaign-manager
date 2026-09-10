@@ -23,6 +23,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
+const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
@@ -292,6 +293,12 @@ var current_turn: int = 0
 var _is_bug_hunt_mode: bool = false
 var _is_planetfall_mode: bool = false
 var _battle_mode_id: String = ""  # "" = standard 5PFH; gates No-Minis auto-resolve routing
+## T11-49: set by a launcher that owns no campaign state (Battle Simulator, and the
+## MCP/demo tier-select path). This is the POSITIVE ownership signal. The other two
+## tests in _is_standalone_battle() are ABSENCE tests and both were silently false
+## here. Assigned on every initialize_battle(), like _battle_mode_id, so this reused
+## screen cannot carry one battle's answer into the next.
+var _standalone_declared: bool = false
 ## T11-17. Set ONLY by _on_regenerate_terrain_pressed(); consumed once by
 ## _persist_battlefield_contract(). A new seed may overwrite the campaign's saved
 ## table only when the PLAYER asked for it.
@@ -387,6 +394,10 @@ class BattleResult:
 	var rounds_fought: int = 0
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so placement here is
+	# equivalent to placing it last and cannot land before the children exist.
+	call_deferred("_open_touch_chain")
 	_initialize_managers()
 	_connect_signals()
 	_setup_ui()
@@ -864,17 +875,21 @@ func _build_terrain_controls(target: Node) -> void:
 				legend.rebuild(battlefield_grid_panel.get_rendered_legend_keys()))
 	target.add_child(scatter_toggle)
 
-	# Whole-map Regenerate
-	var regen_btn := Button.new()
-	regen_btn.text = "🎲 Regenerate Terrain"
-	regen_btn.tooltip_text = \
-		"Roll a whole new battlefield (Compendium 5-step, pp.94-95)"
-	regen_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-	regen_btn.add_theme_font_size_override("font_size", 12)
-	regen_btn.pressed.connect(_on_regenerate_terrain_pressed)
-	target.add_child(regen_btn)
+	# Whole-map Regenerate -- only where a generated layout is legitimate.
+	# Not merely disabled: an unavailable option is better absent than dangled.
+	if _layout_generation_allowed():
+		var regen_btn := Button.new()
+		regen_btn.text = "🎲 Regenerate Terrain"
+		regen_btn.tooltip_text = \
+			"Roll a whole new battlefield (Compendium 5-step, pp.94-95)"
+		regen_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+		regen_btn.add_theme_font_size_override("font_size", 12)
+		regen_btn.pressed.connect(_on_regenerate_terrain_pressed)
+		target.add_child(regen_btn)
 	var hint := Label.new()
-	hint.text = "Tap any map sector for its rules — or to re-roll just that sector."
+	hint.text = ("Tap any map sector for its rules — or to re-roll just that sector."
+		if _layout_generation_allowed()
+		else "Tap any map sector for its rules.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 11)
 	hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
@@ -984,13 +999,25 @@ func _is_standalone_battle() -> bool:
 	## True when this battle has no owning 5PFH campaign to persist a table for.
 	##
 	## Two independent signals, either sufficient:
+	##  - _standalone_declared, set by the launcher (T11-49)
 	##  - a non-empty _battle_mode_id (bug_hunt / planetfall / tactics run their own
 	##    campaign cores and never use 5PFH's active_battlefield contract)
-	##  - no current_campaign at all (Battle Simulator, MCP/demo, tier-select mode)
+	##  - no current_campaign at all
+	##
+	## ⚠ CORRECTED 2026-09-08 (T11-49). The third bullet used to read "no
+	## current_campaign at all (Battle Simulator, MCP/demo, tier-select mode)" and that
+	## parenthetical was FALSE for every one of those cases: GameState auto-loads the
+	## last campaign at each launch, so current_campaign is non-null in normal play and
+	## this function returned FALSE for a standalone battle. Two campaign writes and one
+	## ERASE rode on that. An ownership question must be answered by something the
+	## launcher SAYS, never by what happens to be null.
 	##
 	## Deliberately NOT using the PhaseContainer ancestor walk that
 	## _check_standalone_mode does: this is called during persistence, long after
 	## reparenting, so an ownership question must be answered from state, not layout.
+	# The DECLARED answer wins: it is the only one an absence cannot falsify.
+	if _standalone_declared:
+		return true
 	if not _battle_mode_id.is_empty():
 		return true
 	var gs = get_node_or_null("/root/GameState")
@@ -1028,6 +1055,10 @@ func _check_standalone_mode() -> void:
 	if _try_auto_init_from_temp_data():
 		return
 
+	# T11-49: this path is standalone BY CONSTRUCTION - initialize_battle() was never
+	# called and no gamemode context was found - but a campaign may still be loaded, so
+	# the absence tests would answer "not standalone". Say so explicitly.
+	_standalone_declared = true
 	_log_message("Standalone mode — no campaign data. Set up your table manually.", UIColors.COLOR_WARNING)
 	_show_tier_selection()
 
@@ -2782,9 +2813,26 @@ func _apply_red_job_hold_denial(held: bool) -> bool:
 ## Battle Card (journey Moment 0). Only real rolled data — every line that
 ## has no data is simply omitted. Returns null when nothing is known.
 func _build_battle_card() -> Control:
+	# WHOSE BATTLE IS THIS? get_battlefield_data() reads THROUGH to the campaign's
+	# persisted active_battlefield (the T11-17 cache-miss recovery), so in a
+	# standalone battle it hands back a contract for a completely different battle.
+	#
+	# Measured on device (deploy #34): a Battle Simulator card announced the
+	# campaign's "Enemy: 7 x opponents", its CAUGHT_OFF_GUARD condition, its Loot
+	# Cache sight and its blank "Your Table" — while the screen's own enemy list
+	# showed 5 Vent Crawlers and the map showed a fully generated table. The MAP was
+	# right because _setup_battlefield()'s FALLBACK branch stores its generated
+	# contract in _battlefield_data; only this card never asked.
+	#
+	# ⭐ Sixth consumer of the T11-49 confusion. The other five were found because two
+	# of them WROTE — this one only mis-displays, so nothing caught it until a card
+	# and an enemy list disagreed on screen.
 	var gs = get_node_or_null("/root/GameState")
-	var contract: Dictionary = gs.get_battlefield_data() \
-		if gs and gs.has_method("get_battlefield_data") else {}
+	var contract: Dictionary = {}
+	if _is_standalone_battle():
+		contract = _battlefield_data if _battlefield_data is Dictionary else {}
+	elif gs and gs.has_method("get_battlefield_data"):
+		contract = gs.get_battlefield_data()
 	var md: Dictionary = (_stored_mission_data
 		if _stored_mission_data is Dictionary else {})
 	var ef: Dictionary = _battle_context.get("enemy_force",
@@ -5392,6 +5440,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# Populate battlefield setup tab (data only, no stage change)
 	_stored_mission_data = mission_data
+	# T11-49: read the ownership declaration BEFORE anything below can consult
+	# _is_standalone_battle(). Assigned unconditionally rather than only-when-present,
+	# so a reused screen cannot inherit the previous battle's answer.
+	_standalone_declared = false
+	if mission_data is Dictionary:
+		_standalone_declared = bool(
+			(mission_data as Dictionary).get("standalone", false))
 	# Per-battle movement system (Compendium p.90) — resolved BEFORE the setup
 	# tab renders, because the tab prints the grid procedure. A scenario may
 	# stamp `use_grid_movement`; otherwise the DLC flag is the opt-in and the
@@ -5661,6 +5716,18 @@ func _clear_battle_checkpoint() -> void:
 	## The battle is over (resolved or abandoned) — a checkpoint that outlived it
 	## would resume a fight that already went to post-battle.
 	_checkpoint_save_queued = false
+	# T11-49: a STANDALONE battle owns no checkpoint, so "this battle is over" must not
+	# erase the CAMPAIGN's one. This function had NO ownership test at all, while both
+	# its siblings (_queue_checkpoint_save, _persist_battlefield_contract) had one - and
+	# it is the destructive direction: clear_active_battle() erases
+	# progress_data["active_battle"] and save_campaign() flushes the erase to disk.
+	# Measured on deploy #28: pressing Return in a Battle Simulator battle DELETED the
+	# campaign's in-progress Rival Attack (81,221 -> 63,641 bytes, active_battle present
+	# True -> False). Return is the ordinary way to leave the simulator, and
+	# _on_record_result() reaches this same function, so merely looking around cost the
+	# player their fight.
+	if _is_standalone_battle():
+		return
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("clear_active_battle"):
 		gs.clear_active_battle()
@@ -7193,13 +7260,25 @@ func _populate_setup_tab(mission_data) -> void:
 				var _secs: Variant = (_ab as Dictionary).get("sectors", [])
 				if _secs is Array:
 					_owner_n = (_secs as Array).size()
+		# T11-49: this label must reproduce the REAL branch condition below, not a
+		# stale copy of it. On deploy #29 it still printed "CONSUME" while the code
+		# had already started taking FALLBACK for standalone battles - a diagnostic
+		# that disagrees with its own code is worse than none, because it is read as
+		# evidence. Keep the two expressions identical.
 		print("[T11-17] setup branch=",
-			"CONSUME" if not stored_sectors.is_empty() else "FALLBACK",
+			"CONSUME" if (not stored_sectors.is_empty()
+				and not _is_standalone_battle()) else "FALLBACK",
 			 " stored_sectors=", stored_sectors.size(),
 			 " owner_sectors=", _owner_n,
 			 " standalone=", _is_standalone_battle(),
 			 " bf_seed=", bf_data.get("seed", "?"))
-	if not stored_sectors.is_empty():
+	# T11-49: a standalone battle must not CONSUME the campaign's saved table. The
+	# FALLBACK branch below already names "Battle Simulator" as one of its cases, but it
+	# could never be reached: get_battlefield_data() reads through to the campaign owner
+	# (the T11-17 recovery), so stored_sectors came back populated and consume won.
+	# Measured on #28: a Battle Simulator battle rendered the CAMPAIGN's Battle Card -
+	# seed 1773741958, 16 sectors, CAUGHT_OFF_GUARD, 7 opponents, "Your Table - 3x3 ft".
+	if not stored_sectors.is_empty() and not _is_standalone_battle():
 		# CONSUME-FIRST: the persisted contract is the SSOT.
 		sector_data = bf_data
 		_current_terrain_theme = str(bf_data.get("theme", "wilderness"))
@@ -7458,13 +7537,7 @@ func _populate_setup_tab(mission_data) -> void:
 		"theme_name", _current_terrain_theme)
 	_add_setup_text(theme_display, Color("#f59e0b"), 16)
 	# Compendium theme description = line 2 of the generator summary
-	var description: String = ""
-	var summary: String = sector_data.get("summary", "")
-	var lines: PackedStringArray = summary.split("\n")
-	if lines.size() >= 2:
-		description = lines[1]
-	if not description.is_empty():
-		_add_setup_text(description, Color("#9ca3af"))
+	_add_terrain_summary_lines(sector_data)
 
 	var notable_count: int = sector_data.get("notable_count", 0)
 	_add_setup_text(
@@ -7637,7 +7710,10 @@ func _populate_setup_tab(mission_data) -> void:
 	setup_content.add_child(_grid_setup_section)
 	_rebuild_grid_setup_section(mission_dict, table_size_ft)
 
-	# Section 6: Regenerate button
+	# Section 6: Regenerate button -- withheld when the layout generator is not
+	# the player's to run (see _layout_generation_allowed).
+	if not _layout_generation_allowed():
+		return
 	var regen_button := Button.new()
 	regen_button.text = "Regenerate Terrain Layout"
 	regen_button.custom_minimum_size = Vector2(0, 44)
@@ -7665,9 +7741,67 @@ func _populate_setup_tab(mission_data) -> void:
 
 var _regen_in_progress: bool = false
 
+## Render a battlefield contract's own summary text into the Setup tab.
+##
+## TWO CONTRACT SHAPES SHARE THIS READER, deliberately. BattlefieldGenerator's
+## generate_terrain_suggestions() and CampaignPhaseManager._blank_table_contract()
+## emit the same shape so no downstream consumer needs a special case -- which is
+## also exactly how a reader written for the first silently mishandled the second:
+##
+##   generator       line 0  "Theme: <name>"    <- ALREADY shown in amber above
+##                   line 1  Compendium theme description       <- show this
+##   player-defined  line 0  "Terrain Generation is off -- ..." <- the ONLY reason
+##                   line 1  "Core Rules p.109 suggests ..."
+##
+## Taking lines[1] alone left the player a bare grid, p.109 guidance, and no
+## explanation. ⚠ A blank state that cannot explain itself is indistinguishable
+## from a broken one -- this was mis-filed as a rendering defect FOUR times during
+## the 2026-09 tablet walk, with full source access, before anyone read the gate.
+##
+## ⚠ `player_defined_terrain` is the discriminator rather than sniffing the text.
+## Its producer has always written it and NOTHING read it until now; a key with a
+## producer and no consumer is usually a missing wire, and this was one.
+##
+## Extracted from _populate_setup_tab purely so it can be tested: the damage lands
+## HERE, not in the contract, so asserting the contract's line order is not enough.
+func _add_terrain_summary_lines(sector_data: Dictionary) -> void:
+	var summary: String = str(sector_data.get("summary", ""))
+	var lines: PackedStringArray = summary.split("\n")
+	if bool(sector_data.get("player_defined_terrain", false)) \
+			and not lines.is_empty() and not str(lines[0]).is_empty():
+		_add_setup_text(str(lines[0]), UIColors.COLOR_AMBER)
+	if lines.size() >= 2 and not str(lines[1]).is_empty():
+		_add_setup_text(str(lines[1]), Color("#9ca3af"))
+
+
+## May this screen roll a random terrain LAYOUT?
+##
+## Compendium p.94 makes the generators opt-in and TERRAIN_GENERATION
+## (freelancers_handbook) is the flag that carries it. CampaignPhaseManager
+## honours it and hands back _blank_table_contract() -- but that is ONE
+## enforcement site against three generator call sites, and the two Regenerate
+## controls plus the per-sector re-roll on THIS screen call the generator
+## directly. So a campaign player without the DLC was correctly given a blank
+## table and then offered a button that filled it in.
+##
+## ⚠ The standalone exception is deliberate and lives HERE, once: Battle
+## Simulator / Bug Hunt / Planetfall are ungated for demo (CLAUDE.md, 'Ungated
+## for demo (DLC gating planned)'), which is also why the :7290 fallback
+## generation is left alone. Encoding that exception in each caller instead is
+## how one rule becomes four expressions that drift.
+func _layout_generation_allowed() -> bool:
+	if _is_standalone_battle():
+		return true
+	return WorldOptionsRef.is_terrain_generation_enabled()
+
+
 func _on_regenerate_terrain_pressed() -> void:
 	## Re-roll the terrain sector layout
 	if not _battlefield_generator or not setup_content or _regen_in_progress:
+		return
+	# Belt-and-braces with the button-build guards below: a control can be built
+	# before the flag is read, and a deferred press must not slip past.
+	if not _layout_generation_allowed():
 		return
 	_regen_in_progress = true
 
@@ -8027,6 +8161,10 @@ func _on_map_sector_clicked(sector_label: String, features: Array) -> void:
 ## hash(base_seed | label | count) — the engine RNG has no avalanche effect,
 ## so derived seeds must be hashed (Godot 4.6 docs).
 func _on_sector_reroll_requested(sector_label: String) -> void:
+	# Same withheld content, smaller unit: re-rolling one sector still produces
+	# generated terrain the player has not unlocked.
+	if not _layout_generation_allowed():
+		return
 	if not _battlefield_generator:
 		return
 	var gs = get_node_or_null("/root/GameState")
@@ -8866,8 +9004,13 @@ func _setup_stars_battle_ui() -> void:
 	if not is_inside_tree():
 		return
 
-	# Only standard 5PFH battles offer stars
-	if _is_bug_hunt_mode or _is_planetfall_mode:
+	# Only standard 5PFH battles offer stars.
+	# T11-49: test _is_standalone_battle() and not just the two mode flags. A Battle
+	# Simulator battle running while a campaign is loaded would otherwise read that
+	# campaign's stars and WRITE them back on use (`campaign.stars_of_the_story =
+	# stars.serialize()`), spending a ONCE-PER-CAMPAIGN ability (Core Rules p.67) in a
+	# battle that does not count, and logging it to the campaign journal.
+	if _is_bug_hunt_mode or _is_planetfall_mode or _is_standalone_battle():
 		return
 
 	# Need a campaign with stars data
@@ -8899,11 +9042,35 @@ func _setup_stars_battle_ui() -> void:
 	action_bar.move_child(_stars_battle_button, end_idx)
 
 
+## The ONE place a Stars path obtains its campaign — all seven reads and writes of
+## `stars_of_the_story` route through here or through a value it returned.
+##
+## ⚠ GUARD ON THE OWNER, not on the mode flags. The section docblock above promises
+## Stars are "Disabled in non-5PFH battle modes (Bug Hunt / Planetfall / **Tactics**)",
+## and the caller checks `_is_bug_hunt_mode`, `_is_planetfall_mode` and
+## `_is_standalone_battle()` — **there is no Tactics flag**, so the comment named an
+## exclusion the code never implemented. Bug Hunt / Planetfall / Tactics cores all omit
+## `stars_of_the_story` deliberately (Compendium p.214 forbids carry-over), so reading
+## it off one is `Invalid access to property`, which ABORTS the enclosing function
+## silently — the class-(b) abort — taking the rest of _setup_stars_battle_ui() with it.
+##
+## Measured 2026-09-10: `Invalid access to property or key 'stars_of_the_story' on a
+## base object of type 'Resource (TacticsCampaignCore)'` at what was line 9018, in six
+## cases of test_terrain_generation_gate.gd — green in isolation, red in a full run,
+## because GameState auto-loads whatever campaign a previous batch last saved.
+##
+## Asking the campaign whether it HAS the property is order-independent and needs no
+## new flag: a fourth gamemode is covered the day it is added. Same shape as
+## CampaignEditorScreen._campaign_supports_crew_editing() and as T11-49, where a screen
+## shared between modes answered "is this campaign mine?" from the wrong signal.
 func _get_campaign_for_stars():
 	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.has_method("get_current_campaign"):
-		return gs.get_current_campaign()
-	return null
+	if gs == null or not gs.has_method("get_current_campaign"):
+		return null
+	var campaign = gs.get_current_campaign()
+	if campaign == null or not ("stars_of_the_story" in campaign):
+		return null
+	return campaign
 
 
 func _build_stars_system_from_campaign(campaign):
@@ -9335,3 +9502,21 @@ func _on_battle_note_changed() -> void:
 	if gsm == null or not gsm.has_method("set_temp_data"):
 		return
 	gsm.set_temp_data("battle_player_notes", _battle_note_edit.text)
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

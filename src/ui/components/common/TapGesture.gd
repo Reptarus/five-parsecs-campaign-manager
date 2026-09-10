@@ -21,8 +21,23 @@ extends RefCounted
 ## InputEventMouseButton. This project additionally sets
 ## `pointing/emulate_touch_from_mouse=true` (project.godot:109), so listening to BOTH
 ## families means one physical tap runs the handler TWICE. That is exactly what
-## HubFeatureCard.gd:137/:140 did (T11-36), and it is why this helper deliberately
-## ignores InputEventScreenTouch rather than handling it "for completeness".
+## HubFeatureCard.gd:137/:140 did (T11-36), and it is why this helper takes no ACTION
+## from InputEventScreenTouch.
+##
+## ⚠ IT DOES, HOWEVER, ACCEPT A VETO FROM THAT FAMILY — corrected 2026-09-10, and the
+## distinction is the whole point. `emulate_mouse_from_touch` synthesises pointer 0
+## ONLY, and a SECOND pointer CANCELS that emulated press. The cancel arrives as a
+## LEFT release still inside the slop, so the discrimination below — which only ever
+## watches ONE pointer travel — passes it through as a deliberate tap. Measured on
+## device (deploy #30): a two-finger pinch on the battlefield map zoomed correctly AND
+## opened the sector popover under finger one. Every headless case passed with that
+## live, because the handler logic is right; the missing input is HOW MANY FINGERS
+## are down, which the mouse family structurally cannot observe.
+##
+## A veto is safe where a second handler is not: it only ever DISARMS, never calls
+## `on_tap`, so it cannot reproduce T11-36. BattlefieldMapView and HexStarMap added
+## exactly this locally on deploy #31 and it was one-variable proven on hardware
+## (identical pinch, identical start frame d28c2619: popover on #30, none on #31).
 ##
 ## COORDINATES. Verified against the Godot 4.6 InputEventMouse docs: when received in
 ## Control._gui_input() the position is "the mouse's position within the Control using
@@ -44,6 +59,17 @@ const DEFAULT_SLOP_PX := 16.0
 ##
 ## `on_tap` takes no arguments — bind whatever the row needs at the call site.
 ## A movement beyond `slop_px`, or a release outside the control, cancels silently.
+##
+## ⚠ CALLING THIS TWICE ON ONE CONTROL MAKES THE SECOND CALLBACK INERT — it does NOT
+## double-fire. Because the arm state lives on the CONTROL (above) and the release path
+## disarms BEFORE firing, the first connected lambda consumes the arm and the second
+## reads `armed == false` and returns. Measured: 1 and 0
+## (`tests/unit/test_card_tap_single_fire.gd`). That makes double-connection fail SAFE
+## for the double-fire defect this helper exists to prevent — but it is still a trap,
+## because the second action never runs and nothing errors. A control that needs two
+## effects wants ONE callback doing both, never two `connect_tap()` calls.
+## ⚠ Note `CharacterCard` self-connects in its own `_ready()`, so a screen must not add
+## a second gesture to a `CharacterCard` — bind to its `card_tapped` signal instead.
 static func connect_tap(
 	control: Control, on_tap: Callable, slop_px: float = DEFAULT_SLOP_PX
 ) -> void:
@@ -90,3 +116,16 @@ static func _handle(
 		if origin.distance_to((event as InputEventMouseMotion).position) > slop_px:
 			# This is a scroll, not a tap. Let it go to the ScrollContainer.
 			control.set_meta(_META_ARMED, false)
+
+	elif event is InputEventScreenTouch \
+			and (event as InputEventScreenTouch).index > 0:
+		# VETO ONLY — see the docblock. A second pointer means the emulated press this
+		# helper is tracking has been CANCELLED by the OS, and its cancellation is
+		# indistinguishable from a clean release at the same spot. Disarm so the
+		# release cannot be read as a tap.
+		#
+		# ⚠ This branch must never call `on_tap`. Acting in a second pointer family is
+		# what made one physical tap fire twice in T11-36; cancelling in one is not.
+		# `index > 0` and not `>= 0`: pointer 0 IS the emulated press we are tracking,
+		# so vetoing on it would disarm every tap on a touchscreen.
+		control.set_meta(_META_ARMED, false)

@@ -1071,6 +1071,23 @@ func _build_travel_section() -> void:
 		upkeep_container.add_child(_travel_panel)
 		upkeep_container.move_child(_travel_panel, 0)
 
+	# §2: open the touch chain, HERE and not at the top of this function.
+	#
+	# This panel is built CONDITIONALLY — its Red Zone / Black Zone buttons exist only
+	# at 10+ turns with a licence — so the base class's ready-time sweep runs before
+	# they do. Measured: 6 STOP-filtered controls (TravelPanel plus five Buttons)
+	# survived, and ONLY for a campaign advanced enough to show them, which is why a
+	# fresh-campaign desk run reported this screen clean.
+	#
+	# ⚠ **This function is a COROUTINE** — it awaits a frame after queue_free()ing the
+	# old panel. So the usual trick of putting `call_deferred` at the TOP of a function
+	# (where it is equivalent to putting it last, because deferred calls run once the
+	# function returns) DOES NOT HOLD here: the deferred call fires at the end of the
+	# current frame, while this function is still suspended at its await and the new
+	# panel does not exist yet. Instrumented and measured — it reported "opened 0" on
+	# every one of its calls. It must run AFTER the attach, so it goes here.
+	_open_touch_chain()
+
 	# If travel was already decided (e.g. restoring state), update UI
 	if travel_decision_made:
 		_update_travel_ui_after_decision()

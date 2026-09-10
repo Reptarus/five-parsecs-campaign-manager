@@ -54,6 +54,17 @@ var _show_breadcrumb: bool = true:
 		queue_redraw()
 
 var _is_panning: bool = false
+## Single-finger drag-to-pan, mirroring BattlefieldMapView. A touch arrives as an
+## EMULATED LEFT mouse press, so pan and tap share one button and are told apart by
+## MOVEMENT. `gui/common/default_scroll_deadzone=16` (project.godot:104) is the same
+## threshold TapGesture uses, so a movement forgiven here is forgiven app-wide.
+const DRAG_SLOP_PX := 16.0
+## Gain for InputEventPanGesture.delta, which is a small per-event vector rather than
+## a pixel offset. 32.0 matches the arrow-key `step` below.
+const PAN_GESTURE_GAIN := 32.0
+var _drag_armed: bool = false
+var _drag_moved: bool = false
+var _drag_start: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -212,9 +223,48 @@ func _gui_input(event: InputEvent) -> void:
 				if mb.double_click and mb.pressed:
 					recenter()
 					accept_event()
+				elif mb.pressed:
+					# Arm a single-finger pan. Measured on a TB361FU (2026-09-09):
+					# three finger drags across this map left the frame BYTE-IDENTICAL
+					# (9b4947d3) because pan armed on MIDDLE/RIGHT only, which a
+					# touchscreen can never synthesise.
+					_drag_armed = true
+					_drag_moved = false
+					_drag_start = mb.position
+				else:
+					_drag_armed = false
+					_drag_moved = false
 	elif event is InputEventMouseMotion and _is_panning:
 		var mm := event as InputEventMouseMotion
 		_pan_offset += mm.relative
+		accept_event()
+	elif event is InputEventMouseMotion and _drag_armed:
+		var dm := event as InputEventMouseMotion
+		# One-way latch -- see BattlefieldMapView for why coming back inside the
+		# slop must not re-arm.
+		if not _drag_moved and dm.position.distance_to(_drag_start) > DRAG_SLOP_PX:
+			_drag_moved = true
+		if _drag_moved:
+			_pan_offset += dm.relative  # setter queues the redraw
+			accept_event()
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).index > 0:
+		# Second finger => pinch, not a drag. See BattlefieldMapView for the measured
+		# reason (a second pointer cancels the emulated press, and the cancel reads as
+		# an in-slop release). Veto only -- this branch never causes an action.
+		_drag_armed = false
+		_drag_moved = false
+
+	elif event is InputEventMagnifyGesture:
+		# Pinch. Requires input_devices/pointing/android/enable_pan_and_scale_gestures.
+		# `factor` is a MULTIPLICATIVE delta and _zoom_at() takes an ADDITIVE step, so
+		# it is converted through the current level -- otherwise the pinch crawls when
+		# zoomed in.
+		var mg := event as InputEventMagnifyGesture
+		_zoom_at(mg.position, _zoom_level * (mg.factor - 1.0))
+		accept_event()
+	elif event is InputEventPanGesture:
+		var pg := event as InputEventPanGesture
+		_pan_offset -= pg.delta * PAN_GESTURE_GAIN
 		accept_event()
 	elif event is InputEventKey and event.pressed:
 		var ke := event as InputEventKey

@@ -303,6 +303,13 @@ func _initialize_security_validator() -> void:
 	pass
 
 func _initialize_components() -> void:
+	# §2 touch chain, re-run because THIS is the populating entry point.
+	# BaseCampaignPanel._ready() already sweeps once, but this panel's cards are
+	# built here — after the wizard hands it campaign data — so the ready-time pass
+	# ran against a tree that did not yet contain them. Measured: 3 STOP-filtered
+	# controls survived under this panel's ScrollContainer until this call existed.
+	# Deferred, so it lands once this function has finished building.
+	call_deferred("_fix_touch_scroll_filters")
 	## Initialize ship panel with defensive null checks and programmatic fallbacks
 	
 	# NOTE: ShipPanelTransitionFix.gd file not found - using inline fixes
@@ -902,6 +909,11 @@ func _calculate_cargo_capacity(_ship_type: String) -> int:
 	return 0
 
 func _update_ship_display() -> void:
+	# §2 touch chain. _initialize_components() is too early for the three cards
+	# that live under TraitsContainer and ShipStats: _update_traits_display() FREES
+	# and rebuilds its children on every refresh, so a one-shot sweep can only ever
+	# open the generation it happened to see. This is the rebuild point.
+	call_deferred("_fix_touch_scroll_filters")
 	## Update UI to reflect current ship data with glass morphism styling
 	# Ensure ship_data has all required fields
 	_ensure_ship_data_structure()

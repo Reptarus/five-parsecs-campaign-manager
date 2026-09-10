@@ -8,6 +8,8 @@ const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCa
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const VeteranImportPanelClass = preload(
 	"res://src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd")
+const UnitRecordRef = preload(
+	"res://src/data/tactics/TacticsCampaignUnit.gd")
 
 var _campaign: Resource  # TacticsCampaignCore
 var _content: VBoxContainer
@@ -408,8 +410,7 @@ func _build_roster_section() -> void:
 
 
 func _create_unit_card(unit: Dictionary) -> PanelContainer:
-	var name_str: String = unit.get("custom_name",
-		unit.get("base_unit_id", "Unknown").replace("_", " ").capitalize())
+	var name_str: String = UnitRecordRef.display_name(unit)
 	var models: int = unit.get("current_models", 0)
 	var battles: int = unit.get("battles_fought", 0)
 	var destroyed: bool = unit.get("is_destroyed", false)
@@ -418,11 +419,16 @@ func _create_unit_card(unit: Dictionary) -> PanelContainer:
 	if destroyed:
 		subtitle = "DESTROYED — " + subtitle
 
+	# ⚠ NO PER-UNIT "CP" COLUMN. Tactics p.106 makes Campaign Points a player-level
+	# or army-level pool — its own heading "Are Points Tied to the Player or
+	# Army?" offers exactly those two answers and no third. The unit record carried
+	# a `campaign_points` key that nothing could ever write, so this column printed
+	# a hard 0 beside the header's REAL campaign CP figure (:99-100) and read as a
+	# unit that had earned nothing.
 	var stats := {
 		"Models": str(models),
 		"Battles": str(battles),
 		"Wins": str(unit.get("battles_won", 0)),
-		"CP": str(unit.get("campaign_points", 0)),
 	}
 
 	var card: PanelContainer = _create_character_card(

@@ -68,33 +68,29 @@ ALLOWLIST = {
 # dead chapter looks like (see CLAUDE.md, "a dead chapter can have nothing wrong
 # with it"). Each entry MUST cite the pages it implements, and must be removed
 # from this set the moment it is wired - the lint warns if that happens.
-UNWIRED_RULES = {
-    # Five Parsecs: Tactics **pp.92-100** - "THE OPERATIONAL SYSTEM" in the
-    # Campaign Play chapter: Cohesion scores, the Map, Operational Zones, Army
-    # Strength, the 8-step Operational Turn (verbatim at p.96), Commando Raids
-    # and Player Battle Points, plus Special Regions (Option) at p.100.
-    #
-    # CITE CORRECTED 2026-09-04. This entry, and the docblocks in
-    # TacticsOperationalMap.gd / TacticsCampaignCore.gd / TacticsPhaseManager.gd,
-    # all said "pp.155-168". That is the **Lifeforms bestiary** chapter (species
-    # stat-blocks: Hulkers, the Major/Minor Powers, Creatures) - 63 pages off.
-    # docs/rules/tactics_source.txt marks raw page N with the PRINTED number on
-    # the next line, offset raw-2, verified at three points: raw 94 -> p.92
-    # "THE OPERATIONAL SYSTEM", raw 157 -> p.155 "Lifeforms/Hulkers",
-    # raw 170 -> p.168 "Lifeforms/CREATURES".
-    #
-    # ⚠ THE GAP IS THE WHOLE STRATEGIC LAYER, NOT JUST THIS FILE. Verified
-    # 2026-09-04: the class is never instantiated (TacticsCampaignCore.operational_map
-    # is a raw Dictionary, and four sites hand-roll its shape independently);
-    # `regions` is seeded [] at TacticsCreationCoordinator.gd:235 and nothing ever
-    # appends; is_player_victory()/is_player_defeat() have ZERO callers, so a
-    # campaign can drive Cohesion to 0 unnoticed; and
-    # TacticsOperationalMapPanel.gd:192 emits phase_completed(7, {}) - an EMPTY
-    # payload - so TacticsPhaseManager._apply_strategic_results() never runs.
-    # Wiring this file alone would not close the chapter. Tactics is alpha-2
-    # scope (docs/CLOSED_ALPHA_PLAN.md:32,88).
-    "src/data/tactics/TacticsOperationalMap.gd",
-}
+# ── UNWIRED_RULES ───────────────────────────────────────────────────────────
+# Files that implement a BOOK CHAPTER but have zero callers. Reported as their own
+# `unwired_rules` count, separately from `orphans`, so a dead chapter stays visible
+# as a wire-or-delete decision for the owner instead of being mistaken for a corpse
+# and deleted. Every entry needs a page cite.
+#
+# CURRENTLY EMPTY, and that is a real state, not an oversight.
+# Its only entry was src/data/tactics/TacticsOperationalMap.gd (Five Parsecs:
+# Tactics pp.92-100, "THE OPERATIONAL SYSTEM"). It was WIRED on 2026-09-07 and this
+# lint's own stale-entry notice then asked for its removal:
+#   "NOTE: ... is now reachable from product - drop it from UNWIRED_RULES"
+# What closed it: TacticsOperationalRules.gd now owns the rules half, read from
+# data/tactics/tactics_campaign_config.json (previously a second orphan with zero
+# .gd readers); the three Tactics panels emit real payloads instead of `{}`;
+# TacticsTurnController forwards them instead of discarding them; and Step 9
+# ("Adjust Cohesion scores", p.99 - absent from the book's OWN 8-step summary on
+# p.96, which is why every step list here stopped at eight) reached the code for the
+# first time, giving is_player_victory()/is_player_defeat() their first callers.
+#
+# ⚠ Do NOT delete this set because it is empty - the reporting category is the
+# point, and the next zero-caller book chapter belongs here rather than in `orphans`.
+# ⚠ `set()`, not `{}` - the latter is an empty DICT.
+UNWIRED_RULES: set[str] = set()
 
 RES_LITERAL = re.compile(r'res://([^"\'\s]+?\.(?:gd|tscn|tres))')
 CLASS_NAME = re.compile(r'^\s*class_name\s+([A-Za-z_][A-Za-z_0-9]*)', re.M)

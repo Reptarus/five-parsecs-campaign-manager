@@ -46,11 +46,11 @@ SceneRouter is the **single source of truth** for all scene navigation in the ap
 | `ship_manager` | res://src/ui/screens/ships/ShipManager.tscn | Ship selection & customization |
 | `ship_inventory` | res://src/ui/screens/ships/ShipInventory.tscn | Ship cargo & stash management |
 
-#### World & Exploration (5 scenes)
+#### World & Exploration (4 scenes)
 | SceneRouter Key | File Path | Purpose |
 |---|---|---|
 | `world_phase` | res://src/ui/screens/world/WorldPhaseController.tscn | World generation & management |
-| `mission_selection` | res://src/ui/screens/world/MissionSelectionUI.tscn | Available missions browser |
+| ~~`mission_selection`~~ | ~~MissionSelectionUI.tscn~~ | ⚠ **DELETED in `a12a73fa1` (2026-07-31)** — the route had ZERO `navigate_to` callers and its only integration point (`WorldPhaseController._initialize_mission_selection()`) was a `pass`. Superseded by **`JobOfferComponent`**. Row kept, struck through, because listing it as live sent a 2026-09-08 planning pass looking for a screen that does not exist. |
 | `patron_rival_manager` | res://src/ui/screens/world/PatronRivalManager.tscn | Patron & rival tracking |
 | `world_phase_summary` | res://src/ui/screens/world/WorldPhaseSummary.tscn | World phase results summary |
 | `travel_phase` | res://src/ui/screens/travel/TravelPhaseUI.tscn | Travel & exploration UI |

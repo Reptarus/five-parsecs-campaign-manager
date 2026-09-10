@@ -1883,8 +1883,13 @@ static func get_weapon_trait_effects(
 		"is_pistol": false,
 		"is_one_use": false,
 		"is_reliable": false,
-		"rapid_fire": false,
-		"rapid_fire_shots": 0,
+		# ⚠ "rapid_fire" / "rapid_fire_shots" were deleted here 2026-09-10 with
+		# `get_rapid_fire_shots()` below. The TRAIT was already removed 2026-08-02
+		# (see the deletion note further down) because it is in neither book; only
+		# these two keys and their one reader were left behind, and that reader
+		# still returned a fabricated 3 shots. Deleting a value means deleting its
+		# readers in the SAME edit — the extra shots the book grants come from
+		# Panic Fire (p.46) alone.
 		# Phase 0 additions — Core Rules p.51, Compendium p.91
 		"force_single_target": false,      # Focused: all shots against one target
 		"ignore_toughness": false,          # Stun: Toughness bypassed, saves still apply
@@ -2191,13 +2196,12 @@ static func _has_trait(traits: Array, trait_name: String) -> bool:
 			return true
 	return false
 
-## Get number of shots for rapid fire
-static func get_rapid_fire_shots(weapon: Dictionary) -> int:
-	var traits: Array = weapon.get("traits", [])
-	var trait_effects := get_weapon_trait_effects(traits)
-	if trait_effects.get("rapid_fire", false):
-		return trait_effects.get("rapid_fire_shots", 3)
-	return 1
+## `get_rapid_fire_shots()` was deleted 2026-09-10. It had ZERO callers and
+## returned a hardcoded 3 shots for a "rapid_fire" trait that the 2026-08-02
+## sweep had ALREADY removed from `get_weapon_trait_effects()` as fabricated —
+## so it could only ever return 1, while reading as an implemented rule. Shots
+## are a column on the weapon profile (pp.49-50); the book's only way to gain
+## extra shots is Panic Fire (p.46).
 
 ## Check if weapon has overheat trait and should reduce shots
 ## Compendium p.91: If fired in previous round, 1 less Shot (non-cumulative)

@@ -74,6 +74,7 @@ var _vsync_option: OptionButton
 var _ui_scale_slider: HSlider
 var _ui_scale_label: Label
 var _auto_save_check: CheckButton
+var _continue_launch_check: CheckButton
 var _show_tooltips_check: CheckButton
 var _show_fps_check: CheckButton
 var _screen_shake_check: CheckButton
@@ -437,6 +438,26 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		_sm.is_auto_save_enabled() if _sm else true, "Toggle automatic saving",
 		"Automatically save your campaign at the end of each turn.")
 	_bind_toggle(_auto_save_check, "gameplay", "auto_save")
+
+	# ⚠ NOT _bind_toggle'd, and the exception is the point. Every other row here
+	# writes through SettingsManager into user://options.cfg; this one lives in
+	# GameState's user://settings.cfg because GameState._init() must read it
+	# before this node — or any autoload — can be looked up by path.
+	#
+	# The setting itself is new only in the sense that it is now READ. The key it
+	# replaces, `auto_load_last_campaign`, was declared and persisted for months
+	# with zero readers, and its absence is what let a standalone Battle Simulator
+	# session mistake an auto-loaded campaign for its own and erase that
+	# campaign's in-progress battle (T11-49).
+	var gs_launch := get_node_or_null("/root/GameState")
+	_continue_launch_check = _add_toggle_row(card, "Continue Last Campaign on Launch",
+		gs_launch.is_continue_on_launch_enabled() if gs_launch else true,
+		"Toggle reopening your last campaign when the app starts",
+		"Reopen your most recent campaign automatically. Turn this off to start at "
+		+ "the main menu with nothing loaded — Load Campaign then picks one.")
+	if gs_launch:
+		_continue_launch_check.toggled.connect(func(v: bool):
+			gs_launch.set_continue_on_launch(v))
 
 	_show_tooltips_check = _add_toggle_row(card, "Show Tooltips",
 		_sm.are_tooltips_enabled() if _sm else true, "Toggle keyword tooltips",
@@ -1024,6 +1045,11 @@ func _on_reset_pressed() -> void:
 				break
 	_ui_scale_slider.value = _sm.get_ui_scale() if _sm else 1.0
 	_auto_save_check.button_pressed = _sm.is_auto_save_enabled() if _sm else true
+	# Reset restores this one to its default too, even though it is not a
+	# SettingsManager key — assigning button_pressed re-fires `toggled`, which
+	# writes through to GameState and persists. Leaving it out would make Reset
+	# silently partial for the one row that does not live in options.cfg.
+	_continue_launch_check.button_pressed = true
 	_show_tooltips_check.button_pressed = _sm.are_tooltips_enabled() if _sm else true
 	_show_fps_check.button_pressed = _sm.is_fps_visible() if _sm else false
 	_screen_shake_check.button_pressed = _sm.is_screen_shake_enabled() if _sm else true

@@ -72,10 +72,29 @@ func _make_ui() -> Node:
 	var ui: Node = auto_free(packed.instantiate())
 	add_child(ui)
 	await await_idle_frame()
-	# Campaign path, not standalone: _is_standalone_battle() returns true on a
-	# non-empty _battle_mode_id OR a null campaign, and both would early-return
-	# before the guard, making this suite vacuously green.
+	# Campaign path, not standalone: _is_standalone_battle() early-returns before the
+	# guard this suite exists to test, so every ownership signal must be cleared or the
+	# suite is vacuously green.
+	#
+	# ⚠ THERE ARE NOW THREE SIGNALS (T11-49, 2026-09-08). This block used to clear
+	# only `_battle_mode_id` and rely on before_test() installing a campaign for the
+	# second. The third is `_standalone_declared`, and a bare instantiate SETS IT: the
+	# screen is not under a `PhaseContainer` ancestor and initialize_battle() is never
+	# called here, so the deferred `_check_standalone_mode()` correctly concludes this
+	# instance is standalone and says so. That is right for production and wrong for
+	# this fixture, which is modelling the campaign path.
 	ui._battle_mode_id = ""
+	ui._standalone_declared = false
+	# INSTRUMENT THE PREMISE. Clearing the signals by hand is only correct while the
+	# list is complete; a fourth signal would silently reintroduce the early return and
+	# this suite would report a guard regression that is really a fixture gap. Assert
+	# the state the cases actually depend on, once, here.
+	assert_bool(ui._is_standalone_battle()).override_failure_message(
+		"Fixture premise broken: this screen still reports STANDALONE after clearing "
+		+ "every known ownership signal, so _persist_battlefield_contract() will "
+		+ "early-return and every case below would be testing nothing. A new signal "
+		+ "was probably added to _is_standalone_battle() - clear it here too."
+	).is_false()
 	return ui
 
 

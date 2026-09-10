@@ -204,20 +204,38 @@ func test_card_tapped_signal_emits() -> void:
 		# Monitor signal - gdUnit4 pattern: start monitoring, then use assert_signal()
 		var _monitor = monitor_signals(card_instance)
 
-		# Simulate click on card (if gui_input exists)
-		if card_instance.has_signal("card_tapped"):
-			var click_event = InputEventMouseButton.new()
-			click_event.button_index = MOUSE_BUTTON_LEFT
-			click_event.pressed = true
+		# T11-36 (2026-09-08): this block used to end with
+		#     if card_instance.has_method("_gui_input"):
+		#         card_instance._gui_input(click_event)
+		#         ... assert_signal(...).is_emitted("card_tapped")
+		# so its ONLY assertion sat inside a has_method() guard. CharacterCard's
+		# `_gui_input` OVERRIDE was then deleted (it handled both pointer families and
+		# double-fired every tap), the guard went false, and the case passed having
+		# checked nothing - a false green, not a regression. Drive the live path.
+		#
+		# TapGesture listens on the `gui_input` SIGNAL and fires on RELEASE, so a
+		# press alone proves nothing; both halves are required.
+		assert_bool(card_instance.has_signal("card_tapped")).is_true()
+		var fired: Array[int] = [0]
+		card_instance.card_tapped.connect(func() -> void: fired[0] += 1)
 
-			if card_instance.has_method("_gui_input"):
-				card_instance._gui_input(click_event)
-				await get_tree().process_frame
+		var press := InputEventMouseButton.new()
+		press.button_index = MOUSE_BUTTON_LEFT
+		press.pressed = true
+		press.position = Vector2.ZERO
+		var release := InputEventMouseButton.new()
+		release.button_index = MOUSE_BUTTON_LEFT
+		release.pressed = false
+		release.position = Vector2.ZERO
 
-				# Verify signal was emitted (guard against freed instance)
-				if is_instance_valid(card_instance):
-					# Use assert_signal pattern instead of deprecated get_signal_count
-					assert_signal(card_instance).is_emitted("card_tapped")
+		card_instance.gui_input.emit(press)
+		card_instance.gui_input.emit(release)
+		await get_tree().process_frame
+
+		if is_instance_valid(card_instance):
+			assert_int(fired[0]).override_failure_message(
+				"card_tapped fired %d times for one tap (expected 1)." % fired[0]
+			).is_equal(1)
 
 func test_view_details_button_emits_signal() -> void:
 	"""Test 8/13: View Details button emits view_details_pressed signal"""

@@ -1,5 +1,11 @@
 # MainMenu.gd
 extends Control
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+
+## Safe-area insets. Preloaded by PATH rather than the bare `PortraitChrome`
+## identifier, matching how this project loads UI classes into screens.
+const PortraitChromeRef := preload("res://src/ui/components/base/PortraitChrome.gd")
 
 ## Alpha-1 build scope. The closed alpha validates the Standard 5PFH loop plus
 ## the Battle Simulator, so the other gamemodes are hidden from the menu. Bug
@@ -86,6 +92,10 @@ func setup(manager: Node) -> void:
 	update_continue_button_visibility()
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so placement here is
+	# equivalent to placing it last and cannot land before the children exist.
+	call_deferred("_open_touch_chain")
 	# Check legal consent before showing menu
 	var consent_mgr := get_node_or_null("/root/LegalConsentManager")
 	if consent_mgr and consent_mgr.needs_legal_consent():
@@ -1540,6 +1550,20 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 	var half_w: float = ds.x * 0.5
 	var half_h: float = ds.y * 0.5
 	var margin := 12.0
+	# ⚠ Until 2026-09-08 `margin` was the ONLY spacing rule on the first screen the
+	# app shows, and it knew nothing about a notch, a status bar or a gesture bar --
+	# MainMenu has no MarginContainer, does not extend CampaignScreenBase, and never
+	# calls ScreenChrome.apply_page_chrome, so it had NO safe-area path of any kind.
+	# `_top_right_overlay_bottom()` below looks like OS-chrome avoidance and is not:
+	# it only reserves room for the app's OWN gear/bug band.
+	# The inset is a FLOOR, never additive (see PortraitChrome). Every inset is 0 on
+	# desktop AND under screen/immersive_mode, so all four collapse to 12.0 there and
+	# this is a strict no-op off-device.
+	var _sa := PortraitChromeRef.safe_area_insets_design_px(vp)
+	var margin_l := maxf(margin, float(_sa["left"]))
+	var margin_r := maxf(margin, float(_sa["right"]))
+	var margin_t := maxf(margin, float(_sa["top"]))
+	var margin_b := maxf(margin, float(_sa["bottom"]))
 	# Wrap rather than overflow: a box that is too narrow costs a second line, not
 	# clipped glyphs.
 	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1553,12 +1577,12 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 		title.anchor_left = 0.5
 		title.anchor_right = 0.5
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.offset_left = -(half_w - margin)
-		title.offset_right = half_w - margin
+		title.offset_left = -(half_w - margin_l)
+		title.offset_right = half_w - margin_r
 		# A full-width title spans under the top-right overlay strip, so start below
 		# it. The landscape branch instead sits in the left gutter, which never
 		# reaches that far right, and needs no such offset.
-		title.offset_top = maxf(margin, _top_right_overlay_bottom() + margin)
+		title.offset_top = maxf(margin_t, _top_right_overlay_bottom() + margin)
 		# Reserve two wrapped lines. Derived from the font metrics rather than
 		# get_combined_minimum_size(), which still reports the UNWRAPPED single-line
 		# height until the next layout pass.
@@ -1568,31 +1592,31 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 		menu_scroll.anchor_right = 0.5
 		menu_scroll.anchor_top = 0.5
 		menu_scroll.anchor_bottom = 0.5
-		menu_scroll.offset_left = -minf(160.0, half_w - margin)
-		menu_scroll.offset_right = minf(160.0, half_w - margin)
+		menu_scroll.offset_left = -minf(160.0, half_w - margin_l)
+		menu_scroll.offset_right = minf(160.0, half_w - margin_r)
 		# Start below the title instead of centring over it.
 		menu_scroll.offset_top = (title.offset_bottom + margin) - half_h
-		menu_scroll.offset_bottom = (ds.y - margin) - half_h
+		menu_scroll.offset_bottom = (ds.y - margin_b) - half_h
 	else:
 		# Landscape/wide: right-aligned buttons (original layout)
 		menu_scroll.anchor_left = 1.0
 		menu_scroll.anchor_right = 1.0
 		menu_scroll.anchor_top = 0.5
 		menu_scroll.anchor_bottom = 0.5
-		var col_w: float = minf(400.0, half_w - margin)
+		var col_w: float = minf(400.0, half_w - margin_r)
 		menu_scroll.offset_left = -col_w
-		menu_scroll.offset_right = -minf(50.0, margin)
+		menu_scroll.offset_right = -minf(50.0, margin_r)
 		# Taller bounds so the full ~10-item menu column (Continue…Library) fits
 		# without clipping top/bottom at 720p -- but CLAMPED to the design space. A
 		# phone on its side is 851dp wide, so it lands in the DESKTOP bucket and runs
 		# this branch with only ~339 design px of HEIGHT, where the fixed +-340
 		# column overflowed 170px off BOTH ends. Measured via MCP at 851x393.
-		var col_half: float = minf(340.0, half_h - margin)
+		var col_half: float = minf(340.0, half_h - maxf(margin_t, margin_b))
 		# The column is right-aligned, so on a SHORT landscape its top rises into the
 		# reserved top-right band and the "Report a Bug" button lands on the first
 		# menu item. Clamp the top below that band; on a full-height desktop window
 		# the column already starts lower and this changes nothing.
-		menu_scroll.offset_top = maxf(-col_half, (_top_right_overlay_bottom() + margin) - half_h)
+		menu_scroll.offset_top = maxf(-col_half, (_top_right_overlay_bottom() + margin_t) - half_h)
 		menu_scroll.offset_bottom = col_half
 
 		# The centred title is only safe when the free LEFT gutter beside the
@@ -1614,10 +1638,10 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 			title.anchor_left = 0.0
 			title.anchor_right = 0.0
 			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-			title.offset_left = margin
+			title.offset_left = margin_l
 			# Stop short of the button column's left edge (ds.x - col_w).
 			title.offset_right = maxf(margin + 120.0, ds.x - col_w - margin)
-			title.offset_top = margin
+			title.offset_top = margin_t
 			title.offset_bottom = margin + line_h * 3.0
 		else:
 			title.anchor_left = 0.5
@@ -1625,11 +1649,11 @@ func _on_viewport_resized(_cols: int = 0) -> void:
 			title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			# 400 when there is room (unchanged on desktop), clamped when there is
 			# not: the old fixed 800px box overflowed a 733px design space.
-			var wide_box: float = minf(400.0, half_w - margin)
+			var wide_box: float = minf(400.0, half_w - maxf(margin_l, margin_r))
 			title.offset_left = -wide_box
 			title.offset_right = wide_box
-			title.offset_top = 50.0
-			title.offset_bottom = 50.0 + maxf(100.0, line_h * 2.0)
+			title.offset_top = maxf(50.0, margin_t)
+			title.offset_bottom = maxf(50.0, margin_t) + maxf(100.0, line_h * 2.0)
 
 	# Fill-or-scroll. A ScrollContainer sizes its child to the child's MINIMUM on
 	# the scrolling axis, which would collapse every button to its 48px floor and
@@ -1721,3 +1745,21 @@ func _navigate_with_loading(
 		request_scene_change(scene_name)
 		return
 	router.navigate_to_with_loading(scene_name, tasks)
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

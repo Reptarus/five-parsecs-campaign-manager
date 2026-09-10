@@ -20,6 +20,8 @@ const TOUCH_TARGET_MIN := 48  # Minimum interactive element height (8px grid, Sp
 
 # Event bus integration
 const CampaignTurnEventBus = preload("res://src/core/events/CampaignTurnEventBus.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 var event_bus: CampaignTurnEventBus = null
 var _event_subscriptions: Array[Dictionary] = []
 
@@ -32,6 +34,9 @@ var feature_enabled: bool = true
 var _lifecycle_started: bool = false
 
 func _ready() -> void:
+	# §2: open the touch chain for all NINE world-phase components.
+	# call_deferred runs after _ready() returns, so subclass setup has happened.
+	call_deferred("_open_touch_chain")
 	if component_name.is_empty():
 		component_name = name
 	if not feature_enabled:
@@ -199,3 +204,16 @@ func _show_help_dialog(title: String, content: String) -> void:
 	rtl.text = content
 	_help_dialog.add_child(rtl)
 	_help_dialog.popup_centered()
+
+
+## §2: let a touch-drag over this component's content reach the owning ScrollContainer.
+##
+## Lives on the base so all nine world-phase components get it, the same way they share
+## `_subscribe()`, `TOUCH_TARGET_MIN` and `_show_help_dialog()`.
+##
+## ⚠ Subclasses that build panels CONDITIONALLY must call this again from the builder.
+## `UpkeepPhaseComponent._build_travel_section()` does: its Red Zone / Black Zone buttons
+## only exist at 10+ turns with a licence, so a ready-time sweep cannot see them, and a
+## fresh-campaign desk test cannot either.
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

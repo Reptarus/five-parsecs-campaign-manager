@@ -64,6 +64,23 @@ func generate_battle_context(config: Dictionary) -> Dictionary:
 	var enemies: Array = _generate_enemy_squad(enemy_type, difficulty)
 	var mission: Dictionary = _generate_mission(mission_type, enemy_type)
 
+	# T11-49: DECLARE that this battle owns no campaign state.
+	#
+	# TacticalBattleUI is shared with the campaign and decided ownership by ABSENCE -
+	# no `battle_mode`, and no `GameState.current_campaign`. Battle Simulator sets no
+	# battle_mode, and `GameState._try_auto_load_last_campaign()` (:150) puts a
+	# campaign in current_campaign at EVERY launch, gating only on `last_campaign`
+	# being non-empty - so the second signal can never fire once the player has any
+	# save. Measured on deploy #28: a Battle Simulator battle checkpointed itself into
+	# `campaign.progress_data["active_battle"]`, and ERASED it on Return.
+	#
+	# ⚠ Deliberately NOT `battle_mode`. That field routes
+	# `BattleResolverRouter.resolve()` and vetoes the narrative wrap
+	# (`CampaignTurnController._should_present_narrative_wrap` treats any non-empty,
+	# non-"standard" value as another gamemode), so stamping a mode here would change
+	# auto-resolve behaviour as a side effect of a data-safety fix.
+	mission["standalone"] = true
+
 	return {
 		"crew": crew,
 		"enemies": enemies,

@@ -1,9 +1,12 @@
 extends FiveParsecsCampaignPanel
 
-## T11-28. Neither file declares a class_name, so both must be preloaded.
+## T11-28. TapGesture declares no class_name, so it must be preloaded.
 const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
-const TouchScrollOpenerRef = preload(
-	"res://src/ui/components/common/TouchScrollOpener.gd")
+
+## ⚠ TouchScrollOpenerRef is NOT declared here — it is INHERITED from
+## FiveParsecsCampaignPanel, whose _fix_touch_scroll_filters() now delegates to it.
+## Re-declaring it is a PARSE ERROR ("already exists in parent class"), which makes
+## this whole screen render as a single node with no other symptom.
 
 ## Responsive item list for a single compendium category.
 ## Shows filter tabs (with humanized labels), search within category,
@@ -34,6 +37,14 @@ var _style_row_odd: StyleBoxFlat
 
 
 func _ready() -> void:
+	# §2 touch chain. This screen SKIPS super._ready() (see below) and hand-invokes
+	# the parts of the base _ready() it needs, so BaseCampaignPanel's own
+	# call_deferred("_fix_touch_scroll_filters") never fires here — same omission as
+	# the reserve_band_on() call further down.
+	#
+	# ⚠ The open_subtree(_item_list) call in _rebuild_list() is NOT a substitute: it
+	# opens ONE of this screen's two ScrollContainers, so the other stayed swallowed.
+	call_deferred("_fix_touch_scroll_filters")
 	_provider = CompendiumDataProvider.new()
 	_init_row_styles()
 	_load_from_context()

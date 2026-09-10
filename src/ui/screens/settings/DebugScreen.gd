@@ -7,7 +7,12 @@ extends Control
 
 signal back_requested
 
-# Ring buffer for captured log messages
+const BugReportContextRef = preload("res://src/core/support/BugReportContext.gd")
+
+## In-process ring buffer. ⚠ T11-50: `log_message()` below is its ONLY writer and has
+## ZERO callers anywhere in src/, so this is always empty. Kept as a hook rather than
+## deleted, but it must never again be the ONLY source this screen reads - see
+## _refresh_log() / _get_log_text(), which now read the real engine log first.
 static var _log_buffer: PackedStringArray = PackedStringArray()
 const MAX_LOG_LINES := 200
 
@@ -165,8 +170,20 @@ func _refresh_log() -> void:
 		return
 	_log_display.clear()
 
-	# Collect engine log + custom buffer
-	var lines: PackedStringArray = _log_buffer.duplicate()
+	# T11-50: read the REAL engine log. This comment used to say "engine log + custom
+	# buffer" while reading ONLY `_log_buffer`, which has no writer - so the pane read
+	# "No log entries captured yet." on every session, on a screen whose own text tells
+	# the user to "Copy the log below and include it when reporting bugs".
+	#
+	# ⭐ Half of this was already known AT THE WRONG SITE: BugReportContext
+	# .read_log_tail() carries the note "DebugScreen._log_buffer looks like the right
+	# source but is never written to from anywhere in src/, so it is always empty. This
+	# reads the real engine log instead." The bug REPORTER was fixed; this screen, the
+	# one that actually asks the user to copy a log, was not. A note recording a defect
+	# beside the code that works around it does not fix the code that still has it.
+	var lines: PackedStringArray = BugReportContextRef.read_log_tail(MAX_LOG_LINES)
+	if lines.is_empty():
+		lines = _log_buffer.duplicate()
 
 	# Add system info header
 	_log_display.append_text(
@@ -211,7 +228,12 @@ func _get_log_text() -> String:
 	text += "App: v%s\n" % version
 	text += "Display: %s\n" % str(DisplayServer.window_get_size())
 	text += "---\n"
-	for line: String in _log_buffer:
+	# T11-50: same source as the on-screen pane, or COPY TO CLIPBOARD and EMAIL
+	# SUPPORT ship the 4-line header and nothing else.
+	var tail: PackedStringArray = BugReportContextRef.read_log_tail(MAX_LOG_LINES)
+	if tail.is_empty():
+		tail = _log_buffer.duplicate()
+	for line: String in tail:
 		text += line + "\n"
 	return text
 

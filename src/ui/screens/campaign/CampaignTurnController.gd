@@ -1,5 +1,7 @@
 class_name FPCM_CampaignTurnController
 extends Control
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 ## Production-Ready Campaign Turn Orchestrator
 ## Connects CampaignPhaseManager with UI components for complete turn flow
@@ -72,6 +74,10 @@ signal phase_transition_started(from_phase: String, to_phase: String)
 signal phase_transition_completed(phase: String)
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so placement here is
+	# equivalent to placing it last and cannot land before the children exist.
+	call_deferred("_open_touch_chain")
 	_validate_dependencies()
 
 	# Ensure phase manager is initialized with current campaign
@@ -3067,3 +3073,21 @@ func _on_error(error_message: String) -> void:
 	error_dialog.dialog_text = "Campaign Error: %s" % error_message
 	add_child(error_dialog)
 	error_dialog.popup_centered()
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

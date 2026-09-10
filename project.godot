@@ -106,6 +106,7 @@ theme/custom="res://src/ui/themes/sci_fi_theme.tres"
 
 [input_devices]
 
+pointing/android/enable_pan_and_scale_gestures=true
 pointing/emulate_touch_from_mouse=true
 
 [physics]
@@ -114,6 +115,7 @@ common/physics_ticks_per_second=30
 
 [rendering]
 
+renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.0392157, 0.0509804, 0.0784314, 1)
 

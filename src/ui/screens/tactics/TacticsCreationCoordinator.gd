@@ -207,22 +207,17 @@ func finalize() -> void:
 	# Create campaign units from roster entries
 	var campaign_units: Array = []
 	for entry_dict in roster_entries:
-		var unit_dict: Dictionary = {
-			"unit_id": _CampaignUnit.generate_id(),
-			"custom_name": entry_dict.get("display_name", ""),
-			"base_unit_id": entry_dict.get("unit_id", ""),
-			"species_id": species_id,
-			"campaign_points": 0,
-			"campaign_points_spent": 0,
-			"battles_fought": 0,
-			"battles_won": 0,
-			"objectives_completed": 0,
-			"models_lost_total": 0,
-			"current_models": entry_dict.get("model_count", 5),
-			"is_destroyed": false,
-			"selected_upgrades": entry_dict.get("selected_upgrades", []),
-		}
-		campaign_units.append(unit_dict)
+		# ⚠ Built by TacticsCampaignUnit, not by a literal here. This used to be a
+		# hand-written dictionary — a SECOND definition of the record shape beside
+		# the one in TacticsCampaignUnit, which is how the two drifted apart and
+		# how a fabricated-CP cleanup in that file left this creation path loading a
+		# script that no longer parsed.
+		campaign_units.append(_CampaignUnit.new_unit(
+			str(entry_dict.get("unit_id", "")),
+			species_id,
+			str(entry_dict.get("display_name", "")),
+			int(entry_dict.get("model_count", 5)),
+			entry_dict.get("selected_upgrades", [])))
 	campaign.initialize_campaign_units(campaign_units)
 
 	# Initialize empty operational map

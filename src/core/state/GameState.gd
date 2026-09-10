@@ -72,11 +72,35 @@ const WINDOW_CONFIG_PATH := "user://window.ini"
 ## Three legacy keys are intentionally dropped during migration —
 ## see SettingsManager.LEGACY_KEY_MAP for the migration map.
 
+## Keys an older build wrote to user://settings.cfg that are no longer part of
+## `default_settings`. load_settings() ERASES them rather than copying them
+## forward — see the note at the erase site for why a retired key is otherwise
+## immortal once it has been on disk.
+##
+## `auto_load_last_campaign` is the key that made this list necessary. It was
+## declared here, persisted on every save, and read by NOBODY, while
+## _try_auto_load_last_campaign() loaded a campaign at every launch regardless.
+## That is the root enabler of T11-49 (a standalone Battle Simulator battle
+## erasing the campaign's in-progress battle, because "is there a campaign?"
+## answered yes when the player had opened none) and of the cross-suite context
+## bleed that made test_touch_scroll_sweep fail only after the Tactics suites.
+##
+## ⚠ DROPPED, NOT RENAMED WITH ITS VALUE. Every install that has run this app
+## has `auto_load_last_campaign=false` on disk, and that false is not a player
+## choice — it is a default nothing ever honoured. Carrying it across would hide
+## Continue on every existing device the first time the setting became live.
+const LEGACY_SETTINGS_KEYS: PackedStringArray = ["auto_load_last_campaign"]
+
 # Settings with defaults
 var default_settings := {
 	"last_campaign": "",
 	"recently_used_campaigns": [],
-	"auto_load_last_campaign": false,
+	## Honoured by _try_auto_load_last_campaign(). TRUE is the behaviour this app
+	## has always had, so flipping the setting live changes nothing until a player
+	## turns it off. Off means no campaign is in memory at launch: Continue is
+	## hidden (MainMenu.update_continue_button_visibility() reads
+	## has_active_campaign()) and Load Campaign is the way back in.
+	"continue_last_campaign_on_launch": true,
 	"backup_save_count": 3,
 	"last_directory": "user://",
 	"created_campaigns_count": 0
@@ -147,7 +171,23 @@ func load_campaign_typed(path: String) -> Resource:
 	return FiveParsecsCampaignCore.load_from_file(path)
 
 
+## Put the player's last campaign back in memory at launch, if they want that.
+##
+## ⚠ THE SETTING GATE IS LOAD-BEARING, not a formality. Without it this runs for
+## every launch of every mode, and `current_campaign` is then non-null before the
+## player has opened anything — which is the state T11-49 mistook for "this
+## campaign is mine" and used to erase an in-progress battle from a standalone
+## Battle Simulator session.
+##
+## ⚠ Read from `game_settings`, NOT from SettingsManager. This runs inside
+## GameState._init(), before this autoload is attached to the tree, so a
+## get_node_or_null("/root/SettingsManager") here would not return null — it
+## ERRORS and aborts the enclosing function. load_settings() populates
+## game_settings on the line above the call site; that is the only source that
+## is definitely readable at this point in boot.
 func _try_auto_load_last_campaign() -> void:
+	if not bool(game_settings.get("continue_last_campaign_on_launch", true)):
+		return
 	var last_id: String = game_settings.get("last_campaign", "")
 	if last_id.is_empty():
 		return
@@ -264,8 +304,31 @@ func load_settings() -> bool:
 	if config.has_section("settings"):
 		for key in config.get_section_keys("settings"):
 			game_settings[key] = config.get_value("settings", key)
+
+	# ⚠ The loop above copies EVERY key present in the file, not only the known
+	# ones, and save_settings() writes the whole dict straight back out. So a key
+	# that has been on disk once is immortal unless it is erased here — which is
+	# how `auto_load_last_campaign` survived months with no reader.
+	for stale: String in LEGACY_SETTINGS_KEYS:
+		game_settings.erase(stale)
 			
 	return true
+
+## Whether the last campaign is restored into memory at launch.
+## Owned here rather than by SettingsManager because the value must be readable
+## from GameState._init(), before any autoload lookup is legal — see
+## _try_auto_load_last_campaign().
+func is_continue_on_launch_enabled() -> bool:
+	return bool(game_settings.get("continue_last_campaign_on_launch", true))
+
+
+## Set the launch-continue preference and persist it immediately.
+## Takes effect on the NEXT launch; the campaign already in memory is untouched,
+## because dropping it here would strand whatever screen the player is on.
+func set_continue_on_launch(enabled: bool) -> bool:
+	game_settings["continue_last_campaign_on_launch"] = enabled
+	return save_settings()
+
 
 ## save_options() / load_options() removed — SettingsManager autoload owns
 ## user://options.cfg and handles load + boot apply + live save. See its

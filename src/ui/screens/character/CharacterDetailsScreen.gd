@@ -2,6 +2,8 @@
 # Allows editing character properties and equipment
 class_name CharacterDetailsScreen
 extends Control
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 # ============ PRELOADS ============
 const CharacterCard = preload("res://src/ui/components/character/CharacterCard.gd")
@@ -99,7 +101,13 @@ var _crew_list: Array[Dictionary] = []
 var _current_index: int = 0
 var _touch_start: Vector2 = Vector2.ZERO
 var _touch_start_time: float = 0.0
+## Furthest travel seen since the finger went down. Tracked from ScreenDrag as
+## well as from the release position, because a fling's release can land back
+## near the start while the drag itself covered the whole screen.
+var _touch_travel: Vector2 = Vector2.ZERO
+var _touch_index: int = -1
 var _page_dots_container: HBoxContainer = null
+var _page_dots_row: HBoxContainer = null
 
 ## The way out.
 ##
@@ -135,6 +143,10 @@ func _sync_header_title() -> void:
 
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so placement here is
+	# equivalent to placing it last and cannot land before the children exist.
+	call_deferred("_open_touch_chain")
 	_apply_screen_background()
 
 	# Portrait de-clip: 32px margins on both sides is 64 of a phone's ~310 design px,
@@ -338,8 +350,12 @@ func load_character_data() -> void:
 
 
 	# Store original data for cancel
-	if current_character.has_method("to_dictionary"):
+	if _char_has("to_dictionary"):
 		original_data = current_character.to_dictionary()
+	elif current_character is Dictionary:
+		# A loaded save's crew member IS the dictionary. Deep-duplicate it, or the
+		# "original" would alias the live object and Cancel would restore the edits.
+		original_data = current_character.duplicate(true)
 	else:
 		original_data = {}
 
@@ -370,12 +386,23 @@ func populate_ui() -> void:
 		if hero_card.has_method("set_variant"):
 			hero_card.set_variant(
 				CharacterCard.CardVariant.STANDARD)
-	# Portrait upload button (overlay on HeroCard)
-	if not hero_card.get_node_or_null("__ChangePortraitBtn"):
-		_setup_portrait_upload()
-	# Print Sheet button (overlay on HeroCard, mirror of Change Portrait)
+	# Portrait upload + Print Sheet buttons (overlay on HeroCard).
 	# Item 3 / sheet export SOP — May 23 2026
-	if not hero_card.get_node_or_null("__PrintSheetBtn"):
+	#
+	# ⚠ THESE GUARDS MUST LOOK IN THE OVERLAY, NOT ON hero_card. Both buttons are
+	# added to `__HeroOverlay` (see _get_or_create_hero_overlay — hero_card is a
+	# Container and would override their anchors), so the old
+	# `hero_card.get_node_or_null("__ChangePortraitBtn")` was a DIRECT-CHILD lookup
+	# for a grandchild: permanently null, so the guard never fired. It cost nothing
+	# while populate_ui() ran once per screen entry — the crew pager made it
+	# re-entrant, and every page turn then leaked another button onto the card.
+	# Measured on deploy #35: a stray clipped "Change Portrait" at the card's top
+	# edge. The copies stack at one anchored position, so N buttons look like one
+	# and the count alone never gives it away.
+	var hero_overlay := _get_or_create_hero_overlay()
+	if hero_overlay and not hero_overlay.get_node_or_null("__ChangePortraitBtn"):
+		_setup_portrait_upload()
+	if hero_overlay and not hero_overlay.get_node_or_null("__PrintSheetBtn"):
 		_setup_print_sheet_button()
 	# Status summary bar
 	_build_status_bar()
@@ -888,8 +915,14 @@ func _on_cancel_pressed() -> void:
 
 	# Restore original data if possible
 	if current_character and not original_data.is_empty():
-		if current_character.has_method("from_dictionary"):
+		if _char_has("from_dictionary"):
 			current_character.from_dictionary(original_data)
+		elif current_character is Dictionary:
+			# Restore IN PLACE so every other holder of this dictionary sees it.
+			# Safe to clear first: original_data is a deep duplicate taken above, not
+			# a view onto this object.
+			current_character.clear()
+			current_character.merge(original_data)
 
 	# Return to crew management
 	return_to_crew_management()
@@ -1014,11 +1047,16 @@ func _sync_character_to_source_dict() -> void:
 	# later. Equipment is absent from the list because this screen never edits the
 	# local copy — add/remove both route through EquipmentTransferService against
 	# the LIVE campaign (see _on_add_equipment_pressed / _on_remove_equipment_pressed).
-	if current_character.has_method("to_dictionary"):
-		var updated: Dictionary = current_character.to_dictionary()
-		for key in EDITABLE_KEYS:
-			if updated.has(key):
-				source_dict[key] = updated[key]
+	var updated: Dictionary = {}
+	if _char_has("to_dictionary"):
+		updated = current_character.to_dictionary()
+	elif current_character is Dictionary:
+		# Already the canonical shape. No duplicate needed — the loop below only
+		# READS from it, copying the whitelisted keys into source_dict.
+		updated = current_character
+	for key in EDITABLE_KEYS:
+		if updated.has(key):
+			source_dict[key] = updated[key]
 
 	# NOTE: the temp handle is deliberately NOT cleared here. This runs more than
 	# once per visit (a training purchase persists immediately, and Save persists
@@ -1841,7 +1879,7 @@ func _on_training_pressed(training_type: String) -> void:
 
 	# Apply training through the canonical mutator (Character.add_training,
 	# Compendium p.27), which owns the duplicate check.
-	if current_character.has_method("add_training"):
+	if _char_has("add_training"):
 		current_character.add_training(training_type)
 	elif "acquired_training" in current_character:
 		current_character.acquired_training.append(training_type)
@@ -2172,23 +2210,77 @@ func _on_history_back() -> void:
 
 # ── Crew Swipe Navigation ─────────────────────────────────────────
 
-func _unhandled_input(event: InputEvent) -> void:
+## Horizontal fling = previous/next crew member.
+##
+## ⚠ THIS MUST BE `_input()`, NOT `_unhandled_input()`. `_unhandled_input` only
+## receives what no Control consumed, and this screen's sheet lives in a
+## ScrollContainer, whose `gui_input` claims InputEventScreenTouch and
+## InputEventScreenDrag for its own touch-drag scrolling and accept_event()s
+## them. So the gesture was consumed one layer above the handler on every
+## touchscreen — the feature could not fire, ever.
+##
+## ⚠ It is also NOT fixable with mouse filters. The §2 touch sweep converts STOP
+## to PASS so a drag can REACH the ScrollContainer; here the ScrollContainer is
+## precisely the control that wants the event. `_input()` runs before GUI
+## delivery, which is the only place the whole gesture is visible.
+##
+## ⚠ NOTHING IS CONSUMED, deliberately. `emulate_mouse_from_touch` synthesises a
+## SEPARATE InputEventMouseButton for the same finger, pushed independently, so
+## set_input_as_handled() on the touch event would not suppress the emulated
+## click anyway — it would only leave the ScrollContainer holding a press whose
+## release it never saw. The thresholds are the discrimination instead: a 96 px
+## horizontal fling completed inside 0.4 s, at least twice as wide as it is tall.
+## A BaseButton needs press AND release inside itself to fire, so a gesture that
+## travels that far leaves any realistic control before it ends.
+func _input(event: InputEvent) -> void:
 	if _crew_list.size() <= 1:
 		return
 	if event is InputEventScreenTouch:
-		if event.pressed:
-			_touch_start = event.position
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			# Track ONE finger. A second pointer means a pinch or a two-finger
+			# scroll, neither of which should page the roster.
+			if _touch_index != -1:
+				_touch_index = -2  # poisoned for the rest of this gesture
+				return
+			_touch_index = touch.index
+			_touch_start = touch.position
+			_touch_travel = Vector2.ZERO
 			_touch_start_time = Time.get_ticks_msec() / 1000.0
 		else:
-			var delta: Vector2 = event.position - _touch_start
+			var tracked: bool = (_touch_index == touch.index)
+			var delta: Vector2 = touch.position - _touch_start
+			if absf(_touch_travel.x) > absf(delta.x):
+				delta = _touch_travel
 			var duration := Time.get_ticks_msec() / 1000.0 - _touch_start_time
-			# Swipe: fast, horizontal, not diagonal
-			if duration < 0.4 and absf(delta.x) > 80.0 and absf(delta.x) > absf(delta.y) * 2.0:
-				if delta.x < 0.0:
-					_navigate_crew(1)   # Swipe left = next
-				else:
-					_navigate_crew(-1)  # Swipe right = prev
-	elif event is InputEventKey and event.pressed and not event.echo:
+			_touch_index = -1
+			_touch_travel = Vector2.ZERO
+			if tracked and _is_page_swipe(delta, duration):
+				_navigate_crew(1 if delta.x < 0.0 else -1)
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if drag.index == _touch_index:
+			var travelled: Vector2 = drag.position - _touch_start
+			if absf(travelled.x) > absf(_touch_travel.x):
+				_touch_travel = travelled
+
+
+## Fast, wide, and clearly horizontal. 96 px is 2x the 48 px touch target, and
+## 6x gui/common/default_scroll_deadzone — well clear of anything a tap or a
+## vertical scroll produces sideways.
+func _is_page_swipe(delta: Vector2, duration: float) -> bool:
+	return duration < 0.4 \
+		and absf(delta.x) > 96.0 \
+		and absf(delta.x) > absf(delta.y) * 2.0
+
+
+## Keyboard paging stays in _unhandled_input ON PURPOSE: a focused LineEdit (this
+## screen edits the character name) consumes Left/Right for its caret, and moving
+## this to _input() would page the roster mid-word.
+func _unhandled_input(event: InputEvent) -> void:
+	if _crew_list.size() <= 1:
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_RIGHT:
 			_navigate_crew(1)
 		elif event.keycode == KEY_LEFT:
@@ -2216,15 +2308,41 @@ func _navigate_crew(direction: int) -> void:
 	populate_ui()
 	_update_page_dots()
 
+## The roster pager: ‹ dots ›, pinned under the sheet.
+##
+## ⚠ IT GOES IN `MarginContainer/PageColumn`, NOT ON THE SCREEN ROOT. The root is
+## a bare `Control`, which does not lay out its children — the old
+## `add_child(self)` put the dot row at (0,0), on top of the header, instead of
+## under the sheet. PageColumn is the VBox `_build_screen_header()` already uses,
+## and appending puts the row below the ScrollContainer, where it stays put while
+## the sheet scrolls.
+##
+## ⚠ THE ARROWS ARE NOT DECORATION. The swipe is invisible: nothing on screen
+## says the roster can be paged, and a gesture nobody knows about is
+## indistinguishable from one that does not work — which is how this feature sat
+## broken without being reported. The buttons also give touch a route that does
+## not depend on winning an argument with the ScrollContainer.
 func _build_page_dots() -> void:
+	if _page_dots_row and is_instance_valid(_page_dots_row):
+		_page_dots_row.queue_free()
+		_page_dots_row = null
+	_page_dots_container = null
 	if _crew_list.size() <= 1:
 		return
-	if _page_dots_container and is_instance_valid(_page_dots_container):
-		_page_dots_container.queue_free()
+
+	_page_dots_row = HBoxContainer.new()
+	_page_dots_row.name = "__page_dots_row"
+	_page_dots_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	_page_dots_row.add_theme_constant_override("separation", 12)
+	_page_dots_row.add_child(_build_page_arrow("\u2039", -1, "Previous crew member"))
+
 	_page_dots_container = HBoxContainer.new()
 	_page_dots_container.name = "__page_dots"
 	_page_dots_container.alignment = BoxContainer.ALIGNMENT_CENTER
 	_page_dots_container.add_theme_constant_override("separation", 8)
+	_page_dots_row.add_child(_page_dots_container)
+	_page_dots_row.add_child(_build_page_arrow("\u203a", 1, "Next crew member"))
+
 	for i in _crew_list.size():
 		var dot := Label.new()
 		dot.text = "\u25cf" if i == _current_index else "\u25cb"
@@ -2232,14 +2350,39 @@ func _build_page_dots() -> void:
 		dot.add_theme_color_override("font_color",
 			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)
 		_page_dots_container.add_child(dot)
-	# Add at the bottom of the screen
-	add_child(_page_dots_container)
+
+	var column := get_node_or_null("MarginContainer/PageColumn")
+	if column == null:
+		# No PageColumn means the scene changed shape under us. Drop the pager
+		# rather than parking it at (0,0) over the header, which is what the
+		# previous add_child(self) did unconditionally.
+		_page_dots_row.queue_free()
+		_page_dots_row = null
+		_page_dots_container = null
+		return
+	column.add_child(_page_dots_row)
+
+
+## One pager arrow. TOUCH_TARGET_MIN square so a thumb can actually hit it.
+func _build_page_arrow(glyph: String, direction: int, accessible: String) -> Button:
+	var btn := Button.new()
+	btn.text = glyph
+	btn.tooltip_text = accessible
+	btn.focus_mode = Control.FOCUS_NONE
+	btn.custom_minimum_size = Vector2(TOUCH_TARGET_MIN, TOUCH_TARGET_MIN)
+	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(20))
+	btn.add_theme_color_override("font_color", COLOR_FOCUS)
+	btn.pressed.connect(func(): _navigate_crew(direction))
+	return btn
 
 func _update_page_dots() -> void:
 	if _crew_list.size() <= 1:
-		if _page_dots_container and is_instance_valid(_page_dots_container):
-			_page_dots_container.queue_free()
-			_page_dots_container = null
+		# Free the ROW, not just the dots — the arrows live on the row, and freeing
+		# only the inner container would leave ‹ › paging a one-member roster.
+		if _page_dots_row and is_instance_valid(_page_dots_row):
+			_page_dots_row.queue_free()
+		_page_dots_row = null
+		_page_dots_container = null
 		return
 	if not _page_dots_container or not is_instance_valid(_page_dots_container):
 		_build_page_dots()
@@ -2250,3 +2393,38 @@ func _update_page_dots() -> void:
 		dot.text = "\u25cf" if i == _current_index else "\u25cb"
 		dot.add_theme_color_override("font_color",
 			COLOR_FOCUS if i == _current_index else COLOR_TEXT_DISABLED)
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)
+
+
+## True when `current_character` is an Object that answers to `method`.
+##
+## ⚠ **`current_character` is not always a Resource.** A FRESH campaign holds
+## `Character` Resources in `crew_data["members"]`; a LOADED save holds Dictionaries, and
+## crew members are canonically Dictionaries. `Dictionary` has no `has_method()`, so
+## `current_character.has_method(...)` is an **invalid call**, which unwinds the enclosing
+## function silently — the class-(b) abort. Everything after the guard is skipped and
+## nothing errors visibly, so the screen half-loads on exactly the saves real players use.
+##
+## Four sites called it directly: the cancel snapshot, the cancel restore, the
+## save-back sync, and the training purchase. The last of those already HAD a working
+## Dictionary branch (`elif "acquired_training" in current_character`) that could never
+## be reached, because the abort happened one line above it.
+func _char_has(method: String) -> bool:
+	return current_character is Object and current_character.has_method(method)

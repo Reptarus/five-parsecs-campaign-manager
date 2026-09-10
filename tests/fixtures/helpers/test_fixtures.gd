@@ -39,7 +39,7 @@ var current_campaign = null
 var game_settings = {
 	"last_campaign": "",
 	"recently_used_campaigns": [],
-	"auto_load_last_campaign": false,
+	"continue_last_campaign_on_launch": true,
 	"backup_save_count": 3,
 	"created_campaigns_count": 0
 }

@@ -151,19 +151,21 @@ size_flags_horizontal = 3
 [node name="Controls" type="VBoxContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
 
-[node name="AutomationContainer" type="HFlowContainer" parent="MarginContainer/VBoxContainer/Controls"]
+[node name="AutomationContainer" type="VBoxContainer" parent="MarginContainer/VBoxContainer/Controls"]
 layout_mode = 2
-alignment = 1
-
-[node name="AutomationLabel" type="Label" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
-layout_mode = 2
-text = "Automation:"
 
 [node name="AutomationToggle" type="CheckBox" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Enable Auto-Processing"
+
+[node name="AutomationHint" type="Label" parent="MarginContainer/VBoxContainer/Controls/AutomationContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.612, 0.639, 0.686, 1)
+theme_override_font_sizes/font_size = 12
+text = "Resolves each pre-battle step for you, pausing wherever a choice is yours to make. For going battle to battle without skipping campaign progress."
+autowrap_mode = 3
 
 [node name="StepNavigation" type="HFlowContainer" parent="MarginContainer/VBoxContainer/Controls"]
 unique_name_in_owner = true

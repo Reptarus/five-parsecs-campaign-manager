@@ -57,6 +57,12 @@ var _salvage_spin: SpinBox
 
 
 func _ready() -> void:
+	# §2 touch chain. This screen SKIPS super._ready() (see below) and hand-invokes
+	# the parts of the base _ready() it needs, so BaseCampaignPanel's own
+	# call_deferred("_fix_touch_scroll_filters") never fires here — same omission as
+	# the reserve_band_on() call further down. call_deferred runs after _ready()
+	# returns, so this still lands once _build_ui() has created the children.
+	call_deferred("_fix_touch_scroll_filters")
 	# Skip super._ready() panel structure — we build our own UI (GalaxyLogScreen pattern).
 	_ensure_base_background()
 	_setup_responsive_layout()
@@ -348,9 +354,56 @@ func _set_salvage_units(n: int) -> void:
 # CREW TAB
 # ============================================================================
 
+## Can this campaign's crew be edited here?
+##
+## The four crew methods this pane calls — get_crew_members / add_crew_member /
+## remove_crew_member / update_crew_member — are defined ONLY on
+## FiveParsecsCampaignCore. Bug Hunt keeps `main_characters` / `grunts`,
+## Planetfall a `roster`, Tactics `campaign_units` + `veteran_characters`; none of
+## them answers this API and the data models are deliberately incompatible.
+##
+## ⚠ ASK THE CAMPAIGN, do not infer from a mode string.
+##
+## ⚠ SCOPE, stated honestly: no PRODUCT path is known to reach here with a variant
+## core. MainMenu.gd:436-440 routes a boot-auto-loaded campaign to its own dashboard
+## by campaign_type, and this screen is reachable only from CampaignCreationUI and
+## CampaignDashboard, both 5PFH-only. This guard is DEFENCE IN DEPTH, not a fix for
+## a shipped bug — kept because GameState._try_auto_load_last_campaign() puts SOME
+## campaign in current_campaign at every launch regardless of type, and T11-49 is
+## what happens when a screen answers "is this campaign mine?" from an absence.
+##
+## Measured as `Nonexistent function 'get_crew_members' in base
+## 'Resource (TacticsCampaignCore)'` with a Tactics campaign in `last_campaign`.
+##
+## ⚠ A nonexistent method call ABORTS the enclosing function and the app keeps
+## running, so before this guard the crew list simply never populated and no error
+## reached the player. That is the failure mode to expect here, not a crash.
+func _campaign_supports_crew_editing() -> bool:
+	if _campaign == null:
+		return false
+	for m: String in ["get_crew_members", "add_crew_member",
+			"remove_crew_member", "update_crew_member"]:
+		if not _campaign.has_method(m):
+			return false
+	return true
+
+
 func _build_crew_pane() -> Control:
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", UIColors.SPACING_SM)
+
+	# An empty ItemList and three dead buttons read as a broken editor. Say what is
+	# actually true instead, and leave the Overview pane — which guards its writes
+	# with `"prop" in _campaign` and is safe on any core — fully usable.
+	if not _campaign_supports_crew_editing():
+		var note := Label.new()
+		note.text = ("Crew editing is available for Five Parsecs campaigns only.\n\n"
+			+ "The loaded campaign uses a different roster model, so its crew cannot "
+			+ "be edited here. Everything on the Overview tab still applies.")
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		vbox.add_child(note)
+		return vbox
 
 	_crew_list = ItemList.new()
 	_crew_list.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -392,7 +445,9 @@ func _build_crew_pane() -> Control:
 
 
 func _refresh_crew_list() -> void:
-	if _crew_list == null or _campaign == null:
+	# Belt-and-braces with the pane guard: this is reachable from every mutator
+	# below, and an abort here leaves a stale list rather than an empty one.
+	if _crew_list == null or not _campaign_supports_crew_editing():
 		return
 	_crew_list.clear()
 	for m in _campaign.get_crew_members():

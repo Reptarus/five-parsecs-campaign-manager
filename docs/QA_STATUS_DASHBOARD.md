@@ -90,10 +90,16 @@ hardcoded hex with no token and no contrast check), against card `#111827`:
 
 | element | ratio | verdict |
 |---|---|---|
-| header `#4FC3F7` (`:498`) | 8.85 | PASS AA |
-| win line `#10B981` (`:505`) | 6.99 | PASS AA |
-| **terrain rows `#808080` (`:514`)** | **4.49** | ⚠ **fails AA (4.5 needed)** |
+| header `#4FC3F7` (`:500`) | 8.85 | PASS AA |
+| win line `#10B981` (`:509`) | 6.99 | PASS AA |
+| **terrain rows (`:518`)** | **6.99** | ✅ **PASS AA — fixed 2026-09-07** |
 | bullet rows (theme default `#f3f4f6`) | 16.12 | PASS AA |
+
+⚠ **This table was measured BEFORE the fix and is restated here as shipped**
+(corrected 2026-09-08). The terrain row read `Color("#808080")` at `:514` and measured
+**4.49**, failing AA by 0.01; it now reads `UIColors.COLOR_TEXT_SECONDARY` (`#9ca3af`) at
+**`:518`** and measures **6.99**. Line numbers moved because the fix touched the same block —
+a stale row here would send the next reader to the wrong line AND the wrong colour.
 
 ⚠ **The row above was RIGHT about the measurement and WRONG about the scope, and the
 correction is the finding.** It was first written as "the terrain rows miss AA by 0.01",
@@ -1559,6 +1565,9 @@ the harness rather than the app:
    size measured, 1080p included. `MissionSelectionUI` was dropped from scope with its
    reason (all its controls live under a PopupPanel — a Window, which lays out against
    its own rect, so measuring it compared two coordinate spaces).
+   ⚠ **That screen has since been DELETED** (`a12a73fa1`, 2026-07-31) — noted 2026-09-08
+   because the sentence above reads as a still-deferred screen. The limitation it names is
+   general and still live: **no control hosted in a `Window` is measured by the sweep**.
 
 **Campaign state is now an explicit input**: `-- campaign=user://saves/x.save`. It used to
 be whatever the machine happened to have, and that mattered more than expected — a

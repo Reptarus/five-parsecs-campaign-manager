@@ -460,7 +460,7 @@ All items wired: JSON data + DLC gating + UI consumers + enforcement. Key fixes:
 
 | Mechanic | Status | Evidence |
 |---|---|---|
-| Battle type selection (Patron/Rival/Quest/Opportunity/Salvage) | **WIRED** | `JobOfferComponent` derives battle type, `WorldPhaseController` has `MissionSelectionUI` |
+| Battle type selection (Patron/Rival/Quest/Opportunity/Salvage) | **WIRED** | `JobOfferComponent` derives battle type. ⚠ This row used to add "`WorldPhaseController` has `MissionSelectionUI`" — corrected 2026-09-08: that screen was **deleted in `a12a73fa1` (2026-07-31)** and `WorldPhaseController._initialize_mission_selection()` was a `pass` even before that. The chapter is wired by `JobOfferComponent` ALONE; naming a second, dead collaborator made the row look better-supported than it is. |
 
 **Section 13 is fully WIRED.**
 

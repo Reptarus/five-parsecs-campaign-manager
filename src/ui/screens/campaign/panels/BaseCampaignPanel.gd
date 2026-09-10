@@ -10,6 +10,8 @@ class_name FiveParsecsCampaignPanel
 ## EquipmentManager, ShipManager and PatronRivalManager path-preload
 ## AdaptivePanelGroup.
 const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+const TouchScrollOpenerRef := preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 ## Minimal Base Campaign Panel - Framework Bible Compliant
 ## Simple interface for campaign creation panels - NO Enhanced bloat
@@ -882,22 +884,25 @@ func _create_section_card(title: String, content: Control, description: String =
 	return panel
 
 
+## Let a touch-drag started on decorative chrome reach the ScrollContainer that owns it.
+##
+## ⚠ **This carried its own copy of the sweep, and that copy was STRUCTURALLY UNABLE
+## to do the job.** Its recursion `return`ed — not skipped — on
+## `Button/LineEdit/TextEdit/SpinBox/OptionButton/CheckBox/CheckButton/ScrollContainer/
+## LinkButton`, so the walk STOPPED at the first `ScrollContainer` and never entered the
+## only place a swallowed drag can matter. `TouchScrollOpener` skips those classes and
+## keeps descending, which is the difference.
+##
+## It also enshrined the "interactive controls must keep STOP" rule that **T9-45
+## disproved**: CheckBox, SpinBox and OptionButton are all focusable and are exactly what
+## a finger lands on, and `MOUSE_FILTER_PASS` still offers the event to the control
+## FIRST — a widget that genuinely handles a drag keeps handling it, and a tap still
+## works because `BaseButton` clears `press_attempt` on `NOTIFICATION_SCROLL_BEGIN`.
+##
+## `WorldPhaseController._open_subtree()` made exactly this migration in Aug 2026 for
+## exactly this reason. These were the second and third copies of the superseded rule.
 func _fix_touch_scroll_filters() -> void:
-	## Recursively set MOUSE_FILTER_PASS on layout containers so touch scrolling
-	## works through cards/panels on mobile. Buttons and interactive controls keep STOP.
-	_apply_pass_filter_recursive(self)
-
-func _apply_pass_filter_recursive(node: Node) -> void:
-	if node is Button or node is LineEdit or node is TextEdit or node is SpinBox \
-		or node is OptionButton or node is CheckBox or node is CheckButton \
-		or node is ScrollContainer or node is LinkButton:
-		return  # Interactive controls must keep MOUSE_FILTER_STOP
-	if node is Control:
-		var ctrl := node as Control
-		if ctrl.mouse_filter == Control.MOUSE_FILTER_STOP:
-			ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
-	for child in node.get_children():
-		_apply_pass_filter_recursive(child)
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 ## The app's card look. Named "glass" for history — the 16px, part-transparent,
@@ -1013,8 +1018,16 @@ func _create_button_group_selector(options: Array, selected_index: int = 0) -> H
 	return container
 
 
-func _create_character_card(char_name: String, subtitle: String, stats: Dictionary = {}, portrait_path: String = "") -> PanelContainer:
+func _create_character_card(char_name: String, subtitle: String, stats: Dictionary = {}, portrait_path: String = "", identity_name: String = "") -> PanelContainer:
 	## Create a character card with portrait (custom image or colored initials).
+	##
+	## ⚠ `char_name` is the DISPLAY string and may carry decoration; `identity_name`
+	## is the bare character name. The avatar initial and the avatar COLOUR are both
+	## derived from the identity, never from the display string — T11-51: a caller
+	## passing `"[Captain] Bryn Ito"` rendered a literal `[` in the avatar and hashed
+	## a different colour than the same character shown anywhere else. Defaults to
+	## `char_name`, so a caller that does not decorate needs no change.
+	var identity := identity_name if not identity_name.is_empty() else char_name
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.custom_minimum_size.y = 100
@@ -1038,7 +1051,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 
 	var avatar_colors := [UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
 		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6")]
-	var color_idx := char_name.hash() % avatar_colors.size()
+	var color_idx := identity.hash() % avatar_colors.size()
 	if color_idx < 0:
 		color_idx += avatar_colors.size()
 
@@ -1067,7 +1080,7 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 
 	if not has_portrait:
 		var initial_label := Label.new()
-		initial_label.text = char_name.substr(0, 1).to_upper() if not char_name.is_empty() else "?"
+		initial_label.text = identity.substr(0, 1).to_upper() if not identity.is_empty() else "?"
 		initial_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		initial_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		initial_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(portrait_size * 0.45)))

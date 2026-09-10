@@ -372,7 +372,20 @@ func _pre_character_details() -> void:
 	# The three keys CharacterDetailsScreen.load_character_data() reads
 	# (CharacterDetailsScreen.gd:327-354). The swipe list is what gives the screen
 	# its pager chrome, so omitting it would measure a different screen.
-	gsm.set_temp_data("selected_character", crew[0])
+	#
+	# ⚠ **selected_character must be a Character, NOT the raw crew Dictionary.**
+	# Both production producers normalise before navigating —
+	# `CrewManagementScreen._on_card_view_details(character: Character)` takes a typed
+	# Character, and `_on_dict_card_tapped()` converts with `Character.new()` +
+	# `from_dictionary()` and stores the original under "source_crew_dict". Passing the
+	# dict here built a state the app cannot reach, and the screen then aborted on
+	# `current_character.has_method(...)` — Dictionary has no `has_method`, so it is an
+	# invalid call that unwinds the function. That looked like a live defect and was
+	# purely this fixture. Mirror the real navigator instead.
+	var member := Character.new()
+	member.from_dictionary(crew[0])
+	gsm.set_temp_data("selected_character", member)
+	gsm.set_temp_data("source_crew_dict", crew[0])
 	gsm.set_temp_data("crew_list_for_swipe", crew)
 	gsm.set_temp_data("crew_index_for_swipe", 0)
 

@@ -152,6 +152,86 @@ func initialize_operational_map(map_data: Dictionary) -> void:
 ## CAMPAIGN POINTS
 ## ============================================================================
 
+## The Campaign Point SPEND catalogue — Tactics **pp.107-108**, prices verbatim.
+##
+## ⚠ THIS IS THE ONLY PLACE THESE PRICES EXIST. TacticsPostBattlePanel renders its
+## explanatory card AND its buttons from this array, so the prose a player reads
+## cannot drift from the CP they are charged. Putting a mechanic's numbers in a UI
+## literal is exactly how the app came to offer three flat "1 CP" purchases against a
+## book that prices ELEVEN distinct ones at 1-4 CP. Measured on deploy #35:
+## "Unit Upgrade (1 CP): Acquire a veteran skill" rendered beside p.107's
+## **Gain Veteran Skill (4 CP)** — a 4x under-charge on the single most expensive
+## upgrade in the chapter.
+##
+## ⭐ This is the SPEND-side twin of the award bug fixed 2026-09-04. That one replaced
+## a fabricated flat "1 CP +1 win +1 objective" with the p.106 3D6-drop-lowest roll;
+## the auditor was reading what CP you EARN and never looked at what you PAY.
+##
+## ⚠ The EFFECTS are deliberately still unwired — see _on_spend_cp() in the panel,
+## which explains why an entry with no unit picker would silently match nothing. This
+## array fixes what a purchase COSTS, which is a rules value the book states outright.
+const CP_PURCHASES: Array = [
+	# Unit Upgrades — p.107
+	{"id": "veteran_skill", "group": "Unit Upgrades",
+		"name": "Gain Veteran Skill", "cost": 4,
+		"desc": "A unit receives a veteran skill of choice (p.149 list)."},
+	{"id": "retrain_unit", "group": "Unit Upgrades",
+		"name": "Retrain Unit", "cost": 2,
+		"desc": "A unit with a veteran skill replaces it with another pick."},
+	{"id": "hero_trait", "group": "Unit Upgrades",
+		"name": "Gain Hero Trait", "cost": 2,
+		"desc": "An Individual figure is upgraded to Hero status."},
+	# p.108
+	{"id": "leader_trait", "group": "Unit Upgrades",
+		"name": "Gain Leader Trait", "cost": 4,
+		"desc": "An Individual figure is upgraded to Leader status."},
+	# Roster Changes — p.108
+	{"id": "unit_refit", "group": "Roster Changes",
+		"name": "Unit Refit", "cost": 1,
+		"desc": "Change a roster unit's listed weapon options."},
+	{"id": "unit_customization", "group": "Roster Changes",
+		"name": "Unit Customization", "cost": 1,
+		"desc": "Add, replace or remove one weapon or option, even if unlisted."},
+	{"id": "unit_replacement", "group": "Roster Changes",
+		"name": "Unit Replacement", "cost": 1,
+		"desc": "Discard a unit and replace it with one of the same general type."},
+	{"id": "roster_addition", "group": "Roster Changes",
+		"name": "Roster Addition", "cost": 3,
+		"desc": "Add a new unit to your roster; it must fit an existing platoon."},
+	{"id": "replace_destroyed", "group": "Roster Changes",
+		"name": "Replace Destroyed Unit", "cost": 1,
+		"desc": "Replace a permanently lost unit; it enters with no veteran skills."},
+	# Battle Advantages — p.108
+	{"id": "battle_support", "group": "Battle Advantages",
+		"name": "Battle Support", "cost": 2,
+		"desc": "Use Support (p.65) in one battle of your choosing."},
+	{"id": "battle_finesse", "group": "Battle Advantages",
+		"name": "Battle Finesse", "cost": 1,
+		"desc": "Roll the Clock twice at end of round and pick; once per round."},
+	{"id": "battle_luck", "group": "Battle Advantages",
+		"name": "Battle Luck", "cost": 1,
+		"desc": "Roll two sets of attacks for one figure and choose which applies."},
+	{"id": "battle_initiative", "group": "Battle Advantages",
+		"name": "Battle Initiative", "cost": 1,
+		"desc": "Choose whether to take the first or second phase in round one."},
+]
+
+
+## Look up one catalogue entry by id. Returns {} when the id is unknown, so a caller
+## that mistypes gets an empty dict rather than a plausible wrong price.
+static func cp_purchase(purchase_id: String) -> Dictionary:
+	for entry in CP_PURCHASES:
+		if str(entry.get("id", "")) == purchase_id:
+			return entry
+	return {}
+
+
+## The book price of one purchase, or 0 for an unknown id. ⚠ 0 is deliberately NOT a
+## usable default — callers must treat it as "refuse the sale", never as "free".
+static func cp_cost(purchase_id: String) -> int:
+	return int(cp_purchase(purchase_id).get("cost", 0))
+
+
 func get_available_cp() -> int:
 	return campaign_points_earned - campaign_points_spent
 
@@ -196,9 +276,24 @@ func spend_cp(amount: int) -> bool:
 ## every unit upgrade, roster change and battle advantage, so this throttled the
 ## whole campaign layer.
 func record_battle(result: Dictionary) -> void:
-	battle_history.append(result.duplicate(true))
-	earn_cp(campaign_points_for(
-		result, [randi_range(1, 6), randi_range(1, 6), randi_range(1, 6)]))
+	var awarded: int = campaign_points_for(
+		result, [randi_range(1, 6), randi_range(1, 6), randi_range(1, 6)])
+	# ⚠ STAMP WHAT THE HISTORY VIEW READS. TacticsDashboard._build_battle_history()
+	# renders `entry.get("turn", 0)` and `entry.get("cp_earned", 0)`, and the live
+	# producer (TacticsTurnController :365/:373) sets ONLY `won` — so every row read
+	# "Turn 0 ... CP earned: 0" for the life of the campaign. A consumer read with no
+	# producer write is a SILENT DEFAULT, never an error, which is why nothing caught
+	# it. Measured on deploy #35: a Turn-1 victory that awarded 12 CP displayed as
+	# "Turn 0: Victory — CP earned: 0".
+	#
+	# This is the right place because record_battle() is the chokepoint that both
+	# appends the entry AND computes the award — stamping it at the producer keeps
+	# the two from drifting, rather than teaching the view to re-derive them.
+	var entry: Dictionary = result.duplicate(true)
+	entry["turn"] = campaign_turn
+	entry["cp_earned"] = awarded
+	battle_history.append(entry)
+	earn_cp(awarded)
 	_update_modified_time()
 
 
@@ -444,7 +539,17 @@ func from_dictionary(data: Dictionary) -> void:
 		roster_entries = roster.get("entries", []).duplicate(true)
 
 	# Campaign units
+	# ⚠ NORMALISE ON LOAD. These records round-trip verbatim in both directions
+	# (duplicate(true) here and in to_dict()), so a key that reached disk once
+	# survives every future save unless something removes it — the same rot that
+	# kept `auto_load_last_campaign` alive in settings.cfg for months. normalize()
+	# fills missing fields and drops the retired per-unit CP keys (Tactics p.106:
+	# CP is a player-or-army pool, never per unit).
 	campaign_units = data.get("campaign_units", []).duplicate(true)
+	var UnitRecord = load("res://src/data/tactics/TacticsCampaignUnit.gd")
+	for cu in campaign_units:
+		if cu is Dictionary:
+			UnitRecord.normalize(cu)
 	veteran_characters = data.get("veteran_characters", []).duplicate(true)
 
 	# State

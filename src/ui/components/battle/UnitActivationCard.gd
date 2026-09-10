@@ -10,6 +10,7 @@ signal activation_toggled(unit_id: String)
 signal unit_selected(unit_id: String)
 
 # ============ CONSTANTS ============
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
 const SPACING_SM := UIColors.SPACING_SM
 const SPACING_MD := UIColors.SPACING_MD
 const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
@@ -56,8 +57,16 @@ func _ready() -> void:
 	# Ensure touch target compliance
 	custom_minimum_size.y = TOUCH_TARGET_MIN
 
-	# Setup input handling for activation toggle
-	gui_input.connect(_on_gui_input)
+	# Setup input handling for activation toggle.
+	# T11-36: was `gui_input.connect(_on_gui_input)`, whose handler listened to
+	# InputEventScreenTouch AND InputEventMouseButton. Both pointer emulations are on
+	# (`emulate_mouse_from_touch` defaults true; project.godot:109 also sets
+	# `emulate_touch_from_mouse`), so ONE physical tap ran it TWICE - and this card
+	# TOGGLES `is_activated`, so a double-fire presented as "tapping the card does
+	# nothing" rather than as a visible double action. TapGesture listens to the mouse
+	# family only and fires on RELEASE with a 16 px slop, so dragging the tracker to
+	# scroll it no longer activates whatever was under the finger (T11-28).
+	TapGestureRef.connect_tap(self, _handle_tap)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 
 	# Initial visual state
@@ -279,17 +288,9 @@ func _effect_to_emoji(effect: String) -> String:
 
 
 # ============ INPUT HANDLING ============
-func _on_gui_input(event: InputEvent) -> void:
-	## Handle tap/click to toggle activation
-	var is_tap := false
-
-	if event is InputEventScreenTouch:
-		is_tap = event.pressed
-	elif event is InputEventMouseButton:
-		is_tap = event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-
-	if is_tap:
-		_handle_tap()
+# T11-36: `_on_gui_input` lived here and handled both pointer families, double-firing
+# every tap. TapGesture owns the tap-vs-drag discrimination now (wired in _ready), so
+# `_handle_tap()` below only ever runs on a real tap.
 
 
 func _handle_tap() -> void:

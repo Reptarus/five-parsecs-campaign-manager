@@ -1344,6 +1344,34 @@ func _reset_scroll_on_step_change() -> void:
 func _show_current_step() -> void:
 	## Show current step component and hide others
 
+	# §2: re-open the touch chain for the step being shown.
+	#
+	# ⚠ The existing sweep runs from the LAYOUT paths (:534, :753), not from here —
+	# and this function has FOUR callers that change which step is on screen. Each
+	# step component refreshes its own content when it becomes visible (see the
+	# "World phase components need refresh" note in CLAUDE.md), so a sweep that ran
+	# at layout time never saw the cards the NEXT step builds.
+	#
+	# This is the resolution of the deploy #24 row that recorded two candidates
+	# ("(a) ORDER ... (b) _SKIP ... needs desk introspection to separate") and was
+	# never settled: it is ORDER. Measured by tests/unit/test_touch_scroll_sweep.gd,
+	# which reports 0 for this screen at the default step and 6 once an earlier
+	# suite has left the campaign on a different one — the same 6 then surface
+	# through CampaignTurnController, which embeds this screen.
+	#
+	# ⚠ It sweeps the WHOLE screen, not _open_content_to_scroll_gesture()'s single
+	# ContentScroll: this screen has THREE ScrollContainers and the step cards do not
+	# all live under that one. Scoping the sweep to one scroll is why re-running the
+	# existing helper here still left 6 controls closed.
+	#
+	# Sweeping self does NOT disturb the deliberate PhaseScroll design
+	# (vertical_scroll_mode=DISABLED + mouse_filter=IGNORE so the outer scroll owns
+	# the gesture) — TouchScrollOpener._SKIP passes over every ScrollContainer, and
+	# IGNORE is not STOP so it is never rewritten.
+	#
+	# call_deferred so it lands after the step components have rebuilt.
+	call_deferred("_open_whole_screen_to_scroll_gesture")
+
 	# Show/hide all 6 World Phase containers based on current step
 	if upkeep_container:
 		upkeep_container.visible = (current_step == WorldPhaseStep.UPKEEP)
@@ -3230,3 +3258,12 @@ func _stamp_red_zone_threat(mission: Dictionary) -> void:
 			# "Add an additional Lieutenant with Combat Skill +2 and Toughness 5,
 			# regardless of the normal profile used."
 			mission["extra_lieutenant"] = {"combat_skill": 2, "toughness": 5}
+
+
+## Whole-screen touch sweep, used by _show_current_step().
+##
+## Separate from _open_content_to_scroll_gesture(), which is deliberately scoped to
+## ContentScroll for the layout paths. This one exists because a STEP CHANGE rebuilds
+## cards under any of the screen's three scrolls.
+func _open_whole_screen_to_scroll_gesture() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

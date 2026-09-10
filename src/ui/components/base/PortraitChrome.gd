@@ -56,6 +56,11 @@ var _mc: MarginContainer = null
 var _offset_target: Control = null
 var _portrait_lr: int = PORTRAIT_GUTTER
 var _landscape_lr: int = 20
+## The screen's OWN top/bottom padding, captured once at setup. A safe-area inset
+## is applied as maxi(base, inset), so a screen that already pads generously keeps
+## its look and only grows where the OS actually reserves space.
+var _base_top: int = 0
+var _base_bottom: int = 0
 var _rm: Node = null
 var _wired: bool = false
 
@@ -70,6 +75,9 @@ func setup(margin_container: MarginContainer, portrait_lr: int = PORTRAIT_GUTTER
 		_landscape_lr = landscape_lr
 	elif _mc:
 		_landscape_lr = _mc.get_theme_constant("margin_left", "MarginContainer")
+	if _mc:
+		_base_top = _mc.get_theme_constant("margin_top", "MarginContainer")
+		_base_bottom = _mc.get_theme_constant("margin_bottom", "MarginContainer")
 	_ensure_wired()
 	_apply()
 
@@ -87,6 +95,9 @@ func setup_offsets(content: Control, portrait_lr: int = PORTRAIT_GUTTER,
 		_landscape_lr = landscape_lr
 	elif content:
 		_landscape_lr = int(absf(content.offset_left))
+	if content:
+		_base_top = int(maxf(0.0, content.offset_top))
+		_base_bottom = int(absf(minf(0.0, content.offset_bottom)))
 	_ensure_wired()
 	_apply()
 
@@ -142,41 +153,108 @@ func _gutter_design_px() -> int:
 	return int(round(gutter_dp / ratio))
 
 
-## Extra inset when the OS reports a cutout or system bar on this edge.
+## Safe-area insets on ALL FOUR edges, in DESIGN px. The single implementation.
 ##
-## DisplayServer.get_display_safe_area() is the documented Godot 4 API for this
-## (OS.get_window_safe_area() was removed); the community pattern is exactly this —
-## a MarginContainer that takes its margins from the safe area. On desktop the safe
-## area IS the whole screen, so this returns 0 and nothing changes.
-func _safe_area_lr() -> Vector2:
-	var safe: Rect2i = DisplayServer.get_display_safe_area()
-	var screen: Vector2i = DisplayServer.screen_get_size()
-	if safe.size.x <= 0 or screen.x <= 0 or safe.size.x >= screen.x:
-		return Vector2.ZERO
-	var vp := get_viewport()
+## `DisplayServer.get_display_safe_area()` is the documented Godot 4 API for this
+## (`OS.get_window_safe_area()` was removed); the community pattern is exactly this —
+## a MarginContainer that takes its margins from the safe area.
+##
+## ⚠ **Unified 2026-09-08, and the two implementations it replaced disagreed THREE ways.**
+## This file covered LEFT/RIGHT only, ADDED the inset to the gutter, and measured against
+## `screen_get_size()`. `CampaignScreenBase.get_safe_area_insets()` covered all four edges,
+## took `maxi(base, inset)`, and measured against `window_get_size()` — and had exactly
+## ONE caller, `CampaignDashboard`. Net effect: the **ten** screens routed through
+## `ScreenChrome.apply_page_chrome()` had NO top/bottom protection at all, and `MainMenu`
+## — the first screen the app shows — had neither.
+##
+## **`maxi` is the correct semantic; the additive version was wrong.** A safe area is a
+## region you must not draw IN, not padding to add ON TOP of your own gutter. With a 40 px
+## cutout and a 14 px gutter the requirement is 40, not 54.
+##
+## **The reference rect is the WINDOW, not the screen.** On Android the app is fullscreen
+## so the two coincide; on a desktop window the safe area is the whole monitor, which is
+## larger, so every edge clamps to 0 — the intended desktop no-op.
+##
+## ⚠ **All-zeros is a VALID answer, not a broken measurement.** `export_presets.cfg:60`
+## sets `screen/immersive_mode=true`, which hides the system bars, so on this device the
+## honest result may well be zero on every edge. Code that treats zero as "the API failed"
+## and substitutes a guess would be indistinguishable from a real inset — and wrong.
+static func safe_area_insets_design_px(vp: Viewport) -> Dictionary:
+	var zero := {"left": 0, "top": 0, "right": 0, "bottom": 0}
 	if vp == null:
-		return Vector2.ZERO
-	var ds: Vector2 = vp.get_visible_rect().size
-	if ds.x <= 0.0:
-		return Vector2.ZERO
-	# Screen px -> design px, same ratio as above.
-	var ratio: float = float(DisplayServer.window_get_size().x) / ds.x
-	if ratio <= 0.0:
-		return Vector2.ZERO
-	var left: float = float(safe.position.x) / ratio
-	var right: float = float(screen.x - (safe.position.x + safe.size.x)) / ratio
-	return Vector2(maxf(0.0, left), maxf(0.0, right))
+		return zero
+	var os_name := OS.get_name()
+	if os_name != "Android" and os_name != "iOS":
+		return zero
+	var win_size := DisplayServer.window_get_size()
+	var raw_safe := DisplayServer.get_display_safe_area()
+	var vp_size := vp.get_visible_rect().size
+	var insets := compute_safe_area_insets(win_size, raw_safe, vp_size)
+	# §1 INSTRUMENT (deploy #29). This is the ONLY call to get_display_safe_area()
+	# repo-wide and all three consumer paths funnel through this function, so one print
+	# here covers the whole feature. It exists because a SCREENSHOT cannot distinguish
+	# "the engine reported no inset" from "our math zeroed a real one" - the frame is
+	# identical either way, which is exactly why §1 was unverifiable on deploy #28.
+	# Under `screen/immersive_mode=true` the honest answer is often all-zeros; the RAW
+	# rect is what says whether that zero is the device's or ours.
+	if OS.is_debug_build():
+		print("[SAFEAREA] win=", win_size, " raw=", raw_safe,
+			" vp=", vp_size, " -> ", insets)
+	return insets
+
+
+## The pure math, split out from the live-state wrapper above so it is TESTABLE.
+##
+## ⚠ **The wrapper cannot be unit-tested and this can.** `safe_area_insets_design_px()`
+## is OS-gated to Android/iOS and reads `DisplayServer` directly, so on a desktop test
+## machine it returns zeros no matter what — a suite written against it would pass
+## vacuously and could never prove anything about a notch it is unable to produce.
+## Taking the three inputs as parameters is the whole reason a real cutout can be
+## simulated at the desk.
+##
+## `win` and `safe` are PHYSICAL px; `ds` is the design-space size
+## (`Viewport.get_visible_rect().size`). Every edge clamps at 0, so a safe area larger
+## than the window — which is what a desktop monitor reports for a smaller window —
+## yields zeros rather than negative padding.
+static func compute_safe_area_insets(win: Vector2i, safe: Rect2i, ds: Vector2) -> Dictionary:
+	var zero := {"left": 0, "top": 0, "right": 0, "bottom": 0}
+	if win.x <= 0 or win.y <= 0 or safe.size.x <= 0 or safe.size.y <= 0:
+		return zero
+	if ds.x <= 0.0 or ds.y <= 0.0:
+		return zero
+	# physical px -> design px, derived per AXIS. The square-1080 canvas_items+expand
+	# stretch makes rx == ry today; deriving both means a future stretch change cannot
+	# silently mis-scale one edge pair while the other stays right.
+	var rx: float = float(win.x) / ds.x
+	var ry: float = float(win.y) / ds.y
+	if rx <= 0.0 or ry <= 0.0:
+		return zero
+	return {
+		"left": int(maxf(0.0, float(safe.position.x)) / rx),
+		"top": int(maxf(0.0, float(safe.position.y)) / ry),
+		"right": int(maxf(0.0, float(win.x - (safe.position.x + safe.size.x))) / rx),
+		"bottom": int(maxf(0.0, float(win.y - (safe.position.y + safe.size.y))) / ry),
+	}
 
 
 func _apply() -> void:
 	var lr: int = _gutter_design_px() if _is_portrait() else _landscape_lr
-	var inset := _safe_area_lr()
-	var left: int = lr + int(inset.x)
-	var right: int = lr + int(inset.y)
+	var ins := safe_area_insets_design_px(get_viewport())
+	# maxi, never + — see safe_area_insets_design_px(). On desktop and under immersive
+	# mode every inset is 0, so all four collapse to the screen's own values and this is
+	# a no-op: the device is the only place these lines change anything.
+	var left: int = maxi(lr, int(ins["left"]))
+	var right: int = maxi(lr, int(ins["right"]))
+	var top: int = maxi(_base_top, int(ins["top"]))
+	var bottom: int = maxi(_base_bottom, int(ins["bottom"]))
 	if _offset_target != null and is_instance_valid(_offset_target):
 		_offset_target.offset_left = float(left)
 		_offset_target.offset_right = -float(right)
+		_offset_target.offset_top = float(top)
+		_offset_target.offset_bottom = -float(bottom)
 	if _mc == null or not is_instance_valid(_mc):
 		return
 	_mc.add_theme_constant_override("margin_left", left)
 	_mc.add_theme_constant_override("margin_right", right)
+	_mc.add_theme_constant_override("margin_top", top)
+	_mc.add_theme_constant_override("margin_bottom", bottom)

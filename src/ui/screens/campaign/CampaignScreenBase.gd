@@ -10,6 +10,10 @@ class_name CampaignScreenBase
 ## EquipmentManager, ShipManager and PatronRivalManager path-preload
 ## AdaptivePanelGroup.
 const ScreenChrome := preload("res://src/ui/components/common/ScreenChrome.gd")
+const TouchScrollOpenerRef := preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+const PortraitChromeRef := preload(
+	"res://src/ui/components/base/PortraitChrome.gd")
 
 ## Lightweight base class for campaign screens (dashboard, crew management,
 ## trading, travel, etc). Provides the UIColors design system, responsive
@@ -107,6 +111,22 @@ func _ready() -> void:
 	_update_layout_for_mode()
 	_clear_settings_overlay_band()
 	screen_ready.emit()
+	# §2: let a touch-drag over content reach the ScrollContainer that owns it.
+	#
+	# This base had NO sweep at all — unlike BaseCampaignPanel and BasePhasePanel,
+	# which each carried one — so every CampaignScreenBase subclass shipped with the
+	# swallowed-drag defect. Deferred so it runs AFTER _setup_screen()'s children
+	# exist: a sweep that runs before them is a fix that silently does nothing.
+	call_deferred("_fix_touch_scroll_filters")
+
+
+## Open every STOP-filtered descendant so a finger drag reaches the owning scroll.
+##
+## Overridable: a screen that rebuilds its content (rather than building it once in
+## `_setup_screen()`) must call this again from its rebuild path, because the sweep
+## only reaches children that exist when it runs.
+func _fix_touch_scroll_filters() -> void:
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 ## Keep screen content out from under the floating SettingsOverlay buttons.
@@ -531,24 +551,13 @@ func should_use_single_column() -> bool:
 ## (no-op — safe area == window). MOBILE: real insets from DisplayServer, converted
 ## physical->design px via the root content scale. Real values validate ON-DEVICE.
 func get_safe_area_insets() -> Dictionary:
-	var zero := {"left": 0, "top": 0, "right": 0, "bottom": 0}
-	var os_name := OS.get_name()
-	if os_name != "Android" and os_name != "iOS":
-		return zero
-	var win := DisplayServer.window_get_size()
-	var safe: Rect2i = DisplayServer.get_display_safe_area()
-	var scale := 1.0
-	var tree := get_tree()
-	if tree and tree.root and tree.root.content_scale_factor > 0.0:
-		scale = tree.root.content_scale_factor
-	var left := maxi(0, safe.position.x)
-	var top := maxi(0, safe.position.y)
-	var right := maxi(0, win.x - (safe.position.x + safe.size.x))
-	var bottom := maxi(0, win.y - (safe.position.y + safe.size.y))
-	return {
-		"left": int(left / scale), "top": int(top / scale),
-		"right": int(right / scale), "bottom": int(bottom / scale),
-	}
+	## ⚠ DELEGATES since 2026-09-08. This used to be a second, independent copy of the
+	## math — all four edges but only ever called by CampaignDashboard — while
+	## PortraitChrome carried a LEFT/RIGHT-only copy that ten other screens used. Two
+	## copies of one rule is how they drift, and these had already drifted three ways
+	## (edge coverage, maxi-vs-additive, and window-vs-screen as the reference rect).
+	## The surviving implementation is PortraitChrome.safe_area_insets_design_px().
+	return PortraitChromeRef.safe_area_insets_design_px(get_viewport())
 
 func is_wide_layout() -> bool:
 	return current_layout_mode == LayoutMode.WIDE
@@ -896,11 +905,28 @@ func _create_stat_badge(stat_name: String, value: int, show_plus: bool = false) 
 	panel.add_child(hbox)
 	return panel
 
+## Create a character card with portrait (custom image or coloured initials).
+##
+## ⚠ `char_name` is the DISPLAY string and may carry decoration; `identity_name`
+## is the bare character name. The avatar initial and the avatar COLOUR are both
+## derived from the identity, never from the display string — T11-51: a caller
+## passing `"[Captain] Bryn Ito"` rendered a literal `[` in the avatar and hashed
+## a different colour than the same character shown anywhere else. Defaults to
+## `char_name`, so a caller that does not decorate needs no change.
+##
+## ⚠ THIS HELPER EXISTS TWICE — here and at BaseCampaignPanel:1021 — and T11-51 was
+## applied to that copy only. CrewManagementScreen extends THIS base and had been
+## calling it with five arguments ever since, which is a PARSE error, so the entire
+## screen script failed to compile and every `.new()` on it died with the misleading
+## "Nonexistent function 'new' in base 'GDScript'". Change one copy, change both, or
+## better: collapse them.
 func _create_character_card(
 		char_name: String,
 		subtitle: String,
 		stats: Dictionary = {},
-		portrait_path: String = "") -> PanelContainer:
+		portrait_path: String = "",
+		identity_name: String = "") -> PanelContainer:
+	var identity: String = identity_name if not identity_name.is_empty() else char_name
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.custom_minimum_size.y = 80
@@ -919,7 +945,7 @@ func _create_character_card(
 		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
 		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
 		Color("#ec4899"), Color("#14b8a6")]
-	var c_idx := char_name.hash() % avatar_colors.size()
+	var c_idx := identity.hash() % avatar_colors.size()
 	if c_idx < 0:
 		c_idx += avatar_colors.size()
 
@@ -949,7 +975,7 @@ func _create_character_card(
 
 	if not has_img:
 		var il := Label.new()
-		il.text = char_name.substr(0, 1).to_upper() if char_name else "?"
+		il.text = identity.substr(0, 1).to_upper() if identity else "?"
 		il.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		il.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		il.add_theme_font_size_override("font_size", ScreenChrome.font_size(int(p_size * 0.45)))

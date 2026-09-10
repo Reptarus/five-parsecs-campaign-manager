@@ -6,6 +6,8 @@ class_name CharacterCard
 ## Performance optimized for scrolling lists (<1ms instantiation)
 ## Signal architecture: call-down-signal-up pattern
 
+const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
+
 # ============ SIGNALS (Up Communication) ============
 signal card_tapped()  # Single tap/click on card body
 signal view_details_pressed()  # "View" button pressed
@@ -80,21 +82,17 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(0, CardVariant.STANDARD)
 	_setup_card_style()
 	_build_layout()
+	# T11-36: replaces a `_gui_input` OVERRIDE that handled InputEventScreenTouch and
+	# InputEventMouseButton in one function, so one physical tap emitted `card_tapped`
+	# twice. This shape is LATENT today rather than harmless: CrewManagementScreen only
+	# builds a CharacterCard when the crew member is a `Character` resource, and a
+	# LOADED save yields Dictionaries which already take the TapGesture path - so a
+	# fresh campaign got the double-fire and a loaded one did not.
+	TapGestureRef.connect_tap(self, func() -> void: card_tapped.emit())
 	
 	# Update display if character was set before _ready
 	if character_data != null:
 		_update_display()
-
-func _gui_input(event: InputEvent) -> void:
-	# Mobile-first input handling
-	var is_tap := false
-	if event is InputEventScreenTouch:
-		is_tap = event.pressed
-	elif event is InputEventMouseButton:
-		is_tap = event.pressed and event.button_index == MOUSE_BUTTON_LEFT
-	
-	if is_tap:
-		card_tapped.emit()
 
 # ============ TYPE-SAFE HELPERS ============
 # Handles both Character (String enums) and BaseCharacterResource (int enums)

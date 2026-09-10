@@ -1,5 +1,7 @@
 class_name PostBattleSequenceUI
 extends Control
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 # Backend Service Integrations - using explicit preloads to fix linter issues
 const FPCM_InjuryService = preload("res://src/core/services/InjurySystemService.gd")
@@ -172,6 +174,10 @@ var post_battle_steps: Array[Dictionary] = [
 ]
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so placement here is
+	# equivalent to placing it last and cannot land before the children exist.
+	call_deferred("_open_touch_chain")
 	_apply_base_background()
 	_initialize_advancement_system()
 	_initialize_steps()
@@ -352,8 +358,43 @@ func _initialize_steps() -> void:
 	# Create step list display
 	_refresh_steps_list()
 
+func _reset_per_battle_caches() -> void:
+	## Drop everything that belongs to the PREVIOUS battle.
+	##
+	## This panel is a permanent instanced child of CampaignTurnController, so every
+	## field below survives from one battle to the next unless something clears it.
+	## _initialize_steps() already re-does step_results and _step_log_entries; these
+	## four had no reset path at all, and each fails DIFFERENTLY:
+	##
+	##   _backend_rival_lines   APPENDS (:1110/:1119) -- battle 2's Rival lines land
+	##                          under battle 1's, and worse, the is_empty() fallback
+	##                          can no longer fire, so a battle with NO rival change
+	##                          silently re-states the previous battle's outcome as
+	##                          if it were current. Measured on device: turn 10's
+	##                          rows rendered above turn 11's in one results pane.
+	##   _backend_resolved      keyed by step index; a step whose backend signal does
+	##                          not re-fire renders the PREVIOUS battle's lines.
+	##   _backend_injuries      replaced wholesale, so only stale when the signal is
+	##                          silent -- cleared for the same reason.
+	##   _inline_rolls_completed the OPPOSITE polarity to the finish_button soft-lock:
+	##                          a stale {total,done} makes _update_next_button_state()
+	##                          enable Next with nothing rolled, so battle 2 can SKIP
+	##                          roll-gated steps the book requires.
+	##
+	## Called from _load_battle_results(), which is the one function BOTH entry paths
+	## cross (_ready() and refresh_from_battle_results()) -- ordering it against either
+	## caller alone is the T9-50 trap.
+	_backend_resolved.clear()
+	_backend_rival_lines.clear()
+	_backend_injuries.clear()
+	_inline_rolls_completed.clear()
+
+
 func _load_battle_results() -> void:
 	## Load battle results from GameState (stored by CampaignTurnController)
+	# FIRST, before the early return below -- a reset placed after it would be dead
+	# on the normal (battle data present) path, which is the only path that matters.
+	_reset_per_battle_caches()
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("get_battle_results"):
 		var stored = gs.get_battle_results()
@@ -1247,6 +1288,17 @@ func _show_current_step() -> void:
 	var is_final: bool = (current_step == max_steps - 1)
 	next_button.visible = not is_final
 	finish_button.visible = is_final
+	# RE-ARM, never assume. _finish_post_battle() disables BOTH buttons to block
+	# re-entry while post_battle_completed is emitted -- and this panel is a
+	# PERMANENT instanced child of CampaignTurnController (refresh_from_battle_results'
+	# own docblock says so), so that disable SURVIVES into the next battle of the same
+	# session. next_button is re-armed by _update_next_button_state() two lines below;
+	# finish_button had no such path, which soft-locked the SECOND post-battle sequence
+	# of every session at 'Step 14 of 14' with its only forward control dead.
+	# Re-arming HERE rather than in refresh_from_battle_results() keeps it
+	# order-independent: every step render restores it, whatever the entry point --
+	# the T9-50 lesson (a fix ordered against SOME callers is not a fix).
+	finish_button.disabled = false
 	if is_final:
 		finish_button.text = "Complete & Begin Next Turn"
 	_update_next_button_state()
@@ -3382,3 +3434,21 @@ func _show_error_dialog(title: String, message: String) -> void:
 	# Clean up when closed
 	fallback_dialog.confirmed.connect(fallback_dialog.queue_free)
 	fallback_dialog.canceled.connect(fallback_dialog.queue_free)
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## Every decorative surface — `PanelContainer`, `HSeparator`, `CheckBox`,
+## `OptionButton`, `SpinBox`, `Button` — defaults to `MOUSE_FILTER_STOP`, and
+## `Viewport::_gui_call_input` stops Mouse/ScreenDrag/ScreenTouch at the first STOP
+## control. Only WHEEL is excepted (`mouse_force_pass_scroll_events`, default true),
+## which is exactly why the scrollbar and the desktop mouse wheel work here and a
+## finger does not.
+##
+## This screen `extends Control`, so it inherits neither
+## `BaseCampaignPanel._fix_touch_scroll_filters()` nor `CampaignScreenBase`'s — it had
+## no sweep at all. `open_subtree()` is idempotent and STOP -> PASS only, so calling it
+## again after a rebuild is free; PASS still offers the event to the control FIRST, so
+## a tap keeps working (measured in `tests/unit/test_touch_pass_is_safe_for_buttons.gd`).
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

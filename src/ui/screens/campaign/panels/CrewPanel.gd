@@ -1,4 +1,6 @@
 extends Control
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 # Character class_name is globally available — do NOT preload Base/Character.gd (shadows the canonical class)
 const CharacterCreator = preload("res://src/core/character/Generation/CharacterCreator.gd")
@@ -26,6 +28,9 @@ func _scaled_font(base: int) -> int:
 	return base
 
 func _ready() -> void:
+	# §2: open the touch chain once this function has built the tree.
+	# call_deferred runs AFTER _ready() returns, so this cannot land early.
+	call_deferred("_open_touch_chain")
 	_apply_base_background()
 	_add_guidance_label()
 	_setup_crew_size_options()
@@ -792,3 +797,14 @@ func _build_bonus_tag(
 		tag_vbox.add_child(src_lbl)
 		pill.add_child(tag_vbox)
 	return pill
+
+
+## §2: let a touch-drag over content reach the ScrollContainer that owns it.
+##
+## ⚠ This panel `extends Control` while its five siblings extend
+## `FiveParsecsCampaignPanel`, so it inherits no `_fix_touch_scroll_filters()` — which
+## is why `CampaignCreationUI` still reported 41 STOP-filtered controls under its
+## scrolls after every other screen in the sweep had gone clean. The wizard is the
+## longest scrolling form in the app, so this was the worst single offender.
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)

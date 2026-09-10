@@ -92,6 +92,12 @@ var _filters_collapsed: bool = false
 
 
 func _ready() -> void:
+	# §2 touch chain. This screen SKIPS super._ready() (see below) and hand-invokes
+	# the parts of the base _ready() it needs, so BaseCampaignPanel's own
+	# call_deferred("_fix_touch_scroll_filters") never fires here — same omission as
+	# the reserve_band_on() call further down. call_deferred runs after _ready()
+	# returns, so this still lands once _build_ui() has created the children.
+	call_deferred("_fix_touch_scroll_filters")
 	_ensure_base_background()
 	_setup_responsive_layout()
 	_journal = get_node_or_null("/root/CampaignJournal")

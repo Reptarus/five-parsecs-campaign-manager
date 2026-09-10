@@ -84,6 +84,8 @@ var _pbp_at_turn_start: int = 0
 
 const OperationalRulesRef = preload(
 	"res://src/core/campaign/TacticsOperationalRules.gd")
+const UnitRecordRef = preload(
+	"res://src/data/tactics/TacticsCampaignUnit.gd")
 const MAX_BATTLES_PER_TURN := 3
 
 var _phase_complete: Dictionary = {}
@@ -285,18 +287,58 @@ func _apply_battle_results(data: Dictionary) -> void:
 					battle_losses_this_turn += 1
 		_award_battle_points()
 
+	# ⭐ Credit the units that fought. `battles_fought` / `battles_won` were
+	# initialised at creation and DISPLAYED by TacticsDashboard.gd:414/:424, and
+	# nothing incremented them — a consumer with no producer, so every unit showed
+	# a permanent 0 for the whole life of a campaign.
+	#
+	# ⚠ "Which units fought?" needed no invention: DEPLOYMENT already answers it.
+	# TacticsBattleSetupPanel._campaign_unit_ids() lists every non-destroyed unit
+	# and _apply_phase_data() stamps it onto current_battle["deployed_units"]
+	# (:240-241), where nothing read it. p.106's *Weakened* result is what makes
+	# the record load-bearing rather than decorative — "until the unit can sit out
+	# a campaign battle without being deployed" needs per-unit deployment history.
+	if data.has("battle_result") and data.battle_result is Dictionary:
+		_credit_deployed_units(
+			bool((data.battle_result as Dictionary).get("won", false)))
+
 	# Apply casualties to campaign units
 	var casualties: Dictionary = data.get("casualties", {})
 	for unit_id in casualties:
 		var models_lost: int = casualties[unit_id]
 		for cu in campaign.campaign_units:
 			if cu is Dictionary and cu.get("unit_id", "") == unit_id:
-				cu["models_lost_current"] = models_lost
-				cu["models_lost_total"] = cu.get("models_lost_total", 0) + models_lost
-				cu["current_models"] = maxi(cu.get("current_models", 5) - models_lost, 0)
-				if cu["current_models"] <= 0:
-					cu["is_destroyed"] = true
+				UnitRecordRef.apply_casualties(cu, models_lost)
 				break
+
+
+## Increment battles_fought (and battles_won) for every unit that deployed.
+##
+## ⚠ THE FALLBACK IS EXACT, NOT A GUESS. When `deployed_units` is absent — an
+## older save, or a DEPLOYMENT phase completed with an empty payload — this
+## credits every non-destroyed unit, which is the identical set
+## TacticsBattleSetupPanel._campaign_unit_ids() would have produced. Crediting
+## nobody instead would silently reinstate the very defect this fixes for exactly
+## the campaigns whose deployment payload went missing.
+func _credit_deployed_units(won: bool) -> void:
+	if campaign == null or not ("campaign_units" in campaign):
+		return
+	var deployed: Array = []
+	if "current_battle" in campaign and campaign.current_battle is Dictionary:
+		var raw: Variant = campaign.current_battle.get("deployed_units", [])
+		if raw is Array:
+			for v in (raw as Array):
+				deployed.append(str(v))
+	for cu in campaign.campaign_units:
+		if cu is not Dictionary:
+			continue
+		var rec: Dictionary = cu
+		if deployed.is_empty():
+			if bool(rec.get("is_destroyed", false)):
+				continue
+		elif not deployed.has(str(rec.get("unit_id", ""))):
+			continue
+		UnitRecordRef.credit_battle(rec, won)
 
 
 ## Guard on the OWNER, not on the container's emptiness: an operational map with no
@@ -334,7 +376,7 @@ func _apply_post_battle_results(data: Dictionary) -> void:
 	# Reset per-battle casualty tracking
 	for cu in campaign.campaign_units:
 		if cu is Dictionary:
-			cu["models_lost_current"] = 0
+			UnitRecordRef.clear_battle_losses(cu)
 
 
 func _apply_advancement_results(data: Dictionary) -> void:
@@ -438,8 +480,11 @@ func _reinforce_unit(change: Dictionary) -> void:
 	var models_added: int = change.get("models_added", 0)
 	for cu in campaign.campaign_units:
 		if cu is Dictionary and cu.get("unit_id", "") == unit_id:
-			cu["current_models"] = cu.get("current_models", 0) + models_added
-			cu["is_destroyed"] = false
+			# ⚠ Now capped at the unit's base size, which the inline version was not:
+			# it added the requested figures unconditionally, so a reinforcement could
+			# take a squad above the strength its army-list entry pays points for.
+			UnitRecordRef.reinforce(cu, models_added,
+				int(change.get("base_count", cu.get("current_models", 0) + models_added)))
 			break
 
 

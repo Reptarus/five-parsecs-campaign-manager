@@ -115,3 +115,61 @@ func test_a_release_with_no_press_does_not_fire() -> void:
 	var c := _make()
 	c.gui_input.emit(_mb(Vector2(40, 20), false))
 	assert_int(_fired).is_equal(0)
+
+
+# ---------------------------------------------------------------------------
+# the second-finger veto (added 2026-09-10)
+# ---------------------------------------------------------------------------
+
+func _touch(pos: Vector2, index: int, pressed: bool) -> InputEventScreenTouch:
+	var e := InputEventScreenTouch.new()
+	e.index = index
+	e.pressed = pressed
+	e.position = pos
+	return e
+
+
+func test_a_second_finger_cancels_the_armed_tap() -> void:
+	# FOUND ON HARDWARE, not here (deploy #30). emulate_mouse_from_touch synthesises
+	# pointer 0 only, and a SECOND pointer CANCELS that emulated press — the cancel
+	# arriving as a LEFT release still inside the slop, which the discrimination then
+	# passes through as a deliberate tap.
+	#
+	# ⚠ Every other case in this suite passed with the defect live, because the handler
+	# logic is correct and the missing input is POINTER COUNT, which the mouse family
+	# structurally cannot observe. Worth remembering before treating a green unit run
+	# as a substitute for glass.
+	var c := _make()
+	c.gui_input.emit(_mb(Vector2(40, 20), true))
+	c.gui_input.emit(_touch(Vector2(160, 20), 1, true))
+	c.gui_input.emit(_mb(Vector2(40, 20), false))
+	assert_int(_fired).override_failure_message(
+		"a second finger did not cancel the tap — a pinch or a two-thumb rest will "
+		+ "fire the row action").is_equal(0)
+
+
+func test_the_veto_branch_cannot_itself_fire_a_tap() -> void:
+	# THE T11-36 GUARD. This helper exists partly because listening to both pointer
+	# families double-fired one physical tap. A veto is only safe while it takes no
+	# action of its own, so assert that touch events ALONE produce nothing.
+	var c := _make()
+	c.gui_input.emit(_touch(Vector2(40, 20), 1, true))
+	c.gui_input.emit(_touch(Vector2(40, 20), 1, false))
+	c.gui_input.emit(_touch(Vector2(40, 20), 0, true))
+	c.gui_input.emit(_touch(Vector2(40, 20), 0, false))
+	assert_int(_fired).override_failure_message(
+		"the touch family produced a tap on its own — that is the T11-36 double-fire"
+		).is_equal(0)
+
+
+func test_pointer_zero_does_not_veto_its_own_press() -> void:
+	# `index > 0`, never `>= 0`. Pointer 0 IS the emulated press being tracked, so
+	# vetoing on it would disarm every single-finger tap on a touchscreen — turning a
+	# fix for a rare two-finger case into a total loss of the interaction.
+	var c := _make()
+	c.gui_input.emit(_mb(Vector2(40, 20), true))
+	c.gui_input.emit(_touch(Vector2(40, 20), 0, true))
+	c.gui_input.emit(_mb(Vector2(40, 20), false))
+	assert_int(_fired).override_failure_message(
+		"a normal one-finger tap was vetoed by its own pointer — the index guard is "
+		+ "too broad").is_equal(1)

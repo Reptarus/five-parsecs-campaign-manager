@@ -18,6 +18,7 @@ signal pressed(planet_id: String)
 
 const UIColorsClass := preload("res://src/ui/components/base/UIColors.gd")
 const GalaxyHexLayoutClass := preload("res://src/core/world/GalaxyHexLayout.gd")
+const TapGestureRef := preload("res://src/ui/components/common/TapGesture.gd")
 
 const HEX_RADIUS: float = GalaxyHexLayoutClass.HEX_SIZE
 
@@ -61,7 +62,17 @@ func _ready() -> void:
 	size = custom_minimum_size
 	pivot_offset = size / 2.0  # Needed by any future TweenFX scale/rotate calls.
 
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	# PASS, not STOP. STOP swallowed the event here, so a finger that started its
+	# drag on a hex could never reach HexStarMap's pan -- and on a map whose whole
+	# point is the hexes, that is most drags. TapGesture hooks the `gui_input`
+	# SIGNAL and never calls accept_event(), so the tap and the parent's pan are
+	# served by the same event without either consuming it.
+	mouse_filter = Control.MOUSE_FILTER_PASS
+	# Tap on RELEASE with a 16 px slop, never on press-down. The old handler emitted
+	# `pressed` on the press, so dragging across the map opened a planet popup the
+	# instant a finger crossed a hex -- the T11-28 shape, on a surface nobody had
+	# swept because its rows are drawn, not listed.
+	TapGestureRef.connect_tap(self, func() -> void: pressed.emit(planet_id))
 	mouse_entered.connect(_on_mouse_entered)
 	mouse_exited.connect(_on_mouse_exited)
 
@@ -129,11 +140,11 @@ func _draw() -> void:
 		draw_circle(pip_centre, pip_r, pip_color)
 
 
-func _gui_input(event: InputEvent) -> void:
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			pressed.emit(planet_id)
-			accept_event()
+## NOTE: there is deliberately NO _gui_input override here any more. The tap is
+## owned by TapGesture (wired in _ready), which fires on release with a slop test.
+## Re-adding one that handles InputEventMouseButton would DOUBLE-FIRE `pressed`
+## alongside the helper -- and adding an InputEventScreenTouch branch would
+## double-fire it a second way (T11-36).
 
 
 func _on_mouse_entered() -> void:

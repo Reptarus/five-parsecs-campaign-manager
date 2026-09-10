@@ -290,6 +290,13 @@ func _aggregate_campaign_data() -> void:
 		_validate_and_complete()
 
 func _update_display() -> void:
+	# §2 touch chain, re-run because THIS is the populating entry point.
+	# BaseCampaignPanel._ready() already sweeps once, but this panel's cards are
+	# built here — after the wizard hands it campaign data — so the ready-time pass
+	# ran against a tree that did not yet contain them. Measured: 38 STOP-filtered
+	# controls survived under this panel's ScrollContainer until this call existed.
+	# Deferred, so it lands once this function has finished building.
+	call_deferred("_fix_touch_scroll_filters")
 	## Update comprehensive campaign summary display with styled cards
 	if not summary_cards_container:
 		return

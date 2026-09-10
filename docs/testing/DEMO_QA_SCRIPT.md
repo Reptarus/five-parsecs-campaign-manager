@@ -175,9 +175,9 @@ and Character Event tables are shown in action.
 | T1-C2 | Read upkeep cost display. **Costs should auto-populate immediately on entry** (not 0). With 4 crew: crew upkeep + ship maintenance. | Upkeep costs display immediately (not blank/zero). Credits shown. | `UpkeepPhaseComponent` — auto-calculates on `initialize_upkeep_phase()` | |
 | T1-C3 | Press "Pay Upkeep". Credits decrease by 24. Phase advances. | Credits deducted correctly. Phase transitions to Crew Tasks. | `pay_upkeep_button` → `complete_phase()` | |
 | T1-C4 | Crew Tasks: Assign Kira to **Train**. Assign Dex to **Find a Patron**. Leave others on any task. | Tasks visually assigned. Task selection persists. No crash. | WorldPhaseController crew tasks UI | |
-| T1-C5 | Resolve Tasks: For "Find a Patron", a patron offer should be generated. Confirm it appears in Job Offers. | Job Offers sub-phase shows at least one patron mission. Opportunity missions also available. | `PatronRivalManager`, `MissionSelectionUI` | |
+| T1-C5 | Resolve Tasks: For "Find a Patron", a patron offer should be generated. Confirm it appears in Job Offers. | Job Offers sub-phase shows at least one patron mission. Opportunity missions also available. | `PatronRivalManager`, `JobOfferComponent` ⚠ *(was `MissionSelectionUI` — deleted `a12a73fa1`, 2026-07-31; corrected 2026-09-08)* | |
 | T1-C6 | Equipment sub-phase: Verify crew equipment is visible. No action required — confirm no crash. | Equipment panel renders without errors. | `EquipmentPanel.gd` | |
-| T1-C7 | Choose Your Battle: Select the patron mission. Confirm mission details are shown. | Mission selected. Details panel shows mission type, enemy, objective. Confirm button available. | `MissionSelectionUI` → mission chosen | |
+| T1-C7 | Choose Your Battle: Select the patron mission. Confirm mission details are shown. | Mission selected. Details panel shows mission type, enemy, objective. Confirm button available. | `JobOfferComponent` → mission chosen ⚠ *(was `MissionSelectionUI`; that screen was deleted in `a12a73fa1` on 2026-07-31, so this step was unexecutable as written — corrected 2026-09-08)* | |
 
 ### T1-D — Mission / Battle Phase (Phase 3)
 

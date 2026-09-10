@@ -449,3 +449,53 @@ func test_has_checkpoint_rejects_a_stale_one() -> void:
 
 	assert_bool(wp.has_checkpoint()).is_false()
 	assert_bool(wp._checkpoint_data.is_empty()).is_true()
+
+
+# ---------------------------------------------------------------------------
+# the Auto-Processing toggle must never clip its own label (deploy #29)
+# ---------------------------------------------------------------------------
+
+func test_the_automation_toggle_gets_a_row_to_itself() -> void:
+	## MEASURED ON DEVICE: the CheckBox rendered "Enable Auto-Processin", and WORSE
+	## when focused — "Enable Auto-Proces". That second observation is the diagnosis:
+	## a focus StyleBox has larger content margins, so the same rect fits less text.
+	## The control was being handed a rect below its own minimum — a too-narrow-row
+	## problem, and CheckBox has no autowrap to fall back on.
+	##
+	## The cause was a redundant "Automation:" Label sharing an HFlowContainer row
+	## with a CheckBox whose text already said "Enable Auto-Processing". The label's
+	## share of the row is precisely what the checkbox text lost.
+	##
+	## ⚠ Asserted as "nothing competes for the row", not "the parent is a VBox" — a
+	## structural type check would pass if someone put a second control back beside it.
+	var wp := _make()
+	# Read the PRODUCT binding (@onready var automation_toggle = %AutomationToggle)
+	# rather than re-deriving the path: that way this also fails if the scene edit
+	# broke the unique name the controller itself depends on.
+	var toggle: CheckBox = wp.automation_toggle
+	assert_object(toggle).override_failure_message(
+		"WorldPhaseController.automation_toggle did not bind — the scene edit broke " + "the %AutomationToggle unique name"
+		).is_not_null()
+
+	var parent: Node = toggle.get_parent()
+	var competing: Array[String] = []
+	for sibling: Node in parent.get_children():
+		if sibling == toggle:
+			continue
+		if sibling is Control and (sibling as Control).get_combined_minimum_size().x > 0.0:
+			# A Label with autowrap reports a ~0 minimum width and cannot squeeze
+			# anything; anything with a real minimum width competes for the row.
+			if not (sibling is Label and (sibling as Label).autowrap_mode != TextServer.AUTOWRAP_OFF):
+				competing.append("%s (%s)" % [sibling.name, sibling.get_class()])
+
+	assert_bool(parent is BoxContainer).override_failure_message(
+		"the automation row is no longer a BoxContainer, so per-child width is unknown"
+		).is_true()
+	var is_vertical: bool = parent is BoxContainer and (parent as BoxContainer).vertical
+	assert_bool(is_vertical).override_failure_message(
+		"the automation row is horizontal again — its children now split the width "
+		+ "and the toggle clips its label, which is the deploy #29 defect"
+		).is_true()
+	assert_array(competing).override_failure_message(
+		"controls with a real minimum width share the toggle's row: %s" % str(competing)
+		).is_empty()

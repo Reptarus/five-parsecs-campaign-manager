@@ -6,6 +6,8 @@ const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 const UIColors = preload("res://src/ui/components/base/UIColors.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 signal phase_completed(phase_data: Dictionary)
 signal phase_failed(reason: String)
@@ -475,22 +477,25 @@ func _wrap_in_phase_card(
 	parent.move_child(card, idx)
 	return card
 
+## Let a touch-drag started on decorative chrome reach the ScrollContainer that owns it.
+##
+## ⚠ **This carried its own copy of the sweep, and that copy was STRUCTURALLY UNABLE
+## to do the job.** Its recursion `return`ed — not skipped — on
+## `Button/LineEdit/TextEdit/SpinBox/OptionButton/CheckBox/CheckButton/ScrollContainer/
+## LinkButton`, so the walk STOPPED at the first `ScrollContainer` and never entered the
+## only place a swallowed drag can matter. `TouchScrollOpener` skips those classes and
+## keeps descending, which is the difference.
+##
+## It also enshrined the "interactive controls must keep STOP" rule that **T9-45
+## disproved**: CheckBox, SpinBox and OptionButton are all focusable and are exactly what
+## a finger lands on, and `MOUSE_FILTER_PASS` still offers the event to the control
+## FIRST — a widget that genuinely handles a drag keeps handling it, and a tap still
+## works because `BaseButton` clears `press_attempt` on `NOTIFICATION_SCROLL_BEGIN`.
+##
+## `WorldPhaseController._open_subtree()` made exactly this migration in Aug 2026 for
+## exactly this reason. These were the second and third copies of the superseded rule.
 func _fix_touch_scroll_filters() -> void:
-	## Recursively set MOUSE_FILTER_PASS on layout containers so touch scrolling
-	## works through cards/panels on mobile. Buttons and interactive controls keep STOP.
-	_apply_pass_filter_recursive(self)
-
-func _apply_pass_filter_recursive(node: Node) -> void:
-	if node is Button or node is LineEdit or node is TextEdit or node is SpinBox \
-		or node is OptionButton or node is CheckBox or node is CheckButton \
-		or node is ScrollContainer or node is LinkButton:
-		return  # Interactive controls must keep MOUSE_FILTER_STOP
-	if node is Control:
-		var ctrl := node as Control
-		if ctrl.mouse_filter == Control.MOUSE_FILTER_STOP:
-			ctrl.mouse_filter = Control.MOUSE_FILTER_PASS
-	for child in node.get_children():
-		_apply_pass_filter_recursive(child)
+	TouchScrollOpenerRef.open_subtree(self)
 
 ## Style a disabled button with clearly reduced contrast for visual feedback
 func _style_button_disabled(button: Button) -> void:

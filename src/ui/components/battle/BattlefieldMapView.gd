@@ -66,6 +66,18 @@ const ZOOM_MIN := 0.5
 const ZOOM_MAX := 3.0
 const ZOOM_STEP := 0.15
 
+## How far a finger may travel and still count as a tap rather than a pan.
+## Matches `gui/common/default_scroll_deadzone=16` (project.godot:104) and
+## TapGesture.DEFAULT_SLOP_PX, so a movement this map forgives is exactly one no
+## other touch surface in the app has acted on either.
+const DRAG_SLOP_PX := 16.0
+
+## InputEventPanGesture.delta is a small per-event vector, not a pixel offset, so
+## it needs a gain to move the map at a usable rate. 24.0 is one grid cell at the
+## placement base (`cell_size`), i.e. a two-finger swipe pans about a cell per
+## event -- the same step the arrow keys use below.
+const PAN_GESTURE_GAIN := 24.0
+
 # ============================================================================
 # PROPERTIES
 # ============================================================================
@@ -93,7 +105,15 @@ var _sector_features: Array = []   # [row][col] -> Array[String]
 var _unit_positions: Array = []
 var _hovered_cell: Vector2i = Vector2i(-1, -1)
 var _is_panning: bool = false
+## Origin of the drag in progress. Written by both the MIDDLE and LEFT press paths;
+## read ONLY by the LEFT slop test, because MIDDLE pans from its first motion event.
 var _pan_start: Vector2 = Vector2.ZERO
+## Single-finger drag-to-pan state. A touch reaches this handler as an EMULATED LEFT
+## mouse press (`emulate_mouse_from_touch`, on by default), so the sector tap and the
+## pan share one button and can only be told apart by MOVEMENT -- the same
+## discrimination TapGesture makes for list rows (T11-28).
+var _tap_armed: bool = false
+var _tap_moved: bool = false
 var _deployment_highlighted: bool = false
 var _objective_positions: Array[Dictionary] = []  # [{type, grid_pos, label}]
 var _active_overlays: Array[Dictionary] = []  # Battle event overlays [{id, type, center, radius, color}]
@@ -1254,7 +1274,14 @@ func _gui_input(event: InputEvent) -> void:
 							_dragging_unit_idx = hit_idx
 							accept_event()
 							return
-					_handle_click(mb.position)
+					# ARM a tap -- do NOT open the popover yet. This used to call
+					# _handle_click() on the press DOWN, so a finger that landed here
+					# intending to PAN opened the sector rules popover instead (the
+					# T11-28 shape). The tap now fires on RELEASE, and only if the
+					# finger stayed inside DRAG_SLOP_PX -- see the motion branch.
+					_tap_armed = true
+					_tap_moved = false
+					_pan_start = mb.position
 					accept_event()
 		else:
 			if mb.button_index == MOUSE_BUTTON_MIDDLE:
@@ -1275,6 +1302,16 @@ func _gui_input(event: InputEvent) -> void:
 						_overlay_control.queue_redraw()
 				_dragging_unit_idx = -1
 				accept_event()
+			elif mb.button_index == MOUSE_BUTTON_LEFT and _tap_armed:
+				# Release ends either a tap or a single-finger pan. Disarm BEFORE
+				# dispatching so a popover that re-enters this handler cannot see a
+				# stale arm (the same ordering TapGesture uses).
+				var was_tap: bool = not _tap_moved
+				_tap_armed = false
+				_tap_moved = false
+				if was_tap:
+					_handle_click(mb.position)
+				accept_event()
 
 	elif event is InputEventMouseMotion:
 		var mm: InputEventMouseMotion = event
@@ -1283,8 +1320,72 @@ func _gui_input(event: InputEvent) -> void:
 			_update_terrain_transform()
 			queue_redraw()
 			_overlay_control.queue_redraw()
+		elif _tap_armed:
+			# One-way latch: once the finger passes the deadzone this gesture is a
+			# pan for the rest of its life, even if it wanders back. Coming back
+			# inside the slop must NOT re-arm the tap, or letting go near the start
+			# point after a long drag would open a popover.
+			if not _tap_moved and mm.position.distance_to(_pan_start) > DRAG_SLOP_PX:
+				_tap_moved = true
+			if _tap_moved:
+				pan_offset += mm.relative
+				_update_terrain_transform()
+				queue_redraw()
+				_overlay_control.queue_redraw()
 		else:
 			_update_hover(mm.position)
+
+	elif event is InputEventScreenTouch and (event as InputEventScreenTouch).index > 0:
+		# A SECOND finger landed: this gesture is a pinch, so whatever tap the first
+		# finger armed must be cancelled.
+		#
+		# MEASURED ON DEVICE (deploy #30, 2026-09-09) -- the headless cases cannot see
+		# this. `emulate_mouse_from_touch` synthesises pointer 0 only, and a second
+		# pointer CANCELS that emulated press: the cancel arrives as a LEFT release
+		# still within DRAG_SLOP_PX of the press point, so the slop latch (which only
+		# ever sees one pointer travel) passes it through as a genuine tap. Result: a
+		# pinch zoomed the map AND opened the sector popover for whatever was under
+		# finger one.
+		#
+		# The slop test is the wrong instrument for this because the cause is POINTER
+		# COUNT, which the mouse family structurally cannot observe. Hence the touch
+		# family -- used ONLY as a veto.
+		#
+		# WHY THIS IS NOT THE T11-36 DOUBLE-FIRE TRAP. That defect came from handling
+		# the same intent in both pointer families, so one physical tap ran an action
+		# twice. This branch performs NO action: it can cancel a tap and can never
+		# cause one, so there is nothing to fire twice. Keep it that way -- do not add
+		# an `index == 0` case here, that is the trap.
+		_tap_armed = false
+		_tap_moved = false
+
+	elif event is InputEventMagnifyGesture:
+		# PINCH TO ZOOM. This is the ONE interaction that cannot ride the emulated
+		# mouse family: `emulate_mouse_from_touch` synthesises pointer 0 only, so a
+		# second finger has no mouse equivalent at all and a pinch arrives as a
+		# single tap. Measured on a TB361FU (2026-09-09): two real pointers down
+		# (`P: 2 / 2` on the system overlay) moved the map 0 px.
+		# REQUIRES `input_devices/pointing/android/enable_pan_and_scale_gestures`
+		# (project.godot) -- without it Android never synthesises this event.
+		var mg: InputEventMagnifyGesture = event
+		# `factor` is a MULTIPLICATIVE per-event delta that approaches 1.0 the slower
+		# the pinch (Godot 4.6 InputEventMagnifyGesture docs), while _zoom() takes an
+		# ADDITIVE step. Converting through the current level keeps the pinch feeling
+		# the same at 0.5x and at 3.0x; passing `factor - 1.0` straight in would make
+		# it crawl when zoomed in.
+		_zoom(zoom_level * (mg.factor - 1.0), mg.position)
+		accept_event()
+
+	elif event is InputEventPanGesture:
+		# Two-finger pan, from the same project setting. The single-finger drag above
+		# covers the common case; this is what a player who is already pinching will
+		# try next without lifting.
+		var pg: InputEventPanGesture = event
+		pan_offset -= pg.delta * PAN_GESTURE_GAIN
+		_update_terrain_transform()
+		queue_redraw()
+		_overlay_control.queue_redraw()
+		accept_event()
 
 	elif event is InputEventKey and event.pressed and not event.echo:
 		var k: InputEventKey = event

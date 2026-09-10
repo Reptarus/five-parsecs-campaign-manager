@@ -336,6 +336,9 @@ func _on_back_pressed() -> void:
 
 
 func _on_save_png_pressed() -> void:
+	# Logged BEFORE the dialog opens: from here the app is waiting on the
+	# user, and nothing further is written unless they commit a path.
+	_log_export("REQUESTED", "format=PNG awaiting the native save dialog")
 	var dialog := FileDialog.new()
 	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	dialog.access = FileDialog.ACCESS_FILESYSTEM
@@ -346,13 +349,16 @@ func _on_save_png_pressed() -> void:
 	# MANDATORY on Android — see the note on _on_save_pdf_pressed().
 	dialog.use_native_dialog = true
 	dialog.file_selected.connect(_on_png_path_selected.bind(dialog))
-	dialog.canceled.connect(_on_dialog_canceled.bind(dialog))
+	dialog.canceled.connect(_on_dialog_canceled.bind(dialog, "PNG"))
 	add_child(dialog)
 	_active_dialogs.append(dialog)
 	dialog.popup_centered()
 
 
 func _on_save_pdf_pressed() -> void:
+	# Logged BEFORE the dialog opens: from here the app is waiting on the
+	# user, and nothing further is written unless they commit a path.
+	_log_export("REQUESTED", "format=PDF awaiting the native save dialog")
 	var dialog := FileDialog.new()
 	dialog.file_mode = FileDialog.FILE_MODE_SAVE_FILE
 	dialog.access = FileDialog.ACCESS_FILESYSTEM
@@ -381,7 +387,7 @@ func _on_save_pdf_pressed() -> void:
 	# only work as a pair.
 	dialog.use_native_dialog = true
 	dialog.file_selected.connect(_on_pdf_path_selected.bind(dialog))
-	dialog.canceled.connect(_on_dialog_canceled.bind(dialog))
+	dialog.canceled.connect(_on_dialog_canceled.bind(dialog, "PDF"))
 	add_child(dialog)
 	_active_dialogs.append(dialog)
 	dialog.popup_centered()
@@ -397,6 +403,78 @@ func _on_save_pdf_pressed() -> void:
 ## The two awaited frames are load-bearing: setting a Label's text does not repaint it,
 ## and the export that follows blocks the main thread. Yield first or the "Exporting"
 ## message only becomes visible after the work it was describing has finished.
+## Emit one line per stage of a sheet export.
+##
+## WHY THIS EXISTS. Before 2026-09-09 this file contained **zero** logging: every
+## outcome went to `_set_status()`, an on-screen label that dies with the screen.
+## That makes the three states below INDISTINGUISHABLE after the fact --
+##
+##   * the export ran and failed
+##   * the export ran and succeeded
+##   * the export never ran, because the native SAF dialog is still waiting for a
+##     tap and writes nothing until the user commits a path
+##
+## -- and the third is the common one. Measured during the deploy #32 renderer
+## smoke test: "Save PNG" produced no file in app storage and no log line, which
+## read exactly like a broken export. It had in fact succeeded and was sitting in
+## the Android save dialog. The screenshot was the only evidence either way.
+##
+## ⚠ DELIBERATELY NOT `OS.is_debug_build()` GATED, unlike the house diagnostic
+## idiom. `BugReportContext` attaches `user://logs/godot.log` to every bug report,
+## and "I pressed export and nothing happened" is precisely the report this has to
+## answer -- in a RELEASE build, which is the only kind a user has. Gating the
+## evidence behind a debug check would remove it from every log that matters.
+## It is four lines per export, not a hot path.
+##
+## ⚠ Failures use `push_warning`, which reaches BOTH Android logcat and
+## `user://logs/godot.log` (T11-44 corrected an earlier claim that it reached only
+## logcat). Successes use `print` so a working export cannot spam a warning channel.
+func _log_export(stage: String, detail: String) -> void:
+	var line: String = "[SHEET-EXPORT] %s | sheet=%s | %s" % [
+		stage, _sheet_id_for_log(), detail]
+	if stage == "FAILED":
+		push_warning(line)
+	else:
+		print(line)
+
+
+## Which of the three sheets is on screen, for the log line. Never assume the tab
+## bar exists -- this runs on paths where `_tabs` may not be built yet.
+func _sheet_id_for_log() -> String:
+	if _tabs == null:
+		return "unknown"
+	var idx: int = _tabs.current_tab
+	if idx < 0 or idx >= _tabs.get_tab_count():
+		return "tab%d" % idx
+	return _tabs.get_tab_title(idx)
+
+
+## An INDEPENDENT check that bytes actually landed, for the log line.
+##
+## `export_to_*` returning OK is the renderer's own claim about itself; this reads
+## the artifact back. Same discipline as parsing an exported PDF with PyPDF2
+## rather than trusting the writer.
+##
+## ⚠ On Android the native SAF dialog hands back a `content://` URI, not a
+## filesystem path, and FileAccess may not be able to open it. That is EXPECTED,
+## not a failure -- so this reports "size unavailable" and says why, rather than
+## returning something that reads like a zero-byte file. A probe that cannot
+## distinguish "I could not measure" from "there is nothing there" is worse than
+## no probe (see the .gdc string-grep that returned ABSENT for strings that were
+## definitely present).
+func _written_size_note(path: String) -> String:
+	if path.begins_with("content://"):
+		return "size=unavailable (content:// URI, the OS owns the file)"
+	if not FileAccess.file_exists(path):
+		return "size=0 (NO FILE AT PATH -- the writer reported success)"
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return "size=unreadable (err %d)" % FileAccess.get_open_error()
+	var n: int = f.get_length()
+	f.close()
+	return "size=%d bytes" % n
+
+
 func _begin_export(what: String) -> void:
 	_set_status("Exporting %s… this can take a few seconds for a full sheet." % what)
 	_save_png_btn.disabled = true
@@ -431,32 +509,53 @@ static func _display_file_name(path: String) -> String:
 func _on_png_path_selected(path: String, dialog: FileDialog) -> void:
 	_cleanup_dialog(dialog)
 	if _renderer == null:
+		_log_export("FAILED", "format=PNG renderer was null -- nothing was rendered")
 		_set_status("Renderer not ready.")
 		return
+	_log_export("WRITING", "format=PNG path=%s" % _display_file_name(path))
 	await _begin_export("PNG")
 	var err: Error = await _renderer.export_to_png(path)
 	if err == OK:
+		_log_export("SAVED", "format=PNG path=%s %s"
+			% [_display_file_name(path), _written_size_note(path)])
 		_end_export("Saved PNG: %s" % _display_file_name(path))
 	else:
+		_log_export("FAILED", "format=PNG error=%d path=%s"
+			% [err, _display_file_name(path)])
 		_end_export("PNG save failed (error %d)" % err)
 
 
 func _on_pdf_path_selected(path: String, dialog: FileDialog) -> void:
 	_cleanup_dialog(dialog)
 	if _renderer == null:
+		_log_export("FAILED", "format=PDF renderer was null -- nothing was rendered")
 		_set_status("Renderer not ready.")
 		return
+	# The BACKEND is worth naming: PdfExportRouter dispatches by platform
+	# (godotharu on desktop, godotpdf on Android), so a desktop probe is not a
+	# device test and a bug report must say which one ran.
+	_log_export("WRITING", "format=PDF backend=%s path=%s"
+		% [PdfExportRouter.best_available_backend(), _display_file_name(path)])
 	await _begin_export("PDF")
 	var err: Error = await _renderer.export_to_pdf(path)
 	if err == ERR_UNAVAILABLE:
+		_log_export("FAILED", "format=PDF no backend available in this build")
 		_end_export("PDF backend not installed. Save as PNG instead.")
 	elif err == OK:
+		_log_export("SAVED", "format=PDF path=%s %s"
+			% [_display_file_name(path), _written_size_note(path)])
 		_end_export("Saved PDF: %s" % _display_file_name(path))
 	else:
+		_log_export("FAILED", "format=PDF error=%d path=%s"
+			% [err, _display_file_name(path)])
 		_end_export("PDF save failed (error %d)" % err)
 
 
-func _on_dialog_canceled(dialog: FileDialog) -> void:
+func _on_dialog_canceled(dialog: FileDialog, format: String = "?") -> void:
+	# A cancel used to be COMPLETELY silent, which is the state most easily mistaken
+	# for a broken export -- the button was pressed, nothing was written, and no
+	# trace existed anywhere.
+	_log_export("CANCELLED", "format=%s no file written" % format)
 	_cleanup_dialog(dialog)
 
 
