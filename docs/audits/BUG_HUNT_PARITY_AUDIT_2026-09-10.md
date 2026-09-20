@@ -57,6 +57,14 @@ Verified byte-exact against the book, value by value:
 | Casualty / Muster-out / XP awards / Advance costs (pp.202-204) | all | exact |
 | Operational Progress + Military Life (pp.205-206) | 11 + 20 | exact |
 
+⚠ **That table is what was checked, and it is ELEVEN tables, not fifteen files.** Gear and armor
+are **not on it** — and on 2026-09-20 both turned out to be fabrications (Phase 6, rows P6-A/P6-B):
+five gear items in neither book, and two of three armor rows invented, one of them a Core Rules
+item copied in one point better than the book gives it. **A book-first sweep cannot see a data file
+the book has no table for**: it is never reached, so it is never contradicted, so it scores clean.
+Read *"the data is nearly perfect"* as a claim about the rows above it, never about a file this
+audit did not name.
+
 **A value-diff audit would have returned almost entirely clean, and would have been worth nothing.**
 That is how §C4 scored 19/19. It is the same signature CLAUDE.md records from the creation-wizard
 audit: *"The creation tables were byte-correct against the book; the **wiring** was where it broke."*
@@ -112,6 +120,38 @@ Buckets: **CONTRADICTS · FABRICATED · WRONG-VALUE · NEVER-FIRES · MISSING ·
 > **page-cited** content — the same instance added Core Rules p.151 verbatim quotes to
 > `data/black_zone_jobs.json`, and no filesystem writes a page citation.
 >
+> ⚠ **The `Status` column of every bucket table is the 2026-09-10 SNAPSHOT, and it is
+> deliberately left at `OPEN` on all 49 rows.** Fixes are recorded in the dated
+> `## 🟢 MEASURED` phase sections, which carry the evidence. Flipping individual rows as
+> sprints land would imply the untouched rows had been re-measured, which they have not
+> been. Where a row's finding text has since become false, it is corrected **in place with
+> the correction stated** — see the Spawn Points row (fixed in Phase 4) and the Tactical
+> Locations row (which was wrong when written).
+
+> ⚠ **CITATIONS IN THIS DOCUMENT HAVE NO SINGLE BASELINE — repair them by CONTENT, never
+> by an old→new line map (learned the hard way, 2026-09-20).** Rows were written across
+> Phases 0-6 against different versions of the same file: `BugHuntBattleSetup.gd` has been
+> **234** lines at HEAD, **250** pre-Phase-6 and **246** live; `BugHuntCharacterGeneration.gd`
+> **372** pre-sprint, **423** at HEAD, **407** live. A difflib map from *one* old copy to the
+> live file therefore repairs some rows and silently corrupts others — which is exactly what
+> happened to six BattleSetup citations in this phase before they were redone by content.
+>
+> Three blind spots made it hard to see, and all three are worth carrying forward:
+>
+> 1. **`scripts/lint_audit_citations.py` is an EXISTENCE check.** A citation that runs past
+>    the end of a shortened file goes red; one that still lands *inside* the file but now
+>    points at different code passes silently. Of the 25 citations this phase's deletion
+>    moved, the lint caught **one**.
+> 2. **Its regex only sees `File.gd:NNN` / `File.gd#LNNN`.** Rows that name the file once and
+>    then cite bare `` `:NNN` `` tokens are invisible to it — 11 of the 25 were in that shape.
+> 3. **A token regex anchored on a `:` prefix cannot see the END of a range.** `:185-188`
+>    matches only `185`, producing `:181-188` — a range whose two halves come from two
+>    different versions of the file. Nothing checks for that; it was caught by reading the
+>    output.
+>
+> ⚠ **A repaired-but-wrong citation is worse than an untouched one, because it reads as
+> freshly verified.**
+
 > **The audit is unaffected.** `git status --porcelain | grep -i bug_hunt` returns only this
 > audit's own untracked files — no Bug Hunt source or data file was touched by that instance —
 > and `BattleCalculations.gd` is the sole overlapping file, already cited by symbol. All six
@@ -164,7 +204,7 @@ rules surface at all. The app's only mid-battle reference for a Bug Hunt fight i
 | post-battle | Casualties must come from the battle | small | **Casualties are invented from thin air.** `casualty_ids` is always empty (no producer — see NEVER-FIRES), so the fallback branch at `src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd:174` — commented *"should not happen with wiring"* — executes on **every** battle, rolling `randi() % 5 == 0` per active character | OPEN |
 | post-battle | **Court Martial — p.201**: only *"if you failed to complete any Objectives at all"* | small | **The player pays 3 real Reputation to avert a consequence that cannot occur.** The card fires after **every** mission including total victories, because `objectives_completed` is always 0. On GUILTY the panel prints *"Squad leader removed from campaign"*, never appends to `mustered_out`, and never calls `remove_main_character` — `BugHuntPostBattlePanel.gd:642` is literally the comment `# Remove leader from mustered_out if we added them`. The 3-Reputation buyout **does** really call `spend_reputation(3)` | OPEN |
 | battle-resolution | No "natural 6 = casualty" rule exists in Bug Hunt | one-line | `CheatSheetPanel.gd:422` prints *"Result >= Toughness, **or a natural 6**: Casualty"* | OPEN |
-| battle-setup | **Spawn Points — p.199**: the Spawn Rating **is** the number; *"If this rating is 0, this rule is not used"* | one-line | `src/core/battle/BugHuntBattleSetup.gd:177` reads `spawn_config.get("base_count", 2)` against a key that does not exist in the JSON, giving `total = 2 + spawn_rating`. Two spawn points the book does not grant, and rating 0 can never disable the rule | OPEN |
+| battle-setup | **Spawn Points — p.199**: the Spawn Rating **is** the number; *"If this rating is 0, this rule is not used"* | one-line | `src/core/battle/BugHuntBattleSetup.gd` **read** `spawn_config.get("base_count", 2)` against a key that does not exist in the JSON, giving `total = 2 + spawn_rating`. Two spawn points the book does not grant, and rating 0 can never disable the rule. ✅ **FIXED in Phase 4** — the computation is now [`var total: int = maxi(spawn_rating, 0)`](../../src/core/battle/BugHuntBattleSetup.gd#L190), with the reason kept as a comment at `:184-189` so nobody restores the default | OPEN |
 | battle-resolution | No Area-weapon friendly-fire risk roll exists in Bug Hunt | one-line | `CheatSheetPanel.gd:398` adds a 5+ risk roll | OPEN |
 
 ---
@@ -211,8 +251,8 @@ markers active**"*, and there is no contact-marker system anywhere in `src/`.
 | mission-generation | Enemy Variants p.196 | 6 | `data/bug_hunt/bug_hunt_alien_subtypes.json` — **zero references repo-wide** |
 | mission-generation | Pack Leaders p.197 | 6 | `data/bug_hunt/bug_hunt_alien_leaders.json` — **zero references repo-wide** |
 | mission-generation | Contact markers pp.192-193 | ~14 | movement, Aggression/Chance dice, 6"/3" detection, the D6 Contact table, "Beep Sir?" |
-| mission-generation | Tactical Locations p.191 | 10 | The D6 **is** rolled at `BugHuntBattleSetup.gd:127`; the result is never consumed |
-| mission-generation | Signals p.208 | 6 | `BugHuntBattleSetup.gd:157` fetches `signal_table` into a local and **never uses it** — every Signal is emitted with `"result": {}`. Contrast the Tactical Locations function 30 lines above, which resolves its row correctly |
+| mission-generation | Tactical Locations p.191 | 10 | ⚠ **This row was WRONG when written, and the correction is kept rather than quietly edited.** It claimed the D6 result *"is never consumed"*. It is: the roll is at [`:134`](../../src/core/battle/BugHuntBattleSetup.gd#L134) and it **is** resolved against `d6_value` / `d6_range` at `:139` / `:145`. `git show 3b26b873d:src/core/battle/BugHuntBattleSetup.gd` shows the pre-sprint function already did so, and the Signals row immediately below contradicted this row in the same table (*"the Tactical Locations function 30 lines above, which resolves its row correctly"*). **What is genuinely dead is the PAYLOAD**: `tactical_locations` is written into the battle context at `:70`, and `grep -rn 'tactical_locations\|tac_loc' --include=*.gd src/` returns **zero** hits outside the producer (12 hits, 11 of them in `BugHuntBattleSetup.gd` itself and one a comment in `BugHuntMissionPanel.gd:673`). The zero-argument wrapper `_generate_tactical_locations()` at `:119` also has **zero callers** |
+| mission-generation | Signals p.208 | 6 | `BugHuntBattleSetup.gd:168` fetches `signal_table` into a local and **never uses it** — every Signal is emitted with `"result": {}`. Contrast the Tactical Locations function 30 lines above, which resolves its row correctly |
 | battle-setup | Spawn Points p.199 | 5 | Including Closing Down — `grep closing_down src/` returns 0 hits |
 | battle-setup | Evac p.201 | 6 | The whole `evac` block is unread: Round 5+, 2D6+objectives, Savvy +1, 10+ success, 3-round loiter, Priority +1 per arrival, drop ship's two LMGs at +1 Combat Skill |
 | post-battle | Operational Progress p.205 | 2 sentinels | `below_1` and `above_100` are **unreachable** — see below |
@@ -224,7 +264,7 @@ markers active**"*, and there is no contact-marker system anywhere in `src/`.
 | mission-generation | Deployment p.190 | 2 | Random edge / within 3" / Objectives ≥12" from deployment — all unread |
 | mission-generation | Vital ×2 / Critical ×3 p.185 | 2 | Correctly detected and displayed pre-battle ("counts as 3!"), never scored |
 | battle-setup | 4+ Signals ⇒ −1 Objective p.201 | 1 | A pre-battle warning label, no enforcement |
-| battle-setup | `no_morale` flag | 1 | Written at `BugHuntBattleSetup.gd:56`, read by nobody |
+| battle-setup | `no_morale` flag | 1 | Written at `BugHuntBattleSetup.gd:65`, read by nobody |
 
 ### ⭐ The single worst NEVER-FIRES: the campaign cannot be won
 
@@ -272,7 +312,7 @@ never sees any Operational Progress effect text either.
 | post-battle | **Replacements — p.202** and **retire an injured trooper — p.203** | medium | No replacement generation on the post-battle path, no retire control | OPEN |
 | post-battle | **MVP +1 XP — p.204** | small | Printed as a sentence; no control, no XP | OPEN |
 | mission-generation | **Reputation levers — p.187**: spend up to 2 Rep to shift Priority; 1 Rep for +1 Support | medium | Both are advisory labels. `spend_reputation()` exists and is never called from the mission panel | OPEN |
-| character-creation | **Squad size — p.170**: *"four or even five"* main characters | small | `src/core/character/BugHuntCharacterGeneration.gd:153` hard-caps at 4 and `src/ui/screens/bug_hunt/panels/BugHuntSquadPanel.gd:69` renders 4 name fields, so the core's own 5-cap check at `src/game/campaign/BugHuntCampaignCore.gd:281` is a **permanently-false branch** | OPEN |
+| character-creation | **Squad size — p.170**: *"four or even five"* main characters | small | `src/core/character/BugHuntCharacterGeneration.gd:158` hard-caps at 4 and `src/ui/screens/bug_hunt/panels/BugHuntSquadPanel.gd:69` renders 4 name fields, so the core's own 5-cap check at `src/game/campaign/BugHuntCampaignCore.gd:307` is a **permanently-false branch** | OPEN |
 | battle-resolution | Movement and terrain — pp.174-176, p.200 | large | LoS 3" rules, cover definition, Dash 3" for enemies, enemy immunity to difficult terrain, drop/leap distances, "enemies may move through each other", enemy activation order, path-length targeting — none delivered. The terrain data in `data/RulesReference/TerrainTables.json` is correct and reachable only through a dead path | OPEN |
 
 ---
@@ -292,7 +332,7 @@ never sees any Operational Progress effect text either.
 | `BugHuntTurnController`, `BugHuntCreationUI` and **all 8 panels extend bare `Control`** ⇒ no touch-scroll sweep and no settings-overlay band, while `PlanetfallTurnController` extends the shared base. Direct sibling-gamemode drift. ⚠ **CORRECTED 2026-09-19: this row also said "no responsive wiring", and that is WRONG.** `ResponsiveManager` is referenced in **10 Bug Hunt files / 13 call sites**, so the mode does adapt to size and orientation. What extending bare `Control` actually costs is the two things the base `_ready()` provides — `TouchScrollOpener.open_subtree()` and `SettingsOverlay.reserve_band_on()`. The overstatement is kept rather than deleted because a reader acting on it would rebuild wiring that already exists | `src/ui/screens/bug_hunt/BugHuntTurnController.gd:1`; `grep -rn ResponsiveManager src/ui/screens/bug_hunt/` |
 | `BugHuntDashboard` rebuilds from three paths and **none** re-runs `_fix_touch_scroll_filters()`, which `CampaignScreenBase.gd:123` documents as required after any rebuild. Drag-scroll is dead after any enlist / muster-out | `src/ui/screens/bug_hunt/BugHuntDashboard.gd:25` |
 | Duplicated implementations: **8** card factories, **4** `_load_json`, plus its own injury / XP / advancement logic against `InjuryProcessor`, `ExperienceTrainingProcessor` and `CharacterAdvancementService` | see NEVER-FIRES sites |
-| `str()` on JSON ints renders **"4.0" / "8.0"** in the advancement cost table. `src/ui/components/common/DisplayText.gd` is the fix and Bug Hunt has not adopted it | `src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd:337` |
+| ✅ **CLOSED — superseded 2026-09-20 (Phase 6 step 3).** `str()` on JSON ints rendered **"4.0" / "8.0"** in the advancement cost table. Phase 5's presentation-only rewrite replaced the whole card, and the replacement uses `int()` and `%d` throughout — so this closed as a SIDE EFFECT, pinned by nothing. It is pinned now: `test_bug_hunt_rendered_numbers.gd`. ⚠ The cited line no longer holds the defect | `src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd:337` (stale — see step 3 below) |
 | **Zero of the 15 `data/bug_hunt/*.json` carry a `_source` key.** Page cites live in a free-text `description`, so no lint can ever check them — which is why these tables could go dead unnoticed. `data/RulesReference/*.json` carries `_source` | `data/bug_hunt/` |
 | **Colour tokens are CLEAN** — every Bug Hunt `COLOR_*` aliases a `UIColors` token; no `#808080` anywhere in `src/ui/screens/bug_hunt/`. The one shared-fix sweep Bug Hunt is fully in on | `src/ui/screens/bug_hunt/` |
 
@@ -957,24 +997,24 @@ recorded four more it does not own.
 ⚠ **The plan's RNG count was wrong, and the correction is what makes the residue auditable.** The
 plan said *"38 raw rolls"* with a per-file split of BattleSetup 11. Measured at HEAD with comments
 stripped by a throwaway census script: **39 occurrences on 37
-lines**. `BugHuntBattleSetup.gd:151` and `:168` each carry **two** `randi()` calls
+lines**. `BugHuntBattleSetup.gd:159` and `:176` each carry **two** `randi()` calls
 (`{"row": randi() % 4, "col": randi() % 4}`) — they are the only doubled lines in the five files —
 so the plan's 11 was neither the line count (10) nor the occurrence count (12). A counting UNIT
 that is never stated cannot be reconciled later.
 
 ⚠ **A naive grep over-counts by 2 now.** Two files gained a comment that names `randi()` in order
 to explain why the remaining calls are deliberately unrouted
-([BattleSetup:220](../../src/core/battle/BugHuntBattleSetup.gd#L220),
-[CharGen:410](../../src/core/character/BugHuntCharacterGeneration.gd#L410)). The census strips
+([BattleSetup:231](../../src/core/battle/BugHuntBattleSetup.gd#L231),
+[CharGen:393](../../src/core/character/BugHuntCharacterGeneration.gd#L393)). The census strips
 comments first, matching **string literals before `#`** so a colour literal or a context string
 containing `#` is not mistaken for a comment — the same discipline `lint_orphan_assets.py` already
 uses.
 
 | File | HEAD | Routed now | Raw left | What the residue is |
 |---|---|---|---|---|
-| [BugHuntBattleSetup.gd](../../src/core/battle/BugHuntBattleSetup.gd) | 12 | 2 | 11 | **10 positional** — location pick `:140`, sector row/col `:151` `:168`, board edge `:182`, edge positions `:185-188` — plus 1 fallback `:233` |
-| [BugHuntCharacterGeneration.gd](../../src/core/character/BugHuntCharacterGeneration.gd) | 8 | 9 | 7 | 2 character ids `:125` `:184`, 3 name picks `:283-285`, 2 fallbacks `:293` `:423` |
-| [BugHuntMissionPanel.gd](../../src/ui/screens/bug_hunt/panels/BugHuntMissionPanel.gd) | 8 | 8 | 1 | 1 fallback `:568` |
+| [BugHuntBattleSetup.gd](../../src/core/battle/BugHuntBattleSetup.gd) | 12 | 2 | 11 | **10 positional** — location pick `:148`, sector row/col `:159` `:176`, board edge `:194`, edge positions `:197-200` — plus 1 fallback `:245` (a 12th `randi()` at `:232` is inside a docblock, which is why the comment-stripped residue is 11 and not 12) |
+| [BugHuntCharacterGeneration.gd](../../src/core/character/BugHuntCharacterGeneration.gd) | 8 | 9 | 7 | 2 character ids `:122` `:181`, 3 name picks `:280-282`, 2 fallbacks `:290` `:407` |
+| [BugHuntMissionPanel.gd](../../src/ui/screens/bug_hunt/panels/BugHuntMissionPanel.gd) | 8 | 8 | 1 | 1 fallback `:669` (the raw count is 2; `:177` is a comment) |
 | [SpecialAssignmentsPanel.gd](../../src/ui/screens/bug_hunt/panels/SpecialAssignmentsPanel.gd) | 2 | 2 | 1 | 1 fallback `:425` |
 | [BugHuntPostBattlePanel.gd](../../src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd) | 9 | 0 | 9 | **deliberately untouched** — written routed inside the resolver in Phase 5, so they are not routed twice |
 | [CharacterTransferService.gd](../../src/core/character/CharacterTransferService.gd) (enlistment only) | 2 | 2 | 0 | — |
@@ -985,7 +1025,7 @@ uses.
 one.** Three raw rolls became nine routed call sites, and two new fallback `randi_range` calls
 appeared inside the helpers (8 − 3 + 2 = 7 raw left). The expansion is real, not bookkeeping: the
 commendation roll was one `randi()` inside a `for i in 2` loop and is now
-[`"Bug Hunt Commendation: die %d" % (i + 1)`](../../src/core/character/BugHuntCharacterGeneration.gd#L319)
+[`"Bug Hunt Commendation: die %d" % (i + 1)`](../../src/core/character/BugHuntCharacterGeneration.gd#L316)
 — **one line, two distinct forceable keys**, so a tester can pin each die. A count of raw calls
 understates how many *decisions* a mode makes.
 
@@ -1017,12 +1057,12 @@ line 120: Expecting: '4'  but was '4.000000'   (toughness)
 ```
 
 Godot's JSON parser returns **every** number as a float, so `base_stats` handed back `3.0` for
-Toughness and [`_apply_stat_bonuses`](../../src/core/character/BugHuntCharacterGeneration.gd#L305)'s
+Toughness and [`_apply_stat_bonuses`](../../src/core/character/BugHuntCharacterGeneration.gd#L302)'s
 `+=` kept it one — **a typed local coerces on `+=`, a Dictionary value does not**. Three sites now
-coerce: [generate_main_character](../../src/core/character/BugHuntCharacterGeneration.gd#L73)
-(5 reads), [_apply_stat_bonuses](../../src/core/character/BugHuntCharacterGeneration.gd#L311)
+coerce: [generate_main_character](../../src/core/character/BugHuntCharacterGeneration.gd#L70)
+(5 reads), [_apply_stat_bonuses](../../src/core/character/BugHuntCharacterGeneration.gd#L308)
 (**both** operands), and
-[generate_grunt](../../src/core/character/BugHuntCharacterGeneration.gd#L197) (5 reads).
+[generate_grunt](../../src/core/character/BugHuntCharacterGeneration.gd#L194) (5 reads).
 
 ⚠ **This is T11-33/T11-34 in a mode nobody had swept.** That defect was found on a real device walk
 against the 5PFH ship readout and is recorded verbatim at
@@ -1057,7 +1097,7 @@ checkable rather than aspirational, and it is arm **G**.
 case-insensitive **substring** of the roll context and returns on the **first** match in
 `Dictionary` insertion order. So a key that is a prefix of *another key* silently eats that other
 key's queued value. The regiment reroll is therefore named
-[`"Bug Hunt Regiment: title reroll"`](../../src/core/character/BugHuntCharacterGeneration.gd#L247)
+[`"Bug Hunt Regiment: title reroll"`](../../src/core/character/BugHuntCharacterGeneration.gd#L244)
 rather than the natural `"... title part 1 reroll"`, with the ⚠ recorded at the line. Two census
 cases pin it: case 10 inside the Bug Hunt block, case 11 across the 5PFH/Bug Hunt boundary in
 **both** directions.
@@ -1197,14 +1237,1227 @@ tester is actually watching, is owed to the **device walk in Phase 7**.
 
 ---
 
+## 🟢 MEASURED 2026-09-20 — Sprint 1 Phase 4 (stamp, normalizer, debrief)
+
+Phase 4 is complete. It closes **the sprint's headline defect**: on HEAD no played mission ever
+scored an objective, so Court Martial fired every turn and the campaign had no reachable win. The
+cause was not one bug but a chain in which **every link was individually defensible** — the weights
+existed only as prose, the stamp was never written, the consumer read a different key, and the
+normalizer did not exist. Each link returned a silent default, so nothing anywhere errored.
+
+### The scoring rule existed, in prose, where no consumer could reach it
+
+`bug_hunt_missions.json` carried the weights as English: *"If two of the 3D6 roll the same number,
+that Objective becomes Vital (counts as 2)"*, and the signals penalty lived in a sentence in
+`bug_hunt_tactical_locations.json:38`. Both are **byte-faithful to the Compendium** — that is why
+three independent data verifications passed them. **A consumer cannot read prose.** The rule was
+present, correct, cited, and unreachable.
+
+Fixed by adding a cited `scoring` block (printed pp.185, 201) that the scorer and the briefing both
+read, so the number a player is promised and the number they are scored on cannot drift. ⚠ The
+prose keys are **kept**, not replaced — they are the book's own wording and the briefing renders
+them.
+
+### `objective` singular, `objectives` plural — the key mismatch, one more time
+
+`BugHuntBattleSetup.generate_battle_context()` read `mission_context.get("objective", {})` and
+passed it straight through to the battle context. **No producer has ever written `objective`.** So
+the objectives reached the battle screen as `{}`, and the sixth occurrence of the documented
+consumer-reads-a-key-no-producer-writes shape is in the file that builds the battle itself.
+
+### The Signals count was rolled TWICE, and the two rolls could disagree
+
+The panel rolls 1D6 Signals when the player turns the rule on; `BugHuntBattleSetup` then rolled its
+**own** 1D6 for the same mission. p.201 measures the debrief against *"if the mission had 4 or more
+signals **initially**"* — so the briefing could promise 5 signals, the battle place 2, and the
+penalty be assessed against whichever number the reader happened to hold. The setup now prefers the
+stamped count and rolls only when nothing was stamped.
+
+### A phantom default turned "if 0, none" into "if 0, two"
+
+`_generate_spawn_points()` computed `spawn_config.get("base_count", 2) + spawn_rating`.
+**`bug_hunt_spawn_rules.json` declares no `base_count` key**, so the default was the value — every
+mission got two spawn points it should not have, and the book's own sentence in that same file
+(*"Mission creation dictates a Spawn Rating determining how many Spawn Points will be revealed. If
+0, spawn points are not used."*) was contradicted by the code reading it. ⚠ **A `.get()` default
+that no data file ever overrides is not a fallback — it is a hardcoded rule wearing a fallback's
+clothes.** Now `maxi(spawn_rating, 0)`.
+
+### `_apply_battle_results` read three keys, and all three were wrong in different ways
+
+| Key | What it was | Consequence |
+|---|---|---|
+| `casualties` | TacticalBattleUI's real key — but it holds **Dictionaries, not ids** | `add_to_sick_bay(str(casualty_id), ...)` would have keyed Sick Bay by a **stringified Dictionary**. It never fired only because nothing normalized the result first |
+| `injury_turns` | **zero producers repo-wide** | the Sick Bay term above defaulted to 1 |
+| `extra_contact_bonus` | **zero producers repo-wide** | the objective branch added `+= 0` — a reward the book grants, computed and discarded |
+
+⚠ **The `casualties` row is the dangerous one**, because unlike the other two the key is real: a
+census that checks "does a producer write this key?" passes it. Only the *shape* is wrong, and the
+damage would have been silent — a Sick Bay entry under a key no lookup can match.
+
+Sick Bay is now **deliberately not applied here**: p.202 Step 1 is a D100 on the Casualty table that
+decides both the outcome and the turn count, so a flat turn applied at battle return would put the
+same character in Sick Bay twice for two different reasons. The battle return parks `casualty_ids`
+in `_pending_casualty_ids` for Phase 5's roll, and nothing else.
+
+### The debrief exists because four facts are unobservable, not because the UI wanted a card
+
+This is the design point worth carrying: **Bug Hunt objectives are dice on a physical table**
+(p.187). The shared battle screen cannot report them, and inventing them is what HEAD did. So the
+debrief asks the player for exactly the four things the app cannot see — which objectives were
+completed, how many signals were investigated (p.201), who walked off a battlefield edge rather
+than through Evac (p.202), and who the MVP was (p.204) — and **everything else is derived**.
+`_collect_debrief()` emits only the fields whose widgets actually rendered, because an absent field
+means *"the player was never asked"* while an empty one would overwrite another producer's value.
+
+### The deleted paths, and why deleting them was load-bearing
+
+- **The random-casualty fallback** (`BugHuntPostBattlePanel`): read an EMPTY `casualties` list as
+  "no battle data" and rolled a 1-in-5 casualty per active main character, so a battle nobody was
+  hurt in still produced casualties.
+- **Two fabricated launch-failure results** (`BugHuntMissionPanel`): a failed launch recorded a
+  **won mission**. ⚠ These were also the **only** paths that completed MISSION, which is why step 6
+  below had to land in the same phase — deleting them alone would have left nothing completing it.
+
+### ⚠ Two findings in my OWN Phase 4 code, recorded at the row rather than quietly fixed
+
+**(1) A `show_notification` guard — the sixth occurrence of a trap this repo already documents.**
+Replacing the fabricated launch-failure result with a player-facing error, I wrote
+`nm.has_method("show_notification")`. **`func show_notification` has zero definitions repo-wide**;
+the real API is `show_info` / `show_success` / `show_warning` / `show_error` / `show_toast`
+(`NotificationManager.gd:105-131`). The guard is permanently false, so the player would have been
+told nothing — the same silent outcome the fabricated result produced, reached a different way.
+⭐ **`lint_dead_has_method_guards.py` caught it on the first run after the edit**, reporting
+`1 NEW`. That is the eighth lint doing precisely the job it was promoted for: the remedy was
+already written down **twelve lines away** in `BugHuntDashboard.gd:485-495`, and I still wrote the
+broken form. A regression guard beats a documented gotcha.
+
+**(2) The MISSION-completion fix was INERT, and its own test could not see it.** Step 6 replaced
+`go_to_phase(POST_BATTLE)` with a guarded completion:
+
+```gdscript
+if phase_manager.current_phase == BugHuntPhaseManagerScript.Phase.MISSION:
+    phase_manager.complete_current_phase({"battle_result": result})
+else:
+    phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.POST_BATTLE)
+```
+
+**That test is false on every real battle return.** The TurnController is **rebuilt** on the way
+back from TacticalBattleUI, so the phase manager is new and `current_phase` is its default
+`Phase.NONE` (`BugHuntPhaseManager.gd:37`) — the `else` branch runs and the fix does nothing. Worse,
+had the test been loosened to call `complete_current_phase()` unconditionally, that function
+**returns immediately on NONE** (`:72-73`), so the phase would still never complete: the same
+defect, one layer further in.
+
+⭐ **The existing case could not detect any of this.** `test_returning_from_battle_lands_on_post_battle`
+passes on *both* paths — "landing on POST_BATTLE" is true whether the return completes MISSION or
+jumps over it. **Assert where the damage lands**: the new case
+`test_the_battle_return_completes_the_mission_phase` asserts `is_phase_complete(MISSION)` and that
+the battle's casualty reached `_pending_casualty_ids`. It failed **2 assertions** on the inert
+version and passes on the fix.
+
+The corrected return sets the field directly (this file's own idiom — `_resume_turn`'s NONE branch
+does the same) rather than routing through `_go_to_phase`, which would emit `phase_changed` and
+rebuild the Mission panel for a mission already fought. A `POST_BATTLE` re-entry is a no-op, so a
+second return cannot re-run `_apply_phase_results` or re-log the mission.
+
+### ⚠ A detection harness that greps only `failures=` reports a correctly-detected abort as UNDETECTED
+
+Two of the fourteen arms (`L1`, the Bug Hunt `_as_array`; `M`, the shared parser's `is Array`
+guard) revert a variant-tolerance fix, so the reverted code performs a **typed assignment of a
+non-Array**. That is the documented class-(b) abort: the function unwinds **before any assertion
+runs**, so gdUnit4 books it as `errors=1 failures=0` — and the harness, filtering on
+`"failures=0"`, called both arms UNDETECTED.
+
+⭐ **A control run is what makes the pair meaningful.** Running the same isolated case **unreverted**
+returns `1 case / 0 errors / 0 failures / PASSED`; reverted it returns `1 / 1 / 0`. The arm is
+detected — by a different column. **Capture errors AND failures, and always run the control**, or a
+harness will quietly tell you your best-defended fixes are undefended.
+
+### Phase 4 gates
+
+| Gate | Result |
+|---|---|
+| Compile guard | **1/0/0**, exit 0 |
+| 8 lints | **all exit 0.** ⚠ `lint_dead_has_method_guards` exited **1 with `1 NEW`** on its first run and found a defect I had just written (above); after the fix, `59 total / 59 allowlisted / 0 NEW`. Orphan lint `files=561 reachable_from_product=561 test_only=0 orphans=0 unwired_rules=0` |
+| `tests/unit`, headless batches | **3426 executed / 0 errors / 1 failure.** The one failure is `test_compendium_mission_types.gd::test_each_generator_stamps_its_dispatch_type`, **6/6 alone** — the same pre-existing batch-composition bleed Phase 0 recorded, out of scope. Fail-fast hid 5 of that suite's 6 cases |
+| **Count arithmetic** | **`3426` executed `+5` hidden by fail-fast `= 3431`. Expected `3416` (Phase 3) `+15` (`test_bug_hunt_battle_result_normalizer.gd`) `= 3431`.** ✓ The turn suite's 11th case was added after the sweep and re-run alone — **11/0/0** |
+| Batch 9 signal-11 | Crashed at **35 suites started** (`rc=3221225477`). Split 12/12/11: **82 / 117 / 90 cases, 0 errors, 0 failures.** ⚠ This is **half** the "~58 suites" this project's CLAUDE.md records — the cliff scales with what the suites ALLOCATE, not with their count, and this batch builds real screens. **≤40 is a ceiling, not a guarantee** |
+| Post-sweep re-runs | The two edits made after the sweep (`show_error`, the completion fix) touch files reached by exactly four suites (`grep -rln BugHuntTurnController tests/`): **28/0/0** across `test_touch_scroll_sweep`, `test_every_script_compiles`, and both normalizers; plus the turn suite alone at **11/0/0** |
+| Alpha-1 guard | `test_battle_result_normalizer.gd` **10/0/0** — the shared-parser extraction is behaviour-identical for 5PFH |
+| Detection proofs | **14/14 detected**, each run alone (others renamed `off_*`), reverted from an in-memory snapshot (**never** `git restore`), all three touched files md5-verified byte-identical afterwards. Arms A-K by failure, **L1 and M by error, each with a passing control run** |
+| Data diff | `git diff -- data/` is **`data/bug_hunt/bug_hunt_missions.json` only, +17/-1** — `_source` keys, `_note` explanations, the cited `scoring` block (pp.185, 201) and `campaign_escalation_option._source` (p.187). No value was invented |
+| Line endings | Every touched file re-checked on the **bytes**: 13 LF, 3 CRLF, **0 mixed**. The three CRLF files (`DOCUMENTATION_INDEX.md`, `TABLET_QA_SPRINT_2026-08.md`, `probe_bug_hunt_panels.gd`) kept their endings |
+| Concurrency | porcelain at phase end is exactly **15 modified + 2 untracked** — the session-start **14 + 2**, plus this ledger itself, which Phase 4 edits. No path outside Sprint 1's own list moved, and no other instance is writing |
+
+### One cited value derived rather than stored
+
+`campaign_escalation_option.spawn_sequence` is printed on p.187 as `[0,0,1,1,2,3,3,3]`. It is
+**not an independent rule**: it is exactly `clamp(priority - 1, 0, 3)` over the `priority_sequence`
+printed beside it. The code derives it so one rule cannot drift into two values, and the JSON keeps
+the printed array with a `spawn_sequence_note` saying why nothing reads it. ⚠ This is the opposite
+call from the `scoring` block above, and deliberately so: **structure a rule when a consumer must
+read it, derive it when a second copy could disagree.**
+
+---
+
+## 🟢 MEASURED 2026-09-20 — Sprint 1 Phase 5 (resolver + one mutator: the p.202 slice)
+
+✅ **COMPLETE.** The p.202 post-battle sequence now runs through a pure resolver that returns a
+receipt, and `BugHuntPhaseManager` is the only thing that mutates. Phase 4 made a played mission
+*score*; Phase 5 makes what follows a mission **correct and reachable** — the tally rises once for
+a character who took the field, muster-out is checked at the character's real count and writes a
+transfer file instead of deleting the veteran, Operational Progress moves so `below_1` Disaster and
+`above_100` Parade exist, and all 20 Military Life rows apply with persistent modifiers.
+
+**Gate: 3449 executed / 0 errors / 0 failures / 320 suites**, and for the first time this sprint
+**executed equals declared** — `grep -c '^func test_'` over the exact file set the runner is handed
+reports **3449**, so nothing was hidden by fail-fast anywhere in the run. The 8 lints exit 0
+(`files=562 reachable_from_product=562 test_only=0 orphans=0 unwired_rules=0`). Detection: **15/15**
+on the resolver suite, **4/4** on the two gate fixes below, every arm with a passing control run.
+`git diff -- data/` is the two cited Bug Hunt files and nothing else.
+
+⭐ **The count arithmetic closed a discrepancy rather than carrying it.** An interim run read
+`3442 executed + 5 hidden = 3447` against an expected `3446`, and the `+1` was recorded as open.
+It was a bad **expected baseline**, not a stray case: measuring the declared population directly
+(`find tests/unit -name '*.gd'`, the runner's own recursive glob, minus the one `NEEDS_DISPLAY`
+suite) gives **3449** against **3449 executed**. ⚠ The first attempt at that measurement globbed
+`tests/unit/*.gd` and reported **3433 / 316 suites** — it missed the subdirectories the runner
+walks. **Count against the runner's own file set, not against a directory you assume it matches.**
+
+### New code
+
+| File | Shape |
+|---|---|
+| `src/core/campaign/BugHuntPostBattleResolver.gd` (1,087 lines) | Pure. Takes a **snapshot dict, never the core**, rolls through `DiceManager`, returns `{steps: [{step, rolls, effects: [{op, target, amount, cite}]}], choices_needed}`. Two public entry points: `resolve(snapshot)` and the static `apply_choices(receipt, answers)` |
+| `tests/unit/test_bug_hunt_post_battle_resolver.gd` (15 cases) | Includes the career case: a character who plays 15 missions in a row is checked at every p.203 row from 8 to 14 **in order**, leaves automatically at 15, and a transfer file is written |
+
+`BugHuntPostBattlePanel` (691 lines) is presentation-only — it renders the receipt, collects
+choices and re-checks affordability per purchase. `BugHuntPhaseManager._apply_post_battle_results`
+is the one mutator: it applies effects through core mutators, ticks Sick Bay **before** adding this
+turn's wounds, and saves once.
+
+### The muster-out leg finally writes a file instead of deleting a veteran
+
+HEAD's muster-out called `remove_main_character()` and stopped, so the veteran was **erased**. The
+fix routes it through the canonical hub, and doing so exposed that there was no hub entry point to
+route *to*: every mode wrote the envelope by hand. `CharacterTransferService.write_pending_transfer`
+(`:544`) is the new static, and `BugHuntPhaseManager.gd:454` is its first caller.
+
+⚠ **Three hand-rolled copies remain and are a NAMED FOLLOW-UP, not a silent omission**:
+`BugHuntDashboard.gd:447` (the enlist-side writer), `PlanetfallDashboard.gd:141`, and
+`TacticsDashboard.gd:256` each still build `user://transfers/` themselves. Migrating them is a
+cross-mode change touching three dashboards that Sprint 1 does not otherwise open, and each is
+currently correct. It is recorded here so the next reader does not mistake one hub caller for a
+migrated codebase.
+
+### `remove_main_character` left a stale key behind
+
+Removing a main character erased the roster entry and left the character's `sick_bay` record keyed
+by the departed id. Nothing errored — a Sick Bay tick over a dictionary keyed by a ghost simply
+counts down forever. Fixed at the mutator so **death, muster-out and dismissal** all clear it,
+rather than at the three call sites.
+
+### R&R was written against two shapes of the same fact, in my own resolver
+
+`missions_in_current_operation` was incremented in one place and read from a differently-named
+field in another, so R&R at `missions_required` (4) could never fire and the
+`reputation_cost_for_early` (1) path was unreachable. Found by a resolver case, not by inspection.
+⭐ **This is the sprint's own defect shape reproduced inside the fix for it** — a consumer reading a
+key no producer writes — which is why the resolver's contract is a single receipt rather than a set
+of fields each caller assembles.
+
+### A class-(b) abort deleted with the panel rewrite
+
+`_find_in_op_progress` assigned a `null` table cell into a typed `Array`, which **aborts the
+enclosing function** rather than erroring visibly — the same shape as the `lost_marine_d100_range`
+row the plan already flagged at PBP:682. It went out with the panel rewrite; the resolver's table
+walk skips null ranges explicitly and says why at the site.
+
+### `lint_data_ownership` cannot see a compound assignment
+
+While moving writes to the mutator I expected the lint to flag a direct `campaign.reputation += 1`.
+It did not. The lint matches an assignment of the form `<owned>.<field> = `, and **`+=` is a
+different token**, so every compound write to an owned field is invisible to it. That is not fixed
+here (it is a shared lint with a whole-repo blast radius and its own allowlist semantics), but it
+is recorded because "the ownership lint is clean" means less than it reads: it proves no `=` write,
+not no write.
+
+### Forced-roll context collisions — found in my own Phase 5 code
+
+`DiceManager` matches a queued key as a **case-insensitive substring** of the roll context. Four of
+the contexts Phase 5 added were substrings of, or collided with, each other, so forcing one row
+could consume the queued value of another. Four renames fixed it, and
+`test_bug_hunt_dice_routing.gd::test_no_forceable_key_is_a_substring_of_another` is the guard —
+a sweep over every pair, so a fifth collision fails instead of being discovered on a device.
+
+⚠ **A correction to the Phase 3 record.** Phase 3 measured `roll_custom` as already honouring
+forcing and struck its planned step. That stands — but the Phase 5 rows exercise it, and the
+substring semantics that make forcing *work* are the same semantics that make collisions possible.
+The two are one mechanism; a row added without checking the sweep is a latent mis-force.
+
+### Two guards of my own that were wrong, and what each cost
+
+Both were caught by the gates, and each is recorded because the fix in both cases was to make the
+test assert an **invariant** rather than a copied constant.
+
+**1. The Muster Out row declared a die that does not exist — and the picker could not have honoured
+it anyway.** `test_qa_scenarios.gd` (an Alpha-1 guard suite) failed with *"Bug Hunt Muster Out
+declares D12, which DiceManager has no hook for"*. Two defects, not one:
+
+- The **guard** was stale. It read `sides == 6 or sides == 10 or sides == 100`, a hand-copied list
+  of what `DiceManager` hooked when it was written. `roll_2d6` has honoured forcing all along
+  (`DiceManager.gd:166`, `_take_forced(context, 2, 12)`), so a *correct* 2D6 row failed it.
+- The **row** was also wrong. `sides: 12` with no floor, against a picker whose `min_value = 1` is
+  hardcoded at construction (`:403`) and never updated per row — so a tester could queue **1**,
+  which `_take_forced` **DISCARDS rather than clamps** (`:116-119`, deliberately: clamping would
+  arm a different row than asked for). The status line would read *"Queued 1"* and the roll would
+  come out random. Exactly the silent discard the guard's own comment exists to prevent.
+
+The table gained an optional `"min"` (absent = 1), two derived statics — `roll_min()` and
+`die_label()`, so a row cannot claim one die and force another — a per-row picker floor, and a
+guard that **reads the ranges out of `DiceManager.gd`** instead of listing them. Measured
+vocabulary at the time of writing: `(1,6) (1,10) (1,100) (2,12)`.
+
+⚠ **The table guard alone was not enough, and that is the T11-05 shape.** `roll_min()` is a helper,
+and a helper is not a fix: `_roll_value.min_value = roll_min(entry)` is the single line that makes
+a floor reach a tester, and reverting *only* that line leaves every table assertion green. A second
+case, `test_the_roll_picker_honours_each_rows_floor_and_ceiling`, drives the handler per row and
+asserts the SpinBox. It asserts its own premise first — at least one row must declare a floor above
+1 — so deleting the whole `"min"` vocabulary fails loudly instead of passing vacuously. ⚠ It calls
+`_on_roll_context_selected(i)` directly, because `OptionButton.select()` does **not** emit
+`item_selected`, and driving only the widget would leave the spinbox on the previous row's values
+and pass for the wrong reason.
+
+**2. The dice census reported a live key as dead.** `test_bug_hunt_dice_routing.gd` failed with
+*"FORCEABLE_ROLLS offers keys that reach no roll in src/: ["Bug Hunt Subject Pick"]"*. A **false
+positive of my own Phase 3 harness.** The key is live: the real context is
+`"Bug Hunt Subject Pick: Military Life"` (`BugHuntPostBattleResolver.gd:649`) and substring matching
+reaches it. What the walk could not see is that **the literal and the roll are in different
+functions** — `:649` calls `_random_main_character()`, which forwards its context parameter to
+`_pick()`, where `_roll_d100(context)` finally happens at `:976` with no literal in sight. Same
+blind-spot family as the `_roll_formula` limitation already recorded on case 12.
+
+Fixed by declaring `CONTEXT_FORWARDERS` (`_random_participant`, `_random_main_character`, `_pick`)
+and widening the walk to accept a call to one — excluding their own `func` lines, or a definition
+would be collected and a forwarder would report as its own roll site. ⚠ **A relaxation must carry
+its own proof**, so `test_every_declared_context_forwarder_actually_reaches_a_roll` resolves each
+declared forwarder's body and fails if the chain stops rolling. Without it, adding a name to that
+list would make every key flowing through it look live forever.
+
+⚠ **Still open, recorded not fixed**: case 12's regex cannot see a context built by `_roll_formula`,
+so **the Recovery Time rename is pinned by nothing**. It is correct today and no test would notice
+if it were not.
+
+### Two fixture findings from the turn-completion suite
+
+**Const battle results carry no `participant_ids`.** The suite's shared battle-result fixture was a
+`const`, and a const Dictionary cannot carry the participant list the Phase 4 stamp produces — so
+the tally and the XP awards silently resolved to **zero** and two assertions were passing over an
+empty set. The fixture is now built per case. ⭐ A fixture that cannot express the input the
+producer emits is a green test measuring nothing.
+
+**A 1-in-6 Reputation flake, and the fix was to force the roll rather than widen the assertion.**
+Military Life rows **16-20** and **91-95** each apply **−1 Reputation**, so an unforced D100 moved
+Reputation in roughly one run in six and the turn suite's Reputation assertion flaked. Forcing the
+Military Life roll to **row 33** (a neutral row) makes the assertion deterministic: **12/12 clean**.
+⚠ Widening the assertion to a range would have made it unable to fail — the
+*diagnostic-that-cannot-disagree* shape this ledger already records twice.
+
+### Four-arm belt-and-braces, and what each arm was worth
+
+The turn-completion re-entry protection is layered on purpose. Proving each arm alone showed the
+layering is **not** uniformly load-bearing, and that is worth stating rather than implying:
+
+| Arm | Reverted | Result |
+|---|---|---|
+| A | `_complete_turn` sets `current_phase = NONE` | **DETECTED** |
+| B | `BugHuntPhaseManager`'s NONE refusal (`:67-68`) | **redundant alone** — A already blocks |
+| C | `BugHuntPostBattlePanel.complete()`'s `_completed` guard | **redundant alone** — A already blocks |
+| D | all four together | **DETECTED by all four assertions** |
+
+B and C stay, because their value is making case 5 fail for **one** reason instead of two once A is
+in place — but nobody should read the four-layer design as four independent proofs.
+
+### Phase 5 gates
+
+| Gate | Result |
+|---|---|
+| Compile guard | **1/0/0**, exit 0 |
+| 8 lints | **all exit 0.** `lint_orphan_assets`: `files=562 roots=36 reachable_from_product=562 test_only=0 orphans=0 unwired_rules=0`; `lint_multiline_statement_breaks` 914 scripts, 0 findings |
+| `tests/unit`, headless batches | **3449 executed / 0 errors / 0 failures / 320 suites**, batches of 30. The Phase 0 batch-composition bleed did **not** fire this run |
+| **Count arithmetic** | **executed 3449 = declared 3449**, measured by `grep -c '^func test_'` over the runner's own recursive file set minus `NEEDS_DISPLAY`. **Nothing hidden by fail-fast anywhere in the run** — the first such run of the sprint. ⚠ A top-level-only glob reports 3433/316 and is wrong |
+| Batch signal-11 | Did not fire at 30. ⚠ Phase 4 hit it at **35 suites started**, roughly half the "~58" CLAUDE.md records; ≤40 remains a ceiling, not a guarantee |
+| Alpha-1 guard | `test_qa_scenarios.gd` **18/0/0** (it found two of my defects before going green), `test_bug_hunt_dice_routing.gd` **14/0/0**. Both suites now execute **every declared case** — fail-fast had been hiding 1 and 4 respectively |
+| Detection proofs | **15/15** on `test_bug_hunt_post_battle_resolver.gd`, plus **4/4** on the two gate fixes — each run **alone** (others renamed `off_test_*`), reverted from an in-memory snapshot (**never** `git restore`), every touched file md5-verified byte-identical afterwards, and each arm paired with a **passing control run** so a class-(b) abort (`errors=1 failures=0`) is not read as UNDETECTED |
+| Data diff | `git diff -- data/` is **two files**: `bug_hunt_missions.json` **+19/-2** and `bug_hunt_post_battle.json` **+71/-29**. Every addition is a cited structured key beside the prose it replaces (muster-out rows, Operational Progress modifiers, Military Life effects, R&R). **No value was invented** |
+| Line endings | Every touched file re-checked on the **bytes**: 21 LF, 4 CRLF, **0 mixed**. `QAScenarioDialog.gd` (571 CR / 571 lines) kept CRLF through four scripted edits |
+| Concurrency | porcelain at phase end is **21 modified + 4 untracked**, exactly the session-start set. No path outside Sprint 1's own list moved |
+
+### The four Phase 5 detection arms, in full
+
+| Arm | Reverted | Control | Reverted run | Verdict |
+|---|---|---|---|---|
+| A | `"min": 2` removed from the Muster Out row | 1/0/0 | 1/0/1 | **DETECTED** |
+| B | `_roll_value.min_value = roll_min(entry)` deleted | 1/0/0 | 1/0/1 | **DETECTED** |
+| C | the census walk stops seeing forwarder calls | 1/0/0 | 1/0/1 | **DETECTED** |
+| D | `_pick()` rolls `randi_range` instead of the seam | 1/0/0 | 1/0/1 | **DETECTED** |
+
+⭐ **Arm D reverts PRODUCTION code, not a test**, and that is what makes `CONTEXT_FORWARDERS` a
+relaxation with teeth: the moment a declared forwarder stops rolling, the proof case fails rather
+than silently certifying every key routed through it.
+
+---
+
+## 🟢 MEASURED 2026-09-20 — Sprint 1 Phase 6 (provenance, census, helpers)
+
+### Step 1 (provenance) — it found a FABRICATION, and the fabrication is why the step exists
+
+Adding `_source` means opening each file and asking *which printed page is this?* Two of the
+fifteen could not answer, because the book has no such table.
+
+⭐ **This is a fourth way a chapter fails, and neither this ledger nor §C4 could see it.** Both
+audits walked the **book's** tables and checked each against a file. Nobody walked the **files**
+and asked which book table each one came from. **A data file the book has no table for is
+invisible to a book-first sweep** — it is never reached, so it is never contradicted, so it scores
+clean. The check that finds this class is the inverse sweep: enumerate the data files and demand a
+printed page for each.
+
+#### P6-A — the Bug Hunt gear file was five items, and NONE of them is in either book
+
+DELETED 2026-09-20. It listed Medkit, Motion Scanner, Evac Beacon, Demolition Charge and Signal
+Flare, with costs, one-use flags and effect text.
+
+`data/bug_hunt/bug_hunt_gear.json` [[missing]]
+
+Measured with PyPDF2 over both books (Compendium offset −1, Core Rules offset **+1** — derived
+from each page tail, not assumed):
+
+| Claim | Measured |
+|---|---|
+| The five names appear in the Compendium | **NONE of the five** |
+| The five names appear in the Core Rules | **NONE of the five** |
+| Compendium p.179 "Weapons and gear" | a **weapons** table only |
+| Compendium p.172, the standard load, verbatim | *"This standard load consists of: • Service Pistol • Trooper armor (allowing a saving throw on a roll of 5+)"* |
+| p.223 index, nearest hit | **"Beacon (objective) 185"** — an objective marker on the table, not a carried item |
+
+**The whole consumer chain was dead**, which is the argument *for* deleting rather than against:
+
+| Symbol | External callers |
+|---|---|
+| the `gear_table` battle-context key | **0 readers repo-wide** (the only other hit was a 5PFH test *name*) |
+| `get_gear_by_id` | **0** — one internal caller, `resolve_equipment` |
+| `get_all_gear` | **0**. The apparent hit, `src/core/data/DataManager.gd:679`, is a *commented-out* function of the same name on a different class — a name collision, not a caller |
+| `resolve_equipment` | **0** external callers (`src/core/character/BugHuntCharacterGeneration.gd:369`) |
+| any `data/bug_hunt/*.json` referencing a gear id | **0** |
+
+⚠ **An uncalled carrier of a wrong book value is the most expensive kind of dead code**, because
+the next person to need Bug Hunt gear wires this instead of reading p.172. Deadness is why removal
+is safe, not a reason to leave it.
+
+⚠ `UNWIRED_RULES` does **not** protect a file like this. That category exists so a zero-caller file
+implementing a real book chapter stays visible instead of being mistaken for an orphan. The
+question it asks — *which book pages does this implement?* — has the answer **none** here, so the
+protection does not apply. Ask the question before deleting; act on the answer either way.
+
+#### P6-B — one of three armor rows was real, and the worst row was a real rule from the wrong book
+
+`data/bug_hunt/bug_hunt_armor.json` now holds one row, cited, with a `_source`.
+
+| Row | Save | Verdict |
+|---|---|---|
+| `trooper_armor` | 5 | **CORRECT** — Compendium p.178, *"saving throw on 5-6"*, and p.172's standard load |
+| `combat_armor` | 4 | **WRONG BOOK, AND BETTER THAN THE BOOK.** Combat Armor is a real **Core Rules** item (pp.29, 54, 132) at *"Saving Throw 5+"*, and is absent from the Compendium entirely. The Bug Hunt copy made it one point better than the item it was copied from |
+| `scout_suit` | 6 | **FABRICATED** — appears in neither book |
+
+⭐ **`combat_armor` is the dangerous one of the three.** A fabricated `scout_suit` looks invented;
+a real item with a real name reads as sourced, and nothing in the file said which book it came
+from. The repo's own three 5PFH sources all agree on 5 — `data/armor.json:64`,
+`data/equipment_database.json:49` and `src/data/resources/FiveParsecsCombatData.gd:352` — so the
+contradiction was measurable inside the repo the whole time, and no check compared them.
+
+Nothing in the data referenced either removed id: the mission loadout table issues **weapons only**,
+and the five support options that carry armor all specify `trooper_armor`
+(`data/bug_hunt/bug_hunt_support_teams.json`; the other seven of the twelve carry `null`).
+`get_all_armor` now says at the site why there is exactly one row, so nobody re-adds a second.
+
+#### P6-C — the mechanism: §C4 certified both files by SHAPE, not by provenance
+
+`docs/QA_RULES_ACCURACY_AUDIT.md` rows C4-002 and C4-011 both read **VERIFIED** on evidence of the
+form *"JSON has N entries. File well-formed."* That sentence is true of a fabrication. Counting
+rows and parsing the file measures **shape**; only opening the book measures **provenance**. Of the
+fifteen C4 rows, exactly one (C4-013, support teams) cites a printed page and enumerates values.
+
+⚠ **This ledger is over-general rather than wrong, and the qualifier now stands at THE HEADLINE.**
+Its byte-exact table lists what was checked, and gear and armor are **not on it** — so *"the data is
+nearly perfect"* was a statement about the eleven tables named there, and a reader could fairly
+have read it as covering all fifteen files. It now says so explicitly.
+
+#### P6-D — FIVE of the fourteen prose citations named the wrong printed page
+
+Measured 2026-09-20 while writing `_source`. Each page was checked three ways before the
+number was changed: the **page tail** (the Compendium's folio offset is `index = printed + 1`,
+e.g. index 198 ends `197Mission generation`), the **section heading**, and the book's own
+**index on printed p.223**. Where the file lists items, every item was matched against the
+normalised text of the candidate page — `re.sub(r'[^a-z0-9]', '', s.lower())` on both sides,
+because PDF table extraction runs adjacent columns together and a raw substring test gives
+false negatives.
+
+| File | Cited | Measured | What the cited page actually is |
+|---|---|---|---|
+| `bug_hunt_regiment_names.json` | p.175 | **p.173** | the firing-arc rules. Contents p.163 and index p.223 both say 173 |
+| `bug_hunt_movie_magic.json` | pp.182-183 | **p.181** | the Campaign Turn sequence and Special Assignments. All **ten** abilities are on p.181; index reads *"Movie Magic 181"* |
+| `bug_hunt_special_assignments.json` | pp.181-182 | **p.183** | Movie Magic, and the Campaign Turn sequence that merely *names* this as stage 1. All **twelve** assignments are on p.183 and none on 182 or 184 |
+| `bug_hunt_spawn_rules.json` | pp.199-200 | **pp.192-193, 199** | wrong in BOTH directions: p.200 is Enemy Movement, and the file's `contact_markers` section is pp.192-193, omitted entirely |
+| `bug_hunt_tactical_locations.json` | pp.191, 208-209 | **pp.190-191, 208** | p.209 is Co-op campaigns (explicitly out of Sprint 1 scope); Signals is entirely on p.208 |
+
+⭐ **Two of the five are effectively swapped.** Movie Magic cited pp.182-183 and Special
+Assignments cited pp.181-182, while the truth is p.181 and p.183 — adjacent sections whose
+citations overlap each other's real pages. That is what makes the class hard to spot by eye: a
+wrong cite here is *plausible*, off by one or two pages, landing inside the same chapter, and
+often on a page that is genuinely about something nearby.
+
+⚠ **This is the `EnemyAI.json` shape at lower severity, and the severity is the only difference.**
+There, a faithful extraction of the **wrong book** was labelled Core Rules and three consumers
+printed it. Here the DATA is right and only the ADDRESS is wrong — nothing a player sees changes
+today. It matters for the next reader: a cite is the instruction *"go here to check me"*, and
+five of fourteen sent them to a page that would appear to contradict the file. The predictable
+outcome is a correct value "fixed" to match the wrong page.
+
+⚠ **No lint can catch this.** `scripts/lint_audit_citations.py` existence-checks a *file path*;
+a printed page number in a JSON description is prose to every tool in this repo. The only check
+is opening the PDF, which is why it is worth doing once, in writing, with the date attached.
+
+Each correction is stated **in place** in the file's own `description` with a
+`CORRECTED 2026-09-20:` clause naming the old number and why it was wrong — the same discipline
+this ledger follows — so a reader who remembers the old page learns what happened instead of
+assuming one of the two numbers is a typo.
+
+#### P6-E — the structured keys were added BESIDE the prose they replaced, not instead of it
+
+Phases 4 and 5 landed all three cited structured keys the plan asked for. Each was added next to
+the prose sentence it was extracted from, and the sentence stayed. So on the morning of
+2026-09-20 two numbers each had two homes:
+
+| Rule | Structured (read) | Prose (read by nobody) |
+|---|---|---|
+| Signals penalty | `bug_hunt_missions.json` → `objectives.scoring.signals_requirement` (`signals_at_least` 4, `must_investigate` 2), read at [`BugHuntBattleResultNormalizer.gd:111-112`](../../src/core/battle/BugHuntBattleResultNormalizer.gd#L111-L112) | `bug_hunt_tactical_locations.json` → `signals.hq_requirement`, **in a different file from the owner** |
+| Court Martial buyout | `court_martial.avoid_reputation_cost` = 3, read at [`BugHuntPostBattleResolver.gd:198`](../../src/core/campaign/BugHuntPostBattleResolver.gd#L198) | the same block's `avoid_cost` |
+
+⚠ **This is the project's own "never put a mechanic's numbers in a UI literal" rule one level
+down, and the data layer is the worse place for it.** A reader correcting the Signals rule has no
+way to tell which of the two copies the code consumes — and the unread copy is the one that reads
+like the rule, because it is a whole sentence in the section named after it.
+
+Both prose keys are **kept, not deleted**: `signals.hq_requirement` is where a reader of the
+Signals block will look, and that block is in a different file from the scorer. They are rewritten
+to **name the owner and carry no numbers**, so there is nothing left to drift. `avoid_cost` becomes
+the book's sentence quoted verbatim, with the value explicitly delegated.
+
+The numbers themselves were verified against the PDF before either edit — printed **p.201**
+(index 202, tail `201Battle Round`), section *"Pay the piper"*:
+
+> *"If you failed to complete any Objectives at all, you may face a court martial. Select the
+> character that was in charge of the mission, and roll a D6. On a 1, they have been found
+> guilty: Immediately remove them from the campaign. If you have them, you may pay 3 Reputation
+> points to call in a favor and avoid this fate."*
+
+So `roll` `1D6`, `failure_value` 1, `avoid_reputation_cost` 3 and
+`trigger: zero_objectives_completed` are all byte-exact as stored; only the duplication changed.
+
+**Gate for this step:** compile guard `1/0/0` (the only check that catches a parse break — see
+CLAUDE.md on `--headless --quit` and `--check-only`); citation lint unchanged at its three
+pre-existing failures (measured, not remembered:
+`BATTLE_PHASE_DELIVERY_AUDIT_2026-08-06.md:35` and `CAMPAIGN_DATA_FLOW_SWEEP_2026-08-01.md`
+`:7` / `:8` — all three in OTHER documents; the fourth was this step's own deletion and
+is now repaired); orphan lint `files=562 roots=36 reachable_from_product=562 test_only=0
+orphans=0 unwired_rules=0`, exit 0.
+
+After the `_source` pass: all **14** `data/bug_hunt/*.json` re-parse clean; the citation lint
+reports **all 312** citations in this document resolving (`indexed=4542 ok=321 failed=3
+unresolved=0` — the three failures unchanged and in other documents); and per-file line
+endings are preserved, measured on the BYTES as **13 LF and 1 CRLF**
+(`bug_hunt_post_battle.json`) with **0 mixed**, before and after.
+
+⚠ **`grep -c $'\r' "$f"` inside a `for` loop is NOT a CRLF detector**, and it reported all
+fourteen files as CRLF here. The `$'...'` does not expand in that position, so grep matches an
+EMPTY pattern on every line and the count comes back **exactly equal to the line count** —
+that identity is the tell. Detect on the bytes (`raw.count(b"\r\n")`).
+
+### Step 2 (census) — the measurement produced a THIRD category nobody planned for
+
+The census was designed around two buckets: a data key either **has a reader**, or it is
+**out of scope** and goes in an allowlist with a stated reason. Measuring all 52
+section-level keys of the 14 `data/bug_hunt/*.json` files found **35 live and 17 unread**
+— and six of the seventeen fit neither bucket.
+
+⭐ **The third category is DUPLICATED: the mechanic IS live, implemented from a literal in
+code that restates the data.** Allowlisting those six as "unimplemented" would have been
+false in the most expensive direction — it would have recorded a working mechanic as
+missing, and hidden the drift risk that is the real finding. This is the project's own
+documented trap (*"never put a mechanic's numbers in a UI literal — render the reference
+from the SAME data the mechanic reads"*) seen from the **data** side rather than the UI
+side: the census asks "who reads this key?", and the answer "nobody, because someone typed
+the value again" looks identical to "nobody, because it was never built".
+
+**All six literals match their data today.** These are drift risks, not live defects, and
+they are recorded as such.
+
+| Key | The live implementation | Matches the data? |
+|---|---|---|
+| `bug_hunt_character_creation.json::standard_equipment` | `BugHuntCharacterGeneration.gd:150` literal `"equipment": ["service_pistol", "trooper_armor"]` | yes, exactly |
+| `bug_hunt_character_creation.json::combat_operation_commendation` | `_check_commendation()` `:311-320` — 2D6 loop, `if die == 6: xp_bonus += 1; rep_bonus += 1` | yes (2D6 / trigger 6 / +1 XP / +1 Rep) |
+| `bug_hunt_missions.json::loadout` | `BugHuntMissionPanel.gd:364-366` three weapon rows with stats; `:370-373` the Hand Cannon checkbox | yes |
+| `bug_hunt_support_teams.json::support_points_rule` | `BugHuntMissionPanel.gd:488-492` — `_support_points_remaining = priority + bonus`, bonus 2 for `im_too_pretty_to_die` | **two of three clauses only** — see P6-F |
+| `bug_hunt_support_teams.json::free_fire_team` | `BugHuntMissionPanel.gd:483` label *"FREE: Fire Team — 4 Grunts with Combat Rifles"* | yes — and it restates `support_options.fire_team` (`team_size: 4`, `weapons: ["combat_rifle"]`), a key that IS read |
+| `bug_hunt_special_assignments.json::eligibility` | `SpecialAssignmentsPanel.gd:129` / `:139` Sick Bay, `:173-187` the per-row filter | yes |
+
+#### P6-F — a rule PRINTED to the player that nothing lets them do (Compendium p.187)
+
+`BugHuntMissionPanel.gd:502` renders, as a plain `Label`:
+
+> *"Spend 1 Reputation for +1 Support Point. Each option can only be requested once."*
+
+`grep -cin "reputation"` over that file returns **1**, and that one hit is the label itself.
+There is no control, no deduction and no increment of `_support_points_remaining` — so the
+app instructs the player to make a trade it does not implement, and a player who makes it on
+paper keeps the Reputation they should have paid.
+
+The rule is real and the wording is faithful. Verified against the PDF before filing, printed
+**p.187** (index 188, folio `187Mission generation`), *Step 4. Determine Priority*:
+
+> *"If desired, 1 point of Reputation may be spent to gain +1 Support."*
+
+⭐ **This is the inverse of T11-13** (*a rule checked and shown to nobody*): a rule shown to
+somebody that nothing checks. The two failure modes look nothing alike in the code and are
+identical in their cost — the player cannot act on the rule either way — which is worth
+carrying, because T11-13's remedy (surface the notice) is not this one's (implement the spend).
+
+⚠ **Not fixed in this phase, and deliberately so.** Phase 6 is provenance, census and
+helpers; spending Reputation at mission setup is a new interactive control plus an owner
+mutation, which belongs with the support-selection work the audit still lists as open. It is
+recorded here as a finding rather than carried as a silent allowlist string.
+
+#### What the census actually asserts
+
+`tests/unit/test_bug_hunt_consumer_census.gd`, 6 cases:
+
+1. **The method surface is discovered, not enumerated.** Public methods are parsed from the
+   module (`^func [a-z]` / `^static func [a-z]`, which excludes `_`-prefixed and `_init` by
+   construction). A premise case asserts the discovery is non-empty and contains the known
+   names, so a broken parse cannot make the census pass vacuously.
+2. **The index and the data directory are both populated**, and the comment-strip helper is
+   proven in-case by a decoy probe (`"decoy_key"` in a comment must vanish, `"kept_key"` in a
+   string must survive).
+3. **Every public method of the two sprint modules has an external caller.** Measured surface:
+   `resolve` and `apply_choices` on the resolver, `normalize` on the normalizer.
+4. **Every section-level key has a reader or a stated reason.**
+5. **The allowlist has no stale rows**, in BOTH directions — a row whose key has since gained
+   a reader (the row would now hide a live consumer) and a row naming a key that has left the
+   data (the row documents nothing).
+6. **The one named-reader override is still needed and still true.**
+
+⚠ **Comment stripping for a key census is the inverse of the usual scan: strip comments,
+KEEP string literals.** A JSON key reaches code as a string; it is the docblock that lies.
+Proven live here — `BugHuntPhaseManager.gd:210` names `resolve()` only in a comment, so
+without stripping the method census would have scored a comment as a call site. This is the
+lesson `lint_orphan_assets.py` learned on 2026-09-04, when it counted a file's own obituary
+as a reference. Strip **leading-`#` lines only**; a trailing strip eats `"#ff9a52"` colour
+literals.
+
+⚠ **An external caller must be gated on the module PATH, not the method name.** Searching
+for `normalize(` alone matches the twelve 5PFH callers of the *other* normalizer. The suite
+first finds the files that reference the module's `res://` path, then searches only those.
+
+ⓘ **The scoping heuristic needed one named escape hatch, and it is watched.** Bucketing
+readers by "is the path bug-hunt-named" was wrong once in 52: `enemy_table` is genuinely read
+by the shared `CompendiumDataProvider.gd`. Case 6 exists so the hatch cannot quietly become
+where defects hide.
+
+#### Detection proofs — 6 cases, 6 arms, all restored byte-identical
+
+Control first (`6/0/0 PASSED`), then one arm at a time, each reverted from a scratchpad
+backup and never with `git restore`.
+
+| Arm | Mutation | Result |
+|---|---|---|
+| 1 | a public `orphan_probe()` added to the normalizer | key census red — `1/0/1`, intended case |
+| 2 | one allowlist row removed | `4/0/1`, intended case |
+| 3 | a row added for a key that IS read (`missions::objectives`) | `5/0/1`, intended case |
+| 4 | a row added naming a key not in the data | `5/0/1`, intended case |
+| 5 | the named reader pointed at a nonexistent file | `4/0/1` — **detected, wrong case** |
+| 5b | arm 5 with the key census disabled | `5/1/1`, intended case: *"Named reader … does not exist"* |
+
+⭐ **Arm 5's "wrong" detection is the more useful result.** Breaking the override drops
+`enemy_table`'s only reader, so the **key census** — declared earlier — goes red first and
+gdUnit4's fail-fast aborts before the override case ever runs. That cascade is direct evidence
+the escape hatch is load-bearing, which is what case 6 asserts in the abstract; but a cascade
+is not proof the guard itself can fail, so arm 5b was still owed.
+
+⚠ **Declaration order is part of harness design under fail-fast.** Case 6 is declared last,
+so *any* mutation that also trips an earlier case is structurally invisible to it. An arm aimed
+at a late case must silence everything upstream, or you never learn whether that case can fail
+at all. Arm 1 needed the same treatment for the opposite reason — adding a public method also
+trips the surface-count premise case, which is declared **first**.
+
+ⓘ Arm 1 is also why the premise case counts as proven: it had to be disabled precisely
+because its `is_equal(1)` trips on the probe method. Case 2 is self-proving by construction,
+carrying its own decoy inside the assertion.
+
+### Step 3 (helpers) — both halves measured ALREADY TRUE, and that is the finding
+
+Step 3 asked for two things: journal writes through the `JournalEntryTypes` vocabulary, and no
+JSON number rendered with `str()`. Neither needed a code change. **Both were measured, not
+assumed**, and the second one needed a regression guard, because it is true by accident.
+
+#### Half A — journal vocabulary: already true, and already gated
+
+Bug Hunt makes exactly **three** `create_entry()` calls, all in `BugHuntPhaseManager.gd`
+(`:489`, `:521`, `:535`). Every one uses `type: "milestone"` and tags drawn from
+`bug_hunt` / `milestone` / `campaign_setup`, and all four strings are present in
+`JournalEntryTypes.STRING_TO_TYPE` / `.TAGS`. `scripts/lint_journal_vocabulary.py` exits **0**.
+
+⭐ **No test was added, deliberately.** Gating lint #6 already asserts exactly this invariant
+over the whole repo, and a Bug Hunt-shaped copy of it would be a second place to update when the
+vocabulary grows. The no-deferring rule asks for Done / Blocked / Cut, and this is **Done —
+measured, covered by an existing gate**, which is a different thing from "skipped".
+
+#### Half B — the float render: closed by Phase 5, pinned by nothing until now
+
+Two independent static sweeps over the Bug Hunt tree found **zero** renders of a JSON number
+through `str()` or `%s`. The three the Sep 10 audit measured — `experience.awards[].xp` as
+`"1.0"`, `advancement_costs[].xp_cost` as `"8.0"`, `advancement_costs[].max_value` as `"4.0"`
+— are gone.
+
+⚠ **They went away as a SIDE EFFECT.** Phase 5 rewrote `BugHuntPostBattlePanel` as a
+presentation-only renderer, and the rewrite happens to use `int()` and `%d` throughout. **No
+rule anywhere says it has to.** A fix nothing asserts is one careless `%s` from returning, and
+this one had already shipped once — which is the exact state a regression guard exists for.
+
+⚠ **The existing dice-routing case does not cover it.**
+`test_bug_hunt_dice_routing.gd::test_generated_stats_are_ints_not_json_floats` asserts the
+**producer** (finding J, Phase 3). The audit's finding here is a **label**. A producer assertion
+cannot catch a renderer that drops an `int()` — *assert where the damage lands*.
+
+**`tests/unit/test_bug_hunt_rendered_numbers.gd`** (1 case) builds the real
+`BugHuntPostBattlePanel`, drives it through a full debrief and post-battle resolve, then walks
+**every** `Label`, `Button` and `LineEdit` in the subtree and matches `[0-9][.]0(?![0-9])`.
+
+⭐ **The fixture injects floats only where a save round-trip genuinely leaves them.** A
+fixture built from int literals would pass against a verbatim-printing renderer — there would
+be no float to print. So the case stamps floats into the two untyped containers that really do
+carry them back off disk: `current_mission` (objective `weight`, `signals_total`) and the
+`main_characters` dicts (`xp`). It then **asserts those are still floats** before rendering, so
+a future normalizer that coerces at load cannot silently make the case vacuous.
+
+⚠ **Premise instrumentation, five assertions.** A walk over an unpopulated panel finds no
+floats for the same reason it finds nothing at all — the T11-01 shape. The case asserts the
+p.204 advancement card, an advancement option line, the weighted-objective suffix, the signals
+row and a step heading all rendered first. All five pass.
+
+ⓘ `LineEdit` is in the walk because a `SpinBox` renders its value through one, and a
+`SpinBox` is a float control by construction — the most likely place a `.0` appears next.
+
+ⓘ The pattern anchors its left side on a **digit** so page cites survive: `p.201` and
+`pp.185` both have a letter before the dot, and the panel prints several.
+
+#### Detection proofs — 4 arms, and A1/A2 are the finding
+
+| Arm | Mutation | Result | Offending label |
+|---|---|---|---|
+| control | none | `1/0/0 PASSED` | — |
+| A1 | DATA route, panel cast only | **UNDETECTED** — as expected | none |
+| A2 | DATA route, resolver cast only | **UNDETECTED** — as expected | none |
+| A3 | DATA route, **both** casts | DETECTED `1/0/1` | `Reactions +1  (8.0 XP)` |
+| B | STAMP route, objective weight | DETECTED `1/0/1` | `Secure the beacon — Vital, counts as 2.0` |
+
+⭐ **A1 and A2 are not weak arms — they are a measurement, and they produced a finding.**
+`xp_cost` is coerced **twice** on the DATA route: `BugHuntPostBattleResolver.gd:516-517` casts it
+before building the option dict, and `BugHuntPostBattlePanel.gd:551` casts it again before
+formatting. Removing either alone leaves the other holding the value, so the guard correctly
+reports no float. Only A3 — both layers gone — lets a JSON float reach the label, and it
+reproduces the audit's literal finding **verbatim**: `8.0`.
+
+⚠ **The panel's cast is therefore redundant BY DESIGN, and that is recorded here so nobody
+deletes it as noise.** The resolver is the chokepoint for the receipt path; the panel is a
+presentation layer that could be handed a dict from elsewhere tomorrow. ⭐ This also cost the
+first attempt: arm A was written against the panel alone, came back UNDETECTED, and reads exactly
+like a weak guard. It is the Phase 4 lesson repeating — *a detection proof aimed at the wrong
+arm of a belt-and-braces fix* — and the remedy is to **grep the value's whole path before
+choosing where to revert**, not to weaken the guard.
+
+ⓘ **Arm B needed no second layer**, and the asymmetry is the useful part: the STAMP route has
+**no chokepoint at all**. `current_mission` is an untyped `Dictionary` written to disk and read
+back, so the panel's `int()` is the only coercion anywhere on that path. Two routes, two risk
+profiles, one guard.
+
+ⓘ Arm B's premise assertion (`contains("counts as 2")`) still passes against
+`"counts as 2.0"`, so the premise cannot mask the arm — the float assertion is what fires.
+That is luck rather than design, and it is noted so a future premise string is chosen with it in
+mind.
+
+#### Harness hygiene
+
+⚠ **The Phase 0 `settings.cfg` md5 constant is STALE and was not used.** Phase 0 recorded
+`d943e7733ff09ee85f002b597212580f`; the file now measures `f4762d9a5fdd81517b69be7252898ea5`,
+because six days and five phases of runs intervened. **The instrument was fixed, not the value**:
+hygiene is now a before/after delta **across the run**, which measured byte-identical. A recorded
+constant is a snapshot of a mutable file and rots; a delta cannot.
+
+ⓘ `settings.cfg` currently holds `last_campaign="lifecycle_flush_t"` — a leftover from
+another suite, i.e. open finding **E** (the cross-suite `last_campaign` bleed), not anything this
+work produced.
+
+The suite `auto_free`s the panel, restores `GameState.current_campaign`, byte-restores
+`settings.cfg` and removes `user://saves/zz_bug_hunt_rendered_numbers_probe.save` plus its
+`.tmp` / `.bak` siblings, because `_process_post_battle()` persists. gdUnit4 reports `0 orphans`.
+Both source files were md5-verified byte-identical after every arm; no `git restore` was used.
+
+### Two zero-caller candidates, measured — and one retraction
+
+Step 2's census covers the **public methods of the two sprint modules** and the
+**section-level data keys**. Two zero-caller functions surfaced while reading around it that
+fall outside both, so they are recorded here as findings rather than forced into the census.
+
+#### ⚠ RETRACTED before it was recorded — the tactical-location reader is FINE
+
+I asserted, in this session, that `BugHuntBattleSetup._generate_tactical_locations_count()`
+*"only handles `d6_value`"*, and therefore that the `d6_range` rows of
+`bug_hunt_tactical_locations.json` — `[2,3]` Block and `[4,5]` Neutralize — could never
+match, leaving **four of every six** tactical locations empty.
+
+**That is wrong and is withdrawn.** The loop has an explicit `if lt.has("d6_range"):` branch
+with a range test at `src/core/battle/BugHuntBattleSetup.gd:140-146`, immediately after the
+`d6_value` branch. All six D6 values resolve. The comment at
+`BugHuntMissionPanel.gd:671-673` — *"Mirrors BugHuntBattleSetup…so the two readers of this
+table shape cannot drift apart"* — is **accurate**; both readers handle both row shapes.
+
+⭐ **The cause is worth more than the claim was.** A `sed -n '110,140p'` excerpt ended at
+line 140, which is exactly where the second branch begins, so I read a function that appeared
+to have one branch because the window closed before the other. **An excerpt shorter than the
+construct it describes is not evidence about that construct** — read to the end of the loop
+before calling it broken. This is the same shape as the `docs/testing/` box count corrected on
+2026-09-13: a number quoted from a partial view, not from the file.
+
+#### Finding P6-G — a zero-caller wrapper whose docblock contradicts the live rule
+
+`BugHuntBattleSetup._generate_tactical_locations()` (`:119-121`) has **zero callers
+repo-wide**. Its body is one line delegating to the live `_generate_tactical_locations_count()`,
+and its docblock reads:
+
+> `## Default: 6 Tactical Locations (Compendium p.192).`
+
+The live path does **not** use 6. `:54` computes `tac_loc_count = maxi(6 - signal_count, 0)`,
+cited at the site to the same page. So the dead wrapper hardcodes a constant the live rule
+replaced.
+
+⚠ This is the *uncalled function carrying a book value* hazard — the shape that cost a
+whole session on `TacticsCampaignUnit.add_veteran_skill(cost := 1)`, where a zero-caller
+function priced a veteran skill at 1 CP against p.107's 4 CP and **read as implemented**, so
+the next reader wired it instead of reading the page. The risk here is the same and the blast
+radius is smaller: a reader who needs "how many tactical locations?" finds an authoritative-
+looking 6.
+
+ⓘ **The inverse of the `get_deployable_crew()` trap**, and worth noting as such. That one
+was a dead *wrapper* over a live *delegate*, and grepping the wrapper reported zero callers
+while the rule was fully enforced through the delegate. This is the same topology — so
+`_generate_tactical_locations` is **not** evidence that tactical locations are unwired. They
+are wired, through `:58`. Only the wrapper is dead.
+
+⚠ Not deleted in this phase. Phase 6 is provenance, census and helpers; the wrapper sits in
+a file Phase 4 edited and the audit still lists tactical locations under **Not in Sprint 1**
+(battle payload). Recorded so the decision is visible rather than silent.
+
+#### Finding P6-H — a zero-caller public helper, no rules value at stake
+
+`BugHuntCharacterGeneration.resolve_equipment()` (`:369`) is public and has **zero callers**.
+The three nearby grep hits (`_resolve_equipment_list`, `_resolve_equipment_name`) are unrelated
+5PFH substring matches, not callers.
+
+ⓘ Unlike P6-G it carries **no book value and no page cite** — it is a pure id-to-record
+lookup, so a reader cannot mistake it for a rule. Lower priority than P6-G by exactly that
+difference, and recorded together so the contrast is on the page: *what makes dead code
+expensive is the authority it appears to carry, not its line count.*
+
+#### The remaining raw randomness — measured, and it is CONFIRMED-OK
+
+Phase 3 routed 21 rolls and left the rest with a stated reason. Re-censused across all Bug Hunt
+source: **17 raw `randi()` sites remain**, and every one is covered.
+
+| Sites | What | Verdict |
+|---|---|---|
+| `BugHuntBattleSetup.gd:159`, `:176`, `:194-200` | contact sectors, signal positions, spawn edges | Phase 3's stated exclusion, written at `:231-234`: 5PFH's `BattlefieldGenerator.gd` has **zero** DiceManager references and seeds a local RNG for placement. Routing it would flood the forced-roll queue |
+| `BugHuntCharacterGeneration.gd:122`, `:181` | `"bh_mc_" + str(randi())` identity strings | not a roll — an id |
+| `BugHuntCharacterGeneration.gd:280-282` | the name picker | **matches the 5PFH precedent exactly.** Measured: `CharacterGeneration.gd` picks names, patrons, rivals, classes, backgrounds, motivations and origins with raw `randi() %` at **eight** sites (`:485`, `:501`, `:527`, `:857`, `:963`, `:993`, `:1015`, `:1034`) |
+| `BugHuntPostBattleResolver.gd:982`, `:989`, `:996`, `:1026` | `randi_range` | the documented **no-DiceManager fallback** inside the routed helpers, 5 sites total |
+| `BugHuntBattleSetup.gd:148` | no-match fallback: pick a random location type | see below |
+
+⭐ **Measuring the 5PFH precedent is what settled the name picker**, and it settled it the
+opposite way from how it looked. "A table pick on raw `randi()`" reads like a Phase 3 miss
+until you find the shared service does the same thing at eight sites — at which point routing
+Bug Hunt alone would make the two modes *diverge*, not converge, which is the reverse of this
+sprint's whole direction. **Check the 5PFH precedent before calling a Bug Hunt pattern a gap.**
+
+ⓘ `:148` is a fabricated fallback — on no match it picks a **random** row rather than
+failing — but it is **unreachable today**: the four rows cover D6 1, 2-3, 4-5 and 6
+exhaustively, so `loc.is_empty()` cannot be true. Recorded as *currently unreachable*, not as a
+defect, and noted here because a permanently-false branch is exactly the shape that becomes
+live the day someone edits the table. If a fifth row ever narrows the coverage, this silently
+starts inventing locations.
+
+### Phase 6 gate — GREEN, and the gate found three things worth more than the green
+
+**`tests/unit` headless, 10 batches of 32: 3440 executed · 0 errors · 0 failures · 319 suites.**
+All **8 gating lints exit 0** (`lint_orphan_assets`: `files=562 roots=36 reachable_from_product=562
+test_only=0 orphans=0 unwired_rules=0`). `git diff -- data/` is content-only.
+
+⭐ **`delta = +0` is the load-bearing number, not the 3440.** gdUnit4 is **fail-fast per suite**,
+so `cases` counts what EXECUTED, not what exists — a batch containing a red suite silently
+under-reports every case after the failure. Reconciled against a `^func test_` population over the
+exact files handed to the runner: 319 suites / 3467 cases, minus the 27 in
+`test_sheet_source_paths_resolve.gd` (NEEDS_DISPLAY — it builds a real `SheetRenderer` and
+segfaults headless, documented in CLAUDE.md), giving a headless population of **3440**. Executed
+3440, delta **+0**. Nothing was hidden.
+
+ⓘ Batch size 32. CLAUDE.md records the signal-11 cliff at "~58 suites" and Phase 4 hit it at
+**35**, because that batch built real screens — it is a cumulative-RESOURCE cliff, not a suite
+count. No signal 11 at 32.
+
+#### ⚠ Harness defect 1 — `rc=101` is ORPHAN NODES, not a crash
+
+My gate flagged `crashed = rc not in (0, 1)`, and reported **8 of 10 fully-green batches as
+CRASHED**. They had not crashed. Measured per-batch orphan counts against exit codes:
+
+| batch | 1 | 2 | 3 | 4 | **5** | **6** | 7 | 8 | 9 | 10 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| orphans | 12 | 21 | 5 | 1 | **0** | **0** | 21 | 14 | **102** | 30 |
+| rc | 101 | 101 | 101 | 101 | **0** | **0** | 101 | 101 | 101 | 101 |
+
+The correlation is exact: **batches 5 and 6 are the only two with zero orphans, and the only two
+that exit 0.** `GdUnitCmdTool` returns 101 when it detects leaked nodes, whatever the test result.
+
+⭐ **The cost of getting this wrong is not cosmetic.** Read as a crash, the right response is to
+split the batch and re-run — chasing a resource cliff that is not there, and getting the same 101
+at every size, which then reads as a hard failure. A nonzero exit code is a *claim to investigate*,
+never a diagnosis. Correlate it against something the run itself printed before believing it.
+
+ⓘ **Batch 9's 102 orphans is an outlier by 3.4x** and is recorded as an open lead, not a
+finding: there was no red set to attribute it to, and Phase 0 already recorded *"Found 3 possible
+orphan nodes"* on every turn-completion case as undiagnosed. Orphans are not a gate criterion here,
+and inventing a cause for 102 of them would be a guess.
+
+#### ⚠ Harness defect 2 — an unlogged batch produced a failure that cannot be named
+
+Gate run 1 reported **one failure**, and its batch output was not captured. Two subsequent runs —
+batches 1-3 re-run alone (1002 cases, clean) and then the **entire** gate with all ten batches
+logged (3440 / 0 / 0) — did not reproduce it.
+
+⭐ **It is tempting to file it as the known cross-suite `last_campaign` bleed (open finding E),
+and that would be fabrication.** The bleed is a real, documented, batch-composition-dependent
+failure mode, which makes it a *plausible* story — and plausible is exactly the trap. Nothing was
+logged, so nothing names the suite. **Recorded as unattributable.**
+
+⭐ The rule it teaches: **log every batch, always, including the green ones.** A harness that
+prints only the summary makes a non-reproducing red permanently unattributable, and the cost lands
+later — at the moment you most want to know whether a red you are now seeing is the same one.
+
+ⓘ Run 1's failure had `delta = 0`, which is itself information: fail-fast hid no cases, so the
+failing case was the **last** in its suite.
+
+#### ⚠ Finding P6-I — a Windows text-mode write converted a data file to CRLF
+
+`data/bug_hunt/bug_hunt_post_battle.json` was the **only CRLF file among the 15**, measured
+against the other fourteen and against its own HEAD blob: HEAD `CR=0, 327 lines`; working copy
+`CR=370, 370 lines`, every CR paired. So an edit in an earlier phase rewrote **the whole file**,
+not the 43 lines of content it changed.
+
+⭐ **Git hides this, which is why it survives.** `.gitattributes` holds `* text=auto eol=lf`, so
+every committed blob is LF and `git diff` compares normalised — the diffstat reads `+101/-58`,
+not `+370`. The damage lands on every reader that is **not** git: a plain `diff`, an editor's diff
+view, an md5 check, a byte-comparing test. And a whole-file rewrite buries the real edit from all
+of them.
+
+ⓘ **The mechanism is one missing argument.** Python's `open(p, "w")` on Windows translates
+`\n` to `\r\n`, and `write_text()` does the same. Only `newline=""` (or `write_bytes`) preserves
+what you built. The ledger scripts in this phase use `write_bytes` with an `assert b"\r" not in
+out` for exactly this reason; a data-edit script evidently did not.
+
+**Corrected in place**: normalised to LF (12,193 → 11,823 bytes), with the parsed JSON asserted
+**identical before and after**, so the content is provably untouched. All 15 files are now pure LF.
+`git diff --stat -- data/` is unchanged at `115 insertions / 89 deletions` across 15 files,
+confirming git never saw it.
+
+#### The data diff, audited rather than asserted
+
+The gate's criterion is *"only `_source` keys and cited additions"*, and the diff is larger than
+that phrasing suggests — 15 files, one of them **deleted**. Audited:
+
+- **All 15 files carry `_source`** (book plus printed pages plus a verification date). That is the
+  file-level provenance model step 1 chose, mirroring `data/RulesReference/`; individual sections do
+  not each repeat the cite, so a per-section cite grep is the **wrong instrument** and reports 13 of
+  15 files as uncited.
+- **The gear file was DELETED and two armor rows removed — those are fabrication
+  REMOVALS, not additions.** (Its path is named in prose, not as a citation: it no longer
+  exists, and `scripts/lint_audit_citations.py` correctly fails a code-span path that
+  resolves to nothing — which is how this was caught, one run after the section was
+  written. The file was `data/bug_hunt/bug_hunt_gear` with a `.json` extension.) Five gear items (Medkit, Motion Scanner, Evac Beacon, Demolition
+  Charge, Signal Flare, the last two carrying invented Area/Damage values) and two armor types are
+  in neither book. Combat Armor is a **Core Rules** item (pp.29, 54, 132) at Saving Throw 5+, not a
+  Bug Hunt one; a Scout Suit is in neither. p.172 gives the standard load as a Service Pistol and
+  Trooper armor, and p.178 states the one saving-throw rule. *If the book doesn't have it, the code
+  shouldn't either.*
+- The remaining additions are the cited structured keys step 1 named: objective `weights` and the
+  `signals_requirement` (replacing prose a consumer cannot read),
+  `court_martial.avoid_reputation_cost` (3, p.201), the spawn sequence, and the
+  `operational_progress` / `military_life` effect keys.
+
+---
+
+## 🔎 MEASURED 2026-09-20 — Phase 7 (desk half)
+
+Phase 7 verifies the sprint rather than extending it. The desk half is recorded here; the
+**device half needs the tablet and has not run** (see *Still owed*).
+
+### Gate — the seven Alpha-1 guard suites
+
+Bug Hunt is Alpha-2 behind `A1_BUILD` (`MainMenu.gd:20`), so the sprint's whole licence to
+touch shared files rests on these staying green. **74 cases, 0 errors, 0 failures.**
+
+| Run | Suites | Result |
+|---|---|---|
+| Batch | `test_dice_forced_results`, `test_battle_result_normalizer`, `test_character_transfer_hub`, `test_campaign_type_routing`, `test_main_menu_coming_soon`, `test_qa_scenarios` | `72 test cases \| 0 errors \| 0 failures \| 0 flaky \| 0 skipped \| 0 orphans` |
+| Alone | `test_touch_scroll_sweep` | `2 test cases \| 0 errors \| 0 failures \| 18 orphans` — PASSED 9s 785ms |
+
+**Reconciled, because gdUnit4 is fail-fast.** A truncated run reports as a small clean suite,
+so the executed count was compared against `grep -c '^func test_'` over the exact six files
+handed to the runner: population **72**, executed **72**, **delta 0**. Nothing was hidden.
+
+⚠ **18 orphans is not a failure.** This project has already established that `rc=101`
+tracks orphan nodes rather than a crash (Phase 6 gate: batches 5 and 6 were the only two
+with `orphans=0` and the only two with `rc=0`). `test_touch_scroll_sweep` builds 27 real
+screens, so orphaned nodes are expected; the run's own verdict line reads PASSED.
+
+⭐ **The sweep can fail, and that is why its pass means something.** Its first case,
+`test_the_opener_can_actually_detect_a_swallowing_control`, builds a deliberately
+`MOUSE_FILTER_STOP` control and asserts the opener catches it. Without that arm, a 27-screen
+pass would be indistinguishable from a detector hard-wired to “clean” — the
+`reference_a_diagnostic_that_cannot_disagree` shape, one layer up.
+
+**Concurrency:** `git status --porcelain` byte-identical to the session-start snapshot. No
+other instance moved anything during the gate.
+
+---
+
+### Probe verification — what the re-run actually showed
+
+The plan's Phase 7 line reads *“Re-run both probes; spawn points should equal the rating
+and the Operational Progress modifier should move.”* Both were driven. Three rows changed
+shape under the re-run, and two of the three changes are in the **probes**, not the product.
+
+#### ✅ Row A verified — the phantom `base_count` is gone
+
+```
+spawn_rating=0  ->  0 spawn points generated
+spawn_rating=1  ->  1 spawn points generated
+spawn_rating=3  ->  3 spawn points generated
+keys actually in data spawn_points: ["description", "spawn_rating_description",
+                                     "phases", "closing_down"]
+'base_count' present in the data: false
+```
+
+Spawn points now equal the rating, and the probe asserts the **data-layer premise** beside the
+behaviour — `'base_count' present in the data: false` is what makes `0 -> 0` evidence rather
+than a coincidence. On HEAD the `get("base_count", 2)` default added two spawn points to every
+mission and turned the book's *“if 0, none”* into *“if 0, two”*.
+
+#### ⭐ Row H superseded in place — an INSTRUMENT limitation, not a product defect
+
+Row H reported the Operational Progress modifier as not moving. It does not move **because the
+probe was measuring a shape no real path produces**.
+
+1. The walk called `pm.complete_current_phase({})`.
+2. `BugHuntPhaseManager._apply_post_battle_results()` reads `result.get("receipt", {})` and
+   **returns immediately** when it is empty.
+3. `BugHuntPostBattlePanel` (`:111-112`) is the **sole** producer of that receipt, and all
+   three Bug Hunt panels define `complete()`, so the TurnController's bare
+   `complete_current_phase({})` branch (`:400`) is **unreachable for every Bug Hunt phase**.
+
+This is the T11-01 unpopulated-fixture shape one layer below the screen: the probe measured a
+state the app cannot reach, and reported the absence as a finding. The walk now builds the
+payload the panel builds — calling the **same resolver**, so a rules change cannot drift out
+of the probe — and prints the roll and the matched row rather than a bare outcome.
+
+⚠ **A modifier of 0 remains the COMMON and CORRECT case here.** The D100 is unforced in a
+`--script` probe and the ±5 bands are narrow. Printing the roll and the row is what separates
+*“0 because the table says 0”* from *“0 because the step never ran”* — the same
+discipline as `reference_instrument_the_probes_own_premise`. Forcing it is the
+turn-completion suite's job (Phase 5 step 5), not the probe's.
+
+#### ⭐ Row E's stale present tense — corrected, and the rule generalises
+
+Row E's closing line read *“BugHuntPhaseManager.\_apply\_post\_battle\_results() does BOTH
+in one call”*, in the present tense. That was true on HEAD and describes **the ordering Phase 5
+fixed**. Measured now:
+
+```
+add_to_sick_bay(3)          -> { "probe_char": 3 }
+after ONE tick_sick_bay()   -> { "probe_char": 2 }
+```
+
+`tick_sick_bay()` is called at `BugHuntPhaseManager.gd:232-233`, **before** the receipt-effects
+loop at `:239` that puts this turn's wounds in. A one-turn Casualty row therefore costs the
+marine a turn out of action, which is what p.202 hands out. **Sick Bay ordering is CONFIRMED-OK.**
+
+> ⭐ **A probe line describing a FIXED defect in the present tense is worse than no line at
+> all — it is read as a finding and filed again.** Superseded at the row rather than deleted,
+> so the ordering stays pinned and the history stays legible.
+
+---
+
+### ⚠ The probes' own premises — four self-inflicted defects, recorded not hidden
+
+Re-running a probe re-tests the probe. Both carried premises that had rotted, and the panels
+probe needed **three** correction passes. Every one is recorded, because a harness defect that
+is quietly fixed teaches nobody.
+
+#### The desk-walk probe: the autoload premise rotted under Phase 3
+
+The docblock claimed the guarded `get_node_or_null("/root/X")` lookups made a `--script` probe
+“safe here”. True when written; Phase 3's dice routing made it stale. Measured:
+
+- All **35** autoloads **ARE** registered as children of `root` in a `--script` probe (root
+  child count 35, ProjectSettings autoload count 35, DiceManager among them). Autoload
+  **absence is not the problem**.
+- `root.is_inside_tree()` is **FALSE** during `_initialize()`, and an **absolute** path needs
+  the tree to resolve its leading `/root`. So `"/root/DiceManager"` fails while the
+  **relative** direct-child form `root.get_node_or_null("DiceManager")` returns the live node
+  and rolls.
+- The absolute form **errors and CONTINUES** — it pushes the error, returns null, execution
+  carries on, and the helper's `randi_range()` fallback runs. CLAUDE.md's *“it ERRORS and
+  aborts the enclosing function”* describes a **bare** `get_node_or_null()` on a detached
+  RefCounted, which is a different call. The error spam with GDScript backtraces is expected
+  and harmless.
+
+⚠ **The relative-path change to `BugHuntBattleSetup._dice_manager()` (`:238`) was CONSIDERED
+and REJECTED.** The absolute form is this codebase's established pattern at five 5PFH sites —
+`CampaignEventEffects.gd:64`, `CharacterEventEffects.gd:212`, `MissionTableManager.gd:251`,
+`CharacterTransferService.gd:947` and `:1198`. Changing one of them to suit a probe would make
+Bug Hunt the odd one out to fix a harness, which is the wrong direction: **the probe's
+limitation belongs in the probe's docblock, not in product code.**
+
+#### The panels probe: a detector that could not disagree, plus three passes of my own slips
+
+| Pass | Defect | Why it mattered |
+|---|---|---|
+| 1 | `_has_card(texts, "Court Martial")` returned **TRUE in both arms** | `_render_receipt()` renders every surviving step's heading, and the resolver drops a step only when it is skipped **AND** lineless (`:149-150`). Court Martial's PASS branch sets `skipped = true` **and** appends a line, so the heading is on screen precisely when the rule decided **not** to hold one. Replaced by `_court_martial_fired()`, which reads the receipt's `skipped` flag, with `remove_character` as the second independent discriminator |
+| 1 | A dropped `% after_panel` format operator | Printed a literal `%d` — a measurement that reads as a number and is not one |
+| 2 | The fixture fix was applied to **P3/P4 only** | P5, P6 and P7 still ran unstamped against the degenerate zero-objective mission and reported 0 for everything, which reads as “the tally is still broken”. *Ordering a fix against SOME of its consumers is not ordering it* — quoted from this project's own reference, in my own harness, the same day |
+| 3 | An op-name **guess**; a dead P4 contrast; a stale P6 line filter; a stale P7 button filter | Each measured nothing, or measured the wrong thing, while printing a confident value |
+| 3 | **P9 double-emit** | `BaseButton.set_pressed()` emits `toggled`; only `set_pressed_no_signal()` suppresses it. The probe's own tick fired the handler twice |
+
+⭐ The transferable one is the first: **a detector that returns the same answer for both
+outcomes measures nothing**, and it was caught only because the receipt was printed beside it
+and said `step 0 Court Martial ... SKIPPED`. Print the evidence next to the verdict.
+
+⚠ **The panels probe WRITES A SAVE.** Setting `campaign_name` makes `get_campaign_id()`
+resolve, and `persist()` then writes to `user://saves/`. Delete the probe save after every run;
+`user://saves/` holds the user's real campaigns.
+
+---
+
+### 🟠 NEW — the Bug Hunt difficulty vocabulary is two defects, one book rule
+
+**Not in Sprint 1's scope** (the battle payload is explicitly deferred), so this is a ledger
+row, not a fix. It is filed because it is book-cited and measured.
+
+**The book** (Compendium p.186, `docs/rules/bug_hunt_compendium_extract.txt:1685-1715`) gives
+five difficulty settings across two columns:
+
+| Setting | Initial Contact markers | Encounter modifier |
+|---|---|---|
+| I'm Too Pretty to Die | −1 | −1 (+2 Support points, step 7 p.187) |
+| Hey Not Too Crazy | −1 | no adjustment |
+| Mess Me Up | no adjustment | no adjustment |
+| Mega-violence | +1 | +1 |
+| Living Nightmare | +1 | +1, plus *“At the end of each battle round, if there are less than 3 Contact markers on the table, place 1 new Contact marker at the center of a random battlefield edge”* |
+
+A **third** adjustment lives in the enemy-table prose (extract `:2228-2245`): *“The Numbers
+column gives the dice roll to be made whenever a Contact marker is revealed as Enemies. Note
+that on the I'm too pretty to die difficulty setting, the number is reduced by 1. On the
+Mega-violence and Living Nightmare difficulty settings, the number is increased by 1.”*
+
+✅ **The live path is CONFIRMED-OK and byte-faithful.**
+`data/bug_hunt/bug_hunt_missions.json:difficulty_settings` is a list of five, ids
+`im_too_pretty_to_die` / `hey_not_too_crazy` / `mess_me_up` / `mega_violence` /
+`living_nightmare`, each carrying `initial_contacts_modifier`, `encounter_modifier`,
+`extra_support_points`, `extra_contacts` and `special_rule`. Every value matches p.186,
+Living Nightmare's rule string included. `BugHuntMissionPanel._get_difficulty_settings()`
+(`:459-465`) reads it by id, default `"mess_me_up"` (`:152`), and consumes
+`initial_contacts_modifier` at `:223`.
+
+**(a) NEVER-FIRES — `bug_hunt_enemies.json:difficulty_modifiers` has ZERO readers.**
+
+```json
+{"im_too_pretty_to_die": {"numbers_modifier": -1},
+ "standard":             {"numbers_modifier":  0},
+ "mega_violence":        {"numbers_modifier":  1},
+ "living_nightmare":     {"numbers_modifier":  1}}
+```
+
+Every `numbers_modifier` hit in `src/` is **5PFH** against the different file
+`data/difficulty_modifiers.json` — `EnemyGenerator.gd:706` / `:1858`, whose
+`_parse_numbers_modifier()` parses a `"+2"`-style STRING off the 5PFH enemy tables. Nothing
+reads the Bug Hunt dict. `grep -n "difficulty" src/core/battle/BugHuntBattleSetup.gd` returns
+**zero hits**: the file that builds the enemy side never sees the setting. So the book's
+Numbers adjustment is **never applied to any revealed Contact**, at any difficulty.
+
+⭐ **And there is nowhere else it could come from.** The five `difficulty_settings` rows carry
+no `numbers_modifier` column, so this is not a duplicate that a live path happens to cover —
+it is the rule's only encoding, and it is inert.
+
+**(b) The key vocabulary is INVENTED, so wiring it as-is would still miss the default.** The
+dict has four keys where the book has five settings. `"standard"` is a name used by neither
+the book nor any other file in the repo, and it stands in for **two** distinct book settings,
+`hey_not_too_crazy` and `mess_me_up`. The app's **default** difficulty is `mess_me_up`, which
+matches no key in the dict and would fall through to no adjustment. The arithmetic
+(−1 / 0 / +1 / +1) is faithful; only the keying is invented.
+
+**Fix shape when the battle payload is scoped:** re-key onto the five book ids (the
+`difficulty_settings` list is the SSOT for the vocabulary), add `numbers_modifier` as a sixth
+column there so one row owns one setting, and delete the second dict. *Two shapes for one
+concept* is what broke `TacticsCampaignUnit` on Sep 10.
+
+---
+
+### Other rows the re-run measured
+
+| Row | Measurement | Standing |
+|---|---|---|
+| **D** | `asked for 3 names -> 3`, `asked for 4 -> 4`, **`asked for 5 -> generated 4 main characters`** | **NEW.** Compendium p.170 allows up to 5. Out of Sprint 1 scope — the plan defers the 5-main-character option explicitly. Ledger row |
+| **B** | `signals generated: 3`, `signals whose 'result' is EMPTY: 3 of 3`, `signal_table rows sitting unused in the data file: 6` | Open, battle payload, out of scope |
+| **C** | 15 keys reach the battle screen: `aggression_dice`, `armor_table(1)`, `battle_mode=bug_hunt`, `chance_dice`, `contact_markers(5)`, `contact_table_rules(3)`, `no_morale=true`, `objectives(0)`, `priority=3`, `signals(4)`, `spawn_points(2)`, `spawn_rating=2`, `tactical_locations(2)`, `terrain_theme=indoor`, `weapons_table(15)` | Recorded. `objectives(0)` is the unstamped probe fixture, not the product path Phase 4 fixed |
+| **F** | `8 -> 9.0`, `12 -> 7.0`, `15 -> <null>`, **`16 -> NO ROW MATCHED`**, `20 -> NO ROW MATCHED` | Data layer only. Delivery is handled by the Phase 5 resolver's 15+ automatic rule, so a tally of 16 never reaches the lookup |
+| **G** | `experience.awards[].xp` float, `advancement_costs[].xp_cost` float, `max_value` float | **Data level only now.** The render was fixed by Phase 5's presentation-only rewrite and pinned by `test_bug_hunt_rendered_numbers.gd` in Phase 6 |
+
+---
+
+### ▶ Out of scope, reported not fixed
+
+`src/ui/screens/campaign/phases/TradePhasePanel.gd:224-226` carries a **fabricated fallback
+market** — `Medkit` 100, `Ammo Pack` 50, `Armor Plate` 200. These are 5PFH prices in neither
+rulebook, and Core Rules p.125 prices a sale at 1 credit. Noticed while tracing Bug Hunt's
+data reads; it is 5PFH, Alpha-1, and outside this sprint's file list.
+
+---
+
 ## ✅ CONFIRMED-OK — correct code, recorded so nobody "fixes" it
 
 This section is as load-bearing as the defects. §C4 failed by recording "verified" without checking
 delivery; these rows were checked **both** ways.
 
 - **All 30 creation-table rows** (Origin 13 / Basic Training 9 / Service History 8) exact **and
-  applied** — `BugHuntCharacterGeneration.gd:103` applies stat bonuses, advantages and the 2D6
-  Combat-Operations commendation.
+  applied** — `BugHuntCharacterGeneration.gd:53` (`generate_main_character`) applies stat bonuses,
+  advantages and the 2D6 Combat-Operations commendation (`:116`).
 - **All 12 Special Assignments** exact, **applied, and persisted** — compound requirements
   ("Reactions *or* Combat Skill 2+"), every "if currently lower than N" cap, and the once-per-career
   rule. This was a *suspected* defect and is **REFUTED**.
@@ -1315,6 +2568,9 @@ and concurrently-modified suites pass **113 cases / 0 failures**.
 - **The float render is three fields, not one.** Measured: `experience.awards[].xp` → `"1.0"`,
   `advancement_costs[].xp_cost` → `"8.0"`, `advancement_costs[].max_value` → `"4.0"`. This is
   therefore **desk-measurable and no longer owed to the device walk.**
+  ✅ **All three are CLOSED as of Phase 5** and pinned by `test_bug_hunt_rendered_numbers.gd`
+  as of Phase 6 step 3 — see that section. The measurement above is kept because it is
+  what made the render desk-reproducible in the first place.
 
 ### Three findings the headless run ADDED
 
@@ -1417,4 +2673,5 @@ rebinds the Bug Hunt button to a "coming soon" note — Bug Hunt is currently un
 main menu, and the only live route is the store screen. Every finding above is desk-verified.
 The delivery-layer defects that static analysis structurally cannot see — touch scroll on the
 bare-`Control` panels and tablet layout — need hardware. (The "4.0" render was owed to the
-device and is now measured at the desk; see the headless section above.)
+device, was then measured at the desk, and is now **fixed and guarded** — Phase 5 closed it and
+Phase 6 step 3 pinned it. It is off this list entirely.)

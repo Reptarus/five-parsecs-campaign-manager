@@ -1,5 +1,6 @@
 {
-	"description": "Bug Hunt Special Assignments - Compendium pp.181-182. Roll 2D6 to see if approved. Each character can only complete a given assignment once in their career.",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.183 (Special Assignments); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt Special Assignments - Compendium p.183. Roll 2D6 to see if approved. Each character can only complete a given assignment once in their career. CORRECTED 2026-09-20: this cited pp.181-182, which are Movie Magic and the Campaign Turn sequence (the latter names this as stage 1). All twelve assignments below are printed on p.183, and the index on p.223 reads 'special assignments 166, 183'.",
 	"eligibility": "Any character not in Sick Bay may be nominated. Failure means no assignment this turn (may retry next turn).",
 	"assignments": [
 		{

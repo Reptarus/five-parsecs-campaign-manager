@@ -350,10 +350,13 @@ with a full-bleed cover matching the other three.
 
 ## Scope correction found during Test 1
 
-`MainMenu.gd:14` sets `const A1_BUILD := true`, which deliberately hides
+`MainMenu.gd:20` sets `const A1_BUILD := true`, which deliberately hides
 **Co-op, Bug Hunt, Tactics and Planetfall** (`_apply_a1_scope()`, and the
 Tactics/Planetfall inject functions early-return). Their absence from the menu
 is intended alpha-1 scoping, **not** a defect.
+⚠ The line number read `:14` here and in the QA dashboard until Sep 19 2026;
+measured `20:const A1_BUILD := true`. Corrected in both, in place, because a bare
+line number is exactly the citation a reader follows without re-checking.
 
 Test 8 is rescoped accordingly: only **Battle Simulator, Library, Settings and
 Onboard Existing Game** are reachable entry points in this build. Reaching the

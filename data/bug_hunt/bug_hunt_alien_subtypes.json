@@ -1,4 +1,5 @@
 {
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.196 (Enemy Variants); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
 	"description": "Bug Hunt enemy variant subtypes - Compendium p.196. Rolled on D6 when encountering a previously-seen enemy type.",
 	"subtypes": [
 		{

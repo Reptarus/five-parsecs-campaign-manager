@@ -538,6 +538,42 @@ func _restore_from_snapshot(char_data: Dictionary) -> Dictionary:
 ## PENDING TRANSFER PERSISTENCE (user://transfers/)
 ## ============================================================================
 
+const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+
+
+static func write_pending_transfer(envelope: Dictionary) -> String:
+	## Persist a transfer envelope to user://transfers/ and return the path it landed
+	## at, or "" on failure. The counterpart to load_pending_transfers() below, which
+	## has existed since the Foundation sprint with no writer beside it -- the write was
+	## open-coded in BugHuntDashboard (:447), PlanetfallDashboard (:141) and
+	## TacticsDashboard (:256) instead. The three copies are left alone here because
+	## they are Alpha-1 surfaces; new writers use this one.
+	##
+	## Writing through SaveFileWriter (flush + get_error + verified rename) rather than
+	## assuming a successful open means a successful save, so a caller can drop the
+	## source only after the destination is on disk -- which is the whole point of the
+	## file-drop mechanism: an interruption must leave a duplicate, never a veteran who
+	## exists nowhere.
+	var dir := "user://transfers/"
+	if not DirAccess.dir_exists_absolute(dir):
+		DirAccess.make_dir_recursive_absolute(dir)
+
+	var character: Variant = envelope.get("character", {})
+	var cid := ""
+	if character is Dictionary:
+		cid = str((character as Dictionary).get("id",
+			(character as Dictionary).get("character_id", "")))
+	if cid.is_empty():
+		cid = "unknown"
+
+	var path := dir + "transfer_%s_%s.json" % [cid, str(Time.get_unix_time_from_system())]
+	var err: Error = SaveFileWriterRef.write_text_atomic(path, JSON.stringify(envelope, "	"))
+	if err != OK:
+		push_error("CharacterTransferService: transfer file could not be written (err %d)" % err)
+		return ""
+	return path
+
+
 static func load_pending_transfers(target_mode: String = "") -> Array:
 	## Load pending transfer files from user://transfers/. When target_mode is set,
 	## only transfers destined for that mode are returned (one loader serves all modes).

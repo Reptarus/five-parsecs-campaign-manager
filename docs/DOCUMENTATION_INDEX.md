@@ -1,19 +1,45 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: Aug 6, 2026 (added the Active Audit Ledgers section — the Jul/Aug
-audit docs had been missing from this index entirely, so anyone following
-"read the index first" was routed past the most current material on the project)
+**Last Updated**: Sep 20, 2026 (Bug Hunt Sprint 1 Phase 4 landed at the desk and is
+recorded in the ledger below — uncommitted). Sep 19, 2026 (added the Bug Hunt Parity Audit — the first ledger here
+for a whole GAMEMODE rather than a subsystem, and the only live work on the project; also
+corrected two stale facts this section had been carrying). Aug 6, 2026 (added the Active
+Audit Ledgers section — the Jul/Aug audit docs had been missing from this index entirely,
+so anyone following "read the index first" was routed past the most current material on
+the project)
 **Engine**: Godot 4.6-stable (pure GDScript)
 **Test Framework**: gdUnit4 v6.0.3
 
 ---
 
-## ⭐ Active audit ledgers (Jul-Aug 2026) — read these before any rules work
+## ⭐ Active audit ledgers (Jul-Sep 2026) — read these before any rules work
 
-These four are the live record of what actually reaches the player. **They
+These seven are the live record of what actually reaches the player. **They
 supersede the older status docs below wherever they disagree**, and each carries
-its own correction history because each has been wrong at least once.
+its own correction history because each has been wrong at least once. ⚠ This line
+read "these four" while listing six, from Aug 6 to Sep 19 2026 — **a hand-maintained
+count standing beside the list it counts is a count that drifts.** Count the bullets.
 
+- **▶ [Bug Hunt Parity Audit](audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md)** — ⚠ **IN
+  FLIGHT, and the only ledger here for a whole GAMEMODE.** Bug Hunt walked against
+  Compendium pp.163-226, plus the Sprint 1 record built on it. ⭐ **Its headline is a
+  SHAPE, not a count**: the DATA is near byte-exact — all 15 `data/bug_hunt/*.json`
+  verified three times independently — while the DELIVERY was broken almost everywhere,
+  the recurring cause being a consumer reading a key no producer writes. Measured on HEAD
+  before the sprint: no played mission ever scored an objective, so **Court Martial fired
+  every turn and the campaign had no reachable win**; the mission tally was counted three
+  times; **a turn could never END**, so every Bug Hunt campaign was stuck on turn 1; and a
+  muster-out **deleted** the veteran instead of writing a transfer file.
+  ⭐ **Read it as the counterexample to "the data is verified, so the feature works."**
+  Three independent audits agreed the data was right, and all three then advised UI polish.
+  Phases 0-5 of 8 are complete (0-3 as `d1e541ccb`, **4-5 uncommitted**); 6-7
+  remain. ✅ **Phase 4 closes the headline row**: the mission is stamped before the
+  battle and the return runs through a new add-only normalizer, so a played mission
+  now scores its objectives and the campaign has a reachable win. ✅ **Phase 5 is the
+  p.202 slice**: a pure resolver returns a receipt, the phase manager is the only
+  mutator, and muster-out writes a transfer file instead of deleting the veteran. ⚠ Bug Hunt is Alpha-2 behind
+  `A1_BUILD` (`src/ui/screens/mainmenu/MainMenu.gd:20`), so none of it is reachable by an
+  Alpha-1 tester.
 - **[Compendium Chapter Trace](COMPENDIUM_CHAPTER_TRACE_2026-08.md)** — every
   Compendium chapter walked producer → key → consumer by hand. Documents **five
   distinct ways a chapter fails**, four of which this document itself demonstrated
@@ -49,9 +75,15 @@ its own correction history because each has been wrong at least once.
 - **[Tablet Test Readiness](TABLET_TEST_READINESS.md)** — the gate for handing an
   APK to a tester. §9 has the current artifact and what changed under the tester's
   feet.
-- **[Wiring / Dead-Code Cleanup Backlog](WIRING_CLEANUP_BACKLOG.md)** — orphans are
-  at 0; the remaining 41 entries are test-only files awaiting a wire-or-delete
-  product decision (tier 7).
+- **[Wiring / Dead-Code Cleanup Backlog](WIRING_CLEANUP_BACKLOG.md)** — ⚠ **the tier-7
+  backlog this entry described is CLOSED; corrected here rather than deleted, because a
+  reader acting on the old text would go looking for a 41-file triage that no longer
+  exists.** It read *"orphans are at 0; the remaining 41 entries are test-only files
+  awaiting a wire-or-delete product decision (tier 7)"* until Sep 19 2026. Measured:
+  `py scripts/lint_orphan_assets.py` → `files=560 reachable_from_product=560 test_only=0
+  orphans=0 unwired_rules=0`, exit 0. The 39 production-dead files were deleted Sep 4 2026
+  and the last `unwired_rules` entry was wired Sep 10. Keep the doc for its deletion
+  protocol, which is still the procedure — not as a worklist.
 
 Institutional traps live in **[docs/sop/README.md](sop/README.md)** — the
 anti-regressions log. Read the relevant SOP before touching its subsystem, and

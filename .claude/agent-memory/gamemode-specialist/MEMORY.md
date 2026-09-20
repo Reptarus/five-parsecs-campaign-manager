@@ -54,6 +54,41 @@ If code disagrees with the book, the code is wrong.
 - **`campaign_crew_size` does NOT apply.** The 4/5/6 setting is Standard-5PFH-only. Bug Hunt enemy
   counts follow Compendium Bug Hunt tables, not the Core Rules p.63 dice formula. If you touch
   `get_campaign_crew_size()` in a shared file, make sure no Bug Hunt path reaches it.
+- ⚠ **STATUS, Sep 19 2026 — do not read the data verdict below as "Bug Hunt works."** The
+  Sep 10 parity audit (`docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md`) re-confirmed the
+  data independently AND found the DELIVERY broken almost everywhere: no played mission ever
+  scored an objective (so Court Martial fired every turn and there was no reachable win), a
+  turn could never END, the mission tally was counted three times, and a muster-out deleted
+  the veteran instead of writing a transfer file. Sprint 1 is now **DESK-COMPLETE through
+  all eight phases; only Phase 7's DEVICE WALK remains** (0-3 committed as `d1e541ccb`;
+  **4-7 are uncommitted**). ✅ Phase 4 stamps the
+  mission before the battle and routes the return through a new add-only
+  `BugHuntBattleResultNormalizer`, so a played mission now SCORES its objectives —
+  Court Martial stops firing every turn and the `above_100` Parade win is reachable.
+  ✅ Phase 5 is the p.202 slice: a pure `BugHuntPostBattleResolver` returns a receipt
+  and `BugHuntPhaseManager` is the ONLY mutator. The tally rises once per character
+  who took the field, muster-out is checked at the real count and writes a transfer
+  file via the new `CharacterTransferService.write_pending_transfer` static, and all
+  20 Military Life rows apply. ⚠ Three dashboards still hand-roll the transfer
+  envelope (`BugHuntDashboard.gd:447`, `PlanetfallDashboard.gd:141`,
+  `TacticsDashboard.gd:256`) — a NAMED follow-up, not a migrated codebase.
+  ✅ Phase 6 is provenance, census and helpers: `_source` on all 15 data files and a
+  `test_bug_hunt_consumer_census.gd`. 🟡 **Phase 7's desk half is done** — the seven
+  Alpha-1 guard suites are green (74 · 0 · 0, delta 0 against the grep population) and both
+  probes were re-run; **the device walk has NOT run.**
+  🟠 **A new book-cited Bug Hunt finding is FILED and deliberately unfixed** (battle payload,
+  out of Sprint 1 scope): `data/bug_hunt/bug_hunt_enemies.json:difficulty_modifiers` has **zero
+  readers repo-wide** — `BugHuntBattleSetup` never mentions difficulty — so Compendium
+  p.190's Numbers adjustment (−1 on I'm Too Pretty to Die, +1 on Mega-violence and Living
+  Nightmare) is **never applied to any revealed Contact**; and its four keys invent `"standard"`
+  for two distinct book settings, so the app's DEFAULT `mess_me_up` matches no key. ✅ The live
+  path is byte-faithful: `bug_hunt_missions.json:difficulty_settings` is the book's five settings
+  with p.186's exact modifiers. **Fix shape when the payload is scoped: re-key onto the five book
+  ids, add `numbers_modifier` as a sixth column there, delete the second dict** — two shapes
+  for one concept is what broke `TacticsCampaignUnit`. Also **Row D**: asking for 5 main characters
+  generates 4, against p.170 (the 5-marine option is an explicitly deferred book variant).
+  ⭐ Three separate audits verified this data and all three then advised UI
+  polish — **"the data is verified" and "the feature works" are different claims.**
 - Sessions 42-43 audit: all 15 `data/bug_hunt/*.json` verified against the Compendium, zero data
   corrections needed; 14 code bugs fixed (6 JSON key mismatches that meant enemies never loaded and
   every post-battle table read the wrong key; 7 formula bugs in priority/spawn bounds/XP/Rep/

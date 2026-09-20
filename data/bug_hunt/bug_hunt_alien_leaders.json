@@ -1,4 +1,5 @@
 {
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.197 (Pack Leaders); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
 	"description": "Bug Hunt pack leader types - Compendium p.197. Rolled on D6 when pack leader is present. Max 3 pack leaders per mission.",
 	"detection_rule": "Roll three D12. If any die rolls equal to or below the number of enemies revealed by the marker, a pack leader is present. Discard one D12 from the pool going forward (max 3 leaders per mission).",
 	"availability": "Not available in the first two missions of the campaign.",

@@ -1247,26 +1247,64 @@ Each rule in the book should eventually have an entry like this:
 > `ContactMarkerPanel` was deleted in `5125a0e4`, and the line counts below are
 > 15-30% low (`BugHuntCampaignCore` is 559 lines, not 476).
 > `py scripts/lint_audit_citations.py docs/QA_RULES_ACCURACY_AUDIT.md` reports
-> **34 unresolvable citations in this section alone** (84 doc-wide).
+> ~~**34 unresolvable citations in this section alone** (84 doc-wide)~~.
+>
+> ⚠ **CORRECTED 2026-09-20 — the section figure is off roughly sevenfold, and the
+> mechanism is worth more than the number.** Re-measured with the same lint:
+> **88 failed / 14 unresolved doc-wide**, of which **5** are in this section (from the
+> `### C4` heading to the `## Appendix A` heading) and **40** are in that appendix and
+> beyond. ⚠ Deliberately no line numbers: adding this very paragraph moved the section
+> boundary by 21 lines, and unlike a wrong count nothing will ever re-measure a stale one. The likely cause of the
+> 34: `## Appendix A` is a **level-2** heading, so a scope that runs *"from `### C4` to
+> the next `###`"* never stops at the C4 table — it swallows the whole appendix, which
+> is where the battlefield, tutorial, shaders and legacy-phase citations live. A markdown
+> section ends at the next heading **at the same level or shallower**, not at the next
+> thing that looks like a heading. (Stated as the likely cause, not a proven one — the
+> Sep 10 measurement cannot be re-run.)
+>
+> ⚠ **Three of the five are now DELIBERATE and must not be "fixed".**
+> **bug_hunt_gear.json** is named three times — in this banner, in **Data Sources** and in
+> C4-011 — because the record of a deletion has to name the file it deleted. The other
+> two are **BugHuntEnemyGenerator.gd**, which never existed. (Both are written here without
+> backticks on purpose: the lint existence-checks a code span, so a paragraph REPORTING the
+> count would otherwise raise it — measured, it did, 88 → 90.) ⓘ This file is **outside the
+> lint's default scope** (`docs/audits/*.md`), so none of the five gates anything; the
+> lint only sees them when this path is passed explicitly, as the line above does.
 >
 > **Ground truth is now `docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md`**, which
 > walked printed pp.164-214 page by page and asked the delivery question. It found the
 > data near-perfect and the delivery broken almost everywhere — 15 CONTRADICTS,
 > 5 FABRICATED, 14 WRONG-VALUE, and the largest NEVER-FIRES bucket in the project.
 >
+> ⚠ **UPDATED 2026-09-20: "the data near-perfect" is scoped to the tables that audit
+> WALKED, and two of this section's VERIFIED rows are now retracted outright.** Both
+> audits walked the *book's* tables and checked each against a file. Neither walked the
+> *files* and asked which book table each one came from — so **a data file the book has
+> no table for is invisible to a book-first sweep**: never reached, never contradicted,
+> scored clean. Adding `_source` to every `data/bug_hunt/*.json` is what asked the
+> question, and two files could not answer it. `bug_hunt_gear.json` is **deleted** (all
+> five items fabricated) and `bug_hunt_armor.json` is **one row of three** — see
+> P6-A / P6-B / P6-C in the parity audit. The directory is now **14 files, not 15**.
+>
+> ⭐ **The mechanism is this section's evidence sentence.** C4-002 and C4-011 both read
+> *"JSON has N entries. File well-formed."* That sentence is **true of a fabrication**.
+> Counting rows and parsing a file measures SHAPE; only opening the book measures
+> PROVENANCE. Of the nineteen C4 rows, exactly one (C4-013) cites a printed page and
+> enumerates values.
+>
 > Kept, not deleted, because the drift record is the lesson: **an audit that records
 > "verified" without checking delivery produces a green row that measured nothing.**
 
-**Data Sources**: `data/bug_hunt/` (15 JSON files), [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) (476 lines)
+**Data Sources**: `data/bug_hunt/` (⚠ **14** JSON files as of 2026-09-20, not the 15 this row claimed — `bug_hunt_gear.json` was deleted as fabricated, see C4-011), [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) (⚠ the "476 lines" here is **dropped 2026-09-20 rather than re-measured**. It has been wrong twice in ten days — the Sep 10 banner corrected it to 559 and the file is **608** today — and it is wrong again the moment anyone edits the file. A count that cannot be kept true is worse than no count, because a reader cannot tell which stale number to believe, and the link already answers the question)
 **Engine Files**: [BugHuntPhaseManager.gd](src/core/campaign/BugHuntPhaseManager.gd), [BugHuntTurnController.gd](src/ui/screens/bug_hunt/BugHuntTurnController.gd), [BugHuntCreationUI.gd](src/ui/screens/bug_hunt/BugHuntCreationUI.gd), [BugHuntCreationCoordinator.gd](src/ui/screens/bug_hunt/BugHuntCreationCoordinator.gd)
 **Character System**: [BugHuntCharacterGeneration.gd](src/core/character/BugHuntCharacterGeneration.gd), [CharacterTransferService.gd](src/core/character/CharacterTransferService.gd)
-**Battle System**: [BugHuntBattleSetup.gd](src/core/battle/BugHuntBattleSetup.gd), [BugHuntEnemyGenerator.gd](src/core/systems/BugHuntEnemyGenerator.gd)
-**UI Panels**: 7 panels in `src/ui/screens/bug_hunt/panels/` (Config, Equipment, Mission, PostBattle, Review, Squad, CharacterTransfer)
+**Battle System**: [BugHuntBattleSetup.gd](src/core/battle/BugHuntBattleSetup.gd), ~~[BugHuntEnemyGenerator.gd](src/core/systems/BugHuntEnemyGenerator.gd)~~ ⚠ **this file has never existed in this repository** (struck at the link 2026-09-20 — the banner says so, but a reader scanning this block clicks it first)
+**UI Panels**: ⚠ **8** panels in `src/ui/screens/bug_hunt/panels/` (Config, Equipment, Mission, PostBattle, Review, Squad, CharacterTransfer, **SpecialAssignments**) — corrected 2026-09-20: the count said 7 and the list omitted `SpecialAssignmentsPanel`, which is stage 1 of the Bug Hunt turn
 
 | ID | Item | Source | Code Value | Code Path | Status | By | Date |
 |----|------|--------|-----------|-----------|--------|-----|------|
 | C4-001 | Bug Hunt weapons (15) | BH | 15 weapon types with range/shots/damage/traits | [bug_hunt_weapons.json](data/bug_hunt/bug_hunt_weapons.json) | **VERIFIED** — JSON has 15 weapon types with complete stat blocks and traits. File well-formed | AI+code | 2026-03-30 |
-| C4-002 | Bug Hunt armor (3) | BH | 3 armor types with saving throws | [bug_hunt_armor.json](data/bug_hunt/bug_hunt_armor.json) | **VERIFIED** — JSON has 3 armor types with save values. File well-formed | AI+code | 2026-03-30 |
+| C4-002 | Bug Hunt armor (3) | BH | 3 armor types with saving throws | [bug_hunt_armor.json](data/bug_hunt/bug_hunt_armor.json) | ⛔ **RETRACTED 2026-09-20 — the file now holds ONE row.** `trooper_armor` (save 5) is correct: Compendium p.178 and the p.172 standard load. `combat_armor` was a real **Core Rules** item (pp.29, 54, 132, *"Saving Throw 5+"*), absent from the Compendium, and the Bug Hunt copy made it **one point better** at save 4 — contradicting this repo's own three 5PFH sources, which all say 5. `scout_suit` (save 6) is in neither book. The 2026-03-30 evidence (*"JSON has 3 armor types with save values. File well-formed"*) is **true of a fabrication** — it measured shape, not provenance | AI+code | 2026-03-30, retracted 2026-09-20 |
 | C4-003 | Bug Hunt enemies (16) | BH | 16 alien types with full stat blocks + difficulty modifiers | [bug_hunt_enemies.json](data/bug_hunt/bug_hunt_enemies.json) | **VERIFIED** — JSON has 16 enemy types with speed/combat/toughness/AI/weapons. File complete | AI+code | 2026-03-30 |
 | C4-004 | Alien subtypes (6 D6) | BH | 6 subtype effects on D6 table | [bug_hunt_alien_subtypes.json](data/bug_hunt/bug_hunt_alien_subtypes.json) | **VERIFIED** — JSON has 6 D6 subtype entries. File well-formed | AI+code | 2026-03-30 |
 | C4-005 | Alien leaders (6 D6) | BH | 6 leader types with abilities | [bug_hunt_alien_leaders.json](data/bug_hunt/bug_hunt_alien_leaders.json) | **VERIFIED** — JSON has 6 D6 leader entries. File well-formed | AI+code | 2026-03-30 |
@@ -1275,7 +1313,7 @@ Each rule in the book should eventually have an entry like this:
 | C4-008 | Special assignments (12) | BH | 12 assignment types with unlocking mechanics | [bug_hunt_special_assignments.json](data/bug_hunt/bug_hunt_special_assignments.json) | **VERIFIED** — JSON has 12 special assignments with unlock conditions. File complete | AI+code | 2026-03-30 |
 | C4-009 | Missions | BH | 9-step mission setup with objectives/difficulties/evac | [bug_hunt_missions.json](data/bug_hunt/bug_hunt_missions.json) | **VERIFIED** — JSON has 9-step mission setup, objectives, difficulty scaling, evac rules. File complete | AI+code | 2026-03-30 |
 | C4-010 | Post-battle (9-step) | BH | 9-step post-battle with casualty/mustering/XP/ops progress | [bug_hunt_post_battle.json](data/bug_hunt/bug_hunt_post_battle.json) | **VERIFIED** — JSON has 9-step post-battle sequence. File complete | AI+code | 2026-03-30 |
-| C4-011 | Gear/equipment (5) | BH | 5 Bug Hunt gear items (medkit, scanner, beacon, demo, flare) | [bug_hunt_gear.json](data/bug_hunt/bug_hunt_gear.json) | **VERIFIED** — JSON has 5 gear items. File well-formed | AI+code | 2026-03-30 |
+| C4-011 | Gear/equipment (5) | BH | 5 Bug Hunt gear items (medkit, scanner, beacon, demo, flare) | `data/bug_hunt/bug_hunt_gear.json` (DELETED 2026-09-20) | ⛔ **RETRACTED 2026-09-20 — the file is deleted and NONE of the five items is in either book.** Measured with PyPDF2 across the whole Compendium and the whole Core Rules: zero hits for all five names. p.179 "Weapons and gear" is a **weapons** table; p.172's standard load is *"Service Pistol"* and *"Trooper armor"* and nothing else; the nearest index hit is *"Beacon (objective) 185"*, a marker on the table rather than a carried item. Every consumer was already dead — the `gear_table` battle-context key, `get_gear_by_id`, `get_all_gear` and `resolve_equipment` have **0 external callers between them** | AI+code | 2026-03-30, retracted 2026-09-20 |
 | C4-012 | Tactical locations | BH | Location types with Signal mechanics | [bug_hunt_tactical_locations.json](data/bug_hunt/bug_hunt_tactical_locations.json) | **VERIFIED** — JSON has tactical location and Signal mechanics. File complete | AI+code | 2026-03-30 |
 | C4-013 | Support teams (12) | BH | 12 support options with 2D6 targets and stats | [data/bug_hunt/bug_hunt_support_teams.json](data/bug_hunt/bug_hunt_support_teams.json) | **VERIFIED** — Compendium pp.188-189. 12 support options: Fire Team (2D6≥7), Sarge (2D6≥5), Sharp Shooter (2D6≥6), Recon Patrol (2D6≥6), Colonial Militia (2D6≥5), Scientific Survey Team (2D6≥6), Weapons Support (2D6≥4), Grenades (2D6≥4), Intel Report (2D6≥7), Soulless Recon (2D6≥8), K'Erin Assault (2D6≥8), Precursor Explorer (2D6≥8). All have full stat blocks and special rules | AI+code | 2026-03-30 |
 | C4-014 | Regiment names | BH | Name generation tables | [bug_hunt_regiment_names.json](data/bug_hunt/bug_hunt_regiment_names.json) | **VERIFIED** — JSON has regiment name generation tables. File well-formed | AI+code | 2026-03-30 |
@@ -1283,7 +1321,7 @@ Each rule in the book should eventually have an entry like this:
 | C4-016 | 3-stage turn flow | BH | SPECIAL_ASSIGNMENTS → MISSION → POST_BATTLE | [BugHuntPhaseManager.gd](src/core/campaign/BugHuntPhaseManager.gd) (205 lines) | **VERIFIED** — BugHuntPhaseManager implements exact 3-stage flow with auto-advancement and phase result application. 205 lines, complete | AI+code | 2026-03-30 |
 | C4-017 | Campaign data model | BH | `main_characters`/`grunts` (flat Arrays), movie magic, sick bay, reputation | [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) (491 lines) | **VERIFIED** — BugHuntCampaignCore has main_characters + grunts arrays, full serialization, movie magic tracking, sick bay, reputation, completed assignments. 491 lines, complete | AI+code | 2026-03-30 |
 | C4-018 | Character transfer (5PFH ↔ BH) | BH | Bidirectional transfer with enlistment rolls | [CharacterTransferService.gd](src/core/character/CharacterTransferService.gd), [CharacterTransferPanel.gd](src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd) | **VERIFIED** — Both files exist. Transfer service handles bidirectional conversion between 5PFH crew and BH main_characters/grunts | AI+code | 2026-03-30 |
-| C4-019 | TacticalBattleUI bug_hunt mode | BH | `battle_mode: "bug_hunt"` hides morale, adds ContactMarkerPanel | [TacticalBattleUI](src/ui/screens/battle/) with `_check_bug_hunt_launch()` | **VERIFIED** — Bug Hunt mode guarded by `battle_mode == "bug_hunt"` throughout TacticalBattleUI. ContactMarkerPanel added, morale hidden. Standard flow unaffected | AI+code | 2026-03-30 |
+| C4-019 | TacticalBattleUI bug_hunt mode | BH | `battle_mode: "bug_hunt"` hides morale (⚠ **and does NOT add a ContactMarkerPanel** — that file was deleted in `5125a0e4` and nothing replaced it; corrected 2026-09-20 at the row, because a reader scanning this table does not necessarily read the banner) | [TacticalBattleUI](src/ui/screens/battle/) with `_check_bug_hunt_launch()` | **VERIFIED** — Bug Hunt mode guarded by `battle_mode == "bug_hunt"` throughout TacticalBattleUI. morale hidden. Standard flow unaffected. ⚠ The clause *"ContactMarkerPanel added"* is **withdrawn 2026-09-20**: that panel was deleted in `5125a0e4`, so this row certified a node that is not there | AI+code | 2026-03-30 |
 | C4-020 | Campaign type detection | BH | `GameState._detect_campaign_type()` peeks JSON to route BH vs 5PFH | [GameState.gd](src/core/state/GameState.gd) — `_detect_campaign_type()` | N/A — app architecture, not rules data | | |
 
 ---

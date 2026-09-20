@@ -9,14 +9,12 @@ const DATA_PATH := "res://data/bug_hunt/bug_hunt_character_creation.json"
 const REGIMENT_PATH := "res://data/bug_hunt/bug_hunt_regiment_names.json"
 const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
 const ARMOR_PATH := "res://data/bug_hunt/bug_hunt_armor.json"
-const GEAR_PATH := "res://data/bug_hunt/bug_hunt_gear.json"
 const NAMES_PATH := "res://data/character_names.json"
 
 var _creation_data: Dictionary = {}
 var _regiment_data: Dictionary = {}
 var _weapons_data: Dictionary = {}
 var _armor_data: Dictionary = {}
-var _gear_data: Dictionary = {}
 var _names_data: Dictionary = {}
 var _loaded: bool = false
 
@@ -30,7 +28,6 @@ func _load_data() -> void:
 	_regiment_data = _load_json(REGIMENT_PATH)
 	_weapons_data = _load_json(WEAPONS_PATH)
 	_armor_data = _load_json(ARMOR_PATH)
-	_gear_data = _load_json(GEAR_PATH)
 	_names_data = _load_json(NAMES_PATH)
 	_loaded = not _creation_data.is_empty() and not _regiment_data.is_empty()
 
@@ -351,24 +348,15 @@ func get_armor_by_id(armor_id: String) -> Dictionary:
 			return armor
 	return {}
 
-func get_gear_by_id(gear_id: String) -> Dictionary:
-	## Look up gear stats from bug_hunt_gear.json by ID
-	for gear in _gear_data.get("gear", []):
-		if gear.get("id", "") == gear_id:
-			return gear
-	return {}
-
 func get_all_weapons() -> Array:
 	## Get all Bug Hunt weapons
 	return _weapons_data.get("weapons", [])
 
 func get_all_armor() -> Array:
-	## Get all Bug Hunt armor types
+	## Get all Bug Hunt armor types. The book defines exactly ONE
+	## (Trooper armor, Compendium pp.172/178) -- a longer list is a
+	## fabrication, which is what this returned until 2026-09-20.
 	return _armor_data.get("armor", [])
-
-func get_all_gear() -> Array:
-	## Get all Bug Hunt gear items
-	return _gear_data.get("gear", [])
 
 func get_standard_issue_weapons() -> Array:
 	## Get weapons marked as standard issue
@@ -389,10 +377,6 @@ func resolve_equipment(equipment_ids: Array) -> Array:
 		var armor := get_armor_by_id(eq_id)
 		if not armor.is_empty():
 			resolved.append(armor)
-			continue
-		var gear := get_gear_by_id(eq_id)
-		if not gear.is_empty():
-			resolved.append(gear)
 			continue
 		resolved.append({"id": eq_id, "name": eq_id, "type": "unknown"})
 	return resolved

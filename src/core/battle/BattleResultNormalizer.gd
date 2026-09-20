@@ -184,22 +184,21 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 	if not results.has("is_rival_mission"):
 		results["is_rival_mission"] = str(results.get("mission_source", "")) == "rival" \
 			or str(results.get("rival_id", "")) != ""
+	# 7-8b) injuries_sustained / casualties / units_downed all come from the SAME
+	#    read of the battle screen's output, so they are parsed once by
+	#    parse_crew_outcome() and assigned add-only here. The parse is a separate
+	#    static because BugHuntBattleResultNormalizer needs the identical reading
+	#    of TacticalBattleUI's result -- the two modes share one battle screen, and
+	#    two hand-written readers of one producer is how they drift apart.
+	var crew_outcome: Dictionary = parse_crew_outcome(results)
 	# 7) injuries_sustained <- crew_injuries_data (PostBattlePhase -> InjuryProcessor;
 	#    element contract crew_id/name/origin/species_id).
 	if not results.has("injuries_sustained"):
-		var injuries: Array = []
-		for character in results.get("crew_injuries_data", []):
-			injuries.append(_to_crew_entry(character))
-		results["injuries_sustained"] = injuries
+		results["injuries_sustained"] = crew_outcome.get("injured", [])
 	# 8) casualties <- crew_casualties_data, SHAPE transform (bitter-day + XP paths
 	#    want type in ["killed","fatal"] with crew_id).
 	if not results.has("casualties"):
-		var casualties: Array = []
-		for character in results.get("crew_casualties_data", []):
-			var entry: Dictionary = _to_crew_entry(character)
-			entry["type"] = "killed"
-			casualties.append(entry)
-		results["casualties"] = casualties
+		results["casualties"] = crew_outcome.get("casualties", [])
 	# 8b) units_downed <- the crew who went Out of Action, which is exactly the
 	#    union of the two arrays above. NO PRODUCER EVER WROTE THIS KEY, and two
 	#    real mechanics read it:
@@ -211,18 +210,7 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 	#    Derived here rather than asked of the player: going Out of Action is
 	#    already recorded on both paths, so there is nothing new to observe.
 	if not results.has("units_downed"):
-		var downed: Array = []
-		for entry in results.get("injuries_sustained", []):
-			var cid: String = str((entry as Dictionary).get("crew_id", "")) \
-				if entry is Dictionary else ""
-			if cid != "" and cid not in downed:
-				downed.append(cid)
-		for entry in results.get("casualties", []):
-			var cid2: String = str((entry as Dictionary).get("crew_id", "")) \
-				if entry is Dictionary else ""
-			if cid2 != "" and cid2 not in downed:
-				downed.append(cid2)
-		results["units_downed"] = downed
+		results["units_downed"] = crew_outcome.get("downed_ids", [])
 	# 9) rival stamp on defeated enemies (RivalPatronResolver reads is_rival/rival_id
 	#    per element; produced elements only carry name/type/was_lieutenant).
 	var rid: String = str(results.get("rival_id", ""))
@@ -232,6 +220,73 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 				enemy["is_rival"] = true
 				enemy["rival_id"] = rid
 	return results
+
+static func parse_crew_outcome(results: Dictionary) -> Dictionary:
+	## ONE reading of what the battle screen said happened to the crew, shared by
+	## both modes' normalizers. Returns
+	##   {injured: Array[Dictionary], casualties: Array[Dictionary],
+	##    downed_ids: Array[String], participant_ids: Array[String]}
+	## and MUTATES NOTHING -- callers decide which keys to write.
+	##
+	## Each list prefers a value already on `results` and derives one otherwise,
+	## which is exactly what steps 7/8/8b did inline before this was extracted;
+	## the 5PFH behaviour is unchanged and test_battle_result_normalizer.gd pins it.
+	##
+	## Every read is defensive about TYPE, not just presence. A caller can hand us
+	## a legacy or variant-mode result where `casualties` is an int, and a typed
+	## `var x: Array = ...` assignment against one is a runtime abort that unwinds
+	## the enclosing function silently -- see casualty_count() below for the five
+	## forms that abort.
+	var injured: Array = []
+	var raw_injured: Variant = results.get("injuries_sustained", null)
+	if raw_injured is Array:
+		injured = raw_injured
+	else:
+		for character in _as_array(results.get("crew_injuries_data", [])):
+			injured.append(_to_crew_entry(character))
+	var casualties: Array = []
+	var raw_cas: Variant = results.get("casualties", null)
+	if raw_cas is Array:
+		casualties = raw_cas
+	else:
+		for character in _as_array(results.get("crew_casualties_data", [])):
+			var entry: Dictionary = _to_crew_entry(character)
+			entry["type"] = "killed"
+			casualties.append(entry)
+	var downed: Array = []
+	var raw_downed: Variant = results.get("units_downed", null)
+	if raw_downed is Array:
+		downed = raw_downed
+	else:
+		for entry in injured:
+			var cid: String = str((entry as Dictionary).get("crew_id", "")) \
+				if entry is Dictionary else ""
+			if cid != "" and cid not in downed:
+				downed.append(cid)
+		for entry in casualties:
+			var cid2: String = str((entry as Dictionary).get("crew_id", "")) \
+				if entry is Dictionary else ""
+			if cid2 != "" and cid2 not in downed:
+				downed.append(cid2)
+	# crew_participants is TacticalBattleUI's list of the crew who deployed
+	# (`unit.original_character`, :6805-6808). 5PFH does not write a participants
+	# key and nothing reads one, so it is returned rather than stamped.
+	var participants: Array = []
+	for character in _as_array(results.get("crew_participants", [])):
+		var pid: String = str(_to_crew_entry(character).get("crew_id", ""))
+		if pid != "" and pid not in participants:
+			participants.append(pid)
+	return {
+		"injured": injured,
+		"casualties": casualties,
+		"downed_ids": downed,
+		"participant_ids": participants,
+	}
+
+
+static func _as_array(value: Variant) -> Array:
+	return value if value is Array else []
+
 
 static func casualty_count(results: Dictionary) -> int:
 	## Casualty COUNT, tolerant of both shapes. EVERY numeric read of

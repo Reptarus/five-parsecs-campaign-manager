@@ -1,4 +1,5 @@
 {
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.184-190 (Mission Generation), with the objective scoring on p.201 (Ending the Mission); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
 	"description": "Bug Hunt mission generation - Compendium pp.184-190. 9-step mission setup procedure.",
 	"setup_steps": [
 		"Set up battle area",
@@ -16,6 +17,20 @@
 		"placement_rule": "Space evenly, avoid placing within 6\" of battlefield edges.",
 		"vital_objective": "If two of the 3D6 roll the same number, that Objective becomes Vital (counts as 2).",
 		"critical_objective": "If all three 3D6 roll the same number, the one remaining Objective becomes Critical (counts as 3).",
+		"scoring": {
+			"_source": "Five Parsecs From Home: Compendium, printed pp.185, 201",
+			"_note": "The weights and the signals penalty were PROSE only (vital_objective / critical_objective above, and bug_hunt_tactical_locations.json). A consumer cannot read prose, so no played mission ever scored an objective. Structured here so the scorer and the briefing read one source.",
+			"weights": {"normal": 1, "vital": 2, "critical": 3},
+			"success_threshold": 2,
+			"success_note": "p.201: 'Two or more is considered a success for the purposes of awarding Experience Points after the battle.'",
+			"signals_requirement": {
+				"_source": "Five Parsecs From Home: Compendium, printed p.201",
+				"quote": "if the mission had 4 or more signals initially, you must have investigated at least 2 before Evac. Failure to do so means your Objective total is reduced by 1.",
+				"signals_at_least": 4,
+				"must_investigate": 2,
+				"objective_penalty": 1
+			}
+		},
 		"types": [
 			{
 				"d6_value": 1,
@@ -136,15 +151,19 @@
 		"supporting_fire": "Drop ship has two LMGs, fires from center of marker with +1 Combat Skill. Cannot malfunction."
 	},
 	"court_martial": {
+		"_source": "Five Parsecs From Home: Compendium, printed p.201 (\"Pay the piper\"); verified 2026-09-20 against the PDF page tail",
 		"description": "If you failed to complete any Objectives, select the mission leader and roll D6. On a 1, they are removed from campaign.",
 		"trigger": "zero_objectives_completed",
 		"roll": "1D6",
 		"failure_value": 1,
-		"avoid_cost": "Pay 3 Reputation to avoid this fate."
+		"avoid_cost": "The book: \"If you have them, you may pay 3 Reputation points to call in a favor and avoid this fate.\" The amount a consumer charges is avoid_reputation_cost below, which is the only copy the resolver reads -- this line is the quotation, not the value.",
+		"avoid_reputation_cost": 3
 	},
 	"campaign_escalation_option": {
+		"_source": "Five Parsecs From Home: Compendium, printed p.187",
 		"description": "Optional: Use fixed Priority sequence instead of rolling.",
 		"priority_sequence": [1, 1, 2, 2, 3, 4, 5, 6],
-		"spawn_sequence": [0, 0, 1, 1, 2, 3, 3, 3]
+		"spawn_sequence": [0, 0, 1, 1, 2, 3, 3, 3],
+		"spawn_sequence_note": "p.187 prints these, but they are not an independent rule: they are exactly clamp(priority - 1, 0, 3) applied to priority_sequence. The code derives them so one rule cannot drift into two values."
 	}
 }

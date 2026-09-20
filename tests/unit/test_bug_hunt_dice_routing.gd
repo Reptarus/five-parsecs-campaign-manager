@@ -36,6 +36,23 @@ const TransferService = preload("res://src/core/character/CharacterTransferServi
 const FiveParsecsCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const BugHuntCore = preload("res://src/game/campaign/BugHuntCampaignCore.gd")
 
+## Helpers that take a roll context and hand it ONWARD rather than rolling it
+## themselves. The census walk below looks for a `roll_` call on the same line as a
+## key's literal; these break that, because the literal sits at the call site and the
+## roll happens one or two frames deeper with no literal in sight:
+##
+##   :649  _random_main_character(ctx, "Bug Hunt Subject Pick: Military Life")
+##   :976      -> _pick()  ->  _roll_d100(context)
+##
+## The list is a relaxation, so it carries its own proof: test_every_declared_context
+## _forwarder_actually_reaches_a_roll resolves each body and fails if the chain stops
+## rolling. Without that, adding a name here would make its keys look live forever.
+const CONTEXT_FORWARDERS: Array[String] = [
+	"_random_participant",
+	"_random_main_character",
+	"_pick",
+]
+
 ## Keys whose producer builds its context with a format specifier, so the literal on
 ## the roll line is a STEM and not the key. Asserted to be exactly this set in case 7 —
 ## if a third key starts needing the relaxed arm, that is a new runtime-assembled
@@ -353,6 +370,51 @@ func test_every_bug_hunt_forceable_key_has_a_live_roll_context() -> void:
 		+ "context at runtime — read it before widening this list.").is_equal(expected)
 
 
+func test_every_declared_context_forwarder_actually_reaches_a_roll() -> void:
+	## CONTEXT_FORWARDERS relaxes the census above: a line that merely calls one of
+	## these is accepted as reaching a roll. That is only honest while the chain really
+	## terminates in one, so each body is resolved and checked here. A forwarder that
+	## stopped rolling -- or was renamed out from under a stale entry -- fails here
+	## instead of quietly certifying every key that flows through it.
+	assert_int(CONTEXT_FORWARDERS.size()).override_failure_message(
+		"no forwarders declared -- this case would pass vacuously").is_greater(0)
+
+	var files: Array[String] = []
+	_collect("res://src", files)
+	var sources: Array[String] = []
+	for path: String in files:
+		var f := FileAccess.open(path, FileAccess.READ)
+		if f == null:
+			continue
+		sources.append(f.get_as_text())
+		f.close()
+	assert_int(sources.size()).override_failure_message(
+		"the source walk read %d files -- it is not reaching src/" % sources.size()
+		).is_greater(100)
+
+	var broken: Array[String] = []
+	for name: String in CONTEXT_FORWARDERS:
+		var body := ""
+		for text: String in sources:
+			body = _function_body(text, name)
+			if body != "":
+				break
+		if body == "":
+			broken.append("%s is declared a forwarder but is defined nowhere in src/" % name)
+			continue
+		var reaches := body.contains("roll_")
+		if not reaches:
+			for other: String in CONTEXT_FORWARDERS:
+				if other != name and body.contains(other + "("):
+					reaches = true
+					break
+		if not reaches:
+			broken.append(
+				"%s forwards a roll context but its body neither rolls nor calls " % name
+				+ "another declared forwarder, so the census is trusting a dead chain")
+	assert_array(broken).override_failure_message(str(broken)).is_empty()
+
+
 func test_no_forceable_key_is_a_substring_of_another() -> void:
 	## DiceManager._take_forced (DiceManager.gd:102-121) returns on the FIRST queued
 	## key whose lowercased form is contained in the roll context, in Dictionary
@@ -483,9 +545,45 @@ func _roll_call_lines() -> Array[String]:
 		f.close()
 		for raw: String in text.split("\n"):
 			var line := _strip_comment(raw)
-			if line.contains("roll_"):
+			if line.contains("roll_") or _calls_a_forwarder(line):
 				out.append(line.to_lower())
 	return out
+
+
+func _calls_a_forwarder(line: String) -> bool:
+	## A CALL to a declared forwarder, not its definition. Without the `func` test the
+	## definition line would be collected too -- harmless today (it carries no literal)
+	## but it would make the walk report a forwarder as its own roll site.
+	if line.strip_edges().begins_with("func "):
+		return false
+	for name: String in CONTEXT_FORWARDERS:
+		if line.contains(name + "("):
+			return true
+	return false
+
+
+func _function_body(text: String, fn_name: String) -> String:
+	## The lines of `func fn_name(` up to the next top-level declaration. Returns ""
+	## when the function is absent, which the caller treats as a failure rather than
+	## as "nothing to check".
+	var lines: PackedStringArray = text.split("\n")
+	var i := 0
+	while i < lines.size():
+		if lines[i].begins_with("func " + fn_name + "("):
+			break
+		i += 1
+	if i >= lines.size():
+		return ""
+	var body: Array[String] = []
+	i += 1
+	while i < lines.size():
+		var line: String = lines[i]
+		if line.length() > 0 and not (line[0] == "\t" or line[0] == " ") \
+				and not line.strip_edges().is_empty():
+			break
+		body.append(_strip_comment(line))
+		i += 1
+	return "\n".join(body)
 
 
 func _strip_comment(line: String) -> String:

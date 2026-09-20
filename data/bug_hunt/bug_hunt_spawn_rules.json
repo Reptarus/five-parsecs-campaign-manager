@@ -1,5 +1,6 @@
 {
-	"description": "Bug Hunt spawn point mechanics - Compendium pp.199-200",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.192-193 (Contacts) and p.199 (Spawn Points); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt Spawn Point and Contact marker mechanics - Compendium pp.192-193 (Contacts) and p.199 (Spawn Points). CORRECTED 2026-09-20: this cited pp.199-200 and was wrong in both directions -- p.200 is Enemy Movement, and the contact_markers section below is pp.192-193, which the old cite omitted entirely. The book cross-references itself on p.208: 'mark it as Spawn Point (using the rules on page 199)'.",
 	"spawn_points": {
 		"description": "Spawn Points represent locations that the enemy is using to converge on you (vents, tunnels, ducts, etc.).",
 		"spawn_rating_description": "Mission creation dictates a Spawn Rating determining how many Spawn Points will be revealed. If 0, spawn points are not used.",

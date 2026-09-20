@@ -1,4 +1,5 @@
 {
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.188-189 (Support table); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
 	"description": "Bug Hunt mission support options - Compendium pp.188-189. Roll 2D6 against target number to request support. Each option can only be requested once per mission.",
 	"support_points_rule": "Support points equal to the mission Priority. Add +2 for 'I'm Too Pretty to Die' difficulty. Spend 1 Reputation for +1 Support.",
 	"free_fire_team": "You always receive one Fire Team of grunts in addition to your main characters.",

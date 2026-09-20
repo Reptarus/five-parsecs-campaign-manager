@@ -26,6 +26,13 @@ var _support_data: Dictionary = {}
 var _mission_generated: bool = false
 var _mission_context: Dictionary = {}
 
+## Derived during generation and read by the stamp in _launch_mission().
+## They are members rather than return values because _calculate_priority()
+## has one call site and three callers' worth of meaning: the priority itself,
+## whether the escalation option supplied it, and which step of the sequence.
+var _escalation_step: int = -1  # -1 = the escalation option is not in use
+var _participant_ids: Array = []  # main characters who take the field (p.203)
+
 var _briefing_container: VBoxContainer
 var _loadout_container: VBoxContainer
 var _support_container: VBoxContainer
@@ -182,10 +189,15 @@ func _generate_mission() -> void:
 		elif count == 2:
 			vital_objective = die_val
 			rating = "vital"
+		# The WEIGHT travels with the objective (Compendium pp.185, 201: a Vital
+		# Objective counts as 2, a Critical as 3). Read from data, never a literal
+		# here -- the briefing below prints it and the post-battle scorer sums it,
+		# and a mechanic's numbers living in a UI literal is how the two drift.
 		active_objectives.append({
 			"die_value": die_val,
 			"type": obj_type,
-			"rating": rating
+			"rating": rating,
+			"weight": _objective_weight(rating)
 		})
 
 	var objective_count: int = active_objectives.size()
@@ -215,10 +227,19 @@ func _generate_mission() -> void:
 		extra = _campaign.extra_contact_markers
 	var total_contacts: int = maxi(base_contacts + contact_mod + extra, 1)
 
-	# Build mission context
+	# Build mission context.
+	#
+	# THE STAMP. Everything the post-battle sequence needs to know about this
+	# scenario is written here, BEFORE the battle, and read back through
+	# BugHuntBattleResultNormalizer -- the 5PFH foundation (see CLAUDE.md, "the
+	# battle-phase data funnel"). The battle screen cannot report Bug Hunt
+	# objectives: they are dice on the physical table, not a tracked objective,
+	# so the player declares them at the debrief and the stamp is what the
+	# declaration is scored AGAINST.
 	_mission_context = {
 		"priority": priority,
 		"spawn_rating": spawn_rating,
+		"escalation_step": _escalation_step,
 		"objectives": active_objectives,
 		"objective_count": objective_count,
 		"has_vital": vital_objective >= 0,
@@ -226,6 +247,13 @@ func _generate_mission() -> void:
 		"contact_markers": total_contacts,
 		"difficulty": difficulty,
 		"turn": turn,
+		# The thresholds IN FORCE for this mission travel with it, so the debrief
+		# scores against what the player was briefed with rather than against
+		# whatever the data file says by the time they get back.
+		"scoring": _missions_data.get("objectives", {}).get("scoring", {}).duplicate(true),
+		"use_signals": false,
+		"signals_total": 0,
+		"participant_ids": [],
 		"battle_result": {}
 	}
 
@@ -264,6 +292,14 @@ func _generate_mission() -> void:
 	signals_check.add_theme_color_override("font_color", COLOR_TEXT)
 	signals_check.toggled.connect(func(pressed: bool):
 		_mission_context["use_signals"] = pressed
+		# Roll the count HERE so the stamp carries it. BugHuntBattleSetup used to
+		# roll its own 1D6 at launch and keep the number to itself, so the p.201
+		# rule ("4 or more signals initially ... investigate at least 2") had no
+		# initial count to test against after the battle.
+		if pressed:
+			_mission_context["signals_total"] = _roll_d6("Bug Hunt Signals: count")
+		else:
+			_mission_context["signals_total"] = 0
 	)
 	signals_card.add_child(signals_check)
 	var signals_note := Label.new()
@@ -289,7 +325,13 @@ func _build_loadout_selection() -> void:
 		return
 
 	var sick_bay: Dictionary = _campaign.sick_bay if "sick_bay" in _campaign else {}
-	var hand_cannon_assigned := false
+	# A HOLDER, not a bool. GDScript lambdas capture a local by VALUE, so each
+	# checkbox's `toggled` closure got its own copy of `hand_cannon_assigned`,
+	# frozen false at capture time -- the p.187 "one main character may opt to
+	# swap" limit could never bind, and every marine could take the Hand Cannon.
+	# A Dictionary is a reference, so all the closures share one fact.
+	var hand_cannon := {"assigned": false}
+	_participant_ids.clear()
 
 	for mc in _campaign.main_characters:
 		if mc is not Dictionary:
@@ -299,6 +341,13 @@ func _build_loadout_selection() -> void:
 
 		if sick_bay.has(char_id):
 			continue
+		# Took the field. p.203: "Update this number by 1 if the character took
+		# the field. Characters in Sick Bay do not update their tally." This is
+		# the population the tally and the muster-out check are owed, so it is
+		# stamped rather than re-derived after the battle from a roster that the
+		# battle may already have changed.
+		if char_id != "" and char_id not in _participant_ids:
+			_participant_ids.append(char_id)
 
 		var hbox := HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 8)
@@ -323,11 +372,15 @@ func _build_loadout_selection() -> void:
 		hc_check.text = "Hand Cannon swap"
 		hc_check.tooltip_text = "Swap Service Pistol for Hand Cannon (8\" | 1 Shot | Dmg 1). One MC only."
 		var hc_ref := hc_check
+		var hc_holder := hand_cannon
 		hc_check.toggled.connect(func(pressed: bool):
-			if pressed and hand_cannon_assigned:
-				hc_ref.button_pressed = false
+			if pressed and hc_holder["assigned"]:
+				# set_pressed_no_signal, never button_pressed: the latter re-enters
+				# this same handler with pressed == false, which would clear the
+				# holder and hand the swap to the second marine who asked for it.
+				hc_ref.set_pressed_no_signal(false)
 				return
-			hand_cannon_assigned = pressed
+			hc_holder["assigned"] = pressed
 		)
 		hbox.add_child(hc_check)
 
@@ -338,12 +391,22 @@ func _calculate_priority(turn: int, difficulty: String) -> int:
 	if _campaign and "use_campaign_escalation" in _campaign:
 		use_escalation = _campaign.use_campaign_escalation
 
+	_escalation_step = -1
 	if use_escalation:
-		# Fixed Priority sequence from missions JSON
-		var escalation: Dictionary = _missions_data.get("campaign_escalation", {})
+		# Fixed Priority sequence from missions JSON (Compendium p.187).
+		#
+		# The key is `campaign_escalation_option`. This read was
+		# `campaign_escalation`, which the file does not declare -- so the
+		# sequence came back EMPTY, `idx` resolved to 0, and the function
+		# returned the hardcoded 3 below on every turn. A player who enabled
+		# escalation got a flat Priority 3 campaign, not the book's ramp.
+		var escalation: Dictionary = _missions_data.get("campaign_escalation_option", {})
 		var sequence: Array = escalation.get("priority_sequence", [])
-		var idx: int = (turn - 1) % sequence.size() if sequence.size() > 0 else 0
-		return sequence[idx] if idx < sequence.size() else 3
+		if sequence.size() > 0:
+			var idx: int = (turn - 1) % sequence.size()
+			_escalation_step = idx
+			return int(sequence[idx])
+		push_warning("BugHuntMissionPanel: campaign escalation is on but the data has no priority_sequence; rolling instead.")
 
 	# Standard: Roll 2D6 pick the lower die (Compendium p.187)
 	# Vital/Critical modifiers applied by caller after objective generation.
@@ -353,6 +416,44 @@ func _calculate_priority(turn: int, difficulty: String) -> int:
 	var die2: int = _roll_d6("Bug Hunt Priority: die 2")
 	var base_priority: int = mini(die1, die2)
 	return clampi(base_priority, 1, 6)
+
+
+func _objective_weight(rating: String) -> int:
+	## Compendium pp.185, 201 -- read from data.objectives.scoring.weights.
+	## Falls back to 1 (a normal Objective) rather than 0: an unknown rating must
+	## still count as the Objective it is, and a 0 here would silently re-create
+	## the "no mission ever scores" defect this stamp exists to fix.
+	var scoring: Dictionary = _missions_data.get("objectives", {}).get("scoring", {})
+	var weights: Dictionary = scoring.get("weights", {})
+	return int(weights.get(rating, 1))
+
+
+func _persist_stamped_mission() -> void:
+	## The stamp has to survive a process death between launch and debrief, so it
+	## lives on the campaign, not only in temp_data. `current_mission` is already
+	## a serialized top-level field on BugHuntCampaignCore.
+	##
+	## Do NOT add get_current_mission/set_current_mission to the core to tidy this
+	## up: GameState.gd duck-types on those names to decide what a campaign IS.
+	if _campaign == null or not ("current_mission" in _campaign):
+		return
+	_campaign.current_mission = _mission_context.duplicate(true)
+	if _campaign.has_method("persist"):
+		_campaign.persist()
+
+
+func _report_launch_failure(reason: String) -> void:
+	## A battle that could not start is a failure, not a victory. Tell the player
+	## and leave the phase incomplete so they can retry -- the mission is still
+	## generated, and the Launch button is still there.
+	push_warning("BugHuntMissionPanel: %s" % reason)
+	## `show_notification` DOES NOT EXIST -- `func show_notification` has zero
+	## definitions repo-wide, so a guard on it is permanently false and the
+	## player is told nothing. The real API is show_info / show_success /
+	## show_warning / show_error / show_toast (NotificationManager.gd:105-131).
+	var nm := get_node_or_null("/root/NotificationManager")
+	if nm and nm.has_method("show_error"):
+		nm.show_error("Could not start the mission: %s" % reason)
 
 
 func _get_difficulty_settings(difficulty: String) -> Dictionary:
@@ -458,12 +559,16 @@ func _launch_mission() -> void:
 	# Generate battle context using BugHuntBattleSetup
 	var BugHuntBattleSetupClass = load("res://src/core/battle/BugHuntBattleSetup.gd")
 	if not BugHuntBattleSetupClass:
-		push_warning("BugHuntMissionPanel: Cannot load BugHuntBattleSetup")
-		_mission_context.battle_result = {
-			"completed": true, "objectives_completed": 1, "casualties": []
-		}
-		complete()
+		# A failed launch must NOT complete the phase, and must never record a
+		# won mission. This branch used to stamp objectives_completed = 1 and
+		# call complete() -- one of only two producers of that key anywhere, so
+		# the sole way a Bug Hunt campaign ever scored an objective was for the
+		# battle to fail to start.
+		_report_launch_failure("Cannot load BugHuntBattleSetup.")
 		return
+
+	_mission_context["participant_ids"] = _participant_ids.duplicate()
+	_persist_stamped_mission()
 
 	var battle_setup = BugHuntBattleSetupClass.new()
 	var battle_context: Dictionary = battle_setup.generate_battle_context(
@@ -503,11 +608,7 @@ func _launch_mission() -> void:
 	if router and router.has_method("navigate_to"):
 		router.navigate_to("tactical_battle")
 	else:
-		push_warning("BugHuntMissionPanel: SceneRouter not available")
-		_mission_context.battle_result = {
-			"completed": true, "objectives_completed": 1, "casualties": []
-		}
-		complete()
+		_report_launch_failure("SceneRouter is not available.")
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:

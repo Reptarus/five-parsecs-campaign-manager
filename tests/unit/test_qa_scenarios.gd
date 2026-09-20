@@ -262,17 +262,89 @@ func test_the_forced_roll_section_is_actually_built() -> void:
 		).is_equal(dlg.FORCEABLE_ROLLS.size())
 
 	# Every entry must name a die the seam can actually satisfy, and a target value
-	# inside it. A typo here would hand QA a value that is discarded at roll time,
-	# and the tester would see a random roll and think the seam is broken.
+	# inside it. A typo here hands QA a value that is DISCARDED at roll time --
+	# DiceManager._take_forced (:116-119) discards rather than clamps, on purpose,
+	# because clamping would silently arm a different row than the tester asked for.
+	# The tester then reads "Queued N" and watches a random roll.
+	#
+	# The vocabulary is READ OUT of DiceManager rather than listed here. A hand-copied
+	# list is what this case previously held, and it had already fallen behind:
+	# roll_2d6 has honoured forcing all along, so a correct 2D6 row failed the guard.
+	# Measured at the time of writing: (1,6) (1,10) (1,100) (2,12).
+	var ranges: Array = _forceable_ranges()
+	assert_int(ranges.size()).override_failure_message(
+		"no _take_forced ranges found in DiceManager.gd -- the scan is broken, and "
+		+ "every row below would report as unsatisfiable").is_greater(2)
+
 	for entry: Dictionary in dlg.FORCEABLE_ROLLS:
-		var sides: int = int(entry["sides"])
+		var lo: int = script.roll_min(entry)
+		var hi: int = int(entry["sides"])
 		var target: int = int(entry["target"])
-		assert_bool(sides == 6 or sides == 10 or sides == 100).override_failure_message(
-			"%s declares D%d, which DiceManager has no hook for" % [
-				str(entry["key"]), sides]).is_true()
+		assert_bool(ranges.has([lo, hi])).override_failure_message(
+			"%s declares %d-%d, which no DiceManager hook produces. Hooks: %s" % [
+				str(entry["key"]), lo, hi, str(ranges)]).is_true()
 		assert_int(target).override_failure_message(
-			"%s target %d is outside its own D%d" % [
-				str(entry["key"]), target, sides]).is_between(1, sides)
+			"%s target %d is outside its own %s" % [
+				str(entry["key"]), target, script.die_label(entry)]).is_between(lo, hi)
+
+	dlg.free()
+	host.free()
+
+
+func test_the_roll_picker_honours_each_rows_floor_and_ceiling() -> void:
+	## The case above checks the TABLE. This one checks the SPINBOX, because a floor
+	## only protects a tester if the control enforces it: the picker hardcodes
+	## min_value = 1 at construction (:403) and updates per row in
+	## _on_roll_context_selected. Revert that one line and every table assertion above
+	## still passes while a 2D6 row offers 1 again -- a value DiceManager._take_forced
+	## DISCARDS, so the tester reads "Queued 1" and watches a random roll.
+	##
+	## Selecting a row is done by calling the handler directly: OptionButton.select()
+	## deliberately does NOT emit item_selected (Godot 4.6), so driving only the widget
+	## would leave the spinbox on whatever the previous row set and the case would pass
+	## for the wrong reason.
+	var script = load("res://src/ui/screens/dev/QAScenarioDialog.gd")
+	assert_object(script).is_not_null()
+
+	var host := Node.new()
+	add_child(host)
+	var dlg = script.open(host, _make_campaign())
+	assert_object(dlg).is_not_null()
+
+	var spin: SpinBox = _first_spin_box(dlg)
+	assert_object(spin).override_failure_message(
+		"forced-roll spinbox missing -- _build_ui() aborted before building it"
+		).is_not_null()
+
+	# Premise. Every row having a floor of 1 would make the floor assertions below
+	# vacuously true, so the case would keep passing after the whole "min" vocabulary
+	# was deleted. It fails loudly instead.
+	var with_floor: int = 0
+	for entry: Dictionary in dlg.FORCEABLE_ROLLS:
+		if script.roll_min(entry) > 1:
+			with_floor += 1
+	assert_int(with_floor).override_failure_message(
+		"no row declares a floor above 1, so this case cannot discriminate. The 2D6 "
+		+ "Muster Out row is the one that needs it (DiceManager.roll_2d6 is 2-12)."
+		).is_greater(0)
+
+	for i: int in range(dlg.FORCEABLE_ROLLS.size()):
+		var entry: Dictionary = dlg.FORCEABLE_ROLLS[i]
+		dlg._on_roll_context_selected(i)
+		var lo: int = script.roll_min(entry)
+		var hi: int = int(entry["sides"])
+		assert_int(int(spin.min_value)).override_failure_message(
+			"%s is %s, so the picker must not offer below %d -- it offered %d, which "
+			% [str(entry["key"]), script.die_label(entry), lo, int(spin.min_value)]
+			+ "_take_forced would DISCARD").is_equal(lo)
+		assert_int(int(spin.max_value)).override_failure_message(
+			"%s is %s but the picker offered up to %d" % [
+				str(entry["key"]), script.die_label(entry), int(spin.max_value)]
+			).is_equal(hi)
+		assert_int(int(spin.value)).override_failure_message(
+			"%s preselected %d, outside its own %s" % [
+				str(entry["key"]), int(spin.value), script.die_label(entry)]
+			).is_between(lo, hi)
 
 	dlg.free()
 	host.free()
@@ -350,11 +422,45 @@ func test_qa_scenario_dialog_shows_its_list() -> void:
 
 
 ## First OptionButton anywhere under `node`, or null.
+## Every [min, max] pair DiceManager will accept for a forced value, read from its
+## _take_forced() call sites. Deriving it means a new hook, or a changed range on an
+## existing one, updates this case instead of silently invalidating it.
+##
+## GDScript has no \d and no \( escape -- both are parse errors, and gdUnit4 reports a
+## parse error as "No test cases found" with exit 0, so a guessed pattern here would
+## look like a clean run.
+func _forceable_ranges() -> Array:
+	var f := FileAccess.open("res://src/core/managers/DiceManager.gd", FileAccess.READ)
+	if f == null:
+		return []
+	var text := f.get_as_text()
+	f.close()
+	var re := RegEx.new()
+	re.compile("_take_forced[(]context, *([0-9]+), *([0-9]+)[)]")
+	var out: Array = []
+	for m: RegExMatch in re.search_all(text):
+		var pair: Array = [int(m.get_string(1)), int(m.get_string(2))]
+		if not out.has(pair):
+			out.append(pair)
+	return out
+
+
 func _first_option_button(node: Node) -> OptionButton:
 	for child in node.get_children():
 		if child is OptionButton:
 			return child
 		var found: OptionButton = _first_option_button(child)
+		if found != null:
+			return found
+	return null
+
+
+## First SpinBox anywhere under `node`, or null.
+func _first_spin_box(node: Node) -> SpinBox:
+	for child in node.get_children():
+		if child is SpinBox:
+			return child
+		var found: SpinBox = _first_spin_box(child)
 		if found != null:
 			return found
 	return null

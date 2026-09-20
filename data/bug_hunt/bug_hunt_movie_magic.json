@@ -1,5 +1,6 @@
 {
-	"description": "Bug Hunt Movie Magic abilities - Compendium pp.182-183. Each can be used ONCE per campaign. Cinematic one-time-use abilities.",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.181 (Movie Magic); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt Movie Magic abilities - Compendium p.181. Each can be used ONCE per campaign. Cinematic one-time-use abilities. CORRECTED 2026-09-20: this cited pp.182-183, which are the Campaign Turn sequence and Special Assignments. All ten abilities below are printed on p.181, and the index on p.223 reads 'Movie Magic 181'.",
 	"usage_rule": "Each ability can be employed once in your campaign. Write them on index cards and tear them up as you use them.",
 	"abilities": [
 		{

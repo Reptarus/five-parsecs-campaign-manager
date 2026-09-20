@@ -1,5 +1,6 @@
 {
-	"description": "Bug Hunt Tactical Locations and Signals - Compendium pp.191, 208-209.",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.190-191 (Tactical Locations) and p.208 (Signals, optional rule); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt Tactical Locations and Signals - Compendium pp.190-191 (p.190 is 'Step 8. Place Tactical Locations and Initial Contacts', which the placement key below describes; the table is p.191) and p.208 (Signals). CORRECTED 2026-09-20: this cited pp.191, 208-209. p.209 is Co-op campaigns, and the Signals rule is entirely on p.208.",
 	"tactical_locations": {
 		"description": "Represent sites of potential value: computer consoles, sealable pathways, useful infrastructure. Marked with 0.5\"x0.5\" square markers.",
 		"placement": "6 Tactical Locations on the battlefield (reduced by Signal count if using Signals rule). Spread evenly, at least 2\" from Objective markers.",
@@ -35,7 +36,7 @@
 		"placement": "Place 1D6 Signals, then fill remaining slots (up to total of 6) with Tactical Locations. Place in or adjacent to terrain features.",
 		"increased_alertness": "At end of each round, roll 1D6 for every Signal within 9\" of a trooper. For every 1, place a Contact marker on top of the Signal.",
 		"investigation": "Same conditions as Tactical Locations: finish move within 3\" without firing or Brawling.",
-		"hq_requirement": "If 4-6 Signals present, must investigate at least 2 or reduce Objectives completed by 1.",
+		"hq_requirement": "Compendium p.201. THE NUMBERS ARE DELIBERATELY NOT REPEATED HERE. The rule is owned by bug_hunt_missions.json -> objectives.scoring.signals_requirement (signals_at_least / must_investigate), which is what BugHuntBattleResultNormalizer reads. Until 2026-09-20 this key was the only statement of the rule anywhere and it was prose, so no mission ever applied the penalty; the structured owner landed in Phase 4 and this key was left restating its numbers in a different file. Edit the owner, not this.",
 		"signal_table": [
 			{
 				"d6_value": 1,

@@ -8,6 +8,11 @@ const BugHuntPhaseManagerScript := preload("res://src/core/campaign/BugHuntPhase
 const SpecialAssignmentsScript := preload("res://src/ui/screens/bug_hunt/panels/SpecialAssignmentsPanel.gd")
 const MissionPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntMissionPanel.gd")
 const PostBattlePanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd")
+## The Bug Hunt post-battle chokepoint. The battle return is where the stamp and
+## the battle facts first meet, so the result is normalized HERE rather than being
+## handed to the panel raw -- the panel calls the same function again once the
+## player has made the debrief, and the normalizer is add-only so the two compose.
+const BugHuntResultNormalizer = preload("res://src/core/battle/BugHuntBattleResultNormalizer.gd")
 
 ## COLOR_BASE / COLOR_ELEVATED / COLOR_ACCENT / COLOR_BORDER / COLOR_SUCCESS are
 ## NOT redeclared here: CampaignScreenBase already defines all five from this same
@@ -124,14 +129,29 @@ func _resume_turn() -> void:
 		BugHuntPhaseManagerScript.Phase.MISSION:
 			phase_manager.go_to_phase(stored)
 		BugHuntPhaseManagerScript.Phase.POST_BATTLE:
-			## No battle result is persisted yet -- Phase 4 of the sprint stamps one.
-			## Until then resume the mission rather than manufacturing a debrief.
-			phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.MISSION)
+			## The scored battle result rides on campaign.current_mission (written by
+			## BugHuntPostBattlePanel._persist_battle_result), so the debrief can be
+			## resumed. Without one there is nothing to debrief -- and the panel no
+			## longer invents casualties to fill the gap -- so fall back to Mission.
+			if _has_persisted_battle_result():
+				phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.POST_BATTLE)
+			else:
+				phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.MISSION)
 		_:
 			## PHASE_UNRECORDED (a save written before the field existed), or a value
 			## from a newer build. Keep the pre-field behaviour: replay from the top of
 			## the turn once, and be correct from the next transition onwards.
 			phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.SPECIAL_ASSIGNMENTS)
+
+
+func _has_persisted_battle_result() -> bool:
+	if campaign == null or not ("current_mission" in campaign):
+		return false
+	var cm: Variant = campaign.current_mission
+	if not (cm is Dictionary):
+		return false
+	var stored: Variant = (cm as Dictionary).get("battle_result", null)
+	return stored is Dictionary and not (stored as Dictionary).is_empty()
 
 
 func _load_campaign() -> void:
@@ -441,6 +461,16 @@ func _resume_after_battle(result: Dictionary) -> void:
 
 	_update_reputation_display()
 
+	## Everything the post-battle sequence reads goes through the normalizer first:
+	## participant_ids and casualty_ids derived from what the battle screen
+	## recorded, and priority/spawn_rating/objectives carried across from the
+	## stamp. The debrief is empty here on purpose -- the player has not made it
+	## yet -- and the normalizer is add-only, so the panel calling it again with
+	## the debrief adds to this rather than replacing it.
+	var stamp: Dictionary = _stamped_mission()
+	result = BugHuntResultNormalizer.normalize(result, stamp, {})
+	_persist_battle_result(result)
+
 	# Pass battle results to the post-battle panel BEFORE triggering phase change,
 	# because _go_to_phase() synchronously fires phase_changed → refresh().
 	if panels.size() > 2:
@@ -448,5 +478,56 @@ func _resume_after_battle(result: Dictionary) -> void:
 		if post_battle_panel.has_method("set_battle_results"):
 			post_battle_panel.set_battle_results(result)
 
-	# Jump directly to POST_BATTLE phase (refresh will now see real battle data)
-	phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.POST_BATTLE)
+	## Complete MISSION exactly ONCE, here, on the battle return.
+	##
+	## This used to jump straight to POST_BATTLE, which skipped MISSION's
+	## completion entirely: _phase_complete[MISSION] stayed false, phase_completed
+	## never fired, the journal never logged the mission, and
+	## BugHuntPhaseManager._apply_battle_results never ran. The only paths that
+	## ever completed MISSION were the two fabricated launch-failure fallbacks,
+	## and those are gone -- so without this call nothing would complete it at all.
+	##
+	## complete_current_phase() advances by itself (MISSION -> POST_BATTLE), so
+	## there is no go_to_phase() after it; a second transition would re-persist the
+	## phase and fire phase_changed twice, rebuilding the panel under itself.
+	## A battle result IS the Mission phase's result, so MISSION is what completes
+	## here -- whatever phase a freshly-built manager happens to hold.
+	##
+	## Testing `current_phase == MISSION` first looks safer and is WRONG: the
+	## controller is REBUILT on the way back from TacticalBattleUI, so the manager
+	## is new and `current_phase` is its default Phase.NONE. The test is false on
+	## every real return, and complete_current_phase() returns immediately on NONE
+	## (:72-73), so the phase would silently never complete -- the same defect this
+	## call exists to fix, just one layer further in.
+	##
+	## Assigning the field directly is this file's own idiom (_resume_turn's NONE
+	## branch does the same): it must NOT go through _go_to_phase, which would emit
+	## phase_changed and build the Mission panel for a mission already fought.
+	## complete_current_phase() then advances to POST_BATTLE and persists it.
+	if phase_manager.current_phase == BugHuntPhaseManagerScript.Phase.POST_BATTLE:
+		## Already past MISSION (a re-entry). Completing it again would re-run
+		## _apply_phase_results and re-log the mission.
+		pass
+	else:
+		phase_manager.current_phase = BugHuntPhaseManagerScript.Phase.MISSION
+		phase_manager.complete_current_phase({"battle_result": result})
+
+
+func _stamped_mission() -> Dictionary:
+	if campaign == null or not ("current_mission" in campaign):
+		return {}
+	var cm: Variant = campaign.current_mission
+	return cm if cm is Dictionary else {}
+
+
+func _persist_battle_result(result: Dictionary) -> void:
+	if campaign == null or not ("current_mission" in campaign):
+		return
+	var cm: Variant = campaign.current_mission
+	if not (cm is Dictionary):
+		return
+	var stamp: Dictionary = cm
+	stamp["battle_result"] = result.duplicate(true)
+	campaign.current_mission = stamp
+	if campaign.has_method("persist"):
+		campaign.persist()

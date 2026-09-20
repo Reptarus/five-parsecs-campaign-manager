@@ -58,12 +58,11 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Loot Category", "sides": 100, "target": 1, "note": "pp.131-134"},
 	{"key": "Notable Sight", "sides": 100, "target": 1, "note": "p.88"},
 	# --- Bug Hunt (Compendium). Every key below has a LIVE producer in src/
-	# today. The post-battle rows (Casualty, Muster Out, Reputation,
-	# Operational Progress, Military Life, Court Martial) are deliberately
-	# ABSENT until BugHuntPostBattleResolver lands, because a row whose key
-	# matches no roll is worse than a missing row: the tester queues a value,
-	# nothing consumes it, and they conclude the rule is broken when it never
-	# ran.
+	# today, and that is the standing rule for this block: a row whose key
+	# matches no roll is worse than a missing row, because the tester queues a
+	# value, nothing consumes it, and they conclude the rule is broken when it
+	# never ran. The post-battle rows were held back for exactly that reason
+	# and landed with BugHuntPostBattleResolver (Sprint 1 Phase 5).
 	#
 	# No collision with the 5PFH keys above — every Bug Hunt key begins
 	# "Bug Hunt", which no 5PFH context contains, and no 5PFH
@@ -110,6 +109,40 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Bug Hunt Service History", "sides": 100, "target": 26,
 		"note": "p.172 - 26-40 fringe-space patrol*, a Combat Operation, so the "
 			+ "commendation 2D6 is reachable (01-10 is not starred)"},
+	# --- Bug Hunt post-battle (BugHuntPostBattleResolver, Compendium pp.201-206).
+	#
+	# The resolver deliberately renames every SUB-roll so that no context
+	# contains another row's key. The character pick under Military Life used
+	# to read "Bug Hunt Military Life: character" and ran BEFORE the row roll,
+	# so a value queued for the table was eaten by the pick and the row stayed
+	# random - the seam would have looked broken while working exactly as
+	# documented. Sub-rolls are "Bug Hunt Subject Pick", "Bug Hunt Recovery
+	# Time" and "Bug Hunt Brawl"; keep it that way when adding a table.
+	#
+	# The one context that DOES still contain a parent key is intentional:
+	# "Bug Hunt Military Life (extra roll 2)" inherits the Military Life queue,
+	# FIFO, so a tester can pin several rolls in order with one key.
+	{"key": "Bug Hunt Court Martial", "sides": 6, "target": 1,
+		"note": "p.201 - only rolled on 0 weighted objectives; 1 removes the leader"},
+	{"key": "Bug Hunt Casualty", "sides": 100, "target": 1,
+		"note": "p.202 - 01-05 Gruesome fate: dead, all carried equipment lost"},
+	{"key": "Bug Hunt Recovery Time", "sides": 6, "target": 6,
+		"note": "p.202 - the Sick Bay column; a 1D3 is rolled as ceil(1D6/2), so 6 = 3"},
+	{"key": "Bug Hunt Muster Out", "min": 2, "sides": 12, "target": 12,
+		"note": "p.203 - 2D6 vs the row's target (9 at 8-9 missions, 5 at 14); "
+			+ "12 musters on every row"},
+	{"key": "Bug Hunt Reputation", "sides": 6, "target": 5,
+		"note": "p.203 - 1D6 per completed objective, 5-6 = +1 Reputation"},
+	{"key": "Bug Hunt Operational Progress", "sides": 100, "target": 100,
+		"note": "p.205 - with a positive modifier this rolls over 100 into the "
+			+ "Parade row, the only way a Bug Hunt campaign is WON"},
+	{"key": "Bug Hunt Military Life", "sides": 100, "target": 16,
+		"note": "p.206 - 16-20 Time in the Brig: -1 Reputation and miss the next mission"},
+	{"key": "Bug Hunt Brawl", "sides": 6, "target": 1,
+		"note": "p.206 - the 01-05 Got in a fight check; a 1 fails it into Sick Bay"},
+	{"key": "Bug Hunt Subject Pick", "sides": 100, "target": 1,
+		"note": "pp.205-206 - WHICH character a per-character table lands on; "
+			+ "not rolled at all when only one candidate is eligible"},
 ]
 
 var _roll_picker: OptionButton = null
@@ -363,7 +396,7 @@ func _build_forced_roll_section(root: VBoxContainer) -> void:
 	# which silently collides once the list is ever reordered. Selection is read
 	# back as an index into FORCEABLE_ROLLS instead.
 	for entry: Dictionary in FORCEABLE_ROLLS:
-		_roll_picker.add_item("%s (D%d)" % [str(entry["key"]), int(entry["sides"])])
+		_roll_picker.add_item("%s (%s)" % [str(entry["key"]), die_label(entry)])
 	_roll_picker.item_selected.connect(_on_roll_context_selected)
 	row.add_child(_roll_picker)
 
@@ -398,6 +431,26 @@ func _build_forced_roll_section(root: VBoxContainer) -> void:
 	_on_roll_context_selected(0)
 
 
+## The lowest value this row's die can produce. Absent means 1, which is every
+## D6 / D10 / D100 row. 2D6 is the one hook whose floor is 2, and offering a 1
+## there would queue a value DiceManager._take_forced (:102-121) DISCARDS -- the
+## tester would read "Queued 1" and then watch a random roll.
+static func roll_min(entry: Dictionary) -> int:
+	return int(entry.get("min", 1))
+
+
+## "D100" / "2D6": the die as the book names it, derived from the range rather
+## than stored, so a row cannot claim one die and force another.
+static func die_label(entry: Dictionary) -> String:
+	var lo: int = roll_min(entry)
+	var hi: int = int(entry["sides"])
+	if lo == 1:
+		return "D%d" % hi
+	if lo == 2 and hi == 12:
+		return "2D6"
+	return "%d-%d" % [lo, hi]
+
+
 ## The DiceManager autoload, or null. This dialog IS in the tree, so the plain
 ## lookup is safe here (unlike MissionTableManager, which is detached).
 func _dice_manager() -> Node:
@@ -409,6 +462,7 @@ func _on_roll_context_selected(idx: int) -> void:
 		return
 	var entry: Dictionary = FORCEABLE_ROLLS[idx]
 	_roll_value.max_value = int(entry["sides"])
+	_roll_value.min_value = roll_min(entry)
 	_roll_value.value = int(entry["target"])
 	_refresh_roll_status(str(entry["note"]))
 

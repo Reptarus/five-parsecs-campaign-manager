@@ -1,5 +1,6 @@
 {
-	"description": "Bug Hunt regiment flavor tables - Compendium p.175. D100 tables for regiment name generation. Pure flavor, no gameplay effect.",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.173 (Regiment Flavor table); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt regiment flavor tables - Compendium p.173. D100 tables for regiment name generation. Pure flavor, no gameplay effect. CORRECTED 2026-09-20: this cited p.175, which is the firing-arc rules. The Regiment Flavor table is p.173 -- the chapter contents on p.163 list it as 173 and the index on p.223 reads 'regiment flavor 173'.",
 	"generation_rule": "If [number] is rolled for Part 1, roll a D6 for the number. If [color] is rolled, use the Uniform Color result.",
 	"title_part_1": [
 		{"d100_range": [1, 10], "name": "Flying"},

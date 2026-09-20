@@ -9,13 +9,11 @@ const TACTICAL_LOCATIONS_PATH := "res://data/bug_hunt/bug_hunt_tactical_location
 const SPAWN_RULES_PATH := "res://data/bug_hunt/bug_hunt_spawn_rules.json"
 const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
 const ARMOR_PATH := "res://data/bug_hunt/bug_hunt_armor.json"
-const GEAR_PATH := "res://data/bug_hunt/bug_hunt_gear.json"
 
 var _tactical_data: Dictionary = {}
 var _spawn_data: Dictionary = {}
 var _weapons_data: Dictionary = {}
 var _armor_data: Dictionary = {}
-var _gear_data: Dictionary = {}
 
 
 func _init() -> void:
@@ -23,7 +21,6 @@ func _init() -> void:
 	_spawn_data = _load_json(SPAWN_RULES_PATH)
 	_weapons_data = _load_json(WEAPONS_PATH)
 	_armor_data = _load_json(ARMOR_PATH)
-	_gear_data = _load_json(GEAR_PATH)
 
 
 func generate_battle_context(mission_context: Dictionary, campaign: Resource = null) -> Dictionary:
@@ -31,7 +28,12 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 	var priority: int = mission_context.get("priority", 1)
 	var spawn_rating: int = mission_context.get("spawn_rating", 1)
 	var contact_count: int = mission_context.get("contact_markers", 4)
-	var objective: Dictionary = mission_context.get("objective", {})
+	# `objectives`, PLURAL. This read was `objective`, singular -- a key the
+	# producer (BugHuntMissionPanel's stamp) has never written, so the objectives
+	# reached the battle as {} and the battle screen had nothing to show. The
+	# documented consumer-reads-a-key-no-producer-writes shape, and `.get()`
+	# returning a silent default is why nothing ever errored.
+	var objectives: Array = mission_context.get("objectives", [])
 	var use_signals: bool = mission_context.get("use_signals", false)
 
 	# Generate contact marker positions
@@ -41,7 +43,14 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 	var signals: Array = []
 	var tac_loc_count: int = 6
 	if use_signals:
-		var signal_count: int = _roll_d6("Bug Hunt Signals: count")  # 1D6
+		# Prefer the STAMPED count. The panel rolls it when the player turns the
+		# rule on, so the initial number is on the mission before the battle --
+		# which is what p.201's "if the mission had 4 or more signals initially"
+		# has to be measured against afterwards. Rolling a second, different 1D6
+		# here would mean the briefing and the debrief disagreed.
+		var signal_count: int = int(mission_context.get("signals_total", 0))
+		if signal_count <= 0:
+			signal_count = _roll_d6("Bug Hunt Signals: count")  # 1D6
 		tac_loc_count = maxi(6 - signal_count, 0)
 		signals = _generate_signals(signal_count)
 
@@ -56,7 +65,7 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 		"no_morale": true,
 		"priority": priority,
 		"spawn_rating": spawn_rating,
-		"objective": objective,
+		"objectives": objectives,
 		"contact_markers": contact_markers,
 		"tactical_locations": tactical_locations,
 		"signals": signals,
@@ -66,8 +75,7 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 		"aggression_dice": _spawn_data.get("contact_markers", {}).get("aggression", {}),
 		"chance_dice": _spawn_data.get("contact_markers", {}).get("chance", {}),
 		"weapons_table": _weapons_data.get("weapons", []),
-		"armor_table": _armor_data.get("armor", []),
-		"gear_table": _gear_data.get("gear", [])
+		"armor_table": _armor_data.get("armor", [])
 	}
 
 ## Look up weapon stats by ID from bug_hunt_weapons.json
@@ -173,9 +181,13 @@ func _generate_signals(count: int) -> Array:
 func _generate_spawn_points(spawn_rating: int) -> Array:
 	## Generate spawn points based on spawn rating.
 	var points: Array = []
-	var spawn_config: Dictionary = _spawn_data.get("spawn_points", {})
-	var base_count: int = spawn_config.get("base_count", 2)
-	var total: int = base_count + spawn_rating
+	# The number of Spawn Points IS the Spawn Rating. bug_hunt_spawn_rules.json
+	# says so in its own words -- "Mission creation dictates a Spawn Rating
+	# determining how many Spawn Points will be revealed. If 0, spawn points are
+	# not used." -- and declares NO base_count key, so `get("base_count", 2)` was
+	# a phantom default that added two spawn points to every mission and turned
+	# the book's "if 0, none" into "if 0, two".
+	var total: int = maxi(spawn_rating, 0)
 
 	# Place spawn points along map edges (Bug Hunt convention)
 	for i in range(total):

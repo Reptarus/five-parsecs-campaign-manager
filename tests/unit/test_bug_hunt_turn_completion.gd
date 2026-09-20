@@ -46,6 +46,18 @@ const PostBattlePanelScript := preload(
 		"res://src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd")
 const CoreScript := preload("res://src/game/campaign/BugHuntCampaignCore.gd")
 const RESULT_KEY := "bug_hunt_battle_result"
+## The p.205 roll context, verbatim from BugHuntPostBattleResolver
+## _step_operational_progress(). DiceManager matches a forced key as a
+## case-insensitive SUBSTRING of the context, so this must stay in step with it.
+const OP_PROGRESS_KEY := "Bug Hunt Operational Progress"
+## p.206 Military Life, rolled once per turn for a random main character. Two of
+## its twenty rows cost 1 Reputation (16-20 "Time in the Brig", 91-95 "Did
+## something stupid"), so an unforced roll can cancel the p.203 award and make the
+## Reputation premise below fail about one run in fourteen -- measured, not feared.
+const MILITARY_LIFE_KEY := "Bug Hunt Military Life"
+## Row 31-35 "Time flies" -- the only row that touches neither Reputation nor any
+## other campaign state ("Just playing cards in barracks. No effect.").
+const MILITARY_LIFE_NEUTRAL := 33
 const PROBE_ID := "zz_bug_hunt_turn_completion_probe"
 const PROBE_SAVE := "user://saves/zz_bug_hunt_turn_completion_probe.save"
 const SETTINGS_PATH := "user://settings.cfg"
@@ -81,8 +93,16 @@ func _gsm() -> Node:
 	return Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
 
 
+func _dice() -> Node:
+	return Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+
+
 func before_test() -> void:
 	_core = _make_core()
+	var dice_in := _dice()
+	if dice_in:
+		dice_in.clear_forced_results(OP_PROGRESS_KEY)
+		dice_in.clear_forced_results(MILITARY_LIFE_KEY)
 	var gs := _gs()
 	if gs:
 		_saved_campaign = gs.current_campaign
@@ -111,6 +131,12 @@ func before_test() -> void:
 
 
 func after_test() -> void:
+	var dice_out := _dice()
+	if dice_out:
+		# An unconsumed forced value outlives the case: the queue lives on the
+		# autoload, not on this suite.
+		dice_out.clear_forced_results(OP_PROGRESS_KEY)
+		dice_out.clear_forced_results(MILITARY_LIFE_KEY)
 	var gs := _gs()
 	if gs:
 		gs.current_campaign = _saved_campaign
@@ -196,6 +222,28 @@ func _assert_on_our_campaign(ctl: Control) -> void:
 	assert_object(ctl.phase_manager).is_not_null()
 
 
+## The population BugHuntMissionPanel stamps onto the mission before the battle
+## (:334-350): every main character not in Sick Bay. The Phase 5 resolver gates the
+## p.203 tally and the p.204 XP awards on it and will not invent one, so a result
+## without it is a shape the app cannot produce -- and every award silently reads 0.
+## Re-derived per mission, because Sick Bay changes between turns.
+func _with_participants(result: Dictionary) -> Dictionary:
+	var out: Dictionary = result.duplicate(true)
+	if out.has("participant_ids"):
+		return out
+	var ids: Array = []
+	var sick_bay: Dictionary = _core.sick_bay if "sick_bay" in _core else {}
+	for mc in _core.main_characters:
+		if not (mc is Dictionary):
+			continue
+		var cid: String = str(mc.get("id", mc.get("character_id", "")))
+		if cid.is_empty() or sick_bay.has(cid) or cid in ids:
+			continue
+		ids.append(cid)
+	out["participant_ids"] = ids
+	return out
+
+
 func _sum_character_field(key: String) -> int:
 	var total := 0
 	for mc in _core.main_characters:
@@ -243,7 +291,12 @@ func _finish_turn_from(ctl: Control, expected_turn: int, result: Dictionary) -> 
 	# controller is rebuilt from that result. Stand in for all three.
 	first.queue_free()
 	await get_tree().process_frame
-	gsm.set_temp_data(RESULT_KEY, result.duplicate(true))
+	var stamped: Dictionary = _with_participants(result)
+	assert_array(stamped["participant_ids"]).override_failure_message(
+		"premise: somebody must take the field, or the tally and the XP awards are " +
+		"correctly zero and every award assertion below passes vacuously"
+	).is_not_empty()
+	gsm.set_temp_data(RESULT_KEY, stamped)
 
 	var second: Control = await _build_controller()
 	_assert_on_our_campaign(second)
@@ -343,6 +396,50 @@ func test_returning_from_battle_lands_on_post_battle() -> void:
 	assert_that(gsm.get_temp_data(RESULT_KEY)).is_null()
 
 
+func test_the_battle_return_completes_the_mission_phase() -> void:
+	## Landing on POST_BATTLE is true whether the return COMPLETES the Mission phase
+	## or merely navigates past it, so the case above cannot tell the two apart. This
+	## one asserts where the damage lands.
+	##
+	## Completing MISSION is what runs BugHuntPhaseManager._apply_phase_results(MISSION),
+	## the ONLY consumer of the battle result: it parks the normalizer's casualty_ids in
+	## _pending_casualty_ids for the p.202 Step 1 roll. Navigate past it and the battle's
+	## casualties are dropped on the floor -- silently, because .get() on a missing key
+	## is a default, never a fault.
+	var gsm := _gsm()
+	assert_object(gsm).is_not_null()
+
+	var mains: Array = _core.main_characters
+	assert_int(mains.size()).override_failure_message(
+		"fixture premise: the probe squad must have main characters to lose"
+	).is_greater(0)
+	var downed_id: String = str(mains[0].get("id", mains[0].get("character_id", "")))
+	assert_str(downed_id).override_failure_message(
+		"fixture premise: the first main character must carry an id"
+	).is_not_empty()
+
+	## TacticalBattleUI's own vocabulary, so the normalizer has to DERIVE the ids
+	## rather than read a key a test handed it.
+	gsm.set_temp_data(RESULT_KEY, {
+		"victory": true, "rounds": 4,
+		"crew_casualties_data": [{"id": downed_id, "name": "Alpha"}],
+	})
+
+	var ctl: Control = await _build_controller()
+	_assert_on_our_campaign(ctl)
+
+	assert_bool(ctl.phase_manager.is_phase_complete(PhaseManagerScript.Phase.MISSION)
+	).override_failure_message(
+		"the battle return must COMPLETE the Mission phase, not jump over it: " +
+		"_phase_complete[MISSION] is false, so phase_completed never fired, the " +
+		"journal never logged the mission, and the battle result reached no consumer"
+	).is_true()
+
+	assert_array(ctl.phase_manager._pending_casualty_ids).override_failure_message(
+		"the battle's casualties must reach the phase manager for the p.202 Step 1 " +
+		"roll; they were dropped between the battle screen and the post-battle step"
+	).contains([downed_id])
+
 # --- Post-Battle: the panel owns its completion control --------------------------
 
 func test_post_battle_panel_completes_through_its_own_controls() -> void:
@@ -400,6 +497,34 @@ func test_start_next_turn_begins_the_next_turn() -> void:
 func test_start_next_turn_does_not_apply_the_finished_turn_again() -> void:
 	var xp_at_start := _sum_character_field("xp")
 	var reputation_at_start: int = _core.reputation
+	var progress_at_start: int = _core.operational_progress_modifier
+
+	# p.205's +-5 rows are what make a second application observable, and an
+	# unforced D100 cannot reach one reliably: four of the ten rows carry no
+	# modifier and two more are conditional on last mission's Objectives. Row
+	# 81-90 "Break through" is the unconditional +5, so the roll is forced to 85.
+	# It is queued TWICE on purpose. The queue is FIFO per key, so the finished
+	# turn consumes the first and a turn wrongly re-applied consumes the second
+	# and lands on +10. Queuing a DIFFERENT second value would let the defect
+	# through whenever that second row's modifier happened to be 0.
+	var dice := _dice()
+	assert_object(dice).override_failure_message(
+		"premise: the DiceManager autoload must be present to force the roll"
+	).is_not_null()
+	if dice == null:
+		return
+	assert_bool(dice.queue_forced_result(OP_PROGRESS_KEY, 85)).override_failure_message(
+		"premise: queue_forced_result is debug-build only and it refused the value, " +
+		"so the roll below is random and this case cannot discriminate"
+	).is_true()
+	dice.queue_forced_result(OP_PROGRESS_KEY, 85)
+
+	# Military Life is a SECOND rule writing the same counter this case asserts on.
+	# Forced to the neutral row and queued twice for the same FIFO reason, so the
+	# Reputation assertion below can only move if the p.203 step itself re-ran.
+	dice.queue_forced_result(MILITARY_LIFE_KEY, MILITARY_LIFE_NEUTRAL)
+	dice.queue_forced_result(MILITARY_LIFE_KEY, MILITARY_LIFE_NEUTRAL)
+
 	var ctl: Control = await _complete_turn_one(OBJECTIVES_RESULT)
 	if ctl == null:
 		return
@@ -412,6 +537,10 @@ func test_start_next_turn_does_not_apply_the_finished_turn_again() -> void:
 		"premise: two objectives must award Reputation").is_greater(reputation_at_start)
 	var tally := _sum_character_field("completed_missions_count")
 	var progress: int = _core.operational_progress_modifier
+	assert_int(progress).override_failure_message(
+		"premise: the forced 85 must land on p.205's unconditional +5 row and write " +
+		"the modifier; with it unchanged, the assertion below passes vacuously"
+	).is_equal(progress_at_start + 5)
 
 	_find_button(ctl, "Start Next Turn").pressed.emit()
 	await get_tree().process_frame
@@ -423,9 +552,9 @@ func test_start_next_turn_does_not_apply_the_finished_turn_again() -> void:
 		"Start Next Turn counted the finished mission again").is_equal(tally)
 	assert_int(_core.reputation).override_failure_message(
 		"Start Next Turn applied the finished turn's Reputation change again").is_equal(reputation)
-	# This cannot fail on HEAD: no row of bug_hunt_post_battle.json carries the
-	# cumulative_modifier key the panel reads, so the change applied is always 0. It
-	# discriminates once that modifier is written and the D100 is forced into a 5-point row.
+	# Discriminating since Phase 5: the resolver writes op_modifier from the row's
+	# `modifier` key and the roll above is forced into the unconditional +5 row, so a
+	# re-applied turn consumes the second queued 85 and lands on +10.
 	assert_int(_core.operational_progress_modifier).override_failure_message(
 		"Start Next Turn applied the finished turn's Operational Progress again").is_equal(progress)
 

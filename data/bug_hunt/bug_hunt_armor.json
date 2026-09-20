@@ -1,26 +1,14 @@
 {
-	"description": "Bug Hunt armor types - Compendium p.178",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.172 (standard equipment), 178 (Saving throws); pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"description": "Bug Hunt armor. The book defines exactly ONE: p.172 gives the standard load as a Service Pistol and Trooper armor, and p.178 states the rule. Combat Armor and a Scout Suit were listed here until 2026-09-20 and are NOT Bug Hunt items -- Combat Armor is a Core Rules item (pp.29, 54, 132) at Saving Throw 5+, and a Scout Suit is in neither book. Do not re-add either.",
 	"armor": [
 		{
 			"id": "trooper_armor",
 			"name": "Trooper Armor",
 			"save_value": 5,
-			"description": "Standard military-issue armor. Saving throw on 5-6.",
-			"is_standard_issue": true
-		},
-		{
-			"id": "combat_armor",
-			"name": "Combat Armor",
-			"save_value": 4,
-			"description": "Heavier protective gear. Saving throw on 4-6.",
-			"is_standard_issue": false
-		},
-		{
-			"id": "scout_suit",
-			"name": "Scout Suit",
-			"save_value": 6,
-			"description": "Lightweight protection for mobile operatives. Saving throw on 6 only.",
-			"is_standard_issue": false
+			"description": "All figures noted as wearing trooper armor receive a saving throw on 5-6.",
+			"is_standard_issue": true,
+			"_cite": "Compendium p.178"
 		}
 	]
 }

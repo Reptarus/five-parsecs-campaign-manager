@@ -2,6 +2,61 @@
 
 ---
 
+### ▶ BUG HUNT PARITY AUDIT + SPRINT 1 — the data was verified three times and the mode still did not work (2026-09-10 → in flight)
+
+**Ledger**: [audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md](audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md)
+(1,792 lines, append-only, one section per phase). **Phases 0-5 of 8 complete** — 0-3
+committed as `d1e541ccb`, **Phases 4-5 uncommitted in the working tree**. Direction from the owner: *"figuring out how to have the bug hunt codebase
+adhere to the foundations we setup with the core rules and compendium."*
+
+⚠ **Not an Alpha-1 shipping defect.** `src/ui/screens/mainmenu/MainMenu.gd:20` sets
+`A1_BUILD := true` and the Bug Hunt button answers with a coming-soon note, so none of this
+is reachable by an alpha tester. It is fixed because the RECORD was wrong in a way that
+would mis-scope the next reader — see the headline.
+
+⭐ **THE HEADLINE IS A SHAPE, NOT A COUNT.** Bug Hunt's **data** is near byte-exact against
+Compendium pp.163-226 — all 15 `data/bug_hunt/*.json`, verified by three independent audits
+(Sessions 42-43, the Aug rules-wiring sweep, and this one). Its **delivery** was broken
+almost everywhere. Every one of those three audits closed by recommending *UI polish*, which
+is the transferable lesson: **"the data is verified" and "the feature works" are different
+claims, and the first is routinely mistaken for the second.** The recurring cause is the
+documented battle-phase funnel defect — a consumer reading a key no producer writes — which
+`.get(key, default)` renders as a silent default rather than a fault.
+
+| Measured on HEAD before the sprint | Consequence |
+|---|---|
+| Nothing stamps `objectives_completed`; its only producers were two launch-FAILURE fallbacks that fabricated a won mission | Every played mission scored **0** objectives: Court Martial fired every turn, objective XP and Reputation never paid, and **the campaign had no reachable win condition** |
+| `_complete_turn` never set or persisted `current_phase` | **A Bug Hunt turn could never END.** Every campaign on disk was stuck on turn 1; Start Next Turn re-applied the finished turn's effects instead |
+| The tally is written by the panel (+1), again per XP award, and a third time by the muster lookup | A character who plays every mission is checked at 2, 4 … 16 — they **never land on the p.203 rows at 13 or 15**, and fall through an empty 16+ lookup forever |
+| Muster-out calls `remove_main_character()` only | No transfer file is written: **the veteran is deleted, not transferred** |
+| `_process_casualties` reads an EMPTY casualty list as "no battle data" | Rolls a 1-in-5 casualty per active marine, so a battle nobody was hurt in still produces casualties |
+| 38 raw `randi_range` calls, 0 `DiceManager` references | No Bug Hunt roll could be forced, so the rare rows were unreachable for QA |
+| `get_campaign_info()` writes `campaign_type`; consumers read `"type"` | The MainMenu tag worked only by path substring, and the Enlist filter was **always true** — a Bug Hunt marine could be enlisted into Bug Hunt as a 5PFH veteran |
+
+| Gate (Phase 4 close, 2026-09-20) | Result |
+|---|---|
+| `tests/unit`, headless, batches of ≤35 | **3426 executed + 5 hidden by fail-fast = 3431 cases · 0 errors · 0 failures**, closing exactly on `3416 + 15` |
+| Detection arms, each proven ALONE | **14 / 14**, all three source files md5-verified byte-identical after restore |
+| The 8 gating lints | all exit 0 |
+| `lint_orphan_assets.py` | `files=561 reachable_from_product=561 test_only=0 orphans=0 unwired_rules=0` |
+| `git diff -- data/` | ONE file, **+17/-1**, every addition carrying a printed-page cite |
+| New suites | Phase 3: `test_bug_hunt_{turn_completion, enlist_filter, mode_predicates, dice_routing, enlistment_transfer}` · Phase 4: `test_bug_hunt_battle_result_normalizer` (15 cases) |
+
+✅ **Phase 4 closes the headline row.** The mission is stamped before the battle and the return runs through a new add-only, idempotent `BugHuntBattleResultNormalizer`, so a played mission finally scores its objectives: Court Martial stops firing every turn and the `above_100` Parade win becomes reachable for the first time.
+
+⚠ **Two of Phase 4's findings are in the Phase 4 code itself**, recorded at their rows rather than quietly fixed — a `show_notification` guard with zero definitions repo-wide (the **sixth** occurrence of that trap, with the remedy already written twelve lines away), and a fix that was **INERT** because `current_phase == MISSION` is false on every real battle return (the TurnController is REBUILT; `current_phase` defaults to `Phase.NONE`). ⭐ Its existing case could not detect either state, because *"lands on POST_BATTLE"* is true whether the return completes MISSION or jumps over it — **assert where the damage lands**, not where the screen ends up.
+
+⚠ **A detection harness filtering on `failures=` reports a class-(b) abort as UNDETECTED.** Reverting a variant-tolerance fix makes gdUnit4 book `errors=1 failures=0`, because the function unwinds before any assertion runs. A control run (unreverted → `1/0/0 PASSED`) is what makes the pair discriminating — capture both columns.
+
+⚠ **The signal-11 cliff hit at 35 suites STARTED**, roughly half the "~58" this project's `CLAUDE.md` records, because that batch builds real screens. Split 12/12/11 ran clean. **≤40 is a ceiling, not a guarantee** — size a batch by what it allocates.
+
+**Phases 5-7 remain**: the Compendium p.202 post-battle resolver slice (the largest — eight
+steps including the muster-out that currently **deletes** a veteran instead of writing a
+transfer file); provenance + a consumer census; then verify and a device walk
+with `A1_BUILD` flipped inside a `finally`.
+
+---
+
 ### ✅ THE TACTICS TURN PASSED NO DATA — all six channels repaired (2026-09-07)
 
 Found while deciding whether to wire or delete `TacticsOperationalMap.gd`, the project's
@@ -52,10 +107,11 @@ rule — the book says "any number", one by default); step 6 said "between adjac
 where the book says "connected through a series of friendly territories"; and step 9 was
 absent. It is now the SSOT, read by `src/core/campaign/TacticsOperationalRules.gd`.
 
-⚠ **Not a shipping defect.** `MainMenu.gd:14` sets `A1_BUILD := true` and the Tactics
+⚠ **Not a shipping defect.** `MainMenu.gd:20` sets `A1_BUILD := true` and the Tactics
 button answers with a coming-soon note instead of navigating, so none of this is
 reachable by an alpha tester. It is fixed because the record — `unwired_rules=1` on a
 single file — understated it badly enough that the next reader would have mis-scoped it.
+⚠ This cited `MainMenu.gd:14` until Sep 19 2026; measured, the constant is at line **20**.
 
 | Gate | Result |
 |---|---|

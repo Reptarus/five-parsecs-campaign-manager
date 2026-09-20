@@ -180,11 +180,25 @@ func add_main_character(char_dict: Dictionary) -> void:
 
 
 func remove_main_character(character_id: String) -> void:
+	## The ONE chokepoint a marine leaves the squad through -- death, Court Martial
+	## (p.201) or muster out (p.203) -- so the state keyed by their id is cleared
+	## here rather than at each caller.
+	##
+	## HEAD removed the roster entry alone, leaving their Sick Bay row behind for
+	## tick_sick_bay() to walk for the rest of the campaign, and their Military Life
+	## flags to be inherited by nobody. Neither was visible: both are Dictionaries
+	## keyed by character id, so a stale row is silently skipped by every reader
+	## that looks a live character up first.
 	for i in range(main_characters.size() - 1, -1, -1):
 		if main_characters[i].get("id", "") == character_id or \
 				main_characters[i].get("character_id", "") == character_id:
 			main_characters.remove_at(i)
 			break
+	sick_bay.erase(character_id)
+	var by_char: Dictionary = military_life_modifiers.get("characters", {})
+	if by_char.has(character_id):
+		by_char.erase(character_id)
+		military_life_modifiers["characters"] = by_char
 	_update_modified_time()
 
 
