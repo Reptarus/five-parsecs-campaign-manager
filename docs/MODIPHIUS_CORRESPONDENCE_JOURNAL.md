@@ -1,7 +1,7 @@
 # Modiphius Partnership Correspondence Journal
 
 **Owner**: Elijah Rhyne
-**Last Updated**: 2026-06-04 (Entries #13-14: #13 = Chris's June 4 master-design request; #14 = Elijah's sent reply (one-pager + high-level scope in the body). Parked: Android-first-and-only for the app + alpha, and beta slipping from decision churn. Original #13 note follows: Chris's June 4 email requests a master design one-pager [who/problem/how/why-better], flags the DIY/AI-web-app threat, raises the Steam+laptop accessibility concern, and refocuses on companion-first for the FiveX audience. Triggered: companion-first rewrite of `docs/BROADENING_SCOPE_SKETCH.md`, the mobile-forward re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md`, and Draft #G cover reply. Prior header context: 2026-05-22 MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.)
+**Last Updated**: 2026-09-13 (Entries #15-#33 backfilled from the Gmail "Design document" thread, Jun 5 → Sep 12 2026. Headlines: direction locked Jun 18 (#20); LOI MOBILE ONLY Jul 8 (#24); Jul 27 call reconstructed and PROVISIONAL (#27); Cam named as the LOI owner Aug 26 (#30); letterhead LOI promised for Mon Sep 14 and a meeting that week (#32). §3.0 live threads added. Previous: 2026-06-04 (Entries #13-14: #13 = Chris's June 4 master-design request; #14 = Elijah's sent reply (one-pager + high-level scope in the body). Parked: Android-first-and-only for the app + alpha, and beta slipping from decision churn. Original #13 note follows: Chris's June 4 email requests a master design one-pager [who/problem/how/why-better], flags the DIY/AI-web-app threat, raises the Steam+laptop accessibility concern, and refocuses on companion-first for the FiveX audience. Triggered: companion-first rewrite of `docs/BROADENING_SCOPE_SKETCH.md`, the mobile-forward re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md`, and Draft #G cover reply. Prior header context: 2026-05-22 MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.))
 **Purpose**: Chronological log of all Modiphius partnership touchpoints — meetings, emails, deliverables sent, decisions made by either side. Acts as a written timeline that's independent of the email archive (in case emails are lost, replaced, or contested).
 
 > **Maintenance protocol**: Add a new entry within 24 hours of any touchpoint. Include verbatim excerpts of key passages when they contain commitments or numbers. Cross-reference to source documents, meeting notes, and email subjects so the journal remains an index, not the only record. Verbatim quotes use blockquotes and are clearly marked as such.
@@ -32,6 +32,34 @@
 | 12 | 2026-05-25 | Meeting (Zoom) | Elijah, Chris, Gavin (joined ~min 23) | Deal-frame call (HAPPENED). Reading B re-confirmed (recoup $X dev cost then 50/50). After recoup, a flat MONTHLY maintenance fee to dev off the top (regardless of model), then 50/50. Revenue MODEL (subscription vs one-time) is a separate open pricing question, PARKED to alpha. Standalone / all-content / "randomise it for me" product steer (extends T1). Alpha = Google-Form signup funnel (XCOM 700→50 precedent), Elijah owns the email DB, Modiphius amplifies via newsletter/social/Discord/Facebook. Informal LOI on a shared Google Doc → long-form contract off Modiphius's standard agreement. Monthly check-ins; Monday.com; testers credited post-program; new Modiphius cost code. Chris assigns Elijah 3 drafts: LOI, Announcement, Google Form questions | This document, Entry #12 |
 | 13 | 2026-06-04 (1:26 PM) | Email inbound | Chris → Elijah, Gavin | Asks for a master design one-pager (who/problem/how/why-better); flags DIY/AI web-app threat + wants the "why better than free comparisons" ideas folded in; raises Steam+laptop accessibility concern; refocuses on companion-first for the FiveX audience (standalone because it carries the book content) | This document, Entry #13 |
 | 14 | 2026-06-04 (3:21 PM) | Email outbound | Elijah → Chris, Gavin | Reply to #13: one-pager updated + shared as Google Doc; high-level product scope in the email body (6 points); platform line (original app was Google Play + iOS, pivot needs only re-aligning the alpha to Android); 30-min call offer. Funding/LOI kept out. Parked: Android-first-and-only (app + alpha), beta slipping from decision churn | This document, Entry #14 |
+| 15 | 2026-06-05 (3:16 AM) | Email inbound | Chris → Elijah (Gavin on thread) | Reply to #14: will review; Chris floats the mobile pivot himself ("given the feedback I feel a pivot to the Android/IOS might make sense") | This document, Entry #15 |
+| 16 | 2026-06-05 (12:04 PM) | Email outbound | Elijah → Chris (Gavin on thread) | The build Modiphius holds is already well behind the alpha version | This document, Entry #16 |
+| 17 | 2026-06-08 (2:16 AM) | Email inbound | Chris → Elijah | Asks to see the art ("I’m intrigued to see how the art will work") | This document, Entry #17 |
+| 18 | 2026-06-08 (6:33 AM) | Email outbound | Elijah → Chris, CC Gavin | What is new since their build; how the layered art works; art ceiling framed as a Modiphius production question, not a blocker; ASK to lock the direction + basics (LOI, announcement, signup form); 5 screenshots | This document, Entry #18 |
+| 19a | 2026-06-14 (1:25 PM) | Email outbound | Elijah → Chris | Check-in for feedback | This document, Entry #19 |
+| 19b | 2026-06-14 (2:21 PM) | Email inbound | Chris → Elijah | Missed the email; will come back with comments | This document, Entry #19 |
+| 19c | 2026-06-15 (2:18 AM) | Email inbound | Gavin → Elijah (Chris on thread) | Core-rulebook art and graphical elements are in the Art subfolder of the shared Drive | This document, Entry #19 |
+| 19d | 2026-06-15 (8:07 AM) | Email outbound | Elijah → Gavin (Chris on thread) | Access already given by Chris and Richard; layers unnamed/ungrouped; asset variety at its limit; folding in the book's Illustrator layouts | This document, Entry #19 |
+| 20 | 2026-06-18 (1:08 AM) | Email inbound | Chris → Elijah | Inline replies: DIRECTION LOCKED ("I’m happy to lock this direction so you can focus"); galaxy-map + art-count questions; art help offered; asks if docs need updating; call from Wed Jun 24 | This document, Entry #20 |
+| 21 | 2026-06-18 (10:22 AM) | Email outbound | Elijah → Chris | Galaxy map is generated; 737 files / ~18.7 GB, enough for alpha; closed alpha mobile-first, Android-first, invite-only, under Modiphius's store presence; ASK for Modiphius mobile developer setup access (never answered as of Sep 13); LOI + announcement to shared Google Docs | This document, Entry #21 |
+| 22 | 2026-06-22 (7:19 AM) | Email outbound | Elijah → Chris, Gavin | Four shared Google Docs: one-pager, Playtest Announcement DRAFT, LOI, Alpha Tester Signup. Two links carry a stray 0x1C byte in the export (see entry) | This document, Entry #22 |
+| 23a | 2026-06-28 (8:52 AM) | Email outbound | Elijah → Chris | Check-in for feedback and updates | This document, Entry #23 |
+| 23b | 2026-06-30 (7:44 AM) | Email inbound | Chris → Elijah (sent twice) | End-of-year accounts; will look "tomorrow"; "you have access to all the art"; AI folder comparison offered (never delivered) | This document, Entry #23 |
+| 24 | 2026-07-08 (8:13 AM) | Email outbound | Elijah → Chris (Gavin on thread) | Chris's LOI Doc edits accepted; four non-blockers: art may not pan out, monetization + forecasts, LOI now MOBILE ONLY, future production terms | This document, Entry #24 |
+| 25a | 2026-07-14 (10:22 AM) | Email outbound | Elijah → Chris | What remains on Modiphius's side; dates + announcements | This document, Entry #25 |
+| 25b | 2026-07-18 (4:44 AM) | Email inbound | Chris → Elijah | Finance hire + XCOM launch; call offered Tue 3pm / Wed 5pm UK; one more LOI comment "re monthly recoups", otherwise good | This document, Entry #25 |
+| 26a | 2026-07-21 (6:46 PM) | Email outbound | Elijah → Chris | Wed/Thu booked; asks about Friday | This document, Entry #26 |
+| 26b | 2026-07-22 (2:53 AM) | Email inbound | Chris → Elijah | Offers Mon 3-4 or 5-6 UK; at Gen Con until Aug 4 | This document, Entry #26 |
+| 26c | 2026-07-22 (3:37 PM) | Email outbound | Elijah → Chris | Monday 5-6 UK accepted | This document, Entry #26 |
+| 26d | 2026-07-25 (8:49 AM) | Calendar invite (outbound) | Elijah → Chris, Gavin | "Design document", Mon Jul 27 9:00-10:00 AM Pacific | This document, Entry #26 |
+| 26e | 2026-07-25 (11:12 AM) | Email inbound | Chris → Elijah | Confirms the time | This document, Entry #26 |
+| 27 | 2026-07-27 (9:00-10:00 AM) | Meeting (Google Meet) | Elijah, Chris (Gavin invited; attendance not recorded) | [PROVISIONAL, reconstructed, no minutes] $9.99 base + per-book unlocks APPROVED; taper pending his team; Five Parsecs own-IP scope; LOI to letterhead; kickoff date DEFERRED | This document, Entry #27; `MEETING_PREP_2026-07-27.md` (prep only); `MODIPHIUS_PARTNERSHIP_STATUS.md` |
+| 28 | 2026-08-18 (2:45 PM) | Email outbound | Elijah → Chris | Letterhead chase; no reply | This document, Entry #28 |
+| 29 | 2026-08-25 (6:39 AM) | Email outbound | Elijah → Chris, Gavin | Asks for a legal contact and a social-media contact; LOI "nearly two months" | This document, Entry #29 |
+| 30 | 2026-08-26 (4:20 AM) | Email inbound | Chris → Elijah, Gavin | Cam "who handles the business deals" away most of two months; three companies' accounts; back "next week"; marketing easier mid-Sept; proposes a call later next week | This document, Entry #30 |
+| 31 | 2026-08-26 (10:57 PM) | Email outbound | Elijah → Chris | Early next week works; Sep 3 morning blocked. Then 15 days of silence; the call was never booked | This document, Entry #31 |
+| 32 | 2026-09-11 (3:24 AM) | Email inbound | Chris → Elijah | LOI to be issued Monday Sep 14 ("Myself and Cam will finalise any notes on the letter and issue it on monday"); proposes meeting early that week on what the playtest needs | This document, Entry #32 |
+| 33 | 2026-09-12 (5:49 PM) | Email outbound | Elijah → Chris | Accepts; mornings flexible; leaves the time to Chris. Nothing on the calendar as of Sep 13 | This document, Entry #33 |
 
 ---
 
@@ -1017,7 +1045,659 @@
 
 ---
 
+### Entry #15 — 2026-06-05 (3:16 AM) — Email inbound — Chris: will review; floats an Android/iOS pivot
+
+`[BACKFILLED 2026-09-13 from the Gmail "Design document" thread; body verbatim]` Times in Entries #15-#33 are Pacific (PDT, UTC-7), converted from the export's UTC stamps.
+
+- **Mode**: Email (reply on the "Design document" thread)
+- **From**: Chris Birch
+- **To**: Elijah (Gavin on thread)
+- **Summary**: Acknowledges Entry #14's one-pager. First time Chris himself names a mobile pivot ("Android/IOS"), attributed to "the feedback".
+- **Verbatim body**:
+
+  > Thanks Elijah we’ll have a good look over and come back with any thoughts I think it’s important we start with the right plan together.
+  >
+  > I think given the feedback I feel a pivot to the Android/IOS might make sense.
+
+- **Read (backfill)**: This is the inbound that the Jun 4 "parked" Android-first item (Entry #14) was waiting for. Chris arrived at the platform pivot himself; nothing had to be argued.
+- **References**: Entry #14 (the one-pager it answers); Entry #20 (where the direction is formally locked).
+
+---
+
+### Entry #16 — 2026-06-05 (12:04 PM) — Email outbound — Elijah: the build Chris has is already behind
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > I appreciate the update. I have been updating the app in the background in
+  > the meantime so there will big differences between the version you
+  > currently have and what the alpha version will look like.
+
+- **References**: Entry #15.
+
+---
+
+### Entry #17 — 2026-06-08 (2:16 AM) — Email inbound — Chris asks to see the art
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Chris Birch
+- **To**: Elijah (Gavin on thread)
+- **Verbatim body**:
+
+  > Ok great is it something you want to share yet? I’m intrigued to see how the art will work
+
+- **References**: Entry #16; answered by Entry #18.
+
+---
+
+### Entry #18 — 2026-06-08 (6:33 AM) — Email outbound — What is new, how the layered art works, and the lock-the-direction ask (5 screenshots)
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email, 5 attachments: `1-narrative-foiled-event.png`, `2-narrative-foiled-stage-art.png`, `3-galaxy-log.png`, `4-campaign-dashboard.png`, `5-mobile-portrait-dashboard.png`
+- **From**: Elijah
+- **To**: Chris, CC Gavin
+- **Summary**: The what's-new list since the build Modiphius holds (Galaxy Map, narrative scenes, narrated combat, mobile/tablet layout, cross-mode play + PDF export + settings + rules fixes); the layered-art explanation; an honest note that the existing asset set has a ceiling and purpose-built art is a Modiphius production question; and the ask: lock the direction and the basics (LOI, announcement, signup form) so the alpha can go out.
+- **Verbatim body**:
+
+  > Hi Chris,
+  >
+  > Glad to. Here is where it is at, how the art works, and one ask so we can
+  > keep this moving at pace. I have attached a couple of shots so you can see
+  > the art directly.
+  >
+  > What is new since the build you have (it predates all of this):
+  >
+  >    - Galaxy Map: a pan-and-zoom visual log of the crew's travels across the
+  >    sector, world by world.
+  >    - Narrative events: campaign events now play out as full-screen
+  >    illustrated scenes with your crew in character, instead of menus.
+  >    - Narrated combat: a "play it out for me" mode that resolves a whole
+  >    battle and hands it back as a story beat, using the real rules.
+  >    - Mobile and tablet layout: the whole interface reworked to be
+  >    responsive and touch-first, down to phone screens.
+  >    - Cross-mode play, character sheet export to PDF, a full settings
+  >    screen, and a pass of rules-accuracy fixes.
+  >
+  > *How the art works, in one place again:*
+  >
+  > Each scene is built in layers, not as a single flat image. A painted
+  > background sits at the back, the characters are composited on top, and
+  > effects like smoke and muzzle flashes go over that. Because the background
+  > is separate from the figures, one background serves a whole range of
+  > events, which is how a fairly small set of art covers the entire game. The
+  > crew the player actually built appear as figures in the scene, and the
+  > rulebook text is shown word for word, wrapped in a little scene-setting so
+  > a table result reads like a chapter. One of the attached shots breaks a
+  > scene into its layers so the build-up is clear.
+  >
+  > *One honest note on the art: what is in the build proves the approach, and
+  > I have taken the existing assets a good distance. Making it truly flexible
+  > across the whole game, art that composes naturally into many different
+  > scenes rather than a handful, is a real production effort, and at that
+  > point it is likely worth some purpose-built pieces from Richard's team
+  > rather than me stretching the existing set further. That is not a blocker
+  > today, but it is one more reason to lock the direction, because it lets
+  > that art work be planned for the version we are actually shipping instead
+  > of produced against a moving target.*
+  >
+  > As the direction has evolved, I have shifted my focus to match it. Most
+  > recently that meant setting further art work aside to do the mobile and
+  > responsiveness pass, since that is where the conversation pointed. I am
+  > glad to follow the direction, but I am carrying the build myself, so each
+  > change of direction is real time and cost on my side, and it is effort that
+  > is not going into shipping. What helps me most is for us to lock the
+  > direction and the basics so I can put my full energy into one clear target
+  > instead of splitting it across options.
+  >
+  > Concretely, that means getting the LOI and the surrounding basics set. I
+  > have the LOI, the announcement, and the alpha sign-up form ready on my
+  > side. Once those are locked the alpha can go out, and then we are iterating
+  > on real player feedback instead of waiting on internal reviews. That is the
+  > single biggest thing that speeds us up, and it is the point where I can
+  > stop hedging and pour everything into the version that ships.
+  >
+  > Happy to jump on a quick call to push these over the line if that is easier
+  > than email.
+  >
+  > Elijah
+
+- **Key items raised**: (1) direction lock requested; (2) three dev-owned docs (LOI, announcement, signup form) declared ready; (3) art ceiling named as a Modiphius production decision, explicitly not a blocker.
+- **References**: Entry #17 (the ask it answers); Entry #20 (Chris's inline replies, 10 days later); `docs/CLOSED_ALPHA_PLAN.md`.
+
+---
+
+### Entry #19 — 2026-06-14 → 2026-06-15 — Check-in cluster + Gavin's art-folder pointer (four messages)
+
+`[BACKFILLED 2026-09-13; bodies verbatim]`
+
+#### #19a — 2026-06-14 (1:25 PM) — Email outbound — Elijah check-in
+
+  > Hi Chris,
+  >
+  > Just checking in to see what feedback you have.
+  >
+  > Elijah
+
+#### #19b — 2026-06-14 (2:21 PM) — Email inbound — Chris: missed it
+
+  > Hi Elijah sorry I realised i missed this email will check and come back with comments asap
+  > Sent from my iPhone
+
+#### #19c — 2026-06-15 (2:18 AM) — Email inbound — Gavin: the core-rulebook art is in the GDrive Art subfolder
+
+  > Hi Elija
+  >
+  > All of the core rulebook art and grahical elements (logos, borders etc..)
+  > is available in the Art subfolder of the GDRive link below.
+  >
+  > https://drive.google.com/drive/folders/14S8oY86ao_KUa_CuGZ3Pst-jl48eJtHi?usp=sharing
+  >
+  > Regards
+  >
+  > Gavin
+
+#### #19d — 2026-06-15 (8:07 AM) — Email outbound — Elijah to Gavin: the files lack the layer organisation the pipeline needs; asset variety already at its limit
+
+  > Hey Gavin,
+  >
+  > Chris and Richard actually gave me access to these assets a few weeks ago.
+  > These are the ones that I've been trying to reorganize and decompile for my
+  > demo. The issue I'm running into is the fact that the files themselves lack
+  > the organization that I need to automate things. The layers aren't named or
+  > grouped or anything that I could use to quickly prototype things, I have to
+  > go through and individually and manually name the layers and reorganize
+  > them to work for my system.
+  >
+  > And on top of that I have already hit the limits of asset variety, because
+  > of the static poses I'm already starting to see visual repetition in the
+  > generated images and also some awkwardness due to lack of coherency and
+  > variety.
+  >
+  > We can discuss this in further detail if need be but that is why I'm saying
+  > that I'm already hitting the limits of the assets that I have. I also see
+  > that the Illustrator files that were used for the layout of the book were
+  > also included, I am also trying to do what I can to see how I can naturally
+  > incorporate and integrate the Sci-Fi layouts of the books into the app as
+  > well for some more consistency and coherency across the different products.
+
+- **Read (backfill)**: Gavin's pointer duplicates the folder Richard Gale opened in May (Entry #9b thread). The substantive content is #19d: the art problem is organisation and variety, not access. This is the position Chris later paraphrases as "you have access to all the art" (Entry #23b).
+- **References**: Entry #9b (Richard Gale art thread); Entry #21 (inventory numbers: 737 files, ~18.7 GB).
+
+---
+
+### Entry #20 — 2026-06-18 (1:08 AM) — Email inbound — Chris's inline replies: direction LOCKED; galaxy-map and folder-count questions; art help offered; call availability
+
+`[BACKFILLED 2026-09-13; Chris's own lines verbatim. The rest of the message is Entry #18 quoted back as a forward and is not repeated here.]`
+
+- **Mode**: Email (forwarded copy of Entry #18 with `CHRIS -` prefixed notes interleaved), 5 attachments re-forwarded
+- **From**: Chris Birch
+- **To**: Elijah (Gavin on thread)
+- **Opening line, verbatim**:
+
+  > Hi there ok sorry this has taken longer, once we confirm the design direction I think that then informs all the other docs we need to approve. I’ll add notes below.
+
+- **Inline note under the what's-new list, verbatim**:
+
+  > CHRIS - how is he galaxy map generated is it new every time or a piece of art that needs producing?
+  >
+  > I know you mentioned the lack of art I can see what else we can get you access to as I’m fairly sure you may not have everything - can you tell me how many pieces in the folder/s?
+  >
+  > Otherwise sounds good.
+
+- **Inline note under the art-ceiling paragraph, verbatim**:
+
+  > CHRIS - we maybe able to help with art I’ll have to see what is the scope of the requirement beyond what you have - and make sure you actually have all the pieces we have in the library - for example planetfall, tactics, bug hunt, five parsecs core book (and there maybe unused art too).
+
+- **Inline note under the lock-the-direction paragraph, verbatim**:
+
+  > CHRIS - I’m happy to lock this direction so you can focus.
+
+- **Inline note under the LOI/announcement/signup paragraph, verbatim**:
+
+  > CHRIS - do any of them need updating to factor in the direction? I’m away till monday night but can respond online whilst I’m at a conference otherwise could do a call from wednesday onwards next week
+
+- **Key items raised**: (1) **DIRECTION LOCKED** ("happy to lock this direction so you can focus"); (2) Chris's model: direction first, then the docs get approved; (3) two questions (is the galaxy map produced art? how many pieces in the folders?); (4) art-help offer scoped to "beyond what you have"; (5) asks whether the three docs need updating for the direction; (6) async until Mon Jun 22 night, call possible from Wed Jun 24.
+- **Read (backfill)**: This is the message the whole June plan was waiting on. It settles the mobile-first direction in writing from Modiphius's side. `feedback_mobile_first_is_settled` dates from here.
+- **References**: Entry #18 (the message annotated); Entry #21 (Elijah's answers).
+
+---
+
+### Entry #21 — 2026-06-18 (10:22 AM) — Email outbound — Answers: the galaxy map is generated; 737 files / ~18.7 GB on hand; the closed alpha runs MOBILE-FIRST, ANDROID-FIRST through Modiphius's store presence; ASK for Modiphius's mobile developer setup
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email, 5 attachments carried on the thread
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > Hi Chris,
+  >
+  > Thanks, that genuinely helps. Locking the direction is exactly what I
+  > needed. It lets me stop hedging across options and pour everything into the
+  > one version we are actually shipping. I appreciate it.
+  >
+  > To your questions:
+  >
+  > *Galaxy Map*. It is generated, not produced art. The app draws it live from
+  > the crew's actual travel history, so there is no painting behind it. It
+  > costs nothing to produce, never needs new pieces, and scales to however
+  > many worlds a player visits. The illustrated parts that do use your art are
+  > the narrative event scenes.
+  >
+  > *Art I have, and your offer.* The library you sent in May is substantial
+  > and I have been building straight from it: 737 files, roughly 18.7 GB,
+  > spanning the Core Rulebook, Compendium, Planetfall, and Tactics, with
+  > characters, scenes, equipment, miniatures and concepts across each. For the
+  > narrative scenes I am in good shape, I actually have more background
+  > paintings than the current event set uses. I would still gladly take you up
+  > on the offer: if you point me at anything I might be missing, plus the
+  > unused art you mentioned, I will cross-check against what I have and flag
+  > real gaps rather than guess. Happy to send my full inventory if it helps
+  > the comparison.
+  >
+  > *On the art being "truly flexible."* You are right, and I will be straight
+  > about it: what is in the build proves the layered approach, and stretching
+  > the set naturally across the whole game is real production effort. I do not
+  > think it blocks the alpha, the current set carries us, but it is a good
+  > reason to keep the direction locked so any purpose-built pieces from
+  > Richard's team can be planned for the version we ship instead of a moving
+  > target.
+  >
+  > *The closed alpha, mobile first.* With the direction locked on mobile, I
+  > want to run the alpha on mobile to begin with, Android first, through
+  > Modiphius's existing store presence rather than standing up my own. It
+  > would be invite-only and hand-picked, so we control exactly who gets in and
+  > it stays a tight, friendly group, and installing on a phone is a lower bar
+  > for testers than a desktop build. Steam stays the desktop Early Access
+  > milestone we are building toward, and iOS follows once Android is rolling.
+  > The one foundational piece I will need from your side is access to
+  > Modiphius's mobile developer setup so the alpha runs under your accounts.
+  > Nothing urgent this week, but it carries the most lead time, so I wanted to
+  > open the conversation early and we can work the details with Gavin.
+  >
+  > *The LOI, announcement, and signup form. *These are in good shape on my
+  > side. I will fold the mobile-first framing into them, then move the LOI and
+  > announcement into a shared Google Doc so you and Gavin can co-edit and add
+  > Modiphius's standard and endorsement language. The signup form is ready to
+  > point to once the copy is locked. Once those basics are set, the alpha can
+  > go out and we are iterating on real player feedback instead of internal
+  > reviews.
+  >
+  > *On timing:* async is perfect while you are at the conference, no call
+  > needed to keep this moving, but I am glad to grab one Wednesday onward if
+  > useful. I will aim to have the shared docs to you and Gavin in the next few
+  > days.
+  >
+  > Thanks again for locking this in. It changes how fast I can move.
+  >
+  > Elijah
+
+- **Key items raised**: (1) the alpha distribution model in writing for the first time: invite-only, hand-picked, Android first, **under Modiphius's store accounts**; (2) **THE ASK**: access to Modiphius's mobile developer setup (i.e. Play Console access for the closed test track) — "carries the most lead time"; (3) Steam remains the later desktop EA milestone; iOS after Android; (4) commitment to move the LOI and announcement into shared Google Docs.
+- **Read (backfill, 2026-09-13)**: ⚠ **Item (2) was never answered anywhere in the thread.** As of Sep 13 there is no reply from Chris or Gavin about Play Console / developer-account access, and it is the single longest-lead-time dependency for distribution (`docs/CLOSED_ALPHA_PLAN.md` line 8 assumes "Modiphius's Play account"). It must be on the agenda for the week-of-Sep-14 meeting (Entry #32).
+- **References**: Entry #20; `docs/CLOSED_ALPHA_PLAN.md` §3 Distribution; `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md` (Google Forms setup notes on the Gmail requirement).
+
+---
+
+### Entry #22 — 2026-06-22 (7:19 AM) — Email outbound — Four shared Google Docs delivered (one-pager, announcement draft, LOI, alpha signup form)
+
+`[BACKFILLED 2026-09-13; body verbatim, except that a raw 0x1C control byte in two links is shown as [0x1C]. See Link notes.]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris, Gavin ("Hi all")
+- **Verbatim body**:
+
+  > Hi all -
+  >
+  > All docs are updated and should be attached to this email.
+  >
+  >  Five Parsecs From Home App One Pager
+  > <https://drive.google.com/open?id[0x1C]9hQmttO3QKfUU3stFh9fuLPLIh1JNWjTBAGkf3aSpc>
+  >
+  >  Playtest Announcement (DRAFT)
+  > <https://drive.google.com/open?id[0x1C]gqtlU1UBGKCML5f2RQtmbE5UBXE49JUF4S8QIPCtPE>
+  >
+  >  Letter of Intent: Five Parsecs From Home Digital Companion App
+  > <https://drive.google.com/open?id=1QH5QC9Ckkf8Llnh3ITXI0XbwZSEhV01JbhQoTYqCqlI>
+  >
+  >  Five Parsecs From Home Companion App: Alpha Tester Signup
+  > <https://drive.google.com/open?id=1ScHhYxIglq2MKN5F4cGQUhlydHF2CItu2m2bF_UtXek>
+
+- **Link notes**: the export decoded the quoted-printable `=1c` in two links as a raw 0x1C byte, so `id=1c...` became `id[0x1C]...`. The one-pager confirms the pattern: it is the document shared in Entry #14 (`https://docs.google.com/document/d/1c9hQmttO3QKfUU3stFh9fuLPLIh1JNWjTBAGkf3aSpc/edit?usp=sharing`). The announcement link is therefore INFERRED as `https://drive.google.com/open?id=1cgqtlU1UBGKCML5f2RQtmbE5UBXE49JUF4S8QIPCtPE`; confirm it in Gmail before relying on it. LOI and signup-form links are intact above.
+- **Read (backfill)**: This closes the "three dev-owned drafts" thread opened in Entry #12. From here, LOI edits happen inside the Google Doc, not by email — the Doc's version history is the record of Chris's edits (see Entry #24).
+- **References**: Entry #12 (the drafts were commissioned there); Entry #21 (promised "in the next few days"); `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`.
+
+---
+
+### Entry #23 — 2026-06-28 → 2026-06-30 — Check-in; Chris: end-of-year accounts; "you have access to all the art"
+
+`[BACKFILLED 2026-09-13; bodies verbatim]`
+
+#### #23a — 2026-06-28 (8:52 AM) — Email outbound — Elijah
+
+  > Checking in for feedback and updates.
+
+#### #23b — 2026-06-30 (7:44 AM) — Email inbound — Chris (sent twice, 7:44:59 AM and 7:45:11 AM, identical text)
+
+  > hi sorry we’ve been in end of year with some complex accounts should be able to look at these tomorrow. From sounds of it you have access to all the art. I can get an ai to do a comparison of folder contents but in a few days
+
+- **Key items raised**: (1) first appearance of the "end of year accounts" blocker that recurs in Entries #25b, #30 and #32; (2) art access considered settled from Modiphius's side; (3) an AI folder comparison offered "in a few days" — never delivered, and Elijah's Entry #21 inventory offer was never taken up. Low priority: Entry #21 said the narrative-scene set is sufficient for the alpha.
+- **References**: Entry #21; Entry #24 (Chris's Doc edits had landed by Jul 8).
+
+---
+
+### Entry #24 — 2026-07-08 (8:13 AM) — Email outbound — Chris's LOI edits accepted; four open non-blockers named; LOI language now MOBILE ONLY
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > Hey Chris-
+  >
+  > I looked over the docs, everything looks good on my end, I accepted your
+  > edits and made a couple minor edits based off your feedback.
+  >
+  > Just to make sure I'm not missing anything here were the couple items we
+  > need to touch base on shortly, but they shouldn't be blockers for the alpha
+  > test:
+  >
+  > - I will tinker with the art a little more but I think we both agree that
+  > it might not fully pan out unless we invest more time and resources into
+  > art creation, absolute worst case, we have a proof of concept that is worth
+  > considering for the future
+  > - still need to lock down monetization model and all projected forecasts
+  > - I updated the language that it should be MOBILE ONLY, let me know if I
+  > missed anything
+  > - need to finailize future production terms and conditions regarding Five
+  > Parsecs, Five Leagues and any future apps we produce together
+  >
+  > I know you are waiting for some follow up from people on your team, so let
+  > me know if you need anything else on my end. We can do a quick phone call
+  > to iron out any lingering details before we start signing final paperwork.
+  >
+  > Let me know!
+  >
+  > Elijah
+
+- **Key items raised**: Chris had edited the LOI Google Doc between Jun 30 and Jul 8 (no email records the edits; the Doc's version history does). Four items explicitly declared NON-blocking for the alpha: (1) art direction may not fully pan out (proof of concept kept as the floor); (2) monetization model + forecasts; (3) the LOI now says **MOBILE ONLY** (Elijah's edit, awaiting Chris's confirmation); (4) future production terms for Five Parsecs, Five Leagues and future apps.
+- **Read (backfill)**: Item (3) is the written counterpart of Entry #20's direction lock. ⚠ `docs/MODIPHIUS_PARTNERSHIP_STATUS.md` still carried a "Steam-first launch" bullet until 2026-09-13; that bullet was superseded here. Item (2) was partially settled on the Jul 27 call (Entry #27).
+- **References**: Entry #22 (the Docs); Entry #25b (Chris's next LOI comment, "monthly recoups"); Entry #27.
+
+---
+
+### Entry #25 — 2026-07-14 → 2026-07-18 — Check-in; Chris: head-of-finance hire + XCOM launch; proposes a call; adds a "monthly recoups" comment to the letter
+
+`[BACKFILLED 2026-09-13; bodies verbatim]`
+
+#### #25a — 2026-07-14 (10:22 AM) — Email outbound — Elijah
+
+  > Checking in to see what remains on your side of things so we can move
+  > forward on this initial paperwork and start getting dates and announcements
+  > nailed down.
+
+#### #25b — 2026-07-18 (4:44 AM) — Email inbound — Chris
+
+  > Hi Elijah my apologies for the continuing slow responses. We've been deep
+  > in recruiting for a new head of finance (group FC), and building up to our
+  > XCOM launch in ten days which has taken a huge amount of time but thankfully
+  > coming through it now. Can I suggest we do a call early this week to try to
+  > make sure you have everything you need to get moving?
+  >
+  > How is 3pm UK time Tues, or 5pm UK time Wednesday?
+  >
+  > I've added one more comment to the letter of agreement re monthly recoups
+  > for you to consider otherwise I think we're good.
+  >
+  > Will add more notes below.
+
+- **Key items raised**: (1) two Modiphius-side capacity constraints named (group FC recruitment; XCOM launch ~Jul 28); (2) call proposed for Tue Jul 21 3pm UK or Wed Jul 22 5pm UK; (3) **one more LOI comment, "re monthly recoups"** — the comment text itself lives in the Google Doc, not in the email; (4) "otherwise I think we're good" = the LOI was one item from agreed on Jul 18. ⚠ "Will add more notes below." — nothing follows in the exported message.
+- **Read (backfill, 2026-09-13)**: the repo has no record of how the "monthly recoups" comment was resolved. It was presumably discussed on Jul 27 (Entry #27 records "taper accepted, pending his team"), but **verify it in the letterhead version when it lands** (Entry #32) — it touches the recoup mechanics locked in Entries #9/#10/#12.
+- **References**: Entry #24; Entry #26 (scheduling); Entry #27 (the call).
+
+---
+
+### Entry #26 — 2026-07-21 → 2026-07-25 — Scheduling the call (five messages) → Mon Jul 27, 9-10am PT / 5-6pm UK
+
+`[BACKFILLED 2026-09-13; bodies verbatim]`
+
+#### #26a — 2026-07-21 (6:46 PM) — Email outbound — Elijah
+
+  > Hey Chris -
+  >
+  > Sorry for the late reply, this has been a pretty busy week on my end. I'm
+  > pretty booked tomorrow and thursday with appointments for my kids. Would
+  > friday work for you?
+  >
+  > Let me know,
+  >
+  > Elijah
+
+#### #26b — 2026-07-22 (2:53 AM) — Email inbound — Chris
+
+  > Hi no problem at all, I’m pretty tied up this week now, monday I have 3-4 or 5-6 but then I’m at gencon the rest of the week till the 4th and working from the 5th august again?
+
+#### #26c — 2026-07-22 (3:37 PM) — Email outbound — Elijah
+
+  > Monday 5 - 6 would be great for me. But will give me the rest of the week
+  > to get everything prepped for our discussion on Monday that way we can get
+  > everything figured out before you had the Gen Con.
+
+#### #26d — 2026-07-25 (8:49 AM) — Calendar invite (outbound) — "Design document", Jul 27 2026 9:00-10:00am Pacific
+
+  > Design document
+  > Jul 27, 2026, 9:00am – Jul 27, 2026, 10:00am
+  > (GMT-07:00) Pacific Time - Los Angeles
+  > Sending out invites for monday, let me know if the times are incorrect from
+  > your end. I have it set to 9 - 10AM PST for me.
+
+#### #26e — 2026-07-25 (11:12 AM) — Email inbound — Chris
+
+  > That’s fine see you then
+  > Sent from my iPhone
+
+- **Notes**: Chris's "5-6" is UK time (BST, UTC+1); 5pm BST = 9am PDT, which matches the invite. Chris away at Gen Con through Aug 4, working again from Aug 5.
+- **References**: Entry #25b; Entry #27; `docs/MEETING_PREP_2026-07-27.md` (prep, written before the call).
+
+---
+
+### Entry #27 — 2026-07-27 (9:00-10:00am PDT / 5-6pm BST) — Video call — "Design document" call with Chris: monetization model approved, LOI moving to letterhead, alpha kickoff date deferred
+
+`[PROVISIONAL — pending verification]` `[BACKFILLED 2026-09-13 — RECONSTRUCTED. No minutes, recording, or follow-up email exists in the repo or on the Gmail thread. The outcome bullets below are copied from docs/MODIPHIUS_PARTNERSHIP_STATUS.md lines 10-18 as refreshed on 2026-08-06; the logistics come from docs/MEETING_PREP_2026-07-27.md, which was written BEFORE the call. Verify every line against Elijah's own notes before relying on it.]`
+
+- **Mode**: Google Meet (`meet.google.com/wfu-espr-ewd`, per the prep doc line 3), calendar title "Design document", Chris's calendar note "Touching base before gencon" (prep doc line 4)
+- **Attendees (planned)**: Elijah, Chris (accepted), Gavin (no response as of the prep doc, line 5). Whether Gavin attended is not recorded.
+- **Prep**: `docs/MEETING_PREP_2026-07-27.md`. Its §0 named two deliverables for the call — the LOI finalised and signed on the call, and an alpha start date with Modiphius's side committed to it. **Neither happened** (see outcome).
+- **Outcome, as recorded on 2026-08-06** (`docs/MODIPHIUS_PARTNERSHIP_STATUS.md:12-18`, wording preserved):
+  - $9.99 one-time base + per-book unlocks APPROVED (no subscription).
+  - Taper accepted, pending his team.
+  - Five Parsecs own-IP scope adopted — Traveller is out of scope.
+  - LOI moving to Modiphius letterhead. Diff the letterhead version against the agreed Google Doc before signing (`BOILERPLATE_REVIEW_CHECKLIST.md`).
+  - Alpha kickoff date deliberately DEFERRED for social coordination — do not re-propose one unprompted.
+- **Not recorded anywhere**: how the "monthly recoups" LOI comment (Entry #25b) was resolved; who "his team" refers to (Entry #30 later names Cam as the person who handles business deals); any date promised for the letterhead.
+- **What this changed against the written record**: Entry #24 item (2) monetization is partly settled (the model, not the forecasts); Entry #24 item (3) MOBILE ONLY is consistent with the deal as approved but is only confirmed once the letterhead carries it; the `docs/CLOSED_ALPHA_PLAN.md` gate-4 price band ($14.99-$24.99, written for a Steam SKU) is superseded by $9.99 base + per-book unlocks.
+- **References**: Entry #26 (scheduling); Entry #28 (first post-call chase, 22 days later); `docs/MEETING_PREP_2026-07-27.md`.
+
+---
+
+### Entry #28 — 2026-08-18 (2:45 PM) — Email outbound — Letterhead chase: does Chris's team need anything else from Elijah?
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email (same "Design document" thread)
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > Hey Chris,
+  >
+  > Hope you're doing well, I wanted to check and make sure you didnt need
+  > anything else from me in regards to getting the letterhead drafted by your
+  > team? I'll double check everything on my end but I want to make sure you
+  > guys are satisfied on your end as well.
+  >
+  > Thanks,
+  >
+  > Elijah
+
+- **Read (backfill)**: 22 days after the call, 13 days after Chris's stated return from Gen Con (Entry #26b: "working from the 5th august again"). No reply to this message; the next inbound is Entry #30, in answer to Entry #29.
+- **References**: Entry #27; Entry #29.
+
+---
+
+### Entry #29 — 2026-08-25 (6:39 AM) — Email outbound — Ask for a legal contact and a social-media contact; "nearly two months" on the LOI
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris, Gavin
+- **Verbatim body**:
+
+  > Chris, Gavin
+  >
+  > Is there anyone from legal or social media i can sync up with for the LOI
+  > and the social media posts for the alpha?
+  >
+  > The LOI itself we've been trying to officially write down for nearly two
+  > months now.
+  >
+  > Let me know how i can help,
+  >
+  > Elijah
+
+- **Key items raised**: (1) first request to be routed to Modiphius legal directly; (2) first request for a marketing/social contact for the alpha announcement; (3) the two-month figure dates the LOI effort from Entry #22 (Jun 22, when the Google Doc went over).
+- **References**: Entry #28; Entry #30 (Chris's answer the next day).
+
+---
+
+### Entry #30 — 2026-08-26 (4:20 AM) — Email inbound — Chris: Cam (business deals) has been on paternity leave and holiday; three companies' end-of-year accounts; marketing frees up mid-September; proposes a call "later next week"
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Chris Birch
+- **To**: Elijah, Gavin
+- **Verbatim body**:
+
+  > Hi Elijah sorry it’s taking a while Cam who handles the business deals has been on paternity leave and summer holiday a lot of the last two months and I’ve locked in end of year accounts for now three companies. He’s mostly back online next week if you can bear with us and well get that squared away first
+  >
+  > Most of the marketing team have been tied up as well and should get a bit easier mid Sept for them
+  >
+  > If we book a time to chat later next week to lock every down does that work?
+
+- **Key items raised**: (1) **Cam** — surname not given — "handles the business deals"; the LOI is his to finish, and he was largely away for the two months in question; (2) the accounts blocker now covers three companies (it was "end of year with some complex accounts" in Entry #23b); (3) **marketing/social availability: mid-September** — this is the earliest Modiphius has said it can support the announcement side of the alpha; (4) call proposed for the week of Aug 31 - Sep 4 ("later next week").
+- **Read (backfill)**: this is the first message to name the person actually holding the LOI. Every earlier delay was attributed to Chris's own workload.
+- **References**: Entry #29; Entry #31 (Elijah's availability); Entry #32 (the call was never booked; Chris returns Sep 11).
+
+---
+
+### Entry #31 — 2026-08-26 (10:57 PM) — Email outbound — Elijah: early next week works; Sep 3 morning blocked
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > Hi Chris,
+  >
+  > I appreciate the update, early next week would be great if possible. My
+  > kids first day of school is on the 3rd (wednesday) so that morning is
+  > blocked out but any other morning should be okay.
+  >
+  > Let me know,
+  >
+  > Elijah
+
+- **Note**: Sep 3 2026 is a Thursday; the parenthetical is recorded as written.
+- **Read (backfill)**: **No message of any kind between this and Entry #32 (Aug 27 → Sep 10, 15 days).** The "later next week" call from Entry #30 was never scheduled on the thread.
+- **References**: Entry #30; Entry #32.
+
+---
+
+### Entry #32 — 2026-09-11 (3:24 AM) — Email inbound — Chris: the letter will be finalised and issued Monday Sep 14; proposes meeting early that week on what else the playtest needs
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Chris Birch
+- **To**: Elijah (Gavin on thread)
+- **Verbatim body**:
+
+  > Hi Elijah sorry again for the slow pace and appreciate your patience we’ve spent the best part of the last 3 weeks finalising three companies accounts. Myself and Cam will finalise any notes on the letter and issue it on monday for you.
+  >
+  > Shall we meet early next week to see what else you need from us to get the playtest rolling properly?
+
+- **Key items raised**: (1) **LOI on letterhead promised for Monday Sep 14 2026** (Sep 11 is a Friday; "monday" is the next one); (2) "finalise any notes on the letter" — Chris and Cam may still be editing, so the letterhead text may differ from the Google Doc; the diff-before-signing step in Entry #27 applies; (3) a meeting proposed for the week of Sep 14, explicitly framed as *what Modiphius owes* ("what else you need from us to get the playtest rolling properly"); (4) no date or time offered — Elijah's reply (Entry #33) leaves the choice with Chris.
+- **Read (backfill)**: this is the message that reopened the thread after the 15-day silence. Item (3) is the first time Chris has framed a meeting around the alpha's operational needs rather than the paperwork; the Entry #21 Play-Console ask and the Entry #29 marketing ask both belong on that agenda.
+- **References**: Entry #31; Entry #33; §3.0 below (live threads for the meeting).
+
+---
+
+### Entry #33 — 2026-09-12 (5:49 PM) — Email outbound — Elijah: happy to set time aside; mornings flexible now that school is in
+
+`[BACKFILLED 2026-09-13; body verbatim]`
+
+- **Mode**: Email
+- **From**: Elijah
+- **To**: Chris (Gavin on thread)
+- **Verbatim body**:
+
+  > Hey Chris,
+  >
+  > Appreciate the update and no worries about the delay. I can absolutely set
+  > aside some time for us to get the final things ironed out. My kids are back
+  > in school so mornings are a bit more flexible for me.
+  >
+  > Let me know what works for you guys,
+  >
+  > Elijah
+
+- **Read (backfill)**: no specific slots offered; the ball is with Chris to name a time. As of this entry no meeting is on the calendar and the letterhead has not arrived (it is not due until Sep 14).
+- **References**: Entry #32; §3.0 below.
+
+---
+
 ## 3. Open Threads
+
+### 3.0 Live threads as of 2026-09-13
+
+Compiled from the Jun 5 → Sep 12 backfill (Entries #15-#33) and a code read of the build on the same day. Where a row below disagrees with the §3.1 snapshot, this table wins. Build-state claims cite `file:line` at commit `3b26b873d`.
+
+| Thread | Status | Owner | Next Step |
+|---|---|---|---|
+| **LOI on Modiphius letterhead** | PROMISED for **Mon Sep 14 2026** (Entry #32: "issue it on monday"). Chris + Cam are still "finalising any notes on the letter", so the text may differ from the agreed Google Doc. | Modiphius (Chris, Cam) | On receipt: (1) diff against the Google Doc (`BOILERPLATE_REVIEW_CHECKLIST.md`); (2) confirm how the "monthly recoups" comment (Entry #25b) was resolved; (3) confirm the MOBILE ONLY language (Entry #24) survived; (4) confirm $9.99 base + per-book unlocks and the taper (Entry #27) are written in. Then work `docs/legal/POST_LOI_LEGAL_CHECKLIST.md` top to bottom. |
+| **Meeting, week of Sep 14** | PROPOSED by Chris (Entry #32), accepted in principle (Entry #33). No time set; Chris to name one. Framed by Chris as "what else you need from us to get the playtest rolling properly". | Both | Bring the ask list (next four rows). Do NOT propose a kickoff date (deferred Jul 27, Entry #27). |
+| **Modiphius mobile developer setup / Play Console access** | OPEN since **Jun 18** (Entry #21) — **never answered** by Chris or Gavin on the thread. The alpha plan assumes a closed test track under Modiphius's Play account (`docs/CLOSED_ALPHA_PLAN.md` §3). Longest lead time of anything on the list. | Modiphius (Gavin?) | Top of the Sep 14 agenda. Need: who owns the Play Console account, a developer-account seat or upload role for Elijah, and the app listing created so the closed track can exist. |
+| **Cam introduction** | NEW (Entry #30). Cam "handles the business deals" and holds the LOI. No direct contact yet; surname unknown. | Modiphius (Chris) | Ask to be introduced on the Sep 14 call, so LOI questions stop routing through Chris. |
+| **Legal contact + marketing/social contact** | ASKED Aug 25 (Entry #29). Chris's answer (Entry #30): marketing "should get a bit easier mid Sept". No names given. | Modiphius | Ask again on the Sep 14 call. The playtest announcement draft (Entry #22) still needs Modiphius's endorsement language and a bias-check of the signup form wording (Entry #12 workflow, `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`). |
+| **Alpha kickoff date** | DEFERRED by Modiphius on Jul 27 (Entry #27) for social coordination. Do not re-propose unprompted. | Modiphius | Wait for Modiphius to name one; the Sep 14 meeting is the natural place. Everything in `docs/CLOSED_ALPHA_PLAN.md` is written relative to it (K-day). |
+| **Alpha DLC unlock for testers (engineering)** | OPEN — a contradiction between the plan and the build. `docs/CLOSED_ALPHA_PLAN.md` §3 and the tester onboarding both promised "all three Compendium packs unlocked", but `DLCManager._owned_dlcs` starts empty (`src/core/systems/DLCManager.gd:128`), `is_feature_enabled()` requires ownership (`:181-184`), and on a fresh install there is no tester-reachable path to grant it: the Settings "Manage Features" button only appears when `owned_count > 0` (`SettingsScreen.gd:589`), the store card's "Manage Features" is the owned-state restyle of the buy button (`DLCPackCard.gd:252-255`), and the only non-debug ownership writer is `DLCManagementDialog.gd:263`. The Android billing adapter falls to `OfflineStoreAdapter` because no `BillingClient` class ships (`AndroidStoreAdapter.gd:23-25`; `docs/QA_STATUS_DASHBOARD.md:936-937`). | Elijah | Decide the alpha unlock mechanism before the A0 build (e.g. an alpha-build flag that seeds `_owned_dlcs`, or a build-time constant). This is not billing work — billing stays parked (next row). |
+| **Store billing** | PARKED by owner decision **2026-09-05** pending the LOI on letterhead (`docs/QA_STATUS_DASHBOARD.md:939-945`). Not to be chased or re-raised until then. | Elijah | Revisit only after the letterhead LOI is signed. |
+| **Art: folder comparison / unused art** | LOW. Chris offered an AI folder comparison "in a few days" on Jun 30 (Entry #23b); never delivered. Elijah's inventory offer (Entry #21: 737 files, ~18.7 GB) never taken up. Entry #21 states the narrative-scene set is sufficient for the alpha. | Modiphius | Leave off the Sep 14 agenda unless time allows. |
+| **Art direction risk** | RECORDED, non-blocking (Entry #24 item 1; Entry #18; Entry #20 offer of help). Worst case: proof of concept kept. Purpose-built pieces from Richard's team are a Modiphius production decision after the alpha. | Both | No action before the alpha. |
+| **Monetization model + forecasts** | PARTLY RESOLVED Jul 27 (Entry #27: $9.99 base + per-book unlocks, taper). Projected forecasts (Entry #24 item 2) still open. The `MODIPHIUS_DIGITAL_FORECAST.md` platform-cut multiplier (0.70, Steam-only) has to be re-run for Google Play's fee schedule — no number is asserted here. | Elijah | Re-run the forecast on the mobile fee structure after the LOI lands; not a Sep 14 item. |
+| **Future production terms (Five Parsecs, Five Leagues, future apps)** | OPEN (Entry #24 item 4). Belongs to the Definitive Agreement, not the LOI (`PARTNERSHIP_PAPERWORK_PRIMER.md`). | Both | Park until the LOI is signed. |
+| **Shared Google Docs (one-pager, announcement, LOI, signup form)** | DELIVERED Jun 22 (Entry #22). LOI edited in-Doc by Chris and accepted Jul 8 (Entry #24). Announcement and signup form have NOT had Modiphius's endorsement/bias-check pass. ⚠ Two of the four links are mangled in the Gmail plain-text export; use Gmail/Drive. | Elijah (docs), Modiphius (review) | Get the marketing contact (row above) to review the announcement and form before either goes live. |
+| **T4 conversion-mechanism asks (discount code sizing, redemption mechanism, landing page, newsletter endpoint)** | OPEN since `MEETING_FOLLOWUPS_2026-04-29.md`; never answered; not raised in Jun-Sep. | Modiphius | Off the Sep 14 agenda — they gate Phase B deliverables, not the alpha start. Raise once the announcement is being drafted with marketing. |
+| **NDA stance for testers** | UNRESOLVED. Chris May 8 (Entry #8): "We also get play testers to sign NDA's on tabletop closed beta projects. If they're open testing we don't." The onboarding doc says no NDA, gentleman's agreement. The alpha is invite-only (closed), which by Chris's own framing is the NDA case. | Both | Ask on the Sep 14 call: does Modiphius want its standard playtester NDA for this cohort, and if so who supplies it? The onboarding doc cannot be finalised without the answer. |
+| **Android-first re-alignment (app + alpha)** | RESOLVED — direction LOCKED Jun 18 (Entry #20); alpha model stated Jun 18 (Entry #21); LOI language MOBILE ONLY Jul 8 (Entry #24). The §3.1 row below marked this PARKED on Jun 4. | — | None. Docs updated 2026-09-13 to match. |
+| **Alpha cohort / signup model** | RESOLVED May 25 (Entry #12): Google-Form funnel across the official Discord, Ivan's community and the 5PFH Facebook group; Elijah owns the tester DB; each tester's Gmail collected for the Play closed track (`docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`). The "10-20 from Ivan's Discord" model in older docs is superseded. | Elijah | Form goes live only after the Modiphius bias-check (row above) and once a kickoff date exists. |
+| **In-app feedback / bug-report widget** | RESOLVED (built). `src/ui/components/common/BugReportDialog.gd` — reachable from the button beside the settings gear (`src/autoload/SettingsOverlay.gd:13,161`) and Settings (`SettingsScreen.gd:730`); saves to `user://bug_reports/` first (`BugReportStore.gd:14`), copies to clipboard, opens the mail client; optional Discord webhook whose URL lives in a gitignored `.cfg` (`BugReportWebhook.gd:32,51` — absent URL means the feature is simply off). | Elijah | Decide whether to configure the webhook for the alpha; the tester doc describes the button, not the webhook. |
+
+### 3.1 Historical snapshot (May 5 → Jun 4 2026) — superseded where §3.0 disagrees
 
 | Thread | Status | Owner | Next Step |
 |---|---|---|---|
@@ -1126,6 +1806,8 @@
 - 2026-05-25: **New internal cost code** (Entry #12, Gavin): not under 5X1, provisioned for possible reuse beyond 5PFH (internal T3 multi-IP signal).
 - 2026-05-25: **Dom (head playtest) not in the alpha** (Entry #12); Modiphius team hands-off, may review at marker points. The dev team WILL review the survey wording before it goes live.
 - 2026-05-25: **Chris assigns Elijah three drafts** (Entry #12): LOI, Announcement, Google Form questions; send to Modiphius for review before going live.
+- 2026-06-18: **Direction LOCKED** (Chris, Entry #20): "I’m happy to lock this direction so you can focus." Settles the mobile/Android-first direction parked on Jun 4; Entry #21 states the resulting alpha model.
+- 2026-07-27: **Alpha kickoff date DEFERRED** for social coordination (Entry #27, `[PROVISIONAL — pending verification]`). Do not re-propose a date unprompted.
 
 ### Decisions made by Elijah-side
 
@@ -1163,6 +1845,8 @@
 - 2026-05-06: **Weekly Gavin cadence rhythm established** via Entry #7a QA docs delivery (originally target Mon May 4 / Tue May 5, landed Tue May 6 — slipped few days but rhythm preserved)
 - 2026-05-25: **Cadence simplified to monthly check-ins once rolling** (Entry #12), superseding the Apr-29 weekly-Gavin / bi-weekly-Chris cadence for the build phase. Modiphius is involved on-demand (amplification, marker points) and at EA planning.
 - 2026-05-25: **Paperwork path clarified** (Entry #12): informal LOI on a shared Google Doc, then a long-form contract off Modiphius's standard customisable agreement. Refines the Apr-29 LOI -> MOU -> Definitive progression: the shared-understanding Google Doc is the working "MOU", and the customised standard contract is the binding step.
+- 2026-07-08: **LOI language MOBILE ONLY** (Entry #24): Chris's in-Doc LOI edits accepted by Elijah.
+- 2026-07-27: **$9.99 one-time base + per-book unlocks APPROVED**; taper accepted pending Chris's team; Five Parsecs own-IP scope; LOI moves to Modiphius letterhead (Entry #27, `[PROVISIONAL — pending verification]`).
 
 ---
 
@@ -1172,6 +1856,7 @@
 - **Verbatim quote integrity**: when transcribing email content, do not paraphrase. Paste verbatim. If there's a typo in the original, preserve it. The verbatim integrity is what makes this journal load-bearing in any future dispute or partnership refinement.
 - **Cross-reference discipline**: every entry should link to at least one external artifact (meeting notes file, deliverable doc, memory pointer). The journal is an index, not the only record.
 - **Update cadence**: within 24 hours of any touchpoint. If an entry is provisional, mark it `[PROVISIONAL — pending verification]` and update once confirmed.
+- **Sep 13 2026 backfill (Entries #15-#33)**: added from a plain-text export of the Gmail "Design document" thread (Jun 5 → Sep 12). Every blockquoted body line was machine-checked against the export. Times were converted from the export's UTC stamps to Pacific (PDT) to match Entries #13-#14. In Entry #22, `[0x1C]` marks a control byte the export left in two links (see its Link notes). Entry #27 (the Jul 27 call) has no minutes and is RECONSTRUCTED from `MODIPHIUS_PARTNERSHIP_STATUS.md` + `MEETING_PREP_2026-07-27.md`; it stays PROVISIONAL until checked against Elijah's notes. §3.0 is the live thread table; §3.1 is the Jun 4 snapshot kept for history.
 
 ---
 

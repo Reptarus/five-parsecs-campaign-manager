@@ -27,6 +27,7 @@ const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.g
 
 ## Code-built, appended to the existing TransferButtons HFlowContainer.
 var _fit_button: Button = null
+var _remove_sight_button: Button = null
 
 # Design system constants
 const SPACING_XS := UIColors.SPACING_XS
@@ -398,8 +399,10 @@ func _on_transfer_to_crew_pressed() -> void:
 	var item = stash_items[item_index]
 	var member = crew_data[selected_crew_index]
 
-	# Krag armor rule (Compendium p.15): a Krag can only wear Krag-fitted armor.
-	# Non-Krag armor must be modified to fit (2 Credits) before it can be equipped.
+	# Krag armor rule (Compendium p.13): a Krag can only wear Krag-fitted armor.
+	# Which remedy applies depends on where the armor came from — a free
+	# selection for armor off a Trade roll, 2 Credits for anything else. That
+	# split is decided in _offer_krag_modification(), not here.
 	if _krag_needs_modification(member, item):
 		_offer_krag_modification(member, item, item_index)
 		return
@@ -436,7 +439,7 @@ func _do_transfer_to_crew(member, item, item_index: int) -> void:
 	_update_ui_display()
 	_update_detail_strip()
 
-# --- Krag armor designation (Compendium p.15): a Krag can only wear Krag-fitted armor ---
+# --- Krag armor designation (Compendium p.13): a Krag can only wear Krag-fitted armor ---
 
 func _is_krag_member(member) -> bool:
 	var sid: String = ""
@@ -455,8 +458,42 @@ func _krag_needs_modification(member, item) -> bool:
 		return false
 	return not item.get("is_krag_armor", false)
 
-## Offer the 2-credit modification (Compendium p.15). Equip only proceeds on modify.
+## True when this armor still owes the player the FREE Compendium p.13
+## selection: it came off a Trade table roll and that selection is still
+## unspent. False means clause 2 applies and the fit costs 2 Credits.
+##
+## Named rather than left inline in _offer_krag_modification() for two
+## reasons: it IS a rule and belongs where a reader looks for one, and the
+## popup branch it guards cannot otherwise be asserted on — both clauses
+## build the same ItemChoicePopup class, so without this seam the routing
+## decision would have no detection arm at all.
+func _krag_fit_is_free(item) -> bool:
+	if not (item is Dictionary):
+		return false
+	# Local name kept clear of the `eqm` declared inside the closure below: a
+	# lambda body is a NESTED scope in GDScript, so reusing the name is a
+	# PARSE ERROR, not a shadow, and it takes this whole file (plus
+	# WorldPhaseController, which preloads it) out of product.
+	var eqm_rule = get_node_or_null("/root/EquipmentManager")
+	if eqm_rule == null or not eqm_rule.has_method("has_unspent_krag_choice"):
+		return false
+	return eqm_rule.has_unspent_krag_choice(item)
+
+
+## Present the Krag armor decision. TWO different rules live on Compendium
+## p.13 and which one applies depends entirely on where the armor came from:
+##
+##   clause 1 — armor off a Trade table roll: the player SELECTS, FREE, once
+##   clause 2 — armor from any other source:  2 Credits, reversible for 2 more
+##
+## Clause 1 had no implementation at all until 2026-09-10, so a Krag paid 2
+## Credits for every piece of armor in the game including the case the book
+## gives away. Routing here rather than at the call site keeps "which clause
+## is this?" in one place; the equip path only needs to know it does not fit.
 func _offer_krag_modification(member, item, item_index: int) -> void:
+	if _krag_fit_is_free(item):
+		_offer_free_krag_fit(member, item, item_index)
+		return
 	var modify_label := "Modify for 2 Credits"
 	var popup: Window = ItemChoicePopupScript.new()
 	popup.item_chosen.connect(func(chosen: String) -> void:
@@ -470,6 +507,38 @@ func _offer_krag_modification(member, item, item_index: int) -> void:
 	)
 	add_child(popup)
 	popup.show_choices("A Krag can only wear Krag-fitted armor.", [modify_label, "Cancel"])
+
+
+## Compendium p.13, clause 1, verbatim: "Armor acquired from a Trade table
+## roll must be selected by the player to be Krag-armor or not." Free, once.
+##
+## Only the FIT half is offered as a button. The "or not" half is the state
+## the item is already in and needs no action from anybody — and surfacing it
+## HERE, at the one moment the player is trying to put this armor ON a Krag,
+## would let them spend the single free selection on the option that makes the
+## equip fail, and then charge them 2 Credits to undo it.
+##
+## Cancel therefore leaves the choice UNSPENT: declining to equip is not a
+## selection, and the armor is still owed its free fit next time.
+func _offer_free_krag_fit(member, item, item_index: int) -> void:
+	var fit_label := "Fit for Krag (free)"
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.item_chosen.connect(func(chosen: String) -> void:
+		if chosen == fit_label:
+			var eqm = get_node_or_null("/root/EquipmentManager")
+			if eqm and eqm.has_method("choose_krag_fit") \
+					and eqm.choose_krag_fit(item, true):
+				_do_transfer_to_crew(member, item, item_index)
+			else:
+				_show_notification("Could not apply the Krag fit to that armor.")
+		popup.queue_free()
+	)
+	add_child(popup)
+	popup.show_choices(
+		"This armor came off a Trade roll, so fitting it for Krag is free "
+		+ "(Compendium p.13).",
+		[fit_label, "Cancel"]
+	)
 
 func _on_transfer_between_crew_pressed() -> void:
 	## Transfer item between crew members - Sprint C: Complete crew-to-crew transfer
@@ -816,9 +885,14 @@ func _ensure_fit_button() -> void:
 
 func _refresh_fit_button() -> void:
 	_ensure_fit_button()
-	if _fit_button == null:
-		return
-	_fit_button.disabled = _selected_attachment_id().is_empty()
+	if _fit_button != null:
+		_fit_button.disabled = _selected_attachment_id().is_empty()
+	_ensure_remove_sight_button()
+	if _remove_sight_button != null:
+		# Only offered on a weapon that HAS a Sight — a mod can never be removed
+		# (p.53), so an enabled button on a modded weapon would promise a rule the
+		# book does not have.
+		_remove_sight_button.disabled = _selected_weapon_with_sight().is_empty()
 
 
 ## The attachment id currently selected in the crew equipment list, or "".
@@ -837,6 +911,87 @@ func _selected_attachment_id() -> String:
 	else:
 		label = str(entry)
 	return WeaponModServiceRef.normalize_id(label)
+
+
+## The selected crew-equipment entry, when it is a weapon carrying a fitted
+## Sight. Returns {} otherwise, which is what disables the Remove button.
+func _selected_weapon_with_sight() -> Dictionary:
+	if _selected_equipment_index < 0:
+		return {}
+	if selected_crew_index < 0 or selected_crew_index >= crew_data.size():
+		return {}
+	var equipment: Array = _get_member_equipment(crew_data[selected_crew_index])
+	if _selected_equipment_index >= equipment.size():
+		return {}
+	var entry: Variant = equipment[_selected_equipment_index]
+	if not (entry is Dictionary):
+		return {}
+	var d: Dictionary = entry
+	if WeaponModServiceRef.fitted_sight(d).is_empty():
+		return {}
+	return d
+
+
+## Core Rules p.53, verbatim: Sights "can be fitted to a weapon OR MOVED TO A NEW
+## ONE when equipment is being assigned during the campaign turn."
+##
+## ⚠ THE "MOVED" HALF HAD NO AFFORDANCE ANYWHERE, and that is a playable defect,
+## not a missing convenience. `fit()` displaces a Sight only when a SECOND one is
+## fitted to the same weapon, so a crew owning exactly one Sight had it welded to
+## whichever weapon it first touched, for the rest of the campaign — there was no
+## sequence of button presses that could move it. `WeaponModService.remove_sight()`
+## was written, correct, and the only implementation of the removal half; it had
+## zero callers.
+##
+## Mods are deliberately NOT removable here: p.53 says they "cannot be removed or
+## reversed", which is why WeaponModService has no remove_mod() to call.
+func _ensure_remove_sight_button() -> void:
+	if _remove_sight_button and is_instance_valid(_remove_sight_button):
+		return
+	if transfer_to_stash_button == null or transfer_to_stash_button.get_parent() == null:
+		return
+	_remove_sight_button = Button.new()
+	_remove_sight_button.text = "Remove Sight"
+	_remove_sight_button.tooltip_text = (
+		"Take the Gun Sight off this weapon and return it to the character's kit,"
+		+ " so it can be moved to another weapon (Core Rules p.53). Gun Mods"
+		+ " cannot be removed.")
+	_remove_sight_button.accessibility_name = "Remove gun sight from this weapon"
+	_remove_sight_button.custom_minimum_size = Vector2(0, 48)
+	_remove_sight_button.disabled = true
+	_remove_sight_button.pressed.connect(_on_remove_sight_pressed)
+	transfer_to_stash_button.get_parent().add_child(_remove_sight_button)
+
+
+func _on_remove_sight_pressed() -> void:
+	var weapon: Dictionary = _selected_weapon_with_sight()
+	if weapon.is_empty():
+		return
+	var removed: String = WeaponModServiceRef.remove_sight(weapon)
+	if removed.is_empty():
+		return
+
+	# The Sight becomes a loose item again — one item, one home. This mirrors
+	# _apply_fit()'s displaced-Sight branch on purpose: both are the same physical
+	# card coming off the same weapon, and two shapes for that would be a bug.
+	var member = crew_data[selected_crew_index]
+	var equipment: Array = _get_member_equipment(member)
+	equipment.append({
+		"id": removed,
+		"name": str(WeaponModServiceRef.definition(removed).get("name", removed)),
+		"type": "gear",
+	})
+	_set_member_equipment(member, equipment)
+
+	_selected_equipment_index = -1
+	_populate_crew_equipment()
+	_refresh_fit_button()
+
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_success"):
+		notif.show_success("%s removed from %s and returned to kit" % [
+			str(WeaponModServiceRef.definition(removed).get("name", removed)),
+			str(weapon.get("name", "the weapon"))])
 
 
 func _on_fit_to_weapon_pressed() -> void:

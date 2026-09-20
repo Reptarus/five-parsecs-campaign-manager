@@ -24,6 +24,7 @@ var _post_battle_data: Dictionary = {}
 var _battle_results: Dictionary = {}  # From TacticalBattleUI
 var _results: Dictionary = {}
 var _processed: bool = false
+var _completed: bool = false
 
 var _content_container: VBoxContainer
 
@@ -55,13 +56,25 @@ func set_battle_results(results: Dictionary) -> void:
 
 func refresh() -> void:
 	_processed = false
+	_completed = false
 	_results.clear()
 	_populate_post_battle()
 
 
 func complete() -> void:
+	## Belt-and-braces re-entry guard, mirroring SpecialAssignmentsPanel.complete()
+	## (:56-59). _processed already stops the WORK being redone, but not the EMIT -- and
+	## the emit is what reaches BugHuntPhaseManager.complete_current_phase() and
+	## re-applies the whole turn's XP, tally, Reputation and Operational Progress.
+	##
+	## With the turn now ending at Phase.NONE the manager (:67-68) refuses a second call
+	## anyway. This guard is what makes a regression there fail for ONE reason instead of
+	## two, which is the difference between a test that names a cause and one that does not.
+	if _completed:
+		return
 	if not _processed:
 		_process_post_battle()
+	_completed = true
 	phase_completed.emit({"post_battle_result": _results})
 
 

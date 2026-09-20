@@ -41,7 +41,7 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 	var signals: Array = []
 	var tac_loc_count: int = 6
 	if use_signals:
-		var signal_count: int = (randi() % 6) + 1  # 1D6
+		var signal_count: int = _roll_d6("Bug Hunt Signals: count")  # 1D6
 		tac_loc_count = maxi(6 - signal_count, 0)
 		signals = _generate_signals(signal_count)
 
@@ -123,7 +123,7 @@ func _generate_tactical_locations_count(count: int) -> Array:
 	var locations: Array = []
 	for i in range(count):
 		# Roll D6 for type (Compendium p.191)
-		var roll: int = (randi() % 6) + 1
+		var roll: int = _roll_d6("Bug Hunt Tactical Location: type")
 		var loc: Dictionary = {}
 		for lt in location_types:
 			if lt is not Dictionary:
@@ -206,3 +206,28 @@ func _load_json(path: String) -> Dictionary:
 		return json.data
 	file.close()
 	return {}
+
+
+## ── Dice routing ────────────────────────────────────────────────────────────
+## Book table rolls go through the DiceManager autoload so they are recorded in
+## the roll history and can be forced from the QA dialog in a debug build.
+##
+## This is RefCounted, so it reaches the autoload through
+## Engine.get_main_loop().root — a bare get_node_or_null() from a .new() object
+## does not return null, it ERRORS and aborts the enclosing function.
+##
+## Map PLACEMENT (contact sectors, spawn edges, signal positions) is deliberately
+## left on raw randi(): 5PFH's BattlefieldGenerator.gd has zero DiceManager
+## references and seeds a local RNG for placement. Routing it would flood the
+## forced-roll queue with entries a tester never asked to control.
+func _dice_manager() -> Node:
+	if Engine.get_main_loop() == null:
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+
+
+func _roll_d6(context: String) -> int:
+	var dm: Node = _dice_manager()
+	if dm:
+		return int(dm.roll_d6(context))
+	return randi_range(1, 6)

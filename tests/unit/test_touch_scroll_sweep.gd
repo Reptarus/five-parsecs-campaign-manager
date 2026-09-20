@@ -108,7 +108,33 @@ const SCREENS: Array[String] = [
 	"res://src/ui/screens/compendium/CompendiumScreen.tscn",
 	"res://src/ui/screens/compendium/CompendiumCategoryView.tscn",
 	"res://src/ui/screens/store/StoreScreen.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
 ]
+
+## Screens whose POPULATED node count has been measured against its unpopulated one.
+##
+## ⚠ `built` alone cannot see a screen that builds EMPTY. A screen that bails out of
+## _ready() still reports built=true, and an empty tree has no ScrollContainers, so it
+## contributes STOP-under-scroll=0 and reads as a clean bill of health. That is T11-01
+## exactly: the layout sweep was green for a month because it was measuring four empty
+## panes. These floors are what stop a populator regression from passing silently.
+##
+## MEASURED 2026-09-19 by a one-variable A/B -- the POPULATE entry was the only thing
+## that differed between the two arms:
+##   BugHuntDashboard.tscn        9 nodes unpopulated -> 144 populated
+##   BugHuntTurnController.tscn   1 node  unpopulated ->  61 populated
+##   BugHuntCreationUI.tscn       101 either way; it reads no autoload, so it has no
+##                                POPULATE entry and the floor guards its own build
+## Each floor sits inside its gap and nearer the low end, so a broken fixture trips it
+## while ordinary UI churn does not. A screen with no entry here is not exempt -- it
+## simply has no measurement yet, and inventing one would be fabricating a baseline.
+const MIN_NODES := {
+	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn": 50,
+	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn": 60,
+	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn": 30,
+}
 
 
 ## Record `class @ path` for every STOP control the opener would rewrite, WITHOUT
@@ -156,6 +182,14 @@ func _sweep(path: String) -> Dictionary:
 		row["note"] = "not a PackedScene"
 		return row
 
+	# ⚠ A populator MAY write GameState.current_campaign -- the Bug Hunt fixture
+	# must, because both Bug Hunt screens read that autoload field and nothing else.
+	# Hold it here and put it back on every path out, so the screens swept AFTER it
+	# are not measured against another mode's core. That is the documented cross-suite
+	# bleed this suite's own before_test() guards against, one scope further in.
+	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
+	var held: Variant = gs.current_campaign if gs else null
+
 	var pop = PopulatorCls.new(self)
 	pop.populate_pre(path)
 
@@ -167,6 +201,8 @@ func _sweep(path: String) -> Dictionary:
 	var inst := packed.instantiate()
 	if inst == null:
 		row["note"] = "instantiate returned null"
+		if gs:
+			gs.current_campaign = held
 		return row
 	sv.add_child(inst)
 	pop.populate_post(inst, path)
@@ -194,6 +230,19 @@ func _sweep(path: String) -> Dictionary:
 		stop += OpenerCls.open_subtree(s)
 	row["stop"] = stop
 	row["names"] = names
+	if gs:
+		gs.current_campaign = held
+
+	# ⚠ FREE THE SCREEN NOW, do not leave it to auto_free at teardown.
+	# auto_free defers every SubViewport to the end of the CASE, so all of SCREENS
+	# would be alive at once -- roughly 5,000 nodes plus their textures and RIDs.
+	# MEASURED: at 27 screens that held; at 30 the process died with signal 11 inside
+	# the last one, and the same three screens swept ALONE passed cleanly. The ceiling
+	# is cumulative, not any one screen, so nothing above would have named it.
+	# auto_free stays as the net for the early returns above; GdUnitTools.free_instance
+	# guards on is_instance_valid, so freeing here and there is not a double free.
+	sv.queue_free()
+	await get_tree().process_frame
 	return row
 
 
@@ -219,6 +268,7 @@ func test_the_opener_can_actually_detect_a_swallowing_control() -> void:
 
 func test_no_screen_swallows_a_touch_drag_over_its_scrollable_content() -> void:
 	var offenders: Array[String] = []
+	var starved: Array[String] = []
 	var report: Array[String] = []
 	var built := 0
 
@@ -231,6 +281,8 @@ func test_no_screen_swallows_a_touch_drag_over_its_scrollable_content() -> void:
 		built += 1
 		report.append("  %-42s nodes=%-5d scrolls=%-2d STOP-under-scroll=%d" % [
 			name, row["nodes"], row["scrolls"], row["stop"]])
+		if MIN_NODES.has(path) and int(row["nodes"]) < int(MIN_NODES[path]):
+			starved.append("%s (%d nodes, floor %d)" % [name, row["nodes"], MIN_NODES[path]])
 		if int(row["stop"]) > 0:
 			offenders.append("%s (%d)" % [name, row["stop"]])
 			for nm: String in row["names"]:
@@ -246,6 +298,11 @@ func test_no_screen_swallows_a_touch_drag_over_its_scrollable_content() -> void:
 	assert_int(built).override_failure_message(
 		"only %d of %d screens instantiated, so this run cannot support any conclusion"
 		% [built, SCREENS.size()]).is_greater(20)
+
+	assert_array(starved).override_failure_message(
+		"these screens built far smaller than their measured populated size, so their "
+		+ "STOP-under-scroll=0 is the empty-tree false green, not a clean result -- the "
+		+ "fixture that fills them has regressed: %s" % str(starved)).is_empty()
 
 	assert_array(offenders).override_failure_message(
 		"these screens leave STOP-filtered controls under a ScrollContainer, so a finger "

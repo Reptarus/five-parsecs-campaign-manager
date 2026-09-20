@@ -79,7 +79,13 @@ var _onboard_button: Button = null
 var _fuel_offset_last_trip: int = 0
 var has_ship: bool = true
 const SHIP_TRAVEL_COST := 5
-const COMMERCIAL_TRAVEL_COST_PER_CREW := 1
+## ⚠ There is deliberately no COMMERCIAL_TRAVEL_COST_PER_CREW here any more.
+## It was a second constant for a rule ShiplessSystem already owns
+## (COMMERCIAL_PASSAGE_COST_PER_CREW), read at three sites in this file while
+## ShiplessSystem.get_commercial_passage_cost() sat unreferenced — one rate,
+## two names, either free to drift. ShiplessSystem is the canonical owner of the
+## shipless state (get_stash_limit, apply_ship_destruction, process_debt_interest)
+## so it owns the price of passage too.
 ## Core Rules p.62, verbatim: "You can have up to 4 crew members Suspended at
 ## any one time."
 const MAX_SUSPENDED_CREW := 4
@@ -1146,8 +1152,8 @@ func _update_travel_button_text(
 				"Travel (Need %d cr)" % SHIP_TRAVEL_COST)
 			_travel_button.disabled = true
 	else:
-		var cost := crew_size * COMMERCIAL_TRAVEL_COST_PER_CREW
-		if credits >= cost:
+		var cost := ShiplessSystemRef.get_commercial_passage_cost(crew_size)
+		if ShiplessSystemRef.can_afford_passage(credits, crew_size):
 			_travel_button.text = (
 				"Commercial Passage (%d cr)" % cost)
 			_travel_button.disabled = false
@@ -1214,6 +1220,24 @@ func _on_stay_pressed() -> void:
 	_update_travel_ui_after_decision()
 	if not str(_travel_status_label.text).begins_with("Interdiction:"):
 		_travel_status_label.text = "✓ Staying in current location"
+
+	# How much of the p.75 approved stay is left. The deadline is announced ONCE,
+	# on arrival ("approved to stay N campaign turns"), and then nothing mentions
+	# it again until `blocks_stay()` refuses — so a player who forgets the number
+	# discovers it by walking into the wall. `turns_remaining()` already tracked
+	# this, persisted, and had no consumer.
+	#
+	# Returns -1 when the world is not interdicted or the stay is licensed, i.e.
+	# "no limit", which is the case that must stay silent.
+	var stay_left: int = InterdictionRuleRef.turns_remaining(
+		stay_campaign, stay_turn)
+	if stay_left == 0:
+		_travel_status_label.text += (
+			"  ⚠ Last turn of your approved stay (p.75).")
+	elif stay_left > 0:
+		_travel_status_label.text += ("  Approved stay: %d more campaign turn%s (p.75)."
+			% [stay_left, "" if stay_left == 1 else "s"])
+
 	_travel_status_label.add_theme_color_override(
 		"font_color", UIColors.COLOR_EMERALD)
 	_travel_status_label.visible = true
@@ -1361,8 +1385,8 @@ func _on_travel_pressed() -> void:
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
 	else:
-		travel_cost = (
-			_get_crew_size_for_travel() * COMMERCIAL_TRAVEL_COST_PER_CREW)
+		travel_cost = ShiplessSystemRef.get_commercial_passage_cost(
+			_get_crew_size_for_travel())
 
 	# Starship fuel bought by a crew task offsets the cost (Core Rules p.79:
 	# "credits worth of starship fuel, which can be used to offset travel
@@ -2495,6 +2519,11 @@ func _resolve_faction_invasion_response(planet_id: String, planet_name: String) 
 	var fled: Array[String] = []
 	var lost: Array[String] = []
 	var fought: Array[String] = []
+	# The IDs as well as the display names: p.114's recovery clause names the same
+	# Power 5+ factions a whole campaign turn later, when the world is reclaimed,
+	# and by then `active_factions` has moved on. Names are for the journal line;
+	# ids are what FactionSystem.process_invasion_recovery() can act on.
+	var fought_ids: Array[String] = []
 	for r: Variant in results:
 		if not (r is Dictionary):
 			continue
@@ -2503,6 +2532,7 @@ func _resolve_faction_invasion_response(planet_id: String, planet_name: String) 
 		match str(row.get("action", "")):
 			"fights":
 				fought.append(fname)
+				fought_ids.append(str(row.get("id", "")))
 				war_bonus += int(row.get("war_bonus", 0))
 			"flees":
 				fled.append(fname)
@@ -2517,12 +2547,21 @@ func _resolve_faction_invasion_response(planet_id: String, planet_name: String) 
 	# (:39) and adds to the roll (:53). A new progress_data key would have been a
 	# second source of truth for the same number, needing a second consumer —
 	# which is how half the rows in this audit came to exist.
-	if war_bonus > 0:
+	#
+	# The defenders' IDS ride along on the SAME record, written in the same pass.
+	# p.114's third clause — "If the world is reclaimed, such Factions suffer -2
+	# Power but gain +1 Influence. Generate two new Factions when the war ends" —
+	# is settled by GalacticWarProcessor when the p.126 roll comes up Victorious,
+	# and it needs to know which factions "such Factions" means. Storing the two
+	# facts together is what keeps them from drifting: a world that contributed
+	# +N to the roll is exactly the world with N defenders owed the recovery.
+	if not fought_ids.is_empty():
 		var gs2 = get_node_or_null("/root/GameState")
 		if gs2 and gs2.current_campaign and "invaded_planets" in gs2.current_campaign:
 			for tracked: Variant in gs2.current_campaign.invaded_planets:
 				if tracked is Dictionary and str((tracked as Dictionary).get("id", "")) == planet_id:
 					tracked["war_modifier"] = int(tracked.get("war_modifier", 0)) + war_bonus
+					tracked["defending_faction_ids"] = fought_ids
 					break
 
 	var parts: Array[String] = []
@@ -2904,9 +2943,8 @@ func _commit_zone_travel(zone: int) -> void:
 	if has_ship:
 		travel_cost = SHIP_TRAVEL_COST
 	else:
-		travel_cost = (
-			_get_crew_size_for_travel()
-			* COMMERCIAL_TRAVEL_COST_PER_CREW)
+		travel_cost = ShiplessSystemRef.get_commercial_passage_cost(
+			_get_crew_size_for_travel())
 	GameStateManager.modify_credits(-travel_cost)
 
 	# Update status label

@@ -5,6 +5,10 @@ extends GdUnitTestSuite
 ##    against pp.57-58 and `EquipmentManager.get_onboard_item_effect()` returned
 ##    correct structured effects — but its ONLY caller repo-wide lived in
 ##    `src/core/campaign/phases/TravelPhase.gd`, a file with zero instantiations.
+##    (That function is GONE as of 2026-09-10: it was a second copy of the
+##    nineteen-item table whose `genetic_reconfig_kit` id matched nothing in
+##    data/onboard_items.json, so one of its rows could never have fired even
+##    once wired. OnboardItemService + the JSON are the single owner.)
 ##    A Purifier produced nothing, a Repair Bot added nothing to a Repair, a
 ##    Teach-bot taught nothing. Complete data, correct reader, no caller.
 ##

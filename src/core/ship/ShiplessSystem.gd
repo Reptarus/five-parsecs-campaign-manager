@@ -268,15 +268,6 @@ static func get_stash_limit(campaign: Resource) -> int:
 		return 999  # Unlimited with ship
 	return SHIPLESS_STASH_LIMIT
 
-## Get a summary for UI display.
-static func get_status_summary(campaign: Resource) -> String:
-	if crew_has_ship(campaign):
-		var debt: int = campaign.ship_debt if "ship_debt" in campaign else 0
-		if debt > 0:
-			return "Ship: Active (Debt: %d cr)" % debt
-		return "Ship: Active"
-	return "NO SHIP — Stash limited to %d items, travel by commercial passage only" % SHIPLESS_STASH_LIMIT
-
 
 ## Roll once on the Core Rules p.31 Ship Table and return the ship on offer.
 ##

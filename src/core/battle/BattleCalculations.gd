@@ -10,6 +10,48 @@ const HouseRulesHelper = preload("res://src/core/systems/HouseRulesHelper.gd")
 ##   var hit_chance = BattleCalculations.calculate_hit_chance(attacker, target, range_inches)
 ##   var damage = BattleCalculations.calculate_damage(weapon, target_toughness)
 ##   var result = BattleCalculations.resolve_attack(attacker, target, weapon, roll_func)
+##
+## ============================================================================
+## ⚠ THREE BOOK CHAPTERS BELOW ARE COMPLETE, CORRECT AND HAVE NO CALLER.
+## ============================================================================
+##
+## They are kept DELIBERATELY. A zero-caller function that implements a book
+## chapter is a WIRING GAP, not dead code — deleting it deletes the chapter and
+## hides the gap forever. This is the `UNWIRED_RULES` category that
+## `scripts/lint_orphan_assets.py` exists to keep visible, applied at function
+## granularity. Each was checked for an alternative home before being kept:
+##
+##   • pp.56-57 Utility Devices — `check_utility_devices()` + its readers
+##     (`apply_battle_visor_reroll`, `get_jump_distance`, `get_climb_distance`,
+##     `can_detect_hidden`, `get_crew_reaction_bonus`). Auto-sensor, battle visor,
+##     communicator, jump belt and grapple launcher exist NOWHERE else in `src/`,
+##     and the player can obtain them — they are in `data/loot_tables.json`. Only
+##     the Motion tracker's +1 is live, via `SeizeInitiativeSystem`.
+##   • p.54 Consumables — `apply_consumable_effect()`. Only the Stim-pack is live
+##     (`NoMinisResolver._apply_wounds`); booster pills, combat serum, rage out,
+##     still and Kiranin crystals have no other implementation.
+##   • p.46 Panic Fire — `can_panic_fire()` / `panic_fire_profile()`.
+##     `CharacterStatusCard.set_panic_fired()` records the after-state and has
+##     zero callers, and no surface states the rule, so a player can never use it.
+##
+## What WAS removed on 2026-09-10 (31 functions, ~450 lines), each verified to be
+## one of: FABRICATED (in neither book) or SUPERSEDED (the rule is live in a
+## purpose-built owner, or delivered to the player by the Cheat Sheet, which is
+## the correct channel for a companion app):
+##
+##   fabricated — weapon jamming (`can_weapon_fire`), "silent"/"loud" alert ranges,
+##     `calculate_damage_after_armor` (its own successor docblock called it
+##     non-canonical), `calculate_scatter`, and the whole armor-modifications
+##     subsystem (`reinforced_plating` / `lightweight_materials` / `auto_medicator`
+##     appear in neither book and nothing ever wrote `armor_modifications`).
+##   simulator-only — `has_line_of_sight`, `calculate_distance`,
+##     `calculate_grid_distance`, `get_targets_in_area`, `resolve_area_attack`.
+##     This is a tabletop companion; the player measures on the table, and the
+##     Cheat Sheet states the p.50 Area rule.
+##   superseded — aiming (`CharacterQuickRollPanel`), reaction dice
+##     (`ReactionRollPool`), XP (`ExperienceTrainingProcessor`), brawl modifiers
+##     and screen-vs-Area (both printed verbatim by `CheatSheetPanel`), stun traits
+##     (the trait-effects table below), frag-vest-vs-Area (`BattleResolver`).
 
 # Save Type Enum - Distinguishes between armor and screen saves (Five Parsecs rules)
 # Piercing weapons ignore ARMOR saves but NOT screen saves
@@ -57,10 +99,7 @@ const HIT_COVER_RANGE := 6      # Cover target in range (Core Rules p.44)
 
 # Range bands (inches) — Core Rules p.44
 const POINT_BLANK_RANGE := 6    # "Within 6 inches"
-const PISTOL_RANGE := 8
 const RIFLE_RANGE := 24
-const SHOTGUN_RANGE := 6
-const HEAVY_WEAPON_RANGE := 36
 
 # Compendium p.17: Skulker biological resistance negates these consumables
 # Stim-packs and Kiranin Crystals are explicitly NOT affected
@@ -77,7 +116,6 @@ const ARMOR_SAVE_COMBAT := 5
 
 # Screen save thresholds (NOT ignored by piercing weapons)
 const SCREEN_SAVE_NONE := 7      # No screen
-const SCREEN_SAVE_BASIC := 6     # Basic energy screen
 const SCREEN_SAVE_MILITARY := 5  # Military-grade screen
 # SCREEN_SAVE_ADVANCED (4+) deleted 2026-08-02 — fabricated. The book's only
 # save-granting screen is the Screen generator at 5+ (p.54).
@@ -161,7 +199,8 @@ static var XP_SURVIVAL_INJURY: int:
 ##
 ## Aiming is NOT a flat +1 either. p.46: a figure that is not Stunned and did
 ## not Move may "pick up any 1s on the To Hit dice and roll them again once."
-## That is a reroll, applied when rolling — see apply_aim_reroll().
+## That is a reroll, applied when rolling. The live implementation is inline in
+## CharacterQuickRollPanel; the zero-caller duplicate here went 2026-09-10.
 static func calculate_hit_modifier(
 	attacker_combat_skill: int,
 	range_inches: float,
@@ -208,34 +247,6 @@ static func calculate_hit_modifier(
 
 	return modifier
 
-
-## Aiming (Core Rules p.46) — "If a character is not Stunned and does not Move,
-## they can Aim their shots more accurately. When using an Aimed shot, pick up
-## any 1s on the To Hit dice and roll them again once."
-##
-## Takes the dice already rolled and returns them with every 1 rerolled exactly
-## once. This is the whole rule: Aiming is a reroll, never a flat bonus.
-##
-## Enemy behaviour (same page): Tactical, Cautious and Defensive enemies will
-## try to Aim when shooting from Cover; Aggressive and Rampaging never Aim.
-static func apply_aim_reroll(rolls: Array, rng: RandomNumberGenerator = null) -> Array:
-	var generator := rng
-	if generator == null:
-		generator = RandomNumberGenerator.new()
-		generator.randomize()
-	var rerolled: Array = []
-	for roll in rolls:
-		if int(roll) == 1:
-			rerolled.append(generator.randi_range(1, 6))
-		else:
-			rerolled.append(int(roll))
-	return rerolled
-
-
-## True if this enemy AI type will Aim when firing from Cover (Core Rules p.46).
-static func enemy_will_aim(ai_type: String) -> bool:
-	var ai := ai_type.to_lower()
-	return ai in ["tactical", "cautious", "defensive"]
 
 ## Calculate the threshold needed to hit (Core Rules p.44)
 ## Uses lookup table: roll 1D6 + Combat Skill >= threshold
@@ -316,15 +327,6 @@ static func calculate_weapon_damage(
 
 	return maxi(1, damage)
 
-## Calculate effective damage after armor
-static func calculate_damage_after_armor(
-	raw_damage: int,
-	target_toughness: int,
-	armor_penetration: int = 0
-) -> int:
-	var effective_toughness := maxi(0, target_toughness - armor_penetration)
-	var final_damage := raw_damage - effective_toughness
-	return maxi(0, final_damage)
 
 ## Resolving Hits (Core Rules p.46): given a Hit has landed and was NOT saved,
 ## roll 1D6 and add the attack's Damage rating. If the total EQUALS OR EXCEEDS the
@@ -412,14 +414,6 @@ static func get_armor_save_threshold(armor_type: String, species: String = "") -
 	return mini(innate, worn)
 
 
-## Frag vest is "6+ Saving Throw, improved to 5+ against any Area attack" (p.54).
-static func get_armor_save_vs_area(armor_type: String, species: String = "") -> int:
-	var base := get_armor_save_threshold(armor_type, species)
-	var normalized := armor_type.to_lower()
-	if normalized in ["frag vest", "frag_vest", "light", "flak"]:
-		return maxi(base - 1, 2)
-	return base
-
 ## Check if armor saves against damage (Core Rules p.46)
 ## Threshold is STATIC per armor type. Piercing trait negates armor binary,
 ## not via threshold modifier. The damage parameter is kept for API
@@ -449,13 +443,6 @@ static func get_screen_save_threshold(screen_type: String) -> int:
 		_:
 			return SCREEN_SAVE_NONE
 
-
-## True if this screen even applies against the incoming attack (p.54).
-## Screen generator explicitly has "no effect against Area or Melee attacks".
-static func screen_applies(screen_type: String, is_area: bool, is_melee: bool) -> bool:
-	if get_screen_save_threshold(screen_type) >= SCREEN_SAVE_NONE:
-		return false
-	return not (is_area or is_melee)
 
 ## Check if screen saves against damage (NOT affected by piercing)
 static func check_screen_save(roll: int, screen_type: String, _damage: int = 1) -> bool:
@@ -1067,143 +1054,10 @@ static func _is_kerin(species: String) -> bool:
 
 #region Armor Modifications - All 10 armor mods with battle effects
 
-## Check and apply all armor modification effects during combat
-## Returns Dictionary with all active modification effects
-static func check_armor_modifications(
-	target: Dictionary,
-	attack_context: Dictionary = {}
-) -> Dictionary:
-	var result := {
-		"save_bonus": 0,
-		"hit_penalty_to_attacker": 0,
-		"movement_bonus": 0,
-		"first_wound_negated": false,
-		"environmental_immunity": false,
-		"effects": []
-	}
-
-	var armor_mods: Array = target.get("armor_modifications", [])
-	var used_mods: Array = target.get("_used_armor_mods_this_battle", [])
-
-	for mod_id: Variant in armor_mods:
-		var mod_name: String = mod_id if mod_id is String else str(mod_id)
-		_apply_armor_mod_effect(mod_name, result, attack_context, used_mods)
-
-	return result
-
-## Apply individual armor modification effect
-static func _apply_armor_mod_effect(
-	mod_name: String,
-	result: Dictionary,
-	attack_context: Dictionary,
-	used_mods: Array
-) -> void:
-	match mod_name.to_lower():
-		"reinforced_plating":
-			# +1 to armor save
-			result["save_bonus"] += 1
-			result["effects"].append("reinforced_plating_+1_save")
-
-		"lightweight_materials":
-			# No movement penalty from armor
-			result["movement_bonus"] += 1
-			result["effects"].append("lightweight_no_movement_penalty")
-
-		"auto_medicator":
-			# Negate first wound per battle (one-time use)
-			if "auto_medicator" not in used_mods:
-				result["first_wound_negated"] = true
-				result["effects"].append("auto_medicator_ready")
-
-		"stealth_coating":
-			# -1 to enemy hit rolls against this target
-			result["hit_penalty_to_attacker"] += 1
-			result["effects"].append("stealth_coating_-1_enemy_hit")
-
-		"enhanced_power_cells":
-			# Powered armor lasts longer (extended duration)
-			result["effects"].append("enhanced_power_cells_extended")
-
-		"integrated_jetpack":
-			# Alternative movement (jump capability)
-			result["movement_bonus"] += 2
-			result["effects"].append("jetpack_available")
-
-		"enhanced_targeting":
-			# +1 to hit (wearer's attacks)
-			result["effects"].append("enhanced_targeting_+1_hit")
-
-		"environmental_seals":
-			# Immune to environmental hazards
-			result["environmental_immunity"] = true
-			result["effects"].append("environmental_immunity")
-
-		"reactive_plating":
-			# Additional save against explosive/area attacks
-			var is_area_attack: bool = attack_context.get("is_area_attack", false)
-			if is_area_attack:
-				result["save_bonus"] += 2
-				result["effects"].append("reactive_plating_+2_vs_area")
-
-		"camouflage_system":
-			# -1 to enemy hit at long range
-			var range_band: String = attack_context.get("range_band", "medium")
-			if range_band == "long":
-				result["hit_penalty_to_attacker"] += 1
-				result["effects"].append("camo_-1_long_range")
-
-## Get armor modification hit modifier (penalty to attacker)
-static func get_armor_mod_hit_penalty(target: Dictionary, attack_context: Dictionary = {}) -> int:
-	var mods := check_armor_modifications(target, attack_context)
-	return mods.get("hit_penalty_to_attacker", 0)
-
-## Get armor modification save bonus
-static func get_armor_mod_save_bonus(target: Dictionary, attack_context: Dictionary = {}) -> int:
-	var mods := check_armor_modifications(target, attack_context)
-	return mods.get("save_bonus", 0)
-
-## Check if auto-medicator can negate wound
-static func can_auto_medicator_negate(target: Dictionary) -> bool:
-	var armor_mods: Array = target.get("armor_modifications", [])
-	var used_mods: Array = target.get("_used_armor_mods_this_battle", [])
-	return "auto_medicator" in armor_mods and "auto_medicator" not in used_mods
-
-## Mark auto-medicator as used this battle
-static func mark_auto_medicator_used(target: Dictionary) -> void:
-	if not target.has("_used_armor_mods_this_battle"):
-		target["_used_armor_mods_this_battle"] = []
-	target["_used_armor_mods_this_battle"].append("auto_medicator")
 
 #endregion
 
 #region Status Effects
-
-## Check if attack causes stun — Core Rules p.51: only weapons with Stun or Impact trait
-## Impact trait: "If target is Stunned, place a second Stun marker" (double stun)
-## Stun trait: "Targets hit are Stunned. Toughness is ignored but Saving Throws apply."
-static func check_stun(_total_damage: int, _target_toughness: int, weapon_traits: Array = []) -> bool:
-	for trait_name in weapon_traits:
-		if str(trait_name).to_lower() == "stun":
-			return true
-	return false
-
-# check_suppression() and get_suppression_penalty() deleted 2026-08-02 — both
-# fabricated, both zero-caller. Suppression is not a Five Parsecs mechanic; see
-# the note on the removed SUPPRESS_THRESHOLD constant above.
-#
-# get_stun_duration() (which returned a flat 1 "turn") is also gone. Stun is not
-# measured in turns at all — it is a MARKER COUNT, handled below.
-
-
-## Impact trait (Core Rules p.51): "If target is Stunned, place a second Stun
-## marker." So Impact only does anything to an ALREADY-Stunned target.
-static func check_impact_stun(target_already_stunned: bool, weapon_traits: Array = []) -> bool:
-	if not target_already_stunned:
-		return false
-	for trait_name in weapon_traits:
-		if str(trait_name).to_lower() == "impact":
-			return true
-	return false
 
 
 ## Stun markers (Core Rules p.40).
@@ -1221,28 +1075,6 @@ static func is_knocked_out_by_stun(stun_markers: int, threshold: int = STUN_MARK
 	## hardcoded constant, so that injury could not reach the auto-resolve
 	## path at all. Defaults to the Core Rules p.40 three.
 	return stun_markers >= maxi(threshold, 1)
-
-
-## Brawling against a Stunned opponent (Core Rules p.40/p.45): "remove all Stun
-## markers, but the attacker receives a +1 dice bonus for every Stun marker that
-## was removed."
-static func brawl_bonus_from_stun(opponent_stun_markers: int) -> int:
-	return maxi(opponent_stun_markers, 0)
-
-
-## Clumsy (Core Rules p.51): "-1 to Brawling rolls, if opponent has higher
-## Speed." Conditional on the opponent, which is why it cannot be baked into the
-## flat trait effects.
-static func brawl_clumsy_modifier(has_clumsy: bool, own_speed: float, opponent_speed: float) -> int:
-	if has_clumsy and opponent_speed > own_speed:
-		return -1
-	return 0
-
-
-## Multiple Opponents in a Brawl (Core Rules p.45): "Resolve the combat
-## normally, with the outnumbering side getting a +1 bonus to the Brawl roll."
-static func brawl_outnumbering_modifier(own_side_count: int, opposing_count: int) -> int:
-	return 1 if own_side_count > opposing_count else 0
 
 
 ## Panic Fire (Core Rules p.46-47).
@@ -1287,57 +1119,6 @@ static func panic_fire_profile(
 
 #region Experience Calculations
 
-## Calculate XP for a crew member after battle (Core Rules p.123, Step 9).
-## Book table: casualty +1 / survived-not-won +2 / survived-won +3, first
-## casualty +1. Killed-Unique-Individual, Easy-mode, and Quest-finale bonuses
-## are applied by ExperienceTrainingProcessor where that context is available.
-## A character that flees in the first 2 rounds earns no XP (participated=false).
-static func calculate_crew_xp(
-	participated: bool,
-	battle_won: bool,
-	enemies_killed: int = 0
-) -> int:
-	var xp := 0
-
-	if not participated:
-		return 0
-
-	# Base XP for any participant (casualty +1 baseline)
-	xp += XP_PARTICIPATION
-
-	# Battle-result bonus: survived-and-won (+2 over base) or survived-not-won (+1)
-	if battle_won:
-		xp += XP_VICTORY_BONUS
-	else:
-		xp += XP_DEFEAT_BONUS
-
-	# First character to inflict a casualty (+1)
-	if enemies_killed > 0:
-		xp += XP_FIRST_KILL
-
-	return xp
-
-## Calculate total battle XP for all crew
-static func calculate_battle_xp(
-	crew_results: Array,  # [{id, participated, kills}]
-	battle_won: bool
-) -> Dictionary:
-	var xp_awards := {}
-
-	for crew_data in crew_results:
-		var crew_id: String = crew_data.get("id", "")
-		if crew_id == "":
-			continue
-
-		var xp := calculate_crew_xp(
-			crew_data.get("participated", false),
-			battle_won,
-			crew_data.get("kills", 0)
-		)
-
-		xp_awards[crew_id] = xp
-
-	return xp_awards
 
 #endregion
 
@@ -1363,14 +1144,6 @@ static func calculate_loot_rolls(
 
 	return rolls
 
-## Calculate credits from battle
-## Core Rules p.120 (Step 4 "Get Paid"): pay is base 1D6 plus Patron danger pay.
-## There is no percentage bonus multiplier in the rules.
-static func calculate_battle_credits(
-	base_payment: int,
-	danger_pay: int
-) -> int:
-	return base_payment + danger_pay
 
 #endregion
 
@@ -1408,221 +1181,11 @@ static func check_seize_initiative(
 
 #region Reaction Dice
 
-## Calculate reaction dice pool size
-static func get_reaction_dice_count(crew_alive: int) -> int:
-	return crew_alive
-
-## Determine if action is Quick or Slow based on reaction die vs character Reaction stat
-## Core Rules p.113: Roll D6 per crew member; roll <= Reaction = Quick Actions
-static func is_quick_action(reaction_die: int, reaction_stat: int = 1) -> bool:
-	return reaction_die <= reaction_stat
 
 #endregion
 
 #region Area/Template Weapons - Multi-target resolution system
 
-## Check if weapon has the Area trait (Core Rules p.50). There are no
-## explosive/spread/template traits in the rules — only "Area".
-static func is_area_weapon(weapon_traits: Array) -> bool:
-	return "area" in weapon_traits or "Area" in weapon_traits
-
-## Get targets within area radius (for Area/Explosive weapons)
-## Returns array of targets within radius from impact point
-static func get_targets_in_area(
-	impact_pos: Vector2,
-	radius_inches: float,
-	all_units: Array
-) -> Array:
-	var targets_in_area := []
-	var radius_units := radius_inches * 2.0  # Convert inches to game units (2 units per inch)
-
-	for unit: Variant in all_units:
-		if unit is Dictionary:
-			var unit_pos: Vector2 = unit.get("position", Vector2.ZERO)
-			var distance := impact_pos.distance_to(unit_pos)
-			if distance <= radius_units:
-				targets_in_area.append(unit)
-
-	return targets_in_area
-
-## Resolve Area weapon attack against multiple targets (Core Rules p.50)
-## Primary target hit roll determines if attack lands, then affects all within 2"
-static func resolve_area_attack(
-	attacker: Dictionary,
-	primary_target: Dictionary,
-	all_targets: Array,
-	weapon: Dictionary,
-	dice_roller: Callable
-) -> Dictionary:
-	var result := {
-		"template_type": "",
-		"primary_result": {},
-		"secondary_targets": [],
-		"total_hits": 0,
-		"total_damage": 0,
-		"total_eliminations": 0,
-		"shared_damage_roll": 0,
-		"area_radius": 0.0
-	}
-
-	var weapon_traits: Array = weapon.get("traits", [])
-
-	# Area trait (Core Rules p.50): "Resolve all shots against the initial figure
-	# within 2 inches." 2" is the only book-defined area radius; there are no
-	# explosive/spread/template traits in the rules.
-	if "area" in weapon_traits or "Area" in weapon_traits:
-		result["template_type"] = "area"
-		result["area_radius"] = weapon.get("area_radius", 2.0)
-	else:
-		# Not an area weapon, use regular resolution
-		result["primary_result"] = resolve_ranged_attack(attacker, primary_target, weapon, dice_roller)
-		return result
-
-	# AREA WEAPON SPECIAL RESOLUTION:
-	# For area weapons, we roll to hit once, then use a SHARED damage roll for all targets
-	# Each target rolls saves individually
-
-	# Extract stats for hit calculation
-	var combat_skill: int = attacker.get("combat_skill", 0)
-	var range_inches: float = attacker.get("range_to_target", 12.0)
-	var weapon_range: int = weapon.get("range", RIFLE_RANGE)
-	var target_in_cover: bool = primary_target.get("in_cover", false)
-	var attacker_elevated: bool = attacker.get("elevated", false)
-	var target_elevated: bool = primary_target.get("elevated", false)
-
-	# Calculate hit threshold for primary target
-	var hit_threshold := calculate_hit_threshold(
-		combat_skill,
-		target_in_cover,
-		attacker_elevated,
-		target_elevated,
-		range_inches,
-		weapon_range
-	)
-
-	# Roll to hit primary target
-	var hit_roll: int = dice_roller.call()
-
-	var primary_result := {
-		"hit": false,
-		"hit_roll": hit_roll,
-		"hit_threshold": hit_threshold,
-		"damage": 0,
-		"armor_saved": false,
-		"target_eliminated": false,
-		"effects": []
-	}
-
-	result["primary_result"] = primary_result
-
-	if not check_hit(hit_roll, hit_threshold):
-		# Miss - no area effect
-		return result
-
-	primary_result["hit"] = true
-	result["total_hits"] = 1
-
-	# Get target positions (impact point for the 2" Area radius)
-	var primary_pos: Vector2 = primary_target.get("position", Vector2.ZERO)
-	var primary_id: String = primary_target.get("id", "")
-
-	# Roll shared damage for area effect (all targets take same damage roll)
-	var shared_damage_roll: int = dice_roller.call()
-	result["shared_damage_roll"] = shared_damage_roll
-
-	# Check for elimination (natural 6 on damage)
-	var eliminates_on_6 := shared_damage_roll == 6
-
-	# Apply shared damage to primary target
-	var primary_toughness: int = primary_target.get("toughness", 3)
-	var penetration: int = weapon.get("penetration", 0)
-	var weapon_damage: int = weapon.get("damage", 1)
-
-	# Primary target rolls armor save
-	var primary_save_roll: int = dice_roller.call()
-	# NOTE: Armor save penalty is based on weapon damage stat, not dice roll
-	var primary_save_result := resolve_saves(primary_save_roll, primary_target, weapon_traits, weapon_damage)
-
-	if primary_save_result.get("armor_pierced", false):
-		primary_result["effects"].append("armor_pierced")
-
-	if primary_save_result.get("saved", false):
-		primary_result["armor_saved"] = true
-	else:
-		# Calculate damage after armor
-		var primary_damage := calculate_damage_after_armor(shared_damage_roll, primary_toughness, penetration)
-		primary_result["damage"] = primary_damage
-		result["total_damage"] += primary_damage
-
-		if eliminates_on_6 and primary_damage > 0:
-			primary_result["target_eliminated"] = true
-			result["total_eliminations"] += 1
-
-	# Find secondary targets within the 2" Area radius (Core Rules p.50)
-	var secondary_targets := []
-	if result["template_type"] == "area":
-		secondary_targets = get_targets_in_area(primary_pos, result["area_radius"], all_targets)
-
-	# Remove primary target from secondary list
-	var filtered_secondary := []
-	for target: Variant in secondary_targets:
-		if target is Dictionary:
-			var target_id: String = target.get("id", "")
-			if target_id != primary_id and target_id != "":
-				filtered_secondary.append(target)
-
-	# Resolve against each secondary target (no additional hit roll needed)
-	for secondary_target: Variant in filtered_secondary:
-		if not secondary_target is Dictionary:
-			continue
-
-		var secondary_result := {
-			"target_id": secondary_target.get("id", ""),
-			"target_name": secondary_target.get("name", "Unknown"),
-			"hit": true,  # Area weapons auto-hit secondary targets
-			"damage": 0,
-			"armor_saved": false,
-			"target_eliminated": false,
-			"effects": []
-		}
-
-		# Check saves for secondary target
-		var save_roll: int = dice_roller.call()
-		# NOTE: Armor save penalty is based on weapon damage stat, not dice roll
-		var save_result := resolve_saves(save_roll, secondary_target, weapon_traits, weapon_damage)
-
-		if save_result.get("armor_pierced", false):
-			secondary_result["effects"].append("armor_pierced")
-
-		if save_result.get("saved", false):
-			secondary_result["armor_saved"] = true
-		else:
-			# Apply damage
-			var target_toughness: int = secondary_target.get("toughness", 3)
-			var final_damage := calculate_damage_after_armor(shared_damage_roll, target_toughness, penetration)
-			secondary_result["damage"] = final_damage
-			result["total_damage"] += final_damage
-
-			if eliminates_on_6 and final_damage > 0:
-				secondary_result["target_eliminated"] = true
-				result["total_eliminations"] += 1
-
-		result["secondary_targets"].append(secondary_result)
-		result["total_hits"] += 1
-
-	return result
-
-## Calculate scatter for missed area attacks (optional rule)
-static func calculate_scatter(
-	impact_pos: Vector2,
-	scatter_distance: float,
-	dice_roller: Callable
-) -> Vector2:
-	var direction_roll: int = dice_roller.call()
-	var angle := (direction_roll - 1) * 60.0  # 6 directions (60° each)
-	var scatter_vector := Vector2.RIGHT.rotated(deg_to_rad(angle)) * scatter_distance
-
-	return impact_pos + scatter_vector
 
 #endregion
 
@@ -1808,40 +1371,6 @@ static func get_crew_reaction_bonus(crew: Array) -> int:
 
 #region Utility Functions
 
-## Calculate distance between two positions
-static func calculate_distance(pos1: Vector2, pos2: Vector2) -> float:
-	return pos1.distance_to(pos2)
-
-## Calculate distance in grid units
-static func calculate_grid_distance(pos1: Vector2i, pos2: Vector2i) -> int:
-	# Manhattan distance for simple grid
-	return absi(pos1.x - pos2.x) + absi(pos1.y - pos2.y)
-
-## Check if position has line of sight (simplified)
-static func has_line_of_sight(
-	from_pos: Vector2i,
-	to_pos: Vector2i,
-	blocking_positions: Array
-) -> bool:
-	# Simple check: no blockers directly between
-	# Real implementation would need proper raycasting
-	for blocker in blocking_positions:
-		if blocker is Vector2i:
-			# Very simplified - just check if blocker is on the line
-			if _is_between(from_pos, to_pos, blocker):
-				return false
-	return true
-
-## Check if point C is between A and B (simplified)
-static func _is_between(a: Vector2i, b: Vector2i, c: Vector2i) -> bool:
-	var cross := (c.y - a.y) * (b.x - a.x) - (c.x - a.x) * (b.y - a.y)
-	if abs(cross) > 1:
-		return false
-
-	var dot := (c.x - a.x) * (b.x - a.x) + (c.y - a.y) * (b.y - a.y)
-	var len_sq := (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y)
-
-	return dot >= 0 and dot <= len_sq
 
 #endregion
 
@@ -2018,8 +1547,9 @@ static func _apply_weapon_trait(
 
 		"clumsy":
 			# p.51: "-1 to Brawling rolls, if opponent has higher Speed."
-			# Conditional on the opponent, so the caller applies it — see
-			# brawl_clumsy_modifier().
+			# Conditional on the opponent, so the caller applies it off this flag.
+			# (brawl_clumsy_modifier() deleted 2026-09-10 — zero callers, and the
+			# Cheat Sheet already delivers the p.45/p.51 brawl modifiers.)
 			effects["clumsy_if_opponent_faster"] = true
 			effects["traits_applied"].append("clumsy_-1_vs_faster")
 
@@ -2048,7 +1578,8 @@ static func _apply_weapon_trait(
 			# p.51 verbatim: "If target is Stunned, place a second Stun marker."
 			# Impact does NOTHING to an unstunned target — it is conditional, so
 			# it cannot set causes_stun unconditionally the way it used to.
-			# The caller resolves it via check_impact_stun().
+			# The caller resolves it off this flag. (check_impact_stun() deleted
+			# 2026-09-10 — zero callers; the trait effects above are the live path.)
 			effects["second_stun_if_already_stunned"] = true
 			effects["traits_applied"].append("impact_second_marker_if_stunned")
 
@@ -2149,44 +1680,6 @@ static func _apply_weapon_trait(
 			effects["override_hit_threshold"] = 5
 			effects["traits_applied"].append("shrapnel_fixed_5plus")
 
-## Check if weapon can fire this turn (reliable trait prevents jams)
-static func can_weapon_fire(weapon: Dictionary, jam_roll: int = 0) -> bool:
-	var traits: Array = weapon.get("traits", [])
-
-	# Reliable weapons never jam
-	if _has_trait(traits, "reliable"):
-		return true
-
-	# Check for jam on natural 1
-	if jam_roll == 1:
-		return false
-
-	return true
-
-## Check if weapon alerts enemies when fired
-static func weapon_alerts_enemies(weapon: Dictionary) -> bool:
-	var traits: Array = weapon.get("traits", [])
-
-	# Silent weapons don't alert
-	if _has_trait(traits, "silent"):
-		return false
-
-	# Loud weapons alert at extended range
-	if _has_trait(traits, "loud"):
-		return true
-
-	# Default: normal alert range
-	return true
-
-## Get alert range for weapon (in inches)
-static func get_weapon_alert_range(weapon: Dictionary) -> int:
-	var traits: Array = weapon.get("traits", [])
-
-	if _has_trait(traits, "silent"):
-		return 0
-	if _has_trait(traits, "loud"):
-		return 24  # Extended alert range
-	return 12  # Default alert range
 
 ## Check if weapon has specific trait
 static func _has_trait(traits: Array, trait_name: String) -> bool:
@@ -2212,10 +1705,6 @@ static func get_overheat_shot_reduction(weapon: Dictionary, fired_last_round: bo
 		return 1
 	return 0
 
-## Check if weapon causes non-lethal damage
-static func is_non_lethal_weapon(weapon: Dictionary) -> bool:
-	var traits: Array = weapon.get("traits", [])
-	return _has_trait(traits, "non_lethal")
 
 #endregion
 
@@ -2339,28 +1828,6 @@ static func _debug_log_save(save_roll: int, armor_threshold: int, screen_thresho
 	if not DEBUG_COMBAT_CALCS:
 		return
 	print_verbose("│ Armor Save: %d+ %s" % [armor_threshold, "(PIERCED - ignored)" if is_piercing else ""])
-
-
-static func _debug_log_area_attack(origin: Vector2, radius: float, targets_hit: int, damage_roll: int, total_damage: int) -> void:
-	## Log area attack resolution
-	if not DEBUG_COMBAT_CALCS:
-		return
-	print_verbose("│ Origin: (%.1f, %.1f)" % [origin.x, origin.y])
-	print_verbose("│ Total Damage (shared): %d per target" % total_damage)
-
-
-static func _debug_log_hit_modifiers(base_skill: int, cover_mod: int, elevation_mod: int, range_mod: int, status_mod: int, total: int) -> void:
-	## Log hit modifier breakdown
-	if not DEBUG_COMBAT_CALCS:
-		return
-	if cover_mod != 0:
-		pass
-	if elevation_mod != 0:
-		pass
-	if range_mod != 0:
-		pass
-	if status_mod != 0:
-		pass
 
 
 static func enable_debug_logging() -> void:

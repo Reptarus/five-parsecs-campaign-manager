@@ -1,5 +1,17 @@
 # Welcome to the 5PFH Digital Closed Alpha
 
+> **INTERNAL: DRAFT, NOT READY TO SEND (checked 2026-09-13 against build `3b26b873d`).**
+> This v1 was written for a Windows build shared through Ivan's Discord. The alpha is now Android via a Google Play closed testing track, with testers from a Google-Form signup funnel. Remove this banner before it goes to anyone.
+>
+> Blocked on:
+>
+> 1. NDA stance from Modiphius (the "No NDA" line below is not agreed).
+> 2. Play Console access, so the Play opt-in and install steps can be written for real.
+> 3. A kickoff date (the week table and "after alpha" dates are all past).
+> 4. A tester DLC unlock mechanism (the build does not unlock the Compendium; see the corrected line below).
+>
+> Sections still written for the old Windows/Discord model and needing a rewrite: TL;DR, Installation steps 1-3, the Discord channel names, the week table, After Alpha. Lines that were simply false are corrected inline and marked **[FIXED 2026-09-13]**.
+
 Thanks for joining the alpha test for the Five Parsecs From Home digital companion app. This document walks you through everything you need to know to get the build running, give feedback, and stay in the loop.
 
 **TL;DR:**
@@ -24,7 +36,7 @@ It's a **companion app**, not a digital edition replacing the books. The goal is
 
 - Full Standard 5PFH 9-phase campaign mode
 - 7-phase character/crew/ship creation wizard
-- All three Compendium expansion packs unlocked (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook) — 33 features togglable in Settings
+- **[FIXED 2026-09-13]** The three Compendium expansion packs (Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook) are in the build but currently LOCKED. Nothing unlocks them for a tester yet (`DLCManager.gd:128`, `:181-184`; `SettingsScreen.gd:589`). Rewrite this line once the alpha unlock mechanism exists. Old text claimed all three were unlocked with 33 features togglable in Settings.
 - Battle assistant with three optional-depth modes (logging only / suggestions / full auto-resolve)
 - Battle Simulator (standalone battles, no campaign needed)
 - Story Track, Character Events, Red & Black Zone Jobs, all 16 Strange Character species
@@ -85,7 +97,7 @@ We have **two Discord channels** for alpha feedback:
 Drop a structured report any time something breaks. Use this template (also pinned at top of the channel):
 
 ```
-**Build version**: A1 / A2 / A3 / etc (check Settings → About)
+**Build version**: shown in Settings → About (currently reads 0.9.7-alpha1)
 **Game mode**: Standard 5PFH (alpha-1 is Standard only)
 **What happened**: [one or two sentences]
 **What you expected**: [one or two sentences]
@@ -107,8 +119,10 @@ Drop a structured report any time something breaks. Use this template (also pinn
 
 We'll respond to P0/P1 reports same-day during weekdays. P2/P3 we'll batch into the weekly build.
 
-**Where to find your save file** (for attaching to bug reports):
-Open Windows Run dialog (Win+R) → paste `%APPDATA%\Godot\app_userdata\Five Parsecs Campaign Manager\saves` → press Enter. Drag the most recent `.json` file into the Discord report.
+**[FIXED 2026-09-13] Reporting from inside the app** (use this first):
+Tap the bug button next to the settings gear, or go to Settings and tap "Report a Bug". Pick a category ("Crash or freeze", "Wrong rule or number", "UI or layout problem", "Confusing or unclear", "Suggestion", "Other"), describe what happened, then tap "Save & Copy". The report includes the last 100 lines of the app log, is saved on the device, and is copied so you can paste it into the feedback channel.
+
+The old instructions here pointed at a Windows `%APPDATA%` save folder. Android testers cannot browse to the app's save folder, so there is no manual save-file step for now.
 
 ### `#5pfh-alpha-feedback` — for open thoughts
 
@@ -132,6 +146,8 @@ If you can't make the time slot offered, no worries — drop a Discord note inst
 
 ## Pricing-Perception Survey (please take this when it shows up)
 
+> **INTERNAL [2026-09-13]: not built.** No survey exists in `src/`. Also written for the old $14.99-$24.99 band; the approved model is $9.99 base + per-book unlocks. Either build it or cut this section (and TL;DR item 5) before sending.
+
 At the end of game sessions, you'll occasionally see a modal asking 5-7 quick pricing questions (~3 minutes). It uses the **Van Westendorp price sensitivity meter** — a standard market-research tool — to figure out what the app is worth to people who actually play 5PFH.
 
 The survey asks four price-related questions in randomized order, plus a recommendation question and two short open-ended ones. **It's optional.** Skip it if you're not in the mood. But if you have 3 minutes, your answer genuinely shapes what the EA build looks like and gets priced at.
@@ -144,15 +160,18 @@ You'll see the survey **once per build version**, so we're not nagging you weekl
 
 ## Your Privacy
 
+- **INTERNAL [2026-09-13]: NDA stance unresolved.** Modiphius uses NDAs for closed tabletop betas and this alpha is invite-only. Do not send the next line until Modiphius answers.
 - **No NDA** — this is a gentleman's agreement. Don't post screenshots, streams, or recordings publicly until we open beta or later. Talking with friends about it is fine; sharing the build is not.
 - **One exception** — if anything about Modiphius's other licensed projects comes up incidentally, **don't share that anywhere**. That's the only NDA-grade content.
-- **Telemetry (if opted in)** collects: session start/end, mode visits, save events, build crash logs. **No personal info ever.** No email, no save content, no name, no IP-tracked identifiers. You can revoke consent any time in Settings → Privacy.
-- **GDPR-style data export and delete** — Settings → Privacy → "Export my data" or "Delete all data". Both work; both are documented per current EU/CA regulations.
-- **Crash auto-capture** — if the app crashes, on next launch you'll see a dialog with the crash log file path. You can choose whether to share it in Discord. Logs contain no personal info, but you can review the file before sharing.
+- **Telemetry (if opted in)** collects: session start/end, mode visits, save events, build crash logs. **No personal info ever.** No email, no save content, no name, no IP-tracked identifiers. You can revoke consent any time in Settings, under Legal & Privacy.
+- **[FIXED 2026-09-13] Data export and delete**: Settings → Legal & Privacy → Data & Privacy → "Export My Data" or "Delete All Data".
+- **[FIXED 2026-09-13] Crashes**: there is no automatic crash dialog. If the app crashes or freezes, reopen it and file a report with the "Crash or freeze" category in "Report a Bug"; it attaches the recent log.
 
 ---
 
 ## What to Expect Week-by-Week
+
+> **INTERNAL [2026-09-13]: STALE.** Every date in this table has passed. Re-date from the kickoff Modiphius sets.
 
 | Week | Build | What's New |
 |---|---|---|
@@ -171,6 +190,8 @@ You'll see the survey **once per build version**, so we're not nagging you weekl
 ---
 
 ## After Alpha
+
+> **INTERNAL [2026-09-13]: STALE.** Written for a Steam Early Access launch in late September 2026. The direction is now mobile-first (locked Jun 18) and no launch date exists. Rewrite before sending.
 
 When alpha closes Jul 6:
 
@@ -195,7 +216,7 @@ A: That's literally the design intent — companion app, not replacement. Tell u
 A: We need testers who have played the tabletop game — feedback is much harder to act on without that grounding. If you'd like to play 5PFH and join later cohorts, the physical Core Rulebook is at modiphius.us/products/five-parsecs-from-home (and your tabletop play counts more than you'd think — solo is its own learning curve).
 
 **Q: I have a friend who'd love to test.**
-A: Closed alpha is invite-only via Ivan's playtesting community. Beta opens up wider in July. Forward your friend the beta-signup info when it's posted.
+A: Closed alpha is invite-only through the signup form. **[FIXED 2026-09-13]** (was "via Ivan's playtesting community. Beta opens up wider in July.") Forward your friend the beta-signup info when it's posted.
 
 **Q: I want to talk about pricing in the Discord, not just the survey.**
 A: Please do. The qualitative "why this price" reasoning is at least as useful as the survey numbers.
@@ -215,4 +236,4 @@ Seriously — your time on this matters. The app gets meaningfully better becaus
 
 ---
 
-*Document v1, May 2026. Lives at `docs/testing/ALPHA_TESTER_ONBOARDING.md`. Ships with the alpha build as `ONBOARDING.md` (project root copy).*
+*Document v1, May 2026; internal corrections 2026-09-13. Lives at `docs/testing/ALPHA_TESTER_ONBOARDING.md`. There is no root `ONBOARDING.md` copy (checked 2026-09-13); the v1 note said one would ship with the build.*

@@ -19,16 +19,21 @@ extends Node
 const GameState = preload("res://src/core/state/GameState.gd")
 
 # Rival Management Signals
-signal rival_encountered(rival: Dictionary)
+#
+# Three siblings were removed 2026-09-10 with the only code that emitted them —
+# `rival_encountered` and `rival_negotiation_attempted` (the fabricated rival
+# layer: strength 1-5, 1000-5000 credits, a negotiation roll in neither book) and
+# `faction_conflict_resolved` (a duplicate of the p.115 "Shoot out" row that
+# `_apply_faction_event()` already resolves, and resolves better). None had a
+# listener anywhere, so a declared-never-emitted signal was all that remained —
+# a live dead-wire, which is exactly what lint_signal_wiring.py exists to catch.
 signal rival_reputation_changed(rival: Dictionary, change: int)
 signal rival_status_changed(rival: Dictionary, new_status: String)
-signal rival_negotiation_attempted(rival: Dictionary, success: bool)
 
 # Faction Management Signals
 signal faction_relation_changed(faction_id: String, new_standing: float)
 signal faction_event_occurred(event: Dictionary)
 signal faction_created(faction: Dictionary)
-signal faction_conflict_resolved(attacker: Dictionary, defender: Dictionary, result: String)
 
 # System state
 var _initialized: bool = false
@@ -83,15 +88,16 @@ var max_active_rivals: int = 8
 var max_factions_per_category: int = 5
 var faction_update_chance: float = 0.3 # Chance per turn for faction activity
 
-# Constants
-const MIN_FACTION_STRENGTH: int = 1
-const MAX_FACTION_STRENGTH: int = 10
+# Constants — Compendium p.112: a Faction has Power and Influence, each 1-5.
+#
+# Five neighbours were removed 2026-09-10 with the fabricated rival layer they
+# belonged to: MIN/MAX_FACTION_STRENGTH (a "strength" stat in neither book),
+# MIN/MAX_TECH_LEVEL (Factions have no tech level), and MIN_FACTION_POWER = 3,
+# which contradicted MAX_FACTION_POWER = 5 against the book's 1-5 range. All
+# five were already unreferenced; none of them ever bound anything.
 const MIN_FACTION_INFLUENCE: int = 1
 const MAX_FACTION_INFLUENCE: int = 5
-const MIN_FACTION_POWER: int = 3
 const MAX_FACTION_POWER: int = 5
-const MAX_TECH_LEVEL: int = 5
-const MIN_TECH_LEVEL: int = 1
 
 # Rival status mapping
 const RIVAL_STATUS_HOSTILE = "HOSTILE"
@@ -99,7 +105,8 @@ const RIVAL_STATUS_UNFRIENDLY = "UNFRIENDLY"
 const RIVAL_STATUS_NEUTRAL = "NEUTRAL"
 const RIVAL_STATUS_FRIENDLY = "FRIENDLY"
 const RIVAL_STATUS_ALLIED = "ALLIED"
-const RIVAL_STATUS_DEFEATED = "DEFEATED"
+# RIVAL_STATUS_DEFEATED was read only by _can_interact_with_rival(), part of
+# the fabricated rival-negotiation layer removed 2026-09-10.
 
 func _init() -> void:
 	name = "FactionSystem"
@@ -263,32 +270,6 @@ func validate_state() -> Dictionary:
 # RIVAL MANAGEMENT (formerly RivalManager)
 # =====================================================
 
-func generate_rival() -> Dictionary:
-	## Generate a new rival with complete profile
-	var rival = {
-		"id": "rival_" + str(Time.get_unix_time_from_system()) + "_" + str(randi()),
-		"name": _generate_rival_name(),
-		"type": _select_rival_type(),
-		"strength": randi_range(1, 5),
-		"resources": {
-			"credits": randi_range(1000, 5000),
-			"ships": randi_range(1, 3),
-			"equipment": randi_range(3, 7)
-		},
-		"characteristics": _generate_rival_characteristics(),
-		"created_at": Time.get_unix_time_from_system()
-	}
-
-	# Add to system if not at capacity
-	if active_rivals.size() < max_active_rivals:
-		active_rivals.append(rival)
-		rival_reputations[rival.id] = 0
-		rival_statuses[rival.id] = RIVAL_STATUS_NEUTRAL
-		rival_encountered.emit(rival)
-	else:
-		pass
-
-	return rival
 
 func update_rival_reputation(rival_id: String, change: int) -> void:
 	## Update rival reputation and check for status changes
@@ -304,25 +285,6 @@ func update_rival_reputation(rival_id: String, change: int) -> void:
 		rival_reputation_changed.emit(rival, change)
 		_check_rival_reputation_thresholds(rival)
 
-func attempt_rival_negotiation(rival_id: String) -> bool:
-	## Attempt to negotiate with rival
-	var rival = _get_rival_by_id(rival_id)
-	if not rival:
-		return false
-
-	if not _can_interact_with_rival(rival_id):
-		return false
-
-	var success_chance = _calculate_negotiation_chance(rival)
-	var success = randf() <= success_chance
-
-	if success:
-		_improve_rival_relations(rival)
-	else:
-		_worsen_rival_relations(rival)
-
-	rival_negotiation_attempted.emit(rival, success)
-	return success
 
 func get_rival_reputation(rival_id: String) -> int:
 	## Get current reputation with specific rival
@@ -511,42 +473,6 @@ func process_faction_activities(
 
 	return results
 
-func resolve_faction_conflict(attacker_id: String, defender_id: String) -> Dictionary:
-	## Resolve conflict between two factions
-	var dlc_mgr = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	if dlc_mgr and not dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.EXPANDED_FACTIONS):
-		return {"success": false, "reason": "Expanded Factions DLC not enabled"}
-	var attacker = active_factions.get(attacker_id)
-	var defender = active_factions.get(defender_id)
-
-	if not attacker or not defender:
-		return {"success": false, "reason": "Invalid faction IDs"}
-
-	var att_power: int = attacker.get("power", 0)
-	var def_power: int = defender.get("power", 0)
-	var attacker_roll: int = randi_range(1, 6) + att_power
-	var defender_roll: int = randi_range(1, 6) + def_power
-
-	if attacker.get("successful_job_this_turn", false):
-		attacker_roll += 1
-	if defender.get("successful_job_this_turn", false):
-		defender_roll += 1
-	if defender.get("temporary_defense", false):
-		defender_roll += 2
-		defender["temporary_defense"] = false
-
-	var result: Dictionary = {}
-	if attacker_roll > defender_roll:
-		_decrease_highest_stat(defender)
-		result = {"winner": attacker_id, "loser": defender_id, "type": "attacker_victory"}
-	elif defender_roll > attacker_roll:
-		_decrease_highest_stat(attacker)
-		result = {"winner": defender_id, "loser": attacker_id, "type": "defender_victory"}
-	else:
-		result = {"winner": "none", "loser": "none", "type": "stalemate"}
-
-	faction_conflict_resolved.emit(attacker, defender, result.type)
-	return result
 
 func generate_faction_mission(faction_id: String) -> Dictionary:
 	## Generate a mission for specific faction
@@ -765,23 +691,6 @@ func _generate_rival_name() -> String:
 
 	return prefixes.pick_random() + " " + first_names.pick_random() + " " + last_names.pick_random()
 
-func _select_rival_type() -> String:
-	## Select random rival type
-	var types: Array[String] = ["MERCENARY", "PIRATE", "TRADER", "BOUNTY_HUNTER", "SMUGGLER", "CORPORATE_AGENT", "ROGUE_MILITARY"]
-	return types.pick_random()
-
-func _generate_rival_characteristics() -> Array[String]:
-	## Generate rival characteristics
-	var all_characteristics: Array[String] = ["AGGRESSIVE", "CAUTIOUS", "DIPLOMATIC", "TREACHEROUS", "HONORABLE", "RESOURCEFUL", "VENGEFUL"]
-	var num_characteristics: int = randi_range(2, 3)
-	var characteristics: Array[String] = []
-
-	for i: int in range(num_characteristics):
-		var char = all_characteristics.pick_random()
-		if not char in characteristics:
-			characteristics.append(char)
-
-	return characteristics
 
 func _generate_faction_name(faction_type: String) -> String:
 	## Generate faction name based on Compendium type (7 types) or legacy (8 types).
@@ -833,10 +742,6 @@ func _get_rival_by_id(rival_id: String) -> Dictionary:
 			return rival
 	return {}
 
-func _can_interact_with_rival(rival_id: String) -> bool:
-	## Check if can interact with rival
-	var status = get_rival_status(rival_id)
-	return status != RIVAL_STATUS_HOSTILE and status != RIVAL_STATUS_DEFEATED
 
 func _check_rival_reputation_thresholds(rival: Dictionary) -> void:
 	## Check rival reputation thresholds and update status
@@ -859,39 +764,6 @@ func _check_rival_reputation_thresholds(rival: Dictionary) -> void:
 		rival_statuses[rival.id] = new_status
 		rival_status_changed.emit(rival, new_status)
 
-func _calculate_negotiation_chance(rival: Dictionary) -> float:
-	## Calculate chance of successful negotiation
-	var base_chance: float = 0.5
-	var reputation = get_rival_reputation(rival.id)
-
-	# Modify based on reputation
-	base_chance += reputation / 20.0 # -0.5 to +0.5
-
-	# Modify based on rival characteristics
-	for characteristic in rival.characteristics:
-		match characteristic:
-			"DIPLOMATIC":
-				base_chance += 0.2
-			"TREACHEROUS":
-				base_chance -= 0.2
-			"HONORABLE":
-				base_chance += 0.1
-			"AGGRESSIVE":
-				base_chance -= 0.1
-			"CAUTIOUS":
-				base_chance += 0.05
-
-	return clamp(base_chance, 0.1, 0.9)
-
-func _improve_rival_relations(rival: Dictionary) -> void:
-	## Improve relations with rival
-	var reputation_gain = randi_range(5, 15)
-	update_rival_reputation(rival.id, reputation_gain)
-
-func _worsen_rival_relations(rival: Dictionary) -> void:
-	## Worsen relations with rival
-	var reputation_loss = randi_range(5, 15)
-	update_rival_reputation(rival.id, -reputation_loss)
 
 func _perform_faction_activity(faction: Dictionary) -> void:
 	## Perform random faction activity
@@ -1372,24 +1244,6 @@ func process_invasion_recovery(
 
 # ── Fringe World Strife (Compendium p.116) ────────────────────────
 
-func process_strife_effects(strife_type: int) -> void:
-	## Apply Fringe World Strife effects on factions (Compendium p.116).
-	if active_factions.is_empty():
-		return
-	## Crackdown: prevents all faction activities this turn.
-	## Economic Collapse: all factions -1 Influence.
-	## Civil War: factions go to ground (no activities until war ends).
-	match strife_type:
-		GlobalEnums.StrifeType.CIVIL_WAR:
-			for fid in active_factions:
-				active_factions[fid]["cannot_act_next_turn"] = true
-		GlobalEnums.StrifeType.INVASION:
-			# Invasion handling done via process_invasion()
-			pass
-		_:
-			# Check for crackdown/economic collapse by name
-			# (these are compendium world options, not StrifeType enum values)
-			pass
 
 func process_strife_by_name(strife_name: String) -> void:
 	## Compendium p.114 "Fringe World Strife (See page 148)", verbatim:
@@ -1730,13 +1584,6 @@ func get_faction_by_name(name: String) -> Dictionary:
 			return faction
 	return {}
 
-func get_factions_by_type(faction_type: String) -> Array[Dictionary]:
-	## Get all factions of specific type
-	return faction_categories.get(faction_type, []).duplicate()
-
-func has_rival(rival_id: String) -> bool:
-	## Check if rival exists
-	return _get_rival_by_id(rival_id) != {}
 
 func has_faction(faction_id: String) -> bool:
 	## Check if faction exists

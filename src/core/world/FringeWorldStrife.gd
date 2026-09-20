@@ -126,20 +126,12 @@ static func _write_state(campaign: Variant, planet_id: String, state: Dictionary
 	pd[STATE_KEY] = states
 
 
-static func is_unstable(campaign: Variant, planet_id: String) -> bool:
-	return bool(get_state(campaign, planet_id).get("unstable", false))
-
-
 ## False once an "NA" row has fired (p.151: "Instability is no longer tracked").
 static func is_tracking(campaign: Variant, planet_id: String) -> bool:
 	var state: Dictionary = get_state(campaign, planet_id)
 	if not bool(state.get("unstable", false)):
 		return false
 	return bool(state.get("tracking", true))
-
-
-static func get_instability(campaign: Variant, planet_id: String) -> int:
-	return int(get_state(campaign, planet_id).get("instability", 0))
 
 
 ## Persistent consequences currently in force on this world — the rows whose
@@ -344,6 +336,43 @@ static func has_active_effect(campaign: Variant, planet_id: String,
 		effect_id: String) -> bool:
 	for entry in active_effects(campaign, planet_id):
 		if entry is Dictionary and str(entry.get("id", "")) == effect_id:
+			return true
+	return false
+
+
+## The planet id currently carrying `effect_id`, or "" if no world does.
+##
+## Scans EVERY tracked world rather than the current one, because a persistent
+## row belongs to the world it fired on and the crew may have travelled since.
+## Civil War is the case that needs this: p.151 resolves it during the Galactic
+## War Progress step, which runs post-battle wherever the crew happen to be.
+static func world_with_effect(campaign: Variant, effect_id: String) -> String:
+	if effect_id.is_empty():
+		return ""
+	for planet_id: Variant in all_states(campaign).keys():
+		if has_active_effect(campaign, str(planet_id), effect_id):
+			return str(planet_id)
+	return ""
+
+
+## Merge `payload` into an active effect's recorded entry. Returns false when the
+## effect is not present.
+##
+## ⚠ `add_active_effect()` deliberately EARLY-RETURNS on an id already present,
+## so it cannot be used to update one — calling it to "refresh" a payload is a
+## silent no-op. This is the updater; a clear-then-add would also work but loses
+## the entry's position in the array and writes the state twice.
+static func update_effect_payload(campaign: Variant, planet_id: String,
+		effect_id: String, payload: Dictionary) -> bool:
+	var state: Dictionary = get_state(campaign, planet_id)
+	if state.is_empty():
+		return false
+	var effects: Array = state.get("active_effects", [])
+	for entry: Variant in effects:
+		if entry is Dictionary and str(entry.get("id", "")) == effect_id:
+			(entry as Dictionary).merge(payload, true)
+			state["active_effects"] = effects
+			_write_state(campaign, planet_id, state)
 			return true
 	return false
 

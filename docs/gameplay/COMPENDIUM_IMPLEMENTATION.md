@@ -1315,9 +1315,23 @@ Organized groups with influence across multiple worlds
 
 ---
 
-## 🐛 Bug Hunt Campaign Variant ❌ **NOT IMPLEMENTED**
+## 🐛 Bug Hunt Campaign Variant ✅ **IMPLEMENTED**
 
-**Status**: Standalone variant not ported to digital version (yet)
+**Status**: SHIPPED as a full standalone gamemode. This heading read
+"❌ NOT IMPLEMENTED" until 2026-09-10, contradicting both the shipped code and
+`docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md:216` ("Bug Hunt pp.161-223 | LIVE").
+
+Creation wizard, dashboard, 3-stage turn controller, 15 data files and cross-mode
+character transfer are all live; `SceneRouter` keys `bug_hunt_creation` /
+`bug_hunt_dashboard` / `bug_hunt_turn_controller`.
+
+⚠ **Implemented is not the same as correct.** The rules-parity audit
+`docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md` found the data near-perfect and the
+delivery broken almost everywhere. Read it before trusting any Bug Hunt mechanic.
+
+⚠ `src/ui/screens/mainmenu/MainMenu.gd` sets `A1_BUILD := true`, which rebinds the
+Bug Hunt button to a "coming soon" note — so the mode is currently unreachable from
+the main menu even though it is built.
 
 **What Is Bug Hunt?**
 A military-focused campaign variant where you command a squad fighting an alien bug infestation

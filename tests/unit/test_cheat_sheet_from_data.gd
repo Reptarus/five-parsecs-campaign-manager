@@ -200,6 +200,27 @@ func test_the_stealth_section_states_the_real_reinforcement_rate() -> void:
 	).contains("2D6")
 
 
+func test_the_neutral_section_carries_the_p172_help_roll() -> void:
+	# Appendix VIII p.172, verbatim: "if a player wishes to request help, a
+	# 1D6+Savvy roll of 5+ is usually needed. The GM can apply a +/-1 modifier...
+	# A natural 6 means the NC ... will request to join your crew permanently."
+	#
+	# ⚠ THIS CASE REPLACES THREE IN test_core_appendices.gd (2026-09-10). Those
+	# drove ProblemSolvingTests.request_neutral_help(), a resolver with no caller
+	# that was removed in the same pass. The rule is DELIVERED, not executed: this
+	# is a companion app and an NC interaction is the player's roll to make, so
+	# what the app owes is the text — rendered here from
+	# data/RulesReference/NeutralCharacters.json. Asserting the DELIVERY is
+	# therefore the correct coverage; asserting the resolver was coverage of a
+	# function nothing reached.
+	var text: String = Sections.neutral_characters()
+	assert_str(text).is_not_empty()
+	for clause: String in ["1D6+Savvy", "5+", "natural 6"]:
+		assert_str(text).override_failure_message(
+			"the p.172 help roll no longer states '%s'" % clause
+		).contains(clause)
+
+
 func test_the_street_fight_suspect_table_is_the_book_one() -> void:
 	# p.125: 1 Nothing / 2 Possible enemy / 3-5 Enemy / 6 Ambush, identified at
 	# 4+Savvy inches. The literal had a different table at a fixed 4 inches.

@@ -274,9 +274,12 @@ func _on_roll_all() -> void:
 		var assignment: Dictionary = _assignments_data[assignment_data_idx]
 		var target: int = assignment.get("target_2d6", 99)
 
-		# Roll 2D6
-		var die1: int = (randi() % 6) + 1
-		var die2: int = (randi() % 6) + 1
+		# Roll 2D6. The dice stay separate because the result card below prints
+		# them back to the player individually, so roll_2d6() (which returns only
+		# the sum) cannot be used here.
+		var assign_name: String = str(assignment.get("name", "?"))
+		var die1: int = _roll_d6("Bug Hunt Special Assignment die 1: %s" % assign_name)
+		var die2: int = _roll_d6("Bug Hunt Special Assignment die 2: %s" % assign_name)
 		var total: int = die1 + die2
 		var success: bool = total >= target
 
@@ -406,3 +409,17 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	vbox.add_child(lbl)
 
 	return vbox
+
+
+## ── Dice routing ────────────────────────────────────────────────────────────
+## Book table rolls go through the DiceManager autoload so they are recorded in
+## the roll history and can be forced from the QA dialog in a debug build.
+## Map PLACEMENT is deliberately NOT routed: 5PFH's BattlefieldGenerator.gd has
+## zero DiceManager references and seeds a local RNG for placement, so routing
+## placement here would both break that precedent and flood the forced-roll
+## queue with entries a tester never asked to control.
+func _roll_d6(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm:
+		return int(dm.roll_d6(context))
+	return randi_range(1, 6)

@@ -46,5 +46,5 @@ Bug Hunt data — missions, enemies, spawn rules, character creation, enlistment
 2. **Validate campaign type** — `"main_characters" in campaign` before Bug Hunt code
 3. **Temp data namespacing** — Bug Hunt keys use `"bug_hunt_*"` prefix
 4. **Stat key differences** — `reactions`/`combat_skill` (BH) vs `reaction`/`combat` (5PFH)
-5. **Enlistment roll required** — 2D6 + Combat >= 8 to transfer 5PFH → Bug Hunt (verify in RulesReference)
-6. **_bug_hunt_returning flag** — prevents double-navigation, must be cleared after use
+5. **Enlistment roll required** — 2D6 + Combat Skill >= **7** to transfer 5PFH → Bug Hunt (Compendium p.212; `CharacterTransferService.ENLISTMENT_TARGET`). ⚠ This line said **8** until 2026-09-10 and was wrong against both the book and the code. A failed roll can be bypassed with 1 Story Point (p.214) — the service returns `story_point_rescue_available`, which currently has no reader.
+6. **Battle return is via temp data**, not a flag — `BugHuntTurnController` reads `bug_hunt_battle_result` and nulls the key after use. ⚠ This line described a `_bug_hunt_returning` flag until 2026-09-10; that identifier has **zero matches repo-wide** and never existed.

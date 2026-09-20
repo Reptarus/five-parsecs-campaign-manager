@@ -71,6 +71,9 @@
 		"initial_state": "active",
 		"reinforcement_schedule": "every_round",
 		"reinforcement_entry": "neutral_edge_random",
+		"_reinforcement_cite": "Core Rules p.151, verbatim: \"place an entrance point 2D6\" down that battlefield edge, measuring from the opponent's edge. Place the figures 1D6\" on to the battlefield from the side.\"",
+		"reinforcement_edge_distance_dice": "2D6",
+		"reinforcement_onto_table_dice": "1D6",
 		"reinforcement_state": "passive",
 		"specialist_per_team": true,
 		"description": "Roving Threats only. 4 teams of 4 at midway. New passive team each round from random neutral edge."
@@ -80,6 +83,9 @@
 		"active": "Fight like normal troops.",
 		"passive": "Does not move or fight the round placed. At end of each round, assign number to each passive team and roll 1D6. If matches, becomes Active.",
 		"passive_activation_triggers": ["fired_upon", "crew_within_8_inches"],
+		"_activation_cite": "Core Rules p.151, verbatim: \"Roll 1D6. If the roll is a team already on the board, it becomes Active.\" and \"Passive teams also become Active if they are fired upon, or if a crew figure approaches within 8\" of them.\"",
+		"activation_die": "1D6",
+		"proximity_activation_inches": 8,
 		"description": "Passive teams activate when fired upon, crew within 8 inches, or D6 roll matches their number."
 	},
 

@@ -1,6 +1,11 @@
 class_name FPCM_BattleFlowGuide
 extends RefCounted
 
+## The p.151 Black Job numbers are OWNED by data/black_zone_jobs.json and
+## reached through BlackZoneSystem. They are not restated here — see
+## build_black_job_round_prompts() for why that matters.
+const BlackZoneSystemRef = preload("res://src/core/mission/BlackZoneSystem.gd")
+
 ## Battle-journey guidance derivations — the fluid golden path's text source.
 ##
 ## Pure static lookups consumed by the EXISTING guidance surfaces
@@ -180,6 +185,17 @@ static func build_red_job_round_prompts(
 ## `MissionPrepComponent` printed a hardcoded "4 teams of 4" string once, before
 ## deployment, and that was the entire delivery.
 ##
+## ⚠ AND THE FIRST FIX ONLY MOVED THE PROBLEM (corrected 2026-09-10). This
+## function delivered the rules by RE-IMPLEMENTING them: the 4-figure team, the
+## 2D6"/1D6" placement, the 1D6 activation and the 8" proximity were spelled out
+## as literals in player-facing strings, while `get_active_passive_rules()` and
+## `get_ending_rules()` STAYED at zero callers reading the same rules from
+## `data/black_zone_jobs.json`. Two copies of one mechanic, one of them the text
+## a player acts on — the trap this project has now hit at the Cheat Sheet, the
+## Black Job prep card and the Tactics CP table. Every number below is now read
+## from the JSON; the four the file did not yet carry were transcribed into it
+## from p.151 with the quote attached, rather than left in the string.
+##
 ## Every clause below is quoted from p.151. This is a per-ROUND rule, so like the
 ## Red Job Time Constraint it cannot be stamped at mission acceptance.
 ##
@@ -193,17 +209,29 @@ static func build_black_job_round_prompts(
 		return []
 	var out: Array = []
 
+	var opposition: Dictionary = BlackZoneSystemRef.get_opposition_rules()
+	var active_passive: Dictionary = BlackZoneSystemRef.get_active_passive_rules()
+	var ending: Dictionary = BlackZoneSystemRef.get_ending_rules()
+
+	var team_size: int = int(opposition.get("team_size", 4))
+	var edge_dice: String = str(opposition.get(
+		"reinforcement_edge_distance_dice", "2D6"))
+	var entry_dice: String = str(opposition.get(
+		"reinforcement_onto_table_dice", "1D6"))
+	var activation_die: String = str(active_passive.get("activation_die", "1D6"))
+	var proximity: int = int(active_passive.get("proximity_activation_inches", 8))
+
 	# "At the end of each round, another team arrives. Randomly select a neutral
 	# battlefield edge, then place an entrance point 2D6" down that battlefield
 	# edge, measuring from the opponent's edge. Place the figures 1D6" on to the
 	# battlefield from the side. These teams enter the battlefield Passive."
 	out.append({
 		"id": "black_job_reinforcements",
-		"text": "BLACK JOB: another 4-figure team arrives. Pick a random neutral "
-			+ "edge, mark an entrance 2D6\" down it measuring from the opponent's "
-			+ "edge, and place the figures 1D6\" onto the table from the side. "
-			+ "They enter PASSIVE.",
-		"roll": "2D6",
+		"text": ("BLACK JOB: another %d-figure team arrives. Pick a random neutral "
+			+ "edge, mark an entrance %s\" down it measuring from the opponent's "
+			+ "edge, and place the figures %s\" onto the table from the side. "
+			+ "They enter PASSIVE.") % [team_size, edge_dice, entry_dice],
+		"roll": edge_dice,
 		"page_cite": "Core Rules p.151",
 	})
 
@@ -212,18 +240,23 @@ static func build_black_job_round_prompts(
 	# already on the board, it becomes Active. Otherwise nothing happens."
 	out.append({
 		"id": "black_job_passive_activation",
-		"text": "Number the Passive teams left to right, then roll 1D6 — if the "
+		"text": ("Number the Passive teams left to right, then roll %s — if the "
 			+ "roll matches a team on the board, that team becomes ACTIVE. Passive "
-			+ "teams also wake if fired upon, or if a crew figure comes within 8\".",
-		"roll": "1D6",
+			+ "teams also wake if fired upon, or if a crew figure comes within "
+			+ "%d\".") % [activation_die, proximity],
+		"roll": activation_die,
 		"page_cite": "Core Rules p.151",
 	})
 
 	if won:
+		# "If you have Won, you will be evac'ed out at the end of the following
+		# round." `win_evac_delay` is that "following": 1 round of grace.
+		var delay: int = int(ending.get("win_evac_delay", 1))
 		out.append({
 			"id": "black_job_evac",
-			"text": "OBJECTIVE COMPLETE — the evac lifts you out at the end of the "
-				+ "FOLLOWING round. Hang in there: reinforcements keep arriving.",
+			"text": ("OBJECTIVE COMPLETE — the evac lifts you out at the end of "
+				+ "round %d. Hang in there: reinforcements keep arriving.")
+				% (round_number + delay),
 			"page_cite": "Core Rules p.151",
 		})
 

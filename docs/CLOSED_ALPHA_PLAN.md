@@ -2,13 +2,21 @@
 
 **Owner**: Elijah Rhyne
 **Created**: 2026-04-29 (post Modiphius meeting)
-**Target kickoff**: Mon May 25, 2026 (or May 18 if A0 sanity-check passes early)
-**Window**: 6 weeks (May 25 → Jul 6, 2026)
-**Cohort**: 10-20 testers from Ivan's private playtesting Discord
-**Distribution**: Android via Google Play closed testing track (invite-only email allowlist under Modiphius's Play account); opt-in link shared via Discord
+**Target kickoff**: TBD. Deferred by Modiphius on Jul 27 2026 (journal Entry #27, provisional); do not propose one. ~~Mon May 25, 2026~~
+**Window**: 6 weeks from kickoff. ~~May 25 → Jul 6, 2026~~
+**Cohort**: Google-Form signup funnel across the official Discord, Ivan's community and the 5PFH Facebook group (journal Entry #12; `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`). ~~10-20 testers from Ivan's private playtesting Discord~~
+**Distribution**: Android via Google Play closed testing track (invite-only email allowlist under Modiphius's Play account). Build: `0.9.7-alpha1` (`project.godot:22`), AAB, min SDK 29 / Android 10+ (`export_presets.cfg:34`), target SDK 35 (`:35`), versionCode 18 (`:41`).
 **Build cadence**: weekly (Mondays)
-**Status**: DRAFT v1 — for review with Ivan before kickoff
-**Timeline stale (flagged 2026-06-18)**: every date below (kickoff, the May 25 to Jul 6 window, the A0-A6 build cadence in §5, the §8 pipeline) predates the mobile-first re-pivot and has passed. Re-anchor the whole schedule once Modiphius commits a hard kickoff date (and Play Console access lands). Dates left in place until then.
+**Status**: DRAFT v2, updated 2026-09-13 (status lines, §3 build facts, open items). Body otherwise still v1.
+**Timeline stale (flagged 2026-06-18)**: every date below (the May 25 to Jul 6 window, the A0-A6 build cadence in §5, the §8 pipeline) predates the mobile-first re-pivot and has passed. Re-anchor the whole schedule once Modiphius commits a hard kickoff date (and Play Console access lands). Dates left in place until then.
+
+**Blocking kickoff as of 2026-09-13** (detail in journal §3.0):
+
+1. LOI on Modiphius letterhead (promised Mon Sep 14, Entry #32).
+2. Play Console access for Elijah (asked Jun 18, Entry #21, no answer).
+3. NDA stance for an invite-only cohort (§3 below).
+4. Kickoff date from Modiphius.
+5. A tester DLC unlock mechanism (engineering; §3 below).
 
 ---
 
@@ -45,7 +53,7 @@ Bug-finding is the obvious part. The pricing-validation part matters more long-t
 - §10 risk register's "Modiphius wants formal NDA after alpha starts" applies to alpha-1; alpha-2 may be re-scoped
 - §11 open items are alpha-1 specific
 
-Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing/ALPHA_1_QA_PLAN.md). Alpha-1 readiness workback (May 1 → May 25) lives in `C:\Users\admin\.claude\plans\warm-weaving-llama.md`.
+Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing/ALPHA_1_QA_PLAN.md). ~~Alpha-1 readiness workback (May 1 → May 25) lives in `C:\Users\admin\.claude\plans\warm-weaving-llama.md`.~~ (That file does not exist as of 2026-09-13.)
 
 ---
 
@@ -66,6 +74,8 @@ Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing
 - Streamers / content creators (this is closed alpha — no public coverage until beta or later; see §6)
 
 ### Recruitment
+
+> ⚠ SUPERSEDED May 25 2026 (journal Entry #12): recruitment is the Google-Form funnel named in the header, not Ivan's Discord alone. The form goes live only after a Modiphius bias-check and once a kickoff date exists. Lines below kept for history.
 
 - **Source**: Ivan's private playtesting Discord community
 - **Target size**: 10-20 testers
@@ -94,11 +104,13 @@ Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing
 
 ### What's NOT in the alpha (yet)
 
-- DLC paywall enforcement is OFF — testers see all Compendium content unlocked (helps gather feedback on full scope)
-- No purchase flows (Steam/iOS/Android adapters disabled; the test build runs in offline mode)
-- No telemetry by default — opt-in toggle on first run, default OFF, anonymous if enabled
+- ⚠ **CORRECTED 2026-09-13: the Compendium is NOT unlocked in the current build, and a tester has no way to unlock it.** `_owned_dlcs` starts empty (`src/core/systems/DLCManager.gd:128`) and `is_feature_enabled()` requires ownership (`:181-184`). The Settings "Manage Features" button only appears when something is already owned (`src/ui/screens/settings/SettingsScreen.gd:589`); the store card's "Manage Features" is the owned-state restyle of the buy button (`src/ui/screens/store/DLCPackCard.gd:252-255`); the only non-debug ownership writer is `src/ui/dialogs/DLCManagementDialog.gd:263`. The line this replaces ("DLC paywall enforcement is OFF, testers see all Compendium content unlocked") was a plan, never built. **Open item: choose an alpha unlock mechanism before A0** (§11).
+- No purchase flows. The Android adapter reports an error and returns when no `BillingClient` class exists (`src/core/store/AndroidStoreAdapter.gd:23-25`). Billing is PARKED by owner decision pending the letterhead LOI (`docs/QA_STATUS_DASHBOARD.md:939-945`).
+- No telemetry by default: analytics consent defaults to false (`src/core/legal/LegalConsentManager.gd:29`) and the Talo adapter drops events without it (`src/core/analytics/TaloAnalyticsAdapter.gd:92-93`).
 
 ### Privacy + NDA
+
+> ⚠ UNRESOLVED as of 2026-09-13. Chris, May 8 (journal Entry #8): "We also get play testers to sign NDA's on tabletop closed beta projects. If they're open testing we don't." This alpha is invite-only, which is the closed case. Ask on the week-of-Sep-14 call. The "no formal NDA" line below is a draft position, not an agreed one.
 
 - **No formal NDA** — this is a gentleman's agreement. Industry standard for indie closed alphas.
 - **Don't post screenshots, streams, or recordings publicly** until we open beta or later
@@ -110,9 +122,13 @@ Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing
 
 ## 4. How Testers Give Feedback
 
+### In-app bug reporter (built)
+
+`src/ui/components/common/BugReportDialog.gd`, titled "Report a Bug" (`:77`). Six categories (`:24-29`), attaches the last 100 log lines (`:37`), saves to `user://bug_reports/` (`BugReportStore.gd:14`) and has a "Save & Copy" button (`:213`). Opened from the button beside the settings gear (`src/autoload/SettingsOverlay.gd:13,161`) and from Settings (`SettingsScreen.gd:730`). An optional Discord webhook exists but is off unless its gitignored config holds a URL (`BugReportWebhook.gd:32,51`).
+
 ### Discord-based feedback
 
-Two structured channels in Ivan's Discord:
+Two structured channels in Ivan's Discord (⚠ channel home not decided since the funnel replaced the Ivan-only cohort):
 
 - **#5pfh-alpha-bugs** — bug reports, structured template (pinned at top of channel)
 - **#5pfh-alpha-feedback** — open-ended thoughts, "what worked / what felt off / what's missing"
@@ -240,7 +256,7 @@ End-of-alpha success means **all six gates pass** (AND, not OR — five-out-of-s
 | 1 | **Stability** | P0 = 0; P1 < 5; save/load round-trip clean across all 4 modes; <1 crash per 10 sessions |
 | 2 | **Comprehension** | ≥80% of testers can describe the value prop in one sentence after 2 sessions |
 | 3 | **Retention** | ≥60% of testers complete 3+ sessions; ≥40% reach Turn 5 in a campaign |
-| 4 | **Pricing band converges** | Test feedback narrows perceived price range to ±$3, expected band $14.99-$24.99 |
+| 4 | **Pricing band converges** | Test feedback narrows perceived price range to ±$3, expected band $14.99-$24.99. ⚠ SUPERSEDED Jul 27 2026: model approved as $9.99 one-time base + per-book unlocks (journal Entry #27, provisional). Gate needs rewriting against that model. |
 | 5 | **Recommendation signal** | ≥7/10 testers say they'd recommend the app to a friend (NPS proxy) |
 | 6 | **Bug discovery rate trending down** | New P1+ bugs/build declining by week 5 |
 
@@ -286,25 +302,31 @@ Closed alpha testers stay in the loop after alpha ends — invited to beta cohor
 | Pricing data inconclusive | Low | Med | Supplement with Prolific paid survey (n=200) running in parallel — broader cohort gives statistical confidence beyond 10-20 directional. |
 | Tester can't install the build (Play opt-in confusion, device/OS-version compatibility, Gmail does not match device) | Med | Low | Onboarding doc with step-by-step Play opt-in flow; confirm each tester's Gmail matches their device; state the minimum Android version up front. Discord channel for troubleshooting. |
 | Tester leaks build / streams publicly | Low | Med | No-NDA gentleman's agreement covered in onboarding. Recovery: ask them to take it down; minor incident, don't escalate. |
-| Modiphius wants formal NDA after alpha starts | Low | Med | Raise this in Apr 29 followup ask #4. Get answer before kickoff. |
+| Modiphius wants formal NDA after alpha starts | ~~Low~~ **Med** (2026-09-13) | Med | Chris's May 8 rule (NDAs for closed tabletop betas) points to an NDA for this cohort. Never answered. Ask on the week-of-Sep-14 call. |
 
 ---
 
 ## 11. Open Items Before Kickoff
 
-To resolve in Phase A.2 (May 5-11) before alpha launches:
+Updated 2026-09-13. Original list said "resolve in Phase A.2 (May 5-11)".
 
-- [ ] Confirm exact cohort size with Ivan (target 10-20)
-- [ ] Modiphius Play Console access confirmed (Elijah added to their Play account with rights to manage the closed test track + tester allowlist)
-- [ ] New kickoff date set and the schedule (header, §5 build cadence, §8 pipeline) re-anchored to it
-- [ ] Confirm Modiphius's NDA stance (per Apr 29 followup ask #4)
-- [ ] Telemetry tooling decision (Talo vs GameAnalytics) — recommend Talo (Godot-native, open-source)
-- [ ] Discord channel structure agreed with Ivan (use existing community channels or set up dedicated ones)
-- [ ] Bug intake template finalized (pinned message draft)
-- [ ] Pricing-perception survey questions finalized (separate `docs/PRICING_RESEARCH_PLAN.md`)
-- [ ] Onboarding doc drafted (1-pager that ships with the build)
-- [ ] A0 sanity-check build verified by Ivan before broader distribution
+- [ ] ~~Confirm exact cohort size with Ivan (target 10-20)~~ Superseded by the signup funnel; cohort size comes from form responses.
+- [ ] Modiphius Play Console access confirmed (Elijah added to their Play account with rights to manage the closed test track + tester allowlist). **Asked Jun 18, never answered.**
+- [ ] LOI received on Modiphius letterhead (promised Mon Sep 14) and diffed against the Google Doc before signing
+- [ ] Meeting with Chris the week of Sep 14 (time TBD by Chris); ask for an intro to Cam
+- [ ] Legal contact and marketing/social contact named (asked Aug 25; marketing "easier mid Sept")
+- [ ] New kickoff date set by Modiphius and the schedule (header, §5 build cadence, §8 pipeline) re-anchored to it
+- [ ] Confirm Modiphius's NDA stance (per Apr 29 followup ask #4; still open)
+- [ ] **Alpha DLC unlock mechanism decided and built** (see §3; billing stays parked)
+- [ ] Announcement draft + signup form get Modiphius's endorsement / bias-check pass
+- [ ] 7 legal placeholders stay as-is until the LOI settles the terms (`docs/legal/POST_LOI_LEGAL_CHECKLIST.md`)
+- [x] Telemetry tooling decision: Talo (consent-gated, `TaloAnalyticsAdapter.gd:92-93`)
+- [ ] Discord channel structure agreed (funnel spans three communities, so where the alpha channels live is open)
+- [x] Bug intake: in-app "Report a Bug" dialog built (§4). Pinned Discord template still optional.
+- [ ] Pricing-perception survey questions finalized (separate `docs/PRICING_RESEARCH_PLAN.md`), rewritten for the $9.99 + per-book model
+- [ ] Onboarding doc: drafted but stale for Android (see banner in `docs/testing/ALPHA_TESTER_ONBOARDING.md`)
+- [ ] A0 sanity-check build verified before broader distribution
 
 ---
 
-*Document drafted Apr 29 2026 post Modiphius meeting. Review with Ivan in Phase A.2 (week of May 5). Update as kickoff approaches.*
+*Document drafted Apr 29 2026 post Modiphius meeting. Status lines, §3 and §11 updated 2026-09-13 against the build at `3b26b873d` and journal Entries #15-#33.*

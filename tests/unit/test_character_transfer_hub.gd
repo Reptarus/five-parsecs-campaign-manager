@@ -9,6 +9,7 @@ extends GdUnitTestSuite
 
 const CharacterTransferService := preload("res://src/core/character/CharacterTransferService.gd")
 const FiveParsecsCampaignCore := preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
+const BugHuntCampaignCore := preload("res://src/game/campaign/BugHuntCampaignCore.gd")
 
 const TRANSFER_DIR := "user://transfers/"
 
@@ -25,9 +26,16 @@ func before_test() -> void:
 
 func after_test() -> void:
 	# Remove only files this suite created — never touch real transfers.
+	#
+	# The SIBLINGS matter too: SaveFileWriter leaves a .bak (and briefly a .tmp) beside
+	# every save it writes, so removing only the registered path left two .bak files in
+	# user://transfers/ after every run. Harmless today - load_pending_transfers scans
+	# ends_with(".json") - but litter in the directory the pickup reads is exactly what a
+	# later reader has to rule out by hand.
 	for path in _written_files:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
+		for candidate in [path, path + ".bak", path + ".tmp"]:
+			if FileAccess.file_exists(candidate):
+				DirAccess.remove_absolute(candidate)
 	_written_files.clear()
 
 
@@ -200,6 +208,91 @@ func test_apply_transfer_rewards_adds_patron_and_defers_file_delete() -> void:
 	assert_that(str(res.get("consumed_file", ""))).is_equal(path)
 	assert_that(FileAccess.file_exists(path)).is_true()
 	DirAccess.remove_absolute(path)  # the caller's job in production
+
+
+# ----------------------------------------------------------------------------
+# Summary honesty - a reward line must never outlive the grant it describes
+# ----------------------------------------------------------------------------
+#
+# apply_transfer_rewards() guards each grant on the receiving campaign actually having
+# the field, then appends a line to the muster-out summary the player is shown. Four of
+# those lines sat OUTSIDE their guard, so a campaign that could not hold a reward was
+# still told it had received one.
+#
+# COVERAGE NOTE, so the next reader does not assume more than is here: this pair covers
+# the patron and the ship, whose guards are campaign-field tests a suite can falsify by
+# choosing the campaign. The credits and Story Point lines take the identical fix and are
+# NOT covered - their guard is `gsm and gsm.has_method(...)` against the GameStateManager
+# AUTOLOAD, which a test cannot remove without breaking every other suite in the process.
+# Their correctness rests on the shared shape, not on a case.
+
+func test_the_summary_omits_rewards_the_campaign_cannot_hold() -> void:
+	# A BugHuntCampaignCore declares neither `patrons` nor `has_ship`. It is the real
+	# object the mode-generic pickup (CampaignScreenBase._apply_pending_transfers) can
+	# hand in, not a stub written to fail.
+	var campaign := BugHuntCampaignCore.new()
+
+	# Premise instruments. If either field existed the grant would run, and this case
+	# would pass while asserting nothing at all about the guard.
+	assert_bool("patrons" in campaign).override_failure_message(
+		"fixture premise: BugHuntCampaignCore must NOT declare `patrons`, or this case is"
+		+ " measuring a campaign that can hold the reward"
+	).is_false()
+	assert_bool("has_ship" in campaign).override_failure_message(
+		"fixture premise: BugHuntCampaignCore must NOT declare `has_ship`"
+	).is_false()
+
+	var character := _make_full_character()
+	character["bonus_ship"] = true
+	var transfer := {
+		"character": character,
+		# Zero deliberately: those two grants reach the live GameStateManager autoload,
+		# and this case must not mutate whatever campaign the process has loaded.
+		"mustering_credits": 0, "bonus_story_points": 0,
+		"add_sector_government_patron": true
+	}
+
+	var res: Dictionary = CharacterTransferService.apply_transfer_rewards(campaign, transfer)
+	var summary := str(res.get("summary", ""))
+
+	# The transfer itself is not a failure - the character still arrives. Only the
+	# announcement of a reward that was never granted is wrong.
+	assert_bool(res.get("success", false)).is_true()
+	assert_str(summary).override_failure_message(
+		"the summary announced a Sector Government Patron to a campaign with no patron"
+		+ " list to put one in: '%s'" % summary
+	).not_contains("Sector Government Patron")
+	assert_str(summary).override_failure_message(
+		"the summary announced a ship to a campaign that has no ship: '%s'" % summary
+	).not_contains("+Ship")
+
+
+func test_the_summary_still_announces_rewards_the_campaign_did_receive() -> void:
+	# The anti-over-correction arm. Deleting the two summary lines outright would make the
+	# case above pass and leave a player who DID receive both rewards told about neither.
+	var campaign := FiveParsecsCampaignCore.new()
+	campaign.patrons = []
+	# has_ship defaults to TRUE, so a fixture that left it alone could not tell the grant
+	# apart from the default - the assertion below would pass with the write deleted.
+	campaign.has_ship = false
+
+	var character := _make_full_character()
+	character["bonus_ship"] = true
+	var transfer := {
+		"character": character,
+		"mustering_credits": 0, "bonus_story_points": 0,
+		"add_sector_government_patron": true
+	}
+
+	var res: Dictionary = CharacterTransferService.apply_transfer_rewards(campaign, transfer)
+	var summary := str(res.get("summary", ""))
+
+	# Granted for real...
+	assert_int(campaign.patrons.size()).is_equal(1)
+	assert_bool(campaign.has_ship).is_true()
+	# ...and therefore announced.
+	assert_str(summary).contains("Sector Government Patron")
+	assert_str(summary).contains("+Ship")
 
 
 # ============================================================================

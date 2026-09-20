@@ -97,19 +97,46 @@ func go_to_phase(phase: int) -> void:
 func _go_to_phase(phase: int) -> void:
 	previous_phase = current_phase
 	current_phase = phase
+	_persist_phase()
 	phase_changed.emit(previous_phase, current_phase)
 	_update_navigation()
 
 
+func _persist_phase() -> void:
+	## Write current_phase through to the campaign so a reload resumes here.
+	##
+	## Called from EVERY transition, not only at turn end. 5PFH persists at two call
+	## sites for exactly this reason (CampaignPhaseManager._complete_turn :1077 and
+	## start_phase :1324): persist only at turn end and a mid-turn Save stores a stale
+	## phase, so reopening the save skips the rest of the turn.
+	if campaign and "current_turn_phase" in campaign:
+		campaign.current_turn_phase = current_phase
+
+
 func _complete_turn() -> void:
-	# Save campaign state after each turn via GameState (updates last_campaign + signals)
-	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") if Engine.get_main_loop() else null
-	if gs and gs.has_method("save_campaign"):
-		gs.save_campaign(campaign)
-	elif campaign and campaign.has_method("save_to_file") and campaign.has_method("get_campaign_id"):
-		# Fallback: direct save if GameState unavailable
-		var path: String = "user://saves/" + campaign.get_campaign_id() + ".save"
-		campaign.save_to_file(path)
+	## Order is load-bearing: phase -> persist -> save -> emit.
+	##
+	## The phase must be NONE BEFORE the save, or the file records a finished turn as
+	## still sitting in POST_BATTLE and reopening it replays that turn. The emit must be
+	## LAST, because campaign_turn_completed is what redraws the footer into its
+	## "Start Next Turn" state and it must not fire against an unsaved campaign.
+	##
+	## Set current_phase DIRECTLY rather than routing through _go_to_phase(NONE): that
+	## emits phase_changed, which hides the panel, renders the phase label "UNKNOWN"
+	## (PHASE_NAMES has no NONE entry) and resets the footer to a disabled
+	## "Complete Phase" -- undoing the turn-complete footer this function then asks for.
+	## Mirrors CampaignPhaseManager._complete_turn (CampaignPhaseManager.gd:1077).
+	##
+	## Leaving current_phase at POST_BATTLE is what made a Bug Hunt turn unable to end:
+	## BugHuntTurnController's NONE branch (:310-314) was unreachable, so Advance fell
+	## through to panels[POST_BATTLE].complete() and re-applied the finished turn's XP,
+	## tally, Reputation, Operational Progress and Sick Bay tick, then saved again.
+	previous_phase = current_phase
+	current_phase = Phase.NONE
+	_persist_phase()
+
+	if campaign and campaign.has_method("persist"):
+		campaign.persist()
 
 	campaign_turn_completed.emit(turn_number)
 	_journal_log_turn_complete(turn_number)

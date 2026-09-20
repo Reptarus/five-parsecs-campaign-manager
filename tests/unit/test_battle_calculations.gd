@@ -190,20 +190,6 @@ func test_minimum_damage_is_one() -> void:
 	var damage := BattleCalculations.calculate_weapon_damage(0, false)
 	assert_int(damage).is_equal(1)  # Minimum is 1
 
-func test_damage_after_armor_basic() -> void:
-	# Raw damage 2, toughness 3, no penetration
-	var damage := BattleCalculations.calculate_damage_after_armor(2, 3, 0)
-	assert_int(damage).is_equal(0)  # 2 - 3 = 0 (minimum)
-
-func test_damage_after_armor_with_penetration() -> void:
-	# Raw damage 2, toughness 3, penetration 2
-	var damage := BattleCalculations.calculate_damage_after_armor(2, 3, 2)
-	assert_int(damage).is_equal(1)  # 2 - (3-2) = 1
-
-func test_damage_against_low_toughness() -> void:
-	# Raw damage 3, toughness 1, no penetration
-	var damage := BattleCalculations.calculate_damage_after_armor(3, 1, 0)
-	assert_int(damage).is_equal(2)  # 3 - 1 = 2
 
 #endregion
 
@@ -237,8 +223,9 @@ func test_book_armor_saves() -> void:
 	assert_int(BattleCalculations.get_armor_save_threshold("combat armor")).is_equal(5)
 	assert_int(BattleCalculations.get_armor_save_threshold("battle dress")).is_equal(5)
 	assert_int(BattleCalculations.get_armor_save_threshold("frag vest")).is_equal(6)
-	# "improved to 5+ against any Area attack"
-	assert_int(BattleCalculations.get_armor_save_vs_area("frag vest")).is_equal(5)
+	# "improved to 5+ against any Area attack" is applied by BattleResolver
+	# (frag_vest_area_bonus); the zero-caller get_armor_save_vs_area() helper
+	# was deleted 2026-09-10.
 
 
 func test_innate_plating_values() -> void:
@@ -273,9 +260,9 @@ func test_screen_generator_is_the_only_screen_save_and_not_vs_area_or_melee() ->
 	# p.54: "Screen generator ... Receives a 5+ Saving Throw against gunfire.
 	# No effect against Area or Melee attacks."
 	assert_int(BattleCalculations.get_screen_save_threshold("screen generator")).is_equal(5)
-	assert_bool(BattleCalculations.screen_applies("screen generator", false, false)).is_true()
-	assert_bool(BattleCalculations.screen_applies("screen generator", true, false)).is_false()
-	assert_bool(BattleCalculations.screen_applies("screen generator", false, true)).is_false()
+	# "No effect against Area or Melee attacks" reaches the player through the
+	# Cheat Sheet ("vs gunfire only"); the zero-caller screen_applies() helper
+	# was deleted 2026-09-10.
 
 
 func test_stun_is_a_marker_count_not_a_duration() -> void:
@@ -283,46 +270,10 @@ func test_stun_is_a_marker_count_not_a_duration() -> void:
 	# they are knocked out and removed from play."
 	assert_bool(BattleCalculations.is_knocked_out_by_stun(2)).is_false()
 	assert_bool(BattleCalculations.is_knocked_out_by_stun(3)).is_true()
-	# p.40/p.45: brawling a Stunned figure removes all its markers, but the
-	# attacker gets +1 per marker removed.
-	assert_int(BattleCalculations.brawl_bonus_from_stun(2)).is_equal(2)
-	assert_int(BattleCalculations.brawl_bonus_from_stun(0)).is_equal(0)
+	# p.40/p.45 "+1 per Stun marker on your opponent" is printed verbatim by
+	# CheatSheetPanel; the zero-caller brawl_bonus_from_stun() helper was
+	# deleted 2026-09-10.
 
-
-func test_impact_only_applies_to_an_already_stunned_target() -> void:
-	# p.51 verbatim: "Impact - If target is Stunned, place a second Stun marker."
-	assert_bool(BattleCalculations.check_impact_stun(true, ["Impact"])).is_true()
-	assert_bool(BattleCalculations.check_impact_stun(false, ["Impact"])).is_false()
-	assert_bool(BattleCalculations.check_impact_stun(true, ["Melee"])).is_false()
-
-
-func test_aiming_rerolls_ones_rather_than_granting_a_bonus() -> void:
-	# p.46: "When using an Aimed shot, pick up any 1s on the To Hit dice and
-	# roll them again once." It is a reroll, never a flat +1.
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 12345
-	var result: Array = BattleCalculations.apply_aim_reroll([1, 4, 1, 6], rng)
-	assert_int(result.size()).is_equal(4)
-	# Non-1 dice are untouched, in place.
-	assert_int(result[1]).is_equal(4)
-	assert_int(result[3]).is_equal(6)
-	# Rerolled dice are still legal d6 results.
-	for i in [0, 2]:
-		assert_int(result[i]).is_greater_equal(1)
-		assert_int(result[i]).is_less_equal(6)
-
-
-func test_enemy_aim_behaviour_by_ai_type() -> void:
-	# p.46: "Tactical, Cautious, and Defensive enemies will try to Aim when
-	# shooting from Cover. Aggressive and Rampaging enemies will not Aim."
-	for ai in ["Tactical", "Cautious", "Defensive"]:
-		assert_bool(BattleCalculations.enemy_will_aim(ai)).override_failure_message(
-			"%s enemies Aim from Cover (p.46)" % ai
-		).is_true()
-	for ai in ["Aggressive", "Rampaging"]:
-		assert_bool(BattleCalculations.enemy_will_aim(ai)).override_failure_message(
-			"%s enemies never Aim (p.46)" % ai
-		).is_false()
 
 func test_armor_save_success() -> void:
 	assert_bool(BattleCalculations.check_armor_save(6, "light")).is_true()
@@ -455,40 +406,6 @@ func test_resolve_brawl_draw() -> void:
 
 #region Experience Calculation Tests
 
-func test_xp_for_participation() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, false, 0)
-	# Participation (1) + defeat bonus (1) = 2
-	assert_int(xp).is_equal(2)
-
-func test_xp_for_victory() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 0)
-	# Participation (1) + victory bonus (2) = 3
-	assert_int(xp).is_equal(3)
-
-func test_xp_for_first_kill() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 1)
-	# Participation (1) + victory (2) + first casualty (1) = 4 (Core Rules p.123)
-	assert_int(xp).is_equal(4)
-
-func test_xp_has_no_fabricated_survival_bonus() -> void:
-	# Core Rules p.123 has no "survived an injury" battle-XP source. "School of
-	# hard knocks" (+1 XP) is an Injury Table result, applied in InjuryProcessor.
-	var xp := BattleCalculations.calculate_crew_xp(true, true, 0)
-	# Participation (1) + victory (2) = 3, regardless of any injury
-	assert_int(xp).is_equal(3)
-
-func test_no_xp_without_participation() -> void:
-	var xp := BattleCalculations.calculate_crew_xp(false, true, 5)
-	assert_int(xp).is_equal(0)
-
-func test_calculate_battle_xp_for_crew() -> void:
-	var crew_data := BattleTestFactory.create_crew_xp_data(3)
-	var xp_awards := BattleCalculations.calculate_battle_xp(crew_data, true)
-
-	assert_int(xp_awards.size()).is_equal(3)
-	# Each should have at least participation + victory = 3
-	for crew_id in xp_awards:
-		assert_int(xp_awards[crew_id]).is_greater_equal(3)
 
 #endregion
 
@@ -510,10 +427,6 @@ func test_loot_rolls_no_fabricated_enemy_count_bonus() -> void:
 	# Base (1) + hold field (1) = 2 — the enemy count is ignored
 	assert_int(rolls).is_equal(2)
 
-func test_calculate_battle_credits() -> void:
-	# Core Rules p.120: pay is base + danger pay, no percentage multiplier
-	var credits := BattleCalculations.calculate_battle_credits(10, 4)
-	assert_int(credits).is_equal(14)
 
 #endregion
 
@@ -540,34 +453,11 @@ func test_high_savvy_helps_initiative() -> void:
 
 #region Reaction Dice Tests
 
-func test_reaction_dice_count() -> void:
-	assert_int(BattleCalculations.get_reaction_dice_count(4)).is_equal(4)
-	assert_int(BattleCalculations.get_reaction_dice_count(6)).is_equal(6)
-
-func test_quick_action_threshold() -> void:
-	# Core Rules p.96: roll <= Reaction stat = Quick Action
-	# Reaction stat 4: rolls 1-4 are quick
-	assert_bool(BattleCalculations.is_quick_action(1, 4)).is_true()
-	assert_bool(BattleCalculations.is_quick_action(4, 4)).is_true()
-	assert_bool(BattleCalculations.is_quick_action(3, 3)).is_true()
-
-func test_slow_action_threshold() -> void:
-	# Core Rules p.96: roll > Reaction stat = Slow Action
-	assert_bool(BattleCalculations.is_quick_action(5, 4)).is_false()
-	assert_bool(BattleCalculations.is_quick_action(6, 4)).is_false()
-	assert_bool(BattleCalculations.is_quick_action(4, 3)).is_false()
 
 #endregion
 
 #region Utility Tests
 
-func test_calculate_distance() -> void:
-	var dist := BattleCalculations.calculate_distance(Vector2(0, 0), Vector2(3, 4))
-	assert_float(dist).is_equal_approx(5.0, 0.01)
-
-func test_calculate_grid_distance() -> void:
-	var dist := BattleCalculations.calculate_grid_distance(Vector2i(0, 0), Vector2i(3, 4))
-	assert_int(dist).is_equal(7)  # Manhattan distance
 
 #endregion
 
@@ -604,15 +494,6 @@ func test_melee_and_pistol_brawl_bonuses() -> void:
 	assert_int(_fx(["Pistol"])["brawl_modifier"]).is_equal(1)
 
 
-func test_clumsy_only_bites_against_a_faster_opponent() -> void:
-	# p.51: "-1 to Brawling rolls, if opponent has higher Speed."
-	assert_bool(_fx(["Clumsy"])["clumsy_if_opponent_faster"]).is_true()
-	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 4.0, 5.0)).is_equal(-1)
-	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 5.0, 4.0)).is_equal(0)
-	assert_int(BattleCalculations.brawl_clumsy_modifier(true, 4.0, 4.0)).is_equal(0)
-	assert_int(BattleCalculations.brawl_clumsy_modifier(false, 4.0, 6.0)).is_equal(0)
-
-
 func test_elegant_grants_a_brawl_reroll() -> void:
 	# p.51: "When Brawling, the fighter may reroll the die."
 	assert_bool(_fx(["Elegant"])["allows_brawl_reroll"]).is_true()
@@ -647,13 +528,6 @@ func test_impact_is_conditional_on_the_target_already_being_stunned() -> void:
 	assert_bool(e["causes_stun"]).override_failure_message(
 		"Impact must not stun an unstunned target — that is the Stun trait"
 	).is_false()
-
-
-func test_outnumbering_side_gets_plus_one_in_a_brawl() -> void:
-	# p.45 Multiple Opponents: "the outnumbering side getting a +1 bonus".
-	assert_int(BattleCalculations.brawl_outnumbering_modifier(2, 1)).is_equal(1)
-	assert_int(BattleCalculations.brawl_outnumbering_modifier(1, 2)).is_equal(0)
-	assert_int(BattleCalculations.brawl_outnumbering_modifier(1, 1)).is_equal(0)
 
 
 func test_panic_fire_halves_range_and_adds_two_shots() -> void:

@@ -40,53 +40,68 @@ func after_test():
 # Starting Points Tests (1D6+1 base, with difficulty modifiers)
 # ============================================================================
 
-func test_starting_points_range_2_to_7():
-	"""Starting points should be 1D6+1 (range 2-7) for standard difficulty"""
-	mock_campaign.config = {"difficulty": 2}  # Standard mode
+func test_starting_points_are_owned_by_the_finalization_service():
+	"""p.66 1D6+1 is granted ONCE, by CampaignFinalizationService.
 
-	# Test multiple rolls to ensure range
-	var rolls_in_range := 0
-	for i in range(20):
-		story_system = StoryPointSystem.new(mock_campaign)
-		var points = story_system.initialize_starting_points(2)
-		if points >= 2 and points <= 7:
-			rolls_in_range += 1
-
-	# All rolls should be in valid range
-	assert_that(rolls_in_range).is_equal(20)
+	⚠ THIS CASE USED TO DRIVE StoryPointSystem.initialize_starting_points(),
+	a SECOND grant site that rolled its own 1D6+1 off raw randi() and was
+	removed 2026-09-10 with zero callers. The creation invariant is one grant
+	site per rule, so testing the roll here was testing the wrong function.
+	The roll's own invariant is pinned in far more depth (400 iterations, both
+	extremes) by test_creation_resource_ledger.gd; this case exists only to
+	assert that the owner is reachable and in range."""
+	var FinalizationService = load(
+		"res://src/core/campaign/creation/CampaignFinalizationService.gd")
+	for _i in range(20):
+		assert_that(FinalizationService.roll_starting_story_points()).is_between(2, 7)
 
 func test_hardcore_reduces_starting_by_1():
-	"""Hardcore mode should reduce starting story points by 1"""
+	"""Hardcore reduces the p.66 starting points, via DifficultyModifiers.
+
+	The modifier is NOT part of the roll — CampaignFinalizationService rolls
+	1D6+1 and DifficultyModifiers.apply_starting_story_points_modifier() then
+	adjusts it from data/difficulty_modifiers.json. That split is deliberate and
+	documented at roll_starting_story_points(); assert it where it lives."""
+	var DifficultyModifiers = load("res://src/core/systems/DifficultyModifiers.gd")
 	var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
-	var hardcore_difficulty = GlobalEnums.DifficultyLevel.HARDCORE
-	mock_campaign.config = {"difficulty": hardcore_difficulty}
+	var hardcore: int = GlobalEnums.DifficultyLevel.HARDCORE
+	var normal: int = GlobalEnums.DifficultyLevel.NORMAL
 
-	# Initialize with hardcore difficulty
-	var points = story_system.initialize_starting_points(hardcore_difficulty)
+	# Asserted as a RELATIONSHIP, not a constant: the rule is "Hardcore is worse
+	# than Normal by exactly one", which stays true if the JSON value is retuned
+	# and fails if the modifier stops being applied at all.
+	for base in [2, 4, 7]:
+		var at_normal: int = DifficultyModifiers.apply_starting_story_points_modifier(
+			base, normal)
+		var at_hardcore: int = DifficultyModifiers.apply_starting_story_points_modifier(
+			base, hardcore)
+		assert_that(at_normal).is_equal(base)
+		assert_that(at_hardcore).is_equal(base - 1)
 
-	# Result should be (1D6+1)-1 = range 1-6
-	assert_that(points).is_between(1, 6)
+func test_starting_points_never_go_negative():
+	"""maxi(0, ...) — a base of 0 under Hardcore must floor at 0, not -1."""
+	var DifficultyModifiers = load("res://src/core/systems/DifficultyModifiers.gd")
+	var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
+	assert_that(DifficultyModifiers.apply_starting_story_points_modifier(
+		0, GlobalEnums.DifficultyLevel.HARDCORE)).is_equal(0)
 
-func test_nightmare_returns_zero_points():
-	"""Nightmare mode should disable story points entirely (0 starting points)"""
-	# StoryPointSystem uses difficulty == NIGHTMARE (5) to disable story points
-	mock_campaign.config = {"difficulty": 5}  # GlobalEnums.DifficultyLevel.INSANITY
+func test_insanity_returns_zero_starting_points():
+	"""Insanity disables story points entirely (Core Rules p.65)."""
+	var DifficultyModifiers = load("res://src/core/systems/DifficultyModifiers.gd")
+	var GlobalEnums = load("res://src/core/systems/GlobalEnums.gd")
+	assert_that(DifficultyModifiers.apply_starting_story_points_modifier(
+		7, GlobalEnums.DifficultyLevel.INSANITY)).is_equal(0)
 
-	# Create system with nightmare config
+	# ...and the runtime system agrees, so the two cannot disagree about a mode.
+	mock_campaign.config = {"difficulty": 5}
 	story_system = StoryPointSystem.new(mock_campaign)
-	var points = story_system.initialize_starting_points(5)
-
-	assert_that(points).is_equal(0)
+	story_system.add_points(7, "test")
 	assert_that(story_system.get_current_points()).is_equal(0)
-
-# ============================================================================
-# Earning Points Tests
-# ============================================================================
 
 func test_earn_point_every_third_turn():
 	"""Should earn 1 story point on turns 3, 6, 9, 12, etc."""
 	mock_campaign.config = {"difficulty": 2}  # Standard mode
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 
 	# Turn 3 should earn point
 	var earned_turn_3 = story_system.check_turn_earning(3)
@@ -104,30 +119,13 @@ func test_earn_point_every_third_turn():
 	var earned_turn_4 = story_system.check_turn_earning(4)
 	assert_that(earned_turn_4).is_equal(0)
 
-func test_earn_point_on_held_field_with_death():
-	"""Should earn 1 point if holding field after battle when character was killed"""
-	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
-
-	# Held field AND character killed = earn point
-	var earned = story_system.check_battle_earning(true, true)
-	assert_that(earned).is_equal(1)
-
-func test_no_point_if_held_field_without_death():
-	"""Should NOT earn point if holding field but no character killed"""
-	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
-
-	var earned = story_system.check_battle_earning(true, false)
-	assert_that(earned).is_equal(0)
-
-func test_no_point_if_death_without_held_field():
-	"""Should NOT earn point if character killed but field not held"""
-	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
-
-	var earned = story_system.check_battle_earning(false, true)
-	assert_that(earned).is_equal(0)
+## ⚠ THE THREE BATTLE-EARNING CASES THAT SAT HERE WERE REMOVED 2026-09-10.
+## They drove StoryPointSystem.check_battle_earning(), a zero-caller duplicate of
+## the live rule. Core Rules p.66's "+1 for holding the field after a crew member
+## was killed" is implemented by PostBattlePhase._check_bitter_day_story_point()
+## and is pinned by tests/tools/verify_post_battle.gd (_row_bitter_day_story_point),
+## which asserts it against BOTH casualty payload shapes — coverage this suite
+## never had.
 
 # ============================================================================
 # Spending Points Tests (Per-turn limits)
@@ -136,7 +134,7 @@ func test_no_point_if_death_without_held_field():
 func test_credits_spend_once_per_turn():
 	"""GET_CREDITS should only be usable once per turn"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(5, "test")  # Ensure enough points
 
 	# First spend should succeed
@@ -155,7 +153,7 @@ func test_credits_spend_once_per_turn():
 func test_xp_spend_once_per_turn():
 	"""GET_XP should only be usable once per turn"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(5, "test")
 
 	var first_spend = story_system.spend_point(StoryPointSystem.SpendType.GET_XP)
@@ -167,7 +165,7 @@ func test_xp_spend_once_per_turn():
 func test_extra_action_spend_once_per_turn():
 	"""EXTRA_ACTION should only be usable once per turn"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(5, "test")
 
 	var first_spend = story_system.spend_point(StoryPointSystem.SpendType.EXTRA_ACTION)
@@ -179,7 +177,7 @@ func test_extra_action_spend_once_per_turn():
 func test_roll_twice_unlimited_per_turn():
 	"""ROLL_TWICE_PICK_ONE should be unlimited uses per turn"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(10, "test")  # Ensure enough points for multiple spends
 
 	# Should succeed multiple times
@@ -195,7 +193,7 @@ func test_roll_twice_unlimited_per_turn():
 func test_reroll_unlimited_per_turn():
 	"""REROLL_RESULT should be unlimited uses per turn"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(10, "test")
 
 	var spend_1 = story_system.spend_point(StoryPointSystem.SpendType.REROLL_RESULT)
@@ -211,7 +209,7 @@ func test_reroll_unlimited_per_turn():
 func test_reset_turn_limits():
 	"""reset_turn_limits() should reset all per-turn spending flags"""
 	mock_campaign.config = {"difficulty": 2}
-	story_system.initialize_starting_points(2)
+	story_system.add_points(8, "test setup")
 	story_system.add_points(10, "test")
 
 	# Spend all limited abilities
@@ -240,7 +238,7 @@ func test_hardcore_allows_spending():
 	"""In Hardcore mode, story points should still work (just reduced starting amount)"""
 	mock_campaign.config = {"difficulty": 4}  # HARDCORE
 	story_system = StoryPointSystem.new(mock_campaign)
-	story_system.initialize_starting_points(4)
+	story_system.add_points(8, "test setup")
 
 	# Add points to ensure we have enough
 	story_system.add_points(5, "test")
@@ -254,15 +252,14 @@ func test_hardcore_allows_earning():
 	"""In Hardcore mode, earning story points should still work"""
 	mock_campaign.config = {"difficulty": 4}  # HARDCORE
 	story_system = StoryPointSystem.new(mock_campaign)
-	story_system.initialize_starting_points(4)
+	story_system.add_points(8, "test setup")
 
 	# Turn earning should work
 	var turn_earned = story_system.check_turn_earning(3)
 	assert_that(turn_earned).is_equal(1)
 
-	# Battle earning should work
-	var battle_earned = story_system.check_battle_earning(true, true)
-	assert_that(battle_earned).is_equal(1)
+	# (Battle earning is PostBattlePhase._check_bitter_day_story_point()'s job —
+	# see the note above the Spending section.)
 
 # ============================================================================
 # Nightmare Mode Tests (Story Points Disabled)
@@ -272,7 +269,7 @@ func test_nightmare_cannot_spend_points():
 	"""In Nightmare mode, all spending should be blocked"""
 	mock_campaign.config = {"difficulty": 5}  # NIGHTMARE
 	story_system = StoryPointSystem.new(mock_campaign)
-	story_system.initialize_starting_points(5)
+	story_system.add_points(8, "test setup")
 
 	# Try to add points manually (should be ignored)
 	story_system.add_points(10, "test")
@@ -286,12 +283,12 @@ func test_nightmare_cannot_earn_points():
 	"""In Nightmare mode, turn and battle earning should return 0"""
 	mock_campaign.config = {"difficulty": 5}  # NIGHTMARE
 	story_system = StoryPointSystem.new(mock_campaign)
-	story_system.initialize_starting_points(5)
+	story_system.add_points(8, "test setup")
 
 	# Turn earning should return 0
 	var turn_earned = story_system.check_turn_earning(3)
 	assert_that(turn_earned).is_equal(0)
 
-	# Battle earning should return 0
-	var battle_earned = story_system.check_battle_earning(true, true)
-	assert_that(battle_earned).is_equal(0)
+	# ...and nothing can be added by hand either, which is the same clause.
+	story_system.add_points(10, "test")
+	assert_that(story_system.get_current_points()).is_equal(0)

@@ -527,6 +527,27 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 		var completed: int = 0
 		if ctx.game_state.has_method("complete_active_quest"):
 			completed = ctx.game_state.complete_active_quest()
+
+		# Compendium p.115, Faction Event 94-00 "Dark secrets": "A random Faction
+		# sends you on a Quest targeting one of their enemies. If you complete it
+		# successfully, the target Faction suffers -1 Influence and -1 Power. You
+		# receive +2 Loyalty for completing the Quest."
+		#
+		# ⚠ THE PRODUCER WAS LIVE AND THE CONSUMER WAS NOT. The event handler
+		# (`FactionSystem._record_dark_secrets_quest`) has always stamped the
+		# giver and target onto `progress_data["dark_secrets_quest"]`, and
+		# `resolve_dark_secrets_quest()` — complete and byte-faithful — had ZERO
+		# callers, so the Quest could be handed out and could never pay off. This
+		# is the only place a 5PFH Quest concludes, so the call belongs here.
+		#
+		# It no-ops and returns false when no such quest is outstanding, which is
+		# why it is called unconditionally rather than behind a probe. `held_field`
+		# is the book's "successfully": the crew fought the finale and won it.
+		var faction_sys: Node = Engine.get_main_loop().root.get_node_or_null(
+			"/root/FactionSystem") if Engine.get_main_loop() else null
+		if faction_sys and faction_sys.has_method("resolve_dark_secrets_quest"):
+			faction_sys.resolve_dark_secrets_quest(
+				bool(ctx.battle_result.get("held_field", false)))
 		# The Compendium's permanent modifiers are scoped to "all future battles
 		# that are part of the Quest" (p.79) — this Quest. A new one must start
 		# clean, and a discharged obligation must not outlive the Quest it

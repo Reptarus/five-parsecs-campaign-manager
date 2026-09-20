@@ -95,12 +95,6 @@ static func is_sight(attachment_id: String) -> bool:
 	return str(definition(attachment_id).get("type", "")) == "Gun Sight"
 
 
-static func is_attachment(name_or_id: String) -> bool:
-	return not normalize_id(name_or_id).is_empty()
-
-
-# MARK: - Fitting
-
 static func fitted_mod(weapon: Variant) -> String:
 	return str(weapon.get(MOD_KEY, "")) if weapon is Dictionary else ""
 

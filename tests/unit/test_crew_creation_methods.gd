@@ -118,17 +118,13 @@ func test_strange_characters_are_reachable_only_by_the_random_method() -> void:
 	).is_empty()
 
 
-# ── Selectable categories drive the wizard's dropdowns ─────────────────────
-
-func test_selectable_categories_match_each_methods_freedom() -> void:
-	assert_array(CCM.selectable_categories(CCM.Method.FIRST_TIMER)).is_equal(
-		[CCM.CAT_HUMAN])
-	assert_array(CCM.selectable_categories(CCM.Method.STANDARD)).contains(
-		[CCM.CAT_PRIMARY_ALIEN, CCM.CAT_BOT])
-	assert_array(CCM.selectable_categories(CCM.Method.MINIATURES)).contains(
-		[CCM.CAT_PRIMARY_ALIEN, CCM.CAT_BOT])
-	# Nothing is PICKED under Random — every position is rolled.
-	assert_array(CCM.selectable_categories(CCM.Method.RANDOM)).is_empty()
+# ⚠ `selectable_categories()` and its one case were removed 2026-09-10. It listed
+# which categories a player may PICK under each method — a dropdown-greying hint
+# with no caller. The RULE it described is enforced, and asserted above, by
+# validate() and coerce_to_method(): first_timer_requires_an_all_human_crew,
+# standard_rejects_a_third_alien_and_a_second_bot,
+# miniatures_allows_any_mix_of_the_three_listed_types and the four coercion
+# cases all pin the same freedoms at the live gate rather than at a hint.
 
 
 # ── Persistence round-trip ─────────────────────────────────────────────────

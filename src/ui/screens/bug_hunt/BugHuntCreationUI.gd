@@ -9,6 +9,11 @@ const SquadPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntS
 const EquipmentPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntEquipmentPanel.gd")
 const ReviewPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntReviewPanel.gd")
 
+## This screen stays a plain Control (it is a wizard shell, not a campaign screen),
+## so it has no CampaignScreenBase._fix_touch_scroll_filters() to inherit and opens
+## the subtree itself.
+const TouchScrollOpenerRef := preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
 const COLOR_BASE := UIColorsRef.COLOR_BASE
 const COLOR_TEXT := UIColorsRef.COLOR_TEXT_PRIMARY
@@ -44,6 +49,7 @@ func _ready() -> void:
 	_update_buttons(false, false, false)  # ISSUE-047: disable Next until config validates
 	get_viewport().size_changed.connect(_apply_content_max_width)
 	_apply_content_max_width()
+	_open_touch_chain()
 
 
 func _build_layout() -> void:
@@ -189,6 +195,22 @@ func _on_step_changed(step: int, _total: int) -> void:
 	# Refresh review panel when it becomes visible
 	if step == 3 and panels[3].has_method("refresh"):
 		panels[3].refresh()
+
+	## After the refresh, because refresh() replaces the panel's children.
+	##
+	## _show_panel() above AWAITS its fade-out, so it is suspended when control
+	## reaches here -- which is fine: all four panels are built once in
+	## _create_panels(), so the subtree exists whether or not the fade has finished,
+	## and mouse_filter is not something the fade touches.
+	_open_touch_chain()
+
+
+## §2: let a touch drag over content reach the ScrollContainer that owns it.
+## Every surface under a finger is MOUSE_FILTER_STOP by construction, and
+## Viewport::_gui_call_input stops touch drags there -- which is why the scrollbar
+## and the desktop wheel worked on these screens and a finger did not.
+func _open_touch_chain() -> void:
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 func _show_panel(step: int) -> void:

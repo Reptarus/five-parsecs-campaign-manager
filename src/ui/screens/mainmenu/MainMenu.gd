@@ -20,6 +20,17 @@ const PortraitChromeRef := preload("res://src/ui/components/base/PortraitChrome.
 const A1_BUILD := true
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
+
+## The loader's own reader and type router, so the menu and the thing that opens the
+## save cannot disagree about what a save is. SaveFileWriter.read_json_with_fallback
+## recovers a truncated main file from its .bak; campaign_type_from_data is the helper
+## GameState._detect_campaign_type (:678) delegates to, and it reads meta.campaign_type
+## as well as the root key. Both are preloaded by PATH — SaveFileWriter has no
+## class_name, and reaching GameState's statics through its script rather than the
+## autoload node is how the rest of this codebase does it (10 sites each).
+const SaveFileWriterRef := preload("res://src/core/state/SaveFileWriter.gd")
+const GameStateScript := preload("res://src/core/state/GameState.gd")
+
 @onready var continue_button = %Continue as Button
 @onready var load_campaign_button = %LoadCampaign as Button
 @onready var new_campaign_button = %NewCampaign as Button
@@ -527,6 +538,41 @@ func _check_first_run_tutorial() -> void:
 		return
 	tui.start_tutorial("first_run")
 
+## The [BH]/[TAC]/[PF] tag on a row of the Load Campaign dialog.
+##
+## Reads the key the PRODUCER writes. GameState.get_campaign_info() resolves
+## "campaign_type" through campaign_type_from_data() (GameState.gd:1353), the same
+## helper _detect_campaign_type() uses to route a load, so the tag and the loader
+## cannot disagree about what a save is.
+##
+## It used to read "type" — which nothing writes — with a substring of the save path
+## as the fallback that made it appear to work. It did not. A save lives at
+## "user://saves/" + get_campaign_id() + ".save", and the variant ids are
+## <name>_bh_/<name>_pf_/<name>_tac_ or bughunt_/planetfall_/tactics_
+## (BugHuntCampaignCore.gd:137-143 and its siblings), so "bug_hunt" NEVER occurred in a
+## Bug Hunt path and "planetfall"/"tactics" occurred only for an unnamed campaign. The
+## tag was therefore absent from every named variant save. Worse, FiveParsecsCampaignCore
+## derives its id from the name the same way, so a STANDARD campaign called "Bug Hunt
+## Veterans" landed at bug_hunt_veterans_<ts> and WAS tagged [BH]. Wrong in both
+## directions, which is why the substrings are gone rather than lengthened.
+##
+## Extracted from _on_load_campaign_pressed() so a test can drive it: that function
+## builds a modal AcceptDialog and cannot be called from one. Pure and static, and it
+## takes one entry of get_available_campaigns() exactly as that producer emits it.
+## Pinned by tests/unit/test_bug_hunt_mode_predicates.gd, whose first case asserts the
+## producer still labels each mode so the others cannot go quietly vacuous.
+const _CAMPAIGN_TYPE_TAGS := {
+	"bug_hunt": "[BH] ",
+	"tactics": "[TAC] ",
+	"planetfall": "[PF] ",
+}
+
+static func campaign_type_tag(info: Dictionary) -> String:
+	# An unreadable save yields {"valid": false, "reason": ...} with no campaign_type, and
+	# a save carrying no type at all resolves to "five_parsecs" — both untagged, which is
+	# what the loader will do with them.
+	return _CAMPAIGN_TYPE_TAGS.get(str(info.get("campaign_type", "")), "")
+
 func _on_load_campaign_pressed() -> void:
 	var gs = get_node_or_null("/root/GameState")
 	if not gs:
@@ -573,17 +619,8 @@ func _on_load_campaign_pressed() -> void:
 
 		var btn := Button.new()
 		# ISSUE-049: Show campaign type tag + DLC badge
-		var type_tag := ""
+		var type_tag := campaign_type_tag(info)
 		var save_path: String = info.get("path", "")
-		if save_path.find("bug_hunt") >= 0 \
-				or info.get("type", "") == "bug_hunt":
-			type_tag = "[BH] "
-		elif save_path.find("tactics") >= 0 \
-				or info.get("type", "") == "tactics":
-			type_tag = "[TAC] "
-		elif save_path.find("planetfall") >= 0 \
-				or info.get("type", "") == "planetfall":
-			type_tag = "[PF] "
 		# DLC badge: peek for required packs
 		var dlc_tag := ""
 		var gs_ref = get_node_or_null("/root/GameState")
@@ -961,32 +998,58 @@ func _on_bug_hunt_pressed() -> void:
 	dialog.popup_centered()
 
 
-func _find_bug_hunt_saves() -> Array:
-	## Scan user://saves/ for Bug Hunt campaign files, sorted by modification time (newest first).
+## Which serialized section each variant core stores campaign_turn under.
+##
+## VERIFIED against the cores themselves, not against the scans that used to hardcode
+## it: BugHuntCampaignCore.gd:396 and TacticsCampaignCore.gd:493 write it inside
+## "state", PlanetfallCampaignCore.gd:599 inside "progression". campaign_name is at
+## meta.campaign_name in all three (never at root), which is why the harvest below
+## falls through root to meta.
+const _VARIANT_TURN_SECTIONS := {
+	"bug_hunt": "state",
+	"tactics": "state",
+	"planetfall": "progression",
+}
+
+
+## Every save on disk of one gamemode, newest first.
+##
+## One function where there were three byte-identical ones (_find_bug_hunt_saves,
+## _find_tactics_saves, _find_planetfall_saves), which differed only in the mode string
+## and, for Planetfall, the turn section. Extracted VERBATIM in this step: same reader,
+## same predicate, same harvest, so the behaviour measured here is the behaviour that
+## shipped. Static so a test can drive it without building the menu scene.
+static func find_saves_of_type(campaign_type: String) -> Array:
 	var saves: Array = []
 	var dir := DirAccess.open("user://saves/")
 	if not dir:
 		return saves
+
+	var turn_section: String = _VARIANT_TURN_SECTIONS.get(campaign_type, "state")
 
 	dir.list_dir_begin()
 	var file_name := dir.get_next()
 	while not file_name.is_empty():
 		if not dir.current_is_dir() and file_name.ends_with(".save"):
 			var path := "user://saves/" + file_name
-			# Peek at campaign type without full load
-			var file := FileAccess.open(path, FileAccess.READ)
-			if file:
-				var text := file.get_as_text()
-				file.close()
-				var data = JSON.parse_string(text)
-				if data is Dictionary and data.get("campaign_type", "") == "bug_hunt":
+			# Peek at campaign type without full load, THROUGH THE LOADER'S OWN READER.
+			# This used to be a private FileAccess + JSON.parse_string that matched the
+			# root campaign_type only, so the menu and GameState.load_campaign() could
+			# disagree twice over: a save whose main file was truncated by an
+			# interrupted write was recovered from .bak by the loader and DROPPED here,
+			# and a save carrying the type only under meta was mis-routed. The first is
+			# named as this function's own victim in _detect_campaign_type's docblock
+			# — the fix was applied to the loader and not to the menu.
+			var data := SaveFileWriterRef.read_json_with_fallback(path)
+			if not data.is_empty():
+				if GameStateScript.campaign_type_from_data(data) == campaign_type:
 					var meta: Dictionary = data.get("meta", {})
-					var state: Dictionary = data.get("state", {})
+					var section: Dictionary = data.get(turn_section, {})
 					saves.append({
 						"path": path,
 						"name": data.get("campaign_name",
 							meta.get("campaign_name", file_name)),
-						"turn": state.get("campaign_turn",
+						"turn": section.get("campaign_turn",
 							data.get("campaign_turn", 0)),
 						"modified": FileAccess.get_modified_time(path)
 					})
@@ -996,6 +1059,10 @@ func _find_bug_hunt_saves() -> Array:
 	# Sort by modification time, newest first
 	saves.sort_custom(func(a, b): return a.modified > b.modified)
 	return saves
+
+
+func _find_bug_hunt_saves() -> Array:
+	return find_saves_of_type("bug_hunt")
 
 
 func _load_bug_hunt_save(path: String) -> void:
@@ -1107,36 +1174,7 @@ func _on_tactics_pressed() -> void:
 
 
 func _find_tactics_saves() -> Array:
-	var saves: Array = []
-	var dir := DirAccess.open("user://saves/")
-	if not dir:
-		return saves
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while not file_name.is_empty():
-		if not dir.current_is_dir() and file_name.ends_with(".save"):
-			var path := "user://saves/" + file_name
-			var file := FileAccess.open(path, FileAccess.READ)
-			if file:
-				var text := file.get_as_text()
-				file.close()
-				var data = JSON.parse_string(text)
-				if data is Dictionary \
-						and data.get("campaign_type", "") == "tactics":
-					var meta: Dictionary = data.get("meta", {})
-					var state: Dictionary = data.get("state", {})
-					saves.append({
-						"path": path,
-						"name": data.get("campaign_name",
-							meta.get("campaign_name", file_name)),
-						"turn": state.get("campaign_turn",
-							data.get("campaign_turn", 0)),
-						"modified": FileAccess.get_modified_time(path)
-					})
-		file_name = dir.get_next()
-	dir.list_dir_end()
-	saves.sort_custom(func(a, b): return a.modified > b.modified)
-	return saves
+	return find_saves_of_type("tactics")
 
 
 func _load_tactics_save(path: String) -> void:
@@ -1251,36 +1289,7 @@ func _on_planetfall_pressed() -> void:
 
 
 func _find_planetfall_saves() -> Array:
-	var saves: Array = []
-	var dir := DirAccess.open("user://saves/")
-	if not dir:
-		return saves
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while not file_name.is_empty():
-		if not dir.current_is_dir() and file_name.ends_with(".save"):
-			var path := "user://saves/" + file_name
-			var file := FileAccess.open(path, FileAccess.READ)
-			if file:
-				var text := file.get_as_text()
-				file.close()
-				var data = JSON.parse_string(text)
-				if data is Dictionary \
-						and data.get("campaign_type", "") == "planetfall":
-					var meta: Dictionary = data.get("meta", {})
-					var progression: Dictionary = data.get("progression", {})
-					saves.append({
-						"path": path,
-						"name": data.get("campaign_name",
-							meta.get("campaign_name", file_name)),
-						"turn": progression.get("campaign_turn",
-							data.get("campaign_turn", 0)),
-						"modified": FileAccess.get_modified_time(path)
-					})
-		file_name = dir.get_next()
-	dir.list_dir_end()
-	saves.sort_custom(func(a, b): return a.modified > b.modified)
-	return saves
+	return find_saves_of_type("planetfall")
 
 
 func _load_planetfall_save(path: String) -> void:

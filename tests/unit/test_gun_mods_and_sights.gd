@@ -312,3 +312,33 @@ func test_assign_equipment_can_fit_an_attachment() -> void:
 	assert_bool(src.contains("WeaponModServiceRef.fit(")).is_true()
 	assert_bool(src.contains("WeaponModServiceRef.can_fit(")).is_true()
 	assert_bool(src.contains("WeaponModServiceRef.summary_tag(")).is_true()
+
+
+func test_assign_equipment_can_also_take_a_sight_back_off() -> void:
+	## p.53, the half that had no affordance: a Sight "can be fitted to a weapon
+	## OR MOVED TO A NEW ONE when equipment is being assigned during the campaign
+	## turn."
+	##
+	## ⚠ `remove_sight()` being CORRECT is not the same as the rule being playable,
+	## and the case above cannot tell the difference — it only ever asserted the
+	## fitting half. `fit()` displaces a Sight only when a SECOND one is fitted to
+	## the same weapon, so a crew owning exactly one Sight had no sequence of
+	## button presses that could move it: it stayed on the first weapon it touched
+	## for the rest of the campaign. The resolver had zero callers.
+	var src: String = _code_only(ASSIGN_SRC)
+	assert_bool(src.contains("WeaponModServiceRef.remove_sight(")) 		.override_failure_message(
+			"nothing on the assign screen calls remove_sight(), so a fitted Sight"
+			+ " cannot be moved to another weapon (p.53)").is_true()
+	# The removed Sight must come BACK as an item — one item, one home. Without
+	# this the rule would be playable and would destroy the Sight.
+	assert_bool(src.contains("equipment.append(")) 		.override_failure_message(
+			"the removed Sight is not returned to the character's kit").is_true()
+
+
+func test_gun_mods_are_deliberately_not_removable() -> void:
+	## p.53: mods "cannot be removed or reversed". The absence of a remove_mod()
+	## is the rule, so assert the absence — otherwise a future "symmetry" edit
+	## adds one and nothing objects.
+	assert_bool(_code_only(MODS_SRC).contains("func remove_mod")) 		.override_failure_message(
+			"remove_mod() exists — p.53 says Gun Mods cannot be removed or reversed"
+		).is_false()

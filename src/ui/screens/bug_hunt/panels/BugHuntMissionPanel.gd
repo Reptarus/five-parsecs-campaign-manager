@@ -152,9 +152,9 @@ func _generate_mission() -> void:
 	var objective_types: Array = objectives_data.get("types", [])
 
 	# Place 6 numbered dice, roll 3D6 to determine which stay
-	var obj_roll1: int = (randi() % 6) + 1
-	var obj_roll2: int = (randi() % 6) + 1
-	var obj_roll3: int = (randi() % 6) + 1
+	var obj_roll1: int = _roll_d6("Bug Hunt Objective: die 1")
+	var obj_roll2: int = _roll_d6("Bug Hunt Objective: die 2")
+	var obj_roll3: int = _roll_d6("Bug Hunt Objective: die 3")
 	var obj_matches: Dictionary = {}  # die_value -> count
 	for d in [obj_roll1, obj_roll2, obj_roll3]:
 		obj_matches[d] = obj_matches.get(d, 0) + 1
@@ -164,9 +164,17 @@ func _generate_mission() -> void:
 	var critical_objective: int = -1
 	for die_val in obj_matches:
 		var count: int = obj_matches[die_val]
-		# Roll D6 for objective type
-		var obj_type_roll: int = (randi() % objective_types.size()) if objective_types.size() > 0 else 0
-		var obj_type: Dictionary = objective_types[obj_type_roll] if obj_type_roll < objective_types.size() else {}
+		# Roll D6 for objective type (Compendium p.185).
+		#
+		# The roll is matched against each entry's own `d6_value`, NOT against its
+		# position in the array. This was `randi() % objective_types.size()`, which
+		# agreed with the data only by the coincidence that the six types happen to
+		# be stored in d6_value order: reorder them, or add a seventh, and the "D6"
+		# in the comment silently stops being one. The sibling reader of this same
+		# table shape, BugHuntBattleSetup.gd:126-138, already matches on d6_value —
+		# two readers of one shape must read it the same way.
+		var obj_type_roll: int = _roll_d6("Bug Hunt Objective: type")
+		var obj_type: Dictionary = _find_by_d6_value(objective_types, obj_type_roll)
 		var rating: String = "normal"
 		if count == 3:
 			critical_objective = die_val
@@ -339,8 +347,10 @@ func _calculate_priority(turn: int, difficulty: String) -> int:
 
 	# Standard: Roll 2D6 pick the lower die (Compendium p.187)
 	# Vital/Critical modifiers applied by caller after objective generation.
-	var die1: int = (randi() % 6) + 1
-	var die2: int = (randi() % 6) + 1
+	# Two separate D6 rolls, never roll_2d6(): that returns the SUM, and p.187
+	# asks for the LOWER of the two dice, which a sum cannot yield.
+	var die1: int = _roll_d6("Bug Hunt Priority: die 1")
+	var die2: int = _roll_d6("Bug Hunt Priority: die 2")
 	var base_priority: int = mini(die1, die2)
 	return clampi(base_priority, 1, 6)
 
@@ -425,8 +435,9 @@ func _roll_support_teams(priority: int) -> void:
 				desc_ref.add_theme_color_override("font_color", COLOR_WARNING)
 				return
 			_support_points_remaining -= 1
-			var d1: int = (randi() % 6) + 1
-			var d2: int = (randi() % 6) + 1
+			var support_name: String = str(opt_ref.get("name", "?"))
+			var d1: int = _roll_d6("Bug Hunt Support die 1: %s" % support_name)
+			var d2: int = _roll_d6("Bug Hunt Support die 2: %s" % support_name)
 			var total: int = d1 + d2
 			var tgt: int = opt_ref.get("target_2d6", 99)
 			btn_ref.disabled = true
@@ -541,3 +552,33 @@ func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> 
 	val.add_theme_color_override("font_color", COLOR_TEXT)
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(val)
+
+
+## ── Dice routing ────────────────────────────────────────────────────────────
+## Book table rolls go through the DiceManager autoload so they are recorded in
+## the roll history and can be forced from the QA dialog in a debug build.
+## Map PLACEMENT is deliberately NOT routed: 5PFH's BattlefieldGenerator.gd has
+## zero DiceManager references and seeds a local RNG for placement, so routing
+## placement here would both break that precedent and flood the forced-roll
+## queue with entries a tester never asked to control.
+func _roll_d6(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm:
+		return int(dm.roll_d6(context))
+	return randi_range(1, 6)
+
+
+## Match a D6 roll against a table whose rows carry `d6_value` or `d6_range`.
+## Mirrors BugHuntBattleSetup._generate_tactical_locations_count() so the two
+## readers of this table shape cannot drift apart.
+func _find_by_d6_value(table: Array, roll: int) -> Dictionary:
+	for entry in table:
+		if not (entry is Dictionary):
+			continue
+		if entry.has("d6_value") and int(entry.d6_value) == roll:
+			return entry
+		if entry.has("d6_range") and entry.d6_range is Array:
+			var r: Array = entry.d6_range
+			if r.size() >= 2 and roll >= int(r[0]) and roll <= int(r[1]):
+				return entry
+	return {}

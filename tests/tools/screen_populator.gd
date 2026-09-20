@@ -73,6 +73,8 @@ const POPULATE: Dictionary = {
 	# a TALL step - because every one of its six phase panes was measured EMPTY, and
 	# an empty pane is short. Exactly the T11-01 shape, one screen along.
 	"res://src/ui/screens/world/WorldPhaseController.tscn": "world_phase",
+	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn": "bug_hunt",
+	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn": "bug_hunt",
 }
 
 var _root: Node = null
@@ -452,3 +454,53 @@ func _post_equipment_generation(inst: Node) -> void:
 		return
 	if inst.has_method("set_crew_members"):
 		inst.set_crew_members(crew)
+
+
+## Bug Hunt's dashboard and turn controller read GameState.current_campaign and nothing
+## else, so this is the only mechanism that reaches them.
+##
+## ⚠ WITHOUT IT THE TURN CONTROLLER CAN TEAR DOWN THE HARNESS. _load_campaign()
+## (:144-151) routes to main_menu through SceneRouter when current_campaign is present
+## but is NOT a Bug Hunt core -- and a 5PFH core is present for most of a sweep, because
+## GameState auto-loads last_campaign at boot. MEASURED: the touch-scroll sweep crashed
+## with signal 11 at that row, and swept alone (no 5PFH core loaded) the same screen
+## built harmlessly at nodes=1. A screen whose failure mode is "replace the current
+## scene" cannot be swept in a shared tree.
+##
+## ⚠ SO THE FIRST ACT IS TO CLEAR THE FIELD, and only then try to build. Every early
+## return below therefore leaves current_campaign NULL -- the harmless nodes=1 state a
+## floor assertion can see -- never the crashing one it cannot reach.
+##
+## ⚠ THIS WRITES A SHARED AUTOLOAD FIELD. The caller must put it back after the
+## screen, or every 5PFH screen swept afterwards aborts against a BugHuntCampaignCore.
+## test_touch_scroll_sweep.gd:_sweep() holds and restores it. verify_layout.gd and
+## verify_rotation.gd list no Bug Hunt screen today (measured: zero "bug_hunt"
+## occurrences in either), so they never dispatch here -- add the restore before adding
+## one.
+##
+## BugHuntCreationUI.tscn deliberately has NO entry: it references GameState nowhere and
+## builds its own wizard content, so it is already measured populated (nodes=101).
+func _pre_bug_hunt() -> void:
+	var gs := _root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return
+	gs.current_campaign = null
+	var core_script = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+	var gen_script = load("res://src/core/character/BugHuntCharacterGeneration.gd")
+	if core_script == null or gen_script == null:
+		return
+	var core: Resource = core_script.new()
+	core.campaign_name = "Sweep fixture"
+	core.regiment_name = "41st Recon"
+	# The REAL generator, reading data/bug_hunt/*.json -- the fixture invents nothing.
+	var squad: Dictionary = gen_script.new().generate_squad(["Alpha", "Bravo", "Charlie"])
+	core.initialize_squad(squad.get("main_characters", []), squad.get("grunts", []))
+	core.start_campaign()
+	# Mid-campaign, not turn zero. BugHuntTurnController._resume_turn() (:99) then
+	# RESTORES this phase in place instead of calling start_new_turn(), which would
+	# advance the turn and write a CampaignJournal entry -- a side effect a layout sweep
+	# must not have. 0 is BugHuntPhaseManager.Phase.SPECIAL_ASSIGNMENTS; it is a REAL
+	# phase here, not the 5PFH "absent" sentinel.
+	core.campaign_turn = 1
+	core.current_turn_phase = 0
+	gs.current_campaign = core

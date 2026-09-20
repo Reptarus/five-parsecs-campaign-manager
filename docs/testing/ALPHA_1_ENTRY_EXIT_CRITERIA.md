@@ -1,5 +1,7 @@
 # Alpha-1 Entry & Exit Criteria
 
+> ⚠ **STALE (2026-09-13)**: written for the May 25 → Jul 6 2026 window and the Ivan's-Discord cohort. Kickoff is now TBD (deferred by Modiphius), the cohort comes from a Google-Form signup funnel, and the build does NOT unlock the Compendium for testers (`src/core/systems/DLCManager.gd:128`, `:181-184`). Current state: `docs/CLOSED_ALPHA_PLAN.md` header + §11 and `docs/MODIPHIUS_CORRESPONDENCE_JOURNAL.md` §3.0. Kept for the test content, not the dates.
+
 **Owner**: QA (Elijah Rhyne)
 **Cycle**: Closed Alpha (Phase B), May 25 → Jul 6, 2026
 **Created**: 2026-05-01

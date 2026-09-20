@@ -8,6 +8,7 @@ const EmptyStateWidgetClass = preload("res://src/ui/components/common/EmptyState
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const TransferPanelClass = preload("res://src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd")
+const QAScenarioDialogClass = preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
@@ -23,10 +24,7 @@ func _setup_screen() -> void:
 
 ## CampaignScreenBase hook — rebuild after veterans muster in.
 func _on_transfers_applied() -> void:
-	_campaign = _get_bug_hunt_campaign()
-	for child in get_children():
-		child.queue_free()
-	_build_dashboard()
+	_rebuild()
 
 
 func _build_dashboard() -> void:
@@ -41,6 +39,7 @@ func _build_dashboard() -> void:
 			"New Bug Hunt",
 			func(): _navigate("bug_hunt_creation"))
 		_content.add_child(empty)
+		_fix_touch_scroll_filters()
 		return
 
 	# ── Header ──────────────────────────────────────────────────────
@@ -106,6 +105,33 @@ func _build_dashboard() -> void:
 	menu_card.setup("", "Main Menu", "Return to the main menu")
 	menu_card.card_pressed.connect(func(): _navigate("main_menu"))
 	hub_box.add_child(menu_card)
+
+	# ── QA (debug builds only) ──────────────────────────────────────
+	# Same gate as the 5PFH dashboard's QA button (CampaignDashboard.gd:262): a
+	# release export physically cannot reach this, so there is no unlock to discover
+	# and nothing to remember to switch off before shipping, while a remote-deploy
+	# QA build IS a debug build and still gets it.
+	#
+	# A card rather than a header button because this screen is code-built from
+	# HubFeatureCards and has no header bar to insert a sibling into.
+	#
+	# ⚠ The FIXTURES half of that dialog refuses to run in this mode, and the
+	# subtitle says so rather than leaving a tester to press a disabled button and
+	# guess why. Forcing a roll is mode-agnostic -- the queue lives on the
+	# DiceManager autoload, not on a campaign -- and is what this is for here.
+	if OS.is_debug_build():
+		var qa_box := VBoxContainer.new()
+		qa_box.add_theme_constant_override("separation", SPACING_SM)
+		_content.add_child(qa_box)
+
+		var qa_card := HubFeatureCardClass.new()
+		qa_card.setup("", "QA - Force a Roll",
+			"Debug build only. Queue a value for the next Bug Hunt table roll "
+			+ "(Priority, Special Assignment, Support, Enlistment, Commendation, "
+			+ "Origin, Basic Training, Service History). The 5PFH state fixtures are "
+			+ "disabled in this mode.")
+		qa_card.card_pressed.connect(_on_qa_pressed)
+		qa_box.add_child(qa_card)
 
 	# ── Character Transfer (Compendium pp.212-213) ──────────────────
 	var transfer_box := VBoxContainer.new()
@@ -191,9 +217,41 @@ func _build_dashboard() -> void:
 		_play_btn.pivot_offset = _play_btn.size / 2
 		TweenFX.breathe(_play_btn, 3.0, 0.03)
 
+	## §2 sweep. Here rather than in _setup_screen() because this function has FOUR
+	## callers (:19 setup, :29 after a veteran musters in, :329 enlist, :426 muster
+	## out) and each one
+	## replaces the whole subtree -- the base's single deferred sweep only ever saw
+	## the first build. Both exits sweep: the empty-state branch returns early.
+	##
+	## Safe after _stagger_reveal(): that coroutine suspends at its first await and
+	## returns here, so this line runs while the children already exist, and it
+	## touches mouse_filter only -- nothing the fade animates.
+	_fix_touch_scroll_filters()
+
 
 func _stagger_reveal() -> void:
-	var children := _content.get_children()
+	# The subtree this coroutine animates, captured before the first await.
+	#
+	# ⚠ Three of the four _build_dashboard() callers free the WHOLE subtree and rebuild
+	# (:29, :329, :426). queue_free() defers to the end of the frame while this function
+	# suspends for 0.04s PER CARD, so a rebuild landing mid-reveal frees the very nodes
+	# still sitting in `children`, and TweenFX.fade_in() is handed a previously-freed
+	# Object. Measured in a full tests/unit run -- the suite passes 5/5 ALONE, so the batch
+	# is only what makes the timing line up:
+	#   Invalid type in function 'fade_in' ... argument 1 (previously freed)
+	#   at res://src/ui/screens/bug_hunt/BugHuntDashboard.gd:215
+	#
+	# ⚠ This is a runtime error, NOT a visible defect -- do not cite it as one. The nodes
+	# this coroutine is left holding are the ones being destroyed, and the rebuild starts
+	# its own reveal over the new cards, so the screen still ends up correct. What it costs
+	# is a class-(b) abort in the log, a debugger HALT under --debug/MCP (which is how this
+	# project does runtime QA), and a suite that goes red only in a batch.
+	#
+	# The guard is the CONTAINER's identity rather than a generation counter:
+	# _build_dashboard() rebinds _content as its first act (:34), so "am I still the live
+	# reveal?" is answerable from state the tree already holds, with nothing to keep in sync.
+	var revealing := _content
+	var children := revealing.get_children()
 	for child in children:
 		if child is Control:
 			child.modulate.a = 0.0
@@ -201,6 +259,12 @@ func _stagger_reveal() -> void:
 		if children[i] is Control:
 			if i > 0:
 				await get_tree().create_timer(0.04).timeout
+				# Re-checked AFTER the await and never before: suspended is the only state
+				# in which the tree can change under us.
+				if _content != revealing:
+					return # a rebuild owns the screen now, and runs its own reveal
+				if not is_instance_valid(children[i]):
+					continue # one card went; the rest still deserve to appear
 			TweenFX.fade_in(children[i], 0.2)
 
 
@@ -226,6 +290,42 @@ func _on_save() -> void:
 		_campaign.save_to_file(path)
 
 
+## Free the whole subtree and rebuild it from the current campaign.
+##
+## Extracted so the QA seam's rebuild is the SAME rebuild the transfer pickup
+## does, rather than a fourth hand-copy of the free-then-build idiom (the other
+## two live at the tail of _apply_enlistment and _apply_muster_out, each with its
+## own note about why the rebuild is safe there).
+func _rebuild() -> void:
+	_campaign = _get_bug_hunt_campaign()
+	for child in get_children():
+		child.queue_free()
+	_build_dashboard()
+
+
+## Open the forced-roll seam. Debug builds only -- the card is gated at :122.
+##
+## ⚠ Passes THIS campaign, never GameState.current_campaign. The dialog's owner
+## guard reads `crew_data` off whatever it is handed, and
+## GameState._try_auto_load_last_campaign() (GameState.gd:150) loads a campaign at
+## every launch -- so handing it the autoload's campaign would re-enable the
+## fixtures and let a Bug Hunt session write credits, supplies, story points and
+## reputation into the player's 5PFH save, with nothing visible happening on
+## either screen.
+##
+## `_campaign` cannot be null here: this card is only built in the populated
+## branch, after _build_dashboard()'s empty-state early return (:34-43).
+func _on_qa_pressed() -> void:
+	var dlg: Window = QAScenarioDialogClass.open(self, _campaign)
+	if dlg == null:
+		return
+	# Cannot fire while the dialog's owner guard is false -- it refuses to apply and
+	# never emits. Connected anyway: the signal IS emitted on the 5PFH path, so this
+	# is not a dead wire, and the dashboard stays correct on the day that guard
+	# learns about Bug Hunt fixtures.
+	dlg.scenario_applied.connect(func(_id: String, _receipt: Dictionary): _rebuild())
+
+
 func _on_enlist_pressed() -> void:
 	## Show CharacterTransferPanel in enlist mode (5PFH → Bug Hunt).
 	## Player picks a character from a standard campaign save to transfer in.
@@ -242,24 +342,77 @@ func _on_enlist_pressed() -> void:
 	# Load standard campaign saves for character selection
 	var gs = get_node_or_null("/root/GameState")
 	if gs and gs.has_method("get_available_campaigns"):
-		var campaigns: Array = gs.get_available_campaigns()
-		for info in campaigns:
-			var path: String = info.get("path", "")
-			# Only show standard (non-Bug Hunt) saves
-			if info.get("type", "") != "bug_hunt" and not path.is_empty():
-				panel.load_characters_from_save(path)
-				break  # Load first standard save found
+		var source: String = pick_enlist_source(gs.get_available_campaigns())
+		if not source.is_empty():
+			panel.load_characters_from_save(source)
+
+
+## Pick the save a 5PFH veteran is enlisted FROM. Returns "" when none is eligible.
+##
+## Extracted as a pure static so a test can drive the rule without building the
+## dashboard, the transfer panel or a GameState.
+##
+## ⚠ This used to read info.get("type", ""), a key NO producer writes:
+## GameState.get_campaign_info() emits "campaign_type" (:1353). The comparison was
+## therefore "" != "bug_hunt", permanently TRUE, so the first save of any type won and
+## a player could enlist a Bug Hunt marine into Bug Hunt as a 5PFH veteran.
+##
+## ⚠ The test is POSITIVE, not the negative HEAD used. "not bug_hunt" also admits
+## Tactics and Planetfall saves, and CharacterTransferPanel.load_characters_from_save()
+## reads a 5PFH crew: this leg is the 5PFH -> Bug Hunt enlistment (Compendium p.171), so
+## the eligible source is a standard campaign, not merely a non-Bug-Hunt one. A colonist
+## or an army-list veteran reaches Bug Hunt by composing two book-defined legs through
+## the 5PFH canonical, which is CharacterTransferService's job, not this picker's.
+static func pick_enlist_source(campaigns: Array) -> String:
+	for info_v in campaigns:
+		if not info_v is Dictionary:
+			continue
+		var info: Dictionary = info_v
+		var path: String = str(info.get("path", ""))
+		# Only a STANDARD 5PFH save can supply a veteran to enlist.
+		if str(info.get("campaign_type", "")) == "five_parsecs" and not path.is_empty():
+			return path  # First standard save found
+	return ""
 
 
 func _apply_enlistment(char_data: Dictionary) -> void:
-	## Add transferred character to Bug Hunt campaign (with deep copy).
-	if not _campaign or not "main_characters" in _campaign:
+	## Enlist a 5PFH veteran into the squad (Compendium p.212), through the transfer hub.
+	##
+	## ⚠ HEAD appended to _campaign.main_characters directly and stopped there, so the
+	## veteran existed in BOTH campaigns afterwards — the very "one item, one home" breach
+	## CharacterTransferService.remove_character_from_save() was written to close for the
+	## Planetfall and Tactics pull-imports (its docblock, :617). A duplicate is not merely
+	## untidy: the same veteran can be enlisted again, and again, off the source save.
+	##
+	## Two further consequences of the raw append, fixed by going through the core's own
+	## mutator: the campaign's modified time was never touched (add_main_character does it,
+	## :178-179), and any future invariant that mutator grows would have been bypassed.
+	if not _campaign or not _campaign.has_method("add_main_character"):
 		return
+
+	# Pull the source coordinates off before the character lands in the squad, so they
+	# never persist into the Bug Hunt save. CharacterTransferPanel stamps them on the
+	# enlist emit only; they are absent when the source was an in-memory array.
 	var safe_copy: Dictionary = char_data.duplicate(true)
-	_campaign.main_characters.append(safe_copy)
-	# Save immediately to persist the transfer
+	var src_path: String = str(safe_copy.get("_source_path", ""))
+	var src_id: String = str(safe_copy.get("_source_character_id", ""))
+	safe_copy.erase("_source_path")
+	safe_copy.erase("_source_character_id")
+
+	_campaign.add_main_character(safe_copy)
 	_on_save()
-	# Rebuild dashboard to show new character
+
+	# DESTINATION FIRST, THEN DROP THE SOURCE — the same ordering muster-out uses, and the
+	# same as PlanetfallDashboard._apply_import (:64-87). Interrupted here, the failure is a
+	# duplicate the player can delete, never a veteran who exists nowhere.
+	if not src_path.is_empty() and not src_id.is_empty():
+		if not CharacterTransferService.remove_character_from_save(src_path, src_id):
+			push_warning(
+				"BugHuntDashboard: enlisted %s but could not remove them from %s"
+				% [src_id, src_path])
+
+	# Rebuild dashboard to show new character. _build_dashboard() ends with the inherited
+	# _fix_touch_scroll_filters(), so the rebuilt subtree is swept — no extra call needed.
 	for child in get_children():
 		child.queue_free()
 	_build_dashboard()

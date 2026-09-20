@@ -109,18 +109,6 @@ static func method_from_id(id: String) -> int:
 	return Method.MINIATURES
 
 
-## Categories a player may PICK for a crew member under `method`.
-## RANDOM returns an empty array: nothing is picked there, every position is rolled.
-static func selectable_categories(method: int) -> Array:
-	match method:
-		Method.FIRST_TIMER:
-			return [CAT_HUMAN]
-		Method.STANDARD, Method.MINIATURES:
-			return [CAT_HUMAN, CAT_PRIMARY_ALIEN, CAT_BOT]
-		_:
-			return []
-
-
 ## The p.14 category for a species id, resolved from the shipped species data so this
 ## file never carries a second copy of the species list.
 static func category_for_species(species_id: String) -> String:

@@ -1,0 +1,1932 @@
+tests/unit/test_departure_obligation_p82.gd
+tests/unit/test_deployable_crew_filter.gd
+tests/unit/test_deployment_selection.gd
+tests/unit/test_destructive_actions_confirm.gd
+tests/unit/test_dice_forced_results.gd
+tests/unit/test_dice_system_contexts.gd
+tests/unit/test_difficulty_display_names.gd
+tests/unit/test_difficulty_modifiers.gd
+tests/unit/test_difficulty_modifiers_battle.gd
+tests/unit/test_display_text.gd
+tests/unit/test_elite_level_enemies.gd
+tests/unit/test_encounter_log_enemy_stats.gd
+tests/unit/test_enemy_ai_reference.gd
+tests/unit/test_enemy_deploy_markers.gd
+tests/unit/test_enemy_trait_rules.gd
+tests/unit/test_enemy_weapon_tables.gd
+tests/unit/test_entity_card_actions_row.gd
+tests/unit/test_enum_ordinal_sync.gd
+tests/unit/test_enum_sync.gd
+tests/unit/test_equipment_compatibility_gate.gd
+tests/unit/test_equipment_economy_is_book_only.gd
+tests/unit/test_equipment_persistence.gd
+tests/unit/test_equipment_stash_collapse.gd
+tests/unit/test_equipment_transfer_resource_crew.gd
+tests/unit/test_equipment_transfer_service.gd
+tests/unit/test_errata_soulless_and_ai.gd
+tests/unit/test_errata_v106_campaign_rules.gd
+tests/unit/test_event_bus_dispatch.gd
+tests/unit/test_every_script_compiles.gd
+tests/unit/test_expanded_connections.gd
+tests/unit/test_expanded_quest_progression.gd
+tests/unit/test_faction_favors.gd
+tests/unit/test_faction_generation.gd
+tests/unit/test_faction_loyalty_and_events.gd
+tests/unit/test_fake_id_forge_license.gd
+
+Godot Engine v4.6.stable.official.89cea1439 - https://godotengine.org
+
+[T11-07] win=0x0 short=1080 stretch_cancel=1.0000 ui=1.000 dpi=1.000 -> content_scale=1.1600
+[T11-07] win=0x0 short=1080 stretch_cancel=1.0000 ui=1.000 dpi=1.000 -> content_scale=1.1600
+TaloAnalyticsAdapter: subscribed; Talo plugin detected at /root/Talo; events forwarded when consent granted.
+[2J[H
+--------------------------------------------------------------------------------------------------
+GdUnit4 Comandline Tool
+--------------------------------------------------------------------------------------------------
+
+Headless mode is ignored by option '--ignoreHeadlessMode'"
+
+Please note that tests that use UI interaction do not work correctly in headless mode.
+Godot 'InputEvents' are not transported by the Godot engine in headless mode and therefore
+have no effect in the test!
+
+Installing GdUnit4 session system hooks.
+Session hook 'GdUnitHtmlTestReporter' installed.
+Session hook 'GdUnitXMLTestReporter' installed.
+Run Test Suite: res://tests/unit/test_departure_obligation_p82.gd
+  res://tests/unit/test_departure_obligation_p82.gd > test_recording_the_obligation_charges_nothing_yet STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_recording_the_obligation_charges_nothing_yet PASSED 9ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_crew_that_never_leaves_never_pays STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_crew_that_never_leaves_never_pays PASSED 5ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_paying_on_departure_costs_a_story_point_and_keeps_the_crew STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_paying_on_departure_costs_a_story_point_and_keeps_the_crew PASSED 12ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_you_cannot_pay_a_story_point_you_do_not_have STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_you_cannot_pay_a_story_point_you_do_not_have PASSED 16ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_declining_to_pay_leaves_the_crew_member_behind STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_declining_to_pay_leaves_the_crew_member_behind PASSED 16ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_departing_crew_member_leaves_their_equipment_behind STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_departing_crew_member_leaves_their_equipment_behind PASSED 16ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_the_equipment_moves_rather_than_being_copied STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_the_equipment_moves_rather_than_being_copied PASSED 16ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_an_invaded_world_waives_the_obligation_entirely STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_an_invaded_world_waives_the_obligation_entirely PASSED 15ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_removal_leaves_the_crew_id_index_consistent STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_removal_leaves_the_crew_id_index_consistent PASSED 17ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_the_same_crew_member_cannot_owe_twice STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_the_same_crew_member_cannot_owe_twice PASSED 17ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_an_insanity_campaign_cannot_pay_and_loses_the_crew_member STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_an_insanity_campaign_cannot_pay_and_loses_the_crew_member PASSED 17ms
+
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_fresh_campaign_with_empty_progress_data_still_works STARTED
+  res://tests/unit/test_departure_obligation_p82.gd > test_a_fresh_campaign_with_empty_progress_data_still_works PASSED 16ms
+
+Statistics: 12 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 189ms
+
+
+Run Test Suite: res://tests/unit/test_deployable_crew_filter.gd
+  res://tests/unit/test_deployable_crew_filter.gd > test_active_dict_member_is_deployable STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_active_dict_member_is_deployable PASSED 16ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_dead_missing_retired_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_dead_missing_retired_excluded PASSED 15ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_sick_bay_recovery_turns_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_sick_bay_recovery_turns_excluded PASSED 17ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_in_sick_bay_flag_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_in_sick_bay_flag_excluded PASSED 17ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_recovered_member_is_deployable STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_recovered_member_is_deployable PASSED 16ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_departed_effect_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_departed_effect_excluded PASSED 16ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_skip_next_battle_effect_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_skip_next_battle_effect_excluded PASSED 17ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_unrelated_status_effect_stays_deployable STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_unrelated_status_effect_stays_deployable PASSED 15ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_character_resource_recovering_excluded STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_character_resource_recovering_excluded PASSED 17ms
+
+  res://tests/unit/test_deployable_crew_filter.gd > test_character_resource_recovered_but_wounded_is_deployable STARTED
+  res://tests/unit/test_deployable_crew_filter.gd > test_character_resource_recovered_but_wounded_is_deployable PASSED 16ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 174ms
+
+
+Run Test Suite: res://tests/unit/test_deployment_selection.gd
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_of_five_fields_exactly_those_five STARTED
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_of_five_fields_exactly_those_five PASSED 13ms
+
+  res://tests/unit/test_deployment_selection.gd > test_a_deselected_member_does_not_fight STARTED
+  res://tests/unit/test_deployment_selection.gd > test_a_deselected_member_does_not_fight PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_order_comes_from_the_roster_not_the_selection STARTED
+  res://tests/unit/test_deployment_selection.gd > test_order_comes_from_the_roster_not_the_selection PASSED 15ms
+
+  res://tests/unit/test_deployment_selection.gd > test_matching_is_by_identity_key_not_object_equality STARTED
+  res://tests/unit/test_deployment_selection.gd > test_matching_is_by_identity_key_not_object_equality PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_an_empty_selection_falls_back_to_the_whole_roster STARTED
+  res://tests/unit/test_deployment_selection.gd > test_an_empty_selection_falls_back_to_the_whole_roster PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_matching_nobody_falls_back_to_the_roster STARTED
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_matching_nobody_falls_back_to_the_roster PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_with_no_usable_key_falls_back_to_the_roster STARTED
+  res://tests/unit/test_deployment_selection.gd > test_a_selection_with_no_usable_key_falls_back_to_the_roster PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_an_empty_roster_is_returned_unchanged STARTED
+  res://tests/unit/test_deployment_selection.gd > test_an_empty_roster_is_returned_unchanged PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_p91_rival_ambush_takes_one_crew_slot STARTED
+  res://tests/unit/test_deployment_selection.gd > test_p91_rival_ambush_takes_one_crew_slot PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_p88_small_encounter_takes_one_crew_slot STARTED
+  res://tests/unit/test_deployment_selection.gd > test_p88_small_encounter_takes_one_crew_slot PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_p84_small_squad_is_an_absolute_ceiling STARTED
+  res://tests/unit/test_deployment_selection.gd > test_p84_small_squad_is_an_absolute_ceiling PASSED 17ms
+
+  res://tests/unit/test_deployment_selection.gd > test_the_ceiling_is_applied_after_the_deltas_and_never_widens_them STARTED
+  res://tests/unit/test_deployment_selection.gd > test_the_ceiling_is_applied_after_the_deltas_and_never_widens_them PASSED 16ms
+
+  res://tests/unit/test_deployment_selection.gd > test_the_widget_preselects_up_to_the_cap_and_the_rule_fields_exactly_those STARTED
+  res://tests/unit/test_deployment_selection.gd > test_the_widget_preselects_up_to_the_cap_and_the_rule_fields_exactly_those PASSED 191ms
+
+  res://tests/unit/test_deployment_selection.gd > test_a_full_cap_still_fields_everyone STARTED
+  res://tests/unit/test_deployment_selection.gd > test_a_full_cap_still_fields_everyone PASSED 35ms
+
+  res://tests/unit/test_deployment_selection.gd > test_setup_crew_selection_is_idempotent STARTED
+  res://tests/unit/test_deployment_selection.gd > test_setup_crew_selection_is_idempotent PASSED 32ms
+
+  res://tests/unit/test_deployment_selection.gd > test_the_confirm_handler_actually_consumes_the_selection STARTED
+  res://tests/unit/test_deployment_selection.gd > test_the_confirm_handler_actually_consumes_the_selection PASSED 15ms
+
+  res://tests/unit/test_deployment_selection.gd > test_the_controller_and_the_rule_both_compile STARTED
+  res://tests/unit/test_deployment_selection.gd > test_the_controller_and_the_rule_both_compile PASSED 286ms
+
+Statistics: 17 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 769ms
+
+
+Run Test Suite: res://tests/unit/test_destructive_actions_confirm.gd
+  res://tests/unit/test_destructive_actions_confirm.gd > test_crew_with_no_task_are_identified_as_about_to_lose_their_turn STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_crew_with_no_task_are_identified_as_about_to_lose_their_turn PASSED 21ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_resolving_with_everyone_assigned_needs_no_confirmation STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_resolving_with_everyone_assigned_needs_no_confirmation PASSED 34ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_resolve_all_does_not_burn_unassigned_crew_before_asking STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_resolve_all_does_not_burn_unassigned_crew_before_asking PASSED 32ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_the_confirmation_names_the_crew_who_would_lose_their_turn STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_the_confirmation_names_the_crew_who_would_lose_their_turn PASSED 33ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_an_automated_resolve_is_never_gated_by_a_modal STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_an_automated_resolve_is_never_gated_by_a_modal PASSED 15ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_an_interactive_resolve_with_stranded_crew_is_gated STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_an_interactive_resolve_with_stranded_crew_is_gated PASSED 16ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_the_phase_manager_can_be_asked_whether_a_rollback_would_destroy_state STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_the_phase_manager_can_be_asked_whether_a_rollback_would_destroy_state PASSED 34ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_a_stored_checkpoint_is_reported_as_destructive STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_a_stored_checkpoint_is_reported_as_destructive PASSED 33ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_rollback_restores_the_whole_campaign_which_is_why_it_must_ask STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_rollback_restores_the_whole_campaign_which_is_why_it_must_ask PASSED 34ms
+
+  res://tests/unit/test_destructive_actions_confirm.gd > test_back_on_step_one_does_not_roll_back_before_asking STARTED
+  res://tests/unit/test_destructive_actions_confirm.gd > test_back_on_step_one_does_not_roll_back_before_asking PASSED 77ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 342ms
+
+
+Run Test Suite: res://tests/unit/test_dice_forced_results.gd
+  res://tests/unit/test_dice_forced_results.gd > test_a_queued_value_is_returned_by_the_next_matching_roll STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_queued_value_is_returned_by_the_next_matching_roll PASSED 28ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_queued_value_is_consumed_exactly_once STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_queued_value_is_consumed_exactly_once PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_matching_is_case_insensitive_and_substring STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_matching_is_case_insensitive_and_substring PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_different_context_does_not_consume_the_value STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_different_context_does_not_consume_the_value PASSED 31ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_values_for_one_context_come_back_in_order STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_values_for_one_context_come_back_in_order PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_value_outside_the_die_is_discarded_not_clamped STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_value_outside_the_die_is_discarded_not_clamped PASSED 32ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_clearing_removes_queued_values STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_clearing_removes_queued_values PASSED 34ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_an_empty_key_is_rejected STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_an_empty_key_is_rejected PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_the_forced_roll_is_labelled_in_the_roll_history STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_the_forced_roll_is_labelled_in_the_roll_history PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_rival_attack_type_honours_a_forced_roll STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_rival_attack_type_honours_a_forced_roll PASSED 32ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_rival_roll_still_reads_the_shipped_table STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_rival_roll_still_reads_the_shipped_table PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_value_reaches_the_backend_character_event STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_value_reaches_the_backend_character_event PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_the_92_94_row_is_reachable_too STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_the_92_94_row_is_reachable_too PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_value_reaches_the_backend_campaign_event STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_a_forced_value_reaches_the_backend_campaign_event PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_the_got_noticed_row_is_reachable_too STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_the_got_noticed_row_is_reachable_too PASSED 33ms
+
+  res://tests/unit/test_dice_forced_results.gd > test_the_campaign_and_character_queues_do_not_consume_each_other STARTED
+  res://tests/unit/test_dice_forced_results.gd > test_the_campaign_and_character_queues_do_not_consume_each_other PASSED 33ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 543ms
+
+
+Run Test Suite: res://tests/unit/test_dice_system_contexts.gd
+  res://tests/unit/test_dice_system_contexts.gd > test_multiple_dice_rolls_tracked_independently STARTED
+  res://tests/unit/test_dice_system_contexts.gd > test_multiple_dice_rolls_tracked_independently PASSED 36ms
+
+Statistics: 1 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 41ms
+
+
+Run Test Suite: res://tests/unit/test_difficulty_display_names.gd
+  res://tests/unit/test_difficulty_display_names.gd > test_every_real_mode_gets_its_book_name STARTED
+  res://tests/unit/test_difficulty_display_names.gd > test_every_real_mode_gets_its_book_name PASSED 18ms
+
+  res://tests/unit/test_difficulty_display_names.gd > test_the_non_contiguous_enum_does_not_shift_the_names STARTED
+  res://tests/unit/test_difficulty_display_names.gd > test_the_non_contiguous_enum_does_not_shift_the_names PASSED 18ms
+
+  res://tests/unit/test_difficulty_display_names.gd > test_no_deprecated_or_invented_label_can_reach_the_player STARTED
+  res://tests/unit/test_difficulty_display_names.gd > test_no_deprecated_or_invented_label_can_reach_the_player PASSED 16ms
+
+  res://tests/unit/test_difficulty_display_names.gd > test_the_names_match_the_rules_reference_file_verbatim STARTED
+  res://tests/unit/test_difficulty_display_names.gd > test_the_names_match_the_rules_reference_file_verbatim PASSED 16ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 76ms
+
+
+Run Test Suite: res://tests/unit/test_difficulty_modifiers.gd
+  res://tests/unit/test_difficulty_modifiers.gd > test_difficulty_enum_canonical_values STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_difficulty_enum_canonical_values PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_aliases_still_exist_for_save_compat STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_aliases_still_exist_for_save_compat PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_easy_xp_bonus_is_1 STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_easy_xp_bonus_is_1 PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_easy_reduces_enemy_at_5_plus STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_easy_reduces_enemy_at_5_plus PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_normal_has_no_modifiers STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_normal_has_no_modifiers PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_challenging_rerolls_low_enemy_dice STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_challenging_rerolls_low_enemy_dice PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_hard_does_not_reroll STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_hard_does_not_reroll PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_enemy_count_modifier_is_1 STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_enemy_count_modifier_is_1 PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_reduces_starting_story_points_by_1 STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_reduces_starting_story_points_by_1 PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_seize_initiative_minus_2 STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_hardcore_seize_initiative_minus_2 PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_disables_story_points STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_disables_story_points PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_adds_specialist_enemy STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_adds_specialist_enemy PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_seize_initiative_minus_3 STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_insanity_seize_initiative_minus_3 PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_nightmare_and_elite_alias_to_insanity_behavior STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_deprecated_nightmare_and_elite_alias_to_insanity_behavior PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers.gd > test_all_canonical_levels_are_valid STARTED
+  res://tests/unit/test_difficulty_modifiers.gd > test_all_canonical_levels_are_valid PASSED 16ms
+
+Statistics: 15 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 257ms
+
+
+Run Test Suite: res://tests/unit/test_difficulty_modifiers_battle.gd
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_easy_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_easy_is_zero PASSED 9ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_normal_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_normal_is_zero PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_challenging_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_challenging_is_zero PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_hardcore_is_plus_one STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_hardcore_is_plus_one PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_insanity_is_one_like_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_enemy_count_insanity_is_one_like_hardcore PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_specialist_enemy_insanity_is_plus_one STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_specialist_enemy_insanity_is_plus_one PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_specialist_enemy_hardcore_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_specialist_enemy_hardcore_is_zero PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_final_enemy_count_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_final_enemy_count_hardcore PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_final_enemy_count_normal STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_final_enemy_count_normal PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_with_5_enemies STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_with_5_enemies PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_with_4_enemies STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_with_4_enemies PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_normal_mode STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_easy_reduction_normal_mode PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_challenging_enabled STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_challenging_enabled PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_normal_disabled STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_normal_disabled PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_hardcore_disabled STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_reroll_hardcore_disabled PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_reroll_die_result_1 STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_reroll_die_result_1 PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_reroll_die_result_2 STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_reroll_die_result_2 PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_not_reroll_die_result_3 STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_not_reroll_die_result_3 PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_not_reroll_normal_mode STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_should_not_reroll_normal_mode PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_easy_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_easy_is_zero PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_normal_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_normal_is_zero PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_challenging_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_challenging_is_zero PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_hardcore_is_plus_two STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_hardcore_is_plus_two PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_insanity_is_plus_three STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_invasion_insanity_is_plus_three PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_invasion_roll_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_invasion_roll_hardcore PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_easy_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_easy_is_zero PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_normal_is_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_normal_is_zero PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_hardcore_is_minus_two STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_hardcore_is_minus_two PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_insanity_is_minus_three STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_initiative_insanity_is_minus_three PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_initiative_roll_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_initiative_roll_hardcore PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_initiative_roll_insanity STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_calculate_initiative_roll_insanity PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_normal_modifier_zero STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_normal_modifier_zero PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_hardcore_modifier_plus_one STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_hardcore_modifier_plus_one PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_not_forced_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_not_forced_hardcore PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_forced_insanity STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_unique_individual_forced_insanity PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_double_unique_possible_insanity STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_double_unique_possible_insanity PASSED 14ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_double_unique_not_possible_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_double_unique_not_possible_hardcore PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_enabled_normal STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_enabled_normal PASSED 17ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_enabled_hardcore STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_enabled_hardcore PASSED 16ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_disabled_insanity STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_stars_of_story_disabled_insanity PASSED 15ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_all_modifiers_hardcore_complete STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_all_modifiers_hardcore_complete PASSED 18ms
+
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_all_modifiers_insanity_complete STARTED
+  res://tests/unit/test_difficulty_modifiers_battle.gd > test_all_modifiers_insanity_complete PASSED 16ms
+
+Statistics: 42 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 709ms
+
+
+Run Test Suite: res://tests/unit/test_display_text.gd
+  res://tests/unit/test_display_text.gd > test_a_whole_float_prints_without_a_decimal_point STARTED
+  res://tests/unit/test_display_text.gd > test_a_whole_float_prints_without_a_decimal_point PASSED 11ms
+
+  res://tests/unit/test_display_text.gd > test_a_genuine_fraction_is_preserved STARTED
+  res://tests/unit/test_display_text.gd > test_a_genuine_fraction_is_preserved PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_a_non_number_is_passed_through STARTED
+  res://tests/unit/test_display_text.gd > test_a_non_number_is_passed_through PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_credits_are_pluralised STARTED
+  res://tests/unit/test_display_text.gd > test_credits_are_pluralised PASSED 17ms
+
+  res://tests/unit/test_display_text.gd > test_a_snake_case_category_becomes_title_case STARTED
+  res://tests/unit/test_display_text.gd > test_a_snake_case_category_becomes_title_case PASSED 17ms
+
+  res://tests/unit/test_display_text.gd > test_an_already_spaced_name_is_not_reformatted STARTED
+  res://tests/unit/test_display_text.gd > test_an_already_spaced_name_is_not_reformatted PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_the_encounter_log_prints_a_title_cased_category STARTED
+  res://tests/unit/test_display_text.gd > test_the_encounter_log_prints_a_title_cased_category PASSED 15ms
+
+  res://tests/unit/test_display_text.gd > test_join_parts_drops_the_blanks STARTED
+  res://tests/unit/test_display_text.gd > test_join_parts_drops_the_blanks PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_the_journal_resolves_a_crew_id_to_a_name STARTED
+  res://tests/unit/test_display_text.gd > test_the_journal_resolves_a_crew_id_to_a_name PASSED 33ms
+
+  res://tests/unit/test_display_text.gd > test_the_journal_resolver_is_safe_with_no_campaign STARTED
+  res://tests/unit/test_display_text.gd > test_the_journal_resolver_is_safe_with_no_campaign PASSED 32ms
+
+  res://tests/unit/test_display_text.gd > test_every_changed_screen_still_instantiates STARTED
+  res://tests/unit/test_display_text.gd > test_every_changed_screen_still_instantiates PASSED 33ms
+
+  res://tests/unit/test_display_text.gd > test_a_screaming_snake_token_becomes_sentence_case STARTED
+  res://tests/unit/test_display_text.gd > test_a_screaming_snake_token_becomes_sentence_case PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_stat_value_routes_all_three_storage_shapes STARTED
+  res://tests/unit/test_display_text.gd > test_stat_value_routes_all_three_storage_shapes PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_stat_value_leaves_real_names_and_prose_alone STARTED
+  res://tests/unit/test_display_text.gd > test_stat_value_leaves_real_names_and_prose_alone PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_the_journal_details_block_routes_through_stat_value STARTED
+  res://tests/unit/test_display_text.gd > test_the_journal_details_block_routes_through_stat_value PASSED 16ms
+
+  res://tests/unit/test_display_text.gd > test_the_sheet_and_the_journal_share_one_sight_transform STARTED
+  res://tests/unit/test_display_text.gd > test_the_sheet_and_the_journal_share_one_sight_transform PASSED 15ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 324ms
+
+
+Run Test Suite: res://tests/unit/test_elite_level_enemies.gd
+  res://tests/unit/test_elite_level_enemies.gd > test_the_dlc_flag_is_actually_enabled_for_this_suite STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_dlc_flag_is_actually_enabled_for_this_suite PASSED 12ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_composition_table_matches_the_book_row_for_row STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_composition_table_matches_the_book_row_for_row PASSED 17ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_seven_plus_row_absorbs_the_remainder_into_basics STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_seven_plus_row_absorbs_the_remainder_into_basics PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_minimum_squad_size_is_four STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_minimum_squad_size_is_four PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_consults_the_composition_and_the_minimum STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_consults_the_composition_and_the_minimum PASSED 18ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_outnumbering_the_enemy_guarantees_a_unique_individual STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_outnumbering_the_enemy_guarantees_a_unique_individual PASSED 15ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_not_outnumbering_lowers_the_threshold_to_seven STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_not_outnumbering_lowers_the_threshold_to_seven PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_passes_elite_context_to_the_unique_roll STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_passes_elite_context_to_the_unique_roll PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_invasion_prohibition_survives_the_elite_auto_branch STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_invasion_prohibition_survives_the_elite_auto_branch PASSED 15ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_leadership_table_matches_the_book STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_leadership_table_matches_the_book PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_an_unknown_panic_range_is_left_alone STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_an_unknown_panic_range_is_left_alone PASSED 17ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_applies_the_leadership_table STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_generator_applies_the_leadership_table PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_an_elite_rival_follows_on_four_not_five STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_an_elite_rival_follows_on_four_not_five PASSED 16ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_only_a_tagged_rival_counts_as_elite STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_only_a_tagged_rival_counts_as_elite PASSED 15ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_elite_rivals_survive_travel_more_often STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_elite_rivals_survive_travel_more_often PASSED 17ms
+
+  res://tests/unit/test_elite_level_enemies.gd > test_the_rival_is_tagged_at_birth_and_carried_by_the_normalizer STARTED
+  res://tests/unit/test_elite_level_enemies.gd > test_the_rival_is_tagged_at_birth_and_carried_by_the_normalizer PASSED 14ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 275ms
+
+
+Run Test Suite: res://tests/unit/test_encounter_log_enemy_stats.gd
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_the_five_stat_columns_are_addressed_by_the_manifest STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_the_five_stat_columns_are_addressed_by_the_manifest PASSED 16ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_each_stat_column_sits_inside_its_printed_cell STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_each_stat_column_sits_inside_its_printed_cell PASSED 16ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_a_known_enemy_prints_its_book_stat_line STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_a_known_enemy_prints_its_book_stat_line PASSED 16ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_a_second_enemy_type_differs_from_the_first STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_a_second_enemy_type_differs_from_the_first PASSED 17ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_an_enemy_outside_the_table_leaves_the_columns_blank STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_an_enemy_outside_the_table_leaves_the_columns_blank PASSED 16ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_no_battle_at_all_leaves_the_columns_blank STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_no_battle_at_all_leaves_the_columns_blank PASSED 17ms
+
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_the_stat_block_comes_from_the_shipped_data_file STARTED
+  res://tests/unit/test_encounter_log_enemy_stats.gd > test_the_stat_block_comes_from_the_shipped_data_file PASSED 17ms
+
+Statistics: 7 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 124ms
+
+
+Run Test Suite: res://tests/unit/test_enemy_ai_reference.gd
+  res://tests/unit/test_enemy_ai_reference.gd > test_all_seven_book_ai_types_are_present STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_all_seven_book_ai_types_are_present PASSED 11ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_every_core_type_carries_its_book_bullets STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_every_core_type_carries_its_book_bullets PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_core_ai_is_diceless STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_core_ai_is_diceless PASSED 17ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_core_file_holds_no_compendium_keys STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_core_file_holds_no_compendium_keys PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_a_core_bullet_matches_the_book_verbatim STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_a_core_bullet_matches_the_book_verbatim PASSED 17ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_variations_return_nothing_while_the_option_is_off STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_variations_return_nothing_while_the_option_is_off PASSED 15ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_four_variation_types_have_a_six_row_table_when_enabled STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_four_variation_types_have_a_six_row_table_when_enabled PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_three_unchanged_types_have_no_table_even_when_enabled STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_three_unchanged_types_have_no_table_even_when_enabled PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_a_roll_resolves_to_a_row_of_that_types_own_table STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_a_roll_resolves_to_a_row_of_that_types_own_table PASSED 17ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_letter_codes_resolve_the_same_as_type_names STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_letter_codes_resolve_the_same_as_type_names PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_group_actions_and_the_impossible_action_note_are_available STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_group_actions_and_the_impossible_action_note_are_available PASSED 16ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_reference_card_shows_core_bullets_and_no_dice_by_default STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_reference_card_shows_core_bullets_and_no_dice_by_default PASSED 32ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_reference_card_appends_the_variation_block_when_enabled STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_reference_card_appends_the_variation_block_when_enabled PASSED 33ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_declines_to_roll_while_the_option_is_off STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_declines_to_roll_while_the_option_is_off PASSED 32ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_resolves_an_action_when_enabled STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_resolves_an_action_when_enabled PASSED 32ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_says_so_for_the_three_unchanged_types STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_d6_mode_says_so_for_the_three_unchanged_types PASSED 34ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_decision_steps_are_a_compendium_feature STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_the_decision_steps_are_a_compendium_feature PASSED 32ms
+
+  res://tests/unit/test_enemy_ai_reference.gd > test_targeting_priority_is_gone STARTED
+  res://tests/unit/test_enemy_ai_reference.gd > test_targeting_priority_is_gone PASSED 32ms
+
+Statistics: 18 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 424ms
+
+
+Run Test Suite: res://tests/unit/test_enemy_deploy_markers.gd
+  res://tests/unit/test_enemy_deploy_markers.gd > test_all_ai_types_stay_in_enemy_band_all_sizes STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_all_ai_types_stay_in_enemy_band_all_sizes PASSED 17ms
+
+  res://tests/unit/test_enemy_deploy_markers.gd > test_aggressive_is_one_cluster STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_aggressive_is_one_cluster PASSED 15ms
+
+  res://tests/unit/test_enemy_deploy_markers.gd > test_f4_defensive_deploys_as_3_teams_like_tactical STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_f4_defensive_deploys_as_3_teams_like_tactical PASSED 15ms
+
+  res://tests/unit/test_enemy_deploy_markers.gd > test_cautious_is_2_groups STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_cautious_is_2_groups PASSED 16ms
+
+  res://tests/unit/test_enemy_deploy_markers.gd > test_f3_beast_deploys_in_pairs_across_thirds STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_f3_beast_deploys_in_pairs_across_thirds PASSED 16ms
+
+  res://tests/unit/test_enemy_deploy_markers.gd > test_markers_deterministic_under_seed STARTED
+  res://tests/unit/test_enemy_deploy_markers.gd > test_markers_deterministic_under_seed PASSED 17ms
+
+Statistics: 6 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 108ms
+
+
+Run Test Suite: res://tests/unit/test_enemy_trait_rules.gd
+  res://tests/unit/test_enemy_trait_rules.gd > test_the_three_traits_resolve_from_the_data_file STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_the_three_traits_resolve_from_the_data_file PASSED 11ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_traits_do_not_leak_between_enemies STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_traits_do_not_leak_between_enemies PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_trait_name_matching_is_case_insensitive STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_trait_name_matching_is_case_insensitive PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_grudge_applies_only_to_rival_battles STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_grudge_applies_only_to_rival_battles PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_grudge_reaches_the_live_generator STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_grudge_reaches_the_live_generator PASSED 153ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_persistent_penalises_the_removal_roll STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_persistent_penalises_the_removal_roll PASSED 4ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_intrigue_threshold_and_bonus STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_intrigue_threshold_and_bonus PASSED 10ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_only_bounty_hunters_have_intrigue STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_only_bounty_hunters_have_intrigue PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_cop_killer_adds_two_to_rival_numbers STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_cop_killer_adds_two_to_rival_numbers PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_scavengers_doubles_battlefield_finds STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_scavengers_doubles_battlefield_finds PASSED 17ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_tough_fight_pays_one_bonus_xp STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_tough_fight_pays_one_bonus_xp PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_modifiers STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_modifiers PASSED 17ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_absolutes_are_not_modifiers STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_absolutes_are_not_modifiers PASSED 17ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_modifier_reaches_the_generated_enemies STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_seize_modifier_reaches_the_generated_enemies PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_every_trait_bearer_in_the_data_is_recognised STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_every_trait_bearer_in_the_data_is_recognised PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_going_medieval_replaces_the_loadout STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_going_medieval_replaces_the_loadout PASSED 17ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_going_medieval_reaches_the_generated_roster STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_going_medieval_reaches_the_generated_roster PASSED 16ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_rival_battles_never_draw_roving_threats STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_rival_battles_never_draw_roving_threats PASSED 73ms
+
+  res://tests/unit/test_enemy_trait_rules.gd > test_opportunity_battles_can_still_draw_roving_threats STARTED
+  res://tests/unit/test_enemy_trait_rules.gd > test_opportunity_battles_can_still_draw_roving_threats PASSED 42ms
+
+Statistics: 19 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 528ms
+
+
+Run Test Suite: res://tests/unit/test_enemy_weapon_tables.gd
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_one_rolls_only_the_weapon_1_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_one_rolls_only_the_weapon_1_column PASSED 16ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_two_rolls_only_the_weapon_2_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_two_rolls_only_the_weapon_2_column PASSED 34ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_three_rolls_only_the_weapon_3_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_code_number_three_rolls_only_the_weapon_3_column PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_basic_enemies_roll_once_not_once_per_code_number STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_basic_enemies_roll_once_not_once_per_code_number PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_a_rolls_the_specialist_a_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_a_rolls_the_specialist_a_column PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_b_rolls_the_specialist_b_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_b_rolls_the_specialist_b_column PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_c_rolls_the_specialist_c_column STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_letter_c_rolls_the_specialist_c_column PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_specialist_weapons_are_actually_distinct_from_basic STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_specialist_weapons_are_actually_distinct_from_basic PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_combo_entries_split_into_two_weapons STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_combo_entries_split_into_two_weapons PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_named_loadouts_are_carried_verbatim STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_named_loadouts_are_carried_verbatim PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_parse_distinguishes_a_table_code_from_a_weapon_name STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_parse_distinguishes_a_table_code_from_a_weapon_name PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_rampaging_ai_always_gets_a_blade STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_rampaging_ai_always_gets_a_blade PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_aggressive_ai_gets_a_blade_only_above_combat_skill_zero STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_aggressive_ai_gets_a_blade_only_above_combat_skill_zero PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_other_ai_types_never_gain_a_blade STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_other_ai_types_never_gain_a_blade PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_blade_is_not_duplicated_when_already_carried STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_blade_is_not_duplicated_when_already_carried PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_animal_pack_leader_carries_no_blade STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_animal_pack_leader_carries_no_blade PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_animal_pack_leader_still_gets_the_combat_bonus STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_animal_pack_leader_still_gets_the_combat_bonus PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_rampaging_animals_are_exempt_from_the_ai_blade_rule STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_rampaging_animals_are_exempt_from_the_ai_blade_rule PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_animals_get_no_specialist STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_animals_get_no_specialist PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_the_natural_weapon_test_does_not_catch_armed_enemies STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_the_natural_weapon_test_does_not_catch_armed_enemies PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_armed_lieutenant_still_carries_its_blade STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_an_armed_lieutenant_still_carries_its_blade PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_a_generated_rampaging_squad_carries_blades STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_a_generated_rampaging_squad_carries_blades PASSED 32ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_a_generated_squad_gives_its_specialist_a_specialist_weapon STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_a_generated_squad_gives_its_specialist_a_specialist_weapon PASSED 33ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_natural_weapon_enemies_carry_the_melee_trait STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_natural_weapon_enemies_carry_the_melee_trait PASSED 34ms
+
+  res://tests/unit/test_enemy_weapon_tables.gd > test_armed_enemies_do_not_get_a_blanket_melee_trait STARTED
+  res://tests/unit/test_enemy_weapon_tables.gd > test_armed_enemies_do_not_get_a_blanket_melee_trait PASSED 32ms
+
+Statistics: 25 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 833ms
+
+
+Run Test Suite: res://tests/unit/test_entity_card_actions_row.gd
+  res://tests/unit/test_entity_card_actions_row.gd > test_action_ids_match_documented_constants STARTED
+  res://tests/unit/test_entity_card_actions_row.gd > test_action_ids_match_documented_constants PASSED 16ms
+
+  res://tests/unit/test_entity_card_actions_row.gd > test_default_actions_produces_view_edit_remove STARTED
+  res://tests/unit/test_entity_card_actions_row.gd > test_default_actions_produces_view_edit_remove PASSED 17ms
+
+  res://tests/unit/test_entity_card_actions_row.gd > test_actions_with_print_inserts_print_before_delete STARTED
+  res://tests/unit/test_entity_card_actions_row.gd > test_actions_with_print_inserts_print_before_delete PASSED 15ms
+
+  res://tests/unit/test_entity_card_actions_row.gd > test_setup_builds_buttons_and_emits_action_pressed STARTED
+  res://tests/unit/test_entity_card_actions_row.gd > test_setup_builds_buttons_and_emits_action_pressed PASSED 33ms
+
+  res://tests/unit/test_entity_card_actions_row.gd > test_setup_is_idempotent_clearing_prior_buttons STARTED
+  res://tests/unit/test_entity_card_actions_row.gd > test_setup_is_idempotent_clearing_prior_buttons PASSED 50ms
+
+Statistics: 5 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 143ms
+
+
+Run Test Suite: res://tests/unit/test_enum_ordinal_sync.gd
+  res://tests/unit/test_enum_ordinal_sync.gd > test_shared_enum_members_have_identical_values STARTED
+  res://tests/unit/test_enum_ordinal_sync.gd > test_shared_enum_members_have_identical_values PASSED 19ms
+
+  res://tests/unit/test_enum_ordinal_sync.gd > test_dead_skill_and_ability_enums_stay_deleted STARTED
+  res://tests/unit/test_enum_ordinal_sync.gd > test_dead_skill_and_ability_enums_stay_deleted PASSED 16ms
+
+  res://tests/unit/test_enum_ordinal_sync.gd > test_dead_combat_enums_stay_deleted STARTED
+  res://tests/unit/test_enum_ordinal_sync.gd > test_dead_combat_enums_stay_deleted PASSED 16ms
+
+Statistics: 3 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 59ms
+
+
+Run Test Suite: res://tests/unit/test_enum_sync.gd
+  res://tests/unit/test_enum_sync.gd > test_global_enums_loads STARTED
+  res://tests/unit/test_enum_sync.gd > test_global_enums_loads PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_game_enums_loads STARTED
+  res://tests/unit/test_enum_sync.gd > test_game_enums_loads PASSED 15ms
+
+  res://tests/unit/test_enum_sync.gd > test_campaign_phase_has_fourteen_values STARTED
+  res://tests/unit/test_enum_sync.gd > test_campaign_phase_has_fourteen_values PASSED 17ms
+
+  res://tests/unit/test_enum_sync.gd > test_campaign_phase_includes_required_phases STARTED
+  res://tests/unit/test_enum_sync.gd > test_campaign_phase_includes_required_phases PASSED 17ms
+
+  res://tests/unit/test_enum_sync.gd > test_global_enums_has_character_class STARTED
+  res://tests/unit/test_enum_sync.gd > test_global_enums_has_character_class PASSED 15ms
+
+  res://tests/unit/test_enum_sync.gd > test_global_difficulty_level_exists STARTED
+  res://tests/unit/test_enum_sync.gd > test_global_difficulty_level_exists PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_global_difficulty_has_required_levels STARTED
+  res://tests/unit/test_enum_sync.gd > test_global_difficulty_has_required_levels PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_easy_value STARTED
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_easy_value PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_normal_value STARTED
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_normal_value PASSED 18ms
+
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_hardcore_value STARTED
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_hardcore_value PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_insanity_value STARTED
+  res://tests/unit/test_enum_sync.gd > test_difficulty_level_insanity_value PASSED 14ms
+
+  res://tests/unit/test_enum_sync.gd > test_content_flag_count STARTED
+  res://tests/unit/test_enum_sync.gd > test_content_flag_count PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_motivation_enum_has_twenty_two_values STARTED
+  res://tests/unit/test_enum_sync.gd > test_motivation_enum_has_twenty_two_values PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_motivation_enum_required_values STARTED
+  res://tests/unit/test_enum_sync.gd > test_motivation_enum_required_values PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_background_enum_not_empty STARTED
+  res://tests/unit/test_enum_sync.gd > test_background_enum_not_empty PASSED 19ms
+
+  res://tests/unit/test_enum_sync.gd > test_background_has_required_values STARTED
+  res://tests/unit/test_enum_sync.gd > test_background_has_required_values PASSED 13ms
+
+  res://tests/unit/test_enum_sync.gd > test_origin_enum_not_empty STARTED
+  res://tests/unit/test_enum_sync.gd > test_origin_enum_not_empty PASSED 16ms
+
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_difficulty_level STARTED
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_difficulty_level PASSED 17ms
+
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_edit_mode STARTED
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_edit_mode PASSED 15ms
+
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_game_phase STARTED
+  res://tests/unit/test_enum_sync.gd > test_game_enums_has_game_phase PASSED 15ms
+
+Statistics: 20 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 342ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_compatibility_gate.gd
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_accepts_the_string_form_data_actually_uses STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_accepts_the_string_form_data_actually_uses PASSED 14ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_accepts_the_enum_form_generated_items_use STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_accepts_the_enum_form_generated_items_use PASSED 16ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_rejects_armor STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_is_weapon_item_rejects_armor PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_is_refused_a_weapon_with_neither_trait STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_is_refused_a_weapon_with_neither_trait PASSED 16ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_may_take_a_pistol STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_may_take_a_pistol PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_may_take_a_melee_weapon STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_psionic_may_take_a_melee_weapon PASSED 16ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_non_psionic_may_take_anything STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_non_psionic_may_take_anything PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_krag_is_refused_armor_that_is_not_krag_fitted STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_krag_is_refused_armor_that_is_not_krag_fitted PASSED 16ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_krag_may_wear_krag_fitted_armor STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_krag_may_wear_krag_fitted_armor PASSED 16ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_krag_fitted_armor_is_refused_to_an_ordinary_human STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_krag_fitted_armor_is_refused_to_an_ordinary_human PASSED 17ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_skulker_wears_either_without_modification STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_skulker_wears_either_without_modification PASSED 18ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_an_engineer_wears_either_without_modification STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_an_engineer_wears_either_without_modification PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_toughness_one_character_may_wear_any_armor STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_a_toughness_one_character_may_wear_any_armor PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_no_armor_in_the_shipped_database_carries_an_armor_type_weight STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_no_armor_in_the_shipped_database_carries_an_armor_type_weight PASSED 15ms
+
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_the_one_armor_slot_rule_can_now_recognise_shipped_armor STARTED
+  res://tests/unit/test_equipment_compatibility_gate.gd > test_the_one_armor_slot_rule_can_now_recognise_shipped_armor PASSED 16ms
+
+Statistics: 15 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 258ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_economy_is_book_only.gd
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_book_prices_are_the_only_prices STARTED
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_book_prices_are_the_only_prices PASSED 17ms
+
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_trading_system_is_gone STARTED
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_trading_system_is_gone PASSED 16ms
+
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_fabricated_shop_and_repair_service_are_gone STARTED
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_fabricated_shop_and_repair_service_are_gone PASSED 15ms
+
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_shop_buttons_are_gone_from_the_scene STARTED
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_the_shop_buttons_are_gone_from_the_scene PASSED 16ms
+
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_upkeep_credits_have_no_dead_economy_branch STARTED
+  res://tests/unit/test_equipment_economy_is_book_only.gd > test_upkeep_credits_have_no_dead_economy_branch PASSED 17ms
+
+Statistics: 5 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 92ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_persistence.gd
+  res://tests/unit/test_equipment_persistence.gd > test_creation_embeds_equipment_into_campaign_crew_data STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_creation_embeds_equipment_into_campaign_crew_data PASSED 11ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_save_and_reload_preserves_character_equipment STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_save_and_reload_preserves_character_equipment PASSED 16ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_get_all_equipment_returns_ship_stash_items STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_get_all_equipment_returns_ship_stash_items PASSED 16ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_restore_rebuilds_equipment_manager_character_ownership STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_restore_rebuilds_equipment_manager_character_ownership PASSED 15ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_resources_are_single_source_of_truth_on_campaign STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_resources_are_single_source_of_truth_on_campaign PASSED 17ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_save_schema_deep_diff_round_trip STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_save_schema_deep_diff_round_trip PASSED 15ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_restore_enforces_one_item_one_owner_invariant STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_restore_enforces_one_item_one_owner_invariant PASSED 16ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_legacy_split_format_copies_do_not_double_the_stash STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_legacy_split_format_copies_do_not_double_the_stash PASSED 17ms
+
+  res://tests/unit/test_equipment_persistence.gd > test_two_genuinely_identical_items_in_the_stash_are_both_kept STARTED
+  res://tests/unit/test_equipment_persistence.gd > test_two_genuinely_identical_items_in_the_stash_are_both_kept PASSED 16ms
+
+Statistics: 9 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 159ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_stash_collapse.gd
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_erases_the_keys_it_folded_in STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_erases_the_keys_it_folded_in PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_keeps_the_canonical_flat_stash STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_keeps_the_canonical_flat_stash PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_output_has_no_duplicate_ids STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_output_has_no_duplicate_ids PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_preserves_credits STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_preserves_credits PASSED 17ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_still_folds_a_split_only_payload STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_transform_still_folds_a_split_only_payload PASSED 15ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_get_all_equipment_returns_each_item_once_after_finalization STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_get_all_equipment_returns_each_item_once_after_finalization PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_check5_flags_a_stash_that_regained_category_keys STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_check5_flags_a_stash_that_regained_category_keys PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_check5_is_quiet_on_a_canonical_stash STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_check5_is_quiet_on_a_canonical_stash PASSED 16ms
+
+  res://tests/unit/test_equipment_stash_collapse.gd > test_the_corrupt_shape_really_did_duplicate STARTED
+  res://tests/unit/test_equipment_stash_collapse.gd > test_the_corrupt_shape_really_did_duplicate PASSED 17ms
+
+Statistics: 9 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 159ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_transfer_resource_crew.gd
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_dict_crew_receives_the_item_as_a_card STARTED
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_dict_crew_receives_the_item_as_a_card PASSED 17ms
+
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_resource_crew_receives_the_item_at_all STARTED
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_resource_crew_receives_the_item_at_all PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_resource_crew_round_trips_the_item_back_to_the_stash STARTED
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_resource_crew_round_trips_the_item_back_to_the_stash PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_no_duplicate_home_after_a_resource_transfer STARTED
+  res://tests/unit/test_equipment_transfer_resource_crew.gd > test_no_duplicate_home_after_a_resource_transfer PASSED 16ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 75ms
+
+
+Run Test Suite: res://tests/unit/test_equipment_transfer_service.gd
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_character_moves_item_from_stash_to_sheet STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_character_moves_item_from_stash_to_sheet PASSED 14ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_missing_character_rolls_back STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_missing_character_rolls_back PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_unknown_item_id_fails_cleanly STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_unknown_item_id_fails_cleanly PASSED 15ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_stash_moves_item_from_character_back_to_pool STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_to_stash_moves_item_from_character_back_to_pool PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_between_characters_atomic STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_between_characters_atomic PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_between_characters_rolls_back_on_missing_target STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_transfer_between_characters_rolls_back_on_missing_target PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_add_loot_to_stash_assigns_id_when_missing STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_add_loot_to_stash_assigns_id_when_missing PASSED 17ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_add_loot_to_stash_preserves_caller_id STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_add_loot_to_stash_preserves_caller_id PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_generate_starting_loadout_seeds_character_without_stash_round_trip STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_generate_starting_loadout_seeds_character_without_stash_round_trip PASSED 16ms
+
+  res://tests/unit/test_equipment_transfer_service.gd > test_invariant_item_never_exists_in_two_places STARTED
+  res://tests/unit/test_equipment_transfer_service.gd > test_invariant_item_never_exists_in_two_places PASSED 16ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 176ms
+
+
+Run Test Suite: res://tests/unit/test_errata_soulless_and_ai.gd
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_cannot_install_a_bot_upgrade STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_cannot_install_a_bot_upgrade PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_install_attempt_is_refused_outright STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_install_attempt_is_refused_outright PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_an_ordinary_bot_is_unaffected STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_an_ordinary_bot_is_unaffected PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_is_recognised_by_species_id_as_well_as_the_flag STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_soulless_is_recognised_by_species_id_as_well_as_the_flag PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_the_species_data_no_longer_advertises_the_superseded_rule STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_the_species_data_no_longer_advertises_the_superseded_rule PASSED 16ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_every_book_ai_type_resolves_to_a_data_entry STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_every_book_ai_type_resolves_to_a_data_entry PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_defensive_and_guardian_are_distinct_entries STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_defensive_and_guardian_are_distinct_entries PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_the_is_bot_property_is_what_identifies_a_bot STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_the_is_bot_property_is_what_identifies_a_bot PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_non_bot_is_still_rejected STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_non_bot_is_still_rejected PASSED 33ms
+
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_lowercase_species_id_is_recognised STARTED
+  res://tests/unit/test_errata_soulless_and_ai.gd > test_a_lowercase_species_id_is_recognised PASSED 31ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 324ms
+
+
+Run Test Suite: res://tests/unit/test_errata_v106_campaign_rules.gd
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_world_phase_offers_a_lay_low_button STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_world_phase_offers_a_lay_low_button PASSED 9ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_button_signal_has_a_listener STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_button_signal_has_a_listener PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_laying_low_checks_for_rivals_before_charging STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_laying_low_checks_for_rivals_before_charging PASSED 18ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_rival_check_is_not_rolled_twice_in_one_turn STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_rival_check_is_not_rolled_twice_in_one_turn PASSED 17ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_skipped_battle_still_runs_the_turns_bookkeeping STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_skipped_battle_still_runs_the_turns_bookkeeping PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_skipped_battle_writes_no_battle_record STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_skipped_battle_writes_no_battle_record PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_rest_turn_is_neither_a_win_nor_a_loss STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_rest_turn_is_neither_a_win_nor_a_loss PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_creation_patrons_are_banked_as_turn_one_offers STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_creation_patrons_are_banked_as_turn_one_offers PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_banking_is_idempotent STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_banking_is_idempotent PASSED 15ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_reaching_the_conclusion_discards_every_rumor STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_reaching_the_conclusion_discards_every_rumor PASSED 17ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_both_quest_systems_discard_at_the_conclusion STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_both_quest_systems_discard_at_the_conclusion PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_implant_subtable_is_rollable_on_its_own STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_implant_subtable_is_rollable_on_its_own PASSED 19ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_bio_upgrade_grant_is_wired_to_the_creator STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_bio_upgrade_grant_is_wired_to_the_creator PASSED 13ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_recruit_path_rolls_the_creation_tables STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_recruit_path_rolls_the_creation_tables PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_recruit_gets_no_credits_from_the_tables STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_recruit_gets_no_credits_from_the_tables PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_recruit_contacts_are_granted_only_to_the_hired_candidate STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_recruit_contacts_are_granted_only_to_the_hired_candidate PASSED 15ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_accepting_a_job_banks_it_as_an_outstanding_commitment STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_accepting_a_job_banks_it_as_an_outstanding_commitment PASSED 17ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_lapsed_commitment_counts_as_a_failure STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_lapsed_commitment_counts_as_a_failure PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_fought_job_is_discharged_at_the_handoff STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_the_fought_job_is_discharged_at_the_handoff PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_commitments_survive_the_world_phase_checkpoint STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_commitments_survive_the_world_phase_checkpoint PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_grenade_cannot_take_a_sight STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_grenade_cannot_take_a_sight PASSED 16ms
+
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_one_shot_rifle_can_still_take_a_sight STARTED
+  res://tests/unit/test_errata_v106_campaign_rules.gd > test_a_one_shot_rifle_can_still_take_a_sight PASSED 16ms
+
+Statistics: 22 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 375ms
+
+
+Run Test Suite: res://tests/unit/test_event_bus_dispatch.gd
+  res://tests/unit/test_event_bus_dispatch.gd > test_a_live_handler_after_a_stale_one_is_still_called STARTED
+  res://tests/unit/test_event_bus_dispatch.gd > test_a_live_handler_after_a_stale_one_is_still_called PASSED 35ms
+
+  res://tests/unit/test_event_bus_dispatch.gd > test_several_stale_handlers_do_not_hide_the_live_one STARTED
+  res://tests/unit/test_event_bus_dispatch.gd > test_several_stale_handlers_do_not_hide_the_live_one PASSED 32ms
+
+  res://tests/unit/test_event_bus_dispatch.gd > test_every_live_handler_is_called_once STARTED
+  res://tests/unit/test_event_bus_dispatch.gd > test_every_live_handler_is_called_once PASSED 33ms
+
+  res://tests/unit/test_event_bus_dispatch.gd > test_stale_handlers_are_pruned_so_they_do_not_accumulate STARTED
+  res://tests/unit/test_event_bus_dispatch.gd > test_stale_handlers_are_pruned_so_they_do_not_accumulate PASSED 32ms
+
+  res://tests/unit/test_event_bus_dispatch.gd > test_dispatch_with_no_subscribers_is_a_no_op STARTED
+  res://tests/unit/test_event_bus_dispatch.gd > test_dispatch_with_no_subscribers_is_a_no_op PASSED 32ms
+
+Statistics: 5 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 175ms
+
+
+Run Test Suite: res://tests/unit/test_every_script_compiles.gd
+  res://tests/unit/test_every_script_compiles.gd > test_every_src_script_compiles STARTED
+  res://tests/unit/test_every_script_compiles.gd > test_every_src_script_compiles PASSED 4s 71ms
+
+Statistics: 1 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 4s 77ms
+
+
+Run Test Suite: res://tests/unit/test_expanded_connections.gd
+  res://tests/unit/test_expanded_connections.gd > test_the_main_table_covers_1_to_6_and_names_five_subtables STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_main_table_covers_1_to_6_and_names_five_subtables PASSED 10ms
+
+  res://tests/unit/test_expanded_connections.gd > test_every_subtable_has_six_rows_addressable_by_d6 STARTED
+  res://tests/unit/test_expanded_connections.gd > test_every_subtable_has_six_rows_addressable_by_d6 PASSED 6ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_decline_markers_match_the_book_asterisks STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_decline_markers_match_the_book_asterisks PASSED 13ms
+
+  res://tests/unit/test_expanded_connections.gd > test_connections_do_not_occur_on_quest_rival_or_patron_missions STARTED
+  res://tests/unit/test_expanded_connections.gd > test_connections_do_not_occur_on_quest_rival_or_patron_missions PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_five_or_six_gives_a_connection_and_lower_does_not STARTED
+  res://tests/unit/test_expanded_connections.gd > test_five_or_six_gives_a_connection_and_lower_does_not PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_first_game_gets_an_automatic_connection STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_first_game_gets_an_automatic_connection PASSED 17ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_no_roll_option_alternates_every_other_mission STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_no_roll_option_alternates_every_other_mission PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_check_never_applies_when_the_chapter_is_off STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_check_never_applies_when_the_chapter_is_off PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_main_roll_routes_to_the_right_subtable STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_main_roll_routes_to_the_right_subtable PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_connection_persists_as_a_pending_offer STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_connection_persists_as_a_pending_offer PASSED 15ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_is_off_by_default_and_repeats_are_allowed STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_is_off_by_default_and_repeats_are_allowed PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_takes_the_first_new_result_in_the_same_subtable STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_takes_the_first_new_result_in_the_same_subtable PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_stays_inside_the_same_subtable STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_variety_swap_stays_inside_the_same_subtable PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_a_starred_event_can_be_turned_down STARTED
+  res://tests/unit/test_expanded_connections.gd > test_a_starred_event_can_be_turned_down PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_an_unstarred_event_cannot_be_turned_down STARTED
+  res://tests/unit/test_expanded_connections.gd > test_an_unstarred_event_cannot_be_turned_down PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_offer_survives_the_next_turn_and_lapses_after STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_offer_survives_the_next_turn_and_lapses_after PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_playing_the_mission_spends_the_offer STARTED
+  res://tests/unit/test_expanded_connections.gd > test_playing_the_mission_spends_the_offer PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_mission_stamp_carries_the_instruction STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_mission_stamp_carries_the_instruction PASSED 17ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_check_runs_in_mission_prep STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_check_runs_in_mission_prep PASSED 15ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_decline_control_exists_for_starred_events STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_decline_control_exists_for_starred_events PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_the_expiry_runs_at_turn_rollover STARTED
+  res://tests/unit/test_expanded_connections.gd > test_the_expiry_runs_at_turn_rollover PASSED 16ms
+
+  res://tests/unit/test_expanded_connections.gd > test_playing_the_mission_clears_it_from_the_post_battle_side STARTED
+  res://tests/unit/test_expanded_connections.gd > test_playing_the_mission_clears_it_from_the_post_battle_side PASSED 15ms
+
+Statistics: 22 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 366ms
+
+
+Run Test Suite: res://tests/unit/test_expanded_quest_progression.gd
+  res://tests/unit/test_expanded_quest_progression.gd > test_progression_table_covers_1_to_100_contiguously STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_progression_table_covers_1_to_100_contiguously PASSED 7ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_every_row_resolves_at_both_of_its_boundaries STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_every_row_resolves_at_both_of_its_boundaries PASSED 14ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_seven_rows_block_and_two_resolve_immediately STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_seven_rows_block_and_two_resolve_immediately PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_conclusion_numbers_match_the_book STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_conclusion_numbers_match_the_book PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_flag_off_produces_no_roll_at_all STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_flag_off_produces_no_roll_at_all PASSED 17ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_modified_seven_or_higher_reaches_the_conclusion STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_modified_seven_or_higher_reaches_the_conclusion PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_modified_six_or_lower_rolls_on_the_progression_table STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_modified_six_or_lower_rolls_on_the_progression_table PASSED 17ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_rumor_count_is_added_to_the_die STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_rumor_count_is_added_to_the_die PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_step_persists_on_the_campaign STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_step_persists_on_the_campaign PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_a_pending_blocking_step_suppresses_the_next_roll STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_a_pending_blocking_step_suppresses_the_next_roll PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_two_immediate_rows_leave_nothing_pending STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_two_immediate_rows_leave_nothing_pending PASSED 17ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_enemy_massing_is_permanent_for_the_rest_of_the_quest STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_enemy_massing_is_permanent_for_the_rest_of_the_quest PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_dangerous_data_cache_is_exempt_from_the_massing_bonus STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_dangerous_data_cache_is_exempt_from_the_massing_bonus PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_enemy_determined_reduces_panic_permanently STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_enemy_determined_reduces_panic_permanently PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_tough_fight_adds_two_enemies_and_one_panic_while_it_is_pending STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_tough_fight_adds_two_enemies_and_one_panic_while_it_is_pending PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_clear_wipes_the_permanent_modifiers STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_clear_wipes_the_permanent_modifiers PASSED 17ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_paying_for_the_information_needs_the_credits STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_paying_for_the_information_needs_the_credits PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_research_accumulates_across_turns_to_twenty STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_research_accumulates_across_turns_to_twenty PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_research_solved_on_assignment_never_becomes_an_obligation STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_research_solved_on_assignment_never_becomes_an_obligation PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_six_crew_tasks_complete_the_hard_work_step STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_six_crew_tasks_complete_the_hard_work_step PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_quest_work_task_does_not_exist_without_that_step STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_quest_work_task_does_not_exist_without_that_step PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_holding_the_field_discharges_the_tough_fight STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_holding_the_field_discharges_the_tough_fight PASSED 17ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_a_battle_fought_for_something_else_does_not_discharge_the_step STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_a_battle_fought_for_something_else_does_not_discharge_the_step PASSED 13ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_access_data_cache_needs_the_mission_completed STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_access_data_cache_needs_the_mission_completed PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_dangerous_data_cache_needs_the_survival_score_not_a_win STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_dangerous_data_cache_needs_the_survival_score_not_a_win PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_business_contact_forces_aggressive_ai STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_business_contact_forces_aggressive_ai PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_mission_stamp_carries_the_step_id_and_the_modifiers STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_mission_stamp_carries_the_step_id_and_the_modifiers PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_mission_stamp_is_empty_when_the_chapter_is_off STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_mission_stamp_is_empty_when_the_chapter_is_off PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_resolver_branches_before_the_core_die_is_rolled STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_resolver_branches_before_the_core_die_is_rolled PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_expanded_path_drops_the_core_penalty_and_travel_roll STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_expanded_path_drops_the_core_penalty_and_travel_roll PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_enemy_generator_reads_the_quest_bonus STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_enemy_generator_reads_the_quest_bonus PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_setup_rules_read_the_quest_panic_reduction STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_setup_rules_read_the_quest_panic_reduction PASSED 15ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_normalizer_carries_the_step_id_to_the_post_battle_side STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_normalizer_carries_the_step_id_to_the_post_battle_side PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_turn_controller_stamps_quest_missions STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_turn_controller_stamps_quest_missions PASSED 16ms
+
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_conclusion_forces_a_unique_individual_in_the_generator STARTED
+  res://tests/unit/test_expanded_quest_progression.gd > test_the_conclusion_forces_a_unique_individual_in_the_generator PASSED 15ms
+
+Statistics: 35 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 590ms
+
+
+Run Test Suite: res://tests/unit/test_faction_favors.gd
+  res://tests/unit/test_faction_favors.gd > test_the_crew_task_exists_and_is_captain_only STARTED
+  res://tests/unit/test_faction_favors.gd > test_the_crew_task_exists_and_is_captain_only PASSED 11ms
+
+  res://tests/unit/test_faction_favors.gd > test_the_task_reaches_attempt_faction_favor STARTED
+  res://tests/unit/test_faction_favors.gd > test_the_task_reaches_attempt_faction_favor PASSED 15ms
+
+  res://tests/unit/test_faction_favors.gd > test_the_captain_gate_is_enforced_at_the_resolver_not_only_the_widget STARTED
+  res://tests/unit/test_faction_favors.gd > test_the_captain_gate_is_enforced_at_the_resolver_not_only_the_widget PASSED 17ms
+
+  res://tests/unit/test_faction_favors.gd > test_the_favor_is_chosen_after_the_roll STARTED
+  res://tests/unit/test_faction_favors.gd > test_the_favor_is_chosen_after_the_roll PASSED 14ms
+
+  res://tests/unit/test_faction_favors.gd > test_a_favor_is_once_per_campaign_turn STARTED
+  res://tests/unit/test_faction_favors.gd > test_a_favor_is_once_per_campaign_turn PASSED 16ms
+
+  res://tests/unit/test_faction_favors.gd > test_an_empty_progress_data_is_not_read_as_already_used STARTED
+  res://tests/unit/test_faction_favors.gd > test_an_empty_progress_data_is_not_read_as_already_used PASSED 17ms
+
+  res://tests/unit/test_faction_favors.gd > test_all_six_book_favors_are_offered STARTED
+  res://tests/unit/test_faction_favors.gd > test_all_six_book_favors_are_offered PASSED 16ms
+
+  res://tests/unit/test_faction_favors.gd > test_pulling_strings_removes_an_eligible_rival STARTED
+  res://tests/unit/test_faction_favors.gd > test_pulling_strings_removes_an_eligible_rival PASSED 15ms
+
+  res://tests/unit/test_faction_favors.gd > test_pulling_strings_banks_the_loan_cancel_when_no_rival_qualifies STARTED
+  res://tests/unit/test_faction_favors.gd > test_pulling_strings_banks_the_loan_cancel_when_no_rival_qualifies PASSED 15ms
+
+  res://tests/unit/test_faction_favors.gd > test_monetary_help_pays_the_die_and_adds_one_against_debt STARTED
+  res://tests/unit/test_faction_favors.gd > test_monetary_help_pays_the_die_and_adds_one_against_debt PASSED 17ms
+
+  res://tests/unit/test_faction_favors.gd > test_monetary_help_cannot_overpay_a_small_debt STARTED
+  res://tests/unit/test_faction_favors.gd > test_monetary_help_cannot_overpay_a_small_debt PASSED 15ms
+
+  res://tests/unit/test_faction_favors.gd > test_contact_network_banks_an_entitlement_not_a_second_generator STARTED
+  res://tests/unit/test_faction_favors.gd > test_contact_network_banks_an_entitlement_not_a_second_generator PASSED 16ms
+
+  res://tests/unit/test_faction_favors.gd > test_provide_cover_suppresses_the_p85_rival_check STARTED
+  res://tests/unit/test_faction_favors.gd > test_provide_cover_suppresses_the_p85_rival_check PASSED 16ms
+
+  res://tests/unit/test_faction_favors.gd > test_access_to_information_scales_with_influence STARTED
+  res://tests/unit/test_faction_favors.gd > test_access_to_information_scales_with_influence PASSED 17ms
+
+  res://tests/unit/test_faction_favors.gd > test_arrange_a_meeting_spawns_a_character STARTED
+  res://tests/unit/test_faction_favors.gd > test_arrange_a_meeting_spawns_a_character PASSED 15ms
+
+  res://tests/unit/test_faction_favors.gd > test_an_unknown_favor_id_does_nothing STARTED
+  res://tests/unit/test_faction_favors.gd > test_an_unknown_favor_id_does_nothing PASSED 16ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 274ms
+
+
+Run Test Suite: res://tests/unit/test_faction_generation.gd
+  res://tests/unit/test_faction_generation.gd > test_generation_is_gated_on_expanded_factions STARTED
+  res://tests/unit/test_faction_generation.gd > test_generation_is_gated_on_expanded_factions PASSED 12ms
+
+  res://tests/unit/test_faction_generation.gd > test_the_type_table_matches_the_book STARTED
+  res://tests/unit/test_faction_generation.gd > test_the_type_table_matches_the_book PASSED 15ms
+
+  res://tests/unit/test_faction_generation.gd > test_the_d100_wheel_convention_is_honoured STARTED
+  res://tests/unit/test_faction_generation.gd > test_the_d100_wheel_convention_is_honoured PASSED 17ms
+
+  res://tests/unit/test_faction_generation.gd > test_the_type_table_covers_every_roll_exactly_once STARTED
+  res://tests/unit/test_faction_generation.gd > test_the_type_table_covers_every_roll_exactly_once PASSED 15ms
+
+  res://tests/unit/test_faction_generation.gd > test_generation_produces_one_d3_plus_one_factions STARTED
+  res://tests/unit/test_faction_generation.gd > test_generation_produces_one_d3_plus_one_factions PASSED 24ms
+
+  res://tests/unit/test_faction_generation.gd > test_influence_and_power_are_one_d3_plus_one_plus_modifier STARTED
+  res://tests/unit/test_faction_generation.gd > test_influence_and_power_are_one_d3_plus_one_plus_modifier PASSED 22ms
+
+  res://tests/unit/test_faction_generation.gd > test_new_factions_start_at_zero_loyalty STARTED
+  res://tests/unit/test_faction_generation.gd > test_new_factions_start_at_zero_loyalty PASSED 6ms
+
+  res://tests/unit/test_faction_generation.gd > test_colliding_names_do_not_swallow_a_faction STARTED
+  res://tests/unit/test_faction_generation.gd > test_colliding_names_do_not_swallow_a_faction PASSED 25ms
+
+  res://tests/unit/test_faction_generation.gd > test_generation_skips_a_world_that_already_has_factions STARTED
+  res://tests/unit/test_faction_generation.gd > test_generation_skips_a_world_that_already_has_factions PASSED 6ms
+
+  res://tests/unit/test_faction_generation.gd > test_home_world_grants_exactly_one_point_of_loyalty STARTED
+  res://tests/unit/test_faction_generation.gd > test_home_world_grants_exactly_one_point_of_loyalty PASSED 15ms
+
+  res://tests/unit/test_faction_generation.gd > test_a_travelled_to_world_grants_no_loyalty STARTED
+  res://tests/unit/test_faction_generation.gd > test_a_travelled_to_world_grants_no_loyalty PASSED 15ms
+
+  res://tests/unit/test_faction_generation.gd > test_only_one_faction_job_check_is_made_per_turn STARTED
+  res://tests/unit/test_faction_generation.gd > test_only_one_faction_job_check_is_made_per_turn PASSED 19ms
+
+  res://tests/unit/test_faction_generation.gd > test_no_factions_are_created_outside_the_book_rule STARTED
+  res://tests/unit/test_faction_generation.gd > test_no_factions_are_created_outside_the_book_rule PASSED 12ms
+
+Statistics: 13 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 224ms
+
+
+Run Test Suite: res://tests/unit/test_faction_loyalty_and_events.gd
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_whole_subsystem_is_gated_on_expanded_factions STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_whole_subsystem_is_gated_on_expanded_factions PASSED 25ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_mission_dict_carries_the_faction_id STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_mission_dict_carries_the_faction_id PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_faction_job_id_is_set_only_for_a_direct_faction_job STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_faction_job_id_is_set_only_for_a_direct_faction_job PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_normalizer_carries_the_affiliation_flag STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_normalizer_carries_the_affiliation_flag PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_affiliation_roll_is_wired_and_remembered STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_affiliation_roll_is_wired_and_remembered PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_loyalty_rises_on_a_direct_job_and_the_roll_matches_the_book STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_loyalty_rises_on_a_direct_job_and_the_roll_matches_the_book PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_an_affiliated_job_only_gains_on_a_six STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_an_affiliated_job_only_gains_on_a_six PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_mandatory_struggle_has_no_power_requirement STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_mandatory_struggle_has_no_power_requirement PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_office_party_pays_credits_equal_to_loyalty STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_office_party_pays_credits_equal_to_loyalty PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_two_mission_activities_do_not_call_a_method_that_does_not_exist STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_two_mission_activities_do_not_call_a_method_that_does_not_exist PASSED 31ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_day_to_day_operations_promises_a_job_next_turn STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_day_to_day_operations_promises_a_job_next_turn PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_promised_job_is_not_cleared_by_the_activity_reset STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_promised_job_is_not_cleared_by_the_activity_reset PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_stat_can_actually_reach_zero STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_stat_can_actually_reach_zero PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_healthy_faction_is_not_destroyed STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_healthy_faction_is_not_destroyed PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_survivors_scramble_for_influence_when_a_faction_dies STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_survivors_scramble_for_influence_when_a_faction_dies PASSED 31ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_every_event_row_the_book_prints_has_a_handler STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_every_event_row_the_book_prints_has_a_handler PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_truce_stops_the_whole_activity_step STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_truce_stops_the_whole_activity_step PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_tensions_rising_adds_one_danger_pay_and_is_spent_once STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_tensions_rising_adds_one_danger_pay_and_is_spent_once PASSED 31ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_favour_event_needs_three_loyalty STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_favour_event_needs_three_loyalty PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_strife_cross_reference_is_wired STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_strife_cross_reference_is_wired PASSED 33ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_crackdown_stops_every_activity_not_just_one_faction STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_a_crackdown_stops_every_activity_not_just_one_faction PASSED 32ms
+
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_invasion_response_is_wired STARTED
+  res://tests/unit/test_faction_loyalty_and_events.gd > test_the_invasion_response_is_wired PASSED 33ms
+
+Statistics: 22 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 742ms
+
+
+Run Test Suite: res://tests/unit/test_fake_id_forge_license.gd
+  res://tests/unit/test_fake_id_forge_license.gd > test_no_fake_id_means_no_bonus STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_no_fake_id_means_no_bonus PASSED 16ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_in_stash_adds_one STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_in_stash_adds_one PASSED 16ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_is_matched_by_name_not_only_by_id STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_is_matched_by_name_not_only_by_id PASSED 15ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_the_bonus_turns_a_five_into_a_pass STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_the_bonus_turns_a_five_into_a_pass PASSED 16ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_does_not_protect_against_a_natural_one STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_fake_id_does_not_protect_against_a_natural_one PASSED 16ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_only_one_attempt_is_permitted_per_world STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_only_one_attempt_is_permitted_per_world PASSED 17ms
+
+  res://tests/unit/test_fake_id_forge_license.gd > test_a_successful_forgery_grants_the_licence STARTED
+  res://tests/unit/test_fake_id_forge_license.gd > test_a_successful_forgery_grants_the_licence PASSED 15ms
+
+Statistics: 7 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 124ms
+
+
+Overall Summary: 467 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans |
+Executed test suites: (35/35)
+Executed test cases : (467/467)
+Total execution time: 14s 450ms
+ Open XML Report at: file://C:/Users/admin/SynologyDrive/Godot/five-parsecs-campaign-manager/reports/report_2505/results.xml
+Open HTML Report at: file://C:/Users/admin/SynologyDrive/Godot/five-parsecs-campaign-manager/reports/report_2505/index.html
+Exit code: 0
+Finallize .. done
+ERROR: No GDExtension library found for current OS and architecture (windows.x86_64) in configuration file: res://addons/GodotApplePlugins/godot_apple_plugins.gdextension
+   at: parse_gdextension_file (core/extension/gdextension_library_loader.cpp:364)
+ERROR: GDExtension dynamic library not found: 'res://addons/GodotApplePlugins/godot_apple_plugins.gdextension'.
+   at: open_library (core/extension/gdextension.cpp:740)
+ERROR: Error loading extension: 'res://addons/GodotApplePlugins/godot_apple_plugins.gdextension'.
+   at: load_extensions (core/extension/gdextension_manager.cpp:329)
+Setting breakpad minidump AppID = 480
+SteamInternal_SetMinidumpSteamID:  Caching Steam ID:  76561198010116129 [API loaded no]
+ERROR: Error calling deferred method: 'MarginContainer(CrewTaskComponent.gd)::_shrink_dialog_to_content': Cannot convert argument 1 from Object to Object.
+   at: _call_function (core/object/message_queue.cpp:222)
+ERROR: Error calling deferred method: 'MarginContainer(CrewTaskComponent.gd)::_shrink_dialog_to_content': Cannot convert argument 1 from Object to Object.
+   at: _call_function (core/object/message_queue.cpp:222)
+WARNING: DiceManager: forced result 55 for 'rival attack type' is outside 1-10 — discarded
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _take_forced (res://src/core/managers/DiceManager.gd:119)
+       [1] roll_d10 (res://src/core/managers/DiceManager.gd:138)
+       [2] test_a_value_outside_the_die_is_discarded_not_clamped (res://tests/unit/test_dice_forced_results.gd:77)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseAfterStage.gd:22)
+       [18] gc (res://addons/gdUnit4/src/core/execution/GdUnitExecutionContext.gd:258)
+       [19] gc (res://addons/gdUnit4/src/core/execution/GdUnitMemoryObserver.gd:129)
+WARNING: GameState: healed 4 duplicate stash item(s) on load
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1143)
+       [1] test_legacy_split_format_copies_do_not_double_the_stash (res://tests/unit/test_equipment_persistence.gd:410)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Military Rifle'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_legacy_split_format_copies_do_not_double_the_stash (res://tests/unit/test_equipment_persistence.gd:410)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Rattle Gun'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_legacy_split_format_copies_do_not_double_the_stash (res://tests/unit/test_equipment_persistence.gd:410)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Infantry Laser'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_legacy_split_format_copies_do_not_double_the_stash (res://tests/unit/test_equipment_persistence.gd:410)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Shotgun'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_legacy_split_format_copies_do_not_double_the_stash (res://tests/unit/test_equipment_persistence.gd:410)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Handgun'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_two_genuinely_identical_items_in_the_stash_are_both_kept (res://tests/unit/test_equipment_persistence.gd:449)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState: auto-generated id for id-less item 'Handgun'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _restore_equipment_from_campaign (res://src/core/state/GameState.gd:1175)
+       [1] test_two_genuinely_identical_items_in_the_stash_are_both_kept (res://tests/unit/test_equipment_persistence.gd:449)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState.verify_consistency: SUPPLIES DESYNC: GameStateManager=5, campaign=0
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] verify_consistency (res://src/core/state/GameState.gd:949)
+       [1] _with_temp_campaign (res://tests/unit/test_equipment_stash_collapse.gd:141)
+       [2] test_check5_flags_a_stash_that_regained_category_keys (res://tests/unit/test_equipment_stash_collapse.gd:157)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState.verify_consistency: SPLIT STASH: equipment_data carries 'gear' alongside 'equipment'. get_all_equipment() unions them, so every item in it is counted twice. Something wrote a display split back onto the campaign.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] verify_consistency (res://src/core/state/GameState.gd:949)
+       [1] _with_temp_campaign (res://tests/unit/test_equipment_stash_collapse.gd:141)
+       [2] test_check5_flags_a_stash_that_regained_category_keys (res://tests/unit/test_equipment_stash_collapse.gd:157)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: GameState.verify_consistency: SUPPLIES DESYNC: GameStateManager=5, campaign=0
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] verify_consistency (res://src/core/state/GameState.gd:949)
+       [1] _with_temp_campaign (res://tests/unit/test_equipment_stash_collapse.gd:141)
+       [2] test_check5_is_quiet_on_a_canonical_stash (res://tests/unit/test_equipment_stash_collapse.gd:169)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+ERROR: EquipmentTransferService: character char_nonexistent not found, rolled back
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] transfer_to_character (res://src/core/equipment/EquipmentTransferService.gd:56)
+       [1] test_transfer_to_missing_character_rolls_back (res://tests/unit/test_equipment_transfer_service.gd:74)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+ERROR: EquipmentTransferService: item no_such_id not in ship stash
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] transfer_to_character (res://src/core/equipment/EquipmentTransferService.gd:51)
+       [1] test_transfer_unknown_item_id_fails_cleanly (res://tests/unit/test_equipment_transfer_service.gd:88)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+ERROR: EquipmentTransferService: target ghost not found, rolled back
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] transfer_between_characters (res://src/core/equipment/EquipmentTransferService.gd:82)
+       [1] test_transfer_between_characters_rolls_back_on_missing_target (res://tests/unit/test_equipment_transfer_service.gd:129)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 4 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)

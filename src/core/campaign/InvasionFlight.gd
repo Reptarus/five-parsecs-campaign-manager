@@ -127,13 +127,16 @@ static func sell_gear_for_fuel(
 	if campaign == null or credits_needed <= 0:
 		return out
 
+	# Both figures come from the two helpers above rather than being spelled out
+	# here, so the p.69 rate is stated ONCE. They used to restate the arithmetic
+	# inline while the named helpers sat unreferenced — one rule, two expressions.
 	var stash: Array = _stash(campaign)
 	var affordable_pairs: int = mini(
-		credits_needed, stash.size() / ITEMS_PER_SALE_CREDIT)
+		credits_needed, sale_credits_for_items(stash.size()))
 	if affordable_pairs <= 0:
 		return out
 
-	var to_sell: int = affordable_pairs * ITEMS_PER_SALE_CREDIT
+	var to_sell: int = items_needed_for_credits(affordable_pairs)
 	for _i in range(to_sell):
 		if stash.is_empty():
 			break

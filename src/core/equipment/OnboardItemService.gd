@@ -133,10 +133,6 @@ static func has_item(campaign: Variant, item_id: String) -> bool:
 	return not indices_in_stash(campaign, item_id).is_empty()
 
 
-static func count_in_stash(campaign: Variant, item_id: String) -> int:
-	return indices_in_stash(campaign, item_id).size()
-
-
 ## Remove one copy from the Stash. Used for the "Single-use." items and for the
 ## two that "can be lost" (Loaded/Lucky Dice on a 6, Spare Parts on a natural 1).
 ## Returns true if a copy was actually removed.
@@ -389,6 +385,18 @@ static func usable_items(campaign: Variant) -> Array[Dictionary]:
 	return out
 
 
+## Is the Nano-doc armed and waiting for the next injury roll?
+##
+## ⚠ KEPT DELIBERATELY, AND IT WAS BRIEFLY DELETED IN ERROR ON 2026-09-10. It has
+## no product caller — InjuryProcessor calls consume_armed_nano_doc(), which
+## reports whether it fired — so a caller census reads it as dead. Two things say
+## otherwise: its exact twin `is_genetic_kit_armed()` IS live
+## (CharacterAdvancementService:324 gates the XP discount on it), so removing this
+## one leaves two identical persisted flags with two different shapes of API; and
+## it is the only way to observe the ARM half of the rule WITHOUT consuming it,
+## which is what test_onboard_items.gd asserts. Deleting it would have forced that
+## suite to reach past the service into `progress_data[ARMED_INJURY_KEY]` — a test
+## coupled to a storage key instead of to the rule.
 static func is_nano_doc_armed(campaign: Variant) -> bool:
 	return bool(_progress(campaign).get(ARMED_INJURY_KEY, false))
 

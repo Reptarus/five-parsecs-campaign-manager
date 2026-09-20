@@ -565,7 +565,7 @@ _on_theme_selected(theme_variant: int)
 | 1 | SpecialAssignmentsPanel | Create special assignment squad |
 | 2 | CrewSelectionPanel | Select/create crew for mission |
 | 3 | EquipmentPanel | Assign equipment to squad |
-| 4 | FinalReviewPanel | Review & finalize Bug Hunt campaign |
+| 4 | BugHuntReviewPanel | Review & finalize Bug Hunt campaign (was listed as `FinalReviewPanel`; no such class) |
 
 ### 8.2 Bug Hunt Turn Structure (3 Phases)
 
@@ -739,7 +739,7 @@ main_menu (MainMenu.gd)
   │    ├─→ Phase 1: SpecialAssignmentsPanel
   │    ├─→ Phase 2: CrewSelectionPanel
   │    ├─→ Phase 3: EquipmentPanel
-  │    └─→ Phase 4: FinalReviewPanel
+  │    └─→ Phase 4: BugHuntReviewPanel
   │         └─→ bug_hunt_turn_controller [3-phase turn loop]
   │              ├─→ Phase 1: SPECIAL_ASSIGNMENTS
   │              ├─→ Phase 2: BATTLE (TacticalBattleUI in bug_hunt mode)

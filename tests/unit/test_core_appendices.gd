@@ -190,29 +190,16 @@ func test_only_a_risky_test_adds_the_damage_hit() -> void:
 	assert_bool(bool(risky.get("damage_hit", false))).is_true()
 
 
-func test_the_neutral_help_roll_is_a_wits_test_at_five() -> void:
-	# Appendix VIII p.172 resolves through Appendix IV: "a 1D6+Savvy roll of 5+".
-	var result: Dictionary = ProblemSolving.request_neutral_help(1, 0, func(): return 4)
-	assert_int(int(result.get("target", 0))).is_equal(5)
-	assert_bool(bool(result.get("passed", false))).is_true()
-	assert_bool(bool(result.get("wants_to_join", true))).is_false()
-
-
-func test_a_natural_six_makes_the_neutral_ask_to_join() -> void:
-	# p.172: "A natural 6 means the NC is so enamored with adventuring life that
-	# they will request to join your crew permanently as a PC."
-	var result: Dictionary = ProblemSolving.request_neutral_help(0, 0, func(): return 6)
-	assert_bool(bool(result.get("wants_to_join", false))).override_failure_message(
-		"the natural-6 recruitment clause did not fire"
-	).is_true()
-
-
-func test_the_gm_modifier_is_capped_at_one_either_way() -> void:
-	# p.172: "The GM can apply a +/-1 modifier based on circumstances."
-	var result: Dictionary = ProblemSolving.request_neutral_help(0, 5, func(): return 3)
-	assert_int(int(result.get("modifier", 0))).override_failure_message(
-		"the help roll accepted a modifier larger than the book's +/-1"
-	).is_equal(1)
+## ⚠ THREE p.172 NEUTRAL-HELP CASES WERE REMOVED FROM HERE ON 2026-09-10.
+## They drove `ProblemSolvingTests.request_neutral_help()`, which had no caller
+## anywhere and was removed in the same pass. The rule is not executed by this
+## app and does not need to be: a Neutral Character interaction is the player's
+## own 1D6+Savvy roll, and what the app owes is the text. It is delivered
+## verbatim from data/RulesReference/NeutralCharacters.json through
+## CheatSheetSections.neutral_characters(), and that delivery is now asserted by
+## test_cheat_sheet_from_data.gd::test_the_neutral_section_carries_the_p172_help_roll.
+## The generic Wits test the resolver wrapped is still live and still offered by
+## the battle panel — which the case below pins.
 
 
 func test_the_battle_panel_offers_the_test_roll() -> void:

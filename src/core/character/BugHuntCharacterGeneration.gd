@@ -61,12 +61,20 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 		return {}
 
 	var base: Dictionary = _creation_data.get("base_stats", {})
+	# int() on every read. Godot's JSON parser returns EVERY number as a float, so
+	# base_stats hands back 3.0 for Toughness; the float then travels through
+	# to_dictionary() into the save, and any surface that prints it with str()
+	# renders "3.0". That is the T11-33/T11-34 defect found on a real device walk
+	# (DisplayText.gd:12-17). Bug Hunt stats are whole numbers in the book
+	# (Compendium p.171) and int literals in the shipped JSON, so the coercion is
+	# faithful -- and it belongs HERE, not in each renderer, because a renderer-side
+	# fix still leaves "toughness": 3.0 on disk.
 	var stats := {
-		"reactions": base.get("reactions", 1),
-		"speed": base.get("speed", 4),
-		"combat_skill": base.get("combat_skill", 0),
-		"toughness": base.get("toughness", 3),
-		"savvy": base.get("savvy", 0),
+		"reactions": int(base.get("reactions", 1)),
+		"speed": int(base.get("speed", 4)),
+		"combat_skill": int(base.get("combat_skill", 0)),
+		"toughness": int(base.get("toughness", 3)),
+		"savvy": int(base.get("savvy", 0)),
 		"luck": 0  # Bug Hunt does not use Luck
 	}
 
@@ -77,7 +85,7 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 	var commendation_rep: int = 0
 
 	# Roll Origin (D100)
-	var origin_roll := _roll_d100()
+	var origin_roll := _roll_d100("Bug Hunt Origin")
 	var origin: Dictionary = _find_in_table(_creation_data.get("origin_table", []), origin_roll)
 	if not origin.is_empty():
 		_apply_stat_bonuses(stats, origin.get("stat_bonuses", {}))
@@ -87,7 +95,7 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 		reputation_bonus += adv.get("reputation", 0)
 
 	# Roll Basic Training (D100)
-	var training_roll := _roll_d100()
+	var training_roll := _roll_d100("Bug Hunt Basic Training")
 	var training: Dictionary = _find_in_table(_creation_data.get("basic_training_table", []), training_roll)
 	if not training.is_empty():
 		_apply_stat_bonuses(stats, training.get("stat_bonuses", {}))
@@ -97,7 +105,7 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 		reputation_bonus += adv.get("reputation", 0)
 
 	# Roll Service History (D100)
-	var service_roll := _roll_d100()
+	var service_roll := _roll_d100("Bug Hunt Service History")
 	var service: Dictionary = _find_in_table(_creation_data.get("service_history_table", []), service_roll)
 	if not service.is_empty():
 		_apply_stat_bonuses(stats, service.get("stat_bonuses", {}))
@@ -184,11 +192,13 @@ func generate_grunt(grunt_name: String = "") -> Dictionary:
 		"character_name": grunt_name,
 		"game_mode": "bug_hunt",
 		"is_grunt": true,
-		"reactions": grunt_stats.get("reactions", 1),
-		"speed": grunt_stats.get("speed", 4),
-		"combat_skill": grunt_stats.get("combat_skill", 0),
-		"toughness": grunt_stats.get("toughness", 4),
-		"savvy": grunt_stats.get("savvy", 0),
+		# int() for the same reason as generate_main_character: JSON numbers are
+		# floats, and a grunt is serialized into the same save.
+		"reactions": int(grunt_stats.get("reactions", 1)),
+		"speed": int(grunt_stats.get("speed", 4)),
+		"combat_skill": int(grunt_stats.get("combat_skill", 0)),
+		"toughness": int(grunt_stats.get("toughness", 4)),
+		"savvy": int(grunt_stats.get("savvy", 0)),
 		"luck": 0,
 		"equipment": ["combat_rifle", "trooper_armor"],
 		"status": "active"
@@ -213,19 +223,28 @@ func generate_regiment_name() -> Dictionary:
 	if _regiment_data.is_empty():
 		return {"full_name": "Unknown Regiment", "part_1": "", "part_2": "", "uniform_color": ""}
 
-	var color_entry := _find_in_table(_regiment_data.get("uniform_color", []), _roll_d100())
+	var color_entry := _find_in_table(_regiment_data.get("uniform_color", []),
+		_roll_d100("Bug Hunt Regiment: uniform colour"))
 	var color_name: String = color_entry.get("name", "Grey")
 
-	var part1_entry := _find_in_table(_regiment_data.get("title_part_1", []), _roll_d100())
+	var part1_entry := _find_in_table(_regiment_data.get("title_part_1", []),
+		_roll_d100("Bug Hunt Regiment: title part 1"))
 	var part1: String = part1_entry.get("name", "Star")
 
 	# Handle special substitutions
 	if part1 == "[color]":
 		part1 = color_name
 	elif part1 == "[number]":
-		part1 = str(randi() % 6 + 1)  # D6 for the number
-		# Re-roll part1 to get the descriptive word
-		var reroll_entry := _find_in_table(_regiment_data.get("title_part_1", []), _roll_d100())
+		part1 = str(_roll_d6("Bug Hunt Regiment: number"))  # D6 for the number
+		# Re-roll part1 to get the descriptive word.
+		#
+		# ⚠ NOT "... title part 1 reroll". DiceManager._take_forced matches a queued
+		# key as a case-insensitive SUBSTRING of the context (DiceManager.gd:104-122),
+		# so that spelling would have "Bug Hunt Regiment: title part 1" as a prefix and
+		# a second value queued under the part-1 key would be eaten here instead.
+		# Keep every roll context prefix-free of every other one.
+		var reroll_entry := _find_in_table(_regiment_data.get("title_part_1", []),
+			_roll_d100("Bug Hunt Regiment: title reroll"))
 		var reroll_name: String = reroll_entry.get("name", "Star")
 		if reroll_name == "[color]":
 			reroll_name = color_name
@@ -233,7 +252,8 @@ func generate_regiment_name() -> Dictionary:
 			reroll_name = "Star"  # Fallback to avoid infinite recursion
 		part1 = part1 + _ordinal_suffix(int(part1)) + " " + reroll_name
 
-	var part2_entry := _find_in_table(_regiment_data.get("title_part_2", []), _roll_d100())
+	var part2_entry := _find_in_table(_regiment_data.get("title_part_2", []),
+		_roll_d100("Bug Hunt Regiment: title part 2"))
 	var part2: String = part2_entry.get("name", "Wolves")
 
 	var full_name: String
@@ -266,8 +286,11 @@ func _generate_random_name() -> String:
 	return first + " " + last
 
 
-func _roll_d100() -> int:
-	return (randi() % 100) + 1
+func _roll_d100(context: String = "Bug Hunt D100") -> int:
+	var dm: Node = _dice_manager()
+	if dm:
+		return int(dm.roll_d100(context))
+	return randi_range(1, 100)
 
 
 func _find_in_table(table: Array, roll: int) -> Dictionary:
@@ -280,9 +303,12 @@ func _find_in_table(table: Array, roll: int) -> Dictionary:
 
 
 func _apply_stat_bonuses(stats: Dictionary, bonuses: Dictionary) -> void:
+	## Both operands are coerced: the bonus comes from JSON (so it is a float), and
+	## += would re-float a stat the caller had already coerced. See the note in
+	## generate_main_character for why this is fixed at the source.
 	for stat_name in bonuses:
 		if stats.has(stat_name):
-			stats[stat_name] += bonuses[stat_name]
+			stats[stat_name] = int(stats[stat_name]) + int(bonuses[stat_name])
 
 
 func _check_commendation() -> Dictionary:
@@ -290,7 +316,7 @@ func _check_commendation() -> Dictionary:
 	var xp_bonus: int = 0
 	var rep_bonus: int = 0
 	for i in range(2):
-		var die := (randi() % 6) + 1
+		var die := _roll_d6("Bug Hunt Commendation: die %d" % (i + 1))
 		if die == 6:
 			xp_bonus += 1
 			rep_bonus += 1
@@ -370,3 +396,28 @@ func resolve_equipment(equipment_ids: Array) -> Array:
 			continue
 		resolved.append({"id": eq_id, "name": eq_id, "type": "unknown"})
 	return resolved
+
+
+## ── Dice routing ────────────────────────────────────────────────────────────
+## Book table rolls go through the DiceManager autoload so they are recorded in
+## the roll history and can be forced from the QA dialog in a debug build.
+##
+## This is RefCounted, so it reaches the autoload through
+## Engine.get_main_loop().root — a bare get_node_or_null() from a .new() object
+## does not return null, it ERRORS and aborts the enclosing function.
+##
+## Map PLACEMENT (contact sectors, spawn edges, signal positions) is deliberately
+## left on raw randi(): 5PFH's BattlefieldGenerator.gd has zero DiceManager
+## references and seeds a local RNG for placement. Routing it would flood the
+## forced-roll queue with entries a tester never asked to control.
+func _dice_manager() -> Node:
+	if Engine.get_main_loop() == null:
+		return null
+	return Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+
+
+func _roll_d6(context: String) -> int:
+	var dm: Node = _dice_manager()
+	if dm:
+		return int(dm.roll_d6(context))
+	return randi_range(1, 6)

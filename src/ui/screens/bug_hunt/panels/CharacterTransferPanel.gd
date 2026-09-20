@@ -28,6 +28,13 @@ var _source_characters: Array = []
 var _direction: String = "enlist"
 var _selected_character: Dictionary = {}
 
+## Where _source_characters were read from, so the enlist emit can tell the dashboard
+## which save to drop the veteran FROM. The panel is the only thing that knows: the
+## in-panel save picker (_build_save_picker) can load a DIFFERENT save than the one the
+## dashboard computed, so the caller cannot assume its own suggestion was used.
+## Empty when the source was an in-memory array, which has no file to remove from.
+var _source_save_path: String = ""
+
 var _content: VBoxContainer
 var _step_container: VBoxContainer
 
@@ -52,6 +59,10 @@ func set_direction(dir: String) -> void:
 
 func load_characters_from_save(save_path: String) -> void:
 	_source_characters.clear()
+	# Cleared alongside the characters, and re-set only after a successful parse, so the
+	# remembered path and the list on screen always come from the SAME read. A stale path
+	# surviving a failed load would aim the source-side removal at a save nobody picked from.
+	_source_save_path = ""
 	if not FileAccess.file_exists(save_path):
 		return
 	var file := FileAccess.open(save_path, FileAccess.READ)
@@ -69,11 +80,15 @@ func load_characters_from_save(save_path: String) -> void:
 		_source_characters = data.crew.get("members", [])
 	elif data.has("crew_members"):
 		_source_characters = data.crew_members
+	_source_save_path = save_path
 	_show_step_1()
 
 
 func load_characters_from_array(characters: Array) -> void:
 	_source_characters = characters
+	# An in-memory source has no file behind it. Muster-out (:317) is the caller, and its
+	# source-side removal is BugHuntCampaignCore.remove_main_character(), not a file edit.
+	_source_save_path = ""
 	_show_step_1()
 
 
@@ -352,7 +367,28 @@ func _show_enlistment_result(result: Dictionary) -> void:
 		done_btn.text = "Welcome Aboard!"
 		done_btn.custom_minimum_size = Vector2(0, 48)
 		done_btn.pressed.connect(func():
-			character_transferred.emit(result.transferred_character, "enlist")
+			# Stamp where this veteran CAME FROM so the dashboard can drop them from the
+			# source campaign instead of leaving a duplicate in both. Mirrors the Planetfall
+			# import precedent (PlanetfallDashboard._apply_import, :64-87), which pulls the
+			# same two keys off and erases them before the character lands in the roster.
+			#
+			# ⚠ The id comes from _selected_character, the row as it exists in the SOURCE
+			# save — not from result.transferred_character, whose conversion may rewrite
+			# fields. remove_character_from_save matches on the source file's own value, so
+			# a post-conversion id would silently match nothing and the removal would no-op:
+			# the destination gains the veteran, the source keeps them, and the duplicate
+			# can be enlisted again. The character_id-then-id precedence is that function's
+			# own (CharacterTransferService.gd:656-657), copied so the two cannot disagree.
+			#
+			# ⚠ Stamped on the ENLIST emit only. Muster-out (:420) already routes through
+			# CharacterTransferService.muster_out, which writes the transfer file itself.
+			var enlisted: Dictionary = result.transferred_character
+			var source_id: String = str(_selected_character.get("character_id",
+				_selected_character.get("id", "")))
+			if not _source_save_path.is_empty() and not source_id.is_empty():
+				enlisted["_source_path"] = _source_save_path
+				enlisted["_source_character_id"] = source_id
+			character_transferred.emit(enlisted, "enlist")
 		)
 		_step_container.add_child(done_btn)
 	else:

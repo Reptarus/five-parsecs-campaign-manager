@@ -7,7 +7,6 @@ class_name CrewTaskComponent
 
 const RulesHelpText = preload("res://src/data/rules_help_text.gd")
 const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
-const GrenadeCombinationPopupScript = preload("res://src/ui/components/dialogs/GrenadeCombinationPopup.gd")
 const CrewTaskEventDialogScript = preload("res://src/ui/components/dialogs/CrewTaskEventDialog.gd")
 ## p.78 Train: "resolve that immediately" — the picker that makes it immediate.
 const CharacterUpgradeDialogScript = preload(
@@ -73,8 +72,6 @@ var completed_tasks: Array = []
 var all_tasks_resolved: bool = false
 
 # Choice popup state — tracks pending item choices from task results
-var _pending_choice_results: Array = [] # Queue of {result, item_string, options}
-var _choice_popup: Window = null
 var _auto_resolve_mode: bool = false
 
 # Event queue — interactive dialog for each crew task result
@@ -2543,19 +2540,22 @@ func _update_progress_display() -> void:
 		separator.modulate = Color(0.3, 0.3, 0.3)
 		progress_container.add_child(separator)
 
-## Choice Popup Flow — handles item choices from Trade/Explore task results
-
+## Item-string predicates for the Trade/Explore reward strings.
+##
+## These are the ONLY definition of each test. _classify_result() used to
+## re-inline both as literals, which is exactly why they fell out of use and sat
+## dead for five months alongside the popup queue they were written for; it now
+## calls them. One test, one site.
+##
+## _needs_player_input() was removed 2026-09-10 with that queue — it had zero
+## callers and was the only caller of these two.
 func _is_choice_item(item_string: String) -> bool:
-	## Check if an item string contains OR-separated choices
+	## "A OR B" means the player picks one.
 	return " OR " in item_string
 
 func _is_grenade_combination(item_string: String) -> bool:
-	## Check if an item is the grenade combination special case
+	## The Frakk/Dazzle split is a quantity picker, not an either/or choice.
 	return "Grenades" in item_string and ("Frakk" in item_string or "Dazzle" in item_string)
-
-func _needs_player_input(item_string: String) -> bool:
-	## Check if an item requires any form of player input (choice or grenade picker)
-	return _is_choice_item(item_string) or _is_grenade_combination(item_string)
 
 func _parse_choice_options(item_string: String) -> Array:
 	## Split "A OR B OR C" into ["A", "B", "C"]
@@ -2563,91 +2563,6 @@ func _parse_choice_options(item_string: String) -> Array:
 	for part in item_string.split(" OR "):
 		parts.append(part.strip_edges())
 	return parts
-
-func _show_next_choice_popup() -> void:
-	## Show the next pending choice popup, or finalize if none remain
-	if _pending_choice_results.is_empty():
-		_finalize_task_resolution()
-		return
-
-	var choice_data: Dictionary = _pending_choice_results[0]
-	var choice_type: String = choice_data.get("type", "item_choice")
-
-	# Auto-resolve mode: pick defaults without showing popup
-	if _auto_resolve_mode:
-		if choice_type == "grenade_combo":
-			_on_grenades_chosen(3, 0, choice_data)
-		else:
-			var opts: Array = choice_data.get("options", [])
-			var first: String = opts[0] if opts.size() > 0 else ""
-			if not first.is_empty():
-				_on_choice_made(first, choice_data)
-			else:
-				_pending_choice_results.erase(choice_data)
-				_show_next_choice_popup()
-		return
-
-	if choice_type == "grenade_combo":
-		var popup: Window = GrenadeCombinationPopupScript.new()
-		popup.grenades_chosen.connect(
-			_on_grenades_chosen.bind(choice_data)
-		)
-		add_child(popup)
-		_choice_popup = popup
-		popup.show_grenade_picker()
-	else:
-		var popup: Window = ItemChoicePopupScript.new()
-		popup.item_chosen.connect(_on_choice_made.bind(choice_data))
-		add_child(popup)
-		_choice_popup = popup
-		var result_name: String = ""
-		if choice_data.result.has("table_result"):
-			result_name = choice_data.result.table_result.get("name", "")
-		popup.show_choices(
-			result_name, choice_data.get("options", [])
-		)
-
-func _on_choice_made(item_name: String, choice_data: Dictionary) -> void:
-	## Handle player's item choice — add to stash and advance queue
-	_add_item_to_stash(item_name)
-
-	# Replace "A OR B OR C" with chosen item name in the result for display
-	var items: Array = choice_data.result.table_result.get("items", [])
-	var idx: int = items.find(choice_data.item_string)
-	if idx >= 0:
-		items[idx] = item_name
-
-	_pending_choice_results.erase(choice_data)
-	_choice_popup = null
-	_update_progress_display()
-	_show_next_choice_popup()
-
-func _on_grenades_chosen(
-	frakk: int, dazzle: int, choice_data: Dictionary
-) -> void:
-	## Handle grenade combination choice — add grenades to stash
-	for i in range(frakk):
-		_add_item_to_stash("Frakk Grenade")
-	for i in range(dazzle):
-		_add_item_to_stash("Dazzle Grenade")
-
-	# Update display text
-	var items: Array = choice_data.result.table_result.get("items", [])
-	var idx: int = items.find(choice_data.item_string)
-	var summary: String = ""
-	if frakk > 0:
-		summary += "%dx Frakk" % frakk
-	if dazzle > 0:
-		if not summary.is_empty():
-			summary += " + "
-		summary += "%dx Dazzle" % dazzle
-	if idx >= 0:
-		items[idx] = summary
-
-	_pending_choice_results.erase(choice_data)
-	_choice_popup = null
-	_update_progress_display()
-	_show_next_choice_popup()
 
 func _add_consumable_credits(pool_key: String, amount: int) -> void:
 	## Store special-purpose credits in campaign progress_data.
@@ -2663,9 +2578,47 @@ func _add_consumable_credits(pool_key: String, amount: int) -> void:
 	var current: int = int(gs.campaign.progress_data.get(pool_key, 0))
 	gs.campaign.progress_data[pool_key] = current + amount
 
-func _add_item_to_stash(item_name: String) -> void:
+## True when this event descriptor came from a Trade table roll (as opposed to
+## an Explore roll, or any other task). Compendium p.13 gives armor from a
+## Trade roll a free Krag/non-Krag selection and armor from anywhere else
+## none, so the acquisition ROUTE is load-bearing, not merely descriptive.
+##
+## The fact was already here and unread: _resolve_single_task() stamps
+## result["task_id"] (:973), the free p.74/p.84 rolls and the paid p.78/p.73
+## rolls stamp "trade" literally (:1463, :1633), and _build_event_queue() puts
+## the LIVE result into base["result_ref"] (:3171). base.duplicate() is
+## shallow, so every classified event carries that same reference.
+func _is_trade_event(event_data: Dictionary) -> bool:
+	var ref: Variant = event_data.get("result_ref", null)
+	if not (ref is Dictionary):
+		return false
+	return str((ref as Dictionary).get("task_id", "")) == "trade"
+
+
+## Stamp Compendium p.13 provenance on ARMOR only.
+##
+## Deliberately not stamped on every item: the key is meaningful for nothing
+## but armor, and a stash full of grenades each carrying a bool no reader will
+## ever consult would grow every save file for nothing.
+## EquipmentManager.has_unspent_krag_choice() re-tests is_armor_item() anyway,
+## so this narrowing cannot let a real case through.
+func _stamp_trade_provenance(equip_mgr: Node, item_dict: Dictionary) -> void:
+	if not equip_mgr.has_method("is_armor_item"):
+		return
+	if not equip_mgr.is_armor_item(item_dict):
+		return
+	item_dict["acquired_from_trade"] = true
+
+
+func _add_item_to_stash(item_name: String, from_trade: bool = false) -> void:
 	## Add an item to the ship stash via EquipmentManager
 	## Resolves "(random)" items via loot table rolls first
+	##
+	## `from_trade` marks the Compendium p.13 case: armor that came off a Trade
+	## table roll owes the player ONE free Krag-fit selection. It defaults false
+	## so the call sites that cannot produce armor (grenades, the p.28 military
+	## weapon table) are unchanged, and so a new caller must opt in deliberately
+	## rather than inherit a provenance claim it has not checked.
 	var equip_mgr: Node = get_node_or_null("/root/EquipmentManager")
 	if not equip_mgr or not equip_mgr.has_method("add_equipment"):
 		push_warning(
@@ -2693,6 +2646,8 @@ func _add_item_to_stash(item_name: String) -> void:
 			]
 			if is_damaged:
 				item_dict["condition"] = "damaged"
+			if from_trade:
+				_stamp_trade_provenance(equip_mgr, item_dict)
 			equip_mgr.add_equipment(item_dict)
 		return
 
@@ -2704,6 +2659,8 @@ func _add_item_to_stash(item_name: String) -> void:
 		item_dict["id"] = "task_reward_%d_%d" % [
 			Time.get_ticks_msec(), randi() % 10000
 		]
+		if from_trade:
+			_stamp_trade_provenance(equip_mgr, item_dict)
 		if not equip_mgr.add_equipment(item_dict):
 			push_warning(
 				"CrewTaskComponent: Failed to add '%s' to stash"
@@ -3317,12 +3274,12 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 	var items: Array = tr.get("items", [])
 	for item_str in items:
 		var s: String = str(item_str)
-		if "Grenades" in s and ("Frakk" in s or "Dazzle" in s):
+		if _is_grenade_combination(s):
 			var event := base.duplicate()
 			event["type"] = CrewTaskEventDialog.EventType.GRENADE_COMBO
 			events.append(event)
 			return events
-		elif " OR " in s:
+		elif _is_choice_item(s):
 			var event := base.duplicate()
 			event["type"] = CrewTaskEventDialog.EventType.CHOICE_ITEM
 			event["choice_options"] = _parse_choice_options(s)
@@ -3551,8 +3508,9 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 		CrewTaskEventDialog.EventType.ROLL_ON_TABLE:
 			# Resolve loot items and add to stash
 			var items_to_resolve: Array = event_data.get("items_to_resolve", [])
+			var from_trade: bool = _is_trade_event(event_data)
 			for item_str in items_to_resolve:
-				_add_item_to_stash(str(item_str))
+				_add_item_to_stash(str(item_str), from_trade)
 
 		CrewTaskEventDialog.EventType.CONDITIONAL_PURCHASE:
 			if outcome.get("purchased", false):
@@ -3560,12 +3518,12 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 				if gsm:
 					gsm.remove_credits(cost)
 				# Roll on loot table (the dialog signals roll_requested)
-				_add_item_to_stash("Loot (random)")
+				_add_item_to_stash("Loot (random)", _is_trade_event(event_data))
 
 		CrewTaskEventDialog.EventType.CHOICE_ITEM:
 			var item_name: String = str(outcome.get("item_name", ""))
 			if not item_name.is_empty():
-				_add_item_to_stash(item_name)
+				_add_item_to_stash(item_name, _is_trade_event(event_data))
 
 		CrewTaskEventDialog.EventType.GRENADE_COMBO:
 			var frakk: int = outcome.get("frakk", 0)
@@ -3820,11 +3778,11 @@ func _auto_resolve_event(event_data: Dictionary) -> void:
 				gsm.add_story_points(sp)
 		CrewTaskEventDialog.EventType.ROLL_ON_TABLE:
 			for item_str in event_data.get("items_to_resolve", []):
-				_add_item_to_stash(str(item_str))
+				_add_item_to_stash(str(item_str), _is_trade_event(event_data))
 		CrewTaskEventDialog.EventType.CHOICE_ITEM:
 			var opts: Array = event_data.get("choice_options", [])
 			if opts.size() > 0:
-				_add_item_to_stash(str(opts[0]))
+				_add_item_to_stash(str(opts[0]), _is_trade_event(event_data))
 		CrewTaskEventDialog.EventType.GRENADE_COMBO:
 			for i in range(3):
 				_add_item_to_stash("Frakk Grenade")

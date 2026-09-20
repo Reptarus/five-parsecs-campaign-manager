@@ -3,9 +3,28 @@
 *Extracted from `CLAUDE.md` on 2026-08-06. `CLAUDE.md` loads into every session and every subagent;
 partnership terms have no bearing on writing code, so they live here and are linked from there.*
 
-**Last refreshed**: 2026-08-06 (reflecting the Jul 27 2026 call outcome).
+**Last refreshed**: 2026-09-13 (Sep 11-12 emails; build state checked at `3b26b873d`). Previous: 2026-08-06 (Jul 27 call outcome).
 
 ---
+
+## Status: Sep 13 2026
+
+Source: journal Entries #28-#33. Live-thread table: journal §3.0.
+
+- **LOI on letterhead promised for Mon Sep 14** (Entry #32: "Myself and Cam will finalise any notes
+  on the letter and issue it on monday"). They may still edit it, so diff it against the Google Doc.
+- **Meeting the week of Sep 14** proposed by Chris; accepted (Entry #33). No time set yet; Chris to pick.
+- **Cam** "handles the business deals" and holds the LOI (Entry #30). No direct contact yet.
+- **Marketing** "should get a bit easier mid Sept" (Entry #30). No legal or social contact named yet
+  (asked Aug 25, Entry #29).
+- **Play Console / mobile developer access**: asked Jun 18 (Entry #21), never answered.
+- **Tester NDA**: unresolved. Chris (May 8): NDAs for closed tabletop betas, none for open ones. This
+  alpha is invite-only.
+- **Alpha DLC unlock**: no tester path in the build. `_owned_dlcs` starts empty
+  (`src/core/systems/DLCManager.gd:128`), features require ownership (`:181-184`), and the Settings
+  "Manage Features" entry only shows once something is owned (`src/ui/screens/settings/SettingsScreen.gd:589`).
+  Billing stays parked (`docs/QA_STATUS_DASHBOARD.md:939-945`), so an alpha unlock mechanism is needed.
+- Kickoff date: still deferred (Jul 27). Do not propose one.
 
 ## Status: Jul 27 2026 call OUTCOME
 
@@ -30,8 +49,10 @@ partnership terms have no bearing on writing code, so they live here and are lin
 maintenance/support/development fee carve-out to dev BEFORE the split. Phase 1 = prove the thesis
 (this deal); the Phase 2 lock-in conversation arrives later, if Phase 1 succeeds.
 
-> **⚠ Correspondence caveat**: `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` stops at **Jun 4 2026**. For
-> anything after that date, pull Gmail and Google Doc comments — **the repo is NOT the record.**
+> **⚠ Correspondence caveat**: `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` now runs to **Sep 12 2026**
+> (Entries #15-#33 backfilled 2026-09-13). Entry #27 (the Jul 27 call) is RECONSTRUCTED with no
+> minutes and is marked PROVISIONAL. Google Doc comments are not in the repo; for those, and for
+> anything after Sep 12, pull Gmail/Drive.
 
 ## Mutually agreed strategic theses — do NOT re-argue these in any doc
 
@@ -49,8 +70,9 @@ Canonical statement: `MEETING_FOLLOWUPS_2026-04-29.md` §1.5. Research backing:
 
 | Doc | Purpose |
 |---|---|
-| `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` | Chronological log (stops Jun 4 2026) |
+| `MODIPHIUS_CORRESPONDENCE_JOURNAL.md` | Chronological log (runs to Sep 12 2026; live threads in §3.0) |
 | `MEETING_PREP_2026-05-18.md` | LOI talking points |
+| `MEETING_PREP_2026-07-27.md` | Prep for the Jul 27 call (written before it; not minutes) |
 | `BROADENING_SCOPE_SKETCH.md` | 1-pager for Chris |
 | `BOILERPLATE_REVIEW_CHECKLIST.md` | Definitive Agreement defense |
 | `PARTNERSHIP_PAPERWORK_PRIMER.md` | LOI → MOU → Definitive Agreement mental model |
@@ -75,15 +97,18 @@ They are business facts, not code rules.
   post-launch retainer ($3-5K/mo + 50/50, the lowest-friction pitch), Frame C hybrid. Forecast §9.5.
 - **CC Gavin on outbound to Chris** — weekly cadence with Gavin (Modiphius PM), bi-weekly strategic
   with Chris.
-- **Closed alpha cohort = Ivan's Discord** — 10-20 testers, no external recruitment; Ivan sizes the
-  cohort. 6-week window, weekly builds A1-A6, 6 graduation gates (AND, not OR).
+- **Closed alpha cohort** — ⚠ SUPERSEDED: the "Ivan's Discord, 10-20 testers" model was replaced May 25
+  (journal Entry #12) by a Google-Form signup funnel across the official Discord, Ivan's community and
+  the 5PFH Facebook group; each tester's Gmail goes on a Play closed testing track. 6-week window,
+  weekly builds A1-A6, 6 graduation gates (AND, not OR) still stand as the plan.
 - **MVP gate** — pricing, store-page positioning, newsletter timing and EA launch decisions are all
   gated on closed alpha telling us what the minimum viable product really is. See
   `PRICING_RESEARCH_PLAN.md`.
-- **Paperwork progression** — LOI now → MOU during alpha (Jun-Jul) → Definitive Agreement during beta
-  and EA prep (Aug-Sep), signed before Steam EA goes live. **Cannot launch EA without it.**
-- **Steam-first launch** — Phase 1 (EA + 1.0) targets Steam exclusively; mobile is a Phase 2 "pocket
-  edition" port. Platform-cut multiplier is a flat 0.70 (Steam-only 30%).
+- **Paperwork progression** — LOI → MOU → Definitive Agreement, signed before any public launch. ⚠ The
+  original dates (MOU Jun-Jul, DA Aug-Sep) have slipped: the LOI itself is only due on letterhead Sep 14.
+- **Steam-first launch** — ⚠ SUPERSEDED. Direction locked mobile/Android-first on Jun 18 (journal
+  Entry #20) and the LOI language is MOBILE ONLY (Entry #24). The flat 0.70 platform-cut multiplier was
+  Steam-only and has to be re-run for Google Play's fees; no replacement number yet.
 - **Comparison vector** — NOT Gloomhaven (that's a digital replacement; audience-size reference only).
   The right peers are off-Steam companion apps: Mythic GME Digital, Quest Companion, World Anvil, New
   Recruit, BattleScribe, Campaign Console, Frostgrave/Stargrave tools. Forecast §11.1.

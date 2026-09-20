@@ -1,0 +1,1423 @@
+tests/unit/test_battlefield_persistence.gd
+tests/unit/test_battlefield_shape_bounds.gd
+tests/unit/test_battlefield_writeback_guard.gd
+tests/unit/test_black_job_rewards.gd
+tests/unit/test_bug_hunt_enlist_filter.gd
+tests/unit/test_bug_hunt_enlistment_transfer.gd
+tests/unit/test_bug_hunt_mode_predicates.gd
+tests/unit/test_bug_hunt_turn_completion.gd
+tests/unit/test_bug_report_context.gd
+tests/unit/test_bug_report_dialog.gd
+tests/unit/test_bug_report_store.gd
+tests/unit/test_bug_report_webhook.gd
+tests/unit/test_campaign_editor_data.gd
+tests/unit/test_campaign_editor_seed_fields.gd
+tests/unit/test_campaign_event_effects_wiring.gd
+tests/unit/test_campaign_journal_player_notes.gd
+tests/unit/test_campaign_journal_turn_summary.gd
+tests/unit/test_campaign_retirement_archive.gd
+tests/unit/test_campaign_type_routing.gd
+tests/unit/test_canonical_field_writes.gd
+tests/unit/test_card_tap_single_fire.gd
+tests/unit/test_character_advancement_application.gd
+tests/unit/test_character_advancement_costs.gd
+tests/unit/test_character_advancement_eligibility.gd
+tests/unit/test_character_card.gd
+tests/unit/test_character_card_identity.gd
+tests/unit/test_character_editor_dropdown_sync.gd
+tests/unit/test_character_event_crew_resolution.gd
+tests/unit/test_character_event_effects_wiring.gd
+tests/unit/test_character_event_item_effects.gd
+tests/unit/test_character_generation_canonical.gd
+tests/unit/test_character_implants.gd
+tests/unit/test_character_status_card_stats_links.gd
+tests/unit/test_character_transfer_hub.gd
+tests/unit/test_cheat_sheet_from_data.gd
+
+Godot Engine v4.6.stable.official.89cea1439 - https://godotengine.org
+
+[T11-07] win=0x0 short=1080 stretch_cancel=1.0000 ui=1.000 dpi=1.000 -> content_scale=1.1600
+[T11-07] win=0x0 short=1080 stretch_cancel=1.0000 ui=1.000 dpi=1.000 -> content_scale=1.1600
+TaloAnalyticsAdapter: subscribed; Talo plugin detected at /root/Talo; events forwarded when consent granted.
+[2J[H
+--------------------------------------------------------------------------------------------------
+GdUnit4 Comandline Tool
+--------------------------------------------------------------------------------------------------
+
+Headless mode is ignored by option '--ignoreHeadlessMode'"
+
+Please note that tests that use UI interaction do not work correctly in headless mode.
+Godot 'InputEvents' are not transported by the Godot engine in headless mode and therefore
+have no effect in the test!
+
+Installing GdUnit4 session system hooks.
+Session hook 'GdUnitHtmlTestReporter' installed.
+Session hook 'GdUnitXMLTestReporter' installed.
+Run Test Suite: res://tests/unit/test_battlefield_persistence.gd
+  res://tests/unit/test_battlefield_persistence.gd > test_set_writes_through_to_progress_data STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_set_writes_through_to_progress_data PASSED 9ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_clear_erases_both_locations STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_clear_erases_both_locations PASSED 5ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_set_without_campaign_is_safe STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_set_without_campaign_is_safe PASSED 14ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_full_save_load_round_trip STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_full_save_load_round_trip PASSED 17ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_a_cache_miss_reads_the_table_back_from_the_campaign STARTED
+[T11-17] cache MISS, recovered from campaign owner: seed=987654321 sectors=2
+  res://tests/unit/test_battlefield_persistence.gd > test_a_cache_miss_reads_the_table_back_from_the_campaign PASSED 19ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_the_recovered_contract_is_re_cached STARTED
+[T11-17] cache MISS, recovered from campaign owner: seed=987654321 sectors=2
+  res://tests/unit/test_battlefield_persistence.gd > test_the_recovered_contract_is_re_cached PASSED 14ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_an_empty_owner_still_reads_empty STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_an_empty_owner_still_reads_empty PASSED 16ms
+
+  res://tests/unit/test_battlefield_persistence.gd > test_a_campaign_with_empty_progress_data_does_not_error STARTED
+  res://tests/unit/test_battlefield_persistence.gd > test_a_campaign_with_empty_progress_data_does_not_error PASSED 15ms
+
+Statistics: 8 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 121ms
+
+
+Run Test Suite: res://tests/unit/test_battlefield_shape_bounds.gd
+  res://tests/unit/test_battlefield_shape_bounds.gd > test_no_terrain_shape_is_drawn_outside_the_grid STARTED
+  res://tests/unit/test_battlefield_shape_bounds.gd > test_no_terrain_shape_is_drawn_outside_the_grid PASSED 236ms
+
+  res://tests/unit/test_battlefield_shape_bounds.gd > test_small_scatter_on_a_two_foot_table_stays_inside STARTED
+  res://tests/unit/test_battlefield_shape_bounds.gd > test_small_scatter_on_a_two_foot_table_stays_inside PASSED 83ms
+
+Statistics: 2 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 325ms
+
+
+Run Test Suite: res://tests/unit/test_battlefield_writeback_guard.gd
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_a_resume_regeneration_does_not_overwrite_the_saved_table STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_a_resume_regeneration_does_not_overwrite_the_saved_table PASSED 812ms
+  Report:
+    line 105: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_an_explicit_regenerate_still_replaces_the_table STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_an_explicit_regenerate_still_replaces_the_table PASSED 193ms
+  Report:
+    line 123: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_the_regenerate_permission_is_consumed_once STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_the_regenerate_permission_is_consumed_once PASSED 210ms
+  Report:
+    line 138: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_the_first_write_of_a_battle_is_stored_normally STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_the_first_write_of_a_battle_is_stored_normally PASSED 194ms
+  Report:
+    line 158: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_re_persisting_the_same_seed_is_allowed STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_re_persisting_the_same_seed_is_allowed PASSED 203ms
+  Report:
+    line 171: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_a_standalone_regenerate_does_not_stay_armed_for_the_next_battle STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_a_standalone_regenerate_does_not_stay_armed_for_the_next_battle PASSED 204ms
+  Report:
+    line 196: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_resetting_the_screen_disarms_the_regenerate_permission STARTED
+  res://tests/unit/test_battlefield_writeback_guard.gd > test_resetting_the_screen_disarms_the_regenerate_permission PASSED 221ms
+  Report:
+    line 212: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+Statistics: 7 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 21 orphans | PASSED 2s 74ms
+
+
+Run Test Suite: res://tests/unit/test_black_job_rewards.gd
+  res://tests/unit/test_black_job_rewards.gd > test_victory_rewards_match_the_book STARTED
+  res://tests/unit/test_black_job_rewards.gd > test_victory_rewards_match_the_book PASSED 31ms
+
+  res://tests/unit/test_black_job_rewards.gd > test_failure_pays_one_credit_per_casualty STARTED
+  res://tests/unit/test_black_job_rewards.gd > test_failure_pays_one_credit_per_casualty PASSED 29ms
+
+  res://tests/unit/test_black_job_rewards.gd > test_turn_advantages_match_the_book STARTED
+  res://tests/unit/test_black_job_rewards.gd > test_turn_advantages_match_the_book PASSED 31ms
+
+  res://tests/unit/test_black_job_rewards.gd > test_the_weapon_table_roll_returns_real_gear STARTED
+  res://tests/unit/test_black_job_rewards.gd > test_the_weapon_table_roll_returns_real_gear PASSED 36ms
+
+  res://tests/unit/test_black_job_rewards.gd > test_your_day_in_hell_covers_every_roll STARTED
+  res://tests/unit/test_black_job_rewards.gd > test_your_day_in_hell_covers_every_roll PASSED 31ms
+
+Statistics: 5 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 192ms
+
+
+Run Test Suite: res://tests/unit/test_bug_hunt_enlist_filter.gd
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_get_campaign_info_labels_the_two_probe_saves STARTED
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_get_campaign_info_labels_the_two_probe_saves PASSED 42ms
+
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_enlist_offers_the_standard_save_not_the_bug_hunt_one STARTED
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_enlist_offers_the_standard_save_not_the_bug_hunt_one PASSED 33ms
+
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_enlist_offers_nothing_when_only_bug_hunt_saves_exist STARTED
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_enlist_offers_nothing_when_only_bug_hunt_saves_exist PASSED 34ms
+
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_pick_enlist_source_tolerates_an_empty_and_a_malformed_list STARTED
+  res://tests/unit/test_bug_hunt_enlist_filter.gd > test_pick_enlist_source_tolerates_an_empty_and_a_malformed_list PASSED 31ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 173ms
+
+
+Run Test Suite: res://tests/unit/test_bug_hunt_enlistment_transfer.gd
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_the_panel_stamps_where_the_veteran_came_from STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_the_panel_stamps_where_the_veteran_came_from PASSED 50ms
+
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_an_in_memory_source_stamps_nothing STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_an_in_memory_source_stamps_nothing PASSED 40ms
+
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_enlisting_removes_the_veteran_from_the_source_campaign STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_enlisting_removes_the_veteran_from_the_source_campaign PASSED 65ms
+
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_the_source_coordinates_do_not_persist_into_the_bug_hunt_save STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_the_source_coordinates_do_not_persist_into_the_bug_hunt_save PASSED 61ms
+
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_an_enlistment_without_coordinates_still_adds_the_veteran STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_an_enlistment_without_coordinates_still_adds_the_veteran PASSED 63ms
+
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_a_rebuild_during_the_reveal_does_not_fade_a_freed_card STARTED
+  res://tests/unit/test_bug_hunt_enlistment_transfer.gd > test_a_rebuild_during_the_reveal_does_not_fade_a_freed_card PASSED 961ms
+
+Statistics: 6 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 1s 278ms
+
+
+Run Test Suite: res://tests/unit/test_bug_hunt_mode_predicates.gd
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_producer_labels_every_mode_and_writes_no_type_key STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_producer_labels_every_mode_and_writes_no_type_key PASSED 40ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_named_bug_hunt_campaign_is_tagged STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_named_bug_hunt_campaign_is_tagged PASSED 33ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_named_planetfall_and_tactics_campaigns_are_tagged STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_named_planetfall_and_tactics_campaigns_are_tagged PASSED 33ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_standard_campaign_named_after_a_mode_is_not_mistagged STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_standard_campaign_named_after_a_mode_is_not_mistagged PASSED 38ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_an_ordinary_standard_campaign_carries_no_tag STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_an_ordinary_standard_campaign_carries_no_tag PASSED 32ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_tag_tolerates_the_shapes_get_available_campaigns_can_hand_over STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_tag_tolerates_the_shapes_get_available_campaigns_can_hand_over PASSED 29ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_save_scans_find_each_mode_and_only_its_own STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_save_scans_find_each_mode_and_only_its_own PASSED 162ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_save_scan_reports_the_name_and_turn_the_dialog_prints STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_save_scan_reports_the_name_and_turn_the_dialog_prints PASSED 123ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_bug_hunt_save_recovered_from_its_backup_is_listed STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_a_bug_hunt_save_recovered_from_its_backup_is_listed PASSED 87ms
+
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_menu_lists_exactly_what_the_loader_would_open_as_bug_hunt STARTED
+  res://tests/unit/test_bug_hunt_mode_predicates.gd > test_the_menu_lists_exactly_what_the_loader_would_open_as_bug_hunt PASSED 88ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 707ms
+
+
+Run Test Suite: res://tests/unit/test_bug_hunt_turn_completion.gd
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_rolling_real_assignments_advances_the_turn_to_mission STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_rolling_real_assignments_advances_the_turn_to_mission PASSED 173ms
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_skipping_assignments_advances_the_turn_to_mission STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_skipping_assignments_advances_the_turn_to_mission PASSED 112ms
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_returning_from_battle_lands_on_post_battle STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_returning_from_battle_lands_on_post_battle PASSED 93ms
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_post_battle_panel_completes_through_its_own_controls STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_post_battle_panel_completes_through_its_own_controls PASSED 73ms
+  Report:
+    line 348: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_start_next_turn_begins_the_next_turn STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_start_next_turn_begins_the_next_turn PASSED 237ms
+  Report:
+    line 383: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_start_next_turn_does_not_apply_the_finished_turn_again STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_start_next_turn_does_not_apply_the_finished_turn_again PASSED 242ms
+  Report:
+    line 400: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_reopening_a_finished_turn_does_not_replay_it STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_reopening_a_finished_turn_does_not_replay_it PASSED 293ms
+  Report:
+    line 433: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_every_phase_transition_writes_the_phase_to_the_campaign STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_every_phase_transition_writes_the_phase_to_the_campaign PASSED 127ms
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_saving_mid_turn_reopens_that_phase_instead_of_replaying_the_turn STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_saving_mid_turn_reopens_that_phase_instead_of_replaying_the_turn PASSED 211ms
+
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_the_second_turn_also_plays_to_its_end STARTED
+  res://tests/unit/test_bug_hunt_turn_completion.gd > test_the_second_turn_also_plays_to_its_end PASSED 364ms
+  Report:
+    line 552: WARNING:: Found 3 possible orphan nodes.
+    	Add 'collect_orphan_node_details()' to the end of the test to collect details.
+
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 15 orphans | PASSED 1s 984ms
+
+
+Run Test Suite: res://tests/unit/test_bug_report_context.gd
+  res://tests/unit/test_bug_report_context.gd > test_collect_returns_populated_dict_with_no_campaign STARTED
+  res://tests/unit/test_bug_report_context.gd > test_collect_returns_populated_dict_with_no_campaign PASSED 48ms
+
+  res://tests/unit/test_bug_report_context.gd > test_collect_always_carries_build_identity STARTED
+  res://tests/unit/test_bug_report_context.gd > test_collect_always_carries_build_identity PASSED 47ms
+
+  res://tests/unit/test_bug_report_context.gd > test_collect_reports_device_and_timestamp STARTED
+  res://tests/unit/test_bug_report_context.gd > test_collect_reports_device_and_timestamp PASSED 48ms
+
+  res://tests/unit/test_bug_report_context.gd > test_collect_never_leaves_current_scene_blank STARTED
+  res://tests/unit/test_bug_report_context.gd > test_collect_never_leaves_current_scene_blank PASSED 48ms
+
+  res://tests/unit/test_bug_report_context.gd > test_campaign_mode_is_none_when_nothing_loaded STARTED
+  res://tests/unit/test_bug_report_context.gd > test_campaign_mode_is_none_when_nothing_loaded PASSED 47ms
+
+  res://tests/unit/test_bug_report_context.gd > test_turn_counters_come_from_phase_manager_when_available STARTED
+  res://tests/unit/test_bug_report_context.gd > test_turn_counters_come_from_phase_manager_when_available PASSED 48ms
+
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_returns_empty_for_zero_lines STARTED
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_returns_empty_for_zero_lines PASSED 47ms
+
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_returns_empty_for_negative_lines STARTED
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_returns_empty_for_negative_lines PASSED 48ms
+
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_respects_the_line_cap STARTED
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_respects_the_line_cap PASSED 55ms
+
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_does_not_error_when_log_is_absent STARTED
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_does_not_error_when_log_is_absent PASSED 56ms
+
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_has_no_trailing_blank_lines STARTED
+  res://tests/unit/test_bug_report_context.gd > test_log_tail_has_no_trailing_blank_lines PASSED 57ms
+
+Statistics: 11 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 610ms
+
+
+Run Test Suite: res://tests/unit/test_bug_report_dialog.gd
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_builds_its_form_controls STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_builds_its_form_controls PASSED 88ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_offers_every_category STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_offers_every_category PASSED 84ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_survives_the_process_mode_contract STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_survives_the_process_mode_contract PASSED 83ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_does_not_collapse_to_the_window_minimum STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_dialog_does_not_collapse_to_the_window_minimum PASSED 82ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_is_refused_when_what_happened_is_blank STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_is_refused_when_what_happened_is_blank PASSED 82ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_is_refused_for_whitespace_only STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_is_refused_for_whitespace_only PASSED 83ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_refusal_surfaces_a_visible_status_message STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_refusal_surfaces_a_visible_status_message PASSED 82ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_emits_once_with_the_typed_content STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_emits_once_with_the_typed_content PASSED 84ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_attaches_context STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_attaches_context PASSED 85ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_writes_the_report_to_disk STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_writes_the_report_to_disk PASSED 83ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_locks_the_buttons_so_it_cannot_double_send STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_submit_locks_the_buttons_so_it_cannot_double_send PASSED 82ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_log_toggle_controls_whether_the_tail_is_attached STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_log_toggle_controls_whether_the_tail_is_attached PASSED 82ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_addresses_the_support_inbox STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_addresses_the_support_inbox PASSED 85ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_carries_subject_and_body STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_carries_subject_and_body PASSED 84ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_stays_under_client_length_caps STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_mailto_uri_stays_under_client_length_caps PASSED 95ms
+
+  res://tests/unit/test_bug_report_dialog.gd > test_details_preview_is_hidden_until_toggled STARTED
+  res://tests/unit/test_bug_report_dialog.gd > test_details_preview_is_hidden_until_toggled PASSED 303ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 1s 628ms
+
+
+Run Test Suite: res://tests/unit/test_bug_report_store.gd
+  res://tests/unit/test_bug_report_store.gd > test_save_returns_a_path_and_creates_the_file STARTED
+  res://tests/unit/test_bug_report_store.gd > test_save_returns_a_path_and_creates_the_file PASSED 50ms
+
+  res://tests/unit/test_bug_report_store.gd > test_saved_report_round_trips_intact STARTED
+  res://tests/unit/test_bug_report_store.gd > test_saved_report_round_trips_intact PASSED 50ms
+
+  res://tests/unit/test_bug_report_store.gd > test_no_tmp_file_survives_a_successful_save STARTED
+  res://tests/unit/test_bug_report_store.gd > test_no_tmp_file_survives_a_successful_save PASSED 51ms
+
+  res://tests/unit/test_bug_report_store.gd > test_saved_report_appears_in_list_pending STARTED
+  res://tests/unit/test_bug_report_store.gd > test_saved_report_appears_in_list_pending PASSED 51ms
+
+  res://tests/unit/test_bug_report_store.gd > test_delete_removes_the_file_and_the_listing STARTED
+  res://tests/unit/test_bug_report_store.gd > test_delete_removes_the_file_and_the_listing PASSED 52ms
+
+  res://tests/unit/test_bug_report_store.gd > test_two_saves_do_not_collide STARTED
+  res://tests/unit/test_bug_report_store.gd > test_two_saves_do_not_collide PASSED 57ms
+
+  res://tests/unit/test_bug_report_store.gd > test_load_report_returns_empty_for_a_missing_path STARTED
+  res://tests/unit/test_bug_report_store.gd > test_load_report_returns_empty_for_a_missing_path PASSED 48ms
+
+  res://tests/unit/test_bug_report_store.gd > test_format_as_text_carries_the_answers_and_the_context STARTED
+  res://tests/unit/test_bug_report_store.gd > test_format_as_text_carries_the_answers_and_the_context PASSED 49ms
+
+  res://tests/unit/test_bug_report_store.gd > test_format_as_text_omits_empty_optional_sections STARTED
+  res://tests/unit/test_bug_report_store.gd > test_format_as_text_omits_empty_optional_sections PASSED 54ms
+
+  res://tests/unit/test_bug_report_store.gd > test_email_body_is_a_summary_not_the_whole_report STARTED
+  res://tests/unit/test_bug_report_store.gd > test_email_body_is_a_summary_not_the_whole_report PASSED 51ms
+
+  res://tests/unit/test_bug_report_store.gd > test_email_body_truncates_a_long_description STARTED
+  res://tests/unit/test_bug_report_store.gd > test_email_body_truncates_a_long_description PASSED 48ms
+
+  res://tests/unit/test_bug_report_store.gd > test_format_context_handles_a_non_dictionary STARTED
+  res://tests/unit/test_bug_report_store.gd > test_format_context_handles_a_non_dictionary PASSED 47ms
+
+Statistics: 12 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 672ms
+
+
+Run Test Suite: res://tests/unit/test_bug_report_webhook.gd
+  res://tests/unit/test_bug_report_webhook.gd > test_payload_is_a_single_embed STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_payload_is_a_single_embed PASSED 51ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_embed_carries_title_description_colour_and_footer STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_embed_carries_title_description_colour_and_footer PASSED 46ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_embed_reports_the_triage_context STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_embed_reports_the_triage_context PASSED 48ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_optional_fields_are_omitted_when_blank STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_optional_fields_are_omitted_when_blank PASSED 47ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_description_stays_under_the_discord_cap STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_description_stays_under_the_discord_cap PASSED 46ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_every_field_value_stays_under_the_discord_cap STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_every_field_value_stays_under_the_discord_cap PASSED 49ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_only_the_log_tail_goes_to_discord_not_the_whole_log STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_only_the_log_tail_goes_to_discord_not_the_whole_log PASSED 49ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_is_configured_is_false_without_a_url STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_is_configured_is_false_without_a_url PASSED 49ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_config_file_extension_survives_the_android_include_filter STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_config_file_extension_survives_the_android_include_filter PASSED 48ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_missing_config_file_is_not_an_error STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_missing_config_file_is_not_an_error PASSED 49ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_post_report_returns_false_when_unconfigured STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_post_report_returns_false_when_unconfigured PASSED 65ms
+
+  res://tests/unit/test_bug_report_webhook.gd > test_build_payload_tolerates_a_missing_context STARTED
+  res://tests/unit/test_bug_report_webhook.gd > test_build_payload_tolerates_a_missing_context PASSED 48ms
+
+Statistics: 12 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 655ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_editor_data.gd
+  res://tests/unit/test_campaign_editor_data.gd > test_remove_crew_member_removes_by_id_and_rebuilds_index STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_remove_crew_member_removes_by_id_and_rebuilds_index PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_data.gd > test_remove_crew_member_bad_id_is_noop STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_remove_crew_member_bad_id_is_noop PASSED 46ms
+
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_preserves_captain_flag STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_preserves_captain_flag PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_noncaptain_stays_noncaptain STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_noncaptain_stays_noncaptain PASSED 47ms
+
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_bad_id_is_noop STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_update_crew_member_bad_id_is_noop PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_data.gd > test_set_turns_played_writes_through_and_clamps STARTED
+  res://tests/unit/test_campaign_editor_data.gd > test_set_turns_played_writes_through_and_clamps PASSED 48ms
+
+Statistics: 6 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 343ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_editor_seed_fields.gd
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_editor_script_loads_and_exposes_the_three_seed_setters STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_editor_script_loads_and_exposes_the_three_seed_setters PASSED 95ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_salvage_seeding_goes_through_the_owner_api_never_a_raw_key_write STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_salvage_seeding_goes_through_the_owner_api_never_a_raw_key_write PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_red_zone_seeding_writes_the_core_fields_directly STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_red_zone_seeding_writes_the_core_fields_directly PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeding_an_absolute_salvage_total_round_trips_up_and_down STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeding_an_absolute_salvage_total_round_trips_up_and_down PASSED 49ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_seed_handlers_are_safe_with_no_campaign_loaded STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_seed_handlers_are_safe_with_no_campaign_loaded PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_red_zone_handlers_set_and_clamp_the_core_fields STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_red_zone_handlers_set_and_clamp_the_core_fields PASSED 49ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeding_works_on_a_campaign_whose_progress_data_is_empty STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeding_works_on_a_campaign_whose_progress_data_is_empty PASSED 47ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_ten_turn_black_zone_gate_is_what_the_seed_fields_unlock STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_the_ten_turn_black_zone_gate_is_what_the_seed_fields_unlock PASSED 48ms
+
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeded_compendium_progress_survives_a_save_load_round_trip STARTED
+  res://tests/unit/test_campaign_editor_seed_fields.gd > test_seeded_compendium_progress_survives_a_save_load_round_trip PASSED 48ms
+
+Statistics: 9 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 539ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_event_effects_wiring.gd
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_the_captaincy_actually_changes_hands STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_the_captaincy_actually_changes_hands PASSED 49ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_kerin_must_be_selected_when_present STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_kerin_must_be_selected_when_present PASSED 47ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_solo_captain_has_no_successor STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_solo_captain_has_no_successor PASSED 46ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_renegotiating_reduces_real_debt_and_pays_no_credits STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_renegotiating_reduces_real_debt_and_pays_no_credits PASSED 47ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_debt_free_crew_earns_the_two_credits STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_debt_free_crew_earns_the_two_credits PASSED 47ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_debt_never_goes_negative STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_debt_never_goes_negative PASSED 47ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_casualty_earns_the_luck_not_a_story_point STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_a_casualty_earns_the_luck_not_a_story_point PASSED 48ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_no_casualties_pays_the_story_point STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_no_casualties_pays_the_story_point PASSED 49ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_the_played_paths_downed_list_also_counts_as_a_casualty STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_the_played_paths_downed_list_also_counts_as_a_casualty PASSED 53ms
+
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_rumors_of_war_records_a_planet_scoped_modifier STARTED
+  res://tests/unit/test_campaign_event_effects_wiring.gd > test_rumors_of_war_records_a_planet_scoped_modifier PASSED 48ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 546ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_journal_player_notes.gd
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_explicit_player_notes_field_lands_in_entry_description STARTED
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_explicit_player_notes_field_lands_in_entry_description PASSED 57ms
+
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_temp_data_fallback_is_consumed_and_cleared STARTED
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_temp_data_fallback_is_consumed_and_cleared PASSED 49ms
+
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_no_notes_keeps_entry_description_clean STARTED
+  res://tests/unit/test_campaign_journal_player_notes.gd > test_no_notes_keeps_entry_description_clean PASSED 49ms
+
+Statistics: 3 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 209ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_journal_turn_summary.gd
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_counts_each_type_independently STARTED
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_counts_each_type_independently PASSED 49ms
+
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_returns_zero_filled_summary_for_missing_turn STARTED
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_returns_zero_filled_summary_for_missing_turn PASSED 50ms
+
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_isolates_each_turn STARTED
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_isolates_each_turn PASSED 50ms
+
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_preserves_unknown_types_without_dropping_them STARTED
+  res://tests/unit/test_campaign_journal_turn_summary.gd > test_get_turn_summary_preserves_unknown_types_without_dropping_them PASSED 48ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 250ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_retirement_archive.gd
+  res://tests/unit/test_campaign_retirement_archive.gd > test_crew_retired_has_a_producer_not_only_a_consumer STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_crew_retired_has_a_producer_not_only_a_consumer PASSED 47ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_retire_control_exists_in_the_scene_and_is_connected STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_retire_control_exists_in_the_scene_and_is_connected PASSED 49ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_retirement_is_confirmed_before_it_happens STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_retirement_is_confirmed_before_it_happens PASSED 49ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_retirement_archives_and_journals STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_retirement_archives_and_journals PASSED 50ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_archive_is_guarded_against_re_archiving STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_archive_is_guarded_against_re_archiving PASSED 48ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_guard_is_claimed_after_the_autoload_check STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_guard_is_claimed_after_the_autoload_check PASSED 48ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_archiving_twice_files_one_entry_not_two STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_archiving_twice_files_one_entry_not_two PASSED 47ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_archive_carries_how_the_campaign_ended STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_archive_carries_how_the_campaign_ended PASSED 49ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_ended_by_defaults_and_round_trips STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_ended_by_defaults_and_round_trips PASSED 50ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_victory_outranks_retirement_in_the_label STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_victory_outranks_retirement_in_the_label PASSED 49ms
+
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_hall_of_fame_card_shows_retirement STARTED
+  res://tests/unit/test_campaign_retirement_archive.gd > test_the_hall_of_fame_card_shows_retirement PASSED 48ms
+
+Statistics: 11 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 600ms
+
+
+Run Test Suite: res://tests/unit/test_campaign_type_routing.gd
+  res://tests/unit/test_campaign_type_routing.gd > test_a_bug_hunt_save_loads_as_a_bug_hunt_core STARTED
+  res://tests/unit/test_campaign_type_routing.gd > test_a_bug_hunt_save_loads_as_a_bug_hunt_core PASSED 56ms
+
+  res://tests/unit/test_campaign_type_routing.gd > test_a_legacy_save_with_no_type_still_loads_as_5pfh STARTED
+  res://tests/unit/test_campaign_type_routing.gd > test_a_legacy_save_with_no_type_still_loads_as_5pfh PASSED 50ms
+
+  res://tests/unit/test_campaign_type_routing.gd > test_the_bug_hunt_id_is_not_adopted_by_a_5pfh_campaign STARTED
+  res://tests/unit/test_campaign_type_routing.gd > test_the_bug_hunt_id_is_not_adopted_by_a_5pfh_campaign PASSED 51ms
+
+  res://tests/unit/test_campaign_type_routing.gd > test_the_wrong_core_would_have_silently_succeeded STARTED
+  res://tests/unit/test_campaign_type_routing.gd > test_the_wrong_core_would_have_silently_succeeded PASSED 52ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 260ms
+
+
+Run Test Suite: res://tests/unit/test_canonical_field_writes.gd
+  res://tests/unit/test_canonical_field_writes.gd > test_injury_sets_the_fields_the_sick_bay_gates_actually_read STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_injury_sets_the_fields_the_sick_bay_gates_actually_read PASSED 50ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_injury_appends_to_the_injuries_array_the_countdown_walks STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_injury_appends_to_the_injuries_array_the_countdown_walks PASSED 48ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_a_zero_recovery_injury_does_not_bench_the_member STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_a_zero_recovery_injury_does_not_bench_the_member PASSED 48ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_the_legacy_private_counter_is_still_written STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_the_legacy_private_counter_is_still_written PASSED 49ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_editing_a_member_preserves_roster_only_keys STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_editing_a_member_preserves_roster_only_keys PASSED 49ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_editing_still_preserves_captaincy STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_editing_still_preserves_captaincy PASSED 47ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_a_real_character_round_trip_keeps_the_member_benched STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_a_real_character_round_trip_keeps_the_member_benched PASSED 48ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_crew_ids_resolve_from_character_dictionaries STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_crew_ids_resolve_from_character_dictionaries PASSED 57ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_crew_ids_resolve_from_character_resources STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_crew_ids_resolve_from_character_resources PASSED 49ms
+
+  res://tests/unit/test_canonical_field_writes.gd > test_string_participants_are_still_accepted STARTED
+  res://tests/unit/test_canonical_field_writes.gd > test_string_participants_are_still_accepted PASSED 49ms
+
+Statistics: 10 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 562ms
+
+
+Run Test Suite: res://tests/unit/test_card_tap_single_fire.gd
+  res://tests/unit/test_card_tap_single_fire.gd > test_character_card_emits_card_tapped_exactly_once STARTED
+  res://tests/unit/test_card_tap_single_fire.gd > test_character_card_emits_card_tapped_exactly_once PASSED 92ms
+
+  res://tests/unit/test_card_tap_single_fire.gd > test_unit_activation_card_toggles_exactly_once STARTED
+  res://tests/unit/test_card_tap_single_fire.gd > test_unit_activation_card_toggles_exactly_once PASSED 84ms
+
+  res://tests/unit/test_card_tap_single_fire.gd > test_a_drag_across_the_card_does_not_activate_it STARTED
+  res://tests/unit/test_card_tap_single_fire.gd > test_a_drag_across_the_card_does_not_activate_it PASSED 85ms
+
+  res://tests/unit/test_card_tap_single_fire.gd > test_a_second_connect_tap_on_one_control_is_inert_not_doubled STARTED
+  res://tests/unit/test_card_tap_single_fire.gd > test_a_second_connect_tap_on_one_control_is_inert_not_doubled PASSED 66ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 385ms
+
+
+Run Test Suite: res://tests/unit/test_character_advancement_application.gd
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_success_returns_true STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_success_returns_true PASSED 50ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_deducts_xp STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_deducts_xp PASSED 50ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_increases_stat STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_increases_stat PASSED 48ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_insufficient_xp_returns_false STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_insufficient_xp_returns_false PASSED 49ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_insufficient_xp_no_change STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_insufficient_xp_no_change PASSED 48ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_at_maximum_returns_false STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_advance_character_at_maximum_returns_false PASSED 48ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_captain_only STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_captain_only PASSED 50ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_crew_only STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_crew_only PASSED 47ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_priority_order STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_priority_order PASSED 49ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_both_captain_and_crew STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_both_captain_and_crew PASSED 48ms
+
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_empty_crew STARTED
+  res://tests/unit/test_character_advancement_application.gd > test_process_advancements_empty_crew PASSED 49ms
+
+Statistics: 11 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 603ms
+
+
+Run Test Suite: res://tests/unit/test_character_advancement_costs.gd
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_reactions_returns_7 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_reactions_returns_7 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_combat_skill_returns_7 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_combat_skill_returns_7 PASSED 47ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_speed_returns_5 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_speed_returns_5 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_savvy_returns_5 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_savvy_returns_5 PASSED 49ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_toughness_returns_6 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_toughness_returns_6 PASSED 47ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_luck_returns_10 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_luck_returns_10 PASSED 49ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_invalid_stat_returns_999 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_advancement_cost_invalid_stat_returns_999 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_reactions_returns_6 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_reactions_returns_6 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_combat_skill_returns_5 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_combat_skill_returns_5 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_speed_returns_8 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_speed_returns_8 PASSED 49ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_savvy_returns_5 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_savvy_returns_5 PASSED 49ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_toughness_normal_returns_6 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_toughness_normal_returns_6 PASSED 49ms
+
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_toughness_engineer_returns_4 STARTED
+  res://tests/unit/test_character_advancement_costs.gd > test_get_stat_maximum_toughness_engineer_returns_4 PASSED 48ms
+
+Statistics: 13 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 692ms
+
+
+Run Test Suite: res://tests/unit/test_character_advancement_eligibility.gd
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_luck_human_returns_3 STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_luck_human_returns_3 PASSED 55ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_luck_non_human_returns_1 STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_luck_non_human_returns_1 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_case_insensitive STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_case_insensitive PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_invalid_stat_returns_10 STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_get_stat_maximum_invalid_stat_returns_10 PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_with_sufficient_xp STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_with_sufficient_xp PASSED 49ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_insufficient_xp_returns_empty STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_insufficient_xp_returns_empty PASSED 49ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_at_maximum_excluded STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_at_maximum_excluded PASSED 49ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_engineer_toughness_cap STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_engineer_toughness_cap PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_human_luck_exception STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_human_luck_exception PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_returns_array STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_returns_array PASSED 46ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_zero_xp STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_zero_xp PASSED 48ms
+
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_multiple_stats_available STARTED
+  res://tests/unit/test_character_advancement_eligibility.gd > test_can_character_advance_multiple_stats_available PASSED 48ms
+
+Statistics: 12 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 648ms
+
+
+Run Test Suite: res://tests/unit/test_character_card.gd
+  res://tests/unit/test_character_card.gd > test_card_instantiates_with_default_variant STARTED
+  res://tests/unit/test_character_card.gd > test_card_instantiates_with_default_variant PASSED 51ms
+
+  res://tests/unit/test_character_card.gd > test_card_accepts_character_data STARTED
+  res://tests/unit/test_character_card.gd > test_card_accepts_character_data PASSED 52ms
+
+  res://tests/unit/test_character_card.gd > test_card_switches_variants_at_runtime STARTED
+  res://tests/unit/test_character_card.gd > test_card_switches_variants_at_runtime PASSED 82ms
+
+  res://tests/unit/test_character_card.gd > test_compact_displays_name_and_class STARTED
+  res://tests/unit/test_character_card.gd > test_compact_displays_name_and_class PASSED 50ms
+
+  res://tests/unit/test_character_card.gd > test_standard_displays_stats_summary STARTED
+  res://tests/unit/test_character_card.gd > test_standard_displays_stats_summary PASSED 53ms
+
+  res://tests/unit/test_character_card.gd > test_expanded_displays_full_stats STARTED
+  res://tests/unit/test_character_card.gd > test_expanded_displays_full_stats PASSED 53ms
+
+  res://tests/unit/test_character_card.gd > test_card_tapped_signal_emits STARTED
+  res://tests/unit/test_character_card.gd > test_card_tapped_signal_emits PASSED 84ms
+
+  res://tests/unit/test_character_card.gd > test_view_details_button_emits_signal STARTED
+  res://tests/unit/test_character_card.gd > test_view_details_button_emits_signal PASSED 52ms
+
+  res://tests/unit/test_character_card.gd > test_edit_button_emits_signal STARTED
+  res://tests/unit/test_character_card.gd > test_edit_button_emits_signal PASSED 48ms
+
+  res://tests/unit/test_character_card.gd > test_remove_button_emits_signal STARTED
+  res://tests/unit/test_character_card.gd > test_remove_button_emits_signal PASSED 50ms
+
+  res://tests/unit/test_character_card.gd > test_buttons_meet_minimum_touch_target STARTED
+  res://tests/unit/test_character_card.gd > test_buttons_meet_minimum_touch_target PASSED 56ms
+
+  res://tests/unit/test_character_card.gd > test_card_height_matches_variant STARTED
+  res://tests/unit/test_character_card.gd > test_card_height_matches_variant PASSED 84ms
+
+  res://tests/unit/test_character_card.gd > test_instantiation_performance STARTED
+  res://tests/unit/test_character_card.gd > test_instantiation_performance PASSED 48ms
+
+Statistics: 13 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 828ms
+
+
+Run Test Suite: res://tests/unit/test_character_card_identity.gd
+  res://tests/unit/test_character_card_identity.gd > test_decorated_display_name_does_not_leak_into_the_avatar_initial STARTED
+  res://tests/unit/test_character_card_identity.gd > test_decorated_display_name_does_not_leak_into_the_avatar_initial PASSED 76ms
+
+  res://tests/unit/test_character_card_identity.gd > test_the_card_still_shows_the_decorated_name_to_the_player STARTED
+  res://tests/unit/test_character_card_identity.gd > test_the_card_still_shows_the_decorated_name_to_the_player PASSED 66ms
+
+  res://tests/unit/test_character_card_identity.gd > test_decoration_does_not_change_the_avatar_colour STARTED
+  res://tests/unit/test_character_card_identity.gd > test_decoration_does_not_change_the_avatar_colour PASSED 66ms
+
+  res://tests/unit/test_character_card_identity.gd > test_two_different_characters_still_differ STARTED
+  res://tests/unit/test_character_card_identity.gd > test_two_different_characters_still_differ PASSED 65ms
+
+  res://tests/unit/test_character_card_identity.gd > test_undecorated_callers_are_unaffected STARTED
+  res://tests/unit/test_character_card_identity.gd > test_undecorated_callers_are_unaffected PASSED 66ms
+
+  res://tests/unit/test_character_card_identity.gd > test_empty_name_still_renders_a_placeholder STARTED
+  res://tests/unit/test_character_card_identity.gd > test_empty_name_still_renders_a_placeholder PASSED 65ms
+
+Statistics: 6 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 460ms
+
+
+Run Test Suite: res://tests/unit/test_character_editor_dropdown_sync.gd
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_every_background_selects_its_own_row_not_a_plausible_neighbour STARTED
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_every_background_selects_its_own_row_not_a_plausible_neighbour PASSED 76ms
+
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_the_three_divergent_labels_are_exactly_the_ones_text_matching_misses STARTED
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_the_three_divergent_labels_are_exactly_the_ones_text_matching_misses PASSED 49ms
+
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_class_and_motivation_also_round_trip STARTED
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_class_and_motivation_also_round_trip PASSED 72ms
+
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_an_unresolvable_value_still_returns_a_usable_index STARTED
+  res://tests/unit/test_character_editor_dropdown_sync.gd > test_an_unresolvable_value_still_returns_a_usable_index PASSED 74ms
+
+Statistics: 4 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 326ms
+
+
+Run Test Suite: res://tests/unit/test_character_event_crew_resolution.gd
+  res://tests/unit/test_character_event_crew_resolution.gd > test_finalize_event_resolves_a_crew_id_string_to_the_member STARTED
+  res://tests/unit/test_character_event_crew_resolution.gd > test_finalize_event_resolves_a_crew_id_string_to_the_member PASSED 47ms
+
+  res://tests/unit/test_character_event_crew_resolution.gd > test_finalize_event_falls_back_when_the_id_does_not_resolve STARTED
+  res://tests/unit/test_character_event_crew_resolution.gd > test_finalize_event_falls_back_when_the_id_does_not_resolve PASSED 48ms
+
+  res://tests/unit/test_character_event_crew_resolution.gd > test_a_string_id_cannot_abort_the_stat_writer STARTED
+  res://tests/unit/test_character_event_crew_resolution.gd > test_a_string_id_cannot_abort_the_stat_writer PASSED 47ms
+
+Statistics: 3 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 194ms
+
+
+Run Test Suite: res://tests/unit/test_character_event_effects_wiring.gd
+  res://tests/unit/test_character_event_effects_wiring.gd > test_time_to_move_on_does_nothing_outside_sick_bay STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_time_to_move_on_does_nothing_outside_sick_bay PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_time_to_move_on_can_actually_remove_a_crew_member STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_time_to_move_on_can_actually_remove_a_crew_member PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_the_scrap_actually_sends_someone_to_sick_bay STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_the_scrap_actually_sends_someone_to_sick_bay PASSED 49ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_a_lone_crew_member_has_nobody_to_scrap_with STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_a_lone_crew_member_has_nobody_to_scrap_with PASSED 47ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_good_food_shortens_a_sick_bay_stay_instead_of_paying_xp STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_good_food_shortens_a_sick_bay_stay_instead_of_paying_xp PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_good_food_pays_xp_when_healthy STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_good_food_pays_xp_when_healthy PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_engineers_receive_no_benefit_from_the_local_food STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_engineers_receive_no_benefit_from_the_local_food PASSED 49ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_heart_to_heart_pays_both_characters STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_heart_to_heart_pays_both_characters PASSED 47ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_scars_pay_nothing_without_a_recent_injury STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_scars_pay_nothing_without_a_recent_injury PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_scars_pay_two_xp_when_recently_injured STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_scars_pay_two_xp_when_recently_injured PASSED 47ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_a_zero_turn_injury_still_counts_as_a_scar STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_a_zero_turn_injury_still_counts_as_a_scar PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_true_love_pays_the_motivation_bonus STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_true_love_pays_the_motivation_bonus PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_true_love_pays_no_xp_to_other_motivations STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_true_love_pays_no_xp_to_other_motivations PASSED 48ms
+
+  res://tests/unit/test_character_event_effects_wiring.gd > test_the_gift_reaches_the_stash STARTED
+  res://tests/unit/test_character_event_effects_wiring.gd > test_the_gift_reaches_the_stash PASSED 48ms
+
+Statistics: 14 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 742ms
+
+
+Run Test Suite: res://tests/unit/test_character_event_item_effects.gd
+  res://tests/unit/test_character_event_item_effects.gd > test_a_dictionary_entry_resolves_to_its_name STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_a_dictionary_entry_resolves_to_its_name PASSED 49ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_a_plain_string_entry_is_unchanged STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_a_plain_string_entry_is_unchanged PASSED 49ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_a_nameless_entry_falls_back_to_its_id_not_the_dict STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_a_nameless_entry_falls_back_to_its_id_not_the_dict PASSED 48ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_the_item_damaged_event_completes_on_a_saved_crew_member STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_the_item_damaged_event_completes_on_a_saved_crew_member PASSED 46ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_the_item_lost_event_completes_and_removes_the_item STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_the_item_lost_event_completes_and_removes_the_item PASSED 47ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_both_events_still_work_on_the_resource_string_shape STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_both_events_still_work_on_the_resource_string_shape PASSED 48ms
+
+  res://tests/unit/test_character_event_item_effects.gd > test_a_crew_member_with_no_equipment_is_handled STARTED
+  res://tests/unit/test_character_event_item_effects.gd > test_a_crew_member_with_no_equipment_is_handled PASSED 47ms
+
+Statistics: 7 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 393ms
+
+
+Run Test Suite: res://tests/unit/test_character_generation_canonical.gd
+  res://tests/unit/test_character_generation_canonical.gd > test_recruit_is_book_faithful STARTED
+  res://tests/unit/test_character_generation_canonical.gd > test_recruit_is_book_faithful PASSED 51ms
+
+  res://tests/unit/test_character_generation_canonical.gd > test_recruit_equipment_uses_canonical_array STARTED
+  res://tests/unit/test_character_generation_canonical.gd > test_recruit_equipment_uses_canonical_array PASSED 48ms
+
+Statistics: 2 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 148ms
+
+
+Run Test Suite: res://tests/unit/test_character_implants.gd
+  res://tests/unit/test_character_implants.gd > test_character_implants_initially_empty STARTED
+  res://tests/unit/test_character_implants.gd > test_character_implants_initially_empty PASSED 49ms
+
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_default_is_two STARTED
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_default_is_two PASSED 47ms
+
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_de_converted_is_three STARTED
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_de_converted_is_three PASSED 49ms
+
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_bio_upgrade_is_four STARTED
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_bio_upgrade_is_four PASSED 47ms
+
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_empath_is_zero STARTED
+  res://tests/unit/test_character_implants.gd > test_character_max_implants_empath_is_zero PASSED 50ms
+
+  res://tests/unit/test_character_implants.gd > test_implant_types_has_eleven_entries STARTED
+  res://tests/unit/test_character_implants.gd > test_implant_types_has_eleven_entries PASSED 49ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_body_wire STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_body_wire PASSED 47ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_boosted_leg STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_boosted_leg PASSED 57ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_ai_companion STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_ai_companion PASSED 49ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_boosted_arm STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_boosted_arm PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_cyber_hand STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_cyber_hand PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_neural_optimization STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_type_neural_optimization PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_body_wire STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_body_wire PASSED 47ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_boosted_arm STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_boosted_arm PASSED 47ms
+
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_all_eleven STARTED
+  res://tests/unit/test_character_implants.gd > test_create_implant_from_loot_all_eleven PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_add_implant_success STARTED
+  res://tests/unit/test_character_implants.gd > test_add_implant_success PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_add_implant_max_two STARTED
+  res://tests/unit/test_character_implants.gd > test_add_implant_max_two PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_remove_implant STARTED
+  res://tests/unit/test_character_implants.gd > test_remove_implant PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_get_implant_bonuses STARTED
+  res://tests/unit/test_character_implants.gd > test_get_implant_bonuses PASSED 46ms
+
+  res://tests/unit/test_character_implants.gd > test_get_effective_stat_with_implant STARTED
+  res://tests/unit/test_character_implants.gd > test_get_effective_stat_with_implant PASSED 48ms
+
+  res://tests/unit/test_character_implants.gd > test_implant_no_duplicate_types STARTED
+  res://tests/unit/test_character_implants.gd > test_implant_no_duplicate_types PASSED 48ms
+
+Statistics: 21 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 1s 94ms
+
+
+Run Test Suite: res://tests/unit/test_character_status_card_stats_links.gd
+  res://tests/unit/test_character_status_card_stats_links.gd > test_build_keyword_link_labeled_emits_compact_label_with_canonical_key STARTED
+  res://tests/unit/test_character_status_card_stats_links.gd > test_build_keyword_link_labeled_emits_compact_label_with_canonical_key PASSED 50ms
+
+  res://tests/unit/test_character_status_card_stats_links.gd > test_build_keyword_link_labeled_empty_inputs_return_empty STARTED
+  res://tests/unit/test_character_status_card_stats_links.gd > test_build_keyword_link_labeled_empty_inputs_return_empty PASSED 48ms
+
+  res://tests/unit/test_character_status_card_stats_links.gd > test_all_character_stats_resolvable_via_keyword_linker STARTED
+  res://tests/unit/test_character_status_card_stats_links.gd > test_all_character_stats_resolvable_via_keyword_linker PASSED 49ms
+
+Statistics: 3 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 201ms
+
+
+Run Test Suite: res://tests/unit/test_character_transfer_hub.gd
+  res://tests/unit/test_character_transfer_hub.gd > test_round_trip_lossless_via_snapshot STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_round_trip_lossless_via_snapshot PASSED 49ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_composition_suppresses_5pfh_rewards STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_composition_suppresses_5pfh_rewards PASSED 49ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_compose_to_5pfh_keeps_rewards STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_compose_to_5pfh_keeps_rewards PASSED 47ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_loader_filters_by_target_mode STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_loader_filters_by_target_mode PASSED 57ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_apply_transfer_rewards_adds_patron_and_defers_file_delete STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_apply_transfer_rewards_adds_patron_and_defers_file_delete PASSED 49ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_the_summary_omits_rewards_the_campaign_cannot_hold STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_the_summary_omits_rewards_the_campaign_cannot_hold PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_the_summary_still_announces_rewards_the_campaign_did_receive STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_the_summary_still_announces_rewards_the_campaign_did_receive PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_add_crew_member_lands_non_captain STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_add_crew_member_lands_non_captain PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_muster_out_honours_the_lossless_snapshot STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_muster_out_honours_the_lossless_snapshot PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_muster_out_rewards_survive_the_snapshot_path STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_muster_out_rewards_survive_the_snapshot_path PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_planetfall_independence_story_points_reach_the_envelope STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_planetfall_independence_story_points_reach_the_envelope PASSED 47ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_ascension_grants_real_psionic_powers STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_ascension_grants_real_psionic_powers PASSED 49ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_isolation_marks_the_character_for_the_one_per_campaign_cap STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_isolation_marks_the_character_for_the_one_per_campaign_cap PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_bug_hunt_origin_uses_species_id_not_the_dead_species_key STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_bug_hunt_origin_uses_species_id_not_the_dead_species_key PASSED 49ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_transferred_character_carries_both_reaction_keys STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_transferred_character_carries_both_reaction_keys PASSED 48ms
+
+  res://tests/unit/test_character_transfer_hub.gd > test_remove_character_from_save_handles_both_roster_shapes STARTED
+  res://tests/unit/test_character_transfer_hub.gd > test_remove_character_from_save_handles_both_roster_shapes PASSED 73ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 884ms
+
+
+Run Test Suite: res://tests/unit/test_cheat_sheet_from_data.gd
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_no_fabricated_rule_remains_in_the_panel_source STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_no_fabricated_rule_remains_in_the_panel_source PASSED 51ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_literal_builders_are_gone STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_literal_builders_are_gone PASSED 49ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_casualty_section_prints_the_real_three_tables STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_casualty_section_prints_the_real_three_tables PASSED 48ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_casualty_section_states_the_boss_column STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_casualty_section_states_the_boss_column PASSED 51ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_injury_section_prints_all_twelve_book_rows STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_injury_section_prints_all_twelve_book_rows PASSED 49ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_injury_section_says_the_table_replaces_the_core_one STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_injury_section_says_the_table_replaces_the_core_one PASSED 48ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_stealth_section_states_the_real_reinforcement_rate STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_stealth_section_states_the_real_reinforcement_rate PASSED 49ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_neutral_section_carries_the_p172_help_roll STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_neutral_section_carries_the_p172_help_roll PASSED 50ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_street_fight_suspect_table_is_the_book_one STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_street_fight_suspect_table_is_the_book_one PASSED 48ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_salvage_section_describes_the_scrapper_not_a_price_list STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_salvage_section_describes_the_scrapper_not_a_price_list PASSED 50ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_all_twelve_difficulty_toggles_are_listed STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_all_twelve_difficulty_toggles_are_listed PASSED 49ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_ai_section_is_silent_without_the_option STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_ai_section_is_silent_without_the_option PASSED 49ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_ai_section_prints_the_tables_when_enabled STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_ai_section_prints_the_tables_when_enabled PASSED 48ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_a_section_with_no_data_is_omitted_rather_than_blank STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_a_section_with_no_data_is_omitted_rather_than_blank PASSED 50ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_core_sections_cite_the_right_pages STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_core_sections_cite_the_right_pages PASSED 48ms
+
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_panel_script_actually_compiles_and_can_be_instantiated STARTED
+  res://tests/unit/test_cheat_sheet_from_data.gd > test_the_panel_script_actually_compiles_and_can_be_instantiated PASSED 60ms
+
+Statistics: 16 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 0 orphans | PASSED 874ms
+
+
+Overall Summary: 305 test cases | 0 errors | 0 failures | 0 flaky | 0 skipped | 36 orphans |
+Executed test suites: (35/35)
+Executed test cases : (305/305)
+Total execution time: 22s 200ms
+ Open XML Report at: file://C:/Users/admin/SynologyDrive/Godot/five-parsecs-campaign-manager/reports/report_2503/results.xml
+Open HTML Report at: file://C:/Users/admin/SynologyDrive/Godot/five-parsecs-campaign-manager/reports/report_2503/index.html
+Exit code: 101
+Finallize .. done
+ERROR: No GDExtension library found for current OS and architecture (windows.x86_64) in configuration file: res://addons/GodotApplePlugins/godot_apple_plugins.gdextension
+   at: parse_gdextension_file (core/extension/gdextension_library_loader.cpp:364)
+ERROR: GDExtension dynamic library not found: 'res://addons/GodotApplePlugins/godot_apple_plugins.gdextension'.
+   at: open_library (core/extension/gdextension.cpp:740)
+ERROR: Error loading extension: 'res://addons/GodotApplePlugins/godot_apple_plugins.gdextension'.
+   at: load_extensions (core/extension/gdextension_manager.cpp:329)
+Setting breakpad minidump AppID = 480
+SteamInternal_SetMinidumpSteamID:  Caching Steam ID:  76561198010116129 [API loaded no]
+WARNING: [T11-17] Refused to overwrite the saved battlefield (seed 4055150519, 2 sectors) with a regenerated one (seed 341922859). No Regenerate was requested, so this is the resume-time fallback firing over a table the player already built.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _persist_battlefield_contract (res://src/ui/screens/battle/TacticalBattleUI.gd:8080)
+       [1] _persist (res://tests/unit/test_battlefield_writeback_guard.gd:102)
+       [2] test_a_resume_regeneration_does_not_overwrite_the_saved_table (res://tests/unit/test_battlefield_writeback_guard.gd:109)
+       [3] _make_ui (res://tests/unit/test_battlefield_writeback_guard.gd:98)
+       [4] await_idle_frame (res://addons/gdUnit4/src/GdUnitTestSuite.gd:176)
+       [5] await_idle_frame (res://addons/gdUnit4/src/GdUnitAwaiter.gd:72)
+WARNING: [T11-17] Refused to overwrite the saved battlefield (seed 341922859, 1 sectors) with a regenerated one (seed 777000111). No Regenerate was requested, so this is the resume-time fallback firing over a table the player already built.
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _persist_battlefield_contract (res://src/ui/screens/battle/TacticalBattleUI.gd:8080)
+       [1] _persist (res://tests/unit/test_battlefield_writeback_guard.gd:102)
+       [2] test_the_regenerate_permission_is_consumed_once (res://tests/unit/test_battlefield_writeback_guard.gd:146)
+       [3] _make_ui (res://tests/unit/test_battlefield_writeback_guard.gd:98)
+       [4] await_idle_frame (res://addons/gdUnit4/src/GdUnitTestSuite.gd:176)
+       [5] await_idle_frame (res://addons/gdUnit4/src/GdUnitAwaiter.gd:72)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+ERROR: Infinite loop detected. Check set_loops() description for more info.
+   at: step (scene/animation/tween.cpp:406)
+WARNING: SaveFileWriter: user://saves/zz_recovered_bh_bh_1789845974.save was unreadable; recovered from user://saves/zz_recovered_bh_bh_1789845974.save.bak
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] read_json_with_fallback (res://src/core/state/SaveFileWriter.gd:103)
+       [1] test_a_bug_hunt_save_recovered_from_its_backup_is_listed (res://tests/unit/test_bug_hunt_mode_predicates.gd:303)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: SaveFileWriter: user://saves/zz_recovered_bh_bh_1789845974.save was unreadable; recovered from user://saves/zz_recovered_bh_bh_1789845974.save.bak
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] read_json_with_fallback (res://src/core/state/SaveFileWriter.gd:103)
+       [1] _detect_campaign_type (res://src/core/state/GameState.gd:679)
+       [2] test_a_bug_hunt_save_recovered_from_its_backup_is_listed (res://tests/unit/test_bug_hunt_mode_predicates.gd:307)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: SaveFileWriter: user://saves/zz_recovered_bh_bh_1789845974.save was unreadable; recovered from user://saves/zz_recovered_bh_bh_1789845974.save.bak
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] read_json_with_fallback (res://src/core/state/SaveFileWriter.gd:103)
+       [1] find_saves_of_type (res://src/ui/screens/mainmenu/MainMenu.gd:1043)
+       [2] test_a_bug_hunt_save_recovered_from_its_backup_is_listed (res://tests/unit/test_bug_hunt_mode_predicates.gd:311)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: SaveFileWriter: user://saves/zz_agree_trunc_bh_bh_1789845974.save was unreadable; recovered from user://saves/zz_agree_trunc_bh_bh_1789845974.save.bak
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] read_json_with_fallback (res://src/core/state/SaveFileWriter.gd:103)
+       [1] find_saves_of_type (res://src/ui/screens/mainmenu/MainMenu.gd:1043)
+       [2] test_the_menu_lists_exactly_what_the_loader_would_open_as_bug_hunt (res://tests/unit/test_bug_hunt_mode_predicates.gd:334)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: SaveFileWriter: user://saves/zz_agree_trunc_bh_bh_1789845974.save was unreadable; recovered from user://saves/zz_agree_trunc_bh_bh_1789845974.save.bak
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] read_json_with_fallback (res://src/core/state/SaveFileWriter.gd:103)
+       [1] _detect_campaign_type (res://src/core/state/GameState.gd:679)
+       [2] test_the_menu_lists_exactly_what_the_loader_would_open_as_bug_hunt (res://tests/unit/test_bug_hunt_mode_predicates.gd:336)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: Journal entry has non-canonical type: 'experimental_event'
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] validate_entry (res://src/core/campaign/JournalEntryTypes.gd:401)
+       [1] create_entry (res://src/core/campaign/CampaignJournal.gd:93)
+       [2] test_get_turn_summary_preserves_unknown_types_without_dropping_them (res://tests/unit/test_campaign_journal_turn_summary.gd:71)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: CharacterCreator: no dropdown item matches background value 'NO_SUCH_BACKGROUND'; falling back to item 0 ('Peaceful High Tech Colony')
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] _find_item_by_value (res://src/core/character/Generation/CharacterCreator.gd:1587)
+       [1] test_an_unresolvable_value_still_returns_a_usable_index (res://tests/unit/test_character_editor_dropdown_sync.gd:124)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] gc (res://addons/gdUnit4/src/core/execution/GdUnitExecutionContext.gd:267)
+       [18] gc (res://addons/gdUnit4/src/core/execution/GdUnitMemoryObserver.gd:129)
+ERROR: PostBattleContext: expected a crew member (Resource or Dictionary), got String (char_690716_1964). Resolve ids through get_crew_member() first.
+   at: push_error (core/variant/variant_utility.cpp:1024)
+   GDScript backtrace (most recent call first):
+       [0] _is_character_like (res://src/core/campaign/phases/post_battle/PostBattleContext.gd:894)
+       [1] apply_random_ability_increase (res://src/core/campaign/phases/post_battle/PostBattleContext.gd:939)
+       [2] test_a_string_id_cannot_abort_the_stat_writer (res://tests/unit/test_character_event_crew_resolution.gd:116)
+       [3] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [4] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [5] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [6] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [7] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [8] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [9] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [10] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [11] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [12] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [13] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [14] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [15] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [16] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [17] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [18] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [19] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: Character  already has maximum implants (2)
+   at: push_warning (core/variant/variant_utility.cpp:1034)
+   GDScript backtrace (most recent call first):
+       [0] add_implant (res://src/core/character/Character.gd:1326)
+       [1] test_add_implant_max_two (res://tests/unit/test_character_implants.gd:117)
+       [2] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:94)
+       [3] execute (res://addons/gdUnit4/src/core/_TestCase.gd:39)
+       [4] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:10)
+       [5] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [6] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:17)
+       [7] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [8] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:24)
+       [9] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [10] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestSuiteExecutionStage.gd:32)
+       [11] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [12] _execute (res://addons/gdUnit4/src/core/execution/stages/GdUnitTestCaseExecutionStage.gd:31)
+       [13] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [14] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleExecutionStage.gd:28)
+       [15] execute (res://addons/gdUnit4/src/core/execution/stages/IGdUnitExecutionStage.gd:19)
+       [16] _execute (res://addons/gdUnit4/src/core/execution/stages/single/GdUnitTestCaseSingleTestStage.gd:11)
+       [17] execute (res://addons/gdUnit4/src/core/_TestCase.gd:40)
+       [18] _execute_test_case (res://addons/gdUnit4/src/core/_TestCase.gd:98)
+WARNING: 29 RIDs of type "CanvasItem" were leaked.
+   at: _free_rids (servers/rendering/renderer_canvas_cull.cpp:2692)
+ERROR: 17 RID allocations of type 'PN13RendererDummy14TextureStorage12DummyTextureE' were leaked at exit.
+ERROR: 14 RID allocations of type 'PN18TextServerAdvanced22ShapedTextDataAdvancedE' were leaked at exit.
+ERROR: 3 RID allocations of type 'PN18TextServerAdvanced12FontAdvancedE' were leaked at exit.
+WARNING: ObjectDB instances leaked at exit (run with --verbose for details).
+   at: cleanup (core/object/object.cpp:2641)
+ERROR: 7 resources still in use at exit (run with --verbose for details).
+   at: clear (core/io/resource.cpp:810)

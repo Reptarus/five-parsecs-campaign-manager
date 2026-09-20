@@ -144,21 +144,6 @@ static func wits_test(challenge_rating: int, savvy: int, risky: bool = false,
 	return out
 
 
-## Appendix VIII p.172: "if a player wishes to request help, a 1D6+Savvy roll of
-## 5+ is usually needed. The GM can apply a +/-1 modifier based on circumstances.
-## A NATURAL 6 means the NC ... will request to join your crew permanently."
-##
-## A Wits Test at Challenge 5, with the natural-6 recruitment clause on top.
-static func request_neutral_help(savvy: int, modifier: int = 0,
-		roller: Callable = Callable()) -> Dictionary:
-	var out: Dictionary = wits_test(5, savvy, false, clampi(modifier, -1, 1), roller)
-	out["wants_to_join"] = int(out.get("roll", 0)) == 6
-	if bool(out["wants_to_join"]):
-		out["summary"] += (" Natural 6: they ask to join the crew permanently if"
-			+ " they survive (Core Rules p.172).")
-	return out
-
-
 ## p.152 Risk and Fumbles, applied identically to all three tests.
 static func _apply_fumble(out: Dictionary, risky: bool) -> void:
 	var fumbled: bool = bool(out.get("fumble", false))

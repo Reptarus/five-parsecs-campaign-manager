@@ -103,17 +103,19 @@ update it in the same commit as the change that justifies it.
 
 ### Meeting + Correspondence Records
 
-- **[Modiphius Correspondence Journal](MODIPHIUS_CORRESPONDENCE_JOURNAL.md)** - Chronological touchpoint log with verbatim email excerpts (independent backup of email archive)
+- **[Modiphius Correspondence Journal](MODIPHIUS_CORRESPONDENCE_JOURNAL.md)** - Chronological touchpoint log with verbatim email excerpts; runs to Sep 12 2026 (Entries #1-#33), live threads in §3.0
+- **[Modiphius Partnership Status](MODIPHIUS_PARTNERSHIP_STATUS.md)** - Current deal status, agreed theses, artifacts (refreshed 2026-09-13)
 - **[Apr 16 Meeting Notes](MEETING_NOTES_2026-04-16.md)** - Initial pitch / vision alignment with Chris Birch + Gavin
 - **[Apr 29 Meeting Followups](MEETING_FOLLOWUPS_2026-04-29.md)** - Strategic theses (T1-T4), Modiphius asks queue, response tracking
+- **[Jul 27 Meeting Prep](MEETING_PREP_2026-07-27.md)** - Prep for the Jul 27 call (written before it; the outcome is journal Entry #27, provisional)
 
-## Closed Alpha (Phase B, May 25 → Jul 6, 2026)
+## Closed Alpha (Phase B; kickoff TBD, the original May 25 → Jul 6 2026 window has passed)
 
 ### Strategic + Tester-Facing
 
-- **[Closed Alpha Plan](CLOSED_ALPHA_PLAN.md)** - Master alpha execution plan (cohort, cadence, gates, comms)
+- **[Closed Alpha Plan](CLOSED_ALPHA_PLAN.md)** - Master alpha execution plan (cohort, cadence, gates, comms); DRAFT v2, status + open items updated 2026-09-13
 - **[Alpha-1 QA Plan](testing/ALPHA_1_QA_PLAN.md)** - Strategic scope (Core + Compendium DLC only) + 5 alpha-specific scenarios + A0 smoke + graduation gate measurement
-- **[Alpha Tester Onboarding](testing/ALPHA_TESTER_ONBOARDING.md)** - 1-pager that ships with the build (install, SmartScreen, Discord channels, bug template, telemetry, FAQ)
+- **[Alpha Tester Onboarding](testing/ALPHA_TESTER_ONBOARDING.md)** - Tester 1-pager. INTERNAL DRAFT: v1 was written for Windows + Discord; not ready to send (blockers in its banner)
 - **[Pricing Research Plan](PRICING_RESEARCH_PLAN.md)** - Van Westendorp + Gabor-Granger methodology, Prolific n=200 paid survey
 - **[Apr 29 Meeting Followups](MEETING_FOLLOWUPS_2026-04-29.md)** - Strategic theses (T1-T4), Modiphius asks queue, response tracking
 

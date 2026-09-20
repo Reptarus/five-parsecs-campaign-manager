@@ -1,7 +1,6 @@
 @tool
 extends Node
 
-const GameEnums = preload("res://src/core/enums/GameEnums.gd")
 const CharacterManager = preload("res://src/core/character/Management/CharacterManager.gd")
 const FiveParsecsGameState = preload("res://src/core/state/GameState.gd")
 const BattleResultsManager = preload("res://src/core/battle/BattleResultsManager.gd")
@@ -142,60 +141,6 @@ func _load_onboard_items() -> void:
 		_onboard_items = json.data.get("onboard_items", [])
 
 
-## Get on-board item by ID
-func get_onboard_item(item_id: String) -> Dictionary:
-	for item in _onboard_items:
-		if item is Dictionary and item.get("id", "") == item_id:
-			return item
-	return {}
-
-
-## Phase 10: Get structured effect data for an on-board item (Core Rules pp.57-58)
-## Returns {phase: String, effect_type: String, value: Variant, description: String}
-## Campaign phase code calls this to check if crew has relevant on-board items
-func get_onboard_item_effect(item_id: String) -> Dictionary:
-	match item_id.to_lower():
-		"analyzer":
-			return {"phase": "post_battle", "effect_type": "rumor_quest_bonus", "value": 1, "description": "+1 to Rumor→Quest roll"}
-		"colonist_ration_packs":
-			return {"phase": "upkeep", "effect_type": "ignore_upkeep", "value": true, "description": "Ignore upkeep cost"}
-		"duplicator":
-			return {"phase": "equipment", "effect_type": "copy_item", "value": 1, "description": "Copy any item (single-use)"}
-		"fake_id":
-			return {"phase": "world", "effect_type": "license_bonus", "value": 1, "description": "+1 license roll"}
-		"fixer":
-			return {"phase": "post_battle", "effect_type": "free_repair", "value": 1, "description": "Free repair 1 item"}
-		"genetic_reconfig_kit":
-			return {"phase": "advancement", "effect_type": "xp_discount", "value": -2, "description": "-2 XP for ability upgrade"}
-		"loaded_dice":
-			return {"phase": "world", "effect_type": "gambling", "value": "d6_table", "description": "D6: 1-4 earn credits, 5 nothing, 6 lose dice + injury"}
-		"lucky_dice":
-			return {"phase": "world", "effect_type": "credit_income", "value": 1, "description": "+1 credit per turn gambling"}
-		"mk_ii_translator":
-			return {"phase": "world", "effect_type": "recruit_bonus", "value": 1, "description": "+1 die for Recruit rolls"}
-		"med_patch":
-			return {"phase": "post_battle", "effect_type": "recovery_reduction", "value": -1, "description": "-1 turn recovery time"}
-		"meditation_orb":
-			return {"phase": "world", "effect_type": "story_point_bonus", "value": 2, "description": "+2 story points; Swift/Precursor +1 XP"}
-		"nano_doc":
-			return {"phase": "post_battle", "effect_type": "prevent_injury", "value": 1, "description": "Prevent 1 injury roll"}
-		"novelty_stuffed_animal":
-			return {"phase": "world", "effect_type": "xp_bonus", "value": 1, "description": "+1 XP; D6 6 = +1 SP"}
-		"purifier":
-			return {"phase": "world", "effect_type": "credit_income", "value": 1, "description": "+1 credit per turn"}
-		"repair_bot":
-			return {"phase": "post_battle", "effect_type": "repair_bonus", "value": 1, "description": "+1 repair rolls"}
-		"sector_permit":
-			return {"phase": "travel", "effect_type": "license_check", "value": "d6_4plus", "description": "D6 4+ = accepted as license"}
-		"spare_parts":
-			return {"phase": "post_battle", "effect_type": "repair_bonus", "value": 1, "description": "+1 repair; natural 1 = consumed"}
-		"teach_bot":
-			return {"phase": "world", "effect_type": "training_xp", "value": "1d6", "description": "Train task +1D6 XP (single-use)"}
-		"transcender":
-			return {"phase": "world", "effect_type": "sp_xp_bonus", "value": {"xp": 1, "sp": 2}, "description": "+1 XP, +2 SP (single-use)"}
-	return {}
-
-
 ## Return basic weapons (always available, 1 credit each — Core Rules p.126)
 func get_basic_weapons() -> Array[Dictionary]:
 	var result: Array[Dictionary] = []
@@ -317,16 +262,19 @@ func assign_equipment_to_character(character_id: String, equipment_id: String) -
 	
 	# Check equipment type and compatibility
 	var character = character_manager.get_character(character_id)
-	if not _can_character_use_equipment(character, equipment_data):
+	if not can_character_use_equipment(character, equipment_data):
 		push_warning("Character cannot use this equipment")
 		return false
 	
-	# Check equipment slots
-	if equipment_data.get("category") == EquipmentCategory.ARMOR:
+	# Check equipment slots. Core Rules p.54: "A character may wear no more
+	# than one piece of armor and one screen." This enforced the armor half
+	# via the same dead `category` enum the compatibility gate used, so it
+	# never fired either; it now uses the tolerant test.
+	if is_armor_item(equipment_data):
 		# Remove existing armor first
 		for eq_id in _character_equipment[character_id]:
 			var eq = get_equipment(eq_id)
-			if eq.get("category") == EquipmentCategory.ARMOR:
+			if is_armor_item(eq):
 				_character_equipment[character_id].erase(eq_id)
 				equipment_removed.emit(character_id, eq_id)
 				break
@@ -524,136 +472,6 @@ func sell_equipment(equipment_id: String) -> int:
 # Core Rules p.130-133). It also carried a fabricated "difficulty >= 4" bonus roll with no
 # rulebook basis (the book grants one roll per battle; 3 for a Quest final stage; 0 for Invasion).
 
-## Generate weapon from JSON database
-func _generate_weapon_by_rulebook() -> Dictionary:
-	return _generate_random_db_weapon()
-
-## Generate armor from JSON database
-func _generate_armor_by_rulebook() -> Dictionary:
-	return _generate_random_db_armor()
-
-## Helper: random weapon from equipment database at listed cost
-func _generate_random_db_weapon() -> Dictionary:
-	if _db_weapons.is_empty():
-		return create_weapon_item("Basic Weapon", GameEnums.WeaponType.BASIC, 1, 1)
-	var chosen: Dictionary = _db_weapons[randi() % _db_weapons.size()].duplicate()
-	chosen["category"] = EquipmentCategory.WEAPON
-	chosen["value"] = chosen.get("cost", 3)
-	return chosen
-
-## Helper: random armor from equipment database at listed cost
-func _generate_random_db_armor() -> Dictionary:
-	if _db_armor.is_empty():
-		return create_armor_item("Basic Armor", GameEnums.ArmorType.LIGHT, 1)
-	var chosen: Dictionary = _db_armor[randi() % _db_armor.size()].duplicate()
-	chosen["category"] = EquipmentCategory.ARMOR
-	chosen["value"] = chosen.get("cost", 3)
-	# Tag as trade-table origin for Krag armor choice (Compendium p.15)
-	chosen["acquired_from_trade"] = true
-	return chosen
-
-## Helper: random gear from equipment database at listed cost
-func _generate_random_db_gear() -> Dictionary:
-	if _db_gear.is_empty():
-		return create_gear_item("Basic Gear", "misc", {})
-	var chosen: Dictionary = _db_gear[randi() % _db_gear.size()].duplicate()
-	chosen["category"] = EquipmentCategory.GEAR
-	if chosen.get("single_use", false):
-		chosen["category"] = EquipmentCategory.CONSUMABLE
-	chosen["value"] = chosen.get("cost", 3)
-	return chosen
-
-## Generate consumable item from JSON database (Core Rules p.54)
-func _generate_consumable_item() -> Dictionary:
-	var consumables: Array = _db_gear.filter(
-		func(g): return g is Dictionary and g.get("type", "") == "Consumable")
-	if consumables.is_empty():
-		return create_gear_item("Stim-pack", "consumable", {})
-	var chosen: Dictionary = consumables[randi() % consumables.size()]
-	var item: Dictionary = chosen.duplicate()
-	item["category"] = EquipmentCategory.CONSUMABLE
-	item["condition"] = 100
-	item["value"] = item.get("cost", 3)
-	return item
-
-## Generate utility item from equipment_database.json (Core Rules pp.56-57)
-func _generate_utility_item() -> Dictionary:
-	var utilities: Array = _db_gear.filter(
-		func(g): return g is Dictionary and g.get("type", "") == "Utility Device")
-	if utilities.is_empty():
-		return create_gear_item("Communicator", "utility", {})
-	var chosen: Dictionary = utilities[randi() % utilities.size()]
-	var item: Dictionary = chosen.duplicate()
-	item["category"] = EquipmentCategory.GEAR
-	item["value"] = item.get("cost", 3)
-	return item
-
-## Generate rare equipment — picks Rare rarity from any category in JSON
-func _generate_rare_equipment() -> Dictionary:
-	var rare_items: Array = []
-	for item in _db_weapons:
-		if item is Dictionary and item.get("rarity", "") == "Rare":
-			rare_items.append(item)
-	for item in _db_armor:
-		if item is Dictionary and item.get("rarity", "") == "Rare":
-			rare_items.append(item)
-	for item in _db_gear:
-		if item is Dictionary and item.get("rarity", "") == "Rare":
-			rare_items.append(item)
-	if rare_items.is_empty():
-		return _generate_random_db_weapon()
-	var chosen: Dictionary = rare_items[randi() % rare_items.size()]
-	var item: Dictionary = chosen.duplicate()
-	item["value"] = item.get("cost", 3)
-	return item
-
-## Generate unique powerful items — picks rarest available from JSON
-func _generate_unique_item() -> Dictionary:
-	# Unique items are the rarest in the database
-	return _generate_rare_equipment()
-
-## Create a weapon with the specified parameters (used by import/generation systems)
-func create_weapon_item(name: String, weapon_type: int, damage: int, range_val: int) -> Dictionary:
-	return {
-		"id": "weapon_" + str(randi() % 100000),
-		"name": name,
-		"category": EquipmentCategory.WEAPON,
-		"type": weapon_type,
-		"damage": damage,
-		"range": range_val,
-		"condition": 100,
-		"traits": [],
-		"value": 3  # Core Rules p.125: a table roll costs 3 credits. No stat-based price formula exists in the rules.
-	}
-
-## Create armor with the specified parameters (used by import/generation systems)
-func create_armor_item(name: String, armor_type: int, protection: int) -> Dictionary:
-	var mobility_penalty = 0
-	
-	# Set mobility penalty based on armor type
-	match armor_type:
-		GameEnums.ArmorType.LIGHT:
-			mobility_penalty = 0
-		GameEnums.ArmorType.MEDIUM:
-			mobility_penalty = 1
-		GameEnums.ArmorType.HEAVY:
-			mobility_penalty = 2
-		GameEnums.ArmorType.POWERED:
-			mobility_penalty = 1 # Powered armor has enhanced mobility systems
-		_:
-			mobility_penalty = 0
-			
-	return {
-		"id": "armor_" + str(randi() % 100000),
-		"name": name,
-		"category": EquipmentCategory.ARMOR,
-		"armor_type": armor_type,
-		"protection": protection,
-		"mobility_penalty": mobility_penalty,
-		"condition": 100,
-		"traits": [],
-		"value": 3  # Core Rules p.125: a table roll costs 3 credits. No stat-based price formula exists in the rules.
-	}
 
 ## Create gear with the specified parameters (used by import/generation systems)
 func create_gear_item(name: String, gear_type: String, effect: Dictionary) -> Dictionary:
@@ -669,18 +487,41 @@ func create_gear_item(name: String, gear_type: String, effect: Dictionary) -> Di
 	}
 
 
-## Private Helper Methods
-
-## Check if a character can use a piece of equipment
-func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool:
-	var category = equipment_data.get("category", EquipmentCategory.GEAR)
+## Check if a character can use a piece of equipment.
+##
+## PUBLIC since 2026-09-10. It resolves two book rules (Compendium p.18
+## Psionic weapons, p.13 Krag armor) and had no public form, which is part of
+## why AssignEquipmentComponent re-implements the Krag half itself instead of
+## asking. New callers should prefer this over a private copy of either rule.
+##
+## ⚠ SCOPE: this gates EquipmentManager's own per-character cache, NOT what a
+## campaign persists. Its only caller is EquipmentPanel (campaign creation),
+## and CampaignFinalizationService never consults this manager — it builds
+## campaign.equipment_data and each member's equipment from the wizard's own
+## dictionary via split_equipment_by_owner(), keyed on item["owner"]. Enforcing
+## a rule at CAMPAIGN level means gating there, not here.
+##
+## Until 2026-09-10 this dispatched on equipment_data["category"], an enum that
+## its only caller never writes — _create_equipment_item() stamps
+## `type: "Weapon"/"Armor"/"Gear"` as a STRING. So category defaulted to GEAR
+## for every item and the whole function returned true unconditionally: a
+## permanently-TRUE gate, the mirror of the permanently-false has_method guards
+## the dead-guard lint exists to catch. It now uses the same tolerant tests the
+## live World-Phase path uses.
+func can_character_use_equipment(character, equipment_data: Dictionary) -> bool:
+	var is_weapon: bool = is_weapon_item(equipment_data)
+	var is_armor: bool = is_armor_item(equipment_data)
 
 	# For weapons, check psionic restrictions only
 	# (Core Rules pp.50-51 has NO class-based gates on weapons; Sprint A Bug 3 /
 	# Sprint C Item 7 deleted the fabricated SOLDIER/BRUTE/SECURITY Heavy
 	# restriction along with the legacy FiveParsecsGameEnums enum.)
-	if category == EquipmentCategory.WEAPON:
-		# Psionic weapon restriction (Compendium p.20): Pistol or Melee traits only
+	if is_weapon:
+		# Compendium p.18, verbatim: "Psionics can only ever use weapons that
+		# have either the Pistol or Melee traits." (Cited p.20 until
+		# 2026-09-10; p.18 is the Psionics Limitations page.) The rule is also
+		# DELIVERED to the player on two reference surfaces:
+		# TacticalBattleUI.gd:4479 and CharacterDetailsScreen.gd:1352.
 		var char_psionic_powers: Array = character.get("psionic_powers", []) if character is Dictionary else []
 		if char_psionic_powers.is_empty() and character is Dictionary:
 			var pp: String = character.get("psionic_power", "")
@@ -699,16 +540,25 @@ func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool
 			if not has_pistol_or_melee:
 				return false
 
-	# For armor, check armor type compatibility
-	if category == EquipmentCategory.ARMOR:
-		var armor_type = equipment_data.get("armor_type", GameEnums.ArmorType.NONE)
-		var char_toughness = character.get("toughness", 1)
-
-		# Heavy armor requires higher toughness
-		if armor_type == GameEnums.ArmorType.HEAVY and char_toughness < 3:
-			return false
-
-		# Compendium p.15: Krag armor compatibility
+	# For armor, check Krag compatibility.
+	#
+	# A "Heavy armor requires Toughness 3+" gate was removed here on
+	# 2026-09-10 as FABRICATED. Core Rules pp.54-55 list all nine protective
+	# devices and have no weight classes and no Toughness requirement; the
+	# only constraint the book states is "A character may wear no more than
+	# one piece of armor and one screen" (p.54), which is delivered on the
+	# Cheat Sheet. `armor_type` as an enum appears in ZERO data files, and
+	# the comparison was int-vs-String besides — BattleCalculations uses
+	# "light"/"combat"/"heavy" STRINGS, a separate and live representation.
+	if is_armor:
+		# Compendium p.13: Krag armor compatibility. That page states BOTH
+		# halves of what this gate enforces — "Armor found from other
+		# sources will not fit Krag", and "Skulkers and Engineers can wear
+		# both Krag and non-Krag armor without modification".
+		#
+		# Cited p.15 until 2026-09-10. p.15 is the SKULKER page, which
+		# genuinely hosts the exemption this branch implements — which is
+		# exactly why the wrong cite read as correct for so long.
 		var char_species: String = str(character.get("species_id",
 			character.get("species", ""))).to_lower()
 		if char_species == "krag":
@@ -726,10 +576,15 @@ func _can_character_use_equipment(character, equipment_data: Dictionary) -> bool
 	# By default, equipment is usable
 	return true
 
-## Mark armor as Krag-compatible (Compendium p.15)
-## Called when player designates trade-table armor for Krag use
-func set_armor_krag_designation(item: Dictionary, is_krag: bool) -> void:
-	item["is_krag_armor"] = is_krag
+
+## True if an item dict is a weapon, tolerant of both representations, exactly as
+## is_armor_item() is below. Data items use `{"type": "Weapon", ...}` while
+## generated market items carry the EquipmentCategory.WEAPON enum.
+func is_weapon_item(item: Dictionary) -> bool:
+	if item.get("category", -1) == EquipmentCategory.WEAPON:
+		return true
+	return str(item.get("type", item.get("category", ""))).to_lower() == "weapon"
+
 
 ## True if an item dict is armor, tolerant of both representations in the codebase:
 ## the EquipmentCategory.ARMOR enum OR a string type/category "armor" (data items use
@@ -739,8 +594,13 @@ func is_armor_item(item: Dictionary) -> bool:
 		return true
 	return str(item.get("type", item.get("category", ""))).to_lower() == "armor"
 
-## Modify armor to fit Krag (or revert) — costs 2 credits (Compendium p.15)
-## Called during Post-battle Step 11 (Purchase Items, Core Rules p.125)
+## Compendium p.13, SECOND Krag armor clause, verbatim: "Armor found from
+## other sources will not fit Krag. Armor can be modified to fit Krag for 2
+## Credits (and reversed for the same cost), while doing your shopping during
+## Post-battle Step 11: Purchase Items (core rulebook, p.125)."
+##
+## This is NOT the route for armor that came off a Trade table roll. That is
+## the FIRST clause on the same page and it is FREE — see choose_krag_fit().
 func modify_armor_for_krag(item: Dictionary) -> bool:
 	if not is_armor_item(item):
 		return false
@@ -755,6 +615,43 @@ func modify_armor_for_krag(item: Dictionary) -> bool:
 	item["is_krag_armor"] = not item.get("is_krag_armor", false)
 	if gsm.has_method("set_credits"):
 		gsm.set_credits(credits - 2)
+	return true
+
+
+## Compendium p.13, FIRST Krag armor clause, verbatim: "Armor acquired from a
+## Trade table roll must be selected by the player to be Krag-armor or not."
+##
+## That selection is FREE and is made once. It went unimplemented until
+## 2026-09-10: the ONLY writer of `is_krag_armor` anywhere in the codebase was
+## the 2-credit toggle above, so every piece of armor in the game arrived
+## non-Krag and a Krag was charged 2 Credits for all of it — including the
+## one case the book gives away. The provenance flag this reads,
+## `acquired_from_trade`, was stamped by a generation helper that had no callers
+## and whose key had no readers, so the rule was half-built and inert.
+##
+## `krag_fit_chosen` is a SEPARATE key on purpose. `acquired_from_trade` records
+## where the item came from and is never cleared; `krag_fit_chosen` records that
+## the one free selection has been spent. Folding them into a single key would
+## make a spent choice indistinguishable from loot that never came off the Trade
+## table, and the player would get the free fit again on the same item.
+func has_unspent_krag_choice(item: Dictionary) -> bool:
+	if not is_armor_item(item):
+		return false
+	if not bool(item.get("acquired_from_trade", false)):
+		return false
+	return not bool(item.get("krag_fit_chosen", false))
+
+
+## Spend the free p.13 selection. Returns false — charging nothing and
+## changing nothing — when this item never had one, so no caller can obtain a
+## free fit on armor from any other source. Reversing the choice afterwards costs
+## 2 Credits through modify_armor_for_krag(), which is what the book's "reversed
+## for the same cost" means.
+func choose_krag_fit(item: Dictionary, fit_for_krag: bool) -> bool:
+	if not has_unspent_krag_choice(item):
+		return false
+	item["is_krag_armor"] = fit_for_krag
+	item["krag_fit_chosen"] = true
 	return true
 
 ## Update character object with assigned equipment

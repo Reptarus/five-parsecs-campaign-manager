@@ -23,6 +23,10 @@ var _scenarios: Array = []
 var _list: ItemList = null
 var _detail: RichTextLabel = null
 var _apply_button: Button = null
+## False when the loaded campaign is not a 5PFH core — see
+## campaign_supports_scenarios(). The fixtures load either way, so an empty
+## list in the wrong mode stays distinguishable from a missing data/ folder.
+var _scenarios_supported: bool = true
 
 ## Rolls the seam can force, with the row each one is needed for.
 ##
@@ -53,11 +57,102 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Battlefield Find", "sides": 100, "target": 1, "note": "pp.120-121"},
 	{"key": "Loot Category", "sides": 100, "target": 1, "note": "pp.131-134"},
 	{"key": "Notable Sight", "sides": 100, "target": 1, "note": "p.88"},
+	# --- Bug Hunt (Compendium). Every key below has a LIVE producer in src/
+	# today. The post-battle rows (Casualty, Muster Out, Reputation,
+	# Operational Progress, Military Life, Court Martial) are deliberately
+	# ABSENT until BugHuntPostBattleResolver lands, because a row whose key
+	# matches no roll is worse than a missing row: the tester queues a value,
+	# nothing consumes it, and they conclude the rule is broken when it never
+	# ran.
+	#
+	# No collision with the 5PFH keys above — every Bug Hunt key begins
+	# "Bug Hunt", which no 5PFH context contains, and no 5PFH
+	# key is a substring of a Bug Hunt context. Within this block no key is a
+	# prefix of another, which matters because _take_forced returns on the
+	# FIRST queued key that matches, in insertion order (DiceManager.gd:104).
+	#
+	# Where a PAIR decides a threshold, both dice are offered: _forced_results
+	# is key -> FIFO, so several keys can be armed at once.
+	{"key": "Bug Hunt Enlistment: die 1", "sides": 6, "target": 6,
+		"note": "p.212 - 2D6 + Combat Skill >= 7; queue die 2 to pin the total"},
+	{"key": "Bug Hunt Enlistment: die 2", "sides": 6, "target": 1,
+		"note": "p.212 - 6+1 lands exactly ON the boundary; 1+1 forces a refusal"},
+	{"key": "Bug Hunt Special Assignment die 1", "sides": 6, "target": 6,
+		"note": "p.183 - 2D6 vs the assignment's own target (Marksman training 9+)"},
+	{"key": "Bug Hunt Special Assignment die 2", "sides": 6, "target": 6,
+		"note": "p.183 - 12 clears every row, incl. Officer training course 11+"},
+	{"key": "Bug Hunt Support die 1", "sides": 6, "target": 6,
+		"note": "pp.188-189 - 2D6 vs the option's target (Fire team 7+)"},
+	{"key": "Bug Hunt Support die 2", "sides": 6, "target": 6,
+		"note": "pp.188-189 - 12 clears every support option"},
+	{"key": "Bug Hunt Priority: die 1", "sides": 6, "target": 1,
+		"note": "p.187 - Priority is the LOWER of 2D6, so one 1 pins it at 1"},
+	{"key": "Bug Hunt Priority: die 2", "sides": 6, "target": 6,
+		"note": "p.187 - queue BOTH as 6 to force the maximum Priority"},
+	{"key": "Bug Hunt Objective: type", "sides": 6, "target": 6,
+		"note": "p.185 - objective types are matched on the d6 value"},
+	{"key": "Bug Hunt Signals: count", "sides": 6, "target": 6,
+		"note": "p.208 - optional rule; 6 clears the 4+ threshold"},
+	{"key": "Bug Hunt Tactical Location: type", "sides": 6, "target": 6,
+		"note": "p.191 - 1 Distract, 2-3 Block, 4-5 Neutralize, 6 Delay"},
+	{"key": "Bug Hunt Commendation: die 1", "sides": 6, "target": 6,
+		"note": "p.172 - each 6 of the 2D6 is +1 XP and +1 Reputation"},
+	# Not a threshold pair - each 6 scores on its own - so this is not covered
+	# by the "both dice when a pair decides a threshold" rule above. It is here
+	# because without it the commendation cannot be made DETERMINISTIC: die 2
+	# stays free and the character walks away with 1 or 2 XP at random.
+	{"key": "Bug Hunt Commendation: die 2", "sides": 6, "target": 1,
+		"note": "p.172 - queue 6/1 for exactly one commendation, 6/6 for two"},
+	{"key": "Bug Hunt Origin", "sides": 100, "target": 1,
+		"note": "p.171 - 01-09 Core systems world (+1 Reputation)"},
+	{"key": "Bug Hunt Basic Training", "sides": 100, "target": 1,
+		"note": "p.171 - 01-15 Ground forces (Infantry): +1 Combat, +1 Toughness"},
+	{"key": "Bug Hunt Service History", "sides": 100, "target": 26,
+		"note": "p.172 - 26-40 fringe-space patrol*, a Combat Operation, so the "
+			+ "commendation 2D6 is reachable (01-10 is not starred)"},
 ]
 
 var _roll_picker: OptionButton = null
 var _roll_value: SpinBox = null
 var _roll_status: Label = null
+
+
+## Is `campaign` a core the 5PFH fixtures can safely be applied to?
+##
+## Guard on the OWNER, not on a mode flag (T11-49). The discriminator is
+## `crew_data`, measured across the four cores: FiveParsecs 24 occurrences,
+## BugHunt / Planetfall / Tactics 0 each.
+##
+## ⚠ This is not belt-and-braces. QAScenarioLoader.apply() reaches
+## _apply_counters() (QAScenarioLoader.gd:105) with NO campaign argument; it
+## routes through GameStateManager, whose setters write to
+## GameState.current_campaign (GameStateManager.gd:111-123) and not to the
+## campaign this dialog was handed. GameState._try_auto_load_last_campaign()
+## loads a campaign at every launch, so in a Bug Hunt session that target is
+## the player's 5PFH save: applying a fixture would move credits, supplies,
+## story points and reputation in a campaign that is not even on screen, with
+## nothing visible happening on either. A silent cross-campaign write is worse
+## than a crash, so this refuses rather than best-efforts.
+static func campaign_supports_scenarios(campaign: Variant) -> bool:
+	if campaign is Dictionary:
+		return campaign.has("crew_data")
+	if campaign is Object:
+		return "crew_data" in campaign
+	return false
+
+
+## The detail-pane text for a campaign the fixtures cannot be applied to.
+##
+## Static so a case can assert the wording names the MODE problem without
+## building the dialog.
+static func unsupported_campaign_text() -> String:
+	return ("[color=#ff9a52]The QA fixtures are 5PFH-only.[/color]\n\n"
+		+ "Every file in res://data/qa_scenarios/ is a delta against a "
+		+ "[code]crew_data[/code] campaign, and applying one writes through "
+		+ "GameStateManager to whichever campaign GameState currently holds — "
+		+ "which in this mode is not the one on screen.\n\n"
+		+ "Forcing a roll below is safe in every mode, and is what this "
+		+ "dialog is for here.")
 
 
 ## Open over `parent` against `campaign`. Returns null (and does nothing) when no
@@ -102,9 +197,13 @@ func _init() -> void:
 
 
 func _ready() -> void:
+	# Load the fixtures either way. An empty list because the campaign is the
+	# wrong mode and an empty list because the export filter dropped
+	# data/qa_scenarios/ are different faults, so they must stay tellable apart.
 	_scenarios = QAScenarioLoaderRef.load_all()
+	_scenarios_supported = campaign_supports_scenarios(_campaign)
 	_build_ui()
-	if not _scenarios.is_empty():
+	if _scenarios_supported and not _scenarios.is_empty():
 		_list.select(0)
 		_on_selected(0)
 
@@ -193,10 +292,15 @@ func _build_ui() -> void:
 	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	split.add_child(_detail)
 
-	for s in _scenarios:
-		_list.add_item(str(s.get("name", s.get("id", "?"))))
+	if _scenarios_supported:
+		for s in _scenarios:
+			_list.add_item(str(s.get("name", s.get("id", "?"))))
 
-	if _scenarios.is_empty():
+	# Three states, and they need different fixes: wrong mode, a data/ folder
+	# the export filter dropped, or a real list. Never collapse the first two.
+	if not _scenarios_supported:
+		_detail.text = unsupported_campaign_text()
+	elif _scenarios.is_empty():
 		_detail.text = ("[color=#ff9a52]No fixtures found in res://data/qa_scenarios/."
 			+ "[/color]\n\nThis usually means the export filter dropped the folder — "
 			+ "verify by unzipping the APK, not by trusting the build log.")
@@ -218,7 +322,7 @@ func _build_ui() -> void:
 	_apply_button = Button.new()
 	_apply_button.text = "Apply Scenario"
 	_apply_button.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-	_apply_button.disabled = _scenarios.is_empty()
+	_apply_button.disabled = _scenarios.is_empty() or not _scenarios_supported
 	DialogStylesRef.style_primary_button(_apply_button)
 	_apply_button.pressed.connect(_on_apply_pressed)
 	buttons.add_child(_apply_button)
@@ -380,6 +484,12 @@ func _on_selected(idx: int) -> void:
 
 
 func _on_apply_pressed() -> void:
+	# Defensive: the button is already disabled in this state. Kept because a
+	# disabled button is a UI fact, not an invariant, and the cost of getting
+	# this wrong is a silent write into a campaign that is not on screen.
+	if not _scenarios_supported:
+		push_warning("QAScenarioDialog: fixtures are 5PFH-only; refusing to apply.")
+		return
 	var sel := _list.get_selected_items()
 	if sel.is_empty():
 		return

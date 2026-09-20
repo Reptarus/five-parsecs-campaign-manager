@@ -95,8 +95,11 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 	# patron is itself the standard Bug Hunt muster-out reward, so the rule exists
 	# precisely to make a second enlistment easier.
 	var patron_bonus: int = _sector_government_patron_bonus()
-	var die1: int = (randi() % 6) + 1
-	var die2: int = (randi() % 6) + 1
+	# Routed through DiceManager so a tester can force an enlistment pass or fail
+	# from the QA dialog. Two separate D6 calls rather than roll_2d6(), because the
+	# failure branch prints the dice individually in its `reason` string.
+	var die1: int = _roll_enlistment_d6("Bug Hunt Enlistment: die 1")
+	var die2: int = _roll_enlistment_d6("Bug Hunt Enlistment: die 2")
 	var total: int = die1 + die2 + combat_bonus + patron_bonus
 	var success: bool = total >= ENLISTMENT_TARGET
 
@@ -721,6 +724,20 @@ static func apply_transfer_rewards(
 	# Deep copy to prevent cross-campaign reference sharing
 	var safe_char: Dictionary = char_data.duplicate(true)
 
+	# ⚠ EVERY summary line belongs INSIDE the guard that performs its grant. The
+	# summary is what the player is shown as their muster-out result, so a line appended
+	# outside its guard announces a reward the campaign never received. Four of these
+	# lines sat outside their guard while `debt cleared`, the prepayment and `+Rival` sat
+	# inside -- one function, two patterns. `+Rival` is what makes the loose form a slip
+	# rather than a convention: it reads from the same `safe_char` as `+Ship` and is
+	# guarded correctly.
+	#
+	# ⚠ None of the four could fire on HEAD, so this is a CONSISTENCY fix and not a live
+	# defect -- do not cite it as one. transfer_character()'s reward-suppression rule
+	# zeroes the three envelope keys unless the target is 5PFH; the down-converters build
+	# fresh dict literals, so `bonus_ship` never reaches a Bug Hunt or Tactics character;
+	# and both GameStateManager methods exist. The guards are still load-bearing, because
+	# each grant CAN fail, and the announcement must never outlive the grant.
 	var summary_parts: Array = []
 	var gsm = Engine.get_main_loop().root.get_node_or_null(
 		"/root/GameStateManager") if Engine.get_main_loop() else null
@@ -730,7 +747,7 @@ static func apply_transfer_rewards(
 	if credits > 0:
 		if gsm and gsm.has_method("add_credits"):
 			gsm.add_credits(credits)
-		summary_parts.append("+%d credits" % credits)
+			summary_parts.append("+%d credits" % credits)
 
 	# Apply Story Points (Compendium p.213). add_story_points respects Insanity
 	# mode (story points disabled), so the grant is rules-safe.
@@ -738,7 +755,7 @@ static func apply_transfer_rewards(
 	if sp > 0:
 		if gsm and gsm.has_method("add_story_points"):
 			gsm.add_story_points(sp)
-		summary_parts.append("+%d Story Point(s)" % sp)
+			summary_parts.append("+%d Story Point(s)" % sp)
 
 	# Sector Government Patron — append to the campaign's patron contacts (owner).
 	if transfer_data.get("add_sector_government_patron", false):
@@ -748,7 +765,7 @@ static func apply_transfer_rewards(
 				"type": "sector_government",
 				"source": "bug_hunt_muster_out"
 			})
-		summary_parts.append("+Sector Government Patron")
+			summary_parts.append("+Sector Government Patron")
 
 	# Planetfall end-of-campaign bonuses (Planetfall pp.165-166). These ride on the
 	# character dict (set by convert_from_planetfall / _layer_planetfall_ending) and
@@ -757,7 +774,7 @@ static func apply_transfer_rewards(
 	if safe_char.get("bonus_ship", false):
 		if "has_ship" in campaign:
 			campaign.has_ship = true
-		summary_parts.append("+Ship")
+			summary_parts.append("+Ship")
 	if safe_char.has("ship_debt") and "ship_debt" in campaign:
 		campaign.ship_debt = int(safe_char["ship_debt"])
 		summary_parts.append("debt cleared")
@@ -1132,3 +1149,17 @@ func convert_from_tactics(char_data: Dictionary) -> Dictionary:
 		"status": "active",
 		"transferred_from_tactics": true,
 	}
+
+
+## Enlistment D6, routed through the DiceManager autoload (Compendium p.212).
+##
+## This is RefCounted, so it reaches the autoload through Engine.get_main_loop()
+## .root — a bare get_node_or_null() from a .new() object does not return null,
+## it ERRORS and aborts the enclosing function.
+func _roll_enlistment_d6(context: String) -> int:
+	var dm: Node = null
+	if Engine.get_main_loop():
+		dm = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dm:
+		return int(dm.roll_d6(context))
+	return randi_range(1, 6)

@@ -77,16 +77,48 @@ func _count_specialists(enemies: Array) -> int:
 
 
 func test_psi_hunter_force_gets_one_more_specialist() -> void:
+	## Compendium p.21: a Psi-hunter band fields one EXTRA Specialist.
+	##
+	## ⚠ THIS CASE USED TO COMPARE TWO INDEPENDENT UNSEEDED DRAWS and assert only
+	## `psi >= base`, which is not a control — both the enemy count and the
+	## specialist count are rolled, so the base force can out-roll the psi force
+	## and the case fails through no fault of the rule. Measured flake rate:
+	## psi < base in 5 of 300 unseeded pairs (~1.7%), which is roughly one red
+	## case per full-suite run and reads exactly like a regression from whatever
+	## was edited that day. It cost a root-cause detour on 2026-09-10.
+	##
+	## EnemyGenerator draws from the GLOBAL rng (23 randi/randi_range calls, no
+	## RandomNumberGenerator of its own), so seeding before each call makes the two
+	## runs differ in exactly ONE variable: the flag. Measured seeded, the rule is
+	## not merely "no fewer" — it is exactly +1, in 10 of 10 seeds — so the
+	## assertion tightens accordingly. A `>=` here would still pass if the +1
+	## stopped binding entirely.
 	var gen = EnemyGen.new()
 	var base_mission: Dictionary = {"danger_level": 2, "mission_source": "rival"}
 	var psi_mission: Dictionary = base_mission.duplicate(true)
 	psi_mission["is_psi_hunter"] = true
-	var base_n := _count_specialists(gen.generate_enemies_as_dicts(base_mission, 6))
-	var psi_n := _count_specialists(gen.generate_enemies_as_dicts(psi_mission, 6))
-	assert_int(psi_n).override_failure_message(
-		"p.21 adds 1 Specialist to their force - got %d against a base of %d"
-		% [psi_n, base_n]
-	).is_greater_equal(base_n)
+
+	for s in range(6):
+		seed(s)
+		var base_force: Array = gen.generate_enemies_as_dicts(base_mission, 6)
+		seed(s)
+		var psi_force: Array = gen.generate_enemies_as_dicts(psi_mission, 6)
+
+		# Instrument the premise: if the seed did NOT hold the draw steady, the
+		# comparison below is meaningless and must say so rather than fail as if
+		# the rule were broken.
+		assert_int(psi_force.size()).override_failure_message(
+			"seed %d did not reproduce the same force size (%d vs %d); the A/B is"
+			% [s, base_force.size(), psi_force.size()]
+			+ " no longer one-variable and this case cannot conclude anything"
+		).is_equal(base_force.size())
+
+		var base_n := _count_specialists(base_force)
+		var psi_n := _count_specialists(psi_force)
+		assert_int(psi_n).override_failure_message(
+			"p.21 adds exactly 1 Specialist — at seed %d got %d against a base of %d"
+			% [s, psi_n, base_n]
+		).is_equal(base_n + 1)
 
 
 func test_every_generated_enemy_carries_the_tag() -> void:

@@ -1237,6 +1237,26 @@ Each rule in the book should eventually have an entry like this:
 
 ### C4: Bug Hunt (Compendium)
 
+> ## ⛔ SUPERSEDED 2026-09-10 — do not cite these 19 rows as coverage
+>
+> Every C4 row below is marked **VERIFIED (2026-03-30)**, and the section verified
+> nothing that a player can reach. It checked whether values were extracted correctly
+> from the book — which they were, almost perfectly — and never asked whether a live
+> path delivers them. It also cites files that do not exist:
+> **`BugHuntEnemyGenerator.gd` has never existed in this repository**, C4-019's
+> `ContactMarkerPanel` was deleted in `5125a0e4`, and the line counts below are
+> 15-30% low (`BugHuntCampaignCore` is 559 lines, not 476).
+> `py scripts/lint_audit_citations.py docs/QA_RULES_ACCURACY_AUDIT.md` reports
+> **34 unresolvable citations in this section alone** (84 doc-wide).
+>
+> **Ground truth is now `docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md`**, which
+> walked printed pp.164-214 page by page and asked the delivery question. It found the
+> data near-perfect and the delivery broken almost everywhere — 15 CONTRADICTS,
+> 5 FABRICATED, 14 WRONG-VALUE, and the largest NEVER-FIRES bucket in the project.
+>
+> Kept, not deleted, because the drift record is the lesson: **an audit that records
+> "verified" without checking delivery produces a green row that measured nothing.**
+
 **Data Sources**: `data/bug_hunt/` (15 JSON files), [BugHuntCampaignCore.gd](src/game/campaign/BugHuntCampaignCore.gd) (476 lines)
 **Engine Files**: [BugHuntPhaseManager.gd](src/core/campaign/BugHuntPhaseManager.gd), [BugHuntTurnController.gd](src/ui/screens/bug_hunt/BugHuntTurnController.gd), [BugHuntCreationUI.gd](src/ui/screens/bug_hunt/BugHuntCreationUI.gd), [BugHuntCreationCoordinator.gd](src/ui/screens/bug_hunt/BugHuntCreationCoordinator.gd)
 **Character System**: [BugHuntCharacterGeneration.gd](src/core/character/BugHuntCharacterGeneration.gd), [CharacterTransferService.gd](src/core/character/CharacterTransferService.gd)

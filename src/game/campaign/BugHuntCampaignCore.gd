@@ -34,6 +34,18 @@ const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 @export var campaign_turn: int = 0
 @export var missions_in_current_operation: int = 0
 
+## The turn phase in progress, persisted so reopening a save resumes where the player
+## left off instead of replaying the turn from Special Assignments.
+##
+## PHASE_UNRECORDED is NOT BugHuntPhaseManager.Phase.NONE (-1). NONE means the turn
+## ENDED and the next press opens the following turn; UNRECORDED means the save predates
+## this field, so the resume branch falls back to the pre-field behaviour rather than
+## treating a half-played turn as finished and skipping the rest of it. -99 is this
+## subsystem's existing "not supplied" sentinel -- BugHuntPhaseManager.get_phase_name()
+## already uses it as a default argument.
+const PHASE_UNRECORDED := -99
+@export var current_turn_phase: int = PHASE_UNRECORDED
+
 ## Squad reputation (expendable resource pool)
 @export var reputation: int = 0
 
@@ -313,6 +325,26 @@ func advance_turn() -> void:
 	_update_modified_time()
 
 
+func persist() -> int:
+	## The ONE save path for a live Bug Hunt campaign.
+	##
+	## The turn controller's Save button and BugHuntPhaseManager._complete_turn() each
+	## carried their own copy of this GameState-then-direct-file pair, and two copies of
+	## "how do we save" is how one of them ends up not updating last_campaign.
+	##
+	## GameState.save_campaign() is preferred because it ALSO rewrites last_campaign,
+	## which is what lets the main menu's Continue button find this campaign again. The
+	## direct write is the fallback for a detached core (unit tests, tools) where the
+	## autoload is not reachable -- a bare get_node_or_null() from a Resource ERRORS and
+	## aborts the enclosing function rather than returning null.
+	var tree := Engine.get_main_loop()
+	var gs = tree.root.get_node_or_null("/root/GameState") if tree else null
+	if gs and gs.has_method("save_campaign"):
+		var result: Dictionary = gs.save_campaign(self)
+		return OK if result.get("success", false) else FAILED
+	return save_to_file("user://saves/" + get_campaign_id() + ".save")
+
+
 func apply_assignments(completed: Array) -> void:
 	## Apply results of special assignments to characters.
 	for slot in completed:
@@ -362,6 +394,7 @@ func to_dictionary() -> Dictionary:
 		},
 		"state": {
 			"campaign_turn": campaign_turn,
+			"current_turn_phase": current_turn_phase,
 			"missions_in_current_operation": missions_in_current_operation,
 			"reputation": reputation,
 			"operational_progress_modifier": operational_progress_modifier,
@@ -419,6 +452,8 @@ func from_dictionary(data: Dictionary) -> void:
 	if data.has("state"):
 		var state: Dictionary = data.state
 		campaign_turn = state.get("campaign_turn", 0)
+		# Absent means a PRE-FIELD save, not "the turn ended" -- see PHASE_UNRECORDED.
+		current_turn_phase = state.get("current_turn_phase", PHASE_UNRECORDED)
 		missions_in_current_operation = state.get("missions_in_current_operation", 0)
 		reputation = state.get("reputation", 0)
 		operational_progress_modifier = state.get("operational_progress_modifier", 0)

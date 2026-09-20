@@ -102,31 +102,6 @@ var _campaign: Variant = null
 func _init(campaign: Variant = null) -> void:
 	_campaign = campaign
 
-## Initialize starting story points based on difficulty
-## Returns the number of starting points rolled
-func initialize_starting_points(difficulty: int) -> int:
-	# Check for Insanity mode (story points disabled)
-	if _is_story_points_disabled():
-		_current_points = 0
-		story_points_changed.emit(0, 0)
-		return 0
-
-	# Roll 1D6+1 for base starting points (using randi for simple d6)
-	var base_roll: int = (randi() % 6) + 1 + 1  # d6 + 1
-	var starting_points: int = base_roll
-
-	# Apply Hardcore penalty
-	if difficulty == GlobalEnums.DifficultyLevel.HARDCORE:
-		starting_points += HARDCORE_PENALTY
-
-	# Ensure minimum of 0 (in case hardcore reduces below 0)
-	starting_points = maxi(0, starting_points)
-
-	var old_value := _current_points
-	_current_points = starting_points
-	story_points_changed.emit(old_value, _current_points)
-
-	return starting_points
 
 ## Check if the story point system is disabled for the campaign's difficulty.
 func _is_story_points_disabled() -> bool:
@@ -245,20 +220,6 @@ func check_turn_earning(turn_number: int) -> int:
 
 	return 0
 
-## Check if player earns story point from battle outcome
-## held_field: Did crew hold the battlefield?
-## character_killed: Was any character killed this battle?
-## Returns number of points earned (0 or 1)
-func check_battle_earning(held_field: bool, character_killed: bool) -> int:
-	if _is_story_points_disabled():
-		return 0
-
-	# Earn point only if BOTH conditions are met
-	if held_field and character_killed:
-		_add_story_points(BATTLE_EARNING_AMOUNT, "Held field after character death")
-		return BATTLE_EARNING_AMOUNT
-
-	return 0
 
 ## Add story points (internal helper)
 func _add_story_points(amount: int, reason: String) -> void:

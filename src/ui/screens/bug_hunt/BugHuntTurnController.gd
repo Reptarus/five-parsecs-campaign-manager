@@ -1,4 +1,4 @@
-extends Control
+extends "res://src/ui/screens/bug_hunt/BugHuntScreenBase.gd"
 
 ## Bug Hunt Campaign Turn Controller
 ## Manages the 3-stage turn flow: Special Assignments → Mission → Post-Battle
@@ -9,14 +9,14 @@ const SpecialAssignmentsScript := preload("res://src/ui/screens/bug_hunt/panels/
 const MissionPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntMissionPanel.gd")
 const PostBattlePanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd")
 
+## COLOR_BASE / COLOR_ELEVATED / COLOR_ACCENT / COLOR_BORDER / COLOR_SUCCESS are
+## NOT redeclared here: CampaignScreenBase already defines all five from this same
+## UIColors source, and a const that shadows a base const is a PARSE error, not a
+## shadow warning -- which would take this whole screen down. Only the two local
+## aliases the base has no name for are kept.
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
-const COLOR_BASE := _UC.COLOR_BASE
-const COLOR_ELEVATED := _UC.COLOR_ELEVATED
 const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
-const COLOR_ACCENT := _UC.COLOR_ACCENT
-const COLOR_BORDER := _UC.COLOR_BORDER
-const COLOR_SUCCESS := _UC.COLOR_SUCCESS
 
 var phase_manager: BugHuntPhaseManagerScript
 var campaign: Resource  # BugHuntCampaignCore
@@ -44,8 +44,15 @@ func _scaled_font(base: int) -> int:
 
 
 func _ready() -> void:
+	## super FIRST, or this screen loses every responsive signal the base wires
+	## (the regression CampaignScreenBase._ready() documents at :100-102).
+	super._ready()
 	# Defer initialization — scene may not be in tree yet when
 	# instantiated by TransitionManager.fade_to_scene()
+	#
+	# ⚠ The base ALSO queues a deferred touch sweep, and it queues it before this
+	# line runs, so that one sweeps a tree _initialize() has not built yet. The
+	# sweeps that matter are the explicit ones below, after each build.
 	call_deferred("_initialize")
 
 
@@ -64,6 +71,7 @@ func _initialize() -> void:
 	_create_panels()
 	_connect_signals()
 	_setup_responsive_topbar()
+	_fix_touch_scroll_filters()
 
 	# Check if returning from battle
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
@@ -78,14 +86,51 @@ func _initialize() -> void:
 		if gs_mgr.has_method("set_temp_data"):
 			gs_mgr.set_temp_data("bug_hunt_battle_result", null)
 	elif campaign:
-		# Normal startup — start or resume turn
-		var turn: int = campaign.campaign_turn if "campaign_turn" in campaign else 0
-		if turn <= 0:
-			phase_manager.start_new_turn()
-		else:
-			# Resume — start at Special Assignments (phases aren't saved)
-			phase_manager.turn_number = turn
-			phase_manager.campaign_turn_started.emit(turn)
+		_resume_turn()
+
+
+func _resume_turn() -> void:
+	## Pick up where the save left off.
+	##
+	## BugHuntCampaignCore.current_turn_phase is written on EVERY transition by
+	## BugHuntPhaseManager._persist_phase(), so unlike the pre-field behaviour this no
+	## longer drops the player back at Special Assignments on every reload.
+	var turn: int = campaign.campaign_turn if "campaign_turn" in campaign else 0
+	if turn <= 0:
+		phase_manager.start_new_turn()
+		return
+
+	var stored: int = BugHuntCampaignCore.PHASE_UNRECORDED
+	if "current_turn_phase" in campaign:
+		stored = int(campaign.current_turn_phase)
+
+	## campaign_turn increments at turn START (BugHuntCampaignCore.advance_turn), so the
+	## stored number already identifies the turn IN PROGRESS. Do NOT copy 5PFH's "-1" on
+	## restore (T11-20): there turns_played counts COMPLETED turns, a different quantity.
+	phase_manager.turn_number = turn
+	phase_manager.campaign_turn_started.emit(turn)
+
+	match stored:
+		BugHuntPhaseManagerScript.Phase.NONE:
+			## The turn ENDED before the save. Restore the between-turns footer rather
+			## than reopening a phase -- pressing Start Next Turn opens turn N+1. The
+			## panel area stays blank on purpose: re-showing the post-battle panel would
+			## run its refresh() against a battle result this save does not carry, and
+			## its fallback INVENTS casualties when it has none.
+			phase_manager.current_phase = BugHuntPhaseManagerScript.Phase.NONE
+			_on_turn_completed(turn)
+		BugHuntPhaseManagerScript.Phase.SPECIAL_ASSIGNMENTS:
+			phase_manager.go_to_phase(stored)
+		BugHuntPhaseManagerScript.Phase.MISSION:
+			phase_manager.go_to_phase(stored)
+		BugHuntPhaseManagerScript.Phase.POST_BATTLE:
+			## No battle result is persisted yet -- Phase 4 of the sprint stamps one.
+			## Until then resume the mission rather than manufacturing a debrief.
+			phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.MISSION)
+		_:
+			## PHASE_UNRECORDED (a save written before the field existed), or a value
+			## from a newer build. Keep the pre-field behaviour: replay from the top of
+			## the turn once, and be correct from the next transition onwards.
 			phase_manager.go_to_phase(BugHuntPhaseManagerScript.Phase.SPECIAL_ASSIGNMENTS)
 
 
@@ -203,12 +248,16 @@ func _build_layout() -> void:
 func _setup_responsive_topbar() -> void:
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_signal("layout_class_changed"):
-		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
-			rm.layout_class_changed.connect(_on_layout_class_changed)
+		if not rm.layout_class_changed.is_connected(_on_topbar_layout_class_changed):
+			rm.layout_class_changed.connect(_on_topbar_layout_class_changed)
 	_apply_topbar_responsive()
 
 
-func _on_layout_class_changed(_effective_columns: int) -> void:
+## Deliberately NOT named _on_layout_class_changed: that is CampaignScreenBase's
+## own handler (:463), and an override with the same signature would REPLACE the
+## base relayout rather than add to it. Two distinct callables, two connections,
+## each doing its own job.
+func _on_topbar_layout_class_changed(_effective_columns: int) -> void:
 	_apply_topbar_responsive()
 
 
@@ -285,6 +334,13 @@ func _on_phase_changed(old_phase: int, new_phase: int) -> void:
 		if panel.has_method("refresh"):
 			panel.refresh()
 
+	## §2 sweep, AFTER the panel has rebuilt its children. Every surface under a
+	## finger is MOUSE_FILTER_STOP by construction, and Viewport::_gui_call_input
+	## stops touch drags there, so without this a finger cannot scroll a panel.
+	## It runs per phase change because refresh() replaces the panel's subtree --
+	## a sweep that ran before those children exist does silently nothing.
+	_fix_touch_scroll_filters()
+
 
 func _on_phase_completed(_phase: int) -> void:
 	_update_phase_indicators()
@@ -325,27 +381,19 @@ func _on_advance_pressed() -> void:
 
 
 func _on_save_pressed() -> void:
-	if not campaign:
+	## One save path. This function and BugHuntPhaseManager._complete_turn() each had
+	## their own GameState-then-direct-file pair; BugHuntCampaignCore.persist() is now
+	## the single owner of that choice, so the two cannot drift over which one updates
+	## last_campaign (the key the main menu's Continue button reads).
+	if not campaign or not campaign.has_method("persist"):
 		return
-	var gs = get_node_or_null("/root/GameState")
-	if gs and gs.has_method("save_campaign"):
-		var result: Dictionary = gs.save_campaign(campaign)
-		if result.get("success", false):
-			_save_button.text = "Saved!"
-			get_tree().create_timer(1.5).timeout.connect(func():
-				if is_instance_valid(_save_button):
-					_save_button.text = "Save"
-			)
-	elif campaign.has_method("save_to_file") and campaign.has_method("get_campaign_id"):
-		# Fallback: direct save if GameState unavailable
-		var path: String = "user://saves/" + campaign.get_campaign_id() + ".save"
-		var err: int = campaign.save_to_file(path)
-		if err == OK:
-			_save_button.text = "Saved!"
-			get_tree().create_timer(1.5).timeout.connect(func():
-				if is_instance_valid(_save_button):
-					_save_button.text = "Save"
-			)
+	if campaign.persist() != OK:
+		return
+	_save_button.text = "Saved!"
+	get_tree().create_timer(1.5).timeout.connect(func():
+		if is_instance_valid(_save_button):
+			_save_button.text = "Save"
+	)
 
 
 func _show_panel(phase_idx: int) -> void:

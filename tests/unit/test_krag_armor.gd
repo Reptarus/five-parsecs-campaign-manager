@@ -1,6 +1,11 @@
 extends GdUnitTestSuite
 
-## Krag armor designation (Compendium p.15). is_armor_item tolerates both item
+## Krag armor designation, Compendium p.13 SECOND clause: armor from any source
+## other than a Trade table roll costs 2 Credits to fit a Krag, reversible for
+## the same. (Cited p.15 until 2026-09-10; p.15 is the Skulker species page.)
+## The FREE first clause is covered by test_krag_trade_armor_p13.gd.
+##
+## is_armor_item tolerates both item
 ## representations (enum category OR string type); modify_armor_for_krag charges 2
 ## credits and toggles the Krag fit, or fails when the crew can't afford it.
 
