@@ -36,18 +36,24 @@ extends GdUnitTestSuite
 ## BugHuntCampaignCore.persist() under the runner reaches /root/GameState, writing
 ## user://saves/<id>.save AND rewriting user://settings.cfg's last_campaign -- the
 ## documented cross-suite bleed that leaks a BugHuntCampaignCore into every later test
-## process. The before/after pair below is the same restore
-## test_bug_hunt_turn_completion.gd uses.
+## process.
+##
+## That restore used to be hand-rolled here and it was HALF a restore: it put the file
+## back and left GameState.game_settings, the live dict on the autoload, holding the
+## probe id -- so the next suite in the same process that called save_settings() wrote
+## the probe id straight back out. Measured: after a 17-suite batch the save directory
+## was byte-identical while settings.cfg read last_campaign="zz_bug_hunt_rendered_numbers_probe".
+## SaveDirGuard restores the dict FIRST and the file second, for that reason.
 ##
 ## gdUnit4 v6.0.3.
 
 const PostBattlePanel := preload("res://src/ui/screens/bug_hunt/panels/BugHuntPostBattlePanel.gd")
 const CoreScript := preload("res://src/game/campaign/BugHuntCampaignCore.gd")
 const CharGenScript := preload("res://src/core/character/BugHuntCharacterGeneration.gd")
+const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
 
 const PROBE_ID := "zz_bug_hunt_rendered_numbers_probe"
 const PROBE_SAVE := "user://saves/zz_bug_hunt_rendered_numbers_probe.save"
-const SETTINGS_PATH := "user://settings.cfg"
 
 ## Godot renders a whole float as "N.0". The negative lookahead keeps a genuine decimal
 ## out of the match, and anchoring the left side on a DIGIT keeps page cites out of it --
@@ -60,8 +66,7 @@ const FLOAT_PATTERN := "[0-9][.]0(?![0-9])"
 var _dm: Node = null
 var _gs: Node = null
 var _saved_campaign: Variant = null
-var _settings_existed := false
-var _settings_bytes := PackedByteArray()
+var _user_state: Dictionary = {}
 
 
 func before_test() -> void:
@@ -79,10 +84,9 @@ func before_test() -> void:
 	if _gs != null:
 		_saved_campaign = _gs.current_campaign
 
-	_settings_existed = FileAccess.file_exists(SETTINGS_PATH)
-	_settings_bytes = PackedByteArray()
-	if _settings_existed:
-		_settings_bytes = FileAccess.get_file_as_bytes(SETTINGS_PATH)
+	# Covers settings.cfg, GameState.game_settings and any save file that appears --
+	# see the HYGIENE paragraph above for why the file alone was not enough.
+	_user_state = SaveDirGuard.snapshot()
 	# A run aborted mid-case can leave a probe save behind, and load_from_file() falls
 	# back to its .bak, so clear them before a case can read one.
 	_remove_probe_saves()
@@ -95,18 +99,9 @@ func after_test() -> void:
 		_dm.clear_forced_results()
 	if _gs != null:
 		_gs.current_campaign = _saved_campaign
-	_restore_settings_file()
 	_remove_probe_saves()
-
-
-func _restore_settings_file() -> void:
-	if _settings_existed:
-		if FileAccess.get_file_as_bytes(SETTINGS_PATH) != _settings_bytes:
-			var f := FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)
-			if f:
-				f.store_buffer(_settings_bytes)
-	elif FileAccess.file_exists(SETTINGS_PATH):
-		DirAccess.remove_absolute(SETTINGS_PATH)
+	SaveDirGuard.restore(_user_state)
+	_user_state = {}
 
 
 func _remove_probe_saves() -> void:

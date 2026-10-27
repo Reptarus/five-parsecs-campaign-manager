@@ -366,9 +366,28 @@ Some fixes sit behind a rare roll. What is and is not reachable:
   `campaign.rivals` (`FiveParsecsCampaignCore.gd:635`). Make the fixture **discriminating** —
   typing every Rival `Corporate` (not a valid enemy type) forces the enemy-type validator down
   its reject path; a fixture that could pass either way proves nothing.
-- **NOT forceable:** any D10/D100 table roll. `QAScenarioLoader` covers counters / DLC /
-  compendium progress / crew / narrative; `CampaignEditorScreen` covers scalars plus crew.
-  `MissionTableManager` uses bare `randi_range()` with no injectable dice seam.
+- ⚠ **CORRECTED 2026-09-20. This bullet used to read "NOT forceable: any D10/D100 table
+  roll … `MissionTableManager` uses bare `randi_range()` with no injectable dice seam."
+  BOTH halves are now false**, and the claim is stale in the direction that costs a device
+  session — it tells you the mechanism a walk depends on does not exist.
+  - **Any routed roll IS forceable.** `DiceManager.queue_forced_result(context_key, value)`
+    landed 2026-09-04 (`DiceManager.gd:78`), both ends gated on `OS.is_debug_build()`,
+    surfaced as **"Force the next roll"** in `QAScenarioDialog` — reachable from the
+    Campaign Dashboard's QA button and, since Sprint 1 Phase 3, from the **Bug Hunt
+    dashboard's QA card** (`BugHuntDashboard.gd:122`, `:127-134`). It closed T9-47, T9-48
+    and T9-51 on hardware.
+  - **`MissionTableManager` was routed.** All seven of its rolls go through
+    `_roll_die(sides, context)` (`:61`, `:109`, `:120`, `:149`, `:174`, `:200`, `:218`),
+    which reaches the autoload and falls back to `legacy_randi_range()` only when there is
+    none — behaviour-neutral, one draw either way.
+  - Matching is a **case-insensitive SUBSTRING** of the roll's context string, consumed
+    ONCE, and an **out-of-range value is DISCARDED, not clamped** (deliberate: clamping
+    arms a different row than you asked for). So a queued value that never fires and a
+    queued value that was silently dropped look identical on screen — read the debug log
+    line, or assert the outcome, never the fact that you pressed Queue.
+  - Still true: `QAScenarioLoader` covers counters / DLC / compendium progress / crew /
+    narrative, and `CampaignEditorScreen` covers scalars plus crew. What is NOT forceable
+    is a roll made with a bare `randi_range()` — grep the call site before assuming.
 - Temporarily widening a `roll_range` in `data/` works but means testing a build whose rules
   data differs from ship. **Ask the user before doing it** — it was declined on 2026-08-14.
 

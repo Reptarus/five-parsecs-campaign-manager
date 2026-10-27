@@ -81,7 +81,7 @@ const TOUCH_FLOOR_DP := 48.0
 const EPS := 0.5
 
 ## A1 alpha surface. Bug Hunt / Planetfall / Tactics are hidden by
-## MainMenu.gd A1_BUILD and are deliberately out of scope.
+## MainMenu.is_a1_build() and are deliberately out of scope.
 const SCREENS: Array = [
 	"res://src/ui/screens/mainmenu/MainMenu.tscn",
 	"res://src/ui/screens/legal/EULAScreen.tscn",

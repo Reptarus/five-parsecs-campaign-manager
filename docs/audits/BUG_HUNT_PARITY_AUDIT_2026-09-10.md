@@ -2668,6 +2668,12 @@ any tally above it.** The desk ledger recorded only the 16+ half.
 
 ## Still owed
 
+> ⚠ **SUPERSEDED 2026-09-24: the device walk HAS RUN** — deploy #36, 2026-09-21/22, recorded in
+> `docs/qa/BUG_HUNT_DEVICE_WALK_2026-09-21_FINDINGS.md`. It opened ~30 findings (W-6..W-27, W-N13..W-N30), none yet transcribed to
+> rows in this ledger; that file is their record. Fixed at the desk so far: **W-N24** (the
+> transfer committed on the result screen's Dismiss, not on Confirm — see that file's
+> `## DESK FIXES`). The paragraph below is kept as written; it describes the state before the walk.
+
 **A device walk.** `src/ui/screens/mainmenu/MainMenu.gd:20` has `const A1_BUILD := true`, which
 rebinds the Bug Hunt button to a "coming soon" note — Bug Hunt is currently unreachable from the
 main menu, and the only live route is the store screen. Every finding above is desk-verified.

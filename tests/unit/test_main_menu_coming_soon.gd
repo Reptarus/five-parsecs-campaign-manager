@@ -102,7 +102,7 @@ func _buttons(m: Node) -> Dictionary:
 
 func test_every_gated_mode_button_exists() -> void:
 	# Tactics and Planetfall are INJECTED, and used to be skipped entirely under
-	# A1_BUILD. If injection regresses behind the flag they silently vanish again
+	# the Alpha-1 scope. If injection regresses behind the flag they silently vanish again
 	# and every assertion below would pass vacuously on a null.
 	var by_key := _buttons(_menu())
 	for key: String in GATED:
@@ -139,7 +139,7 @@ func test_gated_mode_buttons_are_dimmed_so_they_read_as_unavailable() -> void:
 
 func test_a_gated_button_does_not_navigate() -> void:
 	# The rebind is the fix. If the real handler survived, tapping Bug Hunt under
-	# A1_BUILD would route into a mode the alpha does not ship.
+	# MainMenu.is_a1_build() would route into a mode the alpha does not ship.
 	var m := _menu()
 	var by_key := _buttons(m)
 	var handlers := {

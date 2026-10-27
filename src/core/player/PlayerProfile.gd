@@ -202,8 +202,27 @@ func get_bonus_summary() -> Dictionary:
 ## PERSISTENCE (JSON Format)
 ## ============================================================================
 
-## Saves the profile to disk
+## Saves the profile to disk.
+##
+## REFUSES after a failed load. load_from_disk() latches _load_failed when neither
+## the primary nor its .bak was usable, and the comment at that site has always said
+## this function must not then overwrite a real profile with defaults -- but nothing
+## read the flag until 2026-09-21. This object is the ONLY cross-campaign progression
+## store, and register_campaign_start() increments a counter and saves immediately, so
+## one unreadable read followed by one campaign creation persisted elite_ranks = 0 over
+## a real career.
+##
+## A comment naming a collaboration is not the collaboration. The case that named this
+## guard -- test_write_safety.gd::test_profile_refuses_to_save_after_a_failed_load --
+## asserted only the in-memory field it had set itself two lines earlier, so it passed
+## identically with the guard absent, and performed the destructive write on every run.
+## It now asserts the bytes on disk.
 func save_to_disk() -> void:
+	if _load_failed:
+		push_warning("PlayerProfile: refusing to save - the profile was never "
+			+ "successfully loaded; writing now would erase a real career")
+		return
+
 	last_saved_at = Time.get_datetime_string_from_system(true)
 	
 	var data := {
@@ -217,17 +236,19 @@ func save_to_disk() -> void:
 	}
 	
 	var json_string := JSON.stringify(data, "\t")
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	
-	if file == null:
-		push_error("PlayerProfile: Failed to save - %s" % FileAccess.get_open_error())
+
+	# Atomic, with a .bak generation, because load_from_disk() reads through
+	# SaveFileWriter.read_json_with_fallback() -- which consults that .bak. The raw
+	# FileAccess.WRITE this replaced truncated the live path in place, so the reader
+	# was looking for a backup the writer never created and a half-written file had no
+	# recovery generation behind it. The suite docblock in test_write_safety.gd has
+	# described this fix in the PAST TENSE since it was written; it had never landed.
+	var err := SaveFileWriterRef.write_text_atomic(SAVE_PATH, json_string)
+	if err != OK:
+		push_error("PlayerProfile: Failed to save %s - error %d" % [SAVE_PATH, err])
 		return
-	
-	file.store_string(json_string)
-	file.close()
-	
+
 	profile_saved.emit()
-	pass
 
 
 ## Loads the profile from disk (or creates default if not exists)

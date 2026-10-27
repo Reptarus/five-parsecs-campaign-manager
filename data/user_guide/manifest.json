@@ -1,0 +1,21 @@
+{
+	"_source": "Chapter list for src/ui/help/HelpContentLoader.gd. Read FIRST, because TacticsSpeciesBookLoader records a DirAccess scan of res:// as failing in exported builds; the scan is only the editor fallback. Must equal the .md files in this directory, sorted -- tests/unit/test_help_guide_ships.gd fails if a chapter is added or removed without updating this list.",
+	"chapters": [
+		"00_index.md",
+		"01_getting_started.md",
+		"02_campaign_creation.md",
+		"03_campaign_dashboard.md",
+		"04_campaign_turn_overview.md",
+		"05_travel_and_world.md",
+		"06_battle_companion.md",
+		"07_post_battle.md",
+		"08_advancement_and_trading.md",
+		"09_characters_and_crew.md",
+		"10_equipment.md",
+		"11_victory_conditions.md",
+		"12_bug_hunt.md",
+		"13_dlc_store.md",
+		"14_save_load.md",
+		"15_settings_accessibility.md"
+	]
+}

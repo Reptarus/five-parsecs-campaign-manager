@@ -10,6 +10,7 @@
 ## DLC ownership is persistent across campaigns (user prefs).
 extends Node
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+const ReviewBuildRef = preload("res://src/core/systems/ReviewBuild.gd")
 
 signal dlc_ownership_changed(dlc_id: String, owned: bool)
 signal feature_flag_changed(flag: int, enabled: bool)
@@ -283,7 +284,20 @@ func is_ownership_loaded() -> bool:
 	return _ownership_loaded
 
 
+## True when every pack was granted in MEMORY by a review build (ReviewBuild.gd) rather
+## than read from disk or bought. Such a record must never be written back: on Windows the
+## review build and the alpha share one user:// directory, so persisting it would leave the
+## alpha owning every pack the next time it boots.
+var _review_ownership: bool = false
+
+
 func save_ownership() -> void:
+	## A review build's ownership is granted, not owned (see _review_ownership). This runs
+	## on every boot -- StoreManager's entitlement sync calls it unconditionally -- so the
+	## refusal is silent rather than a warning.
+	if _review_ownership:
+		return
+
 	## REFUSES TO WRITE A RECORD IT NEVER SUCCESSFULLY READ.
 	##
 	## THE BUG THIS FIXES: this rewrote the live file in place on EVERY boot, and a
@@ -357,5 +371,32 @@ static func is_flag_enabled_safe(flag: int) -> bool:
 		return false
 	return dlc.is_feature_enabled(flag)
 
-func _ready() -> void:
+## REVIEW BUILD ONLY. Grants every pack in memory so all five modes and every Compendium
+## chapter are reachable without a store.
+##
+## It grants OWNERSHIP, not the per-campaign feature toggles. _enabled_flags are a
+## campaign's own opt-ins: CampaignCreationUI resets them for every new campaign and a
+## loaded campaign restores its saved choices, so switching them on here would be wiped
+## before a reviewer ever saw it. With every pack owned, the creation wizard's
+## ExpansionFeatureSection offers every toggle and its enable-all button -- the real
+## product flow, which is what a reviewer should be judging.
+##
+## _review_ownership is set FIRST so a listener that saves while set_dlc_owned() emits is
+## refused too.
+func _apply_review_grants() -> void:
+	_review_ownership = true
+	for dlc_id: String in DLC_IDS:
+		set_dlc_owned(dlc_id, true)
+
+
+## Boot sequence, split out of _ready() so a test can drive both arms on a detached
+## instance: ReviewBuild.is_active() is false in every editor and gdUnit4 run (custom
+## feature tags apply only to exports), so the review arm is otherwise untestable.
+func _boot(review: bool) -> void:
 	load_ownership()
+	if review:
+		_apply_review_grants()
+
+
+func _ready() -> void:
+	_boot(ReviewBuildRef.is_active())

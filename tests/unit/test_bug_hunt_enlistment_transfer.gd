@@ -193,7 +193,14 @@ func _accepted_result(transferred: Dictionary) -> Dictionary:
 	}
 
 
-## Drive the panel's own "Welcome Aboard!" control and return what it emitted.
+## Commit an accepted enlistment the way Confirm does, and return what it emitted.
+##
+## REPOINTED 2026-09-22 (W-N24). This helper used to press the result screen's
+## "Welcome Aboard!" control, because that button WAS the commit -- which is the defect:
+## backing out of the result screen discarded an accepted roll. The commit now happens in
+## _commit_enlistment(), called from _execute_transfer() before the screen is built, and
+## the dismiss button only closes. test_the_result_screens_dismiss_control_commits_nothing
+## pins that the button no longer emits.
 ##
 ## ⚠ The emitted dict is COLLECTED INTO AN ARRAY, not assigned to a captured variable.
 ## GDScript lambdas capture by value: `emitted = char_data` inside the handler rebinds the
@@ -202,27 +209,28 @@ func _accepted_result(transferred: Dictionary) -> Dictionary:
 ## container (append) reaches the outer scope; rebinding a captured name does not. The
 ## size check below is therefore also the premise instrument — and asserting EXACTLY one
 ## entry additionally catches a double-fire, which the pointer-family traps make cheap.
-func _press_welcome_aboard(panel: Control) -> Dictionary:
+func _commit_via_panel(panel: Control, result: Dictionary) -> Dictionary:
 	var emits: Array = []
 	panel.character_transferred.connect(
 		func(char_data: Dictionary, _dir: String):
 			emits.append(char_data))
-	var btn: Button = null
-	for node in panel.find_children("*", "Button", true, false):
-		if (node as Button).text == "Welcome Aboard!":
-			btn = node
-			break
-	assert_object(btn).override_failure_message(
-		"fixture premise: the enlistment result must offer a Welcome Aboard! control,"
-		+ " or this case is not driving the emit site at all"
-	).is_not_null()
-	btn.emit_signal("pressed")
+	panel._commit_enlistment(result)
 	assert_int(emits.size()).override_failure_message(
-		"fixture premise: pressing Welcome Aboard! must emit character_transferred exactly"
-		+ " once — 0 means this case never reached the stamp site, more than 1 means the"
-		+ " emit double-fired"
+		"fixture premise: committing an accepted enlistment must emit character_transferred"
+		+ " exactly once — 0 means this case never reached the stamp site, more than 1"
+		+ " means the emit double-fired"
 	).is_equal(1)
 	return emits[0] if emits.size() == 1 else {}
+
+
+## Every Button under the panel whose text is `label`. Walked by class, because the
+## result screen is code-built and its node names are not stable.
+func _buttons_labelled(panel: Control, label: String) -> Array:
+	var out: Array = []
+	for node in panel.find_children("*", "Button", true, false):
+		if (node as Button).text == label:
+			out.append(node)
+	return out
 
 
 ## A real dashboard bound to our Bug Hunt core, via GameState as the screen resolves it.
@@ -265,8 +273,7 @@ func test_the_panel_stamps_where_the_veteran_came_from() -> void:
 	# The conversion rewrites fields, so the transferred shape deliberately carries a
 	# DIFFERENT id here. That is the whole point of stamping from _selected_character.
 	var converted := {"id": "post_conversion_id", "name": "Enlisting Veteran"}
-	panel._show_enlistment_result(_accepted_result(converted))
-	var emitted := _press_welcome_aboard(panel)
+	var emitted := _commit_via_panel(panel, _accepted_result(converted))
 
 	assert_str(str(emitted.get("_source_path", ""))).override_failure_message(
 		"the enlist emit must name the save the veteran was read from, or the dashboard"
@@ -288,9 +295,8 @@ func test_an_in_memory_source_stamps_nothing() -> void:
 	panel.load_characters_from_save(FP_SAVE)  # no file on disk yet: sets nothing
 	panel.load_characters_from_array([_member(VET_ID, "In Memory Veteran")])
 	panel._selected_character = panel._source_characters[0]
-	panel._show_enlistment_result(
+	var emitted := _commit_via_panel(panel,
 		_accepted_result({"id": VET_ID, "name": "In Memory Veteran"}))
-	var emitted := _press_welcome_aboard(panel)
 
 	assert_bool(emitted.has("_source_path")).override_failure_message(
 		"an in-memory source has no file to remove from; stamping one would point the"
@@ -428,3 +434,104 @@ func test_a_rebuild_during_the_reveal_does_not_fade_a_freed_card() -> void:
 				"the rebuilt dashboard must end fully revealed; '%s' is still at alpha %f"
 				% [child.name, child.modulate.a]
 			).is_equal_approx(1.0, 0.01)
+
+
+## Every Label text under the panel, joined. Absence assertions read this, so a string
+## that exists only on a screen this case never built cannot satisfy them by accident.
+func _label_text(panel: Control) -> String:
+	var parts: PackedStringArray = []
+	for node in panel.find_children("*", "Label", true, false):
+		parts.append((node as Label).text)
+	return "\n".join(parts)
+
+
+## A listener that behaves like BugHuntDashboard when _apply_* returns an error: it
+## reports it DURING the emit, which is the only window the panel reads it in.
+func _fail_every_commit(panel: Control, message: String) -> void:
+	panel.character_transferred.connect(
+		func(_char_data: Dictionary, _dir: String):
+			panel.report_commit_error(message))
+
+
+func test_the_result_screens_dismiss_control_commits_nothing() -> void:
+	# W-N24. The dismiss button WAS the commit, so backing out of the result screen lost an
+	# accepted roll -- and p.212 gates the retry on the next mission. It now only closes.
+	var panel := _build_panel()
+	panel.set_direction("enlist")
+	var emits: Array = []
+	var closes: Array = []
+	panel.character_transferred.connect(
+		func(char_data: Dictionary, _dir: String): emits.append(char_data))
+	panel.transfer_closed.connect(func(): closes.append(true))
+
+	panel._show_enlistment_result(
+		_accepted_result({"id": VET_ID, "name": "Enlisting Veteran"}))
+	var buttons := _buttons_labelled(panel, "Welcome Aboard!")
+	assert_int(buttons.size()).override_failure_message(
+		"fixture premise: the accepted-enlistment screen must offer exactly one"
+		+ " Welcome Aboard! control, or this case is not pressing the dismiss button"
+	).is_equal(1)
+	(buttons[0] as Button).emit_signal("pressed")
+
+	assert_int(emits.size()).override_failure_message(
+		"the result screen's dismiss control must NOT commit: the enlistment was committed"
+		+ " by _commit_enlistment() before this screen was built, so an emit here would"
+		+ " apply it twice"
+	).is_equal(0)
+	assert_int(closes.size()).override_failure_message(
+		"dismissing must emit transfer_closed exactly once -- the dashboard rebuilds on it,"
+		+ " and the rebuild can no longer run inside _apply_enlistment()"
+	).is_equal(1)
+
+
+func test_a_failed_enlist_commit_is_not_announced_as_an_ineligibility() -> void:
+	# The failure dict carries no `dice`, and the enlist screen reads a missing `dice` as
+	# "never rolled". Without commit_failed, an accepted roll whose SAVE failed was told
+	# "This character is not eligible for Bug Hunt service" -- false twice over.
+	var panel := _build_panel()
+	panel.set_direction("enlist")
+	panel.load_characters_from_array([_member(VET_ID, "Enlisting Veteran")])
+	panel._selected_character = panel._source_characters[0]
+	_fail_every_commit(panel, "zz probe: the campaign could not be written")
+
+	var shown: Dictionary = panel._commit_enlistment(
+		_accepted_result({"id": VET_ID, "name": "Enlisting Veteran"}))
+	assert_bool(shown.get("success", true)).override_failure_message(
+		"a commit the listener reported as failed must not be shown as a success"
+	).is_false()
+
+	panel._show_enlistment_result(shown)
+	var text := _label_text(panel)
+	assert_bool(text.contains("NOT SAVED")).override_failure_message(
+		"a failed commit must say the enlistment was not saved; the screen read:\n" + text
+	).is_true()
+	assert_bool(text.contains("zz probe: the campaign could not be written")).override_failure_message(
+		"the screen must show the listener's reason, or the player cannot act on it"
+	).is_true()
+	assert_bool(text.contains("CANNOT ENLIST")
+		or text.contains("This character is not eligible")).override_failure_message(
+		"the roll was ACCEPTED; announcing an ineligibility sends the player hunting for a"
+		+ " rules problem that does not exist. The screen read:\n" + text
+	).is_false()
+
+
+func test_the_muster_screen_never_claims_success_before_the_commit() -> void:
+	# W-N24, muster side. CharacterTransferService.muster_out() writes nothing, so the
+	# "MUSTERED OUT!" breakdown used to render over a transfer file nobody had written.
+	var panel := _build_panel()
+	panel.set_direction("muster_out")
+	_fail_every_commit(panel, "zz probe: the transfer file could not be written")
+
+	var shown: Dictionary = panel._commit_muster_out({
+		"success": true,
+		"transferred_character": {"id": VET_ID, "name": "Mustering Marine"},
+	})
+	panel._show_muster_result(shown)
+	var text := _label_text(panel)
+	assert_bool(text.contains("MUSTERED OUT!")).override_failure_message(
+		"a muster-out whose commit failed must not announce success; the screen read:\n"
+		+ text
+	).is_false()
+	assert_bool(text.contains("TRANSFER FAILED")).override_failure_message(
+		"a failed muster commit must say so; the screen read:\n" + text
+	).is_true()

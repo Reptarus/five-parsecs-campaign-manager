@@ -7,22 +7,23 @@
 **Cohort**: Google-Form signup funnel across the official Discord, Ivan's community and the 5PFH Facebook group (journal Entry #12; `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`). ~~10-20 testers from Ivan's private playtesting Discord~~
 **Distribution**: Android via Google Play closed testing track (invite-only email allowlist under Modiphius's Play account). Build: `0.9.7-alpha1` (`project.godot:22`), AAB, min SDK 29 / Android 10+ (`export_presets.cfg:34`), target SDK 35 (`:35`), versionCode 18 (`:41`).
 **Build cadence**: weekly (Mondays)
-**Status**: DRAFT v2, updated 2026-09-13 (status lines, §3 build facts, open items). Body otherwise still v1.
+**Status**: DRAFT v2, updated 2026-09-21 (blockers re-checked at `ca6172011`; Alpha-1 scope is now enforced in the build, §1.5). Previously 2026-09-13 (status lines, §3 build facts, open items). Body otherwise still v1.
 **Timeline stale (flagged 2026-06-18)**: every date below (the May 25 to Jul 6 window, the A0-A6 build cadence in §5, the §8 pipeline) predates the mobile-first re-pivot and has passed. Re-anchor the whole schedule once Modiphius commits a hard kickoff date (and Play Console access lands). Dates left in place until then.
 
-**Blocking kickoff as of 2026-09-13** (detail in journal §3.0):
+**Blocking kickoff as of 2026-09-21** (detail in journal §3.0). ⚠ Nothing on this list moved between Sep 13 and Sep 21; Modiphius has not replied since Sep 11:
 
-1. LOI on Modiphius letterhead (promised Mon Sep 14, Entry #32).
+1. LOI on Modiphius letterhead — ⚠ **OVERDUE**: promised for Mon Sep 14 (Entry #32), never arrived, and two comment threads on the Doc are still open (Entry #34). Chased Sep 20 (Entry #35).
 2. Play Console access for Elijah (asked Jun 18, Entry #21, no answer).
 3. NDA stance for an invite-only cohort (§3 below).
 4. Kickoff date from Modiphius.
 5. A tester DLC unlock mechanism (engineering; §3 below).
+6. The tester reward term (what a tester gets for completing). **Agreed in substance 2026-09-21** — the owner accepted Chris's "free access to the base app not paid extra content", so the clause is now in `docs/LOI_DRAFT.md:66` and nothing is left to negotiate. Still blocking only in the mechanical sense: Chris's LOI comment thread is unresolved and the letter has not issued, and the **duration** (permanent vs "free X months") has never been stated by either party. Tester-facing docs may carry the base-app grant once the letter issues; they may not state a duration.
 
 ---
 
 ## 1. What This Alpha Is
 
-This is the closed alpha phase for the **5PFH Digital** app — the partnership-blessed digital version of Five Parsecs From Home, in development with Modiphius. Launch is mobile-first: Android first via Google Play, iOS once an iOS device is affordable, desktop on Steam as a later scale-up phase.
+This is the closed alpha phase for the **5PFH Digital** app — the partnership-blessed digital version of Five Parsecs From Home, in development with Modiphius. Launch is Android through Google Play, and that is the only platform we can currently ship to: `steam_appid.txt` holds `480`, Valve's public Spacewar placeholder rather than a real App ID, and `export_presets.cfg` has no iOS preset at all (its three presets are Android, Linux and Windows Desktop). ⚠ Other platforms are aspiration, not plan. No alpha or tester-facing document may name one (owner instruction, 2026-09-21).
 
 The alpha has **two goals**, equal weight:
 
@@ -38,6 +39,12 @@ Bug-finding is the obvious part. The pricing-validation part matters more long-t
 **Alpha-1 scope (this document covers May 25 → Jul 6):** Standard 5PFH 9-phase campaign mode + the 3 Compendium DLC packs (33 ContentFlags) only.
 
 **Deferred to alpha-2 or beta:** Bug Hunt gamemode (38 files), Planetfall gamemode (63 files), Tactics gamemode (59 files), cross-mode isolation testing, character-transfer service.
+
+✅ **This split is now ENFORCED IN THE BUILD (verified 2026-09-21 at `ca6172011`)** — it used to be a scoping intention this document held alone. `const A1_BUILD := true` (`src/ui/screens/mainmenu/MainMenu.gd:20`) drives `_apply_a1_scope()`, which rebinds the Co-op, Bug Hunt, Tactics and Planetfall menu buttons to a "Coming in a later release" note. So an Alpha-1 tester reaches the **Standard 5PFH campaign and the Battle Simulator**, and cannot reach the other four modes.
+
+⚠ **The four buttons are still VISIBLE and still enabled**, dimmed via `modulate` and carrying a tooltip. That is deliberate and documented at the call site: a `disabled` Button emits no `pressed` signal, so it could never explain itself. **Testers will see four modes they cannot open** — the onboarding doc has to say so, or every tester files the same bug.
+
+⚠ Alpha-1 scope is therefore NOT affected by the Bug Hunt Sprint 1 work committed Sep 20 (`d1e541ccb`, `ca6172011`). That sprint is Alpha-2 content and is out of tester reach; it does not change what this plan covers.
 
 **Why narrow alpha-1 to one game mode + DLC layered on top:**
 
@@ -89,7 +96,7 @@ Alpha-1 QA execution detail lives in [`docs/testing/ALPHA_1_QA_PLAN.md`](testing
 ### Build distribution
 
 - **Android-only for alpha** (installed through Google Play's closed testing track under Modiphius's Play account; testers opt in via an email-allowlisted link shared in Discord)
-- Desktop (Steam) and iOS deferred to later phases
+- Android only. No iOS preset and no Steamworks app exist, so no other platform is in scope or may be named
 - Build size: Android App Bundle, target under 150MB
 - Install steps in the onboarding doc: accept the Play test invite, then install from the Play listing. No Defender or SmartScreen step (that was the Windows path); the tester's Gmail must match the device they install on
 
@@ -201,20 +208,22 @@ By the end of week 3, the data should tell us:
 
 ### 6.1 Category-perception probe (added Apr 30, ties to MUTUALLY AGREED THESIS T2)
 
-The Apr 30 forecast deep-dive (`MODIPHIUS_DIGITAL_FORECAST.md` §11.1d) confirmed that 5PFH on Steam is **establishing a category** — solo-RPG/wargame digital companion apps essentially do not exist on Steam yet. Empty category = both moat AND discovery risk. Closed alpha is the cheapest way to validate which side dominates.
+> ⚠ **Platform note (2026-09-21)**: this section and §6.5 below were written in Apr 2026 against a Steam-first plan. **We have no Steamworks app** (`steam_appid.txt` holds `480`, Valve's public Spacewar placeholder rather than a real App ID, and `export_presets.cfg` has no iOS preset at all (its three presets are Android, Linux and Windows Desktop)). The category analysis itself is unaffected and is kept for that reason, but the storefront nouns have been generalised: read them as "whichever storefront we publish on", which today is Google Play. The one place the word mattered was the Week 6 discovery question, which is asked to a TESTER and now names no storefront.
+
+The Apr 30 forecast deep-dive (`MODIPHIUS_DIGITAL_FORECAST.md` §11.1d) confirmed that 5PFH is **establishing a category** — solo-RPG/wargame digital companion apps essentially do not exist on the major storefronts yet. Empty category = both moat AND discovery risk. Closed alpha is the cheapest way to validate which side dominates.
 
 **What we collect**:
 
 - **Open-ended language probe (Week 1, Week 3, Week 6)**: ask testers verbatim "How would you describe this app to a friend in one sentence?" Capture the *exact words* they use. Do not lead them. Do not offer suggestions. Repeat at three checkpoints to track language drift as familiarity grows.
 - **Forced-choice category probe (Week 3, Week 6)**: present 5-6 candidate category labels and ask testers which fits best. Candidates: "campaign manager", "solo RPG companion", "digital edition", "tabletop assistant", "campaign tracker", "gamemaster tool". Track distribution.
-- **Discovery hypothetical (Week 6)**: "If you were searching the Steam store for an app like this, what would you type into search?" — captures real Steam discovery keywords from the audience that already plays the game.
+- **Discovery hypothetical (Week 6)**: "If you were searching an app store for an app like this, what would you type into search?" — captures real discovery keywords from the audience that already plays the game.
 
 **What we do with the data**:
 
-- Feeds directly into the Phase C **Steam-store-positioning brief** (capsule images, store-page copy, "Why Early Access?" answers, search keywords)
+- Feeds directly into the Phase C **store-positioning brief** (capsule images, store-page copy, "Why Early Access?" answers, search keywords)
 - The words testers use become the words on the store page — not the words we'd use internally
 - If language *converges* across testers → category is forming, store positioning has clear targets, low discovery risk
-- If language *diverges* widely → category is unstable; risk of audience-confusion in Steam discovery; needs marketing clarity work before EA
+- If language *diverges* widely → category is unstable; risk of audience-confusion in store discovery; needs marketing clarity work before launch
 
 **Owner**: Elijah captures, Ivan helps moderate during Discord debriefs. **Output**: `docs/CATEGORY_PERCEPTION_REPORT.md` (alongside `PRICING_PERCEPTION_REPORT.md`) at end of alpha.
 
@@ -222,12 +231,12 @@ The Apr 30 forecast deep-dive (`MODIPHIUS_DIGITAL_FORECAST.md` §11.1d) confirme
 
 ## 6.5 Digital→Physical Conversion Mechanism Specs (added Apr 30, ties to MUTUALLY AGREED THESIS T4)
 
-The Apr 30 forecast deep-dive (`MODIPHIUS_DIGITAL_FORECAST.md` §11.5a) established 5 in-app conversion mechanisms designed to drive Steam users toward physical book purchases. These are now Phase B alpha deliverables — must be designed, prototyped, and at least mocked-up by alpha kickoff so testers can react to them.
+The Apr 30 forecast deep-dive (`MODIPHIUS_DIGITAL_FORECAST.md` §11.5a) established 5 in-app conversion mechanisms designed to drive app buyers toward physical book purchases. These are now Phase B alpha deliverables — must be designed, prototyped, and at least mocked-up by alpha kickoff so testers can react to them.
 
 | Mechanism | Phase B deliverable | Where it lives in the app |
 |---|---|---|
 | **Discount code for physical book** | Mock dialog at first-launch + Settings → "Get the Book" entry. Real discount code requires Modiphius coordination on sizing (15-20% placeholder, awaiting Gavin confirmation). | First-launch dialog, Settings, post-tutorial completion |
-| **"Get the Physical Edition" CTA** | Persistent low-friction link with co-branded landing page mock-up. URL parameter to track Steam-source clicks if Modiphius store supports it. | Main menu footer, Help screen, post-campaign-completion screen |
+| **"Get the Physical Edition" CTA** | Persistent low-friction link with co-branded landing page mock-up. URL parameter to track in-app-source clicks if Modiphius store supports it. | Main menu footer, Help screen, post-campaign-completion screen |
 | **Bundled-PDF reminder** | Tooltip / dialog that surfaces at the right moments — "physical includes free PDF — you don't lose your digital purchase if you upgrade to physical." | Compendium screen, expansion-purchase upsell flows |
 | **Tier-locked physical pre-order incentives** | Lower-priority for alpha; mock-up only. Real implementation post-EA when expansions cycle. | Expansion pack store screen, news/updates panel (post-EA) |
 | **Modiphius newsletter capture** | Optional opt-in flow with explicit consent (legal stack). Email + name → posted to Modiphius newsletter API once endpoint provided. | Settings, post-purchase success screens |
@@ -266,15 +275,15 @@ If any gate misses → extend alpha by 2 weeks; ship 2 more patches; re-evaluate
 
 ## 8. After Alpha (What Happens Next)
 
-> **Platform progression (settled, mobile-first)**: Android is the launch platform. iOS follows once an iOS device is in budget. Desktop (Steam Early Access) and beyond are the later "scale up" phases, after mobile is established. The Steam-dated pipeline below is a later-phase placeholder and re-anchors to real dates once Modiphius commits a hard schedule.
+> **Platform (2026-09-21, owner instruction): Android only.** We hold no Steamworks app and no iOS account: `steam_appid.txt` holds `480`, Valve's public Spacewar placeholder rather than a real App ID, and `export_presets.cfg` has no iOS preset at all (its three presets are Android, Linux and Windows Desktop). Neither is a plan, and neither may be named in tester-facing or Modiphius-facing material. ⚠ **The dated Steam pipeline that used to sit below is cut, not re-dated.** It named a "Beta / Steam Playtest (Jul 21 → Sep 1)" and a "Steam Early Access launch (target ~Sep 23-30)"; both dates have passed AND both described access we do not have, and there is nothing to re-anchor them to while kickoff is still TBD. The sequence below is kept because the ORDER of the phases is still right; every date in it is from the original May plan and is dead.
 
 - **Refinement phase (2 weeks, Jul 7 → Jul 20)**: I act on alpha findings. UX redesigns, bug fixes, scope decisions. No new testers. Marketing prep starts in parallel (capsule art commission, Coming Soon page draft).
-- **Beta / Steam Playtest (6 weeks, Jul 21 → Sep 1)**: bigger cohort (100-200) via Steam Playtest. Wishlist accumulation begins. Localization decisions.
-- **Marketing lock + EA prep (3 weeks, Sep 2 → Sep 22)**: store page populated, trailer cut, capsule art final, EA pricing locked.
-- **Steam Early Access launch (target ~Sep 23-30)**: public release, Modiphius cross-promo, support channels live.
+- **Beta (6 weeks, dates TBD)**: bigger cohort (100-200) through the same Google Play test route, widened. Localization decisions.
+- **Marketing lock + launch prep (3 weeks, dates TBD)**: Play listing populated, trailer cut, feature graphic final, launch pricing locked.
+- **Public release (date TBD)**: Google Play, Modiphius cross-promo, support channels live.
 - **6-12 months in EA → 1.0 launch**: monthly minor / quarterly major content drops, then 1.0 with $5 price increase.
 
-Closed alpha testers stay in the loop after alpha ends — invited to beta cohort, get acknowledgment in credits, early Steam keys at 1.0 if they want.
+Closed alpha testers stay in the loop after alpha ends: invited to the beta cohort and acknowledged in credits. ⚠ This line used to end "early Steam keys at 1.0 if they want", cut 2026-09-21 because there is no Steamworks app to issue a key from.
 
 ---
 
@@ -308,12 +317,13 @@ Closed alpha testers stay in the loop after alpha ends — invited to beta cohor
 
 ## 11. Open Items Before Kickoff
 
-Updated 2026-09-13. Original list said "resolve in Phase A.2 (May 5-11)".
+Updated 2026-09-21 (was 2026-09-13). Original list said "resolve in Phase A.2 (May 5-11)". ⚠ Nothing here moved between Sep 13 and Sep 21; Modiphius has not replied since Sep 11.
 
 - [ ] ~~Confirm exact cohort size with Ivan (target 10-20)~~ Superseded by the signup funnel; cohort size comes from form responses.
 - [ ] Modiphius Play Console access confirmed (Elijah added to their Play account with rights to manage the closed test track + tester allowlist). **Asked Jun 18, never answered.**
-- [ ] LOI received on Modiphius letterhead (promised Mon Sep 14) and diffed against the Google Doc before signing
-- [ ] Meeting with Chris the week of Sep 14 (time TBD by Chris); ask for an intro to Cam
+- [ ] LOI received on Modiphius letterhead and diffed against the Google Doc before signing. ⚠ **OVERDUE** — promised for Mon Sep 14, never arrived (Entry #34); two comment threads on the Doc are also still open, so the Doc is not signable either
+- [ ] Meeting with Chris. ⚠ The week-of-Sep-14 slot Chris proposed was **never scheduled**; chased Sep 20 with a fixed date about two weeks out, roughly Oct 2-6 (Entry #35). Ask for an intro to Cam
+- [ ] Tester reward term closed in the LOI. Substance agreed 2026-09-21 (owner accepted Chris's "free access to the base app not paid extra content"; clause added at `docs/LOI_DRAFT.md:66`); what is unticked is Chris resolving the comment thread, the letter issuing with the clause intact, and the **duration** being stated at all
 - [ ] Legal contact and marketing/social contact named (asked Aug 25; marketing "easier mid Sept")
 - [ ] New kickoff date set by Modiphius and the schedule (header, §5 build cadence, §8 pipeline) re-anchored to it
 - [ ] Confirm Modiphius's NDA stance (per Apr 29 followup ask #4; still open)

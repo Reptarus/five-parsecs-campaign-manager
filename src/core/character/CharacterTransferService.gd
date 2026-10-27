@@ -26,7 +26,13 @@ extends RefCounted
 ##   - Imported characters start as Loyal.
 ##   - Credits/Reputation have no value in Planetfall.
 ##
-## INTENTIONALLY NOT transferred: Stars of the Story options (Compendium p.214):
+## INTENTIONALLY NOT transferred: Stars of the Story options (Compendium p.212).
+## ⚠ CITE CORRECTED 2026-09-22: this said p.214. The clause quoted below is printed
+## on p.212 (PyPDF2 index 213), in the enlistment section's bullet list. The SEPARATE
+## muster-out clause on p.213 reads "You cannot carry over any 'Movie Magic' options
+## but if you are starting a new 5PFH campaign, you receive the normal allotment of
+## 'Stars of the Story' options" — different page, opposite direction, and its
+## subject is Movie Magic, not Stars. Do not conflate the two.
 ##   "You cannot carry over 'Stars of the Story' options or Story Points to Bug Hunt.
 ##    Keep a record of them, in case you want to return to 5PFH play."
 ## The 5PFH campaign retains its stars_of_the_story field; Bug Hunt and Planetfall
@@ -47,7 +53,8 @@ var _stashed_equipment: Dictionary = {}
 
 
 func _sector_government_patron_bonus() -> int:
-	## Compendium p.214: +1 (MAX — one, however many you hold) to the enlistment
+	## Compendium p.212 (⚠ cite corrected 2026-09-22 from p.214, verified against the
+	## PDF text layer at index 213): +1 (MAX — one, however many you hold) to the enlistment
 	## examination if any Sector Government Patron is on the contacts list.
 	## Patrons are owned by the campaign (data-ownership table).
 	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
@@ -66,6 +73,32 @@ func _sector_government_patron_bonus() -> int:
 			return 1
 	return 0
 
+func _status_is_active(character_data: Dictionary) -> bool:
+	## The two modes write DIFFERENT status vocabularies, and this hub is the one
+	## boundary where they meet.
+	##
+	## 5PFH is UPPERCASE: Character.status is declared "ACTIVE" (Character.gd:135,
+	## vocabulary ACTIVE/INJURED/RECOVERING/DEAD/MISSING/RETIRED), to_dictionary()
+	## writes it verbatim (:1401), and GameStateManager.filter_deployable (:663) plus
+	## PostBattleCompletion (:313) both compare against the uppercase form.
+	## Every converter in THIS file writes lowercase "active" (:283, :340, :999, :1185).
+	##
+	## So the eligibility gates below, comparing against a lowercase literal, passed
+	## for anything the hub had produced and REJECTED every character that came from
+	## 5PFH's real producer. Measured on the tablet 2026-09-22: a healthy crew member's
+	## enlistment returned before rolling, and CharacterTransferPanel rendered the
+	## early-return dict's absent keys as "Dice: [0] + [0] + Combat Skill 0 = 0", so it
+	## read as a failed roll rather than an ineligibility.
+	##
+	## Fold the case HERE rather than in Character.to_dictionary(), which is Alpha-1
+	## shared and whose uppercase form 20+ consumers depend on.
+	##
+	## An absent key still means active; that default predates this fix. Every other
+	## value in either vocabulary (INJURED/RECOVERING/DEAD/MISSING/RETIRED) still
+	## rejects, which is the gate's actual purpose.
+	return str(character_data.get("status", "active")).to_lower() == "active"
+
+
 func validate_enlistment(character_data: Dictionary) -> Dictionary:
 	## Check if a standard character is eligible for Bug Hunt enlistment.
 	## Returns {eligible: bool, reason: String, combat_bonus: int}
@@ -73,8 +106,7 @@ func validate_enlistment(character_data: Dictionary) -> Dictionary:
 	if game_mode != "standard":
 		return {"eligible": false, "reason": "Character is already in Bug Hunt mode", "combat_bonus": 0}
 
-	var status: String = character_data.get("status", "active")
-	if status != "active":
+	if not _status_is_active(character_data):
 		return {"eligible": false, "reason": "Character must be active (not injured/dead)", "combat_bonus": 0}
 
 	var combat: int = character_data.get("combat_skill", character_data.get("combat", 0))
@@ -89,7 +121,7 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 		return {"success": false, "roll": 0, "target": ENLISTMENT_TARGET, "reason": validation.reason}
 
 	var combat_bonus: int = validation.combat_bonus
-	# Compendium p.214: "Add +1 (max) if you have any Sector Government Patrons on
+	# Compendium p.212: "Add +1 (max) if you have any Sector Government Patrons on
 	# your contacts list." This modifier was simply absent, so a crew that had done
 	# the work to earn a Sector Government contact got nothing for it — and that
 	# patron is itself the standard Bug Hunt muster-out reward, so the rule exists
@@ -111,7 +143,7 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 			"combat_bonus": combat_bonus,
 			"patron_bonus": patron_bonus,
 			"target": ENLISTMENT_TARGET,
-			# Compendium p.214: "If the roll fails, 1 Story Point will get you in
+			# Compendium p.212: "If the roll fails, 1 Story Point will get you in
 			# with any suitable explanation." Surfaced so the UI can offer it.
 			"story_point_rescue_available": true,
 			"reason": "Enlistment rejected (rolled %d+%d+%d+%d=%d, needed %d)" % [
@@ -139,6 +171,9 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 		"roll": total,
 		"dice": [die1, die2],
 		"combat_bonus": combat_bonus,
+		# Present on the failure dict since the p.212 bonus landed, absent here — so the
+		# panel could not print a sum that added up on a successful roll. Symmetric now.
+		"patron_bonus": patron_bonus,
 		"target": ENLISTMENT_TARGET,
 		"transferred_character": transferred,
 		"stashed_equipment": _stashed_equipment.get(character_data.get("id", character_data.get("character_id", "")), [])
@@ -154,8 +189,7 @@ func validate_muster_out(character_data: Dictionary) -> Dictionary:
 	if character_data.get("is_grunt", false):
 		return {"eligible": false, "reason": "Grunts cannot muster out to individual campaigns"}
 
-	var status: String = character_data.get("status", "active")
-	if status != "active":
+	if not _status_is_active(character_data):
 		return {"eligible": false, "reason": "Character must be active"}
 
 	return {"eligible": true, "reason": "Eligible for transfer"}
@@ -1075,8 +1109,7 @@ func validate_tactics_enlistment(character_data: Dictionary) -> Dictionary:
 			"eligible": false,
 			"reason": "Character must be from a standard 5PFH campaign",
 		}
-	var status: String = character_data.get("status", "active")
-	if status != "active":
+	if not _status_is_active(character_data):
 		return {
 			"eligible": false,
 			"reason": "Character must be active (not injured/dead)",

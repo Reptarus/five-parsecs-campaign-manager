@@ -1,4 +1,9 @@
 {
+  "env": {
+    "MAX_THINKING_TOKENS": "16000",
+    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3",
+    "CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION": "40"
+  },
   "permissions": {
     "allow": [
       "Read",
@@ -52,7 +57,9 @@
       "mcp__godot__get_ui_elements",
       "mcp__godot__simulate_input",
       "mcp__godot__manage_scene",
-      "mcp__godot__get_project_info"
+      "mcp__godot__get_project_info",
+      "PowerShell($j = Get-Content -Raw \"c:\\\\Users\\\\admin\\\\SynologyDrive\\\\Godot\\\\five-parsecs-campaign-manager\\\\.claude\\\\settings.local.json\" | ConvertFrom-Json; \"autoCompactWindow = $\\($j.autoCompactWindow\\)\"; \"env keys = $\\(\\($j.env.PSObject.Properties.Name\\) -join ', '\\)\"; \"deny = $\\(\\($j.permissions.deny\\) -join ' | '\\)\"; \"allow count = $\\($j.permissions.allow.Count\\)\"; \"process env PCT_OVERRIDE = '$env:CLAUDE_AUTOCOMPACT_PCT_OVERRIDE'\")",
+      "PowerShell(\"User-level   = '$\\([Environment]::GetEnvironmentVariable\\('CLAUDE_AUTOCOMPACT_PCT_OVERRIDE','User'\\)\\)'\"; \"Machine-level= '$\\([Environment]::GetEnvironmentVariable\\('CLAUDE_AUTOCOMPACT_PCT_OVERRIDE','Machine'\\)\\)'\"; \"User-level AUTO_COMPACT_WINDOW = '$\\([Environment]::GetEnvironmentVariable\\('CLAUDE_CODE_AUTO_COMPACT_WINDOW','User'\\)\\)'\")"
     ],
     "deny": [
       "Bash(git push:*)",
@@ -61,10 +68,5 @@
     ]
   },
   "outputStyle": "Explanatory",
-  "env": {
-    "MAX_THINKING_TOKENS": "16000",
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "25",
-    "CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS": "3",
-    "CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION": "40"
-  }
+  "autoCompactWindow": 500000
 }

@@ -420,3 +420,136 @@ func test_remove_character_from_save_handles_both_roster_shapes() -> void:
 	# A miss must NOT rewrite the file.
 	assert_bool(CharacterTransferService.remove_character_from_save(
 		"user://transfers/t_5pfh.save", "nobody")).is_false()
+# ============================================================================
+# The mode boundary: 5PFH's REAL producer vs this hub's own vocabulary
+# ============================================================================
+#
+# The 15 cases above could not catch what these four pin, and the reason is in
+# _make_full_character(): it hand-writes "status": "active", which is the
+# eligibility gate's own DEFAULT. Character.to_dictionary() writes "ACTIVE"
+# (Character.gd:135/:1401) and the gates compared against a lowercase literal,
+# so EVERY healthy 5PFH crew member was rejected as inactive and
+# attempt_enlistment returned before rolling. Measured on the tablet
+# 2026-09-22 as "Dice: [0] + [0] + Combat Skill 0 = 0".
+#
+# A hand-built fixture cannot test a producer's vocabulary. These build the
+# character with the real producer.
+
+const RealCharacter := preload("res://src/core/character/Character.gd")
+
+const _FORCE_D1 := "Enlistment: die 1"
+const _FORCE_D2 := "Enlistment: die 2"
+
+
+func _real_5pfh_character(combat: int, status: String = "") -> Dictionary:
+	## A dict from Character.to_dictionary(), not from this suite's imagination.
+	var character := RealCharacter.new()
+	character.combat = combat
+	if not status.is_empty():
+		character.status = status
+	return character.to_dictionary()
+
+
+func _dice_manager():
+	return get_tree().root.get_node_or_null("/root/DiceManager") if get_tree() else null
+
+
+func test_a_real_5pfh_character_is_eligible_and_actually_rolls() -> void:
+	var data := _real_5pfh_character(2)
+
+	# Premise first. If Character ever stops emitting the uppercase form, this
+	# case must SAY so rather than quietly stop testing the case-folding gate.
+	assert_str(str(data.get("status", ""))).override_failure_message(
+		"PREMISE: Character.to_dictionary() no longer writes ACTIVE in uppercase, "
+		+ "so _status_is_active may now be untested. Re-read it before trusting this suite."
+	).is_equal("ACTIVE")
+	assert_bool(data.has("combat")).is_true()
+
+	var validation: Dictionary = _svc.validate_enlistment(data)
+	assert_bool(validation.get("eligible", false)).override_failure_message(
+		"A healthy 5PFH character must be eligible to enlist. Reason given: "
+		+ str(validation.get("reason", ""))
+	).is_true()
+	assert_int(int(validation.get("combat_bonus", -1))).is_equal(2)
+
+	var result: Dictionary = _svc.attempt_enlistment(data)
+
+	# `dice` is the discriminator CharacterTransferPanel now reads: the service
+	# writes it ONLY when a roll actually happened.
+	assert_bool(result.has("dice")).override_failure_message(
+		"attempt_enlistment returned WITHOUT rolling for an eligible character."
+	).is_true()
+	var dice: Array = result["dice"]
+	assert_int(dice.size()).is_equal(2)
+	assert_int(int(result.get("combat_bonus", -1))).is_equal(2)
+
+	# Self-consistent, not absolute: _sector_government_patron_bonus() reads
+	# GameState.current_campaign, which an earlier suite in the batch may have
+	# left populated, so the patron term is read back rather than assumed zero.
+	assert_int(int(result.get("roll", -1))).override_failure_message(
+		"The printed total must equal the terms it is made of, or the panel's "
+		+ "on-screen sum does not add up."
+	).is_equal(
+		int(dice[0]) + int(dice[1]) + int(result.get("combat_bonus", 0))
+		+ int(result.get("patron_bonus", 0)))
+
+
+func test_an_injured_5pfh_character_is_rejected_without_a_roll() -> void:
+	# The gate's actual purpose still holds after the case-folding fix, and the
+	# rejection must carry NO dice — that absence is what lets the panel say
+	# "cannot enlist" instead of fabricating a failed roll.
+	var data := _real_5pfh_character(2, "INJURED")
+	assert_str(str(data.get("status", ""))).is_equal("INJURED")
+
+	var result: Dictionary = _svc.attempt_enlistment(data)
+	assert_bool(result.get("success", true)).is_false()
+	assert_bool(result.has("dice")).override_failure_message(
+		"An ineligible character must not carry dice, or the panel cannot tell a "
+		+ "refusal apart from a failed roll."
+	).is_false()
+	assert_str(str(result.get("reason", ""))).is_not_empty()
+
+
+func test_a_forced_enlistment_roll_lands_on_the_book_target() -> void:
+	# Compendium p.212: 2D6 + Combat Skill, 7+ enlists.
+	var dm = _dice_manager()
+	assert_object(dm).is_not_null()
+	dm.clear_forced_results(_FORCE_D1)
+	dm.clear_forced_results(_FORCE_D2)
+
+	# queue_forced_result returns false when forcing is unavailable, so the
+	# premise is asserted rather than inferred from a mismatched total.
+	assert_bool(dm.queue_forced_result(_FORCE_D1, 1)).override_failure_message(
+		"PREMISE: the QA forcing seam refused the queue, so this case cannot "
+		+ "discriminate. OS.is_debug_build() is the usual cause."
+	).is_true()
+	assert_bool(dm.queue_forced_result(_FORCE_D2, 1)).is_true()
+
+	var low: Dictionary = _svc.attempt_enlistment(_real_5pfh_character(2))
+	assert_array(low.get("dice", [])).is_equal([1, 1])
+	assert_bool(low.get("success", true)).is_false()
+
+	dm.queue_forced_result(_FORCE_D1, 6)
+	dm.queue_forced_result(_FORCE_D2, 6)
+	var high: Dictionary = _svc.attempt_enlistment(_real_5pfh_character(2))
+	assert_array(high.get("dice", [])).is_equal([6, 6])
+	assert_bool(high.get("success", false)).is_true()
+	assert_bool(high.has("transferred_character")).is_true()
+
+	dm.clear_forced_results(_FORCE_D1)
+	dm.clear_forced_results(_FORCE_D2)
+
+
+func test_a_real_5pfh_character_is_eligible_for_tactics_too() -> void:
+	# The same lowercase literal guarded validate_tactics_enlistment, so one
+	# case mismatch closed TWO of the three 5PFH-outbound routes. Pinned here
+	# because a fix applied to one call site is not a fix.
+	var ok: Dictionary = _svc.validate_tactics_enlistment(_real_5pfh_character(3))
+	assert_bool(ok.get("eligible", false)).override_failure_message(
+		"A healthy 5PFH character must be eligible for Tactics. Reason given: "
+		+ str(ok.get("reason", ""))
+	).is_true()
+
+	var dead: Dictionary = _svc.validate_tactics_enlistment(
+		_real_5pfh_character(3, "DEAD"))
+	assert_bool(dead.get("eligible", true)).is_false()

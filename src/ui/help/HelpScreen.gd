@@ -1,7 +1,7 @@
 extends CampaignScreenBase
 
 ## Full-page help browser for the User Guide.
-## Displays markdown chapters from docs/user_guide/ in Deep Space themed UI.
+## Displays markdown chapters from data/user_guide/ in Deep Space themed UI.
 ## Features: sidebar TOC, search, chapter navigation, cross-reference links.
 
 var _content_loader: RefCounted  # HelpContentLoader
@@ -43,6 +43,11 @@ func _setup_screen() -> void:
 		_populate_toc()
 	else:
 		push_error("HelpScreen: HelpContentLoader failed to initialize")
+
+	# Before any navigation, so a context-routed open cannot land on a blank page either.
+	if _content_loader and _content_loader.get_chapter_order().is_empty():
+		_show_guide_missing()
+		return
 
 	# Check if we should open a specific chapter from SceneRouter context
 	var router := get_node_or_null("/root/SceneRouter")
@@ -195,6 +200,18 @@ func _build_ui() -> void:
 	_mobile_toc_popup = PopupPanel.new()
 	_mobile_toc_popup.size = Vector2i(300, 500)
 	add_child(_mobile_toc_popup)
+
+
+## A build whose guide did not load must SAY so. The old fall-through left the page blank,
+## which is what every exported build shipped until the guide moved to data/ -- and a
+## blank page reads as a broken screen, not a missing file. push_error puts the path in
+## the log a bug report attaches.
+func _show_guide_missing() -> void:
+	push_error("HelpScreen: no user guide chapters loaded from %s"
+		% HelpContentLoaderScript.GUIDE_PATH)
+	if _content_label:
+		_content_label.text = ("[b]The user guide could not be loaded.[/b]\n\n"
+			+ "This build is missing its help files. Please report it so it can be fixed.")
 
 
 func _populate_toc() -> void:

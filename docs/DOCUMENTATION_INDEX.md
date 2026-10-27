@@ -1,6 +1,6 @@
 # Five Parsecs Campaign Manager - Documentation Index
 
-**Last Updated**: Sep 20, 2026 (Bug Hunt Sprint 1 Phase 4 landed at the desk and is
+**Last Updated**: Sep 21, 2026 (alpha + partnership docs re-checked against `ca6172011`; the letterhead LOI promised for Sep 14 did NOT arrive and Modiphius has been silent since Sep 11 — journal Entries #34-#35; Alpha-1 scope is now enforced in the build by `A1_BUILD`). Sep 20, 2026 (Bug Hunt Sprint 1 Phase 4 landed at the desk and is
 recorded in the ledger below — uncommitted). Sep 19, 2026 (added the Bug Hunt Parity Audit — the first ledger here
 for a whole GAMEMODE rather than a subsystem, and the only live work on the project; also
 corrected two stale facts this section had been carrying). Aug 6, 2026 (added the Active
@@ -135,8 +135,8 @@ update it in the same commit as the change that justifies it.
 
 ### Meeting + Correspondence Records
 
-- **[Modiphius Correspondence Journal](MODIPHIUS_CORRESPONDENCE_JOURNAL.md)** - Chronological touchpoint log with verbatim email excerpts; runs to Sep 12 2026 (Entries #1-#33), live threads in §3.0
-- **[Modiphius Partnership Status](MODIPHIUS_PARTNERSHIP_STATUS.md)** - Current deal status, agreed theses, artifacts (refreshed 2026-09-13)
+- **[Modiphius Correspondence Journal](MODIPHIUS_CORRESPONDENCE_JOURNAL.md)** - Chronological touchpoint log with verbatim email excerpts; runs to Sep 20 2026 (Entries #1-#35), live threads in §3.0
+- **[Modiphius Partnership Status](MODIPHIUS_PARTNERSHIP_STATUS.md)** - Current deal status, agreed theses, artifacts (refreshed 2026-09-21)
 - **[Apr 16 Meeting Notes](MEETING_NOTES_2026-04-16.md)** - Initial pitch / vision alignment with Chris Birch + Gavin
 - **[Apr 29 Meeting Followups](MEETING_FOLLOWUPS_2026-04-29.md)** - Strategic theses (T1-T4), Modiphius asks queue, response tracking
 - **[Jul 27 Meeting Prep](MEETING_PREP_2026-07-27.md)** - Prep for the Jul 27 call (written before it; the outcome is journal Entry #27, provisional)
@@ -235,7 +235,7 @@ update it in the same commit as the change that justifies it.
 
 ## Other
 
-- **[User Guide](user_guide/00_index.md)** - 16-chapter player guide
+- **[User Guide](../data/user_guide/00_index.md)** - 16-chapter player guide (lives under `data/` so it ships in exported builds; every preset excludes `docs/*`)
 - **[Modding Guide](modding/CONTENT_CREATION_GUIDE.md)** - Custom content creation
 - **[Release & Deployment](releases/)** - Deployment guide, checklists, versioning
 - **[Rules PDFs](rules/)** - Core Rules + Compendium source material

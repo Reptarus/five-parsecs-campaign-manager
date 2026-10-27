@@ -4,8 +4,7 @@
 <!-- Save: cross-mode isolation failures, transfer edge cases, data-model confusion, verified book facts -->
 <!-- Deep detail belongs in the matching skill's references/ — it loads on demand, this does not. -->
 
-Merged 2026-08-06 from `bug-hunt-specialist` (128) + `planetfall-specialist` (93) +
-`tactics-specialist` (120). Stale planning content was dropped, not relocated — see "Corrections" below.
+Merged 2026-08-06 from the three per-mode specialists; stale planning was dropped (see Corrections).
 
 ## ABSOLUTE RULE: the rulebooks are Word of God
 
@@ -21,20 +20,12 @@ If code disagrees with the book, the code is wrong.
 
 ## Corrections applied 2026-08-06 (do not regress)
 
-1. **Enlistment is `2D6 + Combat Skill >= 7`, not 8.** `bug-hunt-specialist.md` carried `>= 8` from a
-   Session-42 bug that was fixed in code but never corrected in the agent body. Verified against
-   `bug_hunt_compendium_extract.txt:3523` ("If the score is 7+, the enlistment is accepted") and
-   `CharacterTransferService.gd:36` (`const ENLISTMENT_TARGET := 7`). The body was the ONLY wrong
-   source of four. Two modifiers were also missing from it: **+1 (max one) for any Sector Government
-   Patron** (p.214) and **1 Story Point rescues a failed roll**. Both are implemented in code.
-   *Lesson: when a memory and its agent body disagree on a number, the book decides — and check which
-   copy the code agrees with.*
-2. Planetfall memory claimed "Sections 2-5 NOT YET IMPLEMENTED" and a "45-line placeholder"
-   TurnController. **Stale** — Planetfall §1-4 are COMPLETE, 63 files, the 18-step turn flow is
-   runtime-verified, save/load round-trips.
-3. Tactics memory carried "GameState Integration Needed" / "SceneRouter Routes Needed" /
-   "Implementation Order ~64 files". **Stale** — all shipped (Sessions 55-57, 59 files).
-4. Both carried "Modiphius Approval Pending — meeting 2026-04-23". **Stale.**
+1. **Enlistment is `2D6 + Combat Skill >= 7`, not 8** (`bug_hunt_compendium_extract.txt:3523`;
+   `CharacterTransferService.gd:36` `ENLISTMENT_TARGET := 7`), plus **+1 (max one) for a Sector
+   Government Patron** (p.214) and **1 Story Point rescues a failed roll** — both in code. *When a
+   memory and its agent body disagree on a number, the book decides.*
+2. Dropped as stale: "Planetfall Sections 2-5 not implemented", "Tactics needs GameState/SceneRouter
+   integration", "Modiphius approval pending 2026-04-23". All shipped or superseded.
 
 ---
 
@@ -54,41 +45,23 @@ If code disagrees with the book, the code is wrong.
 - **`campaign_crew_size` does NOT apply.** The 4/5/6 setting is Standard-5PFH-only. Bug Hunt enemy
   counts follow Compendium Bug Hunt tables, not the Core Rules p.63 dice formula. If you touch
   `get_campaign_crew_size()` in a shared file, make sure no Bug Hunt path reaches it.
-- ⚠ **STATUS, Sep 19 2026 — do not read the data verdict below as "Bug Hunt works."** The
-  Sep 10 parity audit (`docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md`) re-confirmed the
-  data independently AND found the DELIVERY broken almost everywhere: no played mission ever
-  scored an objective (so Court Martial fired every turn and there was no reachable win), a
-  turn could never END, the mission tally was counted three times, and a muster-out deleted
-  the veteran instead of writing a transfer file. Sprint 1 is now **DESK-COMPLETE through
-  all eight phases; only Phase 7's DEVICE WALK remains** (0-3 committed as `d1e541ccb`;
-  **4-7 are uncommitted**). ✅ Phase 4 stamps the
-  mission before the battle and routes the return through a new add-only
-  `BugHuntBattleResultNormalizer`, so a played mission now SCORES its objectives —
-  Court Martial stops firing every turn and the `above_100` Parade win is reachable.
-  ✅ Phase 5 is the p.202 slice: a pure `BugHuntPostBattleResolver` returns a receipt
-  and `BugHuntPhaseManager` is the ONLY mutator. The tally rises once per character
-  who took the field, muster-out is checked at the real count and writes a transfer
-  file via the new `CharacterTransferService.write_pending_transfer` static, and all
-  20 Military Life rows apply. ⚠ Three dashboards still hand-roll the transfer
-  envelope (`BugHuntDashboard.gd:447`, `PlanetfallDashboard.gd:141`,
-  `TacticsDashboard.gd:256`) — a NAMED follow-up, not a migrated codebase.
-  ✅ Phase 6 is provenance, census and helpers: `_source` on all 15 data files and a
-  `test_bug_hunt_consumer_census.gd`. 🟡 **Phase 7's desk half is done** — the seven
-  Alpha-1 guard suites are green (74 · 0 · 0, delta 0 against the grep population) and both
-  probes were re-run; **the device walk has NOT run.**
-  🟠 **A new book-cited Bug Hunt finding is FILED and deliberately unfixed** (battle payload,
-  out of Sprint 1 scope): `data/bug_hunt/bug_hunt_enemies.json:difficulty_modifiers` has **zero
-  readers repo-wide** — `BugHuntBattleSetup` never mentions difficulty — so Compendium
-  p.190's Numbers adjustment (−1 on I'm Too Pretty to Die, +1 on Mega-violence and Living
-  Nightmare) is **never applied to any revealed Contact**; and its four keys invent `"standard"`
-  for two distinct book settings, so the app's DEFAULT `mess_me_up` matches no key. ✅ The live
-  path is byte-faithful: `bug_hunt_missions.json:difficulty_settings` is the book's five settings
-  with p.186's exact modifiers. **Fix shape when the payload is scoped: re-key onto the five book
-  ids, add `numbers_modifier` as a sixth column there, delete the second dict** — two shapes
-  for one concept is what broke `TacticsCampaignUnit`. Also **Row D**: asking for 5 main characters
-  generates 4, against p.170 (the 5-marine option is an explicitly deferred book variant).
-  ⭐ Three separate audits verified this data and all three then advised UI
-  polish — **"the data is verified" and "the feature works" are different claims.**
+- ⚠ **"The data is verified" ≠ "the feature works."** Three audits verified the data and advised UI
+  polish; the Sep 10 parity audit (`docs/audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md`) then found the
+  DELIVERY broken almost everywhere. Sprint 1 (Phases 0-7) is DESK-COMPLETE and committed
+  (`d1e541ccb`, `ca6172011`): turns end, played missions score objectives (Court Martial no longer
+  fires every turn; the `above_100` Parade win is reachable), the p.202 `BugHuntPostBattleResolver`
+  is pure with `BugHuntPhaseManager` the ONLY mutator, and muster-out writes a transfer file via
+  `CharacterTransferService.write_pending_transfer`. Its device walk now lives in Sprint 8 of the
+  review-build plan (`start-doing-deep-dive-elegant-reddy.md`).
+- **Open, book-cited:** `bug_hunt_enemies.json:difficulty_modifiers` has zero readers, so the
+  **p.194** Numbers ±1 (−1 I'm Too Pretty to Die, +1 Mega-violence / Living Nightmare) never
+  reaches a revealed Contact. It is the rule's ONLY encoding (the p.186 `difficulty_settings` rows
+  have no numbers column) and its keys invent `"standard"`, so the default `mess_me_up` matches
+  none. **Move, don't delete:** add `numbers_modifier` to the five p.186 rows, then drop the
+  mis-keyed dict. (Cited p.190 until 2026-10-27; p.190 is the separate extra-Contact rule, live.)
+- **Open:** asking for 5 main characters generates 4, against p.170. Three dashboards still
+  hand-roll the transfer envelope (`BugHuntDashboard.gd:447`, `PlanetfallDashboard.gd:141`,
+  `TacticsDashboard.gd:256`) instead of calling `write_pending_transfer`.
 - Sessions 42-43 audit: all 15 `data/bug_hunt/*.json` verified against the Compendium, zero data
   corrections needed; 14 code bugs fixed (6 JSON key mismatches that meant enemies never loaded and
   every post-battle table read the wrong key; 7 formula bugs in priority/spawn bounds/XP/Rep/
@@ -142,31 +115,21 @@ If code disagrees with the book, the code is wrong.
 
 ## Cross-mode transfer (shared — all four modes, any-to-any)
 
-Canonical-hub design in `src/core/character/CharacterTransferService.gd` (RefCounted, owned by
-**character-data-engineer**). Every mode implements `export_to_canonical(char, mode)` /
-`import_from_canonical(canonical, mode)`; the canonical form is the full 5PFH-standard Character dict.
-Any-to-any = compose an export leg with an import leg.
+Hub: `src/core/character/CharacterTransferService.gd` (owned by **character-data-engineer**); full
+procedure `docs/sop/cross-mode-transfer.md`. Canonical form = the 5PFH Character dict; any-to-any =
+one export leg + one import leg. 12 directed routes, 9 book-defined; PF→BH, Tactics→BH and
+Tactics→PF are offered only by composing two book legs, with zero invented values.
 
-- **Mechanism is direct file-drop**, not a barracks: `user://transfers/<id>.json`, `schema_version 2`.
-  `load_pending_transfers(target_mode)` filters by destination (v1 files predate `target_mode` and
-  always target 5PFH). `apply_transfer_rewards()` applies and **deletes the file** (prevents
-  double-import).
-- **Pickup is mode-generic** in `CampaignScreenBase` (owned by **campaign-systems-engineer**):
-  `_check_pending_transfers` / `_apply_pending_transfers` / `_add_character_to_mode` dispatch →
-  `add_main_character` (BH) · `add_roster_character` (PF) · `add_veteran_character` (Tactics).
-  **A SOURCE leg is dead code unless the DESTINATION dashboard calls
-  `_check_pending_transfers.call_deferred()` in `_setup_screen()`** — this exact gap silently
-  vanished mustered-out Bug Hunt veterans before it was fixed. Wire both halves.
-- **Reward suppression**: 5PFH-specific exit rewards attach ONLY when `target_mode == "five_parsecs"`.
-- **Lossless snapshot**: imports embed their canonical form under `snapshot`; `export_to_canonical()`
-  short-circuits on it. Planetfall ending bonuses layer on TOP via `_layer_planetfall_ending()`
-  (bonuses depend on the ending, not the stats).
-- **12 directed routes, 9 book-defined.** Planetfall→Bug Hunt, Tactics→Bug Hunt and
-  Tactics→Planetfall have NO direct book rule and are offered ONLY by composing two book-defined legs
-  through the 5PFH canonical — zero invented values.
-- 24/24 gdUnit4 transfer tests pass (`test_character_transfer_hub.gd`, `test_planetfall_transfer.gd`,
-  `test_tactics_transfer.gd`). P3 persistent barracks DEFERRED.
-- Full procedure: `docs/sop/cross-mode-transfer.md`.
+- File-drop `user://transfers/<id>.json` (schema 2), filtered by `target_mode`;
+  `apply_transfer_rewards()` applies and DELETES the file so nothing imports twice.
+- **A SOURCE leg is dead code unless the DESTINATION dashboard calls
+  `_check_pending_transfers.call_deferred()` in `_setup_screen()`** (pickup lives in
+  `CampaignScreenBase`, owned by campaign-systems-engineer). This gap once silently vanished
+  mustered-out Bug Hunt veterans. Wire both halves.
+- 5PFH exit rewards attach ONLY when `target_mode == "five_parsecs"`. Imports embed a lossless
+  `snapshot` that `export_to_canonical()` short-circuits on; Planetfall ending bonuses layer on top
+  via `_layer_planetfall_ending()`. Pinned by `test_character_transfer_hub.gd`,
+  `test_planetfall_transfer.gd`, `test_tactics_transfer.gd`.
 
 ## Shared-file watch list
 

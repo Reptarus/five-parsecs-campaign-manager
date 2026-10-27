@@ -1,5 +1,7 @@
 # Phase 1 Prep — Talo Godot Plugin Install Notes
 
+> ✅ **DONE (marked 2026-09-21)**: pre-staged install research for work dated "Mon May 4". The plugin is installed and wired; `TaloAnalyticsAdapter` is a live autoload (`project.godot:62`). Kept for the install quirks and the upstream doc links, not as an open task.
+
 **Owner**: Engineering (Elijah)
 **Created**: 2026-05-01 (Phase 0.5 of workback)
 **For**: P1.T1 task — execute Mon May 4 morning

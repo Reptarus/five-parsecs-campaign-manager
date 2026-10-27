@@ -1,5 +1,7 @@
 # Phase 1 Prep — TaloAnalyticsAdapter Design + Skeleton
 
+> ✅ **IMPLEMENTED (marked 2026-09-21)**: this was a pre-staged design for work dated "Mon May 4". It shipped. `TaloAnalyticsAdapter` is a live autoload (`project.godot:62`) and `CampaignAnalytics` sits beside it at `:61`. Kept as the design record and the consent-gating rationale, not as an open task.
+
 **Owner**: Engineering (Elijah)
 **Created**: 2026-05-01 (Phase 0.5 of workback)
 **For**: P1.T3 + P1.T4 tasks — implement Mon May 4 → Tue May 5

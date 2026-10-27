@@ -1,5 +1,7 @@
 # Phase 1 Prep — Windows Export Preset Draft
 
+> ⚠ **SUPERSEDED (2026-09-21)**: written 2026-05-01 for a Windows-first alpha. **Alpha-1 is Android only** and ships as an AAB through Google Play's closed test (`export_presets.cfg:34-42`: `min_sdk 29`, `target_sdk 35`, version code 18, name "0.9.7"); `docs/testing/ALPHA_TESTER_ONBOARDING.md` records the platform change. Kept for the preset mechanics and the editor-regenerates-the-file warning, which still apply whenever a desktop build is needed. Do not treat it as the alpha-1 route.
+
 **Owner**: Engineering (Elijah)
 **Created**: 2026-05-01 (Phase 0.5 of workback)
 **For**: P1.T5 task — execute Mon May 4 morning

@@ -32,7 +32,10 @@ together for a frame (a toolbar rebuild returned 14 buttons instead of 7). And a
 `verify_battle_ui` missed that, because they assert the button is present and a
 duplicate set still contains it.
 
-Ledger: sweeps W1-W10 in `review-the-core-rules-jazzy-harbor.md`. Harnesses now
+Ledger: sweeps W1-W10 in the plan review-the-core-rules-jazzy-harbor.md, which lives
+in the plans directory (`C:\Users\admin\.claude\plans\`), NOT in this repo -- so it is
+deliberately named in prose rather than cited, and `[[missing]]` would be wrong for it.
+Harnesses now
 `verify_battle_ui` 79/79 and `verify_post_battle` 46/46 (its first fully green run
 — two of its three long-standing failures were TEST defects, not code).
 

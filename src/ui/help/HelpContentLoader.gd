@@ -1,8 +1,18 @@
-## Loads and parses markdown files from res://docs/user_guide/
+## Loads and parses markdown files from res://data/user_guide/
 ## Provides chapter lookup, section navigation, and full-text search.
 ## Used by HelpScreen and HelpOverlayPanel to display user guide content.
+##
+## WHY data/ AND A MANIFEST. The guide used to live in res://docs/user_guide/. Every
+## export preset excludes `docs/*`, and a `.md` is not a resource, so it ships only
+## through a preset's non-resource include_filter. Every exported build therefore had an
+## EMPTY Help screen (deploy35.apk carried zero docs/ entries). `data/*` is included by
+## every preset. The chapter list is read from manifest.json first, the way
+## TacticsSpeciesBookLoader reads species_manifest.json, because that loader records a
+## DirAccess scan of res:// as failing in exported builds; the scan stays as the editor
+## fallback. tests/unit/test_help_guide_ships.gd holds the manifest equal to the folder.
 
-const GUIDE_PATH := "res://docs/user_guide/"
+const GUIDE_PATH := "res://data/user_guide/"
+const MANIFEST_PATH := GUIDE_PATH + "manifest.json"
 
 # Cached parsed chapters: chapter_id -> {title, quick_start, sections, raw}
 var _chapters: Dictionary = {}
@@ -26,24 +36,7 @@ func _load_all_chapters() -> void:
 	_chapters.clear()
 	_chapter_order.clear()
 
-	# Discover markdown files in the guide directory
-	var dir := DirAccess.open(GUIDE_PATH)
-	if not dir:
-		push_warning("HelpContentLoader: Could not open %s" % GUIDE_PATH)
-		return
-
-	var files: Array[String] = []
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while not file_name.is_empty():
-		if not dir.current_is_dir() and file_name.ends_with(".md"):
-			files.append(file_name)
-		file_name = dir.get_next()
-	dir.list_dir_end()
-
-	files.sort()
-
-	for fname in files:
+	for fname in list_chapter_files():
 		var chapter_id := fname.get_basename()  # e.g. "01_getting_started"
 		var raw := _read_file(GUIDE_PATH + fname)
 		if raw.is_empty():
@@ -52,6 +45,46 @@ func _load_all_chapters() -> void:
 		parsed["file"] = fname
 		_chapters[chapter_id] = parsed
 		_chapter_order.append(chapter_id)
+
+
+## The chapter files, in order: manifest.json first (export-safe), the DirAccess scan as
+## the editor fallback. Static and public so a test can compare the two sources.
+static func list_chapter_files() -> Array[String]:
+	var from_manifest := read_manifest()
+	if not from_manifest.is_empty():
+		return from_manifest
+	return scan_chapter_files()
+
+
+static func read_manifest() -> Array[String]:
+	var out: Array[String] = []
+	var f := FileAccess.open(MANIFEST_PATH, FileAccess.READ)
+	if not f:
+		return out
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	if parsed is Dictionary and parsed.get("chapters") is Array:
+		for entry: Variant in parsed["chapters"]:
+			if entry is String and String(entry).ends_with(".md"):
+				out.append(String(entry))
+	return out
+
+
+static func scan_chapter_files() -> Array[String]:
+	var files: Array[String] = []
+	var dir := DirAccess.open(GUIDE_PATH)
+	if not dir:
+		push_warning("HelpContentLoader: Could not open %s" % GUIDE_PATH)
+		return files
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while not file_name.is_empty():
+		if not dir.current_is_dir() and file_name.ends_with(".md"):
+			files.append(file_name)
+		file_name = dir.get_next()
+	dir.list_dir_end()
+	files.sort()
+	return files
 
 
 func _read_file(path: String) -> String:

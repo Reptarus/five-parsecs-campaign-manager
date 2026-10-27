@@ -334,9 +334,15 @@ func _on_enlist_pressed() -> void:
 	panel.set_direction("enlist")
 	panel.character_transferred.connect(
 		func(char_data: Dictionary, _dir: String):
-			_apply_enlistment(char_data)
-			panel.queue_free()
+			# Do NOT free the panel here. Since W-N24 the commit fires on the player's
+			# CONFIRM, not on the result screen's dismiss control, so the panel must
+			# survive this handler in order to RENDER the outcome. It frees itself on
+			# dismiss, exactly as its Cancel control already did.
+			var err: String = _apply_enlistment(char_data)
+			if not err.is_empty():
+				panel.report_commit_error(err)
 	)
+	panel.transfer_closed.connect(func(): _rebuild_after_transfer())
 	add_child(panel)
 
 	# Load standard campaign saves for character selection
@@ -375,7 +381,7 @@ static func pick_enlist_source(campaigns: Array) -> String:
 	return ""
 
 
-func _apply_enlistment(char_data: Dictionary) -> void:
+func _apply_enlistment(char_data: Dictionary) -> String:
 	## Enlist a 5PFH veteran into the squad (Compendium p.212), through the transfer hub.
 	##
 	## ⚠ HEAD appended to _campaign.main_characters directly and stopped there, so the
@@ -388,7 +394,7 @@ func _apply_enlistment(char_data: Dictionary) -> void:
 	## mutator: the campaign's modified time was never touched (add_main_character does it,
 	## :178-179), and any future invariant that mutator grows would have been bypassed.
 	if not _campaign or not _campaign.has_method("add_main_character"):
-		return
+		return "The Bug Hunt campaign is not available."
 
 	# Pull the source coordinates off before the character lands in the squad, so they
 	# never persist into the Bug Hunt save. CharacterTransferPanel stamps them on the
@@ -411,11 +417,14 @@ func _apply_enlistment(char_data: Dictionary) -> void:
 				"BugHuntDashboard: enlisted %s but could not remove them from %s"
 				% [src_id, src_path])
 
-	# Rebuild dashboard to show new character. _build_dashboard() ends with the inherited
-	# _fix_touch_scroll_filters(), so the rebuilt subtree is swept — no extra call needed.
-	for child in get_children():
-		child.queue_free()
-	_build_dashboard()
+	# A failed REMOVAL is not a failed enlistment: the veteran IS in the squad, which is
+	# what the result screen reports. Warn, do not downgrade -- telling the player the
+	# transfer failed would be a second, opposite lie.
+	#
+	# The dashboard rebuild moved to _rebuild_after_transfer(), driven by the panel's
+	# transfer_closed. It cannot run here any more: this function is now reached while the
+	# panel is still on screen, and the rebuild frees every child.
+	return ""
 
 
 func _on_muster_out_pressed() -> void:
@@ -425,9 +434,15 @@ func _on_muster_out_pressed() -> void:
 	panel.set_direction("muster_out")
 	panel.character_transferred.connect(
 		func(char_data: Dictionary, _dir: String):
-			_apply_muster_out(char_data)
-			panel.queue_free()
+			# Do NOT free the panel here. Since W-N24 the commit fires on the player's
+			# CONFIRM, not on the result screen's dismiss control, so the panel must
+			# survive this handler in order to RENDER the outcome. It frees itself on
+			# dismiss, exactly as its Cancel control already did.
+			var err: String = _apply_muster_out(char_data)
+			if not err.is_empty():
+				panel.report_commit_error(err)
 	)
+	panel.transfer_closed.connect(func(): _rebuild_after_transfer())
 	add_child(panel)
 
 	# Load Bug Hunt characters for selection
@@ -435,11 +450,11 @@ func _on_muster_out_pressed() -> void:
 		panel.load_characters_from_array(_campaign.main_characters)
 
 
-func _apply_muster_out(char_data: Dictionary) -> void:
+func _apply_muster_out(char_data: Dictionary) -> String:
 	## Save transferred character as pending transfer file for standard campaign pickup.
 	## Remove from Bug Hunt squad. Deep copy to prevent shared references.
 	if not _campaign or not "main_characters" in _campaign:
-		return
+		return "The Bug Hunt campaign is not available."
 
 	var safe_copy: Dictionary = char_data.duplicate(true)
 	var char_id: String = safe_copy.get("id", safe_copy.get("character_id", ""))
@@ -494,7 +509,10 @@ func _apply_muster_out(char_data: Dictionary) -> void:
 			notifier.show_error(
 				"Muster out failed — the character is still in your squad. "
 				+ "Check device storage.")
-		return
+		# Reported back through the panel too, so the screen that would otherwise print
+		# "MUSTERED OUT!" prints the failure and offers Go Back instead.
+		return ("Muster out failed -- the transfer file could not be written (error %d)."
+			% write_err + " The character is still in your squad.")
 
 	# Remove character from Bug Hunt squad
 	var idx_to_remove := -1
@@ -509,7 +527,18 @@ func _apply_muster_out(char_data: Dictionary) -> void:
 		_campaign.main_characters.remove_at(idx_to_remove)
 
 	_on_save()
-	# Rebuild dashboard
+	# The dashboard rebuild moved to _rebuild_after_transfer(), driven by the panel's
+	# transfer_closed -- see _apply_enlistment's tail for why it cannot run here.
+	return ""
+
+
+## Rebuild once a transfer panel has closed.
+##
+## Every teardown path emits transfer_closed, so this covers dismiss-after-success and
+## Cancel alike. It is deliberately NOT called from _apply_* any more: since W-N24 those
+## run on the player's Confirm, while the panel is still on screen, and freeing every
+## child would take the result screen with it.
+func _rebuild_after_transfer() -> void:
 	for child in get_children():
 		child.queue_free()
 	_build_dashboard()

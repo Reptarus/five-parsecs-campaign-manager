@@ -4,9 +4,11 @@ Follow-up to the battle funnel below, over the WHOLE turn. Same defect family,
 plus two new shapes. **Anything called a "dead file" is a liability, not a
 curiosity — check what its only callers were before shelving it.**
 
-**Dead files hold live rules hostage.** `src/core/campaign/phases/TravelPhase.gd`
-and `phases/WorldPhase.gd` have ZERO instantiations (travel really happens in
-`UpkeepPhaseComponent`, the World Phase upkeep step). Between them they held the
+**Dead files hold live rules hostage.** `src/core/campaign/phases/TravelPhase.gd` [[missing]]
+and `phases/WorldPhase.gd` [[missing]] had ZERO instantiations (travel really happens in
+`UpkeepPhaseComponent`, the World Phase upkeep step) and were DELETED in `c249e19e3`.
+The two markers ASSERT that absence rather than silencing the check, so this paragraph
+fails again the day either name returns. Between them they held the
 ONLY callers of three real mechanics:
 `record_invaded_planet()` → so `invaded_planets` was never populated → so
 `GalacticWarProcessor` returned at its own `is_empty()` guard **every turn** and

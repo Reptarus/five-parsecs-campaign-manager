@@ -6916,3 +6916,15 @@ the #23 walk now have a device verdict.
   2560x1600 (pane 4 of 4 against `max_columns = 3`). Same on the PRE-FIX build, so not
   a regression. Deployment still binds because the pre-select is programmatic.
 - Device handed back on `dev_now_0906.json`, force-stopped, stayon false.
+
+## Deploy #36 — 2026-09-21/22 (versionCode 19, Bug Hunt Sprint 1 device walk)
+
+- Recorded in its own file, because it is a Bug Hunt walk with ~30 findings:
+  `docs/qa/BUG_HUNT_DEVICE_WALK_2026-09-21_FINDINGS.md` (runbook: `docs/qa/BUG_HUNT_DEVICE_WALK_2026-09-20.md`).
+- Headline: the Sprint 1 turn loop, mode predicate, Enlist filter, forced-roll chain and
+  muster-out transfer file all VERIFIED on hardware; new criticals include W-N17 (the enlistment
+  roll was always zero) and W-N24 (a transfer committed on Dismiss, not Confirm).
+- Teardown clean: at-risk saves md5-unchanged, probe save and transfer file removed,
+  `A1_BUILD` restored, `git diff project.godot export_presets.cfg` empty.
+- 2026-09-24 desk pass: **W-N24 fixed** (commit on Confirm, detection-proven 3/3 arms); hardware
+  re-walk of the muster leg still owed.

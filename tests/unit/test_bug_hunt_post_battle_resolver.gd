@@ -509,7 +509,19 @@ func test_the_panel_applies_no_rules_of_its_own() -> void:
 # ──────────────────────────────────────────────────────────────────────────────
 
 func test_a_muster_out_effect_writes_a_transfer_file() -> void:
-	var before: Array = _transfer_files()
+	# PREMISE, and the reason it is asserted rather than assumed: this case deletes
+	# the DIFFERENCE between two listings of user://transfers/. An unreadable listing
+	# here is not a nuisance -- it makes every veteran ALREADY waiting for pickup look
+	# like a file this test wrote. That is the 2026-09-21 save-directory deletion, one
+	# directory over. Refuse rather than guess.
+	var before = _transfer_files()
+	assert_bool(before is Array).override_failure_message(
+		"premise: user://transfers/ exists and could not be listed, so nothing below "
+		+ "can tell a file this test wrote from a mustered-out veteran waiting to be "
+		+ "picked up. Refusing to compute a difference against an unknown before-set."
+		).is_true()
+	if not (before is Array):
+		return
 
 	var core = BugHuntCore.new()
 	core.add_main_character(_marine("vet", "Vet", {"completed_missions_count": 15}))
@@ -522,7 +534,13 @@ func test_a_muster_out_effect_writes_a_transfer_file() -> void:
 		"op": "muster_out", "target": "vet", "amount": 15, "reason": "automatic",
 	})
 
-	var after: Array = _transfer_files()
+	var after = _transfer_files()
+	assert_bool(after is Array).override_failure_message(
+		"user://transfers/ could not be listed after the muster out, so the cleanup "
+		+ "below would have to guess which file this test wrote"
+		).is_true()
+	if not (after is Array):
+		return
 	var added: Array = []
 	for f in after:
 		if not (f in before):
@@ -540,11 +558,22 @@ func test_a_muster_out_effect_writes_a_transfer_file() -> void:
 		DirAccess.remove_absolute("user://transfers/".path_join(f))
 
 
-func _transfer_files() -> Array:
-	var out: Array = []
+## Names in user://transfers/, or NULL when the directory exists and could not be
+## read. The null is the whole point. Returning [] there is indistinguishable from
+## an empty directory, and the one caller SUBTRACTS this listing from a later one
+## and deletes the remainder -- so an empty-because-unreadable before-set nominates
+## every pending transfer on disk. A pending transfer is a mustered-out veteran who
+## exists in no campaign until a dashboard picks them up: the file IS the character.
+##
+## Mirrors tests/fixtures/helpers/save_dir_guard.gd::_list_saves(), which was given
+## the same distinction on 2026-09-21 after the ambiguity it had cost 238 real saves.
+func _transfer_files() -> Variant:
+	if not DirAccess.dir_exists_absolute("user://transfers"):
+		return []  # nothing there yet is a real, knowable empty
 	var dir := DirAccess.open("user://transfers")
 	if dir == null:
-		return out
+		return null
+	var out: Array = []
 	for f in dir.get_files():
 		out.append(f)
 	return out

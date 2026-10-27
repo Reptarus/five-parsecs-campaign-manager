@@ -27,6 +27,29 @@ const TurnController = preload("res://src/ui/screens/tactics/TacticsTurnControll
 const OpMapPanel = preload(
 	"res://src/ui/screens/tactics/panels/TacticsOperationalMapPanel.gd")
 const TacticsCore = preload("res://src/game/campaign/TacticsCampaignCore.gd")
+const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
+
+
+## Snapshot user:// before each case and undo whatever appeared afterwards.
+##
+## This suite drives TacticsPhaseManager._complete_turn (:192), which calls
+## GameState.save_campaign(). That writes user://saves/<id>.save AND sets
+## game_settings["last_campaign"], which _try_auto_load_last_campaign() reads at
+## every launch -- the documented cross-suite bleed vector. The id comes from
+## TacticsCampaignCore.get_campaign_id() (:106) and is generated from the clock,
+## so the suite cannot name the file it is about to create; the guard observes
+## what appeared instead of predicting it, and removes ONLY that.
+var _user_state: Dictionary = {}
+
+
+func before_test() -> void:
+	_user_state = SaveDirGuard.snapshot()
+
+
+func after_test() -> void:
+	SaveDirGuard.restore(_user_state)
+	_user_state = {}
+
 
 
 func _campaign() -> Resource:

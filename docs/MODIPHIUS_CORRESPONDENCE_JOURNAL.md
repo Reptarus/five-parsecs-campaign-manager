@@ -1,7 +1,7 @@
 # Modiphius Partnership Correspondence Journal
 
 **Owner**: Elijah Rhyne
-**Last Updated**: 2026-09-13 (Entries #15-#33 backfilled from the Gmail "Design document" thread, Jun 5 → Sep 12 2026. Headlines: direction locked Jun 18 (#20); LOI MOBILE ONLY Jul 8 (#24); Jul 27 call reconstructed and PROVISIONAL (#27); Cam named as the LOI owner Aug 26 (#30); letterhead LOI promised for Mon Sep 14 and a meeting that week (#32). §3.0 live threads added. Previous: 2026-06-04 (Entries #13-14: #13 = Chris's June 4 master-design request; #14 = Elijah's sent reply (one-pager + high-level scope in the body). Parked: Android-first-and-only for the app + alpha, and beta slipping from decision churn. Original #13 note follows: Chris's June 4 email requests a master design one-pager [who/problem/how/why-better], flags the DIY/AI-web-app threat, raises the Steam+laptop accessibility concern, and refocuses on companion-first for the FiveX audience. Triggered: companion-first rewrite of `docs/BROADENING_SCOPE_SKETCH.md`, the mobile-forward re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md`, and Draft #G cover reply. Prior header context: 2026-05-22 MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.))
+**Last Updated**: 2026-09-13 (Entries #15-#33 backfilled from the Gmail "Design document" thread, Jun 5 → Sep 12 2026. Headlines: direction locked Jun 18 (#20); LOI MOBILE ONLY Jul 8 (#24); Jul 27 call reconstructed and PROVISIONAL (#27); Cam named as the LOI owner Aug 26 (#30); letterhead LOI promised for Mon Sep 14 and a meeting that week (#32). §3.0 live threads added. ⚠ UPDATED 2026-09-21: Entries #34-#35 — the letterhead did NOT arrive on Sep 14, Modiphius has not replied since Sep 11, and Elijah chased on Sep 20 proposing a calendar date about two weeks out. Previous: 2026-06-04 (Entries #13-14: #13 = Chris's June 4 master-design request; #14 = Elijah's sent reply (one-pager + high-level scope in the body). Parked: Android-first-and-only for the app + alpha, and beta slipping from decision churn. Original #13 note follows: Chris's June 4 email requests a master design one-pager [who/problem/how/why-better], flags the DIY/AI-web-app threat, raises the Steam+laptop accessibility concern, and refocuses on companion-first for the FiveX audience. Triggered: companion-first rewrite of `docs/BROADENING_SCOPE_SKETCH.md`, the mobile-forward re-sequencing in `PARTNERSHIP_TERM_POSITIONS.md`, and Draft #G cover reply. Prior header context: 2026-05-22 MAJOR: deal structure CONFIRMED IN WRITING via Chris's May 22 04:29 email — recoupment Reading B + quarterly maintenance + pro-rata, all locked in correspondence record. Chris independently arrived at "Stage 2" framing for broadening, accepted Elijah-side (matches `feedback_phase1_prove_phase2_lockin.md`). Entry #10 promoted (Draft #C → May 14 outbound). Entry #10a logged as SLIPPED (May 18-22 meeting deferred by Modiphius IT/Tax/Accounting sprint, superseded by Mon May 25 reschedule). Entries #11 + #11a added for Chris's two May 22 emails. Draft #E added in Section 6: reply covers public-beta-via-Discord-and-subreddit proposal, Ivan crediting workaround (no compensation), prioritised support list, graphics-light A1 framing. Previous header context preserved below.))
 **Purpose**: Chronological log of all Modiphius partnership touchpoints — meetings, emails, deliverables sent, decisions made by either side. Acts as a written timeline that's independent of the email archive (in case emails are lost, replaced, or contested).
 
 > **Maintenance protocol**: Add a new entry within 24 hours of any touchpoint. Include verbatim excerpts of key passages when they contain commitments or numbers. Cross-reference to source documents, meeting notes, and email subjects so the journal remains an index, not the only record. Verbatim quotes use blockquotes and are clearly marked as such.
@@ -60,6 +60,8 @@
 | 31 | 2026-08-26 (10:57 PM) | Email outbound | Elijah → Chris | Early next week works; Sep 3 morning blocked. Then 15 days of silence; the call was never booked | This document, Entry #31 |
 | 32 | 2026-09-11 (3:24 AM) | Email inbound | Chris → Elijah | LOI to be issued Monday Sep 14 ("Myself and Cam will finalise any notes on the letter and issue it on monday"); proposes meeting early that week on what the playtest needs | This document, Entry #32 |
 | 33 | 2026-09-12 (5:49 PM) | Email outbound | Elijah → Chris | Accepts; mornings flexible; leaves the time to Chris. Nothing on the calendar as of Sep 13 | This document, Entry #33 |
+| 34 | 2026-09-14 (3:25 AM) | Google Docs digest (automated) | Google → Elijah | The promised letterhead LOI did NOT arrive. Digest re-surfaces two still-unresolved LOI comment threads, one of them the tester-reward term | This document, Entry #34 |
+| 35 | 2026-09-20 (7:24 AM) | Email outbound | Elijah → Chris | Chase: proposes booking a calendar date about two weeks out so everything can be handled at once | This document, Entry #35 |
 
 ---
 
@@ -1670,16 +1672,108 @@
 
 ---
 
+### Entry #34 — 2026-09-14 (3:25 AM) — Google Docs digest (automated) — the promised letterhead LOI did NOT arrive; two LOI comment threads still unresolved
+
+`[ADDED 2026-09-21; quoted verbatim from the Google Docs notification]`
+
+- **Mode**: Google Docs comment digest (`comments-noreply@docs.google.com`), not a message from Modiphius
+- **Document**: Letter of Intent: Five Parsecs From Home Digital Companion App (the shared Google Doc from Entry #22)
+- **Verbatim, thread 1**:
+
+  > Chris Birch
+  > | Letter of Intent: Five Parsecs From Home Digital Companion App
+  > @elijahrhyne@gmail.com I'll need a couple of days to check in with my
+  > business manager to get their input but i think we're broadly there
+  >
+  > Chris Birch
+  > @elijahrhyne@gmail.com have a look at the notes below
+  >
+  > Chris Birch
+  > We're fine with this now see note below then we can issue to you and sign
+
+- **Verbatim, thread 2** (anchored on the text "Testers who complete th..."):
+
+  > Chris Birch
+  > I think we should look at giving them X access Ie free purchase, or free X
+  > months whichever we decide on) to the final product if they complete the
+  > process but can discuss
+  >
+  > Elijah Rhyne
+  > 100% fine with me. added base language we can specify on
+  >
+  > Chris Birch
+  > suggest free access to the base app not paid extra content
+
+- **Read**: ⚠ **This is a RE-NOTIFICATION, not new activity.** The quoted comments carry the same
+  timestamps as the Jul 4 and Jul 18 digests of the same two threads; Google re-sends digests for
+  comment threads that are still open. The load-bearing facts are (a) **the letterhead LOI promised
+  for this exact day (Entry #32) did not arrive**, by email or in the Doc, and (b) two LOI comment
+  threads are **still unresolved**, so the Doc is not in a signable state either.
+- ⭐ **Thread 2 is an alpha-material term, not just a legal one, and it is the only place it is
+  recorded**: what a tester gets for completing the program. Chris's latest position is *"free access
+  to the base app not paid extra content"*, which is narrower than his opening *"free purchase, or
+  free X months"* (quoted in `docs/MEETING_PREP_2026-07-27.md:274`).
+- ✅ **SUPERSEDED 2026-09-21 — the owner has decided our side of it, and it matches Chris.** Elijah, 2026-09-21: *"the testers getting a free copy of the app is fine by me, i dont care, its the least we can do."* That accepts Chris's own narrowing, so there is no disagreement left between the
+  parties on substance: **a tester who completes the program gets free access to the base app, not paid expansion content.** `docs/LOI_DRAFT.md:66` now carries that clause. Two things are
+  still genuinely open: (a) whether the grant is permanent or a *"free X months"* term — Chris
+  offered both, his narrowing reads permanent, and Elijah's wording ("a free copy") reads
+  permanent too, but neither is written down; and (b) Chris resolving the comment thread and
+  issuing the letter. ⚠ This row previously instructed *"Do not write a reward promise into
+  `docs/testing/ALPHA_TESTER_ONBOARDING.md` until this thread is closed"* — superseded in place
+  rather than deleted, because the caution still holds for the DURATION and for anything said
+  before the letter issues, while the base-app grant itself is no longer undecided.
+- ⓘ Incidentally consistent with the build: the app does not unlock paid Compendium content for
+  anyone (`src/core/systems/DLCManager.gd:128`, `:181-184`), which is the same line Chris is drawing.
+  That does NOT resolve the separate question of whether testers need Compendium content unlocked
+  *during* the alpha in order to test it — see the DLC-unlock row in §3.0.
+- **References**: Entry #22 (the shared Doc); Entry #24 (Chris's in-Doc edits accepted); Entry #32
+  (the promise); Entry #35 (the chase).
+
+---
+
+### Entry #35 — 2026-09-20 (7:24 AM) — Email outbound — Elijah: proposes booking a calendar date about two weeks out
+
+`[ADDED 2026-09-21; body verbatim]`
+
+- **Mode**: Email, same "Design document" thread
+- **From**: Elijah
+- **To**: Chris (Gavin and Cam on thread)
+- **Verbatim body**:
+
+  > Would it be easier for all parties involved to set a calendar date like two
+  > or so weeks out from now? It give everyone ample time to make sure
+  > everything is ready so it can all be taken care of at once.
+  >
+  > Let me know,
+  >
+  > Elijah
+
+- **Read**: a scheduling change of tactic, not a new ask. Chris's pattern across Entries #25b, #30
+  and #32 is to propose a call "early next week" and then be consumed by accounts or travel; this
+  proposes a **fixed date with lead time** instead, and bundles the letterhead and the meeting into
+  one event ("taken care of at once"). Two weeks out from Sep 20 is roughly **Oct 2-6 2026**.
+- ⚠ **This is a MEETING-scheduling proposal, not an alpha kickoff date.** The kickoff stays deferred
+  by Modiphius (Entry #27) and is still not to be proposed unprompted.
+- **Silence**: no reply from Chris, Cam or Gavin as of 2026-09-21. Last inbound of any kind from
+  Modiphius is Entry #32 (Sep 11) — **10 days**. Gavin's annual-leave auto-reply (Sep 7-11) arrived
+  Sep 13 and is not a substantive response.
+- **References**: Entry #32; Entry #33; Entry #34; §3.0 below.
+
+---
+
 ## 3. Open Threads
 
-### 3.0 Live threads as of 2026-09-13
+### 3.0 Live threads as of 2026-09-21
 
-Compiled from the Jun 5 → Sep 12 backfill (Entries #15-#33) and a code read of the build on the same day. Where a row below disagrees with the §3.1 snapshot, this table wins. Build-state claims cite `file:line` at commit `3b26b873d`.
+Compiled from the Jun 5 → Sep 12 backfill (Entries #15-#33) and a code read of the build on the same day. Where a row below disagrees with the §3.1 snapshot, this table wins. Build-state claims cite `file:line` at commit `3b26b873d`; re-checked 2026-09-21 at `ca6172011` and every cite below still resolves.
+
+⚠ **The Sep 14 meeting never happened and the letterhead LOI never arrived** (Entries #34-#35). Wherever a row below says "the Sep 14 call" or "the Sep 14 agenda", read **"the next call"** — the agenda items are unchanged, only the date is gone. A chase went out Sep 20 proposing a fixed date about two weeks out (roughly Oct 2-6); no reply as of Sep 21.
 
 | Thread | Status | Owner | Next Step |
 |---|---|---|---|
-| **LOI on Modiphius letterhead** | PROMISED for **Mon Sep 14 2026** (Entry #32: "issue it on monday"). Chris + Cam are still "finalising any notes on the letter", so the text may differ from the agreed Google Doc. | Modiphius (Chris, Cam) | On receipt: (1) diff against the Google Doc (`BOILERPLATE_REVIEW_CHECKLIST.md`); (2) confirm how the "monthly recoups" comment (Entry #25b) was resolved; (3) confirm the MOBILE ONLY language (Entry #24) survived; (4) confirm $9.99 base + per-book unlocks and the taper (Entry #27) are written in. Then work `docs/legal/POST_LOI_LEGAL_CHECKLIST.md` top to bottom. |
-| **Meeting, week of Sep 14** | PROPOSED by Chris (Entry #32), accepted in principle (Entry #33). No time set; Chris to name one. Framed by Chris as "what else you need from us to get the playtest rolling properly". | Both | Bring the ask list (next four rows). Do NOT propose a kickoff date (deferred Jul 27, Entry #27). |
+| **LOI on Modiphius letterhead** | ⚠ **OVERDUE.** Promised for **Mon Sep 14 2026** (Entry #32: "issue it on monday") and **did not arrive** — nothing by email, and the Google Doc is not in a signable state either: two comment threads are still open (Entry #34), one of them the tester reward. No Modiphius reply since Sep 11. Chris + Cam were still "finalising any notes on the letter", so the text may still differ from the agreed Doc. | Modiphius (Chris, Cam) | On receipt: (1) diff against the Google Doc (`BOILERPLATE_REVIEW_CHECKLIST.md`); (2) confirm how the "monthly recoups" comment (Entry #25b) was resolved; (3) confirm the MOBILE ONLY language (Entry #24) survived — ⚠ **2026-09-21: assume it did NOT.** The owner pasted the operative Doc, dated 7/27/2026, and it still says Steam in six places including the Phase 2 trigger, 19 days after the Jul 8 edit. Send the corrected platform wording (`docs/LOI_DRAFT.md`) rather than waiting to check the letter; (4) confirm $9.99 base + per-book unlocks and the taper (Entry #27) are written in. Then work `docs/legal/POST_LOI_LEGAL_CHECKLIST.md` top to bottom. |
+| **Meeting (was "week of Sep 14")** | ⚠ **NEVER SCHEDULED.** Proposed by Chris (Entry #32), accepted (Entry #33), no time ever named, week passed. Elijah chased **Sep 20** proposing a fixed calendar date about two weeks out so the letter and the meeting land together (Entry #35, roughly Oct 2-6); no reply. Chris's framing stands: "what else you need from us to get the playtest rolling properly". | Modiphius (Chris to name a date) | Bring the ask list (next four rows). Do NOT propose a kickoff date (deferred Jul 27, Entry #27) — the Sep 20 mail proposes a MEETING date, which is a different thing. |
+| **Tester reward for completing the alpha** | 🟡 **AGREED IN SUBSTANCE 2026-09-21, not yet written into a signed document.** Chris narrowed his own opening offer to **"free access to the base app not paid extra content"**; the owner has now accepted that (Elijah, 2026-09-21: *"the testers getting a free copy of the app is fine by me, i dont care, its the least we can do."*). So both sides want the same thing and there is nothing left to negotiate on substance. What remains is mechanical: the clause is in `docs/LOI_DRAFT.md:66` as of today, Chris's comment thread on the LOI Doc is **still unresolved** (Entry #34), and the **duration** (permanent vs "free X months") has never been stated by either party. | Both (Chris to close the thread) | Confirm the clause survived into the letterhead LOI when it arrives, and pin the duration in the same pass. The tester onboarding doc may carry the base-app grant once the letter issues; it must NOT state a duration, because nobody has agreed one. |
 | **Modiphius mobile developer setup / Play Console access** | OPEN since **Jun 18** (Entry #21) — **never answered** by Chris or Gavin on the thread. The alpha plan assumes a closed test track under Modiphius's Play account (`docs/CLOSED_ALPHA_PLAN.md` §3). Longest lead time of anything on the list. | Modiphius (Gavin?) | Top of the Sep 14 agenda. Need: who owns the Play Console account, a developer-account seat or upload role for Elijah, and the app listing created so the closed track can exist. |
 | **Cam introduction** | NEW (Entry #30). Cam "handles the business deals" and holds the LOI. No direct contact yet; surname unknown. | Modiphius (Chris) | Ask to be introduced on the Sep 14 call, so LOI questions stop routing through Chris. |
 | **Legal contact + marketing/social contact** | ASKED Aug 25 (Entry #29). Chris's answer (Entry #30): marketing "should get a bit easier mid Sept". No names given. | Modiphius | Ask again on the Sep 14 call. The playtest announcement draft (Entry #22) still needs Modiphius's endorsement language and a bias-check of the signup form wording (Entry #12 workflow, `docs/ALPHA_SIGNUP_FORM_QUESTIONS.md`). |

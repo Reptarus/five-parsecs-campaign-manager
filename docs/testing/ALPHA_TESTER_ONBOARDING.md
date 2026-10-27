@@ -1,6 +1,6 @@
 # Welcome to the 5PFH Digital Closed Alpha
 
-> **INTERNAL: DRAFT, NOT READY TO SEND (checked 2026-09-13 against build `3b26b873d`).**
+> **INTERNAL: DRAFT, NOT READY TO SEND (checked 2026-09-13 against build `3b26b873d`; re-checked 2026-09-21 against `ca6172011` — every blocker below still stands).**
 > This v1 was written for a Windows build shared through Ivan's Discord. The alpha is now Android via a Google Play closed testing track, with testers from a Google-Form signup funnel. Remove this banner before it goes to anyone.
 >
 > Blocked on:
@@ -11,6 +11,11 @@
 > 4. A tester DLC unlock mechanism (the build does not unlock the Compendium; see the corrected line below).
 >
 > Sections still written for the old Windows/Discord model and needing a rewrite: TL;DR, Installation steps 1-3, the Discord channel names, the week table, After Alpha. Lines that were simply false are corrected inline and marked **[FIXED 2026-09-13]**.
+>
+> Added 2026-09-21, two things this doc must cover before it is sent:
+>
+> 5. **Say that four modes are visible but locked.** The alpha build shows Co-op, Bug Hunt, Tactics and Planetfall on the main menu, dimmed, and tapping one answers "Coming in a later release" (`src/ui/screens/mainmenu/MainMenu.gd:20`, `_apply_a1_scope`). This is deliberate, so the menu shows the roadmap rather than implying the modes do not exist. If the doc does not say it, every tester files the same bug. Alpha-1 is the Standard campaign plus the Battle Simulator.
+> 6. **The reward is agreed but not yet signed, and it has no duration.** As of 2026-09-21 both sides want the same thing: a tester who completes the alpha gets free access to the base app, not paid expansion content (owner decision; Chris's own wording; clause now at `docs/LOI_DRAFT.md:66`). It is safe to put that in this doc once the letterhead LOI issues, and not before, because until then nothing is signed. Never state a duration. Nobody has agreed whether it is permanent or "free X months", so do not write either.
 
 Thanks for joining the alpha test for the Five Parsecs From Home digital companion app. This document walks you through everything you need to know to get the build running, give feedback, and stay in the loop.
 
@@ -28,7 +33,7 @@ If you have questions before you start, drop a message in the Discord and someon
 
 ## What This Build Is
 
-This is the **closed alpha** for the digital companion app version of Five Parsecs From Home, currently in development with Modiphius for a Steam Early Access launch later this year.
+This is the **closed alpha** for the digital companion app version of Five Parsecs From Home, currently in development with Modiphius.
 
 It's a **companion app**, not a digital edition replacing the books. The goal is to make solo 5PFH campaigns easier to track, with bookkeeping handled in-app while you keep playing on the tabletop. If you've ever wanted to skip the spreadsheet management, that's what this is built for.
 
@@ -43,8 +48,8 @@ It's a **companion app**, not a digital edition replacing the books. The goal is
 
 **What's NOT in this alpha (yet):**
 
-- Bug Hunt, Planetfall, and Tactics gamemodes — we're alpha-testing those separately later
-- Mac and Linux builds — Windows-only for alpha-1
+- **[FIXED 2026-09-21]** Co-op, Bug Hunt, Planetfall, and Tactics gamemodes. All four still appear on the main menu, dimmed, and tapping one answers "Coming in a later release". That is deliberate, not a bug, so please do not file it. (was "Bug Hunt, Planetfall, and Tactics gamemodes", which omitted Co-op and did not say they stay visible)
+- **[FIXED 2026-09-21]** Desktop builds. Alpha-1 is Android only, Android 10 or newer. (was "Mac and Linux builds — Windows-only for alpha-1")
 - Online features, multiplayer, or cloud saves — everything is local
 
 **Expectations**: this is **alpha**, not beta. Things will be rough. UI will have weird edges. Some text won't be final. That's the point — we want to find what's rough before more people see it.
@@ -191,13 +196,13 @@ You'll see the survey **once per build version**, so we're not nagging you weekl
 
 ## After Alpha
 
-> **INTERNAL [2026-09-13]: STALE.** Written for a Steam Early Access launch in late September 2026. The direction is now mobile-first (locked Jun 18) and no launch date exists. Rewrite before sending.
+> **INTERNAL [2026-09-21]: STALE, and the platform promises below are now CUT.** Written for a Steam Early Access launch in late September 2026. The direction is Android only, no launch date exists, and we hold neither account: `steam_appid.txt` holds `480`, Valve's public Spacewar placeholder rather than a real App ID, and `export_presets.cfg` has no iOS preset at all (its three presets are Android, Linux and Windows Desktop). Never promise a tester a key on a storefront we cannot publish to. Rewrite the rest before sending.
 
 When alpha closes Jul 6:
 
 - I'll post a summary write-up in `#5pfh-alpha-feedback` covering what we learned and what changes
-- Alpha testers stay in the loop — invited to the beta cohort, acknowledged in credits, get early Steam keys at 1.0 launch if you want one
-- The pricing survey + category-perception data shapes the Steam Early Access launch (target late September 2026)
+- Alpha testers stay in the loop: invited to the beta cohort and acknowledged in credits. **[FIXED 2026-09-21]** (was "get early Steam keys at 1.0 launch if you want one"; there is no Steamworks app, so that was unkeepable)
+- The pricing survey + category-perception data shapes the public launch. **[FIXED 2026-09-21]** (was "the Steam Early Access launch (target late September 2026)")
 
 ---
 

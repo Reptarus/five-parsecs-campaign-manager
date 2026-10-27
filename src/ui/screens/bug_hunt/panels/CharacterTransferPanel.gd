@@ -9,6 +9,17 @@ extends Control
 signal character_transferred(character_data: Dictionary, direction: String)
 signal transfer_cancelled
 
+## Emitted by EVERY teardown path -- cancel and both result-screen dismiss controls --
+## immediately before the panel frees itself.
+##
+## Added 2026-09-22 with the W-N24 fix. The dashboard used to rebuild itself at the tail
+## of _apply_enlistment / _apply_muster_out, and that rebuild frees every one of its
+## children. Now that those run on the player's CONFIRM rather than on the result
+## screen's dismiss control, the panel is still on screen when they do, so the old tail
+## would have queue_free()d the result screen before it could be read. The rebuild
+## belongs to the panel's teardown.
+signal transfer_closed
+
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
 const COLOR_BASE := _UC.COLOR_BASE
 const COLOR_ELEVATED := _UC.COLOR_ELEVATED
@@ -34,6 +45,11 @@ var _selected_character: Dictionary = {}
 ## dashboard computed, so the caller cannot assume its own suggestion was used.
 ## Empty when the source was an in-memory array, which has no file to remove from.
 var _source_save_path: String = ""
+
+## Set by the LISTENER, from inside a character_transferred emit, when the commit could
+## not be completed. Cleared immediately before every emit, so a stale value can never
+## poison the next transfer. See _emit_and_confirm().
+var _commit_error: String = ""
 
 var _content: VBoxContainer
 var _step_container: VBoxContainer
@@ -199,6 +215,7 @@ func _show_step_1() -> void:
 	cancel_btn.custom_minimum_size = Vector2(0, 44)
 	cancel_btn.pressed.connect(func():
 		transfer_cancelled.emit()
+		transfer_closed.emit()
 		queue_free()
 	)
 	_step_container.add_child(cancel_btn)
@@ -324,10 +341,89 @@ func _execute_transfer() -> void:
 
 	if _direction == "enlist":
 		var result := _transfer_service.attempt_enlistment(_selected_character)
-		_show_enlistment_result(result)
+		_show_enlistment_result(_commit_enlistment(result))
 	else:
 		var result := _transfer_service.muster_out(_selected_character)
-		_show_muster_result(result)
+		_show_muster_result(_commit_muster_out(result))
+
+
+## Commit an accepted enlistment, then hand back what the screen should report.
+##
+## FIXED 2026-09-22 (device walk W-N24). The emit used to sit on the result screen's own
+## "Welcome Aboard!" button, so the transfer was committed only if the player pressed ONE
+## MORE control AFTER being told it had already happened. Backing out, navigating away or
+## losing the process at that screen discarded an accepted roll silently -- and the book
+## gates a retry on the next mission (Compendium p.212), so a lost roll costs a mission.
+##
+## The stamping is why this is a function rather than one moved line: the dashboard needs
+## the SOURCE coordinates in order to drop the veteran from the campaign they came from.
+func _commit_enlistment(result: Dictionary) -> Dictionary:
+	if not result.get("success", false):
+		return result
+
+	# Stamp where this veteran CAME FROM so the dashboard can drop them from the
+	# source campaign instead of leaving a duplicate in both. Mirrors the Planetfall
+	# import precedent (PlanetfallDashboard._apply_import, :64-87), which pulls the
+	# same two keys off and erases them before the character lands in the roster.
+	#
+	# The id comes from _selected_character, the row as it exists in the SOURCE save --
+	# not from result.transferred_character, whose conversion may rewrite fields.
+	# remove_character_from_save matches on the source file's own value, so a
+	# post-conversion id would silently match nothing and the removal would no-op: the
+	# destination gains the veteran, the source keeps them, and the duplicate can be
+	# enlisted again. The character_id-then-id precedence is that function's own
+	# (CharacterTransferService.gd:656-657), copied so the two cannot disagree.
+	var enlisted: Dictionary = result.get("transferred_character", {})
+	var source_id: String = str(_selected_character.get("character_id",
+		_selected_character.get("id", "")))
+	if not _source_save_path.is_empty() and not source_id.is_empty():
+		enlisted["_source_path"] = _source_save_path
+		enlisted["_source_character_id"] = source_id
+
+	return _emit_and_confirm(enlisted, "enlist", result)
+
+
+## Commit a muster-out, then hand back what the screen should report.
+##
+## FIXED 2026-09-22 (device walk W-N24), the same defect as the enlist direction -- and
+## the comment that used to sit at the enlist emit claimed THIS side was already safe,
+## because "CharacterTransferService.muster_out ... writes the transfer file itself".
+##
+## CORRECTION: it does not. muster_out (CharacterTransferService.gd:198-216) validates,
+## converts through export_to_canonical and RETURNS; it writes nothing. Every byte of
+## persistence is BugHuntDashboard._apply_muster_out, reached ONLY through this emit. So
+## pressing "Confirm Muster Out" used to print the full reward breakdown -- credits, the
+## Story Point, the Sector Government Patron, "can now be added to any Five Parsecs crew"
+## -- over a transfer that had not been written and a marine still in the squad.
+func _commit_muster_out(result: Dictionary) -> Dictionary:
+	if not result.get("success", false):
+		return result
+	return _emit_and_confirm(result.get("transferred_character", {}), "muster_out", result)
+
+
+## Emit the commit, then report what it ACTUALLY did.
+##
+## Godot signals are SYNCHRONOUS, so the listener has run to completion by the time emit()
+## returns. That is what lets a failed commit downgrade the result before the screen is
+## built. Without it the fix would only move the lie one step later: a success screen
+## rendered over a write that errored.
+func _emit_and_confirm(payload: Dictionary, direction: String,
+		result: Dictionary) -> Dictionary:
+	_commit_error = ""
+	character_transferred.emit(payload, direction)
+	if _commit_error.is_empty():
+		return result
+	# _show_*_result()'s failure branch renders `reason` and offers "Go Back". The flag
+	# matters for enlistment: this dict has no `dice`, and the enlist screen reads a missing
+	# `dice` as "never rolled" -- so without it an accepted roll whose SAVE failed would be
+	# announced as an ineligibility.
+	return {"success": false, "reason": _commit_error, "commit_failed": true}
+
+
+## Called BY THE LISTENER, from inside the character_transferred emit, when the commit
+## could not be completed.
+func report_commit_error(message: String) -> void:
+	_commit_error = message
 
 
 func _show_enlistment_result(result: Dictionary) -> void:
@@ -337,17 +433,34 @@ func _show_enlistment_result(result: Dictionary) -> void:
 
 	var result_card := _create_glass_card(_step_container)
 
-	var dice: Array = result.get("dice", [0, 0])
-	var die1: int = dice[0] if dice.size() > 0 else 0
-	var die2: int = dice[1] if dice.size() > 1 else 0
+	# attempt_enlistment returns TWO shapes. A completed roll carries `dice`; an
+	# ineligibility (validate_enlistment rejected BEFORE rolling) carries only
+	# `reason`. This rendered the second as a roll, so the .get() defaults printed
+	# "Dice: [0] + [0] + Combat Skill 0 = 0" -- indistinguishable from a roll that
+	# failed, with the real reason discarded. Measured on the tablet 2026-09-22,
+	# where a case-sensitive status gate made EVERY healthy 5PFH character
+	# ineligible and this line was the only thing the player saw.
+	var rolled: bool = result.has("dice")
+	var dice: Array = result.get("dice", [])
+	var die1: int = int(dice[0]) if dice.size() > 0 else 0
+	var die2: int = int(dice[1]) if dice.size() > 1 else 0
 	var combat_bonus: int = result.get("combat_bonus", 0)
+	var patron_bonus: int = result.get("patron_bonus", 0)
 	var total: int = result.get("roll", 0)
+	var target: int = result.get("target", 7)
 
-	# Dice roll display
 	var roll_lbl := Label.new()
-	roll_lbl.text = "Dice: [%d] + [%d] + Combat Skill %d = %d  (needed 7+)" % [die1, die2, combat_bonus, total]
+	if rolled:
+		# Compendium p.212's Sector Government Patron +1 is IN the total, so it has
+		# to be in the printed sum or the line does not add up on screen.
+		var patron_str: String = (" + Patron %d" % patron_bonus) if patron_bonus != 0 else ""
+		roll_lbl.text = "Dice: [%d] + [%d] + Combat Skill %d%s = %d  (needed %d+)" % [
+			die1, die2, combat_bonus, patron_str, total, target]
+	else:
+		roll_lbl.text = str(result.get("reason", "This character cannot enlist."))
 	roll_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	roll_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	roll_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	if result.success:
 		title.text = "ENLISTMENT ACCEPTED!"
@@ -366,40 +479,38 @@ func _show_enlistment_result(result: Dictionary) -> void:
 		var done_btn := Button.new()
 		done_btn.text = "Welcome Aboard!"
 		done_btn.custom_minimum_size = Vector2(0, 48)
+		# Closes only. The transfer was committed by _commit_enlistment() before this
+		# screen was built (W-N24), so there is nothing left to do but leave.
 		done_btn.pressed.connect(func():
-			# Stamp where this veteran CAME FROM so the dashboard can drop them from the
-			# source campaign instead of leaving a duplicate in both. Mirrors the Planetfall
-			# import precedent (PlanetfallDashboard._apply_import, :64-87), which pulls the
-			# same two keys off and erases them before the character lands in the roster.
-			#
-			# ⚠ The id comes from _selected_character, the row as it exists in the SOURCE
-			# save — not from result.transferred_character, whose conversion may rewrite
-			# fields. remove_character_from_save matches on the source file's own value, so
-			# a post-conversion id would silently match nothing and the removal would no-op:
-			# the destination gains the veteran, the source keeps them, and the duplicate
-			# can be enlisted again. The character_id-then-id precedence is that function's
-			# own (CharacterTransferService.gd:656-657), copied so the two cannot disagree.
-			#
-			# ⚠ Stamped on the ENLIST emit only. Muster-out (:420) already routes through
-			# CharacterTransferService.muster_out, which writes the transfer file itself.
-			var enlisted: Dictionary = result.transferred_character
-			var source_id: String = str(_selected_character.get("character_id",
-				_selected_character.get("id", "")))
-			if not _source_save_path.is_empty() and not source_id.is_empty():
-				enlisted["_source_path"] = _source_save_path
-				enlisted["_source_character_id"] = source_id
-			character_transferred.emit(enlisted, "enlist")
+			transfer_closed.emit()
+			queue_free()
 		)
 		_step_container.add_child(done_btn)
 	else:
-		title.text = "ENLISTMENT REJECTED"
+		# "REJECTED" means the roll was made and missed. An ineligibility never rolled.
+		# "NOT SAVED" means the roll was accepted and the commit failed (_emit_and_confirm).
+		var commit_failed: bool = result.get("commit_failed", false)
+		if commit_failed:
+			title.text = "NOT SAVED"
+		else:
+			title.text = "ENLISTMENT REJECTED" if rolled else "CANNOT ENLIST"
 		title.add_theme_color_override("font_color", COLOR_DANGER)
 		roll_lbl.add_theme_color_override("font_color", COLOR_DANGER)
 
 		result_card.add_child(roll_lbl)
 
 		var msg := Label.new()
-		msg.text = "Application denied. The military has standards, apparently.\n\nYou may try again after your next mission. (1 Story Point can also bypass the roll.)"
+		# p.212's Story Point rescue applies to a FAILED ROLL. Offering it for an
+		# ineligibility would invent a rule -- the service marks the difference with
+		# story_point_rescue_available, which it sets only on the rolled-failure dict.
+		if commit_failed:
+			msg.text = "The enlistment was accepted, but it could not be written to your campaign, so nothing has changed.\n\nResolve the reason shown above, then try again."
+		elif rolled:
+			msg.text = "Application denied. The military has standards, apparently.\n\nYou may try again after your next mission. (1 Story Point can also bypass the roll.)"
+		else:
+			msg.text = "This character is not eligible for Bug Hunt service.
+
+Resolve the reason shown above, then try again."
 		msg.add_theme_color_override("font_color", COLOR_TEXT)
 		msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		result_card.add_child(msg)
@@ -445,8 +556,11 @@ func _show_muster_result(result: Dictionary) -> void:
 		var done_btn := Button.new()
 		done_btn.text = "Dismiss — Good Luck Out There"
 		done_btn.custom_minimum_size = Vector2(0, 48)
+		# Closes only. The transfer was committed by _commit_muster_out() before this
+		# screen was built (W-N24), so there is nothing left to do but leave.
 		done_btn.pressed.connect(func():
-			character_transferred.emit(transferred, "muster_out")
+			transfer_closed.emit()
+			queue_free()
 		)
 		_step_container.add_child(done_btn)
 	else:

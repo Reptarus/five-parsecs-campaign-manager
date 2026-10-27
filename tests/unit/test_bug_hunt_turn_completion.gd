@@ -244,6 +244,16 @@ func _with_participants(result: Dictionary) -> Dictionary:
 	return out
 
 
+## character id -> the field's value, for a comparison that survives a character
+## leaving the roster between the two reads (see test_the_second_turn_also_plays_to_its_end).
+func _counts_by_id(key: String) -> Dictionary:
+	var out := {}
+	for mc in _core.main_characters:
+		if mc is Dictionary:
+			out[str(mc.get("id", mc.get("character_id", "")))] = int(mc.get(key, 0))
+	return out
+
+
 func _sum_character_field(key: String) -> int:
 	var total := 0
 	for mc in _core.main_characters:
@@ -696,7 +706,7 @@ func test_the_second_turn_also_plays_to_its_end() -> void:
 	var first: Control = await _complete_turn_one()
 	if first == null:
 		return
-	var tally_after_one := _sum_character_field("completed_missions_count")
+	var tally_after_one := _counts_by_id("completed_missions_count")
 
 	_find_button(first, "Start Next Turn").pressed.emit()
 	await get_tree().process_frame
@@ -716,6 +726,19 @@ func test_the_second_turn_also_plays_to_its_end() -> void:
 	).is_equal(PhaseManagerScript.Phase.NONE)
 	# The buttons being clickable is not evidence the turn RAN. The tally rising a
 	# second time is: it is written by the post-battle step, once per mission.
-	assert_int(_sum_character_field("completed_missions_count")).override_failure_message(
+	#
+	# Compared PER CHARACTER, never summed over the roster. Turn two's own post-battle
+	# can remove a character -- this case reports no objectives, so the p.201 Court
+	# Martial is rolled and a 1 removes the leader -- and a roster sum then falls by
+	# that character's whole count while every survivor rose by one. Summed, this case
+	# failed about one run in five with the step working: measured 2026-10-27,
+	# Alpha/Bravo/Charlie 2/2/1 -> Bravo/Charlie 3/2, sum 5 -> 5.
+	var tally_after_two := _counts_by_id("completed_missions_count")
+	var rose: Array = []
+	for cid: String in tally_after_one:
+		if tally_after_two.has(cid) and int(tally_after_two[cid]) > int(tally_after_one[cid]):
+			rose.append(cid)
+	assert_array(rose).override_failure_message(
 		"turn two completed without counting its mission, so its post-battle step "
-		+ "did not apply").is_greater(tally_after_one)
+		+ "did not apply (no character present after both turns gained a mission: "
+		+ "%s -> %s)" % [tally_after_one, tally_after_two]).is_not_empty()

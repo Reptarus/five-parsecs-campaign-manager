@@ -15,7 +15,19 @@ extends GdUnitTestSuite
 ##    plus Bug Hunt / Planetfall / Tactics, and on a sideloaded APK the Offline adapter
 ##    makes "Restore Purchases" a no-op.
 ##
-## 2. PLAYER PROFILE DID THE SAME TO ELITE RANKS
+## 2. PLAYER PROFILE DID THE SAME TO ELITE RANKS -- AND THIS HALF DID NOT LAND
+##    UNTIL 2026-09-21. The paragraph below was written in the past tense on the day
+##    this suite was created, while save_to_disk() still truncated the live path and
+##    still never read _load_failed. Both profile cases were false greens: the first
+##    asserted an in-memory field it had set itself, and the second is NAMED
+##    write_is_atomic and asserted only that a fresh profile starts unfailed. So the
+##    case performed the destructive write on every run, and the user's real
+##    player_profile.json was found holding elite_ranks 7 with
+##    completed_victory_conditions [] and total_campaigns_completed 0 -- a combination
+##    award_elite_rank() cannot produce, because it moves all three together.
+##    A write-up is not a fix. Assert where the damage lands.
+##
+##    THE ORIGINAL FINDING, unchanged:
 ##    save_to_disk() truncated the live path with FileAccess.WRITE, no temp/rename, no
 ##    .bak, no write error check. A failed load left the object at @export defaults
 ##    (elite_ranks = 0) and the next campaign creation persisted that, because
@@ -34,13 +46,28 @@ extends GdUnitTestSuite
 const CampaignCore = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd")
 const PlayerProfileScript = preload("res://src/core/player/PlayerProfile.gd")
 
+const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
+
 const TEST_DIR := "user://test_write_safety/"
 
+## PlayerProfile.SAVE_PATH is a const, so the two profile cases below drive the REAL
+## user://player_profile.json -- there is no seam to redirect them through. Snapshot
+## its bytes and both siblings the atomic writer can leave (.bak, and .tmp on a failed
+## write) so a case can never cost the user their elite ranks again, whatever the code
+## under test does. Measured 2026-09-21: one already had.
+const PROFILE_PATH := "user://player_profile.json"
+
+## See after_test(): this suite already removed its save FILE and still leaked
+## the settings KEY that writing it set.
+var _user_state: Dictionary = {}
 var _previous = null
 var _swapped := false
+var _profile_state: Dictionary = {}
 
 
 func before_test() -> void:
+	_user_state = SaveDirGuard.snapshot()
+	_profile_state = _snapshot_profile()
 	if not DirAccess.dir_exists_absolute(TEST_DIR):
 		DirAccess.make_dir_recursive_absolute(TEST_DIR)
 
@@ -52,6 +79,47 @@ func after_test() -> void:
 			gs.current_campaign = _previous
 		_previous = null
 		_swapped = false
+	# test_lifecycle_flush_writes_the_campaign() removes the save file it
+	# created, but the write went through GameState.save_campaign(), which also
+	# set game_settings["last_campaign"] and called save_settings(). Measured
+	# consequence: the user's settings.cfg has carried
+	# last_campaign="lifecycle_flush_t" -- a test id -- since that case last ran.
+	SaveDirGuard.restore(_user_state)
+	_user_state = {}
+	_restore_profile(_profile_state)
+	_profile_state = {}
+
+
+## Bytes, or null where the file is absent. Absence is a state that has to be
+## restored too, or a case leaves a profile behind on a machine that had none.
+func _snapshot_profile() -> Dictionary:
+	var snap := {}
+	for path in [PROFILE_PATH, PROFILE_PATH + ".bak", PROFILE_PATH + ".tmp"]:
+		snap[path] = FileAccess.get_file_as_bytes(path) if FileAccess.file_exists(path) else null
+	return snap
+
+
+func _restore_profile(snap: Dictionary) -> void:
+	for path in snap.keys():
+		var bytes = snap[path]
+		if bytes == null:
+			if FileAccess.file_exists(path):
+				DirAccess.remove_absolute(path)
+			continue
+		var f := FileAccess.open(path, FileAccess.WRITE)
+		if f:
+			f.store_buffer(bytes)
+			f.close()
+
+
+## Seeds a known profile so an assertion can say the bytes did not MOVE, rather
+## than only that the file is still absent -- which a bailing save and a missing
+## file both satisfy.
+func _seed_profile(body: String) -> void:
+	var f := FileAccess.open(PROFILE_PATH, FileAccess.WRITE)
+	assert_that(f).is_not_null()
+	f.store_string(body)
+	f.close()
 
 
 func _gs() -> Node:
@@ -95,22 +163,77 @@ func test_dlc_ownership_survives_a_round_trip() -> void:
 
 # --- 2. Player profile ---------------------------------------------------------
 
+## THE SAFETY CASE. Assert where the damage lands -- the FILE, not the object.
+##
+## Until 2026-09-21 this read back the in-memory elite_ranks it had set two lines
+## earlier, which is true whether save_to_disk() bails or writes. The guard it is
+## named for did not exist, so the case was green while really persisting a fresh
+## object's defaults over the user's profile, every single run.
 func test_profile_refuses_to_save_after_a_failed_load() -> void:
+	var sentinel := '{"elite_ranks": 3}'
+	_seed_profile(sentinel)
+
 	var p = PlayerProfileScript.new()
 	p.elite_ranks = 7
 	p.set("_load_failed", true)
+
 	# save_to_disk() must bail rather than persist defaults over a real profile.
 	p.save_to_disk()
-	assert_int(int(p.elite_ranks)).is_equal(7)
+
+	assert_str(FileAccess.get_file_as_string(PROFILE_PATH)).override_failure_message(
+		"save_to_disk() overwrote the profile after a failed load. This is the only "
+		+ "cross-campaign progression store and the write has no undo."
+	).is_equal(sentinel)
 
 
+## The .bak generation is not decoration: load_from_disk() reads through
+## SaveFileWriter.read_json_with_fallback(), which CONSULTS it. A raw FileAccess.WRITE
+## leaves that reader looking for a backup nothing creates, and a half-written primary
+## with no generation behind it. That is what this case is named for, and what it did
+## not check until 2026-09-21 -- it asserted only that a fresh profile starts unfailed,
+## so it was green throughout the whole period the writer was non-atomic.
+##
+## The sentinel is load-bearing, not scene-setting: write_text_atomic() copies the
+## previous generation only `if FileAccess.file_exists(path)` (SaveFileWriter.gd:63),
+## so with no prior profile on disk a correct atomic write leaves no .bak either and
+## the assertion below could not tell the two apart.
 func test_profile_write_is_atomic() -> void:
 	var p = PlayerProfileScript.new()
 	if not ("_load_failed" in p):
 		fail("PlayerProfile._load_failed is missing — the write guard is gone")
 		return
 	assert_bool(bool(p.get("_load_failed"))).override_failure_message(
-		"a fresh profile must not start in the failed state or it can never save"
+		"premise: a fresh profile must not start failed or it could never save at all"
+	).is_false()
+
+	var sentinel := '{"elite_ranks": 5}'
+	_seed_profile(sentinel)
+	var bak := PROFILE_PATH + ".bak"
+	if FileAccess.file_exists(bak):
+		DirAccess.remove_absolute(bak)
+
+	p.elite_ranks = 9
+	p.save_to_disk()
+
+	assert_bool(FileAccess.file_exists(bak)).override_failure_message(
+		"save_to_disk() left no .bak generation, but load_from_disk() reads through "
+		+ "read_json_with_fallback(), which consults one. The reader is looking for a "
+		+ "backup the writer never creates."
+	).is_true()
+	assert_str(FileAccess.get_file_as_string(bak)).override_failure_message(
+		".bak does not hold the PREVIOUS generation, so it is not a recovery point"
+	).is_equal(sentinel)
+
+	var reread = JSON.parse_string(FileAccess.get_file_as_string(PROFILE_PATH))
+	assert_bool(reread is Dictionary).override_failure_message(
+		"the primary is not parseable JSON after the write"
+	).is_true()
+	assert_int(int((reread as Dictionary).get("elite_ranks", -1))).override_failure_message(
+		"the primary does not hold the value that was just saved"
+	).is_equal(9)
+
+	assert_bool(FileAccess.file_exists(PROFILE_PATH + ".tmp")).override_failure_message(
+		"the atomic writer left its .tmp behind; the rename did not complete"
 	).is_false()
 
 

@@ -26,7 +26,7 @@ Settings.
 |---|---|---|---|
 | `data/legal/eula.md` | 22 | `[PENDING MODIPHIUS REVIEW: Exact license grant scope, sublicensing terms, and attribution requirements…]` | LOI / Modiphius legal |
 | `data/legal/eula.md` | 36 | `[PENDING MODIPHIUS REVIEW: Revenue share terms, if any…]` | LOI commercial terms |
-| `data/legal/eula.md` | 78 | `[PENDING MODIPHIUS REVIEW: Governing law jurisdiction…]` | LOI. Likely England and Wales (Modiphius registered office: 39 Harwood Road, London SW6 4QP) or the Developer's jurisdiction |
+| `data/legal/eula.md` | 78 | `[PENDING MODIPHIUS REVIEW: Governing law jurisdiction…]` | ✅ **ANSWERED by the parties 2026-09-21: England and Wales.** The operative 7/27/2026 LOI (pasted by the owner) states *"Governing law: England and Wales"*, and its header address matches this row's own prediction character for character. ⚠ Reading a value the parties wrote is not inventing one, but **this does not auto-apply to `eula.md:78`**: filling a shipped legal document is an owner decision and waits for the signed letter. |
 | `data/legal/eula.md` | 87 | `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` | Developer decision, needed regardless of the LOI |
 | `data/legal/privacy_policy.md` | 4 | `[DATE OF RELEASE]` | Release date |
 | `data/legal/privacy_policy.md` | 8 | `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` | Developer decision |

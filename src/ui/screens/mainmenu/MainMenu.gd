@@ -15,9 +15,16 @@ const PortraitChromeRef := preload("res://src/ui/components/base/PortraitChrome.
 ## TacticalBattleUI, which the core loop already exercises, and it gives a
 ## tester the companion in two minutes without the 7-step wizard.
 ##
-## The modes remain compiled in and reachable via SceneRouter. Flip this to
-## false to restore every entry point in one edit.
-const A1_BUILD := true
+## The modes remain compiled in and reachable via SceneRouter. The scope is ONE
+## predicate, not an edit: is_a1_build() is false only in a Modiphius review build
+## (the `review_build` feature tag, set on the two review export presets; see
+## ReviewBuild.gd), which restores every entry point with no other change. With no
+## tag it is true, and the menu is the Alpha-1 menu exactly as before.
+const ReviewBuildRef := preload("res://src/core/systems/ReviewBuild.gd")
+
+
+static func is_a1_build() -> bool:
+	return not ReviewBuildRef.is_active()
 
 const GameStateManager = preload("res://src/core/managers/GameStateManager.gd")
 
@@ -222,7 +229,7 @@ func _mark_coming_soon(btn: Button) -> void:
 
 func _inject_tactics_button() -> void:
 	# Dynamically add Tactics button after Bug Hunt. Created in EVERY build now:
-	# under A1_BUILD it exists but answers with the coming-soon note (see
+	# under is_a1_build() it exists but answers with the coming-soon note (see
 	# _apply_a1_scope), so the menu shows the full roadmap rather than implying
 	# the modes do not exist.
 	if not bug_hunt_button:
@@ -264,13 +271,13 @@ func _apply_a1_scope() -> void:
 	## made Test 8 (other-modes smoke) unrunnable from the menu.
 	##
 	## Runs AFTER _connect_buttons, so this REBINDS the four handlers to the
-	## coming-soon note. Flipping A1_BUILD to false restores real navigation with no
-	## other edit, exactly as before.
+	## coming-soon note. In a review build is_a1_build() is false, and this returns
+	## before rebinding anything, so real navigation is restored with no other edit.
 	##
 	## The buttons stay ENABLED and are dimmed with `modulate` instead: a `disabled`
 	## Button emits no `pressed` signal, so it could never explain itself — which is
 	## the whole point of the change.
-	if not A1_BUILD:
+	if not is_a1_build():
 		return
 	var gated := {
 		"coop": coop_campaign_button,
