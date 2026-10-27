@@ -126,12 +126,30 @@ func _build_dashboard() -> void:
 	hub_box.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(hub_box)
 
-	var continue_card := HubFeatureCardClass.new()
-	continue_card.setup("", "Continue Campaign",
-		"Start the next operational turn")
-	continue_card.card_pressed.connect(
-		func(): _navigate("tactics_turn_controller"))
-	hub_box.add_child(continue_card)
+	# p.99 Step 9: once one faction remains (or both are exhausted) the war is over,
+	# so the dashboard says how it ended instead of offering another turn.
+	var over: bool = _campaign.has_method("is_campaign_over") and _campaign.is_campaign_over()
+	if over:
+		var banner := Label.new()
+		banner.text = {
+			"player": "Campaign won — the enemy's Cohesion is broken (Tactics p.99).",
+			"enemy": "Campaign lost — your Cohesion is broken (Tactics p.99).",
+			"inconclusive": "Campaign inconclusive — both sides are exhausted (Tactics p.99).",
+		}.get(str(_campaign.campaign_result), "The campaign is over.")
+		banner.add_theme_font_size_override(
+			"font_size", get_responsive_font_size(FONT_SIZE_LG))
+		banner.add_theme_color_override("font_color",
+			COLOR_SUCCESS if str(_campaign.campaign_result) == "player" else COLOR_WARNING)
+		banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		banner.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		hub_box.add_child(banner)
+	else:
+		var continue_card := HubFeatureCardClass.new()
+		continue_card.setup("", "Continue Campaign",
+			"Start the next operational turn")
+		continue_card.card_pressed.connect(
+			func(): _navigate("tactics_turn_controller"))
+		hub_box.add_child(continue_card)
 
 	var save_card := HubFeatureCardClass.new()
 	save_card.setup("", "Save Campaign",
@@ -146,7 +164,7 @@ func _build_dashboard() -> void:
 		func(): _navigate("main_menu"))
 	hub_box.add_child(menu_card)
 
-	# ── Veteran Transfer (Tactics pp.184-185) ───────────────────────
+	# ── Veteran Transfer (Tactics pp.182-183) ───────────────────────
 	var transfer_box := VBoxContainer.new()
 	transfer_box.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(transfer_box)
@@ -177,7 +195,7 @@ func _build_dashboard() -> void:
 		_build_battle_history()
 
 
-## ── Cross-mode veteran transfer (Tactics pp.184-185) ────────────────────
+## ── Cross-mode veteran transfer (Tactics pp.182-183) ────────────────────
 
 func _on_commission_pressed() -> void:
 	var panel = VeteranImportPanelClass.new()
@@ -371,10 +389,39 @@ func _build_map_summary() -> void:
 	var pbp: int = map.get("player_battle_points", 0)
 	var zones: Array = map.get("zones", [])
 
-	var stats_text := "Cohesion: Player %d / Enemy %d | PBP: %d | Zones: %d" % [
-		p_coh, e_coh, pbp, zones.size()]
+	var held: Dictionary = {"player": 0, "enemy": 0, "neutral": 0}
+	for r in map.get("regions", []):
+		if r is Dictionary:
+			var owner_id: String = str(r.get("owner", "neutral"))
+			held[owner_id] = int(held.get(owner_id, 0)) + 1
+	var lines: PackedStringArray = PackedStringArray([
+		"Cohesion: Player %d / Enemy %d | PBP: %d of 3 | Zones: %d" % [
+			p_coh, e_coh, pbp, zones.size()],
+		"Regions: yours %d, enemy %d, neutral %d" % [
+			held.player, held.enemy, held.neutral],
+	])
+	for z in zones:
+		if not (z is Dictionary):
+			continue
+		var tags: PackedStringArray = PackedStringArray()
+		if str(z.get("id", "")) == str(map.get("focus_zone_id", "")):
+			tags.append("Focus")
+		if str(z.get("id", "")) == str(map.get("player_zone_id", "")):
+			tags.append("your army")
+		lines.append("%s%s — Army Strength you %d, enemy %d" % [
+			str(z.get("name", z.get("id", "Zone"))),
+			"" if tags.is_empty() else " (%s)" % ", ".join(tags),
+			int(z.get("player_army_strength", 0)), int(z.get("enemy_army_strength", 0))])
+	# p.107: banked battle advantages "may be saved indefinitely".
+	var advs: Array = _campaign.battle_advantages if "battle_advantages" in _campaign else []
+	if not advs.is_empty():
+		var names: PackedStringArray = PackedStringArray()
+		for a in advs:
+			if a is Dictionary:
+				names.append(str(a.get("name", "")))
+		lines.append("Banked battle advantages: " + ", ".join(names))
 	var stats_lbl := Label.new()
-	stats_lbl.text = stats_text
+	stats_lbl.text = "\n".join(lines)
 	stats_lbl.add_theme_font_size_override(
 		"font_size", get_responsive_font_size(FONT_SIZE_SM))
 	stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
@@ -416,8 +463,24 @@ func _create_unit_card(unit: Dictionary) -> PanelContainer:
 	var destroyed: bool = unit.get("is_destroyed", false)
 
 	var subtitle := "%d models — %d battles" % [models, battles]
-	if destroyed:
-		subtitle = "DESTROYED — " + subtitle
+	# p.106 condition (Lost / Devastated / Weakened) and what CP has bought (p.107).
+	var notes: PackedStringArray = PackedStringArray()
+	var cond: String = UnitRecordRef.condition_text(unit)
+	if not cond.is_empty():
+		notes.append(cond)
+	elif destroyed:
+		notes.append("DESTROYED")
+	var skills: Variant = _campaign.veteran_skills.get(str(unit.get("unit_id", "")), []) \
+		if "veteran_skills" in _campaign else []
+	if skills is Array:
+		for s in skills:
+			if s is Dictionary:
+				notes.append("Veteran: " + str(s.get("name", "")))
+	for o in unit.get("selected_upgrades", []):
+		if str(o) == "Hero" or str(o) == "Leader":
+			notes.append(str(o))
+	if not notes.is_empty():
+		subtitle = " · ".join(notes) + " — " + subtitle
 
 	# ⚠ NO PER-UNIT "CP" COLUMN. Tactics p.106 makes Campaign Points a player-level
 	# or army-level pool — its own heading "Are Points Tied to the Player or
@@ -455,15 +518,16 @@ func _build_battle_history() -> void:
 	for i in range(history.size() - 1, history.size() - count - 1, -1):
 		var entry: Dictionary = history[i]
 		var won: bool = entry.get("won", false)
+		var draw: bool = entry.get("draw", false)
 		var lbl := Label.new()
 		lbl.text = "Turn %d: %s — CP earned: %d" % [
 			entry.get("turn", 0),
-			"Victory" if won else "Defeat",
+			"Draw" if draw else ("Victory" if won else "Defeat"),
 			entry.get("cp_earned", 0)]
 		lbl.add_theme_font_size_override(
 			"font_size", get_responsive_font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color",
-			COLOR_SUCCESS if won else COLOR_DANGER)
+			COLOR_TEXT_SECONDARY if draw else (COLOR_SUCCESS if won else COLOR_DANGER))
 		_content.add_child(lbl)
 
 

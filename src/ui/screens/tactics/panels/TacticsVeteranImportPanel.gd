@@ -1,13 +1,13 @@
 extends Control
 
 ## Tactics Veteran Import Panel — commission a 5PFH / Bug Hunt / Planetfall veteran
-## into a Tactics force as a named officer/hero figure (Tactics pp.184-185).
+## into a Tactics force as a named officer/hero figure (Tactics pp.182-183).
 ##
 ## Flow: select source character → preview the Tactics conversion → commission.
 ## Emits veteran_commissioned(veteran_dict). The veteran is a named figure attached
 ## to the army, NOT a squad unit — it is stored in TacticsCampaignCore.veteran_characters[].
 ##
-## Conversion (Tactics p.184): Combat capped at +2; Toughness capped at 5; 1 Kill
+## Conversion (Tactics p.182): Combat capped at +2; Toughness capped at 5; 1 Kill
 ## Point per Luck point; Training +1 (+2 with a military-type background); weapons
 ## carry over. No points cost — "eyeball the closest equivalent figure".
 
@@ -126,7 +126,7 @@ func _show_step_1() -> void:
 	_step_container.add_child(title)
 
 	var note := Label.new()
-	note.text = "Bring a veteran from another campaign into your force as a named officer or hero (Tactics p.185). They join as an individual figure, not a squad unit."
+	note.text = "Bring a veteran from another campaign into your force as a named officer or hero (Tactics p.183). They join as an individual figure, not a squad unit."
 	note.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	note.add_theme_font_size_override("font_size", _scaled_font(13))
 	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -204,8 +204,13 @@ func _show_step_2(source_char: Dictionary) -> void:
 	_add_preview_row(card, "Speed", str(veteran.get("speed", 0)), COLOR_TEXT)
 	_add_preview_row(card, "Toughness", "%d (capped at 5)" % veteran.get("toughness", 0), COLOR_TEXT)
 	_add_preview_row(card, "Savvy", str(veteran.get("savvy", 0)), COLOR_TEXT)
+	# The value shown is the value stored: TacticsCampaignCore.veteran_kill_points().
+	var book_kp: int = int(veteran.get("kill_points", 0))
+	var kp: int = load("res://src/game/campaign/TacticsCampaignCore.gd") 		.veteran_kill_points(book_kp)
 	_add_preview_row(card, "Kill Points",
-		"%d (1 per Luck point)" % veteran.get("kill_points", 0), COLOR_SUCCESS)
+		"%d (1 per Luck point, p.182)" % kp if kp == book_kp
+		else "%d — p.182 gives %d for %d Luck; a typical trooper has 1 KP (p.36)"
+			% [kp, book_kp, book_kp], COLOR_SUCCESS)
 	_add_preview_row(card, "Training",
 		"+%d%s" % [veteran.get("training", 1),
 			"  (military-type background)" if veteran.get("training", 1) >= 2 else ""],

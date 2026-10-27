@@ -1,9 +1,11 @@
 extends Control
 
-## Tactics Roster Panel — Step 2 of 5
-## Army builder: add units from species book, configure upgrades,
-## validate composition against TacticsCompositionValidator.
-## Points counter, validation messages, responsive layout.
+## Tactics Roster Panel — Step 2 of 4
+## Army builder: add units from the species book and the p.141 vehicle table, assign
+## each to a platoon or the company (p.135), pick its listed options (pp.136-139), give
+## a squad a transport (p.138), and validate against TacticsCompositionValidator.
+## Every price shown comes from TacticsCreationCoordinator.entry_cost(), the same
+## resolver the validator uses.
 
 signal roster_updated(entries: Array)
 
@@ -23,16 +25,18 @@ const SPACING_MD := _UC.SPACING_MD
 const SPACING_LG := _UC.SPACING_LG
 const TOUCH_TARGET_MIN := _UC.TOUCH_TARGET_MIN
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 var _UnitProfile: GDScript
 ## Loaded at runtime rather than preloaded by class_name, matching _UnitProfile above —
 ## this panel deliberately carries no parse-time dependency on the tactics data layer.
 var _Validator: GDScript
 var _Roster: GDScript
+var _UpgradeGroup: GDScript
 
 var _coordinator = null
 var _species_book = null
-var _roster_entries: Array = []  # Array of dict: {unit_id, display_name, model_count, platoon_index, selected_upgrades, entry_id}
+var _roster_entries: Array = []  # Array of dict: {unit_id, display_name, model_count, platoon_index, selected_upgrades, entry_id, role, transport_vehicle_id}
 
 ## UI references
 var _points_label: Label
@@ -55,6 +59,7 @@ func _ready() -> void:
 	_UnitProfile = load("res://src/data/tactics/TacticsUnitProfile.gd")
 	_Validator = load("res://src/data/tactics/TacticsCompositionValidator.gd")
 	_Roster = load("res://src/data/tactics/TacticsRoster.gd")
+	_UpgradeGroup = load("res://src/data/tactics/TacticsUpgradeGroup.gd")
 	_build_ui()
 
 
@@ -62,7 +67,9 @@ func set_coordinator(coord) -> void:
 	_coordinator = coord
 
 
-## Called by CreationUI when species changes or panel becomes visible
+## Called by CreationUI when species changes or panel becomes visible. The roster is
+## rebuilt either way, because the platoon count and armored platoons may have changed
+## on the Configuration step since it was last shown.
 func refresh() -> void:
 	if _coordinator and _coordinator.has_method("get_species_book"):
 		var book = _coordinator.get_species_book()
@@ -70,9 +77,9 @@ func refresh() -> void:
 			_species_book = book
 			_roster_entries.clear()
 			_rebuild_available_list()
-			_rebuild_roster_list()
-			_update_points_display()
-			_update_validation()
+		_rebuild_roster_list()
+		_update_points_display()
+		_update_validation()
 
 
 func _build_ui() -> void:
@@ -151,6 +158,7 @@ func _build_ui() -> void:
 
 func _rebuild_available_list() -> void:
 	for child in _available_list.get_children():
+		_available_list.remove_child(child)
 		child.queue_free()
 
 	if not _species_book:
@@ -160,29 +168,38 @@ func _rebuild_available_list() -> void:
 		_available_list.add_child(empty)
 		return
 
-	# Group units by org slot
+	# Group units by org slot; vehicles get their own heading (p.141: every army may
+	# field every vehicle in the table).
 	var slot_names = {
 		_UnitProfile.OrgSlot.LEADER: "Leaders",
 		_UnitProfile.OrgSlot.TROOP: "Troops",
 		_UnitProfile.OrgSlot.SUPPORT: "Support",
 		_UnitProfile.OrgSlot.SPECIALIST_SLOT: "Specialists",
 	}
-
+	var vehicles: Array = []
 	for slot in slot_names:
-		var units: Array = _species_book.get_units_for_slot(slot)
-		if units.is_empty():
-			continue
+		var units: Array = []
+		for unit in _species_book.get_units_for_slot(slot):
+			if unit and unit.is_vehicle():
+				vehicles.append(unit)
+			elif unit:
+				units.append(unit)
+		_add_available_group(slot_names[slot], units)
+	_add_available_group("Vehicles (Tactics pp.141-147)", vehicles)
+	TouchScrollOpenerRef.open_subtree(_available_list)
 
-		var slot_label = Label.new()
-		slot_label.text = slot_names[slot]
-		slot_label.add_theme_font_size_override("font_size", _scaled_font(14))
-		slot_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		_available_list.add_child(slot_label)
 
-		for unit in units:
-			if unit and "unit_id" in unit:
-				var row = _create_available_unit_row(unit)
-				_available_list.add_child(row)
+func _add_available_group(heading: String, units: Array) -> void:
+	if units.is_empty():
+		return
+	var slot_label = Label.new()
+	slot_label.text = heading
+	slot_label.add_theme_font_size_override("font_size", _scaled_font(14))
+	slot_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	_available_list.add_child(slot_label)
+	for unit in units:
+		if "unit_id" in unit:
+			_available_list.add_child(_create_available_unit_row(unit))
 
 
 func _create_available_unit_row(profile) -> HBoxContainer:
@@ -191,11 +208,17 @@ func _create_available_unit_row(profile) -> HBoxContainer:
 	row.custom_minimum_size.y = TOUCH_TARGET_MIN
 
 	var name_lbl = Label.new()
-	name_lbl.text = "%s (%dpts, %d models)" % [
-		profile.unit_name, profile.points_cost, profile.base_models]
+	if profile.is_vehicle():
+		var cap: int = profile.vehicle_profile.transport_capacity if profile.vehicle_profile else 0
+		name_lbl.text = "%s (%dpts%s)" % [profile.unit_name, profile.points_cost,
+			", carries %d" % cap if cap > 0 else ""]
+	else:
+		name_lbl.text = "%s (%dpts, %d models)" % [
+			profile.unit_name, profile.points_cost, profile.base_models]
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(name_lbl)
 
 	var add_btn = Button.new()
@@ -223,12 +246,11 @@ func _add_unit_to_roster(unit_id: String) -> void:
 		"model_count": profile.base_models,
 		"platoon_index": 0,
 		"selected_upgrades": [],
+		"role": "",
+		"transport_vehicle_id": "",
 	}
 	_roster_entries.append(entry)
-	_rebuild_roster_list()
-	_update_points_display()
-	_update_validation()
-	_emit_update()
+	_on_roster_changed()
 
 
 func _remove_from_roster(entry_id: String) -> void:
@@ -236,6 +258,10 @@ func _remove_from_roster(entry_id: String) -> void:
 		if _roster_entries[i].get("entry_id", "") == entry_id:
 			_roster_entries.remove_at(i)
 			break
+	_on_roster_changed()
+
+
+func _on_roster_changed() -> void:
 	_rebuild_roster_list()
 	_update_points_display()
 	_update_validation()
@@ -244,6 +270,7 @@ func _remove_from_roster(entry_id: String) -> void:
 
 func _rebuild_roster_list() -> void:
 	for child in _roster_list.get_children():
+		_roster_list.remove_child(child)
 		child.queue_free()
 
 	if _roster_entries.is_empty():
@@ -255,8 +282,14 @@ func _rebuild_roster_list() -> void:
 		return
 
 	for entry in _roster_entries:
-		var row = _create_roster_entry_row(entry)
-		_roster_list.add_child(row)
+		_roster_list.add_child(_create_roster_entry_row(entry))
+	TouchScrollOpenerRef.open_subtree(_roster_list)
+
+
+func _config() -> Dictionary:
+	if _coordinator and "config_data" in _coordinator:
+		return _coordinator.config_data
+	return {}
 
 
 func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
@@ -272,9 +305,13 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	style.content_margin_bottom = SPACING_SM
 	card.add_theme_stylebox_override("panel", style)
 
+	var col = VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	card.add_child(col)
+
 	var hbox = HBoxContainer.new()
 	hbox.add_theme_constant_override("separation", SPACING_SM)
-	card.add_child(hbox)
+	col.add_child(hbox)
 
 	# Unit info
 	var info = VBoxContainer.new()
@@ -286,13 +323,16 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	name_lbl.text = entry.get("display_name", "Unknown")
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(name_lbl)
 
-	# Cost + models
-	var cost = _get_entry_cost(entry)
+	var profile = _species_book.get_unit_profile(entry.get("unit_id", "")) \
+		if _species_book else null
 	var detail_lbl = Label.new()
-	detail_lbl.text = "%dpts — %d models — Platoon %d" % [
-		cost, entry.get("model_count", 1), entry.get("platoon_index", 0) + 1]
+	detail_lbl.name = "EntryCost"
+	detail_lbl.text = "%dpts — %s" % [_get_entry_cost(entry),
+		"vehicle" if profile and profile.is_vehicle()
+		else "%d models" % int(entry.get("model_count", 1))]
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(11))
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	info.add_child(detail_lbl)
@@ -305,17 +345,144 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	remove_btn.pressed.connect(func(): _remove_from_roster(eid))
 	hbox.add_child(remove_btn)
 
+	if profile:
+		_add_assignment_controls(col, entry, profile)
+		_add_transport_control(col, entry, profile)
+		_add_upgrade_controls(col, entry, profile)
 	return card
 
 
+## Where the unit serves: a platoon, or (company only) the company itself (p.135), and
+## for a vehicle in an armored platoon whether it is the Leader or a Troop.
+func _add_assignment_controls(col: VBoxContainer, entry: Dictionary, profile) -> void:
+	var cfg: Dictionary = _config()
+	var company: bool = str(cfg.get("org_type", "platoon")) == "company"
+	var count: int = int(cfg.get("platoon_count", 1))
+	var idx: int = int(entry.get("platoon_index", 0))
+	if company:
+		var opt := _small_option()
+		opt.name = "PlatoonPicker"
+		var values: Array = []
+		for i in range(count):
+			opt.add_item("Platoon %d" % (i + 1))
+			values.append(i)
+		opt.add_item("Company (p.135)")
+		values.append(-1)
+		opt.select(maxi(0, values.find(idx)))
+		opt.item_selected.connect(func(i: int):
+			entry["platoon_index"] = values[i]
+			_on_roster_changed())
+		col.add_child(opt)
+
+	var armored: Array = cfg.get("armored_platoons", [])
+	if profile.is_vehicle() and idx >= 0 and armored.has(idx):
+		var role := _small_option()
+		role.name = "RolePicker"
+		role.add_item("Troop vehicle")
+		role.add_item("Leader vehicle")
+		role.select(1 if str(entry.get("role", "")) == "leader" else 0)
+		role.item_selected.connect(func(i: int):
+			entry["role"] = "leader" if i == 1 else "troop"
+			_on_roster_changed())
+		col.add_child(role)
+
+
+## p.138 Mechanized Infantry: a squad may ride in any transport that can carry it.
+func _add_transport_control(col: VBoxContainer, entry: Dictionary, profile) -> void:
+	if not (profile.unit_type in [_UnitProfile.UnitType.INFANTRY,
+			_UnitProfile.UnitType.RECON, _UnitProfile.UnitType.STORM]):
+		return
+	var models: int = int(entry.get("model_count", profile.base_models))
+	var opt := _small_option()
+	opt.name = "TransportPicker"
+	opt.add_item("On foot")
+	var ids: Array = [""]
+	var vids: Array = _species_book.vehicles.keys()
+	vids.sort()
+	for vid in vids:
+		var vp = _species_book.vehicles[vid]
+		if vp and vp.transport_capacity >= models:
+			opt.add_item("Mechanized: %s (carries %d, +%dpts)" % [
+				vp.vehicle_name, vp.transport_capacity, vp.points_cost])
+			ids.append(str(vid))
+	opt.select(maxi(0, ids.find(str(entry.get("transport_vehicle_id", "")))))
+	opt.item_selected.connect(func(i: int):
+		entry["transport_vehicle_id"] = ids[i]
+		_on_roster_changed())
+	col.add_child(opt)
+
+
+## The unit's listed options (pp.136-139, p.142 Civilian crew). A pick-one group is a
+## dropdown; any other group is a set of checkboxes, capped where the group says so.
+func _add_upgrade_controls(col: VBoxContainer, entry: Dictionary, profile) -> void:
+	var picked: Array = entry.get("selected_upgrades", [])
+	for group in profile.upgrade_groups:
+		if group == null or group.options.is_empty():
+			continue
+		var head := Label.new()
+		head.text = group.get_header_text()
+		head.add_theme_font_size_override("font_size", _scaled_font(11))
+		head.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(head)
+		var names: Array = []
+		for o in group.options:
+			names.append(o.upgrade_name)
+		if group.selection_mode == _UpgradeGroup.SelectionMode.PICK_ONE:
+			var opt := _small_option()
+			opt.add_item("None")
+			var current := 0
+			for i in range(group.options.size()):
+				opt.add_item(group.options[i].get_display_name())
+				if picked.has(names[i]):
+					current = i + 1
+			opt.select(current)
+			opt.item_selected.connect(func(i: int):
+				for nm in names:
+					picked.erase(nm)
+				if i > 0:
+					picked.append(names[i - 1])
+				entry["selected_upgrades"] = picked
+				_on_roster_changed())
+			col.add_child(opt)
+		else:
+			var cap: int = group.max_selections \
+				if group.selection_mode == _UpgradeGroup.SelectionMode.PICK_UP_TO_N \
+				else group.options.size()
+			var held := 0
+			for nm in names:
+				if picked.has(nm):
+					held += 1
+			for i in range(group.options.size()):
+				var cb := CheckBox.new()
+				cb.text = group.options[i].get_display_name()
+				cb.custom_minimum_size.y = TOUCH_TARGET_MIN
+				cb.button_pressed = picked.has(names[i])
+				cb.disabled = not cb.button_pressed and held >= cap
+				cb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				var nm: String = names[i]
+				cb.toggled.connect(func(on: bool):
+					if on and not picked.has(nm):
+						picked.append(nm)
+					elif not on:
+						picked.erase(nm)
+					entry["selected_upgrades"] = picked
+					_on_roster_changed())
+				col.add_child(cb)
+
+
+func _small_option() -> OptionButton:
+	var opt := OptionButton.new()
+	opt.custom_minimum_size.y = TOUCH_TARGET_MIN
+	opt.fit_to_longest_item = false
+	opt.clip_text = true
+	return opt
+
+
 func _get_entry_cost(entry: Dictionary) -> int:
-	if not _species_book:
+	if not _species_book or not _coordinator or not _coordinator.has_method("entry_cost"):
 		return 0
-	var profile = _species_book.get_unit_profile(
-		entry.get("unit_id", ""))
-	if profile:
-		return profile.points_cost
-	return 0
+	return _coordinator.entry_cost(entry)
 
 
 func _get_total_points() -> int:
@@ -366,6 +533,13 @@ func _refresh_limits_summary() -> void:
 		else _Roster.OrgType.PLATOON
 
 	_limits_label.text = _Validator.get_limits_summary(org_type, points)
+	var armored: Array = _coordinator.config_data.get("armored_platoons", []) \
+		if _coordinator and "config_data" in _coordinator else []
+	if not armored.is_empty():
+		var names: PackedStringArray = PackedStringArray()
+		for i in armored:
+			names.append(str(int(i) + 1))
+		_limits_label.text += "\nArmored: Platoon " + ", ".join(names)
 
 
 func _update_validation() -> void:

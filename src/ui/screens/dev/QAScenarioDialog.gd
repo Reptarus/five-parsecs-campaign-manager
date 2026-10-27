@@ -143,6 +143,38 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Bug Hunt Subject Pick", "sides": 100, "target": 1,
 		"note": "pp.205-206 - WHICH character a per-character table lands on; "
 			+ "not rolled at all when only one candidate is eligible"},
+	# --- Tactics (TacticsOperationalTurn, TacticsPostBattlePanel, TacticsCampaignCore).
+	# Every key begins "Tactics", which no 5PFH or Bug Hunt context contains, and no
+	# key here is a substring of another Tactics context. A zone or region CHOICE is
+	# rolled on D6s too (TacticsOperationalTurn._pick re-rolls faces above the count),
+	# so a 1 always picks the first candidate. A pool rolls one D6 per die under the
+	# same key, in order: your dice first, then the enemy's.
+	{"key": "Tactics Opening Initiative", "sides": 6, "target": 6,
+		"note": "p.94 - who attacks first when the war opens"},
+	{"key": "Tactics Opening Focus", "sides": 6, "target": 1,
+		"note": "p.94 - which opening Zone becomes the Operational Focus"},
+	{"key": "Tactics Operational Combat", "sides": 6, "target": 6,
+		"note": "p.97 - Combat Dice, highest die wins; your pool rolls first"},
+	{"key": "Tactics Operational Orders", "sides": 6, "target": 1,
+		"note": "p.98 - 1D6 per faction on the Operational Orders table"},
+	{"key": "Tactics Order Target", "sides": 6, "target": 1,
+		"note": "p.98 - which Zone an order lands on"},
+	{"key": "Tactics Attack Target", "sides": 6, "target": 1,
+		"note": "p.98 - which adjacent region an Attack order strikes"},
+	{"key": "Tactics Commando Raid", "sides": 6, "target": 6,
+		"note": "p.99 - a 6 costs the target 1 Army Strength; any 1-2 loses the PBP"},
+	{"key": "Tactics Army Strength", "sides": 6, "target": 6,
+		"note": "p.95 - a new Zone's Army Strength (2D6 keep the highest when connected)"},
+	{"key": "Tactics New Focus", "sides": 6, "target": 1,
+		"note": "p.99 Step 7 - which Zone becomes the new Focus"},
+	{"key": "Tactics Weakest Army", "sides": 6, "target": 1,
+		"note": "p.99 Step 6 - the tie-break among equally weak armies"},
+	{"key": "Tactics Unit Losses", "sides": 6, "target": 1,
+		"note": "p.106 - a completely destroyed unit's loss roll"},
+	{"key": "Tactics Story Event", "sides": 100, "target": 93,
+		"note": "pp.102-104 - 93-96 New Front Opens (an Operational effect)"},
+	{"key": "Tactics Campaign Points", "sides": 6, "target": 6,
+		"note": "pp.106-107 - 3D6 drop the lowest; queue all three to pin the award"},
 ]
 
 var _roll_picker: OptionButton = null

@@ -65,11 +65,16 @@ const FIELDS: PackedStringArray = [
 	"species_id",
 	"battles_fought",
 	"battles_won",
-	"models_lost_total",
-	"models_lost_current",
 	"current_models",
 	"is_destroyed",
 	"selected_upgrades",
+	"condition",
+	"unusable_battles",
+	# p.108 Unit Customization: [{op: "add"|"remove", weapon}] on top of the base
+	# unit's weapons. Written only by TacticsAdvancement.apply_purchase().
+	"weapon_changes",
+	# p.138 Mechanized Infantry: the transport bought with the squad, "" for none.
+	"transport_vehicle_id",
 ]
 
 ## Keys written by an older build that are no longer part of the record.
@@ -79,7 +84,19 @@ const RETIRED_FIELDS: PackedStringArray = [
 	"campaign_points_spent",
 	"objectives_completed",
 	"veteran_skills",
+	# p.105: "If a unit remains on the table at the end of the game, we assume it
+	# recovers completely ... Casualties are replaced". A figure count that went down
+	# after every battle was not the rule; the p.106 Unit Losses result replaced it.
+	"models_lost_total",
+	"models_lost_current",
 ]
+
+## The p.106 Unit Losses conditions a unit can carry between battles. "lost" units are
+## kept as a record (is_destroyed) so their history survives; they never deploy again.
+const CONDITION_OK := "ok"
+const CONDITION_DEVASTATED := "devastated"
+const CONDITION_WEAKENED := "weakened"
+const CONDITION_LOST := "lost"
 
 
 ## Generate a unique unit id.
@@ -97,7 +114,8 @@ static func new_unit(
 		species_id: String,
 		custom_name: String = "",
 		model_count: int = 5,
-		selected_upgrades: Array = []) -> Dictionary:
+		selected_upgrades: Array = [],
+		transport_vehicle_id: String = "") -> Dictionary:
 	return {
 		"unit_id": generate_id(),
 		"custom_name": custom_name,
@@ -105,11 +123,13 @@ static func new_unit(
 		"species_id": species_id,
 		"battles_fought": 0,
 		"battles_won": 0,
-		"models_lost_total": 0,
-		"models_lost_current": 0,
 		"current_models": model_count if model_count > 0 else 5,
 		"is_destroyed": false,
 		"selected_upgrades": selected_upgrades.duplicate(),
+		"condition": CONDITION_OK,
+		"unusable_battles": 0,
+		"weapon_changes": [],
+		"transport_vehicle_id": transport_vehicle_id,
 	}
 
 
@@ -146,19 +166,60 @@ static func credit_battle(unit: Dictionary, won: bool) -> void:
 		unit["battles_won"] = int(unit.get("battles_won", 0)) + 1
 
 
-## Apply a battle's losses to a unit, destroying it if nothing is left standing.
-static func apply_casualties(unit: Dictionary, models_lost: int) -> void:
-	var lost: int = maxi(models_lost, 0)
-	unit["models_lost_current"] = lost
-	unit["models_lost_total"] = int(unit.get("models_lost_total", 0)) + lost
-	unit["current_models"] = maxi(int(unit.get("current_models", 5)) - lost, 0)
-	if int(unit["current_models"]) <= 0:
-		unit["is_destroyed"] = true
+## Apply a p.106 Unit Losses result to a unit that was completely destroyed.
+##
+## ⚠ This replaced `apply_casualties()`, which subtracted figures permanently after
+## every battle. p.105 says a unit left on the table "recovers completely" and only a
+## completely destroyed unit rolls on the p.106 table:
+##   Lost       — removed from the roster (kept here as a record that never deploys)
+##   Devastated — "unusable for two campaign battles"
+##   Weakened   — deploys one figure fewer (a vehicle one fewer KP) "until the unit can
+##                sit out a campaign battle without being deployed"
+##   Okay       — no lasting effect
+static func apply_unit_loss(unit: Dictionary, loss_id: String, unusable_battles: int = 0) -> void:
+	match loss_id:
+		CONDITION_LOST:
+			unit["condition"] = CONDITION_LOST
+			unit["is_destroyed"] = true
+		CONDITION_DEVASTATED:
+			unit["condition"] = CONDITION_DEVASTATED
+			unit["unusable_battles"] = maxi(unusable_battles, 1)
+		CONDITION_WEAKENED:
+			unit["condition"] = CONDITION_WEAKENED
+		_:
+			unit["condition"] = CONDITION_OK
 
 
-## Clear the per-battle loss counter. Cumulative totals are untouched.
-static func clear_battle_losses(unit: Dictionary) -> void:
-	unit["models_lost_current"] = 0
+## Can this unit be deployed into the next battle?
+static func is_deployable(unit: Dictionary) -> bool:
+	return not bool(unit.get("is_destroyed", false)) \
+		and int(unit.get("unusable_battles", 0)) <= 0
+
+
+## Called for every unit after each campaign battle. A Devastated unit counts down
+## (it cannot have been deployed); a Weakened unit that sat the battle out recovers.
+static func after_campaign_battle(unit: Dictionary, deployed: bool) -> void:
+	var waiting: int = int(unit.get("unusable_battles", 0))
+	if waiting > 0:
+		unit["unusable_battles"] = waiting - 1
+		if waiting - 1 <= 0 and str(unit.get("condition", "")) == CONDITION_DEVASTATED:
+			unit["condition"] = CONDITION_OK
+		return
+	if not deployed and str(unit.get("condition", "")) == CONDITION_WEAKENED:
+		unit["condition"] = CONDITION_OK
+
+
+## A one-line status for the roster, or "" for a unit with nothing to report.
+static func condition_text(unit: Dictionary) -> String:
+	match str(unit.get("condition", CONDITION_OK)):
+		CONDITION_LOST:
+			return "LOST (p.106)"
+		CONDITION_DEVASTATED:
+			return "DEVASTATED — unusable for %d more battle(s) (p.106)" % int(
+				unit.get("unusable_battles", 0))
+		CONDITION_WEAKENED:
+			return "WEAKENED — deploys one figure fewer until it sits a battle out (p.106)"
+	return "DESTROYED" if bool(unit.get("is_destroyed", false)) else ""
 
 
 ## Add replacement models, up to `base_count`. Returns how many were actually added.

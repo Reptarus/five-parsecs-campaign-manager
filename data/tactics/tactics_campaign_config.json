@@ -1,6 +1,6 @@
 {
-  "_source": "Five Parsecs: Tactics rulebook. Operational System pp.92-99 (steps, starting values, Operational Orders); Scenario Types pp.81-88.",
-  "_removed_2026_10_27": "points_tiers, organization, campaign_progression and mixed_army_rules had zero readers. organization carried the p.135 Armored Platoon numbers for an infantry platoon and campaign_progression the invented flat 1-CP rule; the live owners are TacticsCompositionValidator (p.133 points, p.134 organization, p.136 two army types) and TacticsCampaignCore.CP_PURCHASES / record_battle() (pp.106-107).",
+  "_source": "Five Parsecs: Tactics rulebook. Operational System pp.92-99 (opening, steps, starting values, Operational Orders); Scenario Types pp.81-88.",
+  "_removed_2026_10_27": "points_tiers, organization, campaign_progression, mixed_army_rules and veteran_skill_categories had zero readers. organization carried the p.135 Armored Platoon numbers for an infantry platoon and campaign_progression the invented flat 1-CP rule; the live owners are TacticsCompositionValidator (p.133 points, p.134 organization, p.136 two army types) and TacticsCampaignCore.CP_PURCHASES / record_battle() (pp.106-107). veteran_skill_categories listed only part of the p.148 lists; TacticsAdvancement reads the lists from tactics_veteran_skills.json.",
   "operational_turn_steps": [
     {
       "step": 1,
@@ -64,12 +64,6 @@
     "player_battle_points": 0,
     "_source_note": "p.93: 'If in doubt, begin Cohesion at 5 for each side.' Cohesion is a pacing control, so a different starting value is a legitimate campaign choice."
   },
-  "veteran_skill_categories": [
-    "squad",
-    "sergeant",
-    "individual",
-    "vehicle"
-  ],
   "scenario_types": [
     "skirmish",
     "battle",
@@ -220,6 +214,18 @@
       "page": 98,
       "at_zero_army_strength": "The army can no longer contest the region; the Operational Zone ceases to exist and the area falls to the survivors.",
       "mutual_destruction": "The Operational Zone still ceases to exist and the region becomes neutral."
+    },
+    "opening": {
+      "page": 94,
+      "zones": "Each faction attacks one region adjacent to its territory; the side with the initiative (picked at random) attacks a third. Target regions can be neutral or enemy controlled. Those three regions are the Operational Zones.",
+      "initiative_die": "1d6",
+      "initiative_player_on": [
+        1,
+        3
+      ],
+      "focus": "Select one of the three Zones as the Operational Focus, at random or by what the map makes important.",
+      "regions_per_faction": "At least equal to its Cohesion (p.94).",
+      "neutral_regions_note": "p.93: the map needs at least as many regions as the combined Cohesion, and typically looks best with some neutral ones; its example is 15 regions for two sides of 5 Cohesion, i.e. 5 neutral. The opening uses that example ratio: neutral = the average of the two Cohesion scores."
     }
   }
 }

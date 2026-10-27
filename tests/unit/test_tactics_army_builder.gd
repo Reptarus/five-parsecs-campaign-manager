@@ -89,7 +89,11 @@ func test_profiles_are_not_offered_as_units() -> void:
 	for sid: String in _species_ids():
 		var book: TacticsSpeciesBook = Loader.load_species_book(sid)
 		assert_object(book).override_failure_message("%s did not load" % sid).is_not_null()
-		assert_int(book.unit_profiles.size()).override_failure_message(
+		var elements := 0
+		for p: TacticsUnitProfile in book.unit_profiles:
+			if not p.is_vehicle():
+				elements += 1
+		assert_int(elements).override_failure_message(
 			"%s should offer the 12 Army Builder elements" % sid).is_equal(12)
 		for p: TacticsUnitProfile in book.unit_profiles:
 			assert_bool(p.unit_id.ends_with("_civilian") or p.unit_id.ends_with("_military")
@@ -98,6 +102,39 @@ func test_profiles_are_not_offered_as_units() -> void:
 				.is_false()
 			assert_bool(p.unit_id in invented).override_failure_message(
 				"%s is not in the Tactics book" % p.unit_id).is_false()
+
+
+## p.141: "When building an army, any of the factions may use any of the vehicles listed
+## below." Until 2026-10-27 tactics_vehicles_master.json had no reader and no army could
+## field a vehicle. p.142: a Civilian crew is -10 points; a combat bot has no crew.
+func test_every_army_fields_every_vehicle_at_the_book_price() -> void:
+	var table: Dictionary = _json("res://data/tactics/tactics_vehicles_master.json") \
+		.get("vehicles", {})
+	assert_int(table.size()).is_equal(19)
+	for sid: String in _species_ids():
+		var book: TacticsSpeciesBook = Loader.load_species_book(sid)
+		var prefix: String = str(_json("res://data/tactics/species/%s.json" % sid)
+			.get("unit_id_prefix", ""))
+		for vid: String in table:
+			var unit := _unit(book, "%s_vehicle_%s" % [prefix, vid])
+			if unit == null:
+				continue
+			assert_bool(unit.is_vehicle()).is_true()
+			assert_int(unit.points_cost).override_failure_message(
+				"%s %s should cost %d" % [sid, vid, table[vid]["cost"]]) \
+				.is_equal(int(table[vid]["cost"]))
+			assert_object(unit.vehicle_profile).override_failure_message(
+				"%s has no vehicle profile" % unit.unit_id).is_not_null()
+			var civilian := false
+			for g: TacticsUpgradeGroup in unit.upgrade_groups:
+				for o: TacticsUpgradeOption in g.options:
+					if o.upgrade_name == "Civilian crew":
+						civilian = true
+						assert_int(o.points_cost).is_equal(-10)
+			assert_bool(civilian).override_failure_message(
+				"%s: Civilian crew offered = %s, crew = %d" % [
+					vid, civilian, int(table[vid].get("crew", 0))]) \
+				.is_equal(int(table[vid].get("crew", 0)) > 0)
 
 
 func test_every_weapon_a_unit_names_resolves() -> void:

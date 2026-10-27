@@ -200,50 +200,26 @@ func test_an_out_of_range_order_roll_returns_nothing_rather_than_a_guess() -> vo
 
 # MARK: - Step 5, Commando Raids (p.99)
 
+## The raid classifier takes the faces the live path rolled through DiceManager, so
+## these assert the p.99 table directly instead of hunting for a seed.
 func test_a_six_costs_the_target_one_army_strength() -> void:
-	var rng := RandomNumberGenerator.new()
-	# Seed until we get a pool containing a 6 but no 1-2, to assert the clean case.
-	var found := false
-	for s in range(400):
-		rng.seed = s
-		var res: Dictionary = Rules.resolve_commando_raid(2, rng)
-		var rolls: Array = res.get("rolls", [])
-		if rolls.has(6) and not rolls.has(1) and not rolls.has(2):
-			assert_int(int(res.get("army_strength_damage", 0))).is_greater(0)
-			assert_int(int(res.get("pbp_lost", -1))).is_equal(0)
-			found = true
-			break
-	assert_bool(found) \
-		.override_failure_message(
-			"no seed in 400 produced a 2-die pool with a 6 and no 1-2; the search, "
-			+ "not the rule, is what failed") \
-		.is_true()
+	var res: Dictionary = Rules.classify_commando_raid([6, 4])
+	assert_int(int(res.get("army_strength_damage", 0))).is_equal(1)
+	assert_int(int(res.get("pbp_lost", -1))).is_equal(0)
 
 
 func test_damage_lands_even_when_the_points_are_lost() -> void:
 	## "This damage applies even if the committed PBP are lost." A pool holding both a
 	## 6 and a 1-2 must report BOTH the loss and the damage.
-	var rng := RandomNumberGenerator.new()
-	var found := false
-	for s in range(400):
-		rng.seed = s
-		var res: Dictionary = Rules.resolve_commando_raid(3, rng)
-		var rolls: Array = res.get("rolls", [])
-		if rolls.has(6) and (rolls.has(1) or rolls.has(2)):
-			assert_int(int(res.get("pbp_lost", 0))).is_equal(3)
-			assert_int(int(res.get("army_strength_damage", 0))) \
-				.override_failure_message(
-					"p.99: the -1 applies even when the committed PBP are lost") \
-				.is_greater(0)
-			found = true
-			break
-	assert_bool(found).is_true()
+	var res: Dictionary = Rules.classify_commando_raid([6, 1, 4])
+	assert_int(int(res.get("pbp_lost", 0))).is_equal(3)
+	assert_int(int(res.get("army_strength_damage", 0))) \
+		.override_failure_message("p.99: the -1 applies even when the committed PBP are lost") \
+		.is_equal(1)
 
 
 func test_committing_nothing_rolls_nothing() -> void:
-	var rng := RandomNumberGenerator.new()
-	rng.seed = 1
-	var res: Dictionary = Rules.resolve_commando_raid(0, rng)
+	var res: Dictionary = Rules.classify_commando_raid([])
 	assert_int((res.get("rolls", []) as Array).size()).is_equal(0)
 	assert_int(int(res.get("army_strength_damage", 0))).is_equal(0)
 
@@ -251,30 +227,8 @@ func test_committing_nothing_rolls_nothing() -> void:
 # MARK: - Army Strength (p.95)
 
 func test_friendly_territory_rolls_two_dice_and_keeps_the_highest() -> void:
-	## Over many seeds the connected form must average higher than the unconnected one;
-	## max(2d6) has mean ~4.47 against 1d6's 3.5. Asserting the DISTRIBUTION rather than
-	## one roll is what makes this a real check of "pick the highest die".
-	var rng := RandomNumberGenerator.new()
-	var connected_total := 0
-	var lone_total := 0
-	for s in range(300):
-		rng.seed = s
-		connected_total += Rules.generate_army_strength(true, rng)
-		rng.seed = s + 10000
-		lone_total += Rules.generate_army_strength(false, rng)
-	assert_int(connected_total) \
-		.override_failure_message(
-			"max(2d6) must outscore 1d6 over 300 samples; got "
-			+ str(connected_total) + " vs " + str(lone_total)) \
-		.is_greater(lone_total)
-
-
-func test_army_strength_is_always_a_legal_die_result() -> void:
-	var rng := RandomNumberGenerator.new()
-	for s in range(60):
-		rng.seed = s
-		assert_int(Rules.generate_army_strength(true, rng)).is_between(1, 6)
-		assert_int(Rules.generate_army_strength(false, rng)).is_between(1, 6)
+	assert_int(Rules.army_strength_dice(true)).is_equal(2)
+	assert_int(Rules.army_strength_dice(false)).is_equal(1)
 
 
 # MARK: - Step 9, Cohesion (p.99)

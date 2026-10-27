@@ -16,6 +16,10 @@ extends RefCounted
 const JSON_BASE_PATH := "res://data/tactics/species/"
 const WEAPONS_MASTER_PATH := "res://data/tactics/tactics_weapons_master.json"
 const ARMY_BUILDER_PATH := "res://data/tactics/army_builder.json"
+## pp.141-147. p.141: "When building an army, any of the factions may use any of the
+## vehicles listed below" — so this table is every army's vehicle list. It had no
+## reader before 2026-10-27, and no army could field a vehicle at all.
+const VEHICLES_MASTER_PATH := "res://data/tactics/tactics_vehicles_master.json"
 
 # Per-load instance state (cleared each call via fresh instance)
 var _weapons: Dictionary = {}   # weapon_id → TacticsWeaponProfile
@@ -104,7 +108,12 @@ func _load(path: String) -> TacticsSpeciesBook:
 	if data.has("weapons") and data["weapons"] is Dictionary:
 		_build_weapon_palette(data["weapons"])
 
-	# Phase 2 — Vehicle palette (vehicle weapons reference weapon palette)
+	# Phase 2 — Vehicle palette (vehicle weapons reference weapon palette). The p.141
+	# table first, then any species entry of the same id on top of it.
+	if data.get("profiles") is Dictionary:
+		var vmaster: Variant = _load_json_safe(VEHICLES_MASTER_PATH)
+		if vmaster is Dictionary and vmaster.get("vehicles") is Dictionary:
+			_build_vehicle_palette(vmaster["vehicles"])
 	if data.has("vehicles") and data["vehicles"] is Dictionary:
 		_build_vehicle_palette(data["vehicles"])
 
@@ -118,6 +127,7 @@ func _load(path: String) -> TacticsSpeciesBook:
 	var unit_dicts: Array = []
 	if data.get("profiles") is Dictionary:
 		unit_dicts.append_array(compose_army_builder_units(data))
+		unit_dicts.append_array(compose_vehicle_units(str(data.get("unit_id_prefix", ""))))
 	if data.get("units") is Array:
 		unit_dicts.append_array(data["units"])
 	var units: Array = []
@@ -203,6 +213,47 @@ static func compose_army_builder_units(species_data: Dictionary) -> Array:
 			groups.append(_armor_group(armor, models))
 		unit["upgrade_groups"] = groups
 		out.append(unit)
+	return out
+
+
+## Every vehicle in the p.141-147 table as a selectable unit for one army. A vehicle is
+## a Support choice in an infantry platoon (p.134: "Support units may be vehicles");
+## an armored platoon assigns it Leader or Troop instead (p.135).
+##
+## p.142: "The costs listed assume a military crew. A vehicle can have a Civilian crew
+## instead ... A Civilian crew reduces the cost by -10 points." Each vehicle's own
+## weapon options are printed beside it and are not offered here; the default armament
+## is what the listed cost buys.
+static func compose_vehicle_units(prefix: String) -> Array:
+	var out: Array = []
+	var vmaster: Variant = _load_json_safe(VEHICLES_MASTER_PATH)
+	if not (vmaster is Dictionary) or not (vmaster.get("vehicles") is Dictionary):
+		return out
+	var table: Dictionary = vmaster["vehicles"]
+	for vid: String in table:
+		var v: Variant = table[vid]
+		if not (v is Dictionary):
+			continue
+		var crewed: bool = int(v.get("crew", 0)) > 0
+		var groups: Array = []
+		if crewed:
+			groups.append({"label": "Crew (p.142)", "mode": "pick_one", "options": [
+				{"name": "Civilian crew", "type": "stat_change", "cost": -10}]})
+		out.append({
+			"id": "%s_vehicle_%s" % [prefix, vid],
+			"name": str(v.get("name", vid)),
+			"type": "vehicle",
+			"org_slot": "support",
+			"vehicle_id": vid,
+			"vehicle_type": str(v.get("type", "")),
+			"cost": int(v.get("cost", 0)),
+			"models": 1,
+			"min_models": 1,
+			"max_models": 1,
+			"weapons": [],
+			"special_rules": [],
+			"upgrade_groups": groups,
+		})
 	return out
 
 

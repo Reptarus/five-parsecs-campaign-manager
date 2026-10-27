@@ -1098,7 +1098,7 @@ func _load_planetfall_json(path: String) -> Dictionary:
 
 
 ## ============================================================================
-## TACTICS TRANSFERS (Tactics rulebook p.184)
+## TACTICS TRANSFERS (Tactics rulebook p.182)
 ## ============================================================================
 
 func validate_tactics_enlistment(character_data: Dictionary) -> Dictionary:
@@ -1119,7 +1119,7 @@ func validate_tactics_enlistment(character_data: Dictionary) -> Dictionary:
 
 func convert_to_tactics(
 		char_data: Dictionary, source: String = "5pfh") -> Dictionary:
-	## Convert a canonical (5PFH-standard) character INTO Tactics (Tactics p.184,
+	## Convert a canonical (5PFH-standard) character INTO Tactics (Tactics p.182,
 	## "Converting Characters"). Reactions/Speed/Savvy unchanged; Combat capped at
 	## +2; Toughness capped at 5; 1 Kill Point per Luck point; Training +1 (+2 with a
 	## military-type background); weapons carry over as-is. No points cost — the book
@@ -1136,10 +1136,10 @@ func convert_to_tactics(
 	toughness = mini(toughness, 5)  # Capped at 5
 
 	# Kill Points: "Crew transferred to Tactics receive 1 Kill Point for each point
-	# of Luck" (Tactics p.184). The canonical interchange form carries Luck.
+	# of Luck" (Tactics p.182). The canonical interchange form carries Luck.
 	var kp: int = char_data.get("luck", 0)
 
-	# Training: "+1, or +2 with a military-type background" (Tactics p.184). The book
+	# Training: "+1, or +2 with a military-type background" (Tactics p.182). The book
 	# gives NO enumerated list — "military-type" is its sanctioned judgment call — so
 	# we classify against the real 5PFH backgrounds (gear_database.json): the two
 	# "Military …" backgrounds and "War-Torn Hell-Hole" (a wartime upbringing).
@@ -1172,7 +1172,7 @@ func convert_to_tactics(
 		"transferred_from_planetfall": source == "planetfall",
 	}
 
-	# "Carry weapons over as they are" (Tactics p.184) — Tactics does NOT strip
+	# "Carry weapons over as they are" (Tactics p.182) — Tactics does NOT strip
 	# equipment as military property (that is a Planetfall / Bug Hunt rule).
 	result["imported_equipment"] = char_data.get("equipment", []).duplicate(true)
 
@@ -1180,7 +1180,7 @@ func convert_to_tactics(
 
 
 func convert_from_tactics(char_data: Dictionary) -> Dictionary:
-	## Convert a Tactics character for export to 5PFH (Tactics p.184).
+	## Convert a Tactics character for export to 5PFH (Tactics p.182).
 	##   - Reactions / Speed / Combat / Toughness / Savvy: no change
 	##   - Each Kill Point after the first becomes 1 point of Luck
 	##   - Training is not used in 5PFH (dropped)
@@ -1190,7 +1190,7 @@ func convert_from_tactics(char_data: Dictionary) -> Dictionary:
 	var kp: int = char_data.get(
 		"kill_points", char_data.get("kp", 1))
 	# "When transferring from Tactics, each Kill Point after the first becomes
-	# 1 point of Luck" (Tactics p.184).
+	# 1 point of Luck" (Tactics p.182).
 	var luck: int = maxi(kp - 1, 0)
 
 	return {
@@ -1213,7 +1213,7 @@ func convert_from_tactics(char_data: Dictionary) -> Dictionary:
 		# since a missing "experience" already reads as 0.
 		"experience": 0,
 		"xp": 0,
-		# "Carry weapons over as they are" (Tactics p.184).
+		# "Carry weapons over as they are" (Tactics p.182).
 		"equipment": char_data.get("imported_equipment", char_data.get("equipment", [])),
 		"status": "active",
 		"transferred_from_tactics": true,

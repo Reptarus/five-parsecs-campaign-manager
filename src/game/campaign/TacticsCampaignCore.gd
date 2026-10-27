@@ -47,11 +47,17 @@ var _pending_qol_data: Dictionary = {}
 @export var last_modified: String = ""
 @export var version: String = "1.0"
 @export var game_phase: String = "creation"  # "creation", "active", "completed"
+## How the war ended (p.99 Step 9): "player", "enemy" or "inconclusive"; "" while it
+## continues. Written by end_campaign(), the only path to game_phase "completed".
+@export var campaign_result: String = ""
 @export var campaign_turn: int = 0
 @export var operational_turn: int = 0
 
 ## Play mode
 @export var play_mode: String = "solo"  # "solo", "gm", "versus"
+
+## p.135 Armored Platoon (optional rule): indices of the platoons built that way.
+var armored_platoons: Array = []
 
 ## Campaign economy — Campaign Points
 @export var campaign_points_earned: int = 0
@@ -64,14 +70,14 @@ var roster_entries: Array = []
 ## Persists between battles — tracks CP, veteran skills, casualties
 var campaign_units: Array = []
 
-## Named veteran characters imported from other modes (Tactics pp.184-185:
+## Named veteran characters imported from other modes (Tactics pp.182-183:
 ## "an old and well-known character show up on the battlefield as an officer or
 ## hero"). These are INDIVIDUAL figures attached to the force, NOT squad units —
 ## deliberately kept OUT of campaign_units[] so they never enter the points-cost /
-## org-slot validation (the book uses "no points cost formula" for transfers, p.184).
+## org-slot validation (the book uses "no points cost formula" for transfers, p.182).
 var veteran_characters: Array = []
 
-## Operational map state (Dictionary from TacticsOperationalMap.to_dict())
+## Operational map state. Its shape is documented in TacticsOperationalTurn.gd.
 var operational_map: Dictionary = {}
 
 ## Battle history (Array of {turn, scenario, result, cp_earned, casualties})
@@ -79,6 +85,12 @@ var battle_history: Array = []
 
 ## Veteran skills acquired (Dictionary: unit_id -> Array[skill_dict])
 var veteran_skills: Dictionary = {}
+
+## Battle advantages bought with CP and not yet used (Tactics p.107): "a single-use
+## bonus which can be spent in a battle when you wish. Once purchased, it may be saved
+## indefinitely ... Once a battle advantage is used, it is gone." Each entry is
+## {id, name, desc, bought_turn}. Spent through spend_battle_advantage().
+var battle_advantages: Array = []
 
 ## Story events encountered (Array of {turn, event_id, description, effects})
 var story_events: Array = []
@@ -130,6 +142,8 @@ func set_config(data: Dictionary) -> void:
 		platoon_count = data.platoon_count
 	if data.has("play_mode"):
 		play_mode = data.play_mode
+	if data.has("armored_platoons"):
+		armored_platoons = (data.armored_platoons as Array).duplicate()
 	_update_modified_time()
 
 
@@ -276,8 +290,12 @@ func spend_cp(amount: int) -> bool:
 ## every unit upgrade, roster change and battle advantage, so this throttled the
 ## whole campaign layer.
 func record_battle(result: Dictionary) -> void:
-	var awarded: int = campaign_points_for(
-		result, [randi_range(1, 6), randi_range(1, 6), randi_range(1, 6)])
+	# p.106: "Roll three D6s and drop the lowest result." Rolled through DiceManager so
+	# QA can force it; a raw randi_range() here could not be forced or audited.
+	var dice: Array = []
+	for i in range(3):
+		dice.append(_roll_d6("Tactics Campaign Points (%d/3)" % (i + 1)))
+	var awarded: int = campaign_points_for(result, dice)
 	# ⚠ STAMP WHAT THE HISTORY VIEW READS. TacticsDashboard._build_battle_history()
 	# renders `entry.get("turn", 0)` and `entry.get("cp_earned", 0)`, and the live
 	# producer (TacticsTurnController :365/:373) sets ONLY `won` — so every row read
@@ -292,9 +310,33 @@ func record_battle(result: Dictionary) -> void:
 	var entry: Dictionary = result.duplicate(true)
 	entry["turn"] = campaign_turn
 	entry["cp_earned"] = awarded
+	# The receipt the post-battle panel shows, so the award a player reads is the one
+	# that was computed — never a description of the rule typed into a UI literal.
+	entry["cp_dice"] = dice
+	entry["cp_basis"] = cp_basis(result)
 	battle_history.append(entry)
 	earn_cp(awarded)
 	_update_modified_time()
+
+
+## Which p.106-107 row an award used: "victory_points", "victory", "draw" or "defeat".
+static func cp_basis(result: Dictionary) -> String:
+	if result.has("victory_points"):
+		return "victory_points"
+	if bool(result.get("won", false)):
+		return "victory"
+	if bool(result.get("draw", false)):
+		return "draw"
+	return "defeat"
+
+
+func _roll_d6(context: String) -> int:
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree and (loop as SceneTree).root != null:
+		var dm: Node = (loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+		if dm != null and dm.has_method("roll_d6"):
+			return int(dm.roll_d6(context))
+	return randi_range(1, 6)
 
 
 ## The p.106-107 award as a pure function, so it can be asserted without a battle
@@ -361,19 +403,32 @@ func get_active_campaign_units() -> Array:
 
 
 ## ============================================================================
-## VETERAN CHARACTERS (cross-mode imports — Tactics pp.184-185)
+## VETERAN CHARACTERS (cross-mode imports — Tactics pp.182-183)
 ## ============================================================================
+
+## The Kill Points a named veteran takes the field with.
+##
+## p.182: "Crew transferred to Tactics receive 1 Kill Point for each point of Luck", so
+## a 0-Luck character (most humans: Core Rules p.15 gives them no Luck) arrives with 0,
+## and p.36 removes a figure at 0 KP as a casualty. The book leaves that gap to the
+## players: p.182 calls itself guidelines and says "adopt the rules as you see fit".
+## OWNER DECISION 2026-10-27: use p.36's "A typical infantry trooper has 1 KP", and
+## SHOW it in the import preview instead of applying it silently. The preview and the
+## stored value both read this function, so they cannot disagree again (the preview
+## used to print "0 (1 per Luck point)" over a stored 1). convert_to_tactics() stays
+## book-exact.
+const VETERAN_MIN_KILL_POINTS := 1
+
+
+static func veteran_kill_points(book_kill_points: int) -> int:
+	return maxi(book_kill_points, VETERAN_MIN_KILL_POINTS)
+
 
 func add_veteran_character(veteran: Dictionary) -> void:
 	## Attach an imported named veteran (a hero / officer figure), NOT a squad unit.
 	## Kept out of campaign_units[] so it never affects points validation.
 	var v: Dictionary = veteran.duplicate(true)
-	# Playability floor (NOT a book value): the book's "1 Kill Point per Luck point"
-	# (p.184) yields 0 KP for a 0-Luck character, but a battlefield figure needs at
-	# least 1 wound. Kept here, at the veteran layer, so convert_to_tactics() stays
-	# book-exact. GAME_BALANCE_ESTIMATE.
-	if int(v.get("kill_points", 0)) < 1:
-		v["kill_points"] = 1
+	v["kill_points"] = veteran_kill_points(int(v.get("kill_points", 0)))
 	veteran_characters.append(v)
 	_update_modified_time()
 
@@ -446,6 +501,42 @@ func start_campaign() -> void:
 	_update_modified_time()
 
 
+## p.99 Step 9: "The campaign is won when only one faction remains. In the event all
+## remaining factions reach 0 at the same time, the war is inconclusive". Called when
+## TacticsPhaseManager emits campaign_ended. Idempotent.
+func end_campaign(result: String) -> void:
+	if result.is_empty():
+		return
+	campaign_result = result
+	game_phase = "completed"
+	_update_modified_time()
+
+
+func is_campaign_over() -> bool:
+	return game_phase == "completed"
+
+
+## Bank a battle advantage bought in the Advancement phase.
+func add_battle_advantage(purchase: Dictionary) -> void:
+	battle_advantages.append({
+		"id": str(purchase.get("id", "")),
+		"name": str(purchase.get("name", "")),
+		"desc": str(purchase.get("desc", "")),
+		"bought_turn": campaign_turn,
+	})
+	_update_modified_time()
+
+
+## Use one banked advantage. Returns the entry, or {} if the index is not banked.
+func spend_battle_advantage(index: int) -> Dictionary:
+	if index < 0 or index >= battle_advantages.size():
+		return {}
+	var used: Dictionary = battle_advantages[index]
+	battle_advantages.remove_at(index)
+	_update_modified_time()
+	return used
+
+
 func advance_turn() -> void:
 	campaign_turn += 1
 	_update_modified_time()
@@ -473,6 +564,7 @@ func to_dictionary() -> Dictionary:
 			"last_modified": last_modified,
 			"version": version,
 			"game_phase": game_phase,
+			"campaign_result": campaign_result,
 		},
 		"config": {
 			"name": campaign_name,
@@ -483,6 +575,7 @@ func to_dictionary() -> Dictionary:
 			"org_type": org_type,
 			"platoon_count": platoon_count,
 			"play_mode": play_mode,
+			"armored_platoons": armored_platoons.duplicate(),
 		},
 		"roster": {
 			"entries": roster_entries.duplicate(true),
@@ -498,6 +591,7 @@ func to_dictionary() -> Dictionary:
 		"operational_map": operational_map.duplicate(true),
 		"battle_history": battle_history.duplicate(true),
 		"veteran_skills": veteran_skills.duplicate(true),
+		"battle_advantages": battle_advantages.duplicate(true),
 		"story_events": story_events.duplicate(true),
 		"current_battle": current_battle.duplicate(true),
 		"dlc_flags": dlc_flags.duplicate(),
@@ -516,6 +610,7 @@ func from_dictionary(data: Dictionary) -> void:
 		last_modified = meta.get("last_modified", "")
 		version = meta.get("version", "1.0")
 		game_phase = meta.get("game_phase", "creation")
+		campaign_result = str(meta.get("campaign_result", ""))
 
 	if campaign_id.is_empty() and data.has("campaign_id"):
 		campaign_id = data.get("campaign_id", "")
@@ -532,6 +627,8 @@ func from_dictionary(data: Dictionary) -> void:
 		org_type = config.get("org_type", "platoon")
 		platoon_count = config.get("platoon_count", 1)
 		play_mode = config.get("play_mode", "solo")
+		var armored: Variant = config.get("armored_platoons", [])
+		armored_platoons = (armored as Array).duplicate() if armored is Array else []
 
 	# Roster
 	if data.has("roster"):
@@ -564,6 +661,7 @@ func from_dictionary(data: Dictionary) -> void:
 	operational_map = data.get("operational_map", {}).duplicate(true)
 	battle_history = data.get("battle_history", []).duplicate(true)
 	veteran_skills = data.get("veteran_skills", {}).duplicate(true)
+	battle_advantages = data.get("battle_advantages", []).duplicate(true)
 	story_events = data.get("story_events", []).duplicate(true)
 	current_battle = data.get("current_battle", {}).duplicate(true)
 	dlc_flags = data.get("dlc_flags", {}).duplicate()

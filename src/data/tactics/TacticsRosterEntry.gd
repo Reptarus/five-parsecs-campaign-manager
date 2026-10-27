@@ -22,8 +22,20 @@ var selected_upgrades: Array = []  # Array of TacticsUpgradeOption
 # Entry ID (unique within roster)
 @export var entry_id: String = ""
 
-# Platoon assignment (which platoon this unit belongs to, 0-indexed)
+# Platoon assignment (which platoon this unit belongs to, 0-indexed). -1 is a
+# company-level unit (p.135: the company's own Leaders and Supports).
 @export var platoon_index: int = 0
+
+# p.135 Armored Platoon: the role a vehicle fills there, "leader" or "troop". Empty
+# means the profile's own slot, which is every case outside an armored platoon.
+@export var role: String = ""
+
+# p.138 Mechanized Infantry: "Any squad may be selected as mechanized infantry. Select
+# a transport vehicle capable of carrying the squad." The transport is bought with the
+# squad, so its cost is part of this entry. p.135 requires one for every Support in an
+# armored platoon.
+@export var transport_vehicle_id: String = ""
+var transport_profile: TacticsVehicleProfile = null
 
 
 ## Get total points cost (base + upgrades)
@@ -36,6 +48,9 @@ func get_total_cost() -> int:
 	for upgrade in selected_upgrades:
 		if upgrade is TacticsUpgradeOption:
 			total += upgrade.points_cost
+
+	if transport_profile:
+		total += transport_profile.points_cost
 
 	return total
 
@@ -85,7 +100,90 @@ func validate() -> Array[String]:
 				errors.append("'%s' conflicts with '%s'" % [upgrade.upgrade_name, existing_name])
 		selected_names.append(upgrade.upgrade_name)
 
+	# Each option group's own selection rule.
+	for g in base_profile.upgrade_groups:
+		if not (g is TacticsUpgradeGroup):
+			continue
+		var picked := 0
+		for upgrade in selected_upgrades:
+			if g.options.has(upgrade):
+				picked += 1
+		var cap: int = picked
+		match g.selection_mode:
+			TacticsUpgradeGroup.SelectionMode.PICK_ONE:
+				cap = 1
+			TacticsUpgradeGroup.SelectionMode.PICK_UP_TO_N:
+				cap = g.max_selections
+		if picked > cap:
+			errors.append("'%s': at most %d (have %d)" % [g.get_header_text(), cap, picked])
+
+	# p.138 Mechanized Infantry.
+	if not transport_vehicle_id.is_empty():
+		if not is_squad():
+			errors.append("Only a squad may ride in a transport (p.138)")
+		elif transport_profile == null:
+			errors.append("Unknown transport '%s'" % transport_vehicle_id)
+		elif transport_profile.transport_capacity < carried_models():
+			errors.append("%s carries %d figures; the squad has %d (p.138)" % [
+				transport_profile.vehicle_name, transport_profile.transport_capacity,
+				carried_models()])
+
 	return errors
+
+
+## An infantry, recon or storm squad (p.134 Troops; p.138 mechanized infantry).
+func is_squad() -> bool:
+	if not base_profile:
+		return false
+	return base_profile.unit_type in [TacticsUnitProfile.UnitType.INFANTRY,
+		TacticsUnitProfile.UnitType.RECON, TacticsUnitProfile.UnitType.STORM]
+
+
+## How many figures a transport must carry for this entry.
+func carried_models() -> int:
+	if model_count > 0:
+		return model_count
+	return base_profile.base_models if base_profile else 0
+
+
+## One of this unit's listed options, by name (what the builder stores) or id.
+func find_option(key: String) -> TacticsUpgradeOption:
+	if not base_profile:
+		return null
+	for g in base_profile.upgrade_groups:
+		if not (g is TacticsUpgradeGroup):
+			continue
+		for o in g.options:
+			if o is TacticsUpgradeOption and (o.upgrade_name == key or o.upgrade_id == key):
+				return o
+	return null
+
+
+## Build an entry from the builder's Dictionary form, resolving the unit, its options
+## and its transport against one species book. The roster panel and the creation
+## coordinator both price and validate through this, so the cost a player sees is the
+## cost the validator checks.
+static func from_entry_dict(data: Dictionary, book) -> TacticsRosterEntry:
+	var _Self = load("res://src/data/tactics/TacticsRosterEntry.gd")
+	var entry = _Self.new()
+	entry.entry_id = str(data.get("entry_id", ""))
+	entry.platoon_index = int(data.get("platoon_index", 0))
+	entry.model_count = int(data.get("model_count", 0))
+	entry.display_name = str(data.get("display_name", ""))
+	entry.role = str(data.get("role", ""))
+	entry.transport_vehicle_id = str(data.get("transport_vehicle_id", ""))
+	if book == null:
+		return entry
+	var unit_id: String = str(data.get("unit_id", ""))
+	if not unit_id.is_empty():
+		entry.base_profile = book.get_unit_profile(unit_id)
+	for want in data.get("selected_upgrades", []):
+		var opt: TacticsUpgradeOption = entry.find_option(str(want))
+		if opt:
+			entry.selected_upgrades.append(opt)
+	if not entry.transport_vehicle_id.is_empty():
+		entry.transport_profile = book.get_vehicle(entry.transport_vehicle_id)
+	return entry
 
 
 ## Get display name for UI
@@ -121,18 +219,23 @@ func to_dict() -> Dictionary:
 		"entry_id": entry_id,
 		"platoon_index": platoon_index,
 	}
+	if not role.is_empty():
+		data["role"] = role
+	if not transport_vehicle_id.is_empty():
+		data["transport_vehicle_id"] = transport_vehicle_id
 	if not display_name.is_empty():
 		data["display_name"] = display_name
 	if model_count > 0:
 		data["model_count"] = model_count
 	if base_profile:
 		data["unit_id"] = base_profile.unit_id
-	var upgrade_ids: Array = []
+	# Option NAMES, the form the builder and the campaign-unit record both store.
+	var upgrade_names: Array = []
 	for upgrade in selected_upgrades:
 		if upgrade is TacticsUpgradeOption:
-			upgrade_ids.append(upgrade.upgrade_id)
-	if not upgrade_ids.is_empty():
-		data["selected_upgrades"] = upgrade_ids
+			upgrade_names.append(upgrade.upgrade_name)
+	if not upgrade_names.is_empty():
+		data["selected_upgrades"] = upgrade_names
 	return data
 
 

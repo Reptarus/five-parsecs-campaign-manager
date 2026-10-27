@@ -30,6 +30,14 @@ enum OrgType {
 # Organization
 @export var org_type: OrgType = OrgType.PLATOON
 @export var platoon_count: int = 1
+## p.135 Armored Platoon (optional rule): the indices of the platoons built that way.
+## "A company consists of 2-4 platoons, each of which may be a regular or armored
+## platoon."
+var armored_platoons: Array = []
+## A pick-up game (p.69). p.152: "Creatures may not be selected in such games as part
+## of an army"; p.135: armored units "are not usable in pick-up games without player
+## agreement".
+var is_pickup: bool = false
 
 # Species book this roster is built from
 var species_book: TacticsSpeciesBook = null
@@ -98,9 +106,28 @@ func count_slot_in_platoon(slot: int, platoon_idx: int) -> int:
 	var count: int = 0
 	for entry in entries:
 		if entry is TacticsRosterEntry and entry.platoon_index == platoon_idx:
-			if entry.get_org_slot() == slot:
+			if effective_slot(entry) == slot:
 				count += 1
 	return count
+
+
+func is_armored(platoon_idx: int) -> bool:
+	return armored_platoons.has(platoon_idx)
+
+
+## The slot an entry fills in ITS platoon. Outside an armored platoon that is the
+## profile's own slot. Inside one (p.135) a vehicle is the Leader or a Troop, a squad
+## is a Support, and anything else has no slot (-1): "There are no weapon teams or
+## specialists in an armored platoon."
+func effective_slot(entry: TacticsRosterEntry) -> int:
+	if not is_armored(entry.platoon_index):
+		return entry.get_org_slot()
+	if entry.base_profile and entry.base_profile.is_vehicle():
+		return TacticsUnitProfile.OrgSlot.LEADER if entry.role == "leader" \
+			else TacticsUnitProfile.OrgSlot.TROOP
+	if entry.is_squad():
+		return TacticsUnitProfile.OrgSlot.SUPPORT
+	return -1
 
 
 ## Get species ID from book
@@ -131,6 +158,7 @@ func to_dict() -> Dictionary:
 		"points_limit": points_limit,
 		"org_type": OrgType.keys()[org_type].to_lower(),
 		"platoon_count": platoon_count,
+		"armored_platoons": armored_platoons.duplicate(),
 	}
 	if species_book:
 		data["species_id"] = species_book.get_species_id()

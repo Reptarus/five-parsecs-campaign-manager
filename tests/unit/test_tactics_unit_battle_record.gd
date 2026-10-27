@@ -227,17 +227,41 @@ func test_normalize_never_regenerates_an_existing_unit_id() -> void:
 
 # ═══════════════════════════════ mutations the phase manager delegates
 
-func test_casualties_destroy_a_unit_that_loses_everyone() -> void:
+func test_a_lost_unit_never_deploys_again() -> void:
+	## p.106 roll of 1: "Remove them from your roster". The record stays as history.
 	var u: Dictionary = UnitRecord.new_unit("rifle_squad", "human", "Alpha", 5)
-	UnitRecord.apply_casualties(u, 2)
-	assert_int(int(u["current_models"])).is_equal(3)
-	assert_int(int(u["models_lost_total"])).is_equal(2)
-	assert_bool(bool(u["is_destroyed"])).is_false()
-
-	UnitRecord.apply_casualties(u, 3)
-	assert_int(int(u["current_models"])).is_equal(0)
-	assert_int(int(u["models_lost_total"])).is_equal(5)
+	UnitRecord.apply_unit_loss(u, "lost")
+	assert_bool(UnitRecord.is_deployable(u)).is_false()
 	assert_bool(bool(u["is_destroyed"])).is_true()
+	assert_int(int(u["current_models"])).override_failure_message(
+		"p.105: a unit's figures are not whittled down between battles"
+	).is_equal(5)
+
+
+func test_a_devastated_unit_sits_out_exactly_two_campaign_battles() -> void:
+	## p.106 roll of 2: "It is unusable for two campaign battles."
+	var u: Dictionary = UnitRecord.new_unit("rifle_squad", "human", "Alpha", 5)
+	UnitRecord.apply_unit_loss(u, "devastated", 2)
+	assert_bool(UnitRecord.is_deployable(u)).is_false()
+	UnitRecord.after_campaign_battle(u, false)
+	assert_bool(UnitRecord.is_deployable(u)).is_false()
+	UnitRecord.after_campaign_battle(u, false)
+	assert_bool(UnitRecord.is_deployable(u)).is_true()
+	assert_str(str(u["condition"])).is_equal("ok")
+
+
+func test_a_weakened_unit_recovers_only_by_sitting_a_battle_out() -> void:
+	## p.106 roll of 3: "until the unit can sit out a campaign battle without being
+	## deployed, it must deploy with one figure fewer than normal."
+	var u: Dictionary = UnitRecord.new_unit("rifle_squad", "human", "Alpha", 5)
+	UnitRecord.apply_unit_loss(u, "weakened")
+	assert_bool(UnitRecord.is_deployable(u)).is_true()
+	UnitRecord.after_campaign_battle(u, true)
+	assert_str(str(u["condition"])).override_failure_message(
+		"a Weakened unit that was deployed again has not sat a battle out"
+	).is_equal("weakened")
+	UnitRecord.after_campaign_battle(u, false)
+	assert_str(str(u["condition"])).is_equal("ok")
 
 
 func test_reinforcement_stops_at_the_base_size() -> void:
@@ -245,7 +269,7 @@ func test_reinforcement_stops_at_the_base_size() -> void:
 	## requested figures unconditionally, so a reinforcement could take a squad above
 	## the strength its army-list entry pays points for.
 	var u: Dictionary = UnitRecord.new_unit("rifle_squad", "human", "Alpha", 5)
-	UnitRecord.apply_casualties(u, 3)
+	u["current_models"] = 2
 
 	var added: int = UnitRecord.reinforce(u, 10, 5)
 	assert_int(added).override_failure_message(

@@ -36,6 +36,11 @@ var _op_map: Control
 var _battle_indicator: Control  # Shown during BATTLE phase
 ## "Play another battle this turn" (Tactics p.96). Read by _battle_payload().
 var _another_check: CheckBox
+## Victory Points scored (p.73: "The rulebook scenarios all use victory points"); the
+## CP award is then 1 per VP (p.106). `_no_vp_check` is for a home-made scenario that
+## did not use them, which falls back to the p.107 victory / draw / defeat bonus.
+var _vp_spin: SpinBox
+var _no_vp_check: CheckBox
 
 ## UI refs
 var _turn_label: Label
@@ -79,27 +84,22 @@ func _initialize() -> void:
 	_create_panels()
 	_connect_signals()
 
-	# Check for returning from battle
-	var gs_mgr = get_node_or_null("/root/GameStateManager")
-	var battle_result = null
-	if gs_mgr and gs_mgr.has_method("get_temp_data"):
-		battle_result = gs_mgr.get_temp_data(
-			"tactics_battle_result")
-
-	if battle_result is Dictionary and not battle_result.is_empty():
-		_resume_after_battle(battle_result)
-		if gs_mgr.has_method("set_temp_data"):
-			gs_mgr.set_temp_data("tactics_battle_result", null)
+	# ⚠ A Tactics battle is played on the table and RECORDED here (the BATTLE phase's
+	# Victory / Draw / Defeat + Victory Points). There is no Tactics hand-off to the
+	# 5PFH battle screen — a `tactics_battle_result` temp-data read used to sit here
+	# for a return that no producer ever wrote (TacticalBattleUI.gd:1074-1077 says so).
+	if "is_campaign_over" in campaign and campaign.is_campaign_over():
+		_show_campaign_over(str(campaign.campaign_result))
+		return
+	var turn: int = campaign.campaign_turn \
+		if "campaign_turn" in campaign else 0
+	if turn <= 0:
+		phase_manager.start_new_turn()
 	else:
-		var turn: int = campaign.campaign_turn \
-			if "campaign_turn" in campaign else 0
-		if turn <= 0:
-			phase_manager.start_new_turn()
-		else:
-			phase_manager.turn_number = turn
-			phase_manager.campaign_turn_started.emit(turn)
-			phase_manager.go_to_phase(
-				PhaseManagerScript.Phase.ORDERS)
+		phase_manager.turn_number = turn
+		phase_manager.campaign_turn_started.emit(turn)
+		phase_manager.go_to_phase(
+			PhaseManagerScript.Phase.ORDERS)
 
 
 func _load_campaign() -> void:
@@ -263,6 +263,9 @@ func _connect_signals() -> void:
 	phase_manager.phase_changed.connect(_on_phase_changed)
 	phase_manager.campaign_turn_started.connect(_on_turn_started)
 	phase_manager.campaign_turn_completed.connect(_on_turn_completed)
+	# p.99 Step 9. Declared and emitted since 2026-09-07 and connected by NOTHING, so a
+	# war that ended kept offering turns.
+	phase_manager.campaign_ended.connect(_on_campaign_ended)
 
 	# ⚠ FORWARD THE PAYLOAD. These three lambdas used to be `func(_p, _d):
 	# phase_manager.complete_current_phase()` — dropping the dictionary the panel
@@ -321,11 +324,13 @@ func _on_phase_changed(_old: int, new_phase: int) -> void:
 			_battle_setup.show_phase(new_phase)
 		4:  # BATTLE
 			_battle_indicator.visible = true
-			# Offer "play another" only while the p.96 ceiling still allows one.
+			# p.95 sets no ceiling on battles per operational turn, so this is always
+			# offered; it is reset each time so a stale tick never loops a turn.
 			if is_instance_valid(_another_check) and phase_manager:
 				_another_check.visible = phase_manager.can_play_another_battle()
-				if not _another_check.visible:
-					_another_check.button_pressed = false
+				_another_check.button_pressed = false
+			if is_instance_valid(_vp_spin):
+				_vp_spin.value = 0
 		5, 6:  # POST_BATTLE → ADVANCEMENT
 			_post_battle.visible = true
 			_post_battle.show_phase(new_phase)
@@ -354,10 +359,53 @@ func _hide_all_panels() -> void:
 ## and the Player Battle Point award (p.96); `play_another` drives the loop back to
 ## BATTLE_PREP. Both were being dropped before 2026-09-07 — the first by the controller
 ## lambda, the second because nothing ever set it.
-func _battle_payload(won: bool) -> Dictionary:
+##
+## `outcome` is "victory", "draw" or "defeat". A draw earns no PBP and cancels nothing
+## (p.96) and +2 CP when no VP were scored (p.107); it used to be unrecordable.
+func _battle_payload(outcome: String) -> Dictionary:
 	var play_another: bool = (
 		is_instance_valid(_another_check) and _another_check.button_pressed)
-	return {"battle_result": {"won": won}, "play_another": play_another}
+	var result: Dictionary = {
+		"won": outcome == "victory",
+		"draw": outcome == "draw",
+	}
+	if is_instance_valid(_vp_spin) and not (
+			is_instance_valid(_no_vp_check) and _no_vp_check.button_pressed):
+		result["victory_points"] = int(_vp_spin.value)
+	return {"battle_result": result, "play_another": play_another}
+
+
+func _on_campaign_ended(result: String) -> void:
+	if "end_campaign" in campaign:
+		campaign.end_campaign(result)
+	var gs = get_node_or_null("/root/GameState")
+	if gs and gs.has_method("save_campaign"):
+		gs.save_campaign(campaign)
+	_show_campaign_over(result)
+
+
+## The war is over (p.99): show the result instead of another turn.
+func _show_campaign_over(result: String) -> void:
+	if not is_instance_valid(_panel_container):
+		return
+	_hide_all_panels()
+	var text: String = {
+		"player": "VICTORY — the enemy's Cohesion is broken. Only your faction remains.",
+		"enemy": "DEFEAT — your faction's Cohesion is broken.",
+		"inconclusive": "INCONCLUSIVE — every faction reached 0 Cohesion together; "
+			+ "both sides are completely exhausted.",
+	}.get(result, "The campaign is over.")
+	var lbl := Label.new()
+	lbl.text = "%s\n\n(Tactics p.99, Step 9)" % text
+	lbl.add_theme_font_size_override("font_size", _scaled_font(20))
+	lbl.add_theme_color_override("font_color",
+		COLOR_SUCCESS if result == "player" else COLOR_TEXT_SEC)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel_container.add_child(lbl)
+	if is_instance_valid(_phase_label):
+		_phase_label.text = "Campaign over"
 
 
 func _create_battle_indicator() -> VBoxContainer:
@@ -384,41 +432,58 @@ func _create_battle_indicator() -> VBoxContainer:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
 
-	# Victory / Defeat buttons
+	# Victory / Draw / Defeat buttons (placed below the VP row further down)
 	var btn_box := HBoxContainer.new()
 	btn_box.add_theme_constant_override("separation", SPACING_MD)
 	btn_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	vbox.add_child(btn_box)
 
-	var win_btn := Button.new()
-	win_btn.text = "Victory"
-	win_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
-	win_btn.pressed.connect(func():
-		phase_manager.complete_current_phase(_battle_payload(true)))
-	btn_box.add_child(win_btn)
+	# Victory Points first: p.73 "The rulebook scenarios all use victory points", and
+	# p.106 awards 1 CP per VP when they are used.
+	var vp_row := HBoxContainer.new()
+	vp_row.add_theme_constant_override("separation", SPACING_MD)
+	vp_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(vp_row)
+	var vp_lbl := Label.new()
+	vp_lbl.text = "Victory Points you scored:"
+	vp_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	vp_row.add_child(vp_lbl)
+	_vp_spin = SpinBox.new()
+	_vp_spin.min_value = 0
+	_vp_spin.max_value = 99
+	_vp_spin.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	vp_row.add_child(_vp_spin)
+	_no_vp_check = CheckBox.new()
+	_no_vp_check.text = "This scenario did not use Victory Points"
+	_no_vp_check.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	_no_vp_check.toggled.connect(func(on: bool) -> void: _vp_spin.editable = not on)
+	vbox.add_child(_no_vp_check)
+	vbox.move_child(btn_box, vbox.get_child_count() - 1)
 
-	var lose_btn := Button.new()
-	lose_btn.text = "Defeat"
-	lose_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
-	lose_btn.pressed.connect(func():
-		phase_manager.complete_current_phase(_battle_payload(false)))
-	btn_box.add_child(lose_btn)
+	for outcome in ["victory", "draw", "defeat"]:
+		var b := Button.new()
+		b.text = String(outcome).capitalize()
+		b.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+		b.pressed.connect(func():
+			phase_manager.complete_current_phase(_battle_payload(outcome)))
+		btn_box.add_child(b)
 
 	# Play-another option (Tactics p.96: "you may have multiple battles per campaign
 	# turn"). ⚠ This was a Button with `visible = false` and NO `pressed` connection at
 	# all — the `play_another` key had no producer, so TacticsPhaseManager's loop back
-	# to BATTLE_PREP (:129-137) and its MAX_BATTLES_PER_TURN ceiling were unreachable
-	# and a Tactics turn could only ever hold one battle.
+	# to BATTLE_PREP was unreachable and a Tactics turn could only ever hold one battle.
+	# (The invented three-battle ceiling it once sat behind is gone: p.95 allows "any
+	# number of tabletop battles".)
 	#
-	# It is a CheckBox rather than a button on purpose: a third button would complete
-	# the phase with no battle result at all, losing the win/loss the PBP award (p.96)
+	# It is a CheckBox rather than a button on purpose: another button would complete
+	# the phase with no battle result at all, losing the outcome the PBP award (p.96)
 	# is computed from. The player records the outcome; this only says whether another
-	# battle follows.
+	# battle follows. It sits on its own row so the outcome buttons fit a phone width.
 	_another_check = CheckBox.new()
 	_another_check.text = "Play another battle this turn"
 	_another_check.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
-	_another_check.visible = false  # Shown once a battle has been fought
-	btn_box.add_child(_another_check)
+	_another_check.visible = false  # Shown when the BATTLE phase opens
+	vbox.add_child(_another_check)
 
 	var spacer_bot := Control.new()
 	spacer_bot.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -426,10 +491,3 @@ func _create_battle_indicator() -> VBoxContainer:
 
 	return vbox
 
-
-func _resume_after_battle(result: Dictionary) -> void:
-	phase_manager.turn_number = campaign.campaign_turn \
-		if "campaign_turn" in campaign else 1
-	phase_manager.go_to_phase(PhaseManagerScript.Phase.POST_BATTLE)
-	phase_manager.complete_current_phase(
-		{"battle_result": result})

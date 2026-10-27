@@ -32,10 +32,10 @@ signal campaign_ended(result: String)
 enum Phase {
 	NONE = -1,
 	ORDERS = 0,             # Choose battle plan, assign units to zones
-	RECON = 1,              # Observation tests, intel gathering
+	RECON = 1,              # Observation rule reference (p.39); writes nothing
 	BATTLE_PREP = 2,        # Scenario generation, objective selection
 	DEPLOYMENT = 3,         # Unit placement per scenario rules
-	BATTLE = 4,             # Tabletop battle (1-3 per operational turn)
+	BATTLE = 4,             # Tabletop battle (any number per operational turn, p.95)
 	POST_BATTLE = 5,        # Casualties, CP awards, story events
 	ADVANCEMENT = 6,        # Spend CP on veteran skills, roster changes
 	STRATEGIC = 7,          # Operational combat, orders, redeployment, new zones
@@ -54,7 +54,7 @@ const PHASE_NAMES := {
 
 const PHASE_DESCRIPTIONS := {
 	Phase.ORDERS: "Plan your approach and assign units to operational zones",
-	Phase.RECON: "Gather intelligence on enemy positions and terrain",
+	Phase.RECON: "Review the Observation rule (p.39) before the battle",
 	Phase.BATTLE_PREP: "Generate scenario, set objectives, roll battlefield conditions",
 	Phase.DEPLOYMENT: "Place your forces according to scenario rules",
 	Phase.BATTLE: "Fight the tabletop battle",
@@ -71,7 +71,8 @@ var previous_phase: int = Phase.NONE
 var turn_number: int = 0
 var operational_turn: int = 0
 
-## How many battles fought this operational turn (1-3 allowed)
+## How many battles fought this operational turn. p.95: "Each campaign turn consists
+## of any number of tabletop battles" — there is no ceiling to enforce.
 var battles_this_turn: int = 0
 ## Tabletop results this operational turn, for the p.96 Player Battle Point award.
 ## Both are needed: the book cancels the two sides' points 1-for-1 in the same Zone.
@@ -86,7 +87,14 @@ const OperationalRulesRef = preload(
 	"res://src/core/campaign/TacticsOperationalRules.gd")
 const UnitRecordRef = preload(
 	"res://src/data/tactics/TacticsCampaignUnit.gd")
-const MAX_BATTLES_PER_TURN := 3
+const AdvancementRef = preload("res://src/core/campaign/TacticsAdvancement.gd")
+const OperationalTurnRef = preload(
+	"res://src/core/campaign/TacticsOperationalTurn.gd")
+
+## Lines describing what the last ADVANCEMENT completion applied (pp.107-108), for the
+## tests and the journal. A purchase whose target went stale says so here instead of
+## vanishing.
+var last_advancement_receipt: PackedStringArray = PackedStringArray()
 
 var _phase_complete: Dictionary = {}
 
@@ -119,6 +127,7 @@ func start_new_turn() -> void:
 		if campaign.has_method("advance_operational_turn"):
 			campaign.advance_operational_turn()
 
+	_open_operational_map_if_needed()
 	_reset_phase_completion()
 	campaign_turn_started.emit(turn_number)
 	operational_turn_started.emit(operational_turn)
@@ -148,10 +157,11 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 
 	_apply_phase_results(current_phase, result_data)
 
-	# Special case: BATTLE phase can loop (1-3 battles per operational turn)
+	# Special case: the BATTLE phase loops. p.95: "Each campaign turn consists of any
+	# number of tabletop battles" — the old MAX_BATTLES_PER_TURN := 3 was not a rule.
 	if current_phase == Phase.BATTLE:
 		battles_this_turn += 1
-		if battles_this_turn < MAX_BATTLES_PER_TURN and result_data.get("play_another", false):
+		if result_data.get("play_another", false):
 			# Reset battle phase for another round
 			_phase_complete[Phase.BATTLE] = false
 			_phase_complete[Phase.BATTLE_PREP] = false
@@ -174,8 +184,23 @@ func can_advance() -> bool:
 	return _phase_complete.get(current_phase, false)
 
 
+## Always true: p.95 sets no ceiling on tabletop battles per operational turn.
 func can_play_another_battle() -> bool:
-	return battles_this_turn < MAX_BATTLES_PER_TURN
+	return true
+
+
+## A campaign whose map was never opened — every one created before 2026-10-27, when
+## creation seeded an empty map — gets the p.94 opening at the start of its next turn.
+## Without it the Strategic phase has no Zone to fight over, forever.
+func _open_operational_map_if_needed() -> void:
+	if campaign == null or not ("operational_map" in campaign) \
+			or not (campaign.operational_map is Dictionary):
+		return
+	if not OperationalTurnRef.needs_opening(campaign.operational_map):
+		return
+	var opened: Dictionary = OperationalTurnRef.new().build_opening_map(
+		campaign.operational_map)
+	campaign.operational_map = opened.get("map", campaign.operational_map)
 
 
 func go_to_phase(phase: int) -> void:
@@ -226,16 +251,37 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			# Store selected operational orders for this turn
 			if data.has("orders") and "current_battle" in campaign:
 				campaign.current_battle["orders"] = data.orders
+			# Step 1 (p.96): "Each player-controlled force will be assigned to a
+			# particular Operational Zone." The Strategic phase spends PBP there.
+			if data.get("orders") is Dictionary \
+					and (data.orders as Dictionary).has("player_zone_id"):
+				var m: Dictionary = _operational_map_dict()
+				if not m.is_empty():
+					m["player_zone_id"] = str(data.orders.player_zone_id)
 
-		Phase.RECON:
-			# Intel results — may reveal enemy composition
-			if data.has("intel") and "current_battle" in campaign:
-				campaign.current_battle["intel"] = data.intel
+		# Phase.RECON writes nothing: the p.39 Observation test is rolled at the table
+		# during the battle. ⚠ It used to store an "intel" key that nothing ever read.
 
 		Phase.BATTLE_PREP:
 			# Store scenario data
 			if data.has("scenario") and "current_battle" in campaign:
 				campaign.current_battle["scenario"] = data.scenario
+			# p.107: a battle advantage "can be spent in a battle when you wish ...
+			# Once a battle advantage is used, it is gone." Highest index first, so
+			# removing one does not shift the next.
+			var used: Array = []
+			for i in data.get("battle_advantages_used", []):
+				used.append(int(i))
+			used.sort()
+			used.reverse()
+			var spent: Array = []
+			for i in used:
+				if campaign.has_method("spend_battle_advantage"):
+					var adv: Dictionary = campaign.spend_battle_advantage(i)
+					if not adv.is_empty():
+						spent.append(adv)
+			if not spent.is_empty() and "current_battle" in campaign:
+				campaign.current_battle["battle_advantages"] = spent
 
 		Phase.DEPLOYMENT:
 			# Deployment complete — record which units deployed
@@ -280,7 +326,9 @@ func _apply_battle_results(data: Dictionary) -> void:
 			var brd: Dictionary = br
 			# Absent `won` means the result was never recorded either way — treat it as
 			# inconclusive (0 PBP) rather than assuming a defeat.
-			if brd.has("won"):
+			# p.96: "If a battle was inconclusive or a draw, award 0 PBP", so a draw
+			# counts for neither side and cancels nothing.
+			if brd.has("won") and not bool(brd.get("draw", false)):
 				if bool(brd.get("won", false)):
 					battle_wins_this_turn += 1
 				else:
@@ -302,14 +350,11 @@ func _apply_battle_results(data: Dictionary) -> void:
 		_credit_deployed_units(
 			bool((data.battle_result as Dictionary).get("won", false)))
 
-	# Apply casualties to campaign units
-	var casualties: Dictionary = data.get("casualties", {})
-	for unit_id in casualties:
-		var models_lost: int = casualties[unit_id]
-		for cu in campaign.campaign_units:
-			if cu is Dictionary and cu.get("unit_id", "") == unit_id:
-				UnitRecordRef.apply_casualties(cu, models_lost)
-				break
+	# ⚠ A unit's LOSSES are not applied here. p.105: "If a unit remains on the table at
+	# the end of the game, we assume it recovers completely ... Casualties are replaced"
+	# — only a unit that was completely destroyed rolls on the p.106 Unit Losses table,
+	# which the POST_BATTLE phase does (`unit_losses`). The `casualties` read that sat
+	# here subtracted figures permanently and had no producer.
 
 
 ## Increment battles_fought (and battles_won) for every unit that deployed.
@@ -333,12 +378,16 @@ func _credit_deployed_units(won: bool) -> void:
 		if cu is not Dictionary:
 			continue
 		var rec: Dictionary = cu
+		var fought: bool
 		if deployed.is_empty():
-			if bool(rec.get("is_destroyed", false)):
-				continue
-		elif not deployed.has(str(rec.get("unit_id", ""))):
-			continue
-		UnitRecordRef.credit_battle(rec, won)
+			fought = UnitRecordRef.is_deployable(rec)
+		else:
+			fought = deployed.has(str(rec.get("unit_id", "")))
+		if fought:
+			UnitRecordRef.credit_battle(rec, won)
+		# p.106: a Devastated unit counts down two campaign battles, and a Weakened one
+		# recovers once it "can sit out a campaign battle without being deployed".
+		UnitRecordRef.after_campaign_battle(rec, fought)
 
 
 ## Guard on the OWNER, not on the container's emptiness: an operational map with no
@@ -373,10 +422,15 @@ func _apply_post_battle_results(data: Dictionary) -> void:
 	if data.has("story_event"):
 		campaign.story_events.append(data.story_event)
 
-	# Reset per-battle casualty tracking
-	for cu in campaign.campaign_units:
-		if cu is Dictionary:
-			UnitRecordRef.clear_battle_losses(cu)
+	# p.106 Unit Losses — one D6 per completely destroyed unit, rolled by the panel.
+	for loss in data.get("unit_losses", []):
+		if not (loss is Dictionary):
+			continue
+		for cu in campaign.campaign_units:
+			if cu is Dictionary and str(cu.get("unit_id", "")) == str(loss.get("unit_id", "")):
+				UnitRecordRef.apply_unit_loss(cu, str(loss.get("id", "")),
+					int(loss.get("recovery_battles", 0)))
+				break
 
 
 func _apply_advancement_results(data: Dictionary) -> void:
@@ -398,6 +452,17 @@ func _apply_advancement_results(data: Dictionary) -> void:
 	if cp_spent > 0 and campaign.has_method("spend_cp"):
 		campaign.spend_cp(cp_spent)
 
+	# What each purchase DOES (pp.107-108). The CP was charged above; until
+	# 2026-10-27 nothing else happened, because the panel had no target picker.
+	last_advancement_receipt = PackedStringArray()
+	for purchase in data.get("advancement_purchases", []):
+		if not (purchase is Dictionary):
+			continue
+		var line: String = AdvancementRef.apply_purchase(campaign, purchase)
+		last_advancement_receipt.append(line if not line.is_empty()
+			else "Not applied: %s (its target is no longer on the roster)." % str(
+				(purchase as Dictionary).get("id", "?")))
+
 	# Roster changes (reinforcements, replacements)
 	if data.has("roster_changes"):
 		var changes: Array = data.roster_changes
@@ -417,15 +482,15 @@ func _apply_strategic_results(data: Dictionary) -> void:
 	# Update operational map
 	if data.has("operational_map_update"):
 		var update: Dictionary = data.operational_map_update
-		# Merge zone status changes
-		if update.has("zones"):
-			campaign.operational_map["zones"] = update.zones
+		# The Strategic panel ships its working copy of everything Steps 3-8 change.
+		for key in ["zones", "regions", "focus_zone_id", "player_zone_id",
+				"orders_history", "next_zone_seq"]:
+			if update.has(key):
+				campaign.operational_map[key] = update[key]
 		if update.has("player_cohesion"):
 			campaign.operational_map["player_cohesion"] = update.player_cohesion
 		if update.has("enemy_cohesion"):
 			campaign.operational_map["enemy_cohesion"] = update.enemy_cohesion
-		if update.has("focus_zone_id"):
-			campaign.operational_map["focus_zone_id"] = update.focus_zone_id
 
 	# PBP spending (commando raids). Never let it go negative: the panel is the only
 	# producer today, but a payload is untrusted input once anything else can emit one.
@@ -531,11 +596,10 @@ func _journal_log_phase_complete(phase: int, _result_data: Dictionary) -> void:
 	if j == null or not j.has_method("create_entry"):
 		return
 	var phase_name: String = PHASE_NAMES.get(phase, "Unknown")
-	# BATTLE phase can fire 1-3 times per operational turn; surface which one
+	# The BATTLE phase can fire any number of times per operational turn (p.95)
 	var desc: String = "Phase complete: %s." % phase_name
 	if phase == Phase.BATTLE:
-		desc += " Battle %d of %d this operational turn." % [
-			battles_this_turn + 1, MAX_BATTLES_PER_TURN]
+		desc += " Battle %d this operational turn." % (battles_this_turn + 1)
 	# Pick entry type by phase semantics for taxonomy alignment
 	var entry_type: String = "milestone"
 	if phase == Phase.BATTLE:

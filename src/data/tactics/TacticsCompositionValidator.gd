@@ -43,11 +43,11 @@ extends RefCounted
 ## Supports 0-4 are exactly the **Armored Platoon** optional rule on p.135 -
 ## "Leader (1): One vehicle. Troops (2-5): Each troop is a vehicle... Supports (0-4, must
 ## be fewer in number than troops)". One organisation's limits had been applied to a
-## different one. The armored platoon is NOT modelled here (TacticsRoster.OrgType has
-## PLATOON and COMPANY only), and it should not be bolted onto the infantry limits: the
-## book gives it different units ("There are no weapon teams or specialists in an armored
-## platoon"), a same-type constraint on its first 3 vehicles, and mandatory transports for
-## its supports. Adding it is a roster-model change, recorded here rather than improvised.
+## different one. ✅ The armored platoon is now modelled as its OWN organisation
+## (2026-10-27): `TacticsRoster.armored_platoons` marks a platoon armored,
+## `TacticsRoster.effective_slot()` gives its units their p.135 roles, and
+## `_validate_armored_platoon()` below holds its limits. It is never bolted onto the
+## infantry limits.
 ##
 ## ⚠ ONE CLAIM IN THE OLD NOTE WAS WRONG and is corrected rather than deleted: it said the
 ## "must be fewer than Troops" clause was "stated in the comment but never enforced - the
@@ -76,11 +76,21 @@ const TROOPS_PER_SPECIALIST := 2
 static func max_specialists_for(troop_count: int) -> int:
 	return maxi(0, troop_count) / TROOPS_PER_SPECIALIST
 
-# Company constraints
+# Company constraints (p.135 "Company Organization")
 const MIN_PLATOONS := 2
 const MAX_PLATOONS := 4
-const MAX_COMPANY_LEADERS := 4  # Max = platoon count
-const MAX_COMPANY_SUPPORTS := 4  # Max = platoon count
+const MAX_COMPANY_LEADERS := 4  # "Leaders (0-4, may not exceed number of platoons)"
+const MAX_COMPANY_SUPPORTS := 4  # "Supports (0-4, may not exceed number of platoons)"
+const MAX_COMPANY_SUPPORT_VEHICLES := 1  # "These may be weapon teams or squads. One may be a vehicle."
+
+# Armored Platoon (p.135, optional rule)
+const ARMORED_LEADERS := 1          # "Leader (1): One vehicle."
+const ARMORED_MIN_TROOPS := 2       # "Troops (2-5): Each troop is a vehicle."
+const ARMORED_MAX_TROOPS := 5
+const ARMORED_SAME_TYPE_FIRST := 3  # "The first 3 vehicles selected ... must be the same type"
+const ARMORED_MAX_SUPPORTS := 4     # "Supports (0-4, must be fewer in number than troops)"
+
+const CREATURE_SPECIES_ID := "creatures"
 
 # Points tiers
 const POINTS_SMALL := 500
@@ -109,10 +119,19 @@ static func validate(roster: TacticsRoster) -> Array[String]:
 		errors.append("Roster is empty")
 		return errors
 
+	# p.152: "Both Major and Minor Powers are usable in pick-up games. Creatures may not
+	# be selected in such games as part of an army."
+	if roster.is_pickup and roster.get_species_id() == CREATURE_SPECIES_ID:
+		errors.append("Creatures may not be fielded as an army in a pick-up game (Tactics p.152)")
+
 	# Validate per org type
 	match roster.org_type:
 		TacticsRoster.OrgType.PLATOON:
-			errors.append_array(_validate_platoon(roster, 0))
+			errors.append_array(_validate_any_platoon(roster, 0))
+			for entry in roster.entries:
+				if entry is TacticsRosterEntry and entry.platoon_index != 0:
+					errors.append("%s: a single-platoon army has no Platoon %d" % [
+						entry.get_display_name(), entry.platoon_index + 1])
 		TacticsRoster.OrgType.COMPANY:
 			errors.append_array(_validate_company(roster))
 
@@ -124,6 +143,67 @@ static func validate(roster: TacticsRoster) -> Array[String]:
 			for err in entry_errors:
 				errors.append("Entry %d (%s): %s" % [i + 1, entry.get_display_name(), err])
 
+	return errors
+
+
+static func _validate_any_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[String]:
+	if roster.is_armored(platoon_idx):
+		return _validate_armored_platoon(roster, platoon_idx)
+	return _validate_platoon(roster, platoon_idx)
+
+
+## p.135 Armored Platoon (optional rule):
+##   "There are no weapon teams or specialists in an armored platoon.
+##    • Leader (1): One vehicle.
+##    • Troops (2-5): Each troop is a vehicle. The first 3 vehicles selected for this
+##      section must be the same type, such as 3 light tanks.
+##    • Supports (0-4, must be fewer in number than troops): Each Support is a
+##      non-auxiliary infantry squad. All units must be mounted in a transport vehicle."
+## Auxiliary squads (another faction's troops, p.134) are not modelled: a roster is
+## built from one species book, so every squad here is non-auxiliary.
+static func _validate_armored_platoon(roster: TacticsRoster, platoon_idx: int) -> Array[String]:
+	var errors: Array[String] = []
+	var label: String = "Platoon %d (armored)" % (platoon_idx + 1)
+	var leaders: int = 0
+	var troop_types: Array = []
+	var supports: int = 0
+	for entry in roster.entries:
+		if not (entry is TacticsRosterEntry) or entry.platoon_index != platoon_idx:
+			continue
+		match roster.effective_slot(entry):
+			TacticsUnitProfile.OrgSlot.LEADER:
+				leaders += 1
+			TacticsUnitProfile.OrgSlot.TROOP:
+				var vp: TacticsVehicleProfile = entry.base_profile.vehicle_profile
+				troop_types.append(vp.vehicle_type if vp else -1)
+			TacticsUnitProfile.OrgSlot.SUPPORT:
+				supports += 1
+				if entry.transport_vehicle_id.is_empty():
+					errors.append("%s: %s must be mounted in a transport vehicle (p.135)" % [
+						label, entry.get_display_name()])
+			_:
+				errors.append("%s: %s cannot be part of an armored platoon - it takes "
+					% [label, entry.get_display_name()]
+					+ "vehicles and infantry squads only (p.135)")
+
+	if leaders != ARMORED_LEADERS:
+		errors.append("%s: needs exactly %d Leader vehicle (have %d)" % [
+			label, ARMORED_LEADERS, leaders])
+	var troops: int = troop_types.size()
+	if troops < ARMORED_MIN_TROOPS or troops > ARMORED_MAX_TROOPS:
+		errors.append("%s: needs %d-%d Troop vehicles (have %d)" % [
+			label, ARMORED_MIN_TROOPS, ARMORED_MAX_TROOPS, troops])
+	for i in range(1, mini(troops, ARMORED_SAME_TYPE_FIRST)):
+		if troop_types[i] != troop_types[0]:
+			errors.append("%s: the first %d Troop vehicles must be the same type (p.135)" % [
+				label, ARMORED_SAME_TYPE_FIRST])
+			break
+	if supports > ARMORED_MAX_SUPPORTS:
+		errors.append("%s: Max %d support squads (have %d)" % [
+			label, ARMORED_MAX_SUPPORTS, supports])
+	if supports >= troops and troops > 0:
+		errors.append("%s: Support count (%d) must be fewer than troop count (%d)" % [
+			label, supports, troops])
 	return errors
 
 
@@ -215,28 +295,46 @@ static func _validate_company(roster: TacticsRoster) -> Array[String]:
 
 	# Validate each platoon
 	for i in range(roster.platoon_count):
-		errors.append_array(_validate_platoon(roster, i))
+		errors.append_array(_validate_any_platoon(roster, i))
 
-	# Company-level leaders: max = platoon count
+	# p.135: the company's own Leaders and Supports are the units ASSIGNED to the
+	# company (platoon_index -1), counted by what they are. ⚠ Until 2026-10-27 this
+	# counted the COMPANY_SUPPORT org slot, which no unit in any species book carries,
+	# so the cap could never bind and no unit could be made company-level at all.
 	var company_leaders: int = 0
-	for entry in roster.entries:
-		if entry is TacticsRosterEntry:
-			if entry.get_org_slot() == TacticsUnitProfile.OrgSlot.LEADER:
-				if entry.platoon_index < 0:  # Company-level (not assigned to platoon)
-					company_leaders += 1
-	if company_leaders > roster.platoon_count:
-		errors.append("Too many company leaders: %d (max %d = platoon count)" % [
-			company_leaders, roster.platoon_count])
-
-	# Company-level supports: max = platoon count
 	var company_supports: int = 0
+	var company_vehicles: int = 0
 	for entry in roster.entries:
-		if entry is TacticsRosterEntry:
-			if entry.get_org_slot() == TacticsUnitProfile.OrgSlot.COMPANY_SUPPORT:
-				company_supports += 1
-	if company_supports > roster.platoon_count:
+		if not (entry is TacticsRosterEntry):
+			continue
+		if entry.platoon_index >= roster.platoon_count:
+			errors.append("%s: the company has no Platoon %d" % [
+				entry.get_display_name(), entry.platoon_index + 1])
+			continue
+		if entry.platoon_index >= 0:
+			continue
+		var bp: TacticsUnitProfile = entry.base_profile
+		if bp == null:
+			continue
+		if bp.is_character():
+			company_leaders += 1
+		elif bp.is_vehicle():
+			company_supports += 1
+			company_vehicles += 1
+		elif bp.unit_type == TacticsUnitProfile.UnitType.WEAPON_TEAM or entry.is_squad():
+			company_supports += 1
+		else:
+			errors.append("%s: a company may add only characters, weapon teams, squads "
+				% entry.get_display_name() + "and one vehicle (p.135)")
+	if company_leaders > mini(roster.platoon_count, MAX_COMPANY_LEADERS):
+		errors.append("Too many company leaders: %d (max %d = platoon count)" % [
+			company_leaders, mini(roster.platoon_count, MAX_COMPANY_LEADERS)])
+	if company_supports > mini(roster.platoon_count, MAX_COMPANY_SUPPORTS):
 		errors.append("Too many company supports: %d (max %d = platoon count)" % [
-			company_supports, roster.platoon_count])
+			company_supports, mini(roster.platoon_count, MAX_COMPANY_SUPPORTS)])
+	if company_vehicles > MAX_COMPANY_SUPPORT_VEHICLES:
+		errors.append("Company supports may include only %d vehicle (have %d, p.135)" % [
+			MAX_COMPANY_SUPPORT_VEHICLES, company_vehicles])
 
 	return errors
 
@@ -255,7 +353,16 @@ static func get_limits_summary(org_type: int, points: int) -> String:
 		lines.append("Specialists: 1 per %d troops" % TROOPS_PER_SPECIALIST)
 	else:
 		lines.append("%d-%d Platoons" % [MIN_PLATOONS, MAX_PLATOONS])
-		lines.append("Per platoon: same as above")
+		lines.append("Per platoon: %d-%d Leaders, %d-%d Troops, 0-%d Supports (fewer than "
+			% [MIN_PLATOON_LEADERS, MAX_PLATOON_LEADERS, MIN_TROOPS_PER_PLATOON,
+				MAX_TROOPS_PER_PLATOON, MAX_SUPPORTS_PER_PLATOON]
+			+ "troops), 1 Specialist per %d troops" % TROOPS_PER_SPECIALIST)
 		lines.append("Company leaders: max = platoon count")
-		lines.append("Company supports: max = platoon count")
+		lines.append("Company supports: max = platoon count; weapon teams or squads, "
+			+ "%d may be a vehicle" % MAX_COMPANY_SUPPORT_VEHICLES)
+	lines.append("Armored platoon (optional, p.135): %d Leader vehicle, %d-%d Troop vehicles "
+		% [ARMORED_LEADERS, ARMORED_MIN_TROOPS, ARMORED_MAX_TROOPS]
+		+ "(first %d the same type), 0-%d squads in transports. " % [
+			ARMORED_SAME_TYPE_FIRST, ARMORED_MAX_SUPPORTS]
+		+ "Pick-up games need your opponent's agreement.")
 	return "\n".join(lines)

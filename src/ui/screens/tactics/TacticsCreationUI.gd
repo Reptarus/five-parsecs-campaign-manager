@@ -20,7 +20,6 @@ const STEP_NAMES := [
 	"Configuration",
 	"Species",
 	"Army Roster",
-	"Vehicles",
 	"Review",
 ]
 
@@ -147,7 +146,6 @@ func _create_panels() -> void:
 	var config_panel := ConfigPanelScript.new()
 	var species_panel := SpeciesPanelScript.new()
 	var roster_panel := RosterPanelScript.new()
-	# Step 3 (Vehicles) — skip for now, auto-complete in coordinator
 	var review_panel := ReviewPanelScript.new()
 
 	panels = [config_panel, species_panel, roster_panel, review_panel]
@@ -197,11 +195,8 @@ func _connect_signals() -> void:
 
 
 func _on_step_changed(step: int, _total: int) -> void:
-	# Map step to panel index (step 3=vehicles is skipped, so step 4→panel 3)
-	var panel_idx: int = step if step < 3 else step - 1
-	if step >= 3:
-		# Auto-complete vehicles step
-		coordinator._step_complete[3] = true
+	# One panel per step (the separate Vehicles step is gone; see the coordinator).
+	var panel_idx: int = step
 
 	_show_panel(panel_idx)
 	_update_step_label()
@@ -210,8 +205,8 @@ func _on_step_changed(step: int, _total: int) -> void:
 	if step == 2 and panel_idx < panels.size() and panels[panel_idx].has_method("refresh"):
 		panels[panel_idx].refresh()
 
-	# Refresh review panel when entering step 4
-	if step == 4 and panel_idx < panels.size() and panels[panel_idx].has_method("refresh"):
+	# Refresh review panel when entering step 3
+	if step == 3 and panel_idx < panels.size() and panels[panel_idx].has_method("refresh"):
 		panels[panel_idx].refresh()
 
 

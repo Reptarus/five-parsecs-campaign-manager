@@ -344,7 +344,7 @@ func _add_character_to_mode(campaign, mode: String, ch: Dictionary) -> bool:
 				return true
 		"tactics":
 			# A transferred character becomes a named veteran (an "officer or hero"
-			# attachment, Tactics p.185), NOT a squad unit in campaign_units[].
+			# attachment, Tactics p.183), NOT a squad unit in campaign_units[].
 			if campaign.has_method("add_veteran_character"):
 				campaign.add_veteran_character(ch)
 				return true

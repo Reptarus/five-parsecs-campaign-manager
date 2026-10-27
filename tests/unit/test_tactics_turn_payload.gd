@@ -8,8 +8,9 @@ extends GdUnitTestSuite
 ## TacticsPhaseManager is keyed on `data.has(...)`, all of them were permanently false:
 ## orders, intel, scenario, deployed_units, story_event, skills_acquired, cp_spent,
 ## roster_changes, operational_map_update and pbp_spent had a correct consumer and no
-## producer that could reach it. `play_another` went the same way, which made
-## MAX_BATTLES_PER_TURN unreachable.
+## producer that could reach it. `play_another` went the same way, which made the
+## p.95 multi-battle loop unreachable (the invented three-battle cap behind it was
+## removed on 2026-10-27: p.95 allows "any number of tabletop battles").
 ##
 ## ⭐ These cases assert CAMPAIGN STATE after the fact, never that a signal fired. A
 ## signal-spy suite passes happily while the payload is dropped, because the signal IS
@@ -179,9 +180,11 @@ func test_orders_intel_scenario_and_deployment_reach_the_campaign() -> void:
 	pm.complete_current_phase({"orders": "flank_left"})
 	assert_str(str(campaign.current_battle.get("orders", ""))).is_equal("flank_left")
 
+	# RECON shows the p.39 Observation rule and writes nothing: the test is rolled at
+	# the table during the battle, and the old "intel" key had no reader.
 	pm.go_to_phase(PhaseManager.Phase.RECON)
-	pm.complete_current_phase({"intel": {"enemy_units": 3}})
-	assert_bool(campaign.current_battle.has("intel")).is_true()
+	pm.complete_current_phase({})
+	assert_bool(campaign.current_battle.has("intel")).is_false()
 
 	pm.go_to_phase(PhaseManager.Phase.BATTLE_PREP)
 	pm.complete_current_phase({"scenario": "hold_the_line"})
@@ -237,7 +240,7 @@ func test_play_another_loops_back_to_battle_prep() -> void:
 	assert_int(pm.current_phase) \
 		.override_failure_message(
 			"with play_another the turn should loop back to BATTLE_PREP; dropping the "
-			+ "payload made MAX_BATTLES_PER_TURN unreachable") \
+			+ "payload made the p.95 multi-battle loop unreachable") \
 		.is_equal(PhaseManager.Phase.BATTLE_PREP)
 
 

@@ -18,7 +18,10 @@ extends RefCounted
 ## ⭐ The outcome table and the dice TALLY are deliberately split from the ROLLING, so a
 ## test can assert the book's table directly without fighting an RNG:
 ##   classify_combat_outcome(player_rolls, enemy_rolls)  <- pure, no randomness
-##   resolve_operational_combat(...)                     <- rolls, then calls the above
+## ⚠ Nothing in this file rolls. TacticsOperationalTurn rolls every die through
+## DiceManager (so QA can force it) and hands the faces here. The seeded-RNG rollers
+## that used to sit beside these classifiers had no production caller, so they were a
+## second, unforceable path to the same dice, and were removed on 2026-10-27.
 ##
 ## Usage:
 ##   var pbp := TacticsOperationalRules.award_battle_points(2, 1, 0)
@@ -211,25 +214,6 @@ static func _highest(rolls: Array) -> int:
 	return best
 
 
-## Roll both pools and classify. `rng` is required so a test can seed it — every random
-## call in this file takes one rather than touching a global.
-static func resolve_operational_combat(
-		player_dice: int, enemy_dice: int, rng: RandomNumberGenerator) -> Dictionary:
-	var p_rolls: Array = _roll_pool(player_dice, rng)
-	var e_rolls: Array = _roll_pool(enemy_dice, rng)
-	var result: Dictionary = classify_combat_outcome(p_rolls, e_rolls)
-	result["player_rolls"] = p_rolls
-	result["enemy_rolls"] = e_rolls
-	return result
-
-
-static func _roll_pool(count: int, rng: RandomNumberGenerator) -> Array:
-	var out: Array = []
-	for _i in range(maxi(count, 1)):
-		out.append(rng.randi_range(1, 6))
-	return out
-
-
 ## p.98 Assault Option — an army 1 point stronger may add a die, but loses 1 Army
 ## Strength on top of the combat result if it does not win.
 static func assault_option_penalty(won: bool) -> int:
@@ -248,13 +232,8 @@ static func operational_orders_table() -> Array:
 	return t if t is Array else []
 
 
-## Roll 1D6 on the Operational Orders table. Returns the matching row, or {} if the
-## table could not be read — never a fabricated order.
-static func roll_operational_order(rng: RandomNumberGenerator) -> Dictionary:
-	var roll: int = rng.randi_range(1, 6)
-	return operational_order_for(roll)
-
-
+## The Operational Orders row for a 1D6 roll, or {} if the table could not be read —
+## never a fabricated order.
 static func operational_order_for(roll: int) -> Dictionary:
 	for row in operational_orders_table():
 		if row is Dictionary and int((row as Dictionary).get("roll", -1)) == roll:
@@ -266,32 +245,29 @@ static func operational_order_for(roll: int) -> Dictionary:
 
 # MARK: - Step 5 — Commando Raids (p.99)
 
-## Commit PBP against a region: roll 1D6 per point. Any 1-2 loses ALL committed points
-## for that region; every 6 costs the target 1 Army Strength, and that damage lands even
+## Commit PBP against a region: 1D6 per point. Any 1-2 loses ALL committed points for
+## that region; every 6 costs the target 1 Army Strength, and that damage lands even
 ## when the points are lost. Anything else does nothing.
 ##
+## Takes the dice already rolled (TacticsOperationalTurn.commando_raid rolls them).
 ## Returns {"rolls", "pbp_lost", "army_strength_damage"}.
-static func resolve_commando_raid(
-		pbp_committed: int, rng: RandomNumberGenerator) -> Dictionary:
+static func classify_commando_raid(rolls: Array) -> Dictionary:
 	var cfg := _section("commando_raids")
 	var loss_range: Variant = cfg.get("all_committed_pbp_lost_on_any_roll_in", [1, 2])
 	var losing: Array = loss_range if loss_range is Array else [1, 2]
 	var damage_on: int = int(cfg.get("army_strength_damage_per_roll_of", 6))
 	var damage_each: int = int(cfg.get("army_strength_damage_amount", 1))
-
-	var rolls: Array = []
 	var lost: bool = false
 	var damage: int = 0
-	for _i in range(maxi(pbp_committed, 0)):
-		var r: int = rng.randi_range(1, 6)
-		rolls.append(r)
+	for v in rolls:
+		var r: int = int(v)
 		if _in_range(r, losing):
 			lost = true
 		if r == damage_on:
 			damage += damage_each
 	return {
-		"rolls": rolls,
-		"pbp_lost": pbp_committed if lost else 0,
+		"rolls": rolls.duplicate(),
+		"pbp_lost": rolls.size() if lost else 0,
 		"army_strength_damage": damage,
 	}
 
@@ -304,13 +280,58 @@ static func _in_range(value: int, bounds: Array) -> bool:
 
 # MARK: - Army Strength (p.95) and new Zones (p.99)
 
-## "If the Zone is in or adjacent to friendly territory, roll two D6s and pick the
-## highest die. If the Zone is not connected directly to friendly territory, roll one."
-static func generate_army_strength(
-		connected_to_friendly_territory: bool, rng: RandomNumberGenerator) -> int:
-	if connected_to_friendly_territory:
-		return maxi(rng.randi_range(1, 6), rng.randi_range(1, 6))
-	return rng.randi_range(1, 6)
+## p.95: "If the Zone is in or adjacent to friendly territory, roll two D6s and pick
+## the highest die. If the Zone is not connected directly to friendly territory, roll
+## one."
+## How many D6 an army's Strength is rolled with, and the pick is always the highest.
+## p.95: two dice in or adjacent to friendly territory, one otherwise.
+static func army_strength_dice(connected_to_friendly_territory: bool) -> int:
+	return 2 if connected_to_friendly_territory else 1
+
+
+# MARK: - Opening (p.94) and Unit Losses (p.106)
+
+## The p.94 opening block — how the first three Zones and the Focus are chosen.
+static func opening_rules() -> Dictionary:
+	return _section("opening")
+
+
+## p.93: the map needs at least the combined Cohesion in regions, and the book's own
+## example (two sides of 5, fifteen regions) leaves five neutral. The opening follows
+## that example rather than inventing a count: neutral = the average Cohesion.
+static func opening_neutral_regions(player_cohesion: int, enemy_cohesion: int) -> int:
+	return int(round((maxi(player_cohesion, 0) + maxi(enemy_cohesion, 0)) / 2.0))
+
+
+const _UNIT_LOSSES_PATH := "res://data/tactics/tactics_injuries.json"
+static var _unit_losses: Array = []
+
+
+## Every p.106 row, for a screen that prints the table it is about to roll on.
+static func unit_loss_table() -> Array:
+	if _unit_losses.is_empty():
+		var f := FileAccess.open(_UNIT_LOSSES_PATH, FileAccess.READ)
+		if f:
+			var parsed: Variant = JSON.parse_string(f.get_as_text())
+			if parsed is Dictionary and (parsed as Dictionary).get("results") is Array:
+				_unit_losses = (parsed as Dictionary)["results"]
+	return _unit_losses
+
+
+## The p.106 Unit Losses row for a D6 roll, or {} if the table could not be read —
+## never a fabricated condition. The table lives in data/tactics/tactics_injuries.json,
+## which encoded p.106 correctly and had no reader until 2026-10-27.
+static func unit_loss_for(roll: int) -> Dictionary:
+	for row in unit_loss_table():
+		if not (row is Dictionary):
+			continue
+		var lo: int = int(row.get("roll", row.get("roll_min", 0)))
+		var hi: int = int(row.get("roll", row.get("roll_max", -1)))
+		if roll >= lo and roll <= hi:
+			var out: Dictionary = (row as Dictionary).duplicate(true)
+			out["rolled"] = roll
+			return out
+	return {}
 
 
 # MARK: - Step 9 — Cohesion (p.99)

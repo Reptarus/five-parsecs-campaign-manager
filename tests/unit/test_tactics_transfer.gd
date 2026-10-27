@@ -1,7 +1,7 @@
 extends GdUnitTestSuite
 ## Tests for the Tactics transfer leg (P2) of the cross-mode framework.
 ##
-## Verifies the book-faithful conversions (Tactics p.184 "Converting Characters"),
+## Verifies the book-faithful conversions (Tactics p.182 "Converting Characters"),
 ## the named-veteran model (imports land in veteran_characters[], NOT campaign_units[],
 ## so army points are never affected), the playability KP floor, the lossless
 ## commission->retire round-trip via the snapshot, and serialization.
@@ -28,7 +28,7 @@ func _make_5pfh_char() -> Dictionary:
 
 
 # ============================================================================
-# Book-faithful conversion INTO Tactics (Tactics p.184)
+# Book-faithful conversion INTO Tactics (Tactics p.182)
 # ============================================================================
 
 func test_into_tactics_caps_combat_and_toughness() -> void:
@@ -47,6 +47,21 @@ func test_kill_points_equal_luck_no_floor_in_conversion() -> void:
 	var v: Dictionary = _svc.convert_to_tactics(_make_5pfh_char(), "5pfh")
 	# 3 Luck -> 3 KP exactly (the conversion stays book-exact; no max(...,1) floor).
 	assert_that(int(v.get("kill_points", -1))).is_equal(3)
+
+
+## p.182 gives a 0-Luck character 0 KP and p.36 removes a figure at 0 KP. Owner
+## decision 2026-10-27: the veteran takes the field with 1 (p.36's typical trooper),
+## and the import preview shows it. The conversion itself stays book-exact.
+func test_a_zero_luck_veteran_takes_the_field_with_one_kill_point() -> void:
+	var zero: Dictionary = _make_5pfh_char()
+	zero["luck"] = 0
+	var v: Dictionary = _svc.convert_to_tactics(zero, "5pfh")
+	assert_int(int(v.get("kill_points", -1))).is_equal(0)
+	var core = TacticsCampaignCore.new()
+	core.add_veteran_character(v)
+	assert_int(int(core.veteran_characters[0].get("kill_points", -1))).is_equal(1)
+	assert_int(TacticsCampaignCore.veteran_kill_points(0)).is_equal(1)
+	assert_int(TacticsCampaignCore.veteran_kill_points(3)).is_equal(3)
 
 
 func test_military_type_background_grants_training_2() -> void:

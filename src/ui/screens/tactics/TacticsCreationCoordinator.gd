@@ -9,16 +9,20 @@ var _CampaignUnit: GDScript
 var _Roster: GDScript
 var _RosterEntry: GDScript
 
-## Orchestrates Tactics campaign creation — 5-step wizard.
+## Orchestrates Tactics campaign creation — 4-step wizard.
 ## Follows the same coordinator pattern as BugHuntCreationCoordinator
 ## and PlanetfallCreationCoordinator.
 ##
 ## Steps:
 ##   0: Configuration (name, points, org type, play mode)
 ##   1: Species Selection (primary + optional secondary)
-##   2: Army Roster (unit selection, upgrades, composition validation)
-##   3: Vehicles (optional — auto-completes if species has no vehicles)
-##   4: Final Review
+##   2: Army Roster (unit selection, upgrades, vehicles, composition validation)
+##   3: Final Review
+## ⚠ A separate "Vehicles" step (3) was removed 2026-10-27. Its setter had zero callers
+## and the UI showed the roster panel in its place; it skipped itself only while a
+## species had no vehicles, and since p.141 gives every army all 19 that skip stopped
+## firing. Vehicles are Army Builder units (p.134 Supports; p.135 armored platoons) and
+## are bought on the roster step with everything else.
 
 signal navigation_updated(can_back: bool, can_forward: bool, can_finish: bool)
 signal step_changed(step: int, total_steps: int)
@@ -27,25 +31,23 @@ const STEP_NAMES := [
 	"Configuration",
 	"Species",
 	"Army Roster",
-	"Vehicles",
 	"Review",
 ]
 
 var current_step: int = 0
-var total_steps: int = 5
+var total_steps: int = 4
 
 ## Accumulated creation state
 var config_data: Dictionary = {}
 var species_id: String = ""
 var secondary_species_id: String = ""
 var roster_entries: Array = []  # Array of _RosterEntry.to_dict()
-var vehicle_entries: Array = []
 
 ## Loaded species book (cached after species selection)
 var _species_book = null  # TacticsSpeciesBook
 
 ## Step completion flags
-var _step_complete: Array[bool] = [false, false, false, false, false]
+var _step_complete: Array[bool] = [false, false, false, false]
 
 
 func _ready() -> void:
@@ -61,15 +63,6 @@ func go_to_step(step: int) -> void:
 	if step < 0 or step >= total_steps:
 		return
 
-	# Auto-skip vehicles step if species has no vehicles
-	if step == 3 and _species_book and _species_book.vehicles.is_empty():
-		_step_complete[3] = true
-		# Skip directly to Review (step 4) instead of showing Vehicles
-		current_step = 4
-		step_changed.emit(current_step, total_steps)
-		_update_navigation()
-		return
-
 	current_step = step
 	step_changed.emit(current_step, total_steps)
 	_update_navigation()
@@ -83,11 +76,7 @@ func next_step() -> void:
 func previous_step() -> void:
 	if current_step <= 0:
 		return
-	var target: int = current_step - 1
-	# Skip vehicles step going backward if species has no vehicles
-	if target == 3 and _species_book and _species_book.vehicles.is_empty():
-		target = 2
-	go_to_step(target)
+	go_to_step(current_step - 1)
 
 
 func get_step_name(step: int = -1) -> String:
@@ -134,10 +123,8 @@ func update_species(data: Dictionary) -> void:
 
 	# Reset downstream steps when species changes
 	roster_entries.clear()
-	vehicle_entries.clear()
 	_step_complete[2] = false
 	_step_complete[3] = false
-	_step_complete[4] = false
 
 	_update_navigation()
 
@@ -156,14 +143,15 @@ func update_roster(entries: Array) -> void:
 	_update_navigation()
 
 
-func update_vehicles(entries: Array) -> void:
-	vehicle_entries = entries.duplicate(true)
-	_step_complete[3] = true  # Vehicles are always optional
-	_update_navigation()
-
-
 func get_species_book():  # -> TacticsSpeciesBook
 	return _species_book
+
+
+## One roster entry's points: the unit, its chosen options and its transport. The
+## roster and review panels price through this, so the number a player reads is the
+## number the validator checks against the points limit.
+func entry_cost(entry_dict: Dictionary) -> int:
+	return _RosterEntry.from_entry_dict(entry_dict, _species_book).get_total_cost()
 
 
 func get_validation_errors() -> Array[String]:
@@ -199,6 +187,7 @@ func finalize() -> void:
 		"org_type": config_data.get("org_type", "platoon"),
 		"platoon_count": config_data.get("platoon_count", 1),
 		"play_mode": config_data.get("play_mode", "solo"),
+		"armored_platoons": config_data.get("armored_platoons", []),
 	})
 
 	# Initialize roster
@@ -217,10 +206,14 @@ func finalize() -> void:
 			species_id,
 			str(entry_dict.get("display_name", "")),
 			int(entry_dict.get("model_count", 5)),
-			entry_dict.get("selected_upgrades", [])))
+			entry_dict.get("selected_upgrades", []),
+			str(entry_dict.get("transport_vehicle_id", ""))))
 	campaign.initialize_campaign_units(campaign_units)
 
-	# Initialize empty operational map
+	# Starting values only. The p.94 opening (regions, the three opening zones and the
+	# Focus) is built ONCE, by TacticsPhaseManager._open_operational_map_if_needed()
+	# when turn 1 starts — the same site that opens a legacy save's empty map, so the
+	# rule has one grant site rather than two.
 	campaign.initialize_operational_map({
 		"player_cohesion": 5,
 		"enemy_cohesion": 5,
@@ -266,21 +259,11 @@ func _build_temp_roster() :
 	roster.org_type = _Roster.OrgType.COMPANY if org_str == "company" \
 		else _Roster.OrgType.PLATOON
 	roster.platoon_count = config_data.get("platoon_count", 1)
+	roster.armored_platoons = config_data.get("armored_platoons", []).duplicate()
+	roster.is_pickup = str(config_data.get("play_mode", "solo")) == "versus"
 	roster.species_book = _species_book
 
-	# Build entries from stored dicts
 	for entry_dict in roster_entries:
-		var entry = _RosterEntry.new()
-		entry.entry_id = entry_dict.get("entry_id", "")
-		entry.platoon_index = entry_dict.get("platoon_index", 0)
-		entry.model_count = entry_dict.get("model_count", 0)
-		entry.display_name = entry_dict.get("display_name", "")
-
-		# Resolve base profile from species book
-		var unit_id: String = entry_dict.get("unit_id", "")
-		if _species_book and not unit_id.is_empty():
-			entry.base_profile = _species_book.get_unit_profile(unit_id)
-
-		roster.entries.append(entry)
+		roster.entries.append(_RosterEntry.from_entry_dict(entry_dict, _species_book))
 
 	return roster

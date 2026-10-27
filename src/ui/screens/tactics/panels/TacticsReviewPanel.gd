@@ -116,14 +116,19 @@ func _build_roster_summary() -> String:
 
 	for entry in entries:
 		var name: String = entry.get("display_name", "Unknown")
-		var cost: int = 0
-		if book:
-			var profile = book.get_unit_profile(entry.get("unit_id", ""))
-			if profile:
-				cost = profile.points_cost
+		# The coordinator prices the unit with its options and transport, exactly as
+		# the validator does; the bare profile cost left both out.
+		var cost: int = _coordinator.entry_cost(entry) if book else 0
 		total_pts += cost
-		lines.append("• %s (%dpts, %d models)" % [
-			name, cost, entry.get("model_count", 1)])
+		var extras: PackedStringArray = PackedStringArray()
+		for o in entry.get("selected_upgrades", []):
+			extras.append(str(o))
+		var tid: String = str(entry.get("transport_vehicle_id", ""))
+		if not tid.is_empty() and book and book.get_vehicle(tid):
+			extras.append("in " + book.get_vehicle(tid).vehicle_name)
+		lines.append("• %s (%dpts, %d models)%s" % [
+			name, cost, entry.get("model_count", 1),
+			"" if extras.is_empty() else " — " + ", ".join(extras)])
 
 	var limit: int = _coordinator.config_data.get("points_limit", 500)
 	lines.append("")

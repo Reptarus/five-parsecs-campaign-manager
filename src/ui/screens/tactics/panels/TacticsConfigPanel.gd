@@ -1,7 +1,8 @@
 extends Control
 
-## Tactics Config Panel — Step 0 of 5
-## Campaign name, points limit, org type, play mode, army name.
+## Tactics Config Panel — Step 0 of 4
+## Campaign name, points limit, org type, platoon count, armored platoons, play mode,
+## army name.
 
 signal config_updated(data: Dictionary)
 
@@ -16,12 +17,16 @@ const COLOR_INPUT := _UC.COLOR_INPUT
 const SPACING_MD := _UC.SPACING_MD
 const SPACING_LG := _UC.SPACING_LG
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 var _coordinator = null
 var _name_edit: LineEdit
 var _army_name_edit: LineEdit
 var _points_option: OptionButton
 var _org_option: OptionButton
+var _platoon_label: Label
+var _platoon_option: OptionButton
+var _armored_box: VBoxContainer
 var _play_mode_option: OptionButton
 var _validation_label: Label
 
@@ -31,6 +36,8 @@ var _config_data: Dictionary = {
 	"points_limit": 500,
 	"org_type": "platoon",
 	"platoon_count": 1,
+	## p.135 Armored Platoon (optional rule): indices of the platoons built that way.
+	"armored_platoons": [],
 	"play_mode": "solo",
 }
 
@@ -44,6 +51,9 @@ const ORG_TYPES := [
 	{"value": "platoon", "label": "Platoon (1 platoon)"},
 	{"value": "company", "label": "Company (2-4 platoons)"},
 ]
+
+## p.135 "A company consists of 2-4 platoons".
+const COMPANY_PLATOON_COUNTS := [2, 3, 4]
 
 const PLAY_MODES := [
 	{"value": "solo", "label": "Solo (vs AI)"},
@@ -125,6 +135,26 @@ func _build_ui() -> void:
 	_org_option.item_selected.connect(_on_org_changed)
 	vbox.add_child(_org_option)
 
+	# Platoon count — a company only (p.135: 2-4 platoons). ⚠ It used to be derived
+	# from the points tier with no control, so a company could never have 4 platoons.
+	_platoon_label = Label.new()
+	_platoon_label.text = "Platoons in the company"
+	_platoon_label.add_theme_font_size_override("font_size", _scaled_font(16))
+	_platoon_label.add_theme_color_override("font_color", COLOR_TEXT)
+	vbox.add_child(_platoon_label)
+	_platoon_option = OptionButton.new()
+	_platoon_option.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+	for n in COMPANY_PLATOON_COUNTS:
+		_platoon_option.add_item("%d platoons" % n)
+	_platoon_option.item_selected.connect(_on_platoon_count_changed)
+	vbox.add_child(_platoon_option)
+
+	# Armored platoons (p.135, optional rule) — one toggle per platoon.
+	_armored_box = VBoxContainer.new()
+	_armored_box.add_theme_constant_override("separation", 4)
+	vbox.add_child(_armored_box)
+	_sync_org_controls()
+
 	# Play mode
 	_add_section_label(vbox, "Play Mode")
 	_play_mode_option = OptionButton.new()
@@ -140,6 +170,7 @@ func _build_ui() -> void:
 	_validation_label.add_theme_font_size_override("font_size", _scaled_font(12))
 	_validation_label.add_theme_color_override("font_color", _UC.COLOR_DANGER)
 	vbox.add_child(_validation_label)
+	TouchScrollOpenerRef.open_subtree(vbox)
 
 
 func _on_name_changed(new_text: String) -> void:
@@ -155,9 +186,10 @@ func _on_army_name_changed(new_text: String) -> void:
 func _on_points_changed(idx: int) -> void:
 	if idx >= 0 and idx < POINTS_TIERS.size():
 		_config_data.points_limit = POINTS_TIERS[idx].value
-		# Auto-set platoon count based on points
+		# A starting suggestion from the points tier; the player can change it.
 		if _config_data.org_type == "company":
 			_config_data.platoon_count = 2 if _config_data.points_limit <= 750 else 3
+			_sync_org_controls()
 	_emit_update()
 
 
@@ -165,6 +197,63 @@ func _on_org_changed(idx: int) -> void:
 	if idx >= 0 and idx < ORG_TYPES.size():
 		_config_data.org_type = ORG_TYPES[idx].value
 		_config_data.platoon_count = 1 if _config_data.org_type == "platoon" else 2
+		_sync_org_controls()
+	_emit_update()
+
+
+func _on_platoon_count_changed(idx: int) -> void:
+	if idx >= 0 and idx < COMPANY_PLATOON_COUNTS.size():
+		_config_data.platoon_count = COMPANY_PLATOON_COUNTS[idx]
+		_sync_org_controls()
+	_emit_update()
+
+
+## Show the platoon-count picker for a company only, and offer one armored toggle per
+## platoon. Armored choices for platoons that no longer exist are dropped.
+func _sync_org_controls() -> void:
+	if _platoon_option == null:
+		return
+	var company: bool = _config_data.org_type == "company"
+	_platoon_label.visible = company
+	_platoon_option.visible = company
+	if company:
+		_platoon_option.select(maxi(0, COMPANY_PLATOON_COUNTS.find(_config_data.platoon_count)))
+	var count: int = int(_config_data.platoon_count)
+	var kept: Array = []
+	for i in _config_data.armored_platoons:
+		if int(i) < count:
+			kept.append(int(i))
+	_config_data.armored_platoons = kept
+
+	for child in _armored_box.get_children():
+		_armored_box.remove_child(child)
+		child.queue_free()
+	var head := Label.new()
+	head.text = "Armored platoons (optional rule, Tactics p.135): a Leader vehicle, " \
+		+ "2-5 Troop vehicles and infantry squads in transports. Not usable in a " \
+		+ "pick-up game without your opponent's agreement."
+	head.add_theme_font_size_override("font_size", _scaled_font(12))
+	head.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_armored_box.add_child(head)
+	for i in range(count):
+		var cb := CheckBox.new()
+		cb.text = "Platoon %d is an armored platoon" % (i + 1) if company \
+			else "Build an armored platoon"
+		cb.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+		cb.button_pressed = kept.has(i)
+		var idx: int = i
+		cb.toggled.connect(func(on: bool): _on_armored_toggled(idx, on))
+		_armored_box.add_child(cb)
+	TouchScrollOpenerRef.open_subtree(_armored_box)
+
+
+func _on_armored_toggled(platoon_idx: int, on: bool) -> void:
+	var list: Array = _config_data.armored_platoons
+	if on and not list.has(platoon_idx):
+		list.append(platoon_idx)
+	elif not on:
+		list.erase(platoon_idx)
 	_emit_update()
 
 
@@ -180,7 +269,7 @@ func _emit_update() -> void:
 		_validation_label.text = "Pick a name for your campaign. Anything memorable works."
 	else:
 		_validation_label.text = ""
-	config_updated.emit(_config_data.duplicate())
+	config_updated.emit(_config_data.duplicate(true))
 
 
 func _add_section_label(parent: Control, text: String) -> void:
