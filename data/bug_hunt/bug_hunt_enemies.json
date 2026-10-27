@@ -198,27 +198,5 @@
 			"special_rule": "Troopers within 2\" of a Gripper Weed cannot move, but may fire normally.",
 			"tags": ["alien", "plant", "immobilizing"]
 		}
-	],
-	"difficulty_modifiers": {
-		"im_too_pretty_to_die": {
-			"name": "I'm Too Pretty to Die",
-			"numbers_modifier": -1,
-			"description": "Enemy numbers reduced by 1 per Contact reveal."
-		},
-		"standard": {
-			"name": "Standard",
-			"numbers_modifier": 0,
-			"description": "Normal enemy numbers."
-		},
-		"mega_violence": {
-			"name": "Mega-violence",
-			"numbers_modifier": 1,
-			"description": "Enemy numbers increased by 1 per Contact reveal."
-		},
-		"living_nightmare": {
-			"name": "Living Nightmare",
-			"numbers_modifier": 1,
-			"description": "Enemy numbers increased by 1 per Contact reveal. Additional Contact markers spawn on each 6 rolled for Priority."
-		}
-	}
+	]
 }

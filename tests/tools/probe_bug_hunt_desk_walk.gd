@@ -225,9 +225,14 @@ func _probe_turn_walk() -> void:
 	var core := BugHuntCampaignCore.new()
 	core.campaign_name = "Probe Campaign"
 	print("   default difficulty on a fresh core: " + core.difficulty)
-	var enemy_mods: Dictionary = _read_json("res://data/bug_hunt/bug_hunt_enemies.json").get("difficulty_modifiers", {})
-	print("   difficulty ids available in bug_hunt_enemies.json: " + str(enemy_mods.keys()))
-	print("   does the DEFAULT difficulty match an enemy modifier? " + str(enemy_mods.has(core.difficulty)))
+	# The p.194 Numbers adjustment lives on the p.186 difficulty rows since 2026-10-27; the
+	# old bug_hunt_enemies.json:difficulty_modifiers block keyed it by ids no setting used.
+	var numbers_by_id := {}
+	for row: Variant in _read_json("res://data/bug_hunt/bug_hunt_missions.json").get("difficulty_settings", []):
+		if row is Dictionary:
+			numbers_by_id[str(row.get("id", ""))] = row.get("numbers_modifier")
+	print("   numbers_modifier per difficulty (p.194): " + str(numbers_by_id))
+	print("   does the DEFAULT difficulty carry one? " + str(numbers_by_id.has(core.difficulty)))
 
 	var gen := BugHuntCharacterGeneration.new()
 	var squad: Dictionary = gen.generate_squad(["Alpha", "Bravo", "Charlie", "Delta"])

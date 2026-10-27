@@ -109,9 +109,6 @@ const ALLOWLIST := {
 	"bug_hunt_alien_subtypes.json::subtypes":
 		"PAYLOAD. The six-row D6 subtype table (Spitters and the rest). Zero loaders" +
 		" repo-wide -- the enemy-variant generator is listed as Not in Sprint 1.",
-	"bug_hunt_enemies.json::difficulty_modifiers":
-		"PAYLOAD. Four numbers_modifier rows. The audit's 'difficulty modifier ids' row" +
-		" is explicitly deferred past Sprint 1.",
 	"bug_hunt_missions.json::initial_contacts":
 		"PAYLOAD. Contact-marker placement and its per-difficulty adjustment. Contact" +
 		" markers are named in the plan's Not-in-Sprint-1 list.",

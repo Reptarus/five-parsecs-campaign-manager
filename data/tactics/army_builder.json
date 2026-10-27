@@ -1,0 +1,894 @@
+{
+	"_source": "Five Parsecs: Tactics pp.133-139 Army Builder (element base costs and options), p.177 armor saves, pp.178-181 costs",
+	"_cost_rule": "unit cost = sum of figure profile costs + element base cost; each option adds its printed cost (Tactics p.133 steps 2-4). Armor is priced per figure (p.136).",
+	"_not_offered": [
+		"The p.136 character option \"both weapons may be swapped together for a military laser\": no military laser profile or cost exists anywhere in the book (p.181 lists none)"
+	],
+	"elements": [
+		{
+			"id_suffix": "_sergeant",
+			"name": "Minor Character",
+			"type": "character",
+			"org_slot": "leader",
+			"stat_profile": "sergeant",
+			"figures": [
+				{
+					"profile": "sergeant",
+					"count": 1
+				}
+			],
+			"base_cost": 5,
+			"weapons": [
+				"hand_laser",
+				"glare_sword",
+				"fog_grenade"
+			],
+			"special_rules": [],
+			"upgrade_groups": [
+				{
+					"label": "Character abilities (p.136)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Hero",
+							"type": "ability_grant",
+							"cost": 5,
+							"grants_rules": [
+								{
+									"name": "Hero",
+									"type": "combat",
+									"description": "Hero upgrade (Tactics p.136)"
+								}
+							]
+						},
+						{
+							"name": "Leader",
+							"type": "ability_grant",
+							"cost": 10,
+							"grants_rules": [
+								{
+									"name": "Leader",
+									"type": "morale",
+									"description": "Leader upgrade (Tactics p.136)"
+								}
+							]
+						}
+					]
+				},
+				{
+					"label": "Sidearm (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Blast Pistol",
+							"type": "weapon_swap",
+							"cost": 0,
+							"replaces": "hand_laser",
+							"grants_weapon": "blast_pistol"
+						}
+					]
+				},
+				{
+					"label": "Melee weapon (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Ripper Sword",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "ripper_sword"
+						},
+						{
+							"name": "Powered Claw",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "powered_claw"
+						}
+					]
+				},
+				{
+					"label": "Grenades (p.136, any number)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Frag Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "frag_grenade"
+						},
+						{
+							"name": "Jinx Grenades",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "jinx_grenade"
+						},
+						{
+							"name": "Cling-fire Grenades",
+							"type": "weapon_add",
+							"cost": 2,
+							"grants_weapon": "cling_fire_grenade"
+						},
+						{
+							"name": "Shock Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "shock_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.136"
+		},
+		{
+			"id_suffix": "_major",
+			"name": "Major Character",
+			"type": "character",
+			"org_slot": "leader",
+			"stat_profile": "major",
+			"figures": [
+				{
+					"profile": "major",
+					"count": 1
+				}
+			],
+			"base_cost": 5,
+			"weapons": [
+				"hand_laser",
+				"glare_sword",
+				"fog_grenade"
+			],
+			"special_rules": [],
+			"upgrade_groups": [
+				{
+					"label": "Character abilities (p.136)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Hero",
+							"type": "ability_grant",
+							"cost": 5,
+							"grants_rules": [
+								{
+									"name": "Hero",
+									"type": "combat",
+									"description": "Hero upgrade (Tactics p.136)"
+								}
+							]
+						},
+						{
+							"name": "Leader",
+							"type": "ability_grant",
+							"cost": 10,
+							"grants_rules": [
+								{
+									"name": "Leader",
+									"type": "morale",
+									"description": "Leader upgrade (Tactics p.136)"
+								}
+							]
+						}
+					]
+				},
+				{
+					"label": "Sidearm (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Blast Pistol",
+							"type": "weapon_swap",
+							"cost": 0,
+							"replaces": "hand_laser",
+							"grants_weapon": "blast_pistol"
+						}
+					]
+				},
+				{
+					"label": "Melee weapon (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Ripper Sword",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "ripper_sword"
+						},
+						{
+							"name": "Powered Claw",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "powered_claw"
+						}
+					]
+				},
+				{
+					"label": "Grenades (p.136, any number)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Frag Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "frag_grenade"
+						},
+						{
+							"name": "Jinx Grenades",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "jinx_grenade"
+						},
+						{
+							"name": "Cling-fire Grenades",
+							"type": "weapon_add",
+							"cost": 2,
+							"grants_weapon": "cling_fire_grenade"
+						},
+						{
+							"name": "Shock Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "shock_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.136"
+		},
+		{
+			"id_suffix": "_epic",
+			"name": "Epic Character",
+			"type": "character",
+			"org_slot": "leader",
+			"stat_profile": "epic",
+			"figures": [
+				{
+					"profile": "epic",
+					"count": 1
+				}
+			],
+			"base_cost": 5,
+			"weapons": [
+				"hand_laser",
+				"glare_sword",
+				"fog_grenade"
+			],
+			"special_rules": [],
+			"upgrade_groups": [
+				{
+					"label": "Character abilities (p.136)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Hero",
+							"type": "ability_grant",
+							"cost": 5,
+							"grants_rules": [
+								{
+									"name": "Hero",
+									"type": "combat",
+									"description": "Hero upgrade (Tactics p.136)"
+								}
+							]
+						},
+						{
+							"name": "Leader",
+							"type": "ability_grant",
+							"cost": 10,
+							"grants_rules": [
+								{
+									"name": "Leader",
+									"type": "morale",
+									"description": "Leader upgrade (Tactics p.136)"
+								}
+							]
+						}
+					]
+				},
+				{
+					"label": "Sidearm (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Blast Pistol",
+							"type": "weapon_swap",
+							"cost": 0,
+							"replaces": "hand_laser",
+							"grants_weapon": "blast_pistol"
+						}
+					]
+				},
+				{
+					"label": "Melee weapon (p.136)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Ripper Sword",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "ripper_sword"
+						},
+						{
+							"name": "Powered Claw",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "glare_sword",
+							"grants_weapon": "powered_claw"
+						}
+					]
+				},
+				{
+					"label": "Grenades (p.136, any number)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Frag Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "frag_grenade"
+						},
+						{
+							"name": "Jinx Grenades",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "jinx_grenade"
+						},
+						{
+							"name": "Cling-fire Grenades",
+							"type": "weapon_add",
+							"cost": 2,
+							"grants_weapon": "cling_fire_grenade"
+						},
+						{
+							"name": "Shock Grenades",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "shock_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.136"
+		},
+		{
+			"id_suffix": "_infantry_squad",
+			"name": "Infantry Squad",
+			"type": "infantry",
+			"org_slot": "troop",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 4
+				},
+				{
+					"profile": "sergeant",
+					"count": 1
+				}
+			],
+			"base_cost": 27,
+			"weapons": [
+				"military_rifle",
+				"light_machine_gun",
+				"frag_grenade"
+			],
+			"special_rules": [
+				{
+					"name": "Squad",
+					"type": "species",
+					"description": "4 soldiers + 1 sergeant (minor character) (Tactics p.137)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Squad rifles (p.137)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Infantry Lasers (whole squad)",
+							"type": "weapon_swap",
+							"cost": 4,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						}
+					]
+				},
+				{
+					"label": "Sergeant (p.137)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Shotgun and Service Pistol",
+							"type": "weapon_add",
+							"cost": 0,
+							"grants_weapon": "shotgun",
+							"description": "The sergeant replaces their weapon with a shotgun and service pistol"
+						}
+					]
+				},
+				{
+					"label": "Light machine gun replacement (p.137)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Hyper Blaster",
+							"type": "weapon_swap",
+							"cost": 4,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "hyper_blaster"
+						},
+						{
+							"name": "Fury Rifle",
+							"type": "weapon_swap",
+							"cost": 5,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "fury_rifle"
+						},
+						{
+							"name": "Grenade Launcher (frag, fog)",
+							"type": "weapon_swap",
+							"cost": 2,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "grenade_launcher"
+						},
+						{
+							"name": "Plasma Rifle",
+							"type": "weapon_swap",
+							"cost": -2,
+							"replaces": "light_machine_gun",
+							"grants_weapon": "plasma_rifle"
+						}
+					]
+				},
+				{
+					"label": "Squad grenades (p.137)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Fog Grenades (whole squad)",
+							"type": "weapon_add",
+							"cost": 5,
+							"grants_weapon": "fog_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.137"
+		},
+		{
+			"id_suffix": "_recon_squad",
+			"name": "Recon Squad",
+			"type": "recon",
+			"org_slot": "troop",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 4
+				},
+				{
+					"profile": "sergeant",
+					"count": 1
+				}
+			],
+			"base_cost": 23,
+			"weapons": [
+				"military_rifle",
+				"precision_rifle"
+			],
+			"special_rules": [
+				{
+					"name": "Squad",
+					"type": "species",
+					"description": "4 soldiers + 1 sergeant (minor character) (Tactics p.137)"
+				},
+				{
+					"name": "Recon",
+					"type": "movement",
+					"description": "Recon squads add +1 to all Observation distances (Tactics p.137)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Extra precision rifle (p.137)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "One more Precision Rifle",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "precision_rifle",
+							"description": "One additional soldier replaces their rifle with a precision rifle"
+						}
+					]
+				},
+				{
+					"label": "Squad rifles (p.137)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Infantry Lasers (whole squad)",
+							"type": "weapon_swap",
+							"cost": 4,
+							"replaces": "military_rifle",
+							"grants_weapon": "infantry_laser"
+						}
+					]
+				},
+				{
+					"label": "Sidearms (p.137)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Service Pistols (whole squad)",
+							"type": "weapon_add",
+							"cost": 5,
+							"grants_weapon": "service_pistol"
+						}
+					]
+				}
+			],
+			"_page": "p.137"
+		},
+		{
+			"id_suffix": "_storm_squad",
+			"name": "Storm Squad",
+			"type": "storm",
+			"org_slot": "troop",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 4
+				},
+				{
+					"profile": "sergeant",
+					"count": 1
+				}
+			],
+			"base_cost": 28,
+			"weapons": [
+				"shotgun",
+				"blade",
+				"breaching_axe",
+				"frag_grenade",
+				"fog_grenade"
+			],
+			"special_rules": [
+				{
+					"name": "Squad",
+					"type": "species",
+					"description": "4 soldiers + 1 sergeant (minor character) (Tactics p.137)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Squad weapons (p.138)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Blasters (whole squad)",
+							"type": "weapon_swap",
+							"cost": 5,
+							"replaces": "shotgun",
+							"grants_weapon": "blaster"
+						}
+					]
+				},
+				{
+					"label": "Sergeant melee (p.138)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Glare Sword",
+							"type": "weapon_add",
+							"cost": 1,
+							"grants_weapon": "glare_sword"
+						},
+						{
+							"name": "Powered Claw",
+							"type": "weapon_add",
+							"cost": 2,
+							"grants_weapon": "powered_claw"
+						}
+					]
+				},
+				{
+					"label": "Heavy weapons, 0-2 soldiers in total (p.138)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Flak Gun",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "flak_gun",
+							"description": "+3 each",
+							"max_selections": 2
+						},
+						{
+							"name": "Flame Projector",
+							"type": "weapon_add",
+							"cost": 4,
+							"grants_weapon": "flame_projector",
+							"description": "+4 each",
+							"max_selections": 2
+						},
+						{
+							"name": "Fusion Rifle",
+							"type": "weapon_add",
+							"cost": 8,
+							"grants_weapon": "fusion_rifle",
+							"description": "+8 each",
+							"max_selections": 2
+						}
+					]
+				},
+				{
+					"label": "Squad grenades (p.138)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Penetrator Grenades (whole squad)",
+							"type": "weapon_add",
+							"cost": 10,
+							"grants_weapon": "penetrator_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.138"
+		},
+		{
+			"id_suffix": "_weapon_team",
+			"name": "Weapon Team",
+			"type": "weapon_team",
+			"org_slot": "support",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 3
+				}
+			],
+			"base_cost": 20,
+			"weapons": [
+				"service_pistol",
+				"infantry_mortar"
+			],
+			"special_rules": [
+				{
+					"name": "Gun Crew",
+					"type": "morale",
+					"description": "Weapon teams receive a +1 Morale bonus. No sergeant (Tactics p.138)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Crewed weapon (p.138)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "20mm Auto-cannon",
+							"type": "weapon_swap",
+							"cost": 5,
+							"replaces": "infantry_mortar",
+							"grants_weapon": "20mm_autocannon",
+							"description": "20 points instead of the mortar's 15"
+						},
+						{
+							"name": "Laser Cannon",
+							"type": "weapon_swap",
+							"cost": 20,
+							"replaces": "infantry_mortar",
+							"grants_weapon": "laser_cannon",
+							"description": "35 points instead of the mortar's 15"
+						}
+					]
+				}
+			],
+			"_page": "p.138: base cost 5 + infantry mortar 15 (the cheapest crewed weapon is the default; the others are priced as the difference)"
+		},
+		{
+			"id_suffix": "_tech_specialist",
+			"name": "Tech",
+			"type": "specialist",
+			"org_slot": "specialist_slot",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 1
+				}
+			],
+			"base_cost": 5,
+			"weapons": [
+				"service_pistol"
+			],
+			"special_rules": [
+				{
+					"name": "Tech",
+					"type": "combat",
+					"description": "+1 dice bonus to any task involving hacking, repairs, construction, or engineering (Tactics p.138)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Tech options (p.139)",
+					"mode": "pick_any",
+					"options": [
+						{
+							"name": "Hand Laser",
+							"type": "weapon_swap",
+							"cost": 1,
+							"replaces": "service_pistol",
+							"grants_weapon": "hand_laser"
+						},
+						{
+							"name": "Jinx Grenades",
+							"type": "weapon_add",
+							"cost": 3,
+							"grants_weapon": "jinx_grenade"
+						}
+					]
+				}
+			],
+			"_page": "p.138"
+		},
+		{
+			"id_suffix": "_sharpshooter",
+			"name": "Sharpshooter",
+			"type": "specialist",
+			"org_slot": "specialist_slot",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 1
+				}
+			],
+			"base_cost": 15,
+			"weapons": [
+				"sniper_rifle",
+				"service_pistol"
+			],
+			"special_rules": [
+				{
+					"name": "Sharpshooter",
+					"type": "combat",
+					"description": "+1 to all Shooting Hit rolls (Tactics p.139)"
+				}
+			],
+			"upgrade_groups": [],
+			"_page": "p.139"
+		},
+		{
+			"id_suffix": "_fire_section",
+			"name": "Fire Section",
+			"type": "specialist",
+			"org_slot": "specialist_slot",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 2
+				}
+			],
+			"base_cost": 15,
+			"weapons": [
+				"service_pistol",
+				"plasma_rifle"
+			],
+			"special_rules": [
+				{
+					"name": "Fire Section",
+					"type": "combat",
+					"description": "+1 bonus to Morale tests. If attached, the combined squad only uses the main squad's Morale modifiers (Tactics p.139)"
+				}
+			],
+			"upgrade_groups": [
+				{
+					"label": "Plasma rifle replacement (p.139)",
+					"mode": "pick_one",
+					"options": [
+						{
+							"name": "Light Machine Gun",
+							"type": "weapon_swap",
+							"cost": 2,
+							"replaces": "plasma_rifle",
+							"grants_weapon": "light_machine_gun"
+						},
+						{
+							"name": "Grenade Launcher (frag, fog)",
+							"type": "weapon_swap",
+							"cost": 4,
+							"replaces": "plasma_rifle",
+							"grants_weapon": "grenade_launcher"
+						},
+						{
+							"name": "Fury Rifle",
+							"type": "weapon_swap",
+							"cost": 7,
+							"replaces": "plasma_rifle",
+							"grants_weapon": "fury_rifle"
+						},
+						{
+							"name": "Hyper Blaster",
+							"type": "weapon_swap",
+							"cost": 6,
+							"replaces": "plasma_rifle",
+							"grants_weapon": "hyper_blaster"
+						}
+					]
+				}
+			],
+			"_page": "p.139"
+		},
+		{
+			"id_suffix": "_comms_specialist",
+			"name": "Comms",
+			"type": "specialist",
+			"org_slot": "specialist_slot",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 1
+				}
+			],
+			"base_cost": 10,
+			"weapons": [
+				"service_pistol"
+			],
+			"special_rules": [
+				{
+					"name": "Comms",
+					"type": "combat",
+					"description": "+1 bonus to all rolls related to communications and jamming; +1 bonus when calling for support (Tactics p.139)"
+				}
+			],
+			"upgrade_groups": [],
+			"_page": "p.139"
+		},
+		{
+			"id_suffix": "_medic",
+			"name": "Medic",
+			"type": "specialist",
+			"org_slot": "specialist_slot",
+			"stat_profile": "military",
+			"figures": [
+				{
+					"profile": "military",
+					"count": 1
+				}
+			],
+			"base_cost": 10,
+			"weapons": [
+				"service_pistol"
+			],
+			"special_rules": [
+				{
+					"name": "Medic",
+					"type": "combat",
+					"description": "At the end of every medic activation, remove 1 Suppression marker from a friendly unit within 6\". This bonus does not apply to Synthetic units (Tactics p.139)"
+				}
+			],
+			"upgrade_groups": [],
+			"_page": "p.139"
+		}
+	],
+	"armor": [
+		{
+			"name": "Powered Armor",
+			"cost_per_figure": 2,
+			"save": "6+"
+		},
+		{
+			"name": "Breach Armor",
+			"cost_per_figure": 4,
+			"save": "5+"
+		}
+	]
+}

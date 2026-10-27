@@ -1,59 +1,6 @@
 {
-  "_source": "Five Parsecs: Tactics rulebook. Operational System pp.92-99; army organization p.134; Campaign Points pp.106-107.",
-  "points_tiers": {
-    "small": {
-      "label": "Small / Learning Game",
-      "points": 500,
-      "typical_force": "~1 platoon"
-    },
-    "standard": {
-      "label": "Standard Game",
-      "points": 750,
-      "typical_force": "Sizable force"
-    },
-    "large": {
-      "label": "Large Game",
-      "points": 1000,
-      "typical_force": "Full evening game"
-    }
-  },
-  "organization": {
-    "platoon": {
-      "label": "Platoon",
-      "min_troops": 2,
-      "max_troops": 5,
-      "max_supports": 4,
-      "max_specialists": 2,
-      "leaders_per_platoon": 1,
-      "support_rule": "Must have fewer supports than troops"
-    },
-    "company": {
-      "label": "Company",
-      "min_platoons": 2,
-      "max_platoons": 4,
-      "max_company_leaders": "Equal to platoon count",
-      "max_company_supports": "Equal to platoon count"
-    }
-  },
-  "campaign_progression": {
-    "cp_per_battle": 1,
-    "cp_per_victory": 1,
-    "cp_per_secondary_objective": 1,
-    "spending": {
-      "unit_upgrade": {
-        "cost": 1,
-        "description": "Acquire a veteran skill for one unit"
-      },
-      "roster_change": {
-        "cost": 1,
-        "description": "Add or replace a unit in the roster"
-      },
-      "battle_advantage": {
-        "cost": 1,
-        "description": "One-time bonus for next battle"
-      }
-    }
-  },
+  "_source": "Five Parsecs: Tactics rulebook. Operational System pp.92-99 (steps, starting values, Operational Orders); Scenario Types pp.81-88.",
+  "_removed_2026_10_27": "points_tiers, organization, campaign_progression and mixed_army_rules had zero readers. organization carried the p.135 Armored Platoon numbers for an infantry platoon and campaign_progression the invented flat 1-CP rule; the live owners are TacticsCompositionValidator (p.133 points, p.134 organization, p.136 two army types) and TacticsCampaignCore.CP_PURCHASES / record_battle() (pp.106-107).",
   "operational_turn_steps": [
     {
       "step": 1,
@@ -116,10 +63,6 @@
     "enemy_cohesion": 5,
     "player_battle_points": 0,
     "_source_note": "p.93: 'If in doubt, begin Cohesion at 5 for each side.' Cohesion is a pacing control, so a different starting value is a legitimate campaign choice."
-  },
-  "mixed_army_rules": {
-    "pickup_max_species": 2,
-    "scenario_limit": "Any combination that makes narrative sense"
   },
   "veteran_skill_categories": [
     "squad",

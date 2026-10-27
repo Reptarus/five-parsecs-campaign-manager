@@ -1,5 +1,9 @@
 {
-	"_source": "Five Parsecs: Tactics rulebook — The Converted species list",
+	"_source": "Five Parsecs: Tactics p.159 (The Converted profiles and Special Rules). Units are composed from data/tactics/army_builder.json (pp.133-139); weapons come from data/tactics/tactics_weapons_master.json (p.181)",
+	"_book_notes": [
+		"p.159 prices the Converted Epic character 35; the p.178 summary table prints 36. p.133 step 2 takes the profile from the Lifeforms page, so 35 is used"
+	],
+	"unit_id_prefix": "converted",
 	"species": {
 		"species_id": "converted",
 		"species_name": "The Converted",
@@ -9,60 +13,19 @@
 		"traits": [
 			{
 				"name": "Synthetic",
-				"type": "defensive",
-				"description": "Immune to morale effects, gas, and toxins"
+				"type": "species",
+				"description": "The Converted follow the rules for Synthetic beings (see page 146). They can never be veterans."
 			},
 			{
 				"name": "Mindless Assault",
-				"type": "morale",
-				"description": "Never takes Morale tests. Must Dash into close assault if possible"
+				"type": "species",
+				"description": "The Converted do not take Morale tests. They can be Suppressed due to rudimentary survival routines (and occasionally being blasted off their feet). When taking the Dash action, they do not gain any additional movement but may enter close assault combat."
 			}
 		]
 	},
-	"weapons": {
-		"military_rifle": {
-			"name": "Military Rifle",
-			"category": "rifle",
-			"range": 24,
-			"shots": 1,
-			"damage": 0,
-			"cost": 3,
-			"traits": []
-		},
-		"blade": {
-			"name": "Blade",
-			"category": "melee",
-			"range": 0,
-			"shots": 0,
-			"damage": 1,
-			"cost": 1,
-			"traits": [
-				"Melee"
-			]
-		},
-		"powered_claw": {
-			"name": "Powered Claw",
-			"category": "melee",
-			"range": 0,
-			"shots": 0,
-			"damage": 3,
-			"cost": 3,
-			"traits": [
-				"Melee",
-				"Clumsy",
-				"Piercing"
-			]
-		}
-	},
-	"vehicles": {},
-	"units": [
-		{
-			"id": "converted_worker",
-			"name": "Worker",
-			"type": "character",
-			"org_slot": "troop",
-			"tier": "civilian",
-			"cost": 10,
+	"profiles": {
+		"civilian": {
+			"label": "Civilian",
 			"speed": 4,
 			"reactions": 1,
 			"combat_skill": 0,
@@ -70,24 +33,10 @@
 			"kp": 1,
 			"savvy": 0,
 			"training": 0,
-			"models": 1,
-			"weapons": [
-				"blade"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
+			"cost": 10
 		},
-		{
-			"id": "converted_military",
-			"name": "Military",
-			"type": "infantry",
-			"org_slot": "troop",
-			"tier": "military",
-			"cost": 15,
+		"military": {
+			"label": "Military",
 			"speed": 4,
 			"reactions": 2,
 			"combat_skill": 1,
@@ -95,25 +44,10 @@
 			"kp": 1,
 			"savvy": 0,
 			"training": 0,
-			"models": 5,
-			"weapons": [
-				"military_rifle",
-				"blade"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
+			"cost": 15
 		},
-		{
-			"id": "converted_sergeant",
-			"name": "Sergeant",
-			"type": "character",
-			"org_slot": "leader",
-			"tier": "sergeant",
-			"cost": 20,
+		"sergeant": {
+			"label": "Sergeant / minor character",
 			"speed": 4,
 			"reactions": 2,
 			"combat_skill": 1,
@@ -121,153 +55,34 @@
 			"kp": 2,
 			"savvy": 0,
 			"training": 1,
-			"models": 1,
-			"weapons": [
-				"military_rifle",
-				"powered_claw"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
+			"cost": 20
 		},
-		{
-			"id": "converted_major",
-			"name": "Major Character",
-			"type": "character",
-			"org_slot": "leader",
-			"tier": "major",
-			"cost": 25,
+		"major": {
+			"label": "Major character",
 			"speed": 4,
 			"reactions": 2,
-			"combat_skill": 2,
+			"combat_skill": 1,
 			"toughness": 5,
 			"kp": 3,
 			"savvy": 0,
 			"training": 1,
-			"models": 1,
-			"weapons": [
-				"military_rifle",
-				"powered_claw"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
+			"cost": 25
 		},
-		{
-			"id": "converted_epic",
-			"name": "Epic Character",
-			"type": "character",
-			"org_slot": "leader",
-			"tier": "epic",
-			"cost": 36,
+		"epic": {
+			"label": "Epic character",
 			"speed": 5,
 			"reactions": 3,
 			"combat_skill": 2,
 			"toughness": 5,
-			"kp": 4,
-			"savvy": 0,
+			"kp": 3,
+			"savvy": 1,
 			"training": 2,
-			"models": 1,
-			"weapons": [
-				"military_rifle",
-				"powered_claw"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
-		},
-		{
-			"id": "converted_infantry_squad",
-			"name": "Infantry Squad",
-			"type": "infantry",
-			"org_slot": "troop",
-			"tier": "military",
-			"cost": 80,
-			"speed": 4,
-			"reactions": 2,
-			"combat_skill": 1,
-			"toughness": 4,
-			"kp": 1,
-			"savvy": 0,
-			"training": 0,
-			"models": 5,
-			"min_models": 4,
-			"max_models": 6,
-			"weapons": [
-				"military_rifle",
-				"blade"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
-		},
-		{
-			"id": "converted_assault_squad",
-			"name": "Assault Squad",
-			"type": "storm",
-			"org_slot": "troop",
-			"tier": "military",
-			"cost": 55,
-			"speed": 4,
-			"reactions": 2,
-			"combat_skill": 1,
-			"toughness": 4,
-			"kp": 1,
-			"savvy": 0,
-			"training": 0,
-			"models": 5,
-			"weapons": [
-				"powered_claw"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				},
-				{
-					"name": "Mindless Assault",
-					"type": "morale",
-					"description": "Must Dash into close assault if possible"
-				}
-			],
-			"_cost_source": "GAME_BALANCE_ESTIMATE"
-		},
-		{
-			"id": "converted_weapon_team",
-			"name": "Weapon Team",
-			"type": "weapon_team",
-			"org_slot": "support",
-			"tier": "military",
-			"cost": 45,
-			"speed": 4,
-			"reactions": 2,
-			"combat_skill": 1,
-			"toughness": 4,
-			"kp": 1,
-			"savvy": 0,
-			"training": 0,
-			"models": 3,
-			"weapons": [
-				"military_rifle"
-			],
-			"special_rules": [
-				{
-					"name": "Synthetic",
-					"type": "defensive"
-				}
-			]
+			"cost": 35
 		}
-	]
+	},
+	"vehicles": {},
+	"rules_text": {
+		"Synthetic": "The Converted follow the rules for Synthetic beings (see page 146). They can never be veterans.",
+		"Mindless Assault": "The Converted do not take Morale tests. They can be Suppressed due to rudimentary survival routines (and occasionally being blasted off their feet). When taking the Dash action, they do not gain any additional movement but may enter close assault combat."
+	}
 }

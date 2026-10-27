@@ -3,12 +3,19 @@ extends RefCounted
 
 ## TacticsSpeciesBookLoader - JSON-to-TacticsSpeciesBook loader
 ## Multi-phase pipeline following ArmyBookLoader pattern:
-## Phase 1: Weapon palette → Phase 2: Vehicle palette → Phase 3: Species →
+## Phase 0: shared weapon table → Phase 1: species weapon palette (adds/overrides) →
+## Phase 2: Vehicle palette → Phase 3: Species →
 ## Phase 4: Unit profiles (with weapon/vehicle references) → Phase 5: Assemble
 ## Drops spell building, replaces mount phase with vehicle phase.
 ## Source: Five Parsecs: Tactics species army lists
+##
+## The book has ONE weapon list (Tactics p.181) and every species arms from it, so the
+## species files no longer carry their own copies. When they did, all sixteen copies
+## were byte-identical subsets of the master file, which had zero readers.
 
 const JSON_BASE_PATH := "res://data/tactics/species/"
+const WEAPONS_MASTER_PATH := "res://data/tactics/tactics_weapons_master.json"
+const ARMY_BUILDER_PATH := "res://data/tactics/army_builder.json"
 
 # Per-load instance state (cleared each call via fresh instance)
 var _weapons: Dictionary = {}   # weapon_id → TacticsWeaponProfile
@@ -86,7 +93,14 @@ func _load(path: String) -> TacticsSpeciesBook:
 	if data == null:
 		return null
 
-	# Phase 1 — Weapon palette
+	# Phase 0 — the shared weapon table (Tactics p.181)
+	var master: Variant = _load_json_safe(WEAPONS_MASTER_PATH)
+	if master is Dictionary and master.get("weapons") is Dictionary:
+		_build_weapon_palette(master["weapons"])
+	else:
+		push_error("[TacticsSpeciesBookLoader] Weapon table missing: %s" % WEAPONS_MASTER_PATH)
+
+	# Phase 1 — species weapon palette (natural weapons, or an override of the table)
 	if data.has("weapons") and data["weapons"] is Dictionary:
 		_build_weapon_palette(data["weapons"])
 
@@ -98,15 +112,21 @@ func _load(path: String) -> TacticsSpeciesBook:
 	if data.has("species") and data["species"] is Dictionary:
 		_species = TacticsSpecies.from_dict(data["species"])
 
-	# Phase 4 — Unit profiles (reference weapon and vehicle palettes)
+	# Phase 4 — Unit profiles (reference weapon and vehicle palettes). A species with
+	# Lifeforms profiles gets the Army Builder elements composed from them; a file may
+	# still list extra units directly (creatures.json has no profiles, only units).
+	var unit_dicts: Array = []
+	if data.get("profiles") is Dictionary:
+		unit_dicts.append_array(compose_army_builder_units(data))
+	if data.get("units") is Array:
+		unit_dicts.append_array(data["units"])
 	var units: Array = []
-	if data.has("units") and data["units"] is Array:
-		for unit_data in data["units"]:
-			if unit_data is Dictionary:
-				var profile: TacticsUnitProfile = TacticsUnitProfile.from_dict(
-					unit_data, _weapons, _vehicles)
-				if profile:
-					units.append(profile)
+	for unit_data in unit_dicts:
+		if unit_data is Dictionary:
+			var profile: TacticsUnitProfile = TacticsUnitProfile.from_dict(
+				unit_data, _weapons, _vehicles)
+			if profile:
+				units.append(profile)
 
 	# Phase 5 — Assemble TacticsSpeciesBook
 	var book := TacticsSpeciesBook.new()
@@ -127,6 +147,84 @@ func _load(path: String) -> TacticsSpeciesBook:
 		push_warning("[TacticsSpeciesBookLoader] Loaded book from '%s' but no species data found" % path)
 
 	return book
+
+
+# =============================================================================
+# Phase 4a — Army Builder composition (Tactics pp.133-139)
+# =============================================================================
+
+## Build the selectable unit dicts for one species. The Army Builder elements are the
+## same for every species; what changes is the profile they are built from, so the
+## elements live once in army_builder.json and the price is computed here:
+##   cost = sum of the figures' profile costs + the element's base cost (p.133 steps 2-4)
+## Options add their own printed cost when selected; armor is priced per figure (p.136).
+## These used to be hand-written per species, priced at the figures alone, which left
+## every squad 23-28 points and every character 5 points cheaper than the book.
+static func compose_army_builder_units(species_data: Dictionary) -> Array:
+	var out: Array = []
+	var builder: Variant = _load_json_safe(ARMY_BUILDER_PATH)
+	if not builder is Dictionary:
+		push_error("[TacticsSpeciesBookLoader] Army Builder table missing: %s" % ARMY_BUILDER_PATH)
+		return out
+	var profiles: Dictionary = species_data.get("profiles", {})
+	var prefix: String = str(species_data.get("unit_id_prefix", ""))
+	var armor: Array = builder.get("armor", [])
+	for element: Variant in builder.get("elements", []):
+		if not element is Dictionary:
+			continue
+		var stats: Variant = profiles.get(element.get("stat_profile", ""))
+		if not stats is Dictionary:
+			push_error("[TacticsSpeciesBookLoader] '%s' has no '%s' profile for %s" % [
+				prefix, element.get("stat_profile", ""), element.get("name", "")])
+			continue
+		var figures_cost := 0
+		var models := 0
+		for fig: Variant in element.get("figures", []):
+			var fig_profile: Variant = profiles.get(fig.get("profile", ""))
+			var count := int(fig.get("count", 0))
+			if fig_profile is Dictionary:
+				figures_cost += int(fig_profile.get("cost", 0)) * count
+			models += count
+		var unit: Dictionary = {
+			"id": prefix + str(element.get("id_suffix", "")),
+			"name": element.get("name", ""),
+			"type": element.get("type", "infantry"),
+			"org_slot": element.get("org_slot", "troop"),
+			"tier": element.get("stat_profile", "military"),
+			"cost": figures_cost + int(element.get("base_cost", 0)),
+			"models": models,
+			"weapons": (element.get("weapons", []) as Array).duplicate(),
+			"special_rules": (element.get("special_rules", []) as Array).duplicate(true),
+		}
+		for key: String in ["speed", "reactions", "combat_skill", "toughness", "kp", "savvy", "training"]:
+			unit[key] = int(stats.get(key, 0))
+		var groups: Array = (element.get("upgrade_groups", []) as Array).duplicate(true)
+		if not armor.is_empty():
+			groups.append(_armor_group(armor, models))
+		unit["upgrade_groups"] = groups
+		out.append(unit)
+	return out
+
+
+## "Any unit may be given Powered Armor at a cost of 2 points per figure" (p.136);
+## the saves are p.177.
+static func _armor_group(armor: Array, models: int) -> Dictionary:
+	var options: Array = []
+	for a: Variant in armor:
+		if not a is Dictionary:
+			continue
+		var name: String = str(a.get("name", ""))
+		var save: String = str(a.get("save", ""))
+		options.append({
+			"name": name,
+			"type": "ability_grant",
+			"cost": int(a.get("cost_per_figure", 0)) * models,
+			"description": "%s Saving Throw, %d points per figure (Tactics p.136, p.177)" % [
+				save, int(a.get("cost_per_figure", 0))],
+			"grants_rules": [{"name": name, "type": "defensive",
+				"description": "%s Saving Throw (Tactics p.177)" % save}],
+		})
+	return {"label": "Armor (any unit, p.136)", "mode": "pick_one", "options": options}
 
 
 # =============================================================================
