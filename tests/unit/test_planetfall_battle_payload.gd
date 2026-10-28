@@ -378,6 +378,49 @@ func test_the_turn_controller_payload_carries_the_force_and_the_stamp() -> void:
 	assert_bool((md.opposition_force_rows as Array).is_empty()).is_false()
 
 
+## A Skirmish against the second enemy's sector fights THAT enemy (pp.123-124), and the
+## sector picked at Step 6 is stamped for Step 12's map effects.
+func test_the_stamp_carries_the_sector_and_its_enemy() -> void:
+	var core := _core("outlaws")
+	core.tactical_enemies.append({"type": _enemy_type("outlaws"), "boss_located": false,
+		"defeated": false})
+	var tc: Control = await _tc(core)
+	var mission := _mission("skirmish")
+	mission["sector"] = "0,1"
+	mission["site_enemy_index"] = 1
+	tc._mission_context = mission
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	_force("Planetfall Enemy Number D3", [3, 3])
+	var payload: Dictionary = tc.build_battle_payload()
+	assert_str(str(payload.stamp.sector)).is_equal("0,1")
+	assert_int(int(payload.stamp.tactical_enemy_index)).override_failure_message(
+		"the battle fought the first enemy, not the one holding the sector").is_equal(1)
+
+
+## The weapon picked at Step 7 reaches the battle screen's quick roll as a weapon row
+## (pp.75-76). It used to arrive as `assigned_weapon`, an id nothing read, so every
+## Planetfall shot was rolled as the quick roll's fallback rifle.
+func test_the_deployed_weapon_reaches_the_quick_roll() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("skirmish")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": "handgun"}}}
+	_force("Planetfall Enemy Number D3", [3, 3])
+	var crew: Array = tc.build_battle_payload().context.crew
+	assert_int(crew.size()).override_failure_message("premise: Ash deployed").is_equal(1)
+	assert_str(str(crew[0].assigned_weapon)).is_equal("handgun")
+	var quick: Node = load("res://src/ui/components/battle/CharacterQuickRollPanel.gd").new()
+	add_child(quick)
+	auto_free(quick)
+	quick.set_crew(crew)
+	quick.select_character("Ash")
+	var weapon: Dictionary = quick._equipped_weapon()
+	assert_int(int(weapon.get("range", 0))).override_failure_message(
+		"the quick roll found no weapon on a Planetfall figure").is_equal(6)
+	assert_bool(quick._weapon_is_pistol(weapon)).override_failure_message(
+		"the Handgun's pistol trait did not reach the battle").is_true()
+
+
 func test_a_slyn_attack_is_what_the_turn_controller_stamps() -> void:
 	var tc: Control = await _tc(_core())
 	tc._mission_context = _mission("exploration")

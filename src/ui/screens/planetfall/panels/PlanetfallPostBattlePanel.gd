@@ -28,6 +28,14 @@ const COLOR_ACCENT := UIColors.COLOR_BLUE
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_WARNING := UIColors.COLOR_AMBER
 const COLOR_DANGER := UIColors.COLOR_RED
+
+## p.67 Mission XP table. Step 10's preview and its award both read it; the preview used
+## to restate the table as a literal beside a second hand-copied copy in the award.
+const MISSION_XP := {
+	"participated": {"xp": 1, "label": "participated in the battle"},
+	"not_a_casualty": {"xp": 1, "label": "did not become a casualty"},
+	"boss_or_leader": {"xp": 1, "label": "directly killed an enemy Boss or Leader (once per battle)"},
+}
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -218,8 +226,10 @@ func _build_sub_step_info() -> void:
 		SubStep.EXPERIENCE:
 			var participants: Array = _battle_results.get("participants", [])
 			_add_info_text("Characters who participated: %d" % participants.size())
-			_add_info_text(
-				"XP Awards: +1 for participating, +1 if not a casualty, +1 for killing a Boss/Leader")
+			var rows: Array[String] = []
+			for key in MISSION_XP:
+				rows.append("+%d %s" % [int(MISSION_XP[key].xp), MISSION_XP[key].label])
+			_add_info_text("Mission XP (p.67): %s." % ", ".join(rows))
 
 		SubStep.MORALE:
 			_build_morale_choices()
@@ -358,6 +368,10 @@ func _build_debrief() -> void:
 	_add_info_text("Casualties the battle recorded: %d to roll on the Injury table, %d bot(s), "
 			% [rolls.size(), bots.size()] + "%d civvy casualties (p.66)." % civvies.size())
 	var grunts_in: int = int(br.get("grunts_deployed", 0))
+	# With nothing that can reach the Injury table, the press records this debrief and
+	# rolls nothing; it read "Roll Injuries" over "0 to roll on the Injury table".
+	if rolls.is_empty() and bots.is_empty() and civvies.is_empty() and grunts_in == 0:
+		_action_btn.text = "Record the Debrief"
 	if grunts_in > 0:
 		_grunt_spin = _debrief_spin("Grunts that became casualties (each rolls 1D6, p.66):",
 				grunts_in, int(br.get("grunt_casualties", 0)))
@@ -425,7 +439,10 @@ func _debrief_spin(text: String, max_value: int, value: int) -> SpinBox:
 	spin.min_value = 0
 	spin.max_value = max_value
 	spin.value = clampi(value, 0, max_value)
-	spin.custom_minimum_size = Vector2(0, 48)
+	# A count of a few rolls: sized to its number, not stretched across the column, which
+	# put the steppers a tablet's width away from the value they change.
+	spin.custom_minimum_size = Vector2(160, 48)
+	spin.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	_content_vbox.add_child(spin)
 	return spin
 
@@ -511,16 +528,16 @@ func _resolve_experience() -> void:
 		if cowards.has(str(pid)):
 			_add_result_bbcode("  %s: no XP (Cowardice, p.67)." % char_name)
 			continue
-		var xp: int = 1  # Participated
-		var reasons: Array[String] = ["+1 participated"]
+		var xp: int = int(MISSION_XP.participated.xp)
+		var reasons: Array[String] = ["+%d participated" % xp]
 
 		if not casualties_list.has(pid):
-			xp += 1
-			reasons.append("+1 not a casualty")
+			xp += int(MISSION_XP.not_a_casualty.xp)
+			reasons.append("+%d not a casualty" % int(MISSION_XP.not_a_casualty.xp))
 
 		if boss_killers.has(pid):
-			xp += 1
-			reasons.append("+1 killed Boss/Leader")
+			xp += int(MISSION_XP.boss_or_leader.xp)
+			reasons.append("+%d killed Boss/Leader" % int(MISSION_XP.boss_or_leader.xp))
 
 		if double_xp:
 			xp *= 2
@@ -835,7 +852,7 @@ func _transition_to_sub_step(
 ## screen would otherwise call the next press "Step 13".
 func step_status() -> Dictionary:
 	if not _can_continue:
-		return {"ready": false, "reason": "Press \"%s\" above first." % _action_btn.text}
+		return {"ready": false, "reason": "Press \"%s\" to finish this step." % _action_btn.text}
 	match _current_sub_step:
 		SubStep.MORALE:
 			if not (_campaign and _campaign.has_method("is_failed") and _campaign.is_failed()):

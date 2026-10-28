@@ -674,7 +674,7 @@ func _clear_container(container: VBoxContainer) -> void:
 func step_status() -> Dictionary:
 	var status: Dictionary = {"ready": _can_continue, "reason": ""}
 	if not _can_continue:
-		status.reason = "Press \"%s\" above first." % _get_action_button_text() if not _resolved \
+		status.reason = "Press \"%s\" to finish this step." % _get_action_button_text() if not _resolved \
 				else "Answer the Change of Assignment above first (p.70)."
 	return status
 

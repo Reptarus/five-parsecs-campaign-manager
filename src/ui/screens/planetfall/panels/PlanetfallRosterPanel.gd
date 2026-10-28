@@ -297,7 +297,7 @@ func _new_character(cls: String) -> Dictionary:
 	while used.has("pf_char_%d" % n):
 		n += 1
 	return RosterRules.standard_character(cls, "pf_char_%d" % n,
-			CharacterTableRoller.generate_random_name())
+			CharacterTableRoller.generate_random_name(false))
 
 
 ## The last slot an imported character could take: the last character built here.

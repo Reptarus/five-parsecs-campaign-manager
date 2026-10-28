@@ -230,3 +230,53 @@ func test_the_failing_grey_is_gone_from_src() -> void:
 
 	assert_array(offenders).override_failure_message(
 		"the pre-2026-09-07 secondary grey is back at: %s" % str(offenders)).is_empty()
+
+
+# ── CheckBox icons (Sprint U, 2026-10-28) ───────────────────────────────────
+# The project theme styled CheckBox text and background but set no icons, so all
+# 34 screens that build a CheckBox drew Godot's default glyph: a dark square that
+# was all but invisible on this palette (Planetfall Lock and Load read as a list of
+# names with nothing to tap). WCAG 2.1 SC 1.4.11 asks 3:1 for a control's boundary.
+
+const THEME_PATH := "res://src/ui/themes/sci_fi_theme.tres"
+const NON_TEXT_CONTRAST := 3.0
+const CHECK_ICONS := ["checked", "unchecked", "checked_disabled", "unchecked_disabled",
+	"radio_checked", "radio_unchecked", "radio_checked_disabled", "radio_unchecked_disabled"]
+
+
+## The strongest edge an icon draws along its middle row, composited over `bg`.
+func _icon_edge_contrast(tex: Texture2D, bg: Color) -> float:
+	var img: Image = tex.get_image()
+	if img.is_compressed():
+		img.decompress()
+	var best := 1.0
+	var y: int = img.get_height() / 2
+	for x in range(img.get_width()):
+		var px: Color = img.get_pixel(x, y)
+		var shown := Color(lerpf(bg.r, px.r, px.a), lerpf(bg.g, px.g, px.a),
+				lerpf(bg.b, px.b, px.a))
+		best = maxf(best, _contrast(shown, bg))
+	return best
+
+
+## The premise: the engine's own glyph really does fail here, so the case below
+## measures something.
+func test_the_default_checkbox_glyph_fails_on_this_palette() -> void:
+	var glyph: Texture2D = ThemeDB.get_default_theme().get_icon("unchecked", "CheckBox")
+	var ratio := _icon_edge_contrast(glyph, UIColorsRef.COLOR_PRIMARY)
+	assert_float(ratio).override_failure_message(
+		"premise: the default unchecked glyph reads %.2f on the base" % ratio) \
+		.is_less(NON_TEXT_CONTRAST)
+
+
+func test_the_theme_draws_visible_checkbox_icons() -> void:
+	var theme: Theme = load(THEME_PATH)
+	for icon in CHECK_ICONS:
+		assert_bool(theme.has_icon(icon, "CheckBox")).override_failure_message(
+			"the theme sets no CheckBox '%s' icon" % icon).is_true()
+	for icon in ["unchecked", "checked", "radio_unchecked", "radio_checked"]:
+		for bg in [UIColorsRef.COLOR_PRIMARY, UIColorsRef.COLOR_SECONDARY]:
+			var ratio := _icon_edge_contrast(theme.get_icon(icon, "CheckBox"), bg)
+			assert_float(ratio).override_failure_message(
+				"CheckBox '%s' edge reads %.2f on %s" % [icon, ratio, bg.to_html(false)]) \
+				.is_greater_equal(NON_TEXT_CONTRAST)

@@ -554,6 +554,13 @@ func resolve_integrity_step(options: Dictionary = {}) -> Dictionary:
 	return receipt
 
 
+## Whether Step 16 owes the 3D6 Integrity Failure roll: Integrity at the threshold or
+## worse (p.87). The panel asked this with a literal -3.
+func integrity_roll_owed() -> bool:
+	return campaign != null \
+			and int(campaign.colony_integrity) <= _crisis_resolver().integrity_threshold()
+
+
 func get_morale_receipt() -> Dictionary:
 	return _morale_receipt
 

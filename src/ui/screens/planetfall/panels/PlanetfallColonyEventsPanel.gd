@@ -617,7 +617,7 @@ func step_status() -> Dictionary:
 				"label": "Next: Milestone Colony Event %d of %d" % [_events_rolled, _events_owed - 1]}
 		return {"ready": true, "reason": ""}
 	if not _rolled:
-		return {"ready": false, "reason": "Press \"%s\" above first." % _roll_btn.text}
+		return {"ready": false, "reason": "Press \"%s\" to finish this step." % _roll_btn.text}
 	return {"ready": false, "reason": "Make the choice above to resolve this event."}
 
 

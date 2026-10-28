@@ -92,9 +92,11 @@ func generate_battle_context(config: Dictionary) -> Dictionary:
 func _generate_crew(count: int) -> Array:
 	var crew: Array = []
 	for i in range(count):
+		# One name, both keys (a second call was rolled and then overwritten).
+		var crew_name: String = CharacterTableRoller.generate_random_name()
 		crew.append({
-			"name": CharacterTableRoller.generate_random_name(),
-			"character_name": CharacterTableRoller.generate_random_name(),
+			"name": crew_name,
+			"character_name": crew_name,
 			"combat_skill": randi_range(0, 2),
 			"toughness": randi_range(3, 5),
 			"savvy": randi_range(0, 2),
@@ -102,8 +104,6 @@ func _generate_crew(count: int) -> Array:
 			"speed": randi_range(4, 5),
 			"luck": randi_range(0, 1),
 		})
-		# Sync name fields
-		crew[i]["name"] = crew[i]["character_name"]
 	return crew
 
 

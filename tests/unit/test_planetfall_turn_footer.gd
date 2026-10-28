@@ -99,9 +99,11 @@ func test_the_footer_follows_the_scout_step_and_finishes_it() -> void:
 	footer.pressed.emit()
 	assert_int(tc.phase_manager.current_phase).override_failure_message(
 		"pressing the footer completed Step 3").is_equal(Phase.ENEMY_ACTIVITY)
-	assert_bool(footer.visible and footer.disabled).override_failure_message(
-		"Step 4 waits for its own roll").is_true()
-	assert_str(tc._footer_reason.text).contains("above first")
+	# No Tactical Enemy is on this map, so p.61 skips Step 4: the footer arrives ready
+	# for Step 5. With an enemy it waits for the roll (test_planetfall_colony_crisis).
+	assert_bool(footer.visible and not footer.disabled).override_failure_message(
+		"Step 4 with nothing to roll still held the footer").is_true()
+	assert_str(footer.text).is_equal("Continue to Step 5")
 
 
 ## A relaunch onto a step that is already done opens with the footer ready. The phase
@@ -187,6 +189,11 @@ func test_mission_determination_waits_for_a_pick() -> void:
 	panel.step_status_changed.connect(func() -> void: fired[0] += 1)
 	picked.pressed.emit()
 	assert_int(fired[0]).override_failure_message("the pick never told the footer").is_greater(0)
+	# A mission with several possible sectors also waits for one (pp.115-130).
+	var sites: Array = panel._sites_for(panel._selected_mission)
+	if sites.size() > 1:
+		assert_bool(panel.step_status().ready).is_false()
+		panel._site_grid.sector_selected.emit(str(sites[0].key))
 	assert_bool(panel.step_status().ready).is_true()
 	assert_str(str(panel.step_status().label)).is_equal("Confirm %s" % picked.text)
 
@@ -210,6 +217,97 @@ func test_lock_and_load_needs_someone_deployed() -> void:
 	assert_bool(panel.step_status().ready).is_true()
 
 
+## Step 7 records the weapon the selector shows when a character is ticked (p.75: "Each
+## character must be armed for the mission"). It recorded "", so the first weapon left
+## as it was, and a weapon picked before the tick, were never assigned.
+func test_lock_and_load_records_the_weapon_shown() -> void:
+	var panel := _mount(LockAndLoadScript, _core(Phase.LOCK_AND_LOAD))
+	panel.set_mission_context({})
+	panel.refresh()
+	var sel: OptionButton = panel._weapon_selects.get("s1")
+	assert_object(sel).override_failure_message("premise: Vex has a weapon list").is_not_null()
+	assert_int(sel.item_count).override_failure_message(
+		"premise: a scout carries more than one weapon (pp.75-76)").is_greater(1)
+	var check: CheckBox = panel._deploy_checks["s1"]
+	check.button_pressed = true
+	assert_str(str(panel._deployed["s1"].weapon_id)).override_failure_message(
+		"the first weapon, left as it was, was not recorded") \
+		.is_equal(str(sel.get_item_metadata(0)))
+	check.button_pressed = false
+	var last: int = sel.item_count - 1
+	sel.select(last)
+	check.button_pressed = true
+	assert_str(str(panel._deployed["s1"].weapon_id)).override_failure_message(
+		"a weapon picked before the tick was lost").is_equal(str(sel.get_item_metadata(last)))
+
+
+## On a phone a row stacks the name over its weapon, and the weapon list no longer
+## demands its LONGEST item's width: that took the row past a 393 px screen and left
+## the name a few pixels, a glyph per line (Sprint U capture pf_port6).
+func test_lock_and_load_rows_fit_a_phone() -> void:
+	var panel := _mount(LockAndLoadScript, _core(Phase.LOCK_AND_LOAD))
+	panel.set_mission_context({})
+	panel.refresh()
+	# A Control recomputes its minimum on the NEXT frame; read straight after refresh()
+	# it is the item-less minimum, fix or no fix.
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var sel: OptionButton = panel._weapon_selects["s1"]
+	var longest: float = 0.0
+	var font: Font = sel.get_theme_font("font")
+	var font_size: int = sel.get_theme_font_size("font_size")
+	for i in sel.item_count:
+		longest = maxf(longest, font.get_string_size(sel.get_item_text(i),
+				HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x)
+	assert_float(longest).override_failure_message(
+		"premise: the longest weapon name is wide").is_greater(150.0)
+	assert_float(sel.get_combined_minimum_size().x).override_failure_message(
+		"the weapon list still demands its longest item's width").is_less(longest)
+	var rm: Node = get_tree().root.get_node_or_null("/root/ResponsiveManager")
+	var narrow: bool = rm.should_collapse_to_single_column()
+	assert_bool(panel._rows.is_empty()).override_failure_message("premise: a row").is_false()
+	for row in panel._rows:
+		assert_bool(row.vertical).override_failure_message(
+			"the row did not follow the layout class").is_equal(narrow)
+	# A rotation re-fits the rows already built (the picks must survive, so no rebuild).
+	for row in panel._rows:
+		row.vertical = not narrow
+	rm.emit_current_layout_class()
+	for row in panel._rows:
+		assert_bool(row.vertical).override_failure_message(
+			"a layout change left the rows as they were").is_equal(narrow)
+
+
+## The turn header stacks on a phone: TURN N above Save | Dashboard. It was built as an
+## HBoxContainer, which cannot change orientation, so `vertical = true` raised an engine
+## error and the header never stacked. Asserting the TYPE too: a fixed box reports
+## vertical == false, which matches a landscape reading by accident.
+func test_the_turn_header_follows_the_layout_class() -> void:
+	var tc: Control = await _screen(_core(Phase.RECOVERY))
+	assert_bool(tc._top_row is HBoxContainer or tc._top_row is VBoxContainer) \
+		.override_failure_message("a fixed-orientation box cannot stack").is_false()
+	assert_bool(tc._top_row.vertical).is_equal(tc._topbar_is_portrait())
+	assert_object(tc._save_button.get_parent()).is_same(tc._dashboard_button.get_parent())
+	assert_object(tc._save_button.get_parent()).is_not_same(tc._top_row)
+
+
+## A new turn opens with Step 1's own footer. "Start Next Turn" was followed by a write
+## of "Complete Phase" AFTER the new step had set the footer, so every turn opened on a
+## label no step uses.
+func test_a_new_turn_opens_with_step_ones_footer() -> void:
+	var tc: Control = await _screen(_core(Phase.RECOVERY))
+	tc.phase_manager.current_phase = Phase.NONE
+	tc._advance_button.pressed.emit()
+	assert_int(tc.phase_manager.current_phase).override_failure_message(
+		"premise: the press started a turn").is_equal(Phase.RECOVERY)
+	assert_str(tc._advance_button.text).is_not_equal("Complete Phase")
+	var status: Dictionary = tc.current_panel.step_status() \
+		if tc.current_panel.has_method("step_status") else {}
+	if not status.is_empty():
+		assert_str(tc._advance_button.text).is_equal(
+			str(status.get("label", tc._next_step_label(Phase.RECOVERY))))
+
+
 ## Research and Building are optional spends: always finishable, and the panel no longer
 ## carries a second "Done" button below the fold.
 func test_research_and_building_are_always_finishable() -> void:
@@ -227,7 +325,7 @@ func test_post_battle_names_step_12s_parts() -> void:
 	var panel := _mount(PostBattlePanelScript, _core(Phase.MORALE_ADJUSTMENTS))
 	panel._current_sub_step = panel.SubStep.MORALE
 	panel._set_can_continue(false)
-	assert_str(str(panel.step_status().reason)).contains("above first")
+	assert_str(str(panel.step_status().reason)).contains("to finish this step")
 	panel._set_can_continue(true)
 	assert_str(str(panel.step_status().label)).is_equal("Continue to Post-Mission Finds")
 	panel._current_sub_step = panel.SubStep.POST_MISSION_FINDS

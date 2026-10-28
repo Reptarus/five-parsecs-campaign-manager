@@ -454,6 +454,85 @@ func test_step_16_offers_emergency_repairs_before_the_roll() -> void:
 		.is_equal(1)
 
 
+func _auto_step(core: Resource, step_id: String, phase: int) -> Control:
+	var panel := _mount(AutoResolve)
+	panel.set_campaign(core)
+	panel.set_phase_manager(_pm(core))
+	panel.configure(step_id, phase)
+	panel.refresh()
+	return panel
+
+
+func _shown(panel: Control) -> String:
+	var out: Array[String] = []
+	for n in panel._result_container.find_children("*", "RichTextLabel", true, false):
+		out.append((n as RichTextLabel).text)
+	return "\n".join(out)
+
+
+## A step the book says has nothing to do this turn says so and lets the footer go on.
+## Steps 1, 4 and 16 each held the footer behind a button whose only result was
+## "nothing happens" (p.58 Sick Bay, p.61 "If there are none ... skip this step", p.87).
+func test_a_step_with_nothing_to_do_says_so_and_continues() -> void:
+	var core := _core()
+	core.sick_bay = {}
+	var panel := _auto_step(core, "recovery", Phase.RECOVERY)
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"Step 1 with nobody in Sick Bay still waited for a press").is_true()
+	assert_bool(panel._resolve_btn.visible).is_false()
+	assert_str(_shown(panel)).contains("No one is in Sick Bay")
+	core.sick_bay = {"c1": 2}
+	panel.refresh()
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"premise: a recovering character is ticked by the press").is_false()
+
+	core = _core()
+	panel = _auto_step(core, "enemy_activity", Phase.ENEMY_ACTIVITY)
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"Step 4 with no Tactical Enemy still waited for a press").is_true()
+	assert_str(_shown(panel)).contains("this step is skipped (p.61)")
+	core.tactical_enemies = [{"name": "Raiders", "occupied_sectors": []}]
+	panel.refresh()
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"premise: an enemy on the map is rolled for").is_false()
+
+	core = _core()
+	core.colony_integrity = 0
+	var pm := _pm(core)
+	panel = _mount(AutoResolve)
+	panel.set_campaign(core)
+	panel.set_phase_manager(pm)
+	panel.configure("colony_integrity", Phase.COLONY_INTEGRITY)
+	panel.refresh()
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"Step 16 above the threshold still waited for a press").is_true()
+	assert_str(_shown(panel)).contains("no Integrity Failure test (p.87)")
+	assert_bool(pm.get_integrity_receipt().is_empty()).override_failure_message(
+		"the step showed a result the phase manager never recorded").is_false()
+
+
+## p.87: the roll is owed at the threshold, read from the phase manager, not a literal.
+func test_step_16_waits_for_the_roll_at_the_threshold() -> void:
+	var core := _core()
+	core.colony_integrity = -3
+	var panel := _auto_step(core, "colony_integrity", Phase.COLONY_INTEGRITY)
+	assert_bool(panel.step_status().ready).is_false()
+	assert_bool(panel._resolve_btn.visible).is_true()
+	assert_bool(_pm(core).integrity_roll_owed()).is_true()
+	core.colony_integrity = -2
+	assert_bool(_pm(core).integrity_roll_owed()).is_false()
+
+
+## A result line takes the colour it is given; every line rendered primary, which is why
+## three of them hand-wrote hex [color] tags.
+func test_result_lines_take_their_colour() -> void:
+	var panel := _auto_step(_core(), "recovery", Phase.RECOVERY)
+	var lines: Array = panel._result_container.find_children("*", "RichTextLabel", true, false)
+	assert_bool(lines.is_empty()).override_failure_message("premise: a line").is_false()
+	assert_object((lines[0] as RichTextLabel).get_theme_color("default_color")) \
+		.is_equal(UIColors.COLOR_TEXT_SECONDARY)
+
+
 func test_step_11_offers_personal_appeals_before_the_incident() -> void:
 	var core := _core()
 	core.colony_morale = -9

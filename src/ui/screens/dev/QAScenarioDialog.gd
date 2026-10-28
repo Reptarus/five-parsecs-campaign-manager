@@ -309,6 +309,8 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 		"note": "p.121 Hunt - 5-6 lowers the sector's Hazard by 1"},
 	{"key": "Planetfall Exploration Objective", "sides": 6, "target": 1,
 		"note": "p.118 Exploration - 1 Resource +1, 2 nothing, 3-6 Resource -1"},
+	{"key": "Planetfall Research Application", "sides": 6, "target": 1,
+		"note": "p.93 - picks the Nth undiscovered Application (D3 for up to 3, else D6)"},
 	# --- Planetfall colony creation (PlanetfallExpeditionPanel, PlanetfallBackgrounds).
 	{"key": "Planetfall Expedition Type", "sides": 100, "target": 16,
 		"note": "p.52 - 16-30 Corporate Funded, which adds 2 Investigation Sites"},

@@ -100,11 +100,23 @@ func refresh() -> void:
 	if _result_container:
 		for child in _result_container.get_children():
 			child.queue_free()
+	if _step_id == "recovery" and _result_container:
+		_prepare_recovery()
 	if _step_id == "colony_integrity" and _result_container:
 		_prepare_colony_integrity()
 	if _step_id == "enemy_activity" and _result_container:
 		_prepare_enemy_activity()
 	step_status_changed.emit()
+
+
+## A step the book says has nothing to do this turn says so on arrival and lets the
+## footer continue. Steps 1, 4 and 16 each held the footer behind a button whose only
+## result was "nothing happens".
+func _skip_step(text: String) -> void:
+	_add_result_text(text, COLOR_TEXT_SECONDARY)
+	_resolved = true
+	_resolve_btn.visible = false
+	_can_continue = true
 
 
 func complete() -> void:
@@ -210,8 +222,7 @@ func _resolve_recovery() -> void:
 	if recovered.is_empty():
 		_add_result_text("No characters were recovering this turn.", COLOR_TEXT_SECONDARY)
 	else:
-		_add_result_text(
-			"[color=#10B981]%d character(s) recovered from Sick Bay![/color]" % recovered.size(),
+		_add_result_text("%d character(s) recovered from Sick Bay!" % recovered.size(),
 			COLOR_SUCCESS)
 		for cid in recovered:
 			var char_name: String = _get_character_name(cid)
@@ -229,11 +240,22 @@ func _resolve_recovery() -> void:
 					"  - %s (%d turn(s) remaining)" % [char_name, turns],
 					COLOR_WARNING)
 
-	# Bot repair check
+	_note_broken_bot()
+
+
+## p.59: a broken Bot is repaired in Step 2, not healed here.
+func _note_broken_bot() -> void:
 	if _campaign and "bot_operational" in _campaign and not _campaign.bot_operational:
-		_add_result_text(
-			"\n[color=#D97706]Bot Broken — repair in Step 2.[/color]",
+		_add_result_text("The colony Bot is broken: repair it in Step 2 (p.59).",
 			COLOR_WARNING)
+
+
+## p.58: "every character in sick bay will heal". With nobody there, nothing to do.
+func _prepare_recovery() -> void:
+	if not _campaign or not "sick_bay" in _campaign or not _campaign.sick_bay.is_empty():
+		return
+	_skip_step("No one is in Sick Bay, so no one has recovery time to reduce (p.58).")
+	_note_broken_bot()
 
 
 func _resolve_enemy_activity() -> void:
@@ -320,8 +342,7 @@ func _resolve_one_enemy_activity(selected: Dictionary) -> void:
 				mitigated += 1
 
 		var final_damage: int = max(0, base_damage - mitigated)
-		_add_result_text(
-			"\n[color=#DC2626]Raid Damage: %d (base %d, %d mitigated by defenses)[/color]" % [
+		_add_result_text("Raid Damage: %d (base %d, %d mitigated by defenses)" % [
 				final_damage, base_damage, mitigated],
 			COLOR_DANGER)
 
@@ -360,11 +381,20 @@ func _prepare_colony_integrity() -> void:
 		_resolve_btn.visible = false
 		_can_continue = true
 		return
+	# p.87: above the threshold there is no roll, so the step resolves on arrival. The
+	# phase manager resolves it once either way; nothing here is random.
+	if _phase_manager.has_method("integrity_roll_owed") \
+			and not _phase_manager.integrity_roll_owed():
+		_render_lines(_phase_manager.resolve_integrity_step())
+		_resolved = true
+		_resolve_btn.visible = false
+		_can_continue = true
+		return
 	var integrity: int = int(_campaign.colony_integrity)
 	_add_result_text("Current Colony Integrity: %d (maximum %d)."
 			% [integrity, int(_campaign.max_colony_integrity)], COLOR_TEXT_PRIMARY)
 	var preview: Dictionary = _phase_manager.preview_morale_step()
-	if integrity <= -3 and bool(preview.get("can_spend", false)):
+	if bool(preview.get("can_spend", false)):
 		_emergency_check = CheckBox.new()
 		_emergency_check.text = "Emergency Repairs: spend 1 Story Point to skip the " \
 				+ "Integrity Failure roll (p.88). %d Story Point(s) left." \
@@ -379,12 +409,14 @@ func _prepare_colony_integrity() -> void:
 ## Enemy is on the map and a Story Point may be spent this turn.
 func _prepare_enemy_activity() -> void:
 	_wait_check = null
+	# p.61: "If there are none currently on the map, skip this step."
+	if _campaign and (not _campaign.has_method("get_active_tactical_enemies")
+			or _campaign.get_active_tactical_enemies().is_empty()):
+		_skip_step("No Tactical Enemies are on the map, so this step is skipped (p.61).")
+		return
 	if not _campaign or not _phase_manager \
 			or not _phase_manager.has_method("can_spend_story_point") \
 			or not _phase_manager.can_spend_story_point():
-		return
-	if not _campaign.has_method("get_active_tactical_enemies") \
-			or _campaign.get_active_tactical_enemies().is_empty():
 		return
 	_wait_check = CheckBox.new()
 	_wait_check.text = "Waiting for the Right Moment: spend 1 Story Point to forgo the " \
@@ -453,14 +485,16 @@ func _needs_resolve_button() -> bool:
 	return true
 
 
-func _add_result_text(text: String, _color: Color) -> void:
+## The colour was accepted and ignored (every line rendered primary), which is why three
+## lines hand-wrote hex [color] tags.
+func _add_result_text(text: String, color: Color) -> void:
 	var lbl := RichTextLabel.new()
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
 	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
+	lbl.add_theme_color_override("default_color", color)
 	_result_container.add_child(lbl)
 
 
@@ -488,7 +522,7 @@ func _build_result_data() -> Dictionary:
 func step_status() -> Dictionary:
 	var status: Dictionary = {"ready": _can_continue, "reason": ""}
 	if not _can_continue:
-		status.reason = "Press \"%s\" above first." % _get_resolve_button_text()
+		status.reason = "Press \"%s\" to finish this step." % _get_resolve_button_text()
 	return status
 
 

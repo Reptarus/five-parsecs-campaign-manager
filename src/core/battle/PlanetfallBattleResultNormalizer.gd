@@ -46,7 +46,7 @@ static func normalize(
 		var stamped_id: String = str(stamp.get("id", ""))
 		results["mission_id"] = stamped_id if stamped_id != "" \
 			else str(results.get("mission_type", ""))
-	for key in ["mission_name", "opposition_type", "enemy_type", "grunts_deployed"]:
+	for key in ["mission_name", "opposition_type", "enemy_type", "grunts_deployed", "sector"]:
 		if not results.has(key) and stamp.has(key):
 			results[key] = stamp[key]
 	if not results.has("tactical_enemy_index"):

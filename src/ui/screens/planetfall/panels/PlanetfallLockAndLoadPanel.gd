@@ -2,7 +2,8 @@ class_name PlanetfallLockAndLoadPanel
 extends Control
 
 ## Step 7: Lock and Load — deploy characters and assign equipment.
-## Shows roster with deploy toggles, equipment pool, class restrictions.
+## Shows the roster with deploy toggles and, per character, the Armory weapons that
+## character's class may carry (pp.75-76).
 ## Source: Planetfall p.65
 
 signal phase_completed(result_data: Dictionary)
@@ -21,6 +22,7 @@ const COLOR_ACCENT := UIColors.COLOR_BLUE
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_WARNING := UIColors.COLOR_AMBER
 const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const TOUCH_TARGET_MIN := 48
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
@@ -47,6 +49,10 @@ var _opposition: Dictionary = {}
 var _mission_id: String = ""
 ## character_id → its deploy CheckBox, so a refused toggle can be put back.
 var _deploy_checks: Dictionary = {}
+## character_id → its weapon OptionButton, read when the character is ticked.
+var _weapon_selects: Dictionary = {}
+## One BoxContainer per roster row: side by side on a tablet, stacked on a phone.
+var _rows: Array[BoxContainer] = []
 
 var _title_label: Label
 ## Says why the last deploy toggle was refused (p.70 Dispute); hidden otherwise.
@@ -54,7 +60,6 @@ var _conflict_label: Label
 var _roster_container: VBoxContainer
 var _grunt_section: VBoxContainer
 var _mission_info_section: VBoxContainer
-var _weapon_container: VBoxContainer
 var _deploy_count_label: Label
 var _grunt_count_label: Label
 
@@ -62,6 +67,9 @@ var _grunt_count_label: Label
 func _ready() -> void:
 	_armory = PlanetfallArmoryScript.new()
 	_build_ui()
+	var rm: Node = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(func(_cols: int) -> void: _fit_rows())
 
 
 ## ============================================================================
@@ -97,9 +105,10 @@ func set_mission_context(context: Dictionary) -> void:
 func refresh() -> void:
 	_deployed = {}
 	_deploy_checks = {}
+	_weapon_selects = {}
+	_rows.clear()
 	_grunts_deployed = 0
 	_clear_container(_roster_container)
-	_clear_container(_weapon_container)
 	if _grunt_section:
 		_clear_container(_grunt_section)
 	if _mission_info_section:
@@ -107,7 +116,26 @@ func refresh() -> void:
 	_build_mission_info()
 	_build_roster_list()
 	_build_grunt_section()
+	_fit_rows()
 	_update_deploy_count()
+	TouchScrollOpenerRef.open_subtree(self)
+
+
+## Name and weapon side by side on a tablet; stacked on a phone, where the weapon
+## list's text left the name a few pixels and the row grew a glyph per line.
+func _fit_rows() -> void:
+	var rm: Node = get_node_or_null("/root/ResponsiveManager")
+	var narrow: bool = rm != null and rm.has_method("should_collapse_to_single_column") \
+			and rm.should_collapse_to_single_column()
+	for row in _rows:
+		if is_instance_valid(row):
+			row.vertical = narrow
+			# Stacked, a name sits tight over ITS weapon and apart from the next name;
+			# equal gaps left it unclear whose weapon a list was.
+			row.add_theme_constant_override("separation", 4 if narrow else SPACING_SM)
+	if _roster_container:
+		_roster_container.add_theme_constant_override("separation",
+				SPACING_LG if narrow else SPACING_SM)
 
 
 func complete() -> void:
@@ -149,10 +177,20 @@ func _build_ui() -> void:
 	info.bbcode_enabled = true
 	info.fit_content = true
 	info.scroll_active = false
-	info.text = "Select characters to deploy and assign weapons from the colony pool. Characters in Sick Bay cannot deploy."
+	# There is no colony pool: a weapon is available "in any quantity needed" (p.76),
+	# and "each weapon type is limited to certain classes" (p.75).
+	info.text = "Tick who deploys and choose each character's weapon. Each list holds " \
+			+ "what that character's class may carry from the Armory (pp.75-76). " \
+			+ "Characters in Sick Bay cannot deploy."
 	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
+
+	# The mission's condition and opposition come BEFORE the roster: they are what the
+	# player picks the team for (they used to sit below the last character).
+	_mission_info_section = VBoxContainer.new()
+	_mission_info_section.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(_mission_info_section)
 
 	# Roster section
 	var roster_header := Label.new()
@@ -165,11 +203,6 @@ func _build_ui() -> void:
 	_roster_container.add_theme_constant_override("separation", SPACING_SM)
 	vbox.add_child(_roster_container)
 
-	# Mission info section (conditions, slyn warning, opposition)
-	_mission_info_section = VBoxContainer.new()
-	_mission_info_section.add_theme_constant_override("separation", SPACING_SM)
-	vbox.add_child(_mission_info_section)
-
 	# Grunt deployment section (visible only when grunts allowed)
 	_grunt_section = VBoxContainer.new()
 	_grunt_section.add_theme_constant_override("separation", SPACING_SM)
@@ -181,12 +214,6 @@ func _build_ui() -> void:
 	_grunt_count_label.add_theme_color_override("font_color", COLOR_ACCENT)
 	_grunt_count_label.visible = false
 	vbox.add_child(_grunt_count_label)
-
-	# Weapon assignment placeholder
-	_weapon_container = VBoxContainer.new()
-	_weapon_container.add_theme_constant_override("separation", SPACING_SM)
-	vbox.add_child(_weapon_container)
-
 
 
 ## ============================================================================
@@ -231,6 +258,7 @@ func _build_mission_info() -> void:
 				else "Lifeforms, using Contacts"]
 		var opp_lbl := Label.new()
 		opp_lbl.text = "Opposition: %s" % opp_text
+		opp_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		opp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		opp_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
 		_mission_info_section.add_child(opp_lbl)
@@ -291,9 +319,10 @@ func _build_roster_list() -> void:
 		var blocked: String = _campaign.deployment_block_reason(cid, _mission_id) \
 				if _campaign.has_method("deployment_block_reason") else ""
 
-		var row := HBoxContainer.new()
+		var row := BoxContainer.new()
 		row.add_theme_constant_override("separation", SPACING_SM)
 		_roster_container.add_child(row)
+		_rows.append(row)
 
 		# The character's name IS the deploy toggle, so the whole name is the tap
 		# target. It used to be a bare 16-px box with the name in a separate Label that
@@ -312,13 +341,24 @@ func _build_roster_list() -> void:
 		_deploy_checks[cid] = check
 
 		# Weapon selector
+		# An OptionButton's minimum width is its LONGEST item by default, which took a
+		# phone row past the screen edge; it clips to the width it is given instead.
+		# Measured 2026-10-28: clip_text OR the ellipsis alone drops the text from the
+		# minimum (removing either one leaves the row fitting), so they are kept as a
+		# pair: the ellipsis shows the cut, clip_text holds if a theme drops it.
+		# Both halves EXPAND: half the row each on a tablet, full width when stacked.
 		var weapon_select := OptionButton.new()
-		weapon_select.custom_minimum_size = Vector2(260, TOUCH_TARGET_MIN)
+		weapon_select.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		weapon_select.fit_to_longest_item = false
+		weapon_select.clip_text = true
+		weapon_select.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		weapon_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		weapon_select.disabled = in_sick_bay
 		_populate_weapon_options(weapon_select, cclass)
 		weapon_select.item_selected.connect(
 			_on_weapon_selected.bind(cid, weapon_select))
 		row.add_child(weapon_select)
+		_weapon_selects[cid] = weapon_select
 
 	_conflict_label = Label.new()
 	_conflict_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -376,12 +416,23 @@ func _on_deploy_toggled(toggled: bool, character_id: String) -> void:
 						_character_name(character_id), conflict]
 				_conflict_label.visible = true
 			return
-		_deployed[character_id] = {"weapon_id": ""}
+		# The weapon the selector shows NOW. It used to record "", so the first item
+		# left as it was, or a weapon picked before the tick, was never assigned
+		# (p.75: "each character must be armed").
+		_deployed[character_id] = {"weapon_id": _current_weapon_id(character_id)}
 	else:
 		_deployed.erase(character_id)
 	if _conflict_label:
 		_conflict_label.visible = false
 	_update_deploy_count()
+
+
+func _current_weapon_id(character_id: String) -> String:
+	var sel: Variant = _weapon_selects.get(character_id)
+	if not (sel is OptionButton) or (sel as OptionButton).selected < 0:
+		return ""
+	var btn := sel as OptionButton
+	return str(btn.get_item_metadata(btn.selected))
 
 
 func _character_name(character_id: String) -> String:

@@ -64,7 +64,9 @@ static func _get_titles() -> Array:
 		return _names_data["titles"]
 	return TITLES
 
-static func generate_random_name() -> String:
+## `with_title` = false for a mode whose classes share a title's word: Planetfall's
+## Scientist / Scout / Trooper, where "Trooper Cael Yang (Scientist)" named the wrong class.
+static func generate_random_name(with_title: bool = true) -> String:
 	var firsts := _get_first_names()
 	var lasts := _get_last_names()
 	var first_name: String = firsts[randi() % firsts.size()]
@@ -75,7 +77,7 @@ static func generate_random_name() -> String:
 		last_name = lasts[(randi() + 1) % lasts.size()]
 
 	# 20% chance to add a title
-	if randf() < 0.2:
+	if with_title and randf() < 0.2:
 		var titles := _get_titles()
 		var title: String = titles[randi() % titles.size()]
 		return title + " " + first_name + " " + last_name

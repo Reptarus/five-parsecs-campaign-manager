@@ -4,6 +4,14 @@
 [ext_resource type="FontFile" uid="uid://cdfd83vr4a3nu" path="res://assets/fonts/CourierPrime-Regular.ttf" id="font_mono"]
 [ext_resource type="FontFile" uid="uid://cmwqlqbc2ovfy" path="res://assets/fonts/Montserrat-Regular.ttf" id="font_regular"]
 [ext_resource type="FontFile" uid="uid://dcfe0h4u6iixn" path="res://assets/fonts/Montserrat-SemiBold.ttf" id="font_semibold"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/checkbox_checked.svg" id="icon_checkbox_checked"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/checkbox_checked_disabled.svg" id="icon_checkbox_checked_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/checkbox_unchecked.svg" id="icon_checkbox_unchecked"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/checkbox_unchecked_disabled.svg" id="icon_checkbox_unchecked_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/radio_checked.svg" id="icon_radio_checked"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/radio_checked_disabled.svg" id="icon_radio_checked_disabled"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/radio_unchecked.svg" id="icon_radio_unchecked"]
+[ext_resource type="Texture2D" path="res://assets/ui/icons/radio_unchecked_disabled.svg" id="icon_radio_unchecked_disabled"]
 
 [sub_resource type="StyleBoxFlat" id="button_disabled"]
 content_margin_left = 16.0
@@ -585,6 +593,14 @@ CheckBox/colors/font_hover_color = Color(1, 1, 1, 1)
 CheckBox/colors/font_pressed_color = Color(0.8, 0.8, 0.85, 1)
 CheckBox/font_sizes/font_size = 16
 CheckBox/fonts/font = ExtResource("font_regular")
+CheckBox/icons/checked = ExtResource("icon_checkbox_checked")
+CheckBox/icons/checked_disabled = ExtResource("icon_checkbox_checked_disabled")
+CheckBox/icons/radio_checked = ExtResource("icon_radio_checked")
+CheckBox/icons/radio_checked_disabled = ExtResource("icon_radio_checked_disabled")
+CheckBox/icons/radio_unchecked = ExtResource("icon_radio_unchecked")
+CheckBox/icons/radio_unchecked_disabled = ExtResource("icon_radio_unchecked_disabled")
+CheckBox/icons/unchecked = ExtResource("icon_checkbox_unchecked")
+CheckBox/icons/unchecked_disabled = ExtResource("icon_checkbox_unchecked_disabled")
 CheckBox/styles/hover = SubResource("checkbox_hover")
 CheckBox/styles/normal = SubResource("checkbox_normal")
 ConfirmButton/base_type = &"Button"

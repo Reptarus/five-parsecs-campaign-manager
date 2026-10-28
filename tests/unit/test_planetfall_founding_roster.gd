@@ -20,6 +20,7 @@ const ExpeditionPanel = preload(
 const ReviewPanel = preload("res://src/ui/screens/planetfall/panels/PlanetfallReviewPanel.gd")
 const SectorGridScript = preload("res://src/ui/screens/planetfall/panels/PlanetfallSectorGrid.gd")
 const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
+const NameRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
 
 const PHONE_DESIGN_WIDTH := 338.0
 const MIX := ["scientist", "scientist", "scout", "scout", "trooper", "trooper", "trooper",
@@ -214,6 +215,22 @@ func _live(node: Node, root: Node) -> bool:
 func _subspecies_pickers(panel: Node) -> Array:
 	return panel.find_children("*", "OptionButton", true, false).filter(func(o: Node) -> bool:
 		return _live(o, panel) and (o as OptionButton).item_count == 5)
+
+
+## A founded character's name carries no rank title. The shared 5PFH name generator
+## prefixes one name in five with a title (Trooper, Scout, Specialist...), which named a
+## Scientist "Trooper Cael Yang (Scientist)" on the Step 7 roster.
+func test_a_founded_name_carries_no_rank_title() -> void:
+	var panel := _roster_panel(_coord())
+	var titles: Array = NameRoller._get_titles()
+	assert_bool(titles.is_empty()).override_failure_message("premise: titles exist").is_false()
+	var titled: Array[String] = []
+	for i in range(200):
+		var name_text: String = str(panel._new_character("scientist").get("name", ""))
+		if name_text.get_slice(" ", 0) in titles:
+			titled.append(name_text)
+	assert_array(titled).override_failure_message(
+		"founded characters were named with a title: %s" % [titled]).is_empty()
 
 
 func test_the_roster_screen_starts_legal_and_announces_itself_when_shown() -> void:

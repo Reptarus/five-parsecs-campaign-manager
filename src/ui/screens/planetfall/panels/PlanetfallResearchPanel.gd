@@ -12,6 +12,14 @@ signal step_status_changed
 
 const PlanetfallResearchScript := preload(
 	"res://src/core/systems/PlanetfallResearchSystem.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+const ArmoryScript := preload("res://src/core/systems/PlanetfallArmorySystem.gd")
+const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
+
+## p.93's labels for an Application's kind.
+const APPLICATION_KINDS := {
+	"bonus": "Bonus", "building": "Building", "milestone_building": "Milestone Building",
+	"weapon": "Weapon", "milestone": "Milestone"}
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -33,6 +41,7 @@ const SPACING_LG := 24
 var _campaign: Resource
 var _phase_manager: Node
 var _research: PlanetfallResearchScript
+var _armory: RefCounted
 var _selected_theory_id: String = ""
 
 var _title_label: Label
@@ -40,11 +49,17 @@ var _rp_label: Label
 var _theory_list: VBoxContainer
 var _detail_container: VBoxContainer
 var _result_container: VBoxContainer
+var _scroll: ScrollContainer
+## List | detail on a tablet, stacked on a phone (_fit_columns).
+var _columns: BoxContainer
 
 
 func _ready() -> void:
 	_research = PlanetfallResearchScript.new()
 	_build_ui()
+	var rm: Node = get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(func(_cols: int) -> void: _fit_columns())
 
 
 ## ============================================================================
@@ -73,7 +88,21 @@ func refresh() -> void:
 
 	_update_rp_display()
 	_build_theory_list()
+	# The detail pane opened empty beside the list, saying nothing about what it is for.
+	_detail_container.add_child(_small_label("Pick a Theory to invest RP in it or to "
+			+ "research one of its Applications (pp.92-93).", COLOR_TEXT_SECONDARY))
+	_fit_columns()
+	TouchScrollOpenerRef.open_subtree(self)
 	step_status_changed.emit()
+
+
+## Two columns squeezed a theory's description and its Applications to half a phone.
+func _fit_columns() -> void:
+	if not _columns:
+		return
+	var rm: Node = get_node_or_null("/root/ResponsiveManager")
+	_columns.vertical = rm != null and rm.has_method("should_collapse_to_single_column") \
+			and rm.should_collapse_to_single_column()
 
 
 func complete() -> void:
@@ -87,15 +116,15 @@ func complete() -> void:
 func _build_ui() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	add_child(scroll)
+	_scroll = ScrollContainer.new()
+	_scroll.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	add_child(_scroll)
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	vbox.add_theme_constant_override("separation", SPACING_LG)
-	scroll.add_child(vbox)
+	_scroll.add_child(vbox)
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 14: RESEARCH"
@@ -111,19 +140,19 @@ func _build_ui() -> void:
 	_rp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_rp_label)
 
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", SPACING_LG)
-	vbox.add_child(hbox)
+	_columns = BoxContainer.new()
+	_columns.add_theme_constant_override("separation", SPACING_LG)
+	vbox.add_child(_columns)
 
 	_theory_list = VBoxContainer.new()
 	_theory_list.add_theme_constant_override("separation", SPACING_SM)
 	_theory_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(_theory_list)
+	_columns.add_child(_theory_list)
 
 	var right_vbox := VBoxContainer.new()
 	right_vbox.add_theme_constant_override("separation", SPACING_MD)
 	right_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(right_vbox)
+	_columns.add_child(right_vbox)
 
 	_detail_container = VBoxContainer.new()
 	_detail_container.add_theme_constant_override("separation", SPACING_SM)
@@ -157,24 +186,102 @@ func _build_theory_list() -> void:
 		var progress: int = _research.get_theory_progress(_campaign, tid)
 		var cost: int = theory.get("theory_cost", 0)
 
+		var row := VBoxContainer.new()
+		row.add_theme_constant_override("separation", 2)
+		_theory_list.add_child(row)
+
 		var btn := Button.new()
 		if completed:
-			btn.text = "%s [COMPLETE]" % tname
+			var apps: Array = theory.get("applications", [])
+			var found: int = apps.size() - _research.get_available_applications(
+					_campaign, tid).size()
+			btn.text = "%s: researched, %d of %d Applications" % [tname, found, apps.size()]
 		elif available:
 			btn.text = "%s (%d/%d RP)" % [tname, progress, cost]
 		else:
-			btn.text = "%s [LOCKED]" % tname
-
-		btn.custom_minimum_size.y = 36
+			btn.text = tname
+		btn.custom_minimum_size.y = 48
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		btn.disabled = not available and not completed
 		btn.pressed.connect(_on_theory_selected.bind(tid))
-		_theory_list.add_child(btn)
+		row.add_child(btn)
+
+		# What the field is for, from the same entry the research reads; a bare name
+		# said nothing until it was pressed.
+		row.add_child(_small_label(str(theory.get("description", "")), COLOR_TEXT_SECONDARY))
+		if not available and not completed:
+			row.add_child(_small_label(_locked_reason(theory), COLOR_WARNING))
+
+
+## p.92: a Theory with prerequisites becomes available once they are "fully researched".
+## It read "[LOCKED]" and never said what it was waiting for.
+func _locked_reason(theory: Dictionary) -> String:
+	var missing: Array[String] = []
+	for pid in theory.get("prerequisites", []):
+		if not _research.is_theory_researched(_campaign, str(pid)):
+			missing.append(str(_research.get_theory(str(pid)).get("name", pid)))
+	return "Research %s first (p.92)." % " and ".join(missing) if not missing.is_empty() \
+		else "Not available yet."
+
+
+## What an Application does, in p.93's words, built from the same entry the research
+## applies (`effect`, `bonus`, `unlocks_*`), so the text cannot drift from the rule.
+func application_effect_text(app: Dictionary) -> String:
+	var parts: Array[String] = []
+	var effect: Dictionary = app.get("effect", {}) if app.get("effect") is Dictionary else {}
+	if effect.has("colony_integrity"):
+		parts.append("+%d to Colony Integrity" % int(effect.colony_integrity))
+	if effect.has("colony_morale"):
+		parts.append("Increase Colony Morale by +%d" % int(effect.colony_morale))
+	if effect.has("research_points_per_turn"):
+		parts.append("Increase per campaign turn RP by +%d"
+				% int(effect.research_points_per_turn))
+	if effect.has("augmentation_points"):
+		parts.append("+%d Augmentation Point%s" % [int(effect.augmentation_points),
+				"" if int(effect.augmentation_points) == 1 else "s"])
+	match str(app.get("type", "")):
+		"building":
+			parts.append("Allows the %s to be built" % str(app.get("name", "")))
+		"milestone_building":
+			parts.append("Allows the %s to be built; it is one of the buildings that "
+					% str(app.get("name", "")) + "finish the campaign")
+		"milestone":
+			parts.append("Grants a Milestone (p.156)")
+		"weapon":
+			var w: Dictionary = _armory_weapon(str(app.get("unlocks_weapon", "")))
+			if not w.is_empty():
+				parts.append("New weapon: %s\" · %s · Dmg %+d" % [
+					DisplayTextRef.number(w.get("range", 0)),
+					DisplayTextRef.pluralize(w.get("shots", 0), "shot"),
+					int(w.get("damage", 0))])
+	if str(app.get("bonus", "")) != "":
+		parts.append(str(app.bonus))
+	return "; ".join(parts) + ("." if not parts.is_empty() else "")
+
+
+func _armory_weapon(weapon_id: String) -> Dictionary:
+	if weapon_id == "":
+		return {}
+	if _armory == null:
+		_armory = ArmoryScript.new()
+	return _armory.get_weapon(weapon_id)
+
+
+func _small_label(text: String, color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
 
 
 func _on_theory_selected(theory_id: String) -> void:
 	_selected_theory_id = theory_id
 	_show_theory_detail(theory_id)
+	# Stacked on a phone, the detail is below the whole list: bring it into view.
+	if _columns and _columns.vertical and _scroll:
+		_scroll.ensure_control_visible.call_deferred(_detail_container)
 
 
 func _show_theory_detail(theory_id: String) -> void:
@@ -242,13 +349,17 @@ func _show_theory_detail(theory_id: String) -> void:
 			var unlocked: bool = _research.is_application_unlocked(_campaign, aid)
 
 			var app_lbl := Label.new()
-			var status: String = "[UNLOCKED]" if unlocked else "[locked]"
-			app_lbl.text = "  %s (%s) %s" % [aname, atype, status]
-			app_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+			var status: String = "Discovered" if unlocked else "Not yet discovered"
+			app_lbl.text = "%s (%s): %s" % [aname, APPLICATION_KINDS.get(atype, atype), status]
+			app_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			app_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			app_lbl.add_theme_color_override(
 				"font_color",
-				COLOR_SUCCESS if unlocked else COLOR_TEXT_SECONDARY)
+				COLOR_SUCCESS if unlocked else COLOR_TEXT_PRIMARY)
 			_detail_container.add_child(app_lbl)
+			var effect: String = application_effect_text(app)
+			if not effect.is_empty():
+				_detail_container.add_child(_small_label(effect, COLOR_TEXT_SECONDARY))
 
 		# Research application button if theory completed
 		if completed:
@@ -258,11 +369,19 @@ func _show_theory_detail(theory_id: String) -> void:
 				var current_rp: int = _research.get_current_rp(_campaign)
 				if current_rp >= app_cost:
 					var app_btn := Button.new()
-					app_btn.text = "Research Application (%d RP)" % app_cost
-					app_btn.custom_minimum_size.y = 40
+					app_btn.text = "Research an Application (%d RP)" % app_cost
+					app_btn.custom_minimum_size.y = 48
 					app_btn.pressed.connect(
 						_on_research_app_pressed.bind(theory_id))
 					_detail_container.add_child(app_btn)
+					# It never said WHICH Application the points buy.
+					_detail_container.add_child(_small_label(
+						"The research produces one of the %d undiscovered Applications, picked " \
+						% available_apps.size() + "at random (p.93).", COLOR_TEXT_SECONDARY))
+				else:
+					_detail_container.add_child(_small_label(
+						"An Application costs %d RP; the colony has %d." % [app_cost, current_rp],
+						COLOR_WARNING))
 
 
 ## ============================================================================
@@ -275,7 +394,8 @@ func _on_invest_pressed(theory_id: String, amount: int) -> void:
 	if result.get("success", false):
 		_add_result_bbcode(
 			"[color=#10B981]Invested %d RP in %s.[/color]" % [
-				result.get("invested", 0), theory_id])
+				result.get("invested", 0),
+				str(_research.get_theory(theory_id).get("name", theory_id))])
 		if result.get("completed", false):
 			_add_result_bbcode(
 				"[color=#10B981]Theory completed! Applications now available.[/color]")

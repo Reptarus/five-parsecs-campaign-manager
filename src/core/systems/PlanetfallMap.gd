@@ -355,6 +355,12 @@ static func _pick(count: int, context: String) -> int:
 	return 0
 
 
+## The same forceable uniform pick, for another system's "randomly select" (p.93's
+## Research Applications: "Use any appropriate die type").
+static func pick_index(count: int, context: String) -> int:
+	return _pick(count, context)
+
+
 ## p.52: "if your grid is 8 x 10, you would roll a D8 and D10".
 static func random_sector(md: Dictionary) -> String:
 	return key(_die(rows(md), ROW_DIE) - 1, _die(cols(md), COL_DIE) - 1)
@@ -1040,6 +1046,49 @@ static func mission_sites(campaign: Resource, mission: Dictionary) -> Array:
 			if mission_id != "":
 				_add_sites(out, all_keys(md).filter(field))
 	return out
+
+
+## Why a mission cannot be played, by its Map Location. The page cited is the mission's
+## own (its Map Location entry), read from the mission data.
+const UNAVAILABLE_REASONS := {
+	"sector_marked_for_investigation": "No reachable sector is marked for Investigation",
+	"unexplored_sector": "No reachable sector is left unexplored",
+	"explored_not_exploited_sector": "No reachable sector is Explored and not yet Exploited",
+	"resource_value_1_or_more": "No reachable Explored sector has a Resource value of 1 or more",
+	"within_4_sectors_of_colony": "No reachable sector lies within 4 sectors of the colony",
+	"within_2_sectors_not_enemy_occupied": "No reachable sector lies within 2 sectors of the colony",
+	"within_3_sectors_of_colony": "Played only when this turn's Scout Discovery calls for a Rescue",
+	"any_unexplored_sector": "Played only when this turn's Scout Discovery downs a scout",
+	"colony_sector": "Played only when an enemy Attacks the colony",
+	"enemy_occupied_sector": "No Tactical Enemy holds a sector",
+	"adjacent_to_enemy_sector": "Needs a tracked Boss or this turn's enemy Patrol",
+	"enemy_strongpoint_located": "No enemy Strongpoint has been located",
+	"ancient_site_located": "No Ancient Site has been located",
+}
+
+
+## Whether a mission can be played this turn, why not, and where:
+## {available, reason, sites}. pp.64-65 tie each mission to its Map Location, and an
+## enemy Attack (p.62, "Play the Pitched Battle mission this campaign turn") leaves the
+## Pitched Battle as the turn's only mission.
+static func mission_availability(campaign: Resource, mission: Dictionary) -> Dictionary:
+	if campaign == null or not "map_data" in campaign:
+		return {"available": false, "reason": "The colony has no map yet.", "sites": []}
+	var mission_id: String = str(mission.get("id", ""))
+	var attack: Dictionary = campaign.get_mission_offer("pitched_battle") \
+			if campaign.has_method("get_mission_offer") else {}
+	if mission_id != "pitched_battle" and bool(attack.get("forced", false)):
+		return {"available": false, "sites": [], "reason":
+				"%s is attacking the colony: the Pitched Battle must be played this turn (p.62)."
+				% enemy_name(campaign, int(attack.get("enemy_index", -1)))}
+	var sites: Array = mission_sites(campaign, mission)
+	if not sites.is_empty():
+		return {"available": true, "reason": "", "sites": sites}
+	var why: String = str(UNAVAILABLE_REASONS.get(str(mission.get("map_requirement", "")),
+			"No sector on the map meets this mission's Map Location"))
+	var page: int = int(mission.get("page", 0))
+	return {"available": false, "sites": [],
+			"reason": "%s (p.%d)." % [why, page] if page > 0 else why + "."}
 
 
 static func _add_sites(out: Array, keys: Array) -> void:

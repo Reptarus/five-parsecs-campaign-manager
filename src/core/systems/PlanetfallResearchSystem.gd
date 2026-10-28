@@ -7,6 +7,12 @@ extends RefCounted
 ## Applications are randomly selected from unlocked theory's pool.
 ## Source: Planetfall pp.91-96
 
+## p.93: "randomly select from the Applications you have not yet discovered ... Use any
+## appropriate die type." PlanetfallMap.pick_index is that die (smallest that covers the
+## count, high rolls rerolled), forceable under this context.
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const APPLICATION_DIE := "Planetfall Research Application"
+
 var _theories: Array = []
 var _loaded: bool = false
 
@@ -113,6 +119,23 @@ func get_available_applications(
 	return result
 
 
+## The Application that unlocks `building_id` (p.93 "(Building)"), with its Theory's
+## name added as `theory_name`; {} when no Application does.
+func application_for_building(building_id: String) -> Dictionary:
+	if building_id == "":
+		return {}
+	for theory in _theories:
+		if theory is not Dictionary:
+			continue
+		for app in theory.get("applications", []):
+			if app is Dictionary and str(app.get("unlocks_building", "")) == building_id:
+				var found: Dictionary = (app as Dictionary).duplicate(true)
+				found["theory_id"] = str(theory.get("id", ""))
+				found["theory_name"] = str(theory.get("name", ""))
+				return found
+	return {}
+
+
 func get_current_rp(campaign: Resource) -> int:
 	var rd: Dictionary = _get_research_data(campaign)
 	return rd.get("current_rp", 0)
@@ -189,8 +212,9 @@ func research_application(
 	var rd: Dictionary = _get_research_data(campaign)
 	rd["current_rp"] = current_rp - app_cost
 
-	# Randomly select application
-	var app: Dictionary = available[randi_range(0, available.size() - 1)]
+	# p.93: randomly select from the undiscovered Applications. It was a raw randi_range,
+	# which no QA seam could force.
+	var app: Dictionary = available[MapScript.pick_index(available.size(), APPLICATION_DIE)]
 	var aid: String = app.get("id", "")
 
 	if not rd.has("unlocked_applications"):

@@ -116,6 +116,11 @@ func invest_bp(
 	var current_bp: int = bd.get("current_bp", 0)
 	if current_bp < bp_amount:
 		return {"success": false, "error": "Not enough BP"}
+	# p.97: "You can only put BP towards a single Building per campaign turn."
+	var other: String = building_invested_this_turn(campaign)
+	if other != "" and other != building_id:
+		return {"success": false, "error": "BP already went to %s this turn (p.97)." % str(
+				get_building(other).get("name", other))}
 
 	var bp_cost: int = building.get("bp_cost", 0)
 	var in_progress: Dictionary = bd.get("in_progress", {})
@@ -128,6 +133,8 @@ func invest_bp(
 
 	# Deduct BP
 	bd["current_bp"] = current_bp - invest
+	bd["invested_turn"] = _turn(campaign)
+	bd["invested_building"] = building_id
 
 	# Update in-progress
 	if not bd.has("in_progress"):
@@ -151,20 +158,68 @@ func invest_bp(
 	}
 
 
+## p.98: "convert 1 unit of Raw Materials into 1 BP, with up to 3 units converted per
+## round". The cap was per CALL, so pressing Convert again moved three more.
+const MAX_CONVERT_PER_TURN := 3
+
+
 func convert_rm_to_bp(
 		campaign: Resource, rm_amount: int) -> int:
 	## Convert Raw Materials to Build Points (max 3 per turn).
 	## Returns actual BP gained.
-	var max_convert: int = 3
-	var actual: int = mini(rm_amount, max_convert)
-	if not campaign or not campaign.has_method("spend_raw_materials"):
+	var actual: int = mini(rm_amount, convertible_this_turn(campaign))
+	if actual <= 0 or not campaign or not campaign.has_method("spend_raw_materials"):
 		return 0
 	if not campaign.spend_raw_materials(actual):
 		return 0
 	var bd: Dictionary = _get_buildings_data(campaign)
 	bd["current_bp"] = bd.get("current_bp", 0) + actual
+	var turn: int = _turn(campaign)
+	var before: int = int(bd.get("converted_count", 0)) \
+			if int(bd.get("converted_turn", -1)) == turn else 0
+	bd["converted_turn"] = turn
+	bd["converted_count"] = before + actual
 	_set_buildings_data(campaign, bd)
 	return actual
+
+
+## How many Raw Materials may still become BP this turn: the p.98 cap less what was
+## converted, and never more than the colony holds.
+func convertible_this_turn(campaign: Resource) -> int:
+	var bd: Dictionary = _get_buildings_data(campaign)
+	var used: int = int(bd.get("converted_count", 0)) \
+			if int(bd.get("converted_turn", -1)) == _turn(campaign) else 0
+	var held: int = int(campaign.raw_materials) \
+			if campaign and "raw_materials" in campaign else 0
+	return clampi(mini(MAX_CONVERT_PER_TURN - used, held), 0, MAX_CONVERT_PER_TURN)
+
+
+## The Building that received BP this turn, or "" (p.97: one per campaign turn).
+func building_invested_this_turn(campaign: Resource) -> String:
+	var bd: Dictionary = _get_buildings_data(campaign)
+	if int(bd.get("invested_turn", -1)) != _turn(campaign):
+		return ""
+	return str(bd.get("invested_building", ""))
+
+
+## The Building reclaimed this turn, or "" (p.98: "reclaim a single building").
+func building_reclaimed_this_turn(campaign: Resource) -> String:
+	var bd: Dictionary = _get_buildings_data(campaign)
+	if int(bd.get("reclaimed_turn", -1)) != _turn(campaign):
+		return ""
+	return str(bd.get("reclaimed_building", ""))
+
+
+## Standing benefits a reclaimed Building takes with it. One-time grants (Morale,
+## Story Points, Augmentation Points, the Integrity raise, a Milestone) were spent when
+## it was built and stay; Roster slots are summed over the constructed list, so they
+## leave on their own.
+const STANDING_EFFECTS := {
+	"colony_defenses": "colony_defenses",
+	"mitigate_colony_damage": "colony_damage_mitigation",
+	"repair_capacity": "repair_capacity",
+	"build_points_per_turn": "build_points_per_turn",
+	"research_points_per_turn": "research_points_per_turn"}
 
 
 func reclaim_building(
@@ -172,6 +227,10 @@ func reclaim_building(
 	## Destroy a building, receive half BP cost (rounded down) as Raw Materials.
 	if not is_constructed(campaign, building_id):
 		return {"success": false, "error": "Not constructed"}
+	var already: String = building_reclaimed_this_turn(campaign)
+	if already != "":
+		return {"success": false, "error": "%s was already reclaimed this turn (p.98)." % str(
+				get_building(already).get("name", already))}
 	var building: Dictionary = get_building(building_id)
 	var rm_gained: int = building.get("bp_cost", 0) / 2
 
@@ -179,12 +238,48 @@ func reclaim_building(
 	var constructed: Array = bd.get("constructed", [])
 	constructed.erase(building_id)
 	bd["constructed"] = constructed
+	bd["reclaimed_turn"] = _turn(campaign)
+	bd["reclaimed_building"] = building_id
 	_set_buildings_data(campaign, bd)
+
+	# "The building is destroyed": a destroyed Heavy Construction Site kept paying +1 BP
+	# every turn, and a destroyed shield kept its Defenses.
+	var effect: Dictionary = building.get("effect", {})
+	for key in STANDING_EFFECTS:
+		var field: String = STANDING_EFFECTS[key]
+		if effect.has(key) and field in campaign:
+			campaign.set(field, maxi(int(campaign.get(field)) - int(effect[key]), 0))
 
 	if campaign.has_method("add_raw_materials"):
 		campaign.add_raw_materials(rm_gained)
 
 	return {"success": true, "raw_materials_gained": rm_gained}
+
+
+## Why a Building cannot be started yet, in the book's terms; "" when it can.
+func locked_reason(campaign: Resource, building: Dictionary,
+		research_system: RefCounted) -> String:
+	var needs: Array[String] = []
+	var app: Dictionary = research_system.application_for_building(
+			str(building.get("id", ""))) \
+			if research_system and research_system.has_method("application_for_building") \
+			else {}
+	if not app.is_empty() and not research_system.is_application_unlocked(
+			campaign, str(app.get("id", ""))):
+		needs.append("the %s Application (%s research, p.93)" % [
+				str(app.get("name", "")), str(app.get("theory_name", ""))])
+	var prereq: String = str(building.get("prerequisite", "")) \
+			if building.get("prerequisite") != null else ""
+	if prereq.ends_with("_built") and not is_constructed(campaign, prereq.trim_suffix("_built")):
+		needs.append("the %s built" % str(
+				get_building(prereq.trim_suffix("_built")).get("name", prereq)))
+	if needs.is_empty() and not _check_prerequisite(campaign, building, research_system):
+		needs.append(prereq.replace("_", " ").capitalize())
+	return "" if needs.is_empty() else "Needs %s." % " and ".join(needs)
+
+
+static func _turn(campaign: Resource) -> int:
+	return int(campaign.campaign_turn) if campaign and "campaign_turn" in campaign else 0
 
 
 ## ============================================================================
@@ -247,6 +342,21 @@ func _check_prerequisite(
 		return true
 
 	var prereq_str: String = str(prereq)
+
+	# p.93: "(Building) allows a new building to be constructed", and p.98 lists the
+	# "prerequisite research applications that must have been completed". The table's
+	# column prints the Theory the Application sits under, and a completed Theory alone
+	# used to open EVERY Building in its field, Milestone Buildings included, skipping the
+	# random Application draw. A Building that an Application unlocks needs that
+	# Application; p.100's High-tech plant also needs the Advanced Manufacturing Plant.
+	if research_system and research_system.has_method("application_for_building"):
+		var app: Dictionary = research_system.application_for_building(
+				str(building.get("id", "")))
+		if not app.is_empty():
+			if not research_system.is_application_unlocked(campaign, str(app.get("id", ""))):
+				return false
+			if not prereq_str.ends_with("_built"):
+				return true
 
 	# Special case: "advanced_manufacturing_plant_built" means the building
 	if prereq_str.ends_with("_built"):

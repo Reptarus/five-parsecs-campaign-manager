@@ -44,6 +44,7 @@ const LifeformGenScript := preload(
 	"res://src/core/systems/PlanetfallLifeformGenerator.gd")
 const TacticalEnemyGenScript := preload(
 	"res://src/core/systems/PlanetfallTacticalEnemyGenerator.gd")
+const ArmoryScript := preload("res://src/core/systems/PlanetfallArmorySystem.gd")
 
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
@@ -72,7 +73,9 @@ var _advance_button: Button
 var _footer_reason: Label
 var _save_button: Button
 var _dashboard_button: Button
-var _top_row: HBoxContainer
+var _top_row: BoxContainer
+## Save + Dashboard, kept side by side when the header stacks on a phone.
+var _top_buttons: HBoxContainer
 var _panel_container: Control
 var _phase_scroll: ScrollContainer
 var _phase_indicator_box: HBoxContainer
@@ -236,9 +239,11 @@ func _build_layout() -> void:
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 	margin.add_child(vbox)
 
-	# Top row: Turn label + Save button (BoxContainer so portrait can stack it
-	# vertically — see _apply_topbar_responsive()).
-	_top_row = HBoxContainer.new()
+	# Top row: Turn label + the two buttons. A BoxContainer so portrait can stack it --
+	# see _apply_topbar_responsive(). It was built as an HBoxContainer under this same
+	# comment, so `vertical = true` raised "Can't change orientation of HBoxContainer"
+	# and the phone header never stacked.
+	_top_row = BoxContainer.new()
 	_top_row.add_theme_constant_override("separation", SPACING_MD)
 	vbox.add_child(_top_row)
 
@@ -249,17 +254,21 @@ func _build_layout() -> void:
 	_turn_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_top_row.add_child(_turn_label)
 
+	_top_buttons = HBoxContainer.new()
+	_top_buttons.add_theme_constant_override("separation", SPACING_MD)
+	_top_row.add_child(_top_buttons)
+
 	_save_button = Button.new()
 	_save_button.text = "Save"
 	_save_button.custom_minimum_size = Vector2(80, 36)
 	_save_button.pressed.connect(_on_save_pressed)
-	_top_row.add_child(_save_button)
+	_top_buttons.add_child(_save_button)
 
 	_dashboard_button = Button.new()
 	_dashboard_button.text = "Dashboard"
 	_dashboard_button.custom_minimum_size = Vector2(100, 36)
 	_dashboard_button.pressed.connect(func(): _navigate("planetfall_dashboard"))
-	_top_row.add_child(_dashboard_button)
+	_top_buttons.add_child(_dashboard_button)
 
 	# Colony stat strip
 	_stat_strip = HFlowContainer.new()
@@ -375,6 +384,7 @@ func _apply_topbar_responsive() -> void:
 		# buttons onto one cramped line.
 		_top_row.vertical = true
 		_top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		_top_buttons.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if is_instance_valid(_turn_label):
 			_turn_label.size_flags_horizontal = Control.SIZE_FILL
 		# Touch-friendly buttons, full-width so they are easy to hit on a phone.
@@ -389,6 +399,7 @@ func _apply_topbar_responsive() -> void:
 		# Restore the original landscape shape exactly.
 		_top_row.vertical = false
 		_top_row.alignment = BoxContainer.ALIGNMENT_BEGIN
+		_top_buttons.size_flags_horizontal = Control.SIZE_FILL
 		if is_instance_valid(_turn_label):
 			_turn_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		if is_instance_valid(_save_button):
@@ -690,9 +701,10 @@ func _on_panel_phase_completed(result_data: Dictionary) -> void:
 
 func _on_advance_pressed() -> void:
 	if phase_manager.current_phase == PlanetfallPhaseManagerScript.Phase.NONE:
-		# Between turns — start new turn
+		# Between turns — start new turn. start_new_turn() reaches _on_phase_changed and
+		# _refresh_footer() synchronously, so Step 1 has already set the footer; a
+		# "Complete Phase" written here overwrote it on every new turn.
 		phase_manager.start_new_turn()
-		_advance_button.text = "Complete Phase"
 		return
 
 	# Let the panel handle its own completion
@@ -904,9 +916,7 @@ func _on_endgame_continue() -> void:
 	if is_instance_valid(_endgame_panel):
 		_endgame_panel.queue_free()
 	_endgame_panel = null
-	if _advance_button:
-		_advance_button.visible = true
-		_advance_button.text = "Complete Phase"
+	# The new turn's Step 1 sets the footer (_refresh_footer) as start_new_turn() runs.
 	phase_manager.start_new_turn()
 
 
@@ -954,6 +964,7 @@ func build_battle_payload() -> Dictionary:
 	# Build crew array from deployed characters
 	var crew: Array = []
 	var deployed_chars: Dictionary = _deployed_data.get("deployed_characters", {})
+	var armory := ArmoryScript.new()
 	if "roster" in campaign:
 		for char_dict in campaign.roster:
 			if char_dict is Dictionary:
@@ -962,7 +973,14 @@ func build_battle_payload() -> Dictionary:
 					var deployed_entry: Dictionary = deployed_chars[cid]
 					var crew_entry: Dictionary = char_dict.duplicate(true)
 					# Attach weapon assignment from Lock and Load
-					crew_entry["assigned_weapon"] = deployed_entry.get("weapon_id", "")
+					var wid: String = str(deployed_entry.get("weapon_id", ""))
+					crew_entry["assigned_weapon"] = wid
+					# The battle screen's quick roll reads a figure's `weapons` ROWS (range,
+					# shots, damage, traits); the bare id reached nothing, so every Planetfall
+					# shot fell back to a rifle.
+					var weapon: Dictionary = armory.get_weapon(wid) if wid != "" else {}
+					if not weapon.is_empty():
+						crew_entry["weapons"] = [weapon]
 					crew.append(crew_entry)
 
 	# The opposition, rolled now that Lock and Load is done (pp.117/121/125: "After
@@ -1008,6 +1026,9 @@ func build_battle_payload() -> Dictionary:
 		"tactical_enemy_index": te_index,
 		"grunts_deployed": int(_deployed_data.get("grunts_deployed", 0)),
 		"deployed_ids": deployed_ids,
+		# The Map Location sector picked at Step 6 (pp.115-130); Step 12's
+		# PlanetfallMap.apply_mission_factors() applies the mission's Campaign Factors to it.
+		"sector": str(_mission_context.get("sector", "")),
 	}
 	var battle_context: Dictionary = {
 		"crew": crew,
@@ -1024,6 +1045,11 @@ func build_battle_payload() -> Dictionary:
 func _battle_tactical_enemy_index() -> int:
 	if not campaign or not "tactical_enemies" in campaign:
 		return -1
+	# A Skirmish, Strike, Assault or Pitched Battle is fought against the enemy its
+	# sector names (pp.123-128), not whichever enemy happens to be listed first.
+	var site_idx: int = int(_mission_context.get("site_enemy_index", -1))
+	if site_idx >= 0 and site_idx < campaign.tactical_enemies.size():
+		return site_idx
 	for i in range(campaign.tactical_enemies.size()):
 		var te: Variant = campaign.tactical_enemies[i]
 		if te is Dictionary and not te.get("defeated", false):

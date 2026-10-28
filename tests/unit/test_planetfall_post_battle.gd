@@ -283,11 +283,12 @@ func test_a_broken_bot_and_a_just_repaired_bot_stay_off_the_table() -> void:
 	panel.set_campaign(core)
 	panel.set_mission_context({"selected_mission": {"id": "patrol"}})
 	panel.refresh()
-	var bot_row: HBoxContainer = null
+	var bot_row: BoxContainer = null
 	# The name is the deploy CheckBox's own text (child 0), so the whole name is the tap
-	# target; it used to sit in a separate Label at child 1.
-	for row in panel._roster_container.get_children():
-		if row is HBoxContainer and row.get_child_count() > 0 \
+	# target; it used to sit in a separate Label at child 1. Rows are BoxContainers that
+	# stack on a phone, listed in _rows.
+	for row in panel._rows:
+		if row.get_child_count() > 0 \
 				and row.get_child(0) is CheckBox \
 				and (row.get_child(0) as CheckBox).text.begins_with("Bolt"):
 			bot_row = row
@@ -298,7 +299,46 @@ func test_a_broken_bot_and_a_just_repaired_bot_stay_off_the_table() -> void:
 	assert_str(core.deployment_block_reason("b1", "patrol")).is_equal("")
 
 
+## Step 9 with nothing that can reach the Injury table names the press for what it does:
+## it records the debrief. It read "Roll Injuries" over "0 to roll on the Injury table".
+func test_step_9_with_no_casualty_records_the_debrief() -> void:
+	var core := _core()
+	var pm := _pm(core)
+	pm.stamp_mission(_stamp({"grunts_deployed": 0}))
+	pm.set_battle_result(_played(core, []))
+	var panel := _post_battle(core, pm)
+	panel.refresh()
+	assert_str(panel._action_btn.text).is_equal("Record the Debrief")
+	var with_grunts := _pm(core)
+	with_grunts.stamp_mission(_stamp())
+	with_grunts.set_battle_result(_played(core, []))
+	var rolled := _post_battle(core, with_grunts)
+	rolled.refresh()
+	assert_str(rolled._action_btn.text).override_failure_message(
+		"two grunts went in, so the press may roll for them (p.66)").is_equal("Roll Injuries")
+
+
 # ── Step 10 (p.67) ────────────────────────────────────────────────────────────────
+
+## Step 10's preview is the p.67 Mission XP table the award reads; it was a literal
+## beside a second hand-copied copy in the award.
+func test_step_10_shows_the_mission_xp_table_it_awards() -> void:
+	var xp_rows: Dictionary = PostBattlePanel.MISSION_XP
+	assert_int(xp_rows.size()).override_failure_message("p.67 has three rows").is_equal(3)
+	for key in xp_rows:
+		assert_int(int(xp_rows[key].xp)).override_failure_message("p.67: +1 each").is_equal(1)
+	var core := _core()
+	var pm := _pm(core)
+	pm.stamp_mission(_stamp())
+	pm.set_battle_result(_played(core, []))
+	var panel := _post_battle(core, pm)
+	panel.refresh()
+	panel._transition_to_sub_step(panel.SubStep.EXPERIENCE, "STEP 10", "", "Award XP")
+	var shown := ""
+	for n in panel._content_vbox.find_children("*", "RichTextLabel", true, false):
+		shown += (n as RichTextLabel).text + "\n"
+	assert_str(shown).contains("Mission XP (p.67): +1 participated in the battle, "
+			+ "+1 did not become a casualty, +1 directly killed an enemy Boss or Leader")
 
 func test_cowardice_forfeits_the_battles_xp() -> void:
 	var core := _core()
