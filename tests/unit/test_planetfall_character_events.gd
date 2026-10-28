@@ -130,10 +130,12 @@ func _loyalty(core: Resource, cid: String) -> String:
 	return str(core.get_roster_character_by_id(cid).get("loyalty", "")).to_lower()
 
 
+## A roster row's text. On Lock and Load the name is the deploy CheckBox's own text
+## (Sprint U made the whole name the tap target), so Buttons are read as well as Labels.
 func _row_text(panel: Control, cid_name: String) -> String:
-	for n in panel.find_children("*", "Label", true, false):
-		if (n as Label).text.begins_with(cid_name):
-			return (n as Label).text
+	for n in panel.find_children("*", "", true, false):
+		if (n is Label or n is Button) and str(n.text).begins_with(cid_name):
+			return str(n.text)
 	return ""
 
 
@@ -449,8 +451,8 @@ func test_an_accepted_change_of_assignment_transfers_the_character() -> void:
 	var dlg := _dialog(core, pm)
 	_force("Planetfall Step 17 Event", [28])
 	dlg.complete()
-	assert_bool(dlg._continue_btn.disabled) \
-		.override_failure_message("the step waits for the player's answer").is_true()
+	assert_bool(dlg.step_status().ready) \
+		.override_failure_message("the step waits for the player's answer").is_false()
 	dlg._decide_assignment(dlg._assignment_choices[0], true)
 	var paths: Array = dlg._result_data.get("transfers", [])
 	_transfers.append_array(paths)

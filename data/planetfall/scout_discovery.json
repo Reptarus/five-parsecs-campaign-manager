@@ -1,0 +1,22 @@
+{
+  "_source": "Five Parsecs: Planetfall p.59, Scout Discovery table (D100). Text verbatim from docs/rules/planetfall_source.txt === PAGE 61 ===.",
+  "_notes": "Replaces the inline table PlanetfallScoutReportsPanel carried until 2026-10-28. 'effect' is the machine-readable id PlanetfallMap.apply_discovery() acts on; 'scout_xp' is the +2 XP the page grants an assigned scout.",
+  "entries": [
+    {"min": 1, "max": 10, "effect": "none", "name": "Routine trip",
+     "description": "The scouts find nothing at all."},
+    {"min": 11, "max": 20, "effect": "good_practice", "scout_xp": 2, "name": "Good practice",
+     "description": "The scouts find nothing, but it is a good opportunity to rehearse the basics. If a scout was assigned, they receive +2 XP."},
+    {"min": 21, "max": 25, "effect": "sos_signal", "morale_if_declined": -3, "name": "SOS signal",
+     "description": "The scouts report a distress signal. This campaign turn you have the choice of playing a Rescue Mission. If you do not, Colony Morale drops by -3. Note: You do NOT suffer Morale loss from casualties sustained in this mission."},
+    {"min": 26, "max": 30, "effect": "scout_down", "scout_xp": 2, "dedication_morale": 1, "name": "Scout Down!",
+     "description": "The scout vehicle crashes. If you assigned a scout, they need rescue. You can opt to have them escape on foot. If so, they must roll on the post-battle injury table but earn +2 XP if they survive, or you can play the Scout Down! mission this turn to rescue them. If you did not assign a scout, the crash left no survivors. (If you would really like to play the mission, go ahead and do so this turn. You get +1 Colony Morale for your dedication)."},
+    {"min": 31, "max": 60, "effect": "exploration_report", "name": "Exploration report",
+     "description": "Select any sector that has not yet been Explored and generate Resource and Hazard levels."},
+    {"min": 61, "max": 70, "effect": "recon_patrol", "enemy_information": 1, "name": "Recon patrol",
+     "description": "If there are Tactical Enemies on the map, select one and add an Enemy Information for them. If there are currently no Tactical Enemies present, treat this as no event."},
+    {"min": 71, "max": 80, "effect": "ancient_sign", "name": "Ancient Sign",
+     "description": "Randomly select a map sector, then mark that it has an Ancient Sign within it. Completing any mission in the sector awards the Ancient Sign."},
+    {"min": 81, "max": 100, "effect": "revised_survey", "name": "Revised survey",
+     "description": "Randomly pick a map sector. If it is not yet Explored, generate Resource and Hazard levels normally. If it is Explored but not yet Exploited, increase the Resource level by +1. If it has already been Exploited, generate new Resource and Hazard levels. You can Exploit it again."}
+  ]
+}

@@ -1,15 +1,21 @@
 extends Control
 
-## Planetfall Creation Step 1: Expedition Type
-## Player rolls D100 to determine their colonization agenda.
-## Displays the result with description and starting bonus.
+## Planetfall Creation Step 1: Expedition Type (p.52, "Determining Your Colonization
+## Agenda"): "Roll D100 on the Expedition Type table to determine why you are out here to
+## begin with." One roll, through DiceManager so the QA seam can force a row.
+##
+## Until 2026-10-28 the button turned into "Re-roll D100 (Story Point)" after the first
+## roll and re-rolled for nothing: p.52 offers no re-roll, and there is no colony yet to
+## pay a Story Point from. The roll also had no context, so no row could be forced.
 
 signal expedition_updated(data: Dictionary)
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_BORDER := UIColors.COLOR_BORDER
+const EXPEDITION_DIE := "Planetfall Expedition Type"
 
 var _coordinator = null
 var _rolled: bool = false
@@ -17,7 +23,7 @@ var _expedition_data: Dictionary = {}
 var _name_input: LineEdit
 var _colony_input: LineEdit
 var _roll_button: Button
-var _result_label: RichTextLabel
+var _result_box: VBoxContainer
 var _content: VBoxContainer
 
 
@@ -86,18 +92,16 @@ func _build_ui() -> void:
 	_content.add_child(exp_desc)
 
 	_roll_button = Button.new()
-	_roll_button.text = "Roll D100 — Expedition Type"
+	_roll_button.text = "Roll D100: Expedition Type"
 	_roll_button.custom_minimum_size = Vector2(0, 56)
 	_roll_button.pressed.connect(_on_roll_pressed)
 	_content.add_child(_roll_button)
 
-	_result_label = RichTextLabel.new()
-	_result_label.bbcode_enabled = true
-	_result_label.fit_content = true
-	_result_label.custom_minimum_size = Vector2(0, 80)
-	_result_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(16))
-	_result_label.visible = false
-	_content.add_child(_result_label)
+	_result_box = VBoxContainer.new()
+	_result_box.add_theme_constant_override("separation", 6)
+	_result_box.visible = false
+	_content.add_child(_result_box)
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 func _on_name_changed(new_text: String) -> void:
@@ -111,12 +115,10 @@ func _on_colony_changed(new_text: String) -> void:
 
 
 func _on_roll_pressed() -> void:
+	if _rolled:
+		return
 	var dice := get_node_or_null("/root/DiceManager")
-	var roll: int
-	if dice and dice.has_method("roll_d100"):
-		roll = dice.roll_d100()
-	else:
-		roll = randi_range(1, 100)
+	var roll: int = int(dice.roll_d100(EXPEDITION_DIE)) if dice else randi_range(1, 100)
 
 	# Load expedition types from JSON
 	var entry := _lookup_expedition(roll)
@@ -127,23 +129,30 @@ func _on_roll_pressed() -> void:
 	_expedition_data["expedition_type"] = entry.get("type", "")
 	_expedition_data["expedition_roll"] = roll
 
-	# Display result
-	var type_name: String = entry.get("type", "Unknown")
-	var desc: String = entry.get("description", "")
-	var effect: String = entry.get("effect", "")
+	for child in _result_box.get_children():
+		child.queue_free()
+	_result_box.add_child(_result_line("D100 %d: %s" % [roll, str(entry.get("type", ""))],
+			UIColors.COLOR_CYAN, 18))
+	_result_box.add_child(_result_line(str(entry.get("description", "")),
+			UIColorsRef.COLOR_TEXT_PRIMARY, 15))
+	_result_box.add_child(_result_line(str(entry.get("effect", "")), UIColors.COLOR_EMERALD, 15))
+	_result_box.visible = true
 
-	_result_label.text = ""
-	_result_label.append_text("[b]Rolled: %d[/b]\n" % roll)
-	_result_label.append_text("[color=#4FC3F7][b]%s[/b][/color]\n" % type_name)
-	_result_label.append_text("%s\n\n" % desc)
-	_result_label.append_text("[color=#10B981]%s[/color]" % effect)
-	_result_label.visible = true
-
-	_roll_button.text = "Re-roll D100 (Story Point)"
-	_roll_button.pivot_offset = _roll_button.size / 2
-	TweenFX.pop_in(_result_label, 0.3)
+	_roll_button.text = "Expedition rolled"
+	_roll_button.disabled = true
+	_result_box.pivot_offset = _result_box.size / 2
+	TweenFX.pop_in(_result_box, 0.3)
 
 	_emit_update()
+
+
+func _result_line(text: String, color: Color, size: int) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
 
 
 func _lookup_expedition(roll: int) -> Dictionary:

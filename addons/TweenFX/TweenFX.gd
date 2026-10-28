@@ -315,7 +315,7 @@ func glow_pulse(node: CanvasItem, duration: float = 1.2, scale_amt: float = 0.05
 	tween.parallel().tween_property(node, "modulate:a", original_alpha * (1.0 - alpha_amt), duration * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(node, "scale", original_scale, duration * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.parallel().tween_property(node, "modulate:a", original_alpha, duration * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	TweenManager.track(node, Animations.GLOW_PULSE, tween)
+	TweenManager.track(node, Animations.GLOW_PULSE, tween, {"scale": original_scale, "modulate:a": original_alpha})
 	return tween
 
 ## Rotates a bit while doing a mini-hop. Good for idle feedback.
@@ -410,7 +410,7 @@ func breathe(node: CanvasItem, duration: float = 3.0, strength: float = 0.1) -> 
 	tween.set_loops()
 	tween.tween_property(node, "scale", original_scale * (1.0 + strength), duration * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(node, "scale", original_scale, duration * 0.5).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	TweenManager.track(node, Animations.BREATHE, tween)
+	TweenManager.track(node, Animations.BREATHE, tween, {"scale": original_scale})
 	return tween
 
 ## Slowly fades to low alpha and back, ethereal feel.
@@ -800,7 +800,7 @@ func pop_in(node: CanvasItem, duration: float = 0.3, overshoot: float = 0.1) -> 
 	tween.tween_property(node, "scale", original_scale * (1.0 + overshoot), duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(node, "scale", original_scale, duration * 0.33)
 	tween.parallel().tween_property(node, "modulate:a", original_alpha, duration * 0.66)
-	TweenManager.track(node, Animations.POP_IN, tween)
+	TweenManager.track(node, Animations.POP_IN, tween, {"scale": original_scale, "modulate:a": original_alpha})
 	return tween
 
 ## Scales out to zero with a slight pull in before vanishing.
@@ -841,7 +841,7 @@ func punch_in(node: CanvasItem, duration: float = 0.15, strength: float = 0.3) -
 	var tween := node.get_tree().create_tween()
 	tween.tween_property(node, "scale", original_scale * (1 + strength), duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(node, "scale", original_scale, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	TweenManager.track(node, Animations.PUNCH_IN, tween)
+	TweenManager.track(node, Animations.PUNCH_IN, tween, {"scale": original_scale})
 	return tween
 
 ## Moves the node back and forth rapidly.
@@ -1011,7 +1011,7 @@ func fold_in(node: CanvasItem, duration: float = 0.3) -> Tween:
 	node.scale.y = 0.0
 	var tween := node.get_tree().create_tween()
 	tween.tween_property(node, "scale:y", original_scale.y, duration).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	TweenManager.track(node, Animations.FOLD_IN, tween)
+	TweenManager.track(node, Animations.FOLD_IN, tween, {"scale:y": original_scale.y})
 	return tween
 
 ## Folds the node away by scaling Y to 0.
@@ -1058,7 +1058,7 @@ func press(node: CanvasItem, duration: float = 0.3) -> Tween:
 	tween.tween_property(node, "scale", original_scale * 0.8, duration * 0.24).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	tween.tween_property(node, "scale", original_scale * 1.1, duration * 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tween.tween_property(node, "scale", original_scale, duration * 0.30).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-	TweenManager.track(node, Animations.PRESS, tween)
+	TweenManager.track(node, Animations.PRESS, tween, {"scale": original_scale})
 	return tween
 
 ## Scale + rotation wiggle on press.

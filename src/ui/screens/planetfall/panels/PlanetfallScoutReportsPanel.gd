@@ -1,49 +1,64 @@
 class_name PlanetfallScoutReportsPanel
 extends Control
 
-## Step 3: Scout Reports — Scout Explore action + Scout Discovery roll.
-## Player selects a scout character and target sector, then resolves exploration.
-## Source: Planetfall pp.59-60
+## Step 3: Scout Reports (Planetfall pp.59-61), in the book's order:
+##   1. Scout Explore: "one Scout Explore action" on a sector the player picks on the map.
+##   2. Scout Discovery (optional): a D100 roll, led by a scout if the player assigns one.
+##   3. Process Enemy Information: a 1D6 per enemy against its Enemy Information.
+## The phase manager resolves and records every part (scout_explore, scout_discovery_roll,
+## scout_discovery_apply, scout_enemy_information); this screen shows the map, asks for
+## the picks and renders the receipt, so a resumed turn shows what was rolled.
+##
+## Until 2026-10-28 this screen rolled its own dice, showed no map, told the player to
+## "mark these values on your colony map" and wrote nothing, and it carried its own copy
+## of the Discovery table whose results were never applied.
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
-const PlanetfallEventResolverScript := preload(
-	"res://src/core/systems/PlanetfallEventResolver.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const SectorGridScript := preload("res://src/ui/screens/planetfall/panels/PlanetfallSectorGrid.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
-const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
-const COLOR_BORDER := UIColors.COLOR_BORDER
-const COLOR_ACCENT := UIColors.COLOR_BLUE
+const COLOR_ACCENT := UIColors.COLOR_CYAN
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
-const COLOR_WARNING := UIColors.COLOR_AMBER
-const COLOR_DANGER := UIColors.COLOR_RED
-const COLOR_CYAN := UIColors.COLOR_CYAN
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
+const TOUCH_TARGET_MIN := 48
 
 var _campaign: Resource
 var _phase_manager: Node
-var _resolver: PlanetfallEventResolverScript
-var _explore_done: bool = false
-var _discovery_done: bool = false
-var _result_data: Dictionary = {}
+## The sector the player has tapped and not yet confirmed, for Explore or an
+## Exploration report.
+var _pending_sector: String = ""
 
 var _title_label: Label
-var _content_vbox: VBoxContainer
-var _result_container: VBoxContainer
+var _grid: Control
+var _map_hint: Label
 var _explore_btn: Button
-var _discovery_btn: Button
-var _continue_btn: Button
+var _explore_result: VBoxContainer
 var _scout_select: OptionButton
+var _discovery_btn: Button
+## Why a button is disabled, under it: a phone has no hover for a tooltip, and a
+## longer button label would be wider than a phone (an unwrapped Button's text is its
+## minimum width).
+var _discovery_why: Label
+var _intel_why: Label
+var _discovery_result: VBoxContainer
+var _choice_box: VBoxContainer
+var _intel_btn: Button
+var _intel_result: VBoxContainer
 
 
 func _ready() -> void:
-	_resolver = PlanetfallEventResolverScript.new()
 	_build_ui()
 
 
@@ -60,34 +75,48 @@ func set_phase_manager(pm: Node) -> void:
 
 
 func refresh() -> void:
-	_explore_done = false
-	_discovery_done = false
-	_result_data = {}
-	_clear_container(_content_vbox)
-	_clear_container(_result_container)
-
-	if _title_label:
-		_title_label.text = "STEP 3: SCOUT REPORTS"
-	if _explore_btn:
-		_explore_btn.visible = true
-		_explore_btn.disabled = false
-	if _discovery_btn:
-		_discovery_btn.visible = true
-		_discovery_btn.disabled = false
-	if _continue_btn:
-		_continue_btn.visible = false
-
-	_build_scout_info()
+	_pending_sector = ""
+	if _campaign:
+		MapScript.ensure_map(_campaign)
 	_populate_scout_select()
+	_render()
+
+
+## Resolve whatever is left with the defaults: explore the first sector the rules allow,
+## skip the optional Discovery, process Enemy Information, then complete.
+## What the turn screen's footer shows for this step: {ready, reason}. Ready once
+## Enemy Information is processed; until then the reason names the part still to do.
+## The step used to carry its own "Continue to Step 4" button at the bottom of the
+## scroll, beside a footer "Complete Phase" that was disabled on every step.
+func step_status() -> Dictionary:
+	var status: Dictionary = {"ready": false, "reason": ""}
+	if not _phase_manager or not _campaign:
+		status.ready = true
+		return status
+	var receipt: Dictionary = _phase_manager.scout_receipt()
+	if receipt.has("enemy_information"):
+		status.ready = true
+	elif not _explore_settled(receipt):
+		status.reason = "Explore a sector first (part 1)."
+	elif _picking_report(receipt):
+		status.reason = "Tap the sector for the Exploration Report first (part 2)."
+	else:
+		status.reason = "Process Enemy Information to finish this step (part 3)."
+	return status
 
 
 func complete() -> void:
-	if not _explore_done:
-		_on_explore_pressed()
-	elif not _discovery_done:
-		_on_discovery_pressed()
-	else:
-		_on_continue_pressed()
+	if not _phase_manager or not _campaign:
+		phase_completed.emit({})
+		return
+	var receipt: Dictionary = _phase_manager.scout_receipt()
+	if not receipt.has("explore"):
+		var targets: Array = MapScript.explore_targets(_campaign)
+		if not targets.is_empty():
+			_phase_manager.scout_explore(str(targets[0]))
+	if not _phase_manager.scout_receipt().has("enemy_information"):
+		_phase_manager.scout_enemy_information()
+	phase_completed.emit({})
 
 
 ## ============================================================================
@@ -104,7 +133,7 @@ func _build_ui() -> void:
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", SPACING_LG)
+	vbox.add_theme_constant_override("separation", SPACING_MD)
 	scroll.add_child(vbox)
 
 	_title_label = Label.new()
@@ -114,255 +143,277 @@ func _build_ui() -> void:
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_title_label)
 
-	_content_vbox = VBoxContainer.new()
-	_content_vbox.add_theme_constant_override("separation", SPACING_MD)
-	vbox.add_child(_content_vbox)
+	vbox.add_child(_prose("Your scouts explore one sector, then may roll for a Scout "
+			+ "Discovery. Last, the colony pieces together any Enemy Information (pp.59-61)."))
 
-	# Scout assignment
-	var scout_row := HBoxContainer.new()
-	scout_row.add_theme_constant_override("separation", SPACING_SM)
+	# 1. Scout Explore
+	vbox.add_child(_heading("1. Scout Explore"))
+	_map_hint = _prose("")
+	vbox.add_child(_map_hint)
+	_grid = SectorGridScript.new()
+	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_grid.sector_selected.connect(_on_sector_picked)
+	vbox.add_child(_grid)
+	_explore_btn = _button("Explore the selected sector", _on_explore_pressed)
+	vbox.add_child(_explore_btn)
+	_explore_result = _result_box()
+	vbox.add_child(_explore_result)
+
+	# 2. Scout Discovery (optional)
+	vbox.add_child(_heading("2. Scout Discovery (optional)"))
+	vbox.add_child(_prose("You may assign a scout to lead it. It does not stop them going "
+			+ "on a mission this turn. Scouts in Sick Bay cannot be assigned (p.60)."))
+	var scout_row := HFlowContainer.new()
+	scout_row.add_theme_constant_override("h_separation", SPACING_SM)
+	scout_row.add_theme_constant_override("v_separation", SPACING_SM)
 	vbox.add_child(scout_row)
-
 	var scout_lbl := Label.new()
-	scout_lbl.text = "Assign Scout (optional):"
+	scout_lbl.text = "Scout leading it:"
 	scout_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	scout_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	scout_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	scout_row.add_child(scout_lbl)
-
 	_scout_select = OptionButton.new()
-	_scout_select.custom_minimum_size.x = 200
+	_scout_select.custom_minimum_size = Vector2(220, TOUCH_TARGET_MIN)
 	scout_row.add_child(_scout_select)
+	_discovery_btn = _button("Roll Scout Discovery (D100)", _on_discovery_pressed)
+	vbox.add_child(_discovery_btn)
+	_discovery_why = _prose("")
+	vbox.add_child(_discovery_why)
+	_choice_box = VBoxContainer.new()
+	_choice_box.add_theme_constant_override("separation", SPACING_SM)
+	vbox.add_child(_choice_box)
+	_discovery_result = _result_box()
+	vbox.add_child(_discovery_result)
 
-	_result_container = VBoxContainer.new()
-	_result_container.add_theme_constant_override("separation", SPACING_SM)
-	vbox.add_child(_result_container)
+	# 3. Process Enemy Information
+	vbox.add_child(_heading("3. Process Enemy Information"))
+	vbox.add_child(_prose("For each enemy you hold Enemy Information on, roll 1D6. Equal to "
+			+ "or under it, you have tracked down a Boss and may Strike (pp.60-61)."))
+	_intel_btn = _button("Process Enemy Information", _on_intel_pressed)
+	vbox.add_child(_intel_btn)
+	_intel_why = _prose("")
+	vbox.add_child(_intel_why)
+	_intel_result = _result_box()
+	vbox.add_child(_intel_result)
 
-	# Action buttons
-	var btn_box := VBoxContainer.new()
-	btn_box.add_theme_constant_override("separation", SPACING_SM)
-	vbox.add_child(btn_box)
+	TouchScrollOpenerRef.open_subtree(self)
 
-	var action_row := HBoxContainer.new()
-	action_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	action_row.add_theme_constant_override("separation", SPACING_MD)
-	btn_box.add_child(action_row)
 
-	_explore_btn = Button.new()
-	_explore_btn.text = "Scout Explore"
-	_explore_btn.custom_minimum_size = Vector2(0, 48)
-	_explore_btn.pressed.connect(_on_explore_pressed)
-	action_row.add_child(_explore_btn)
+func _heading(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text.to_upper()
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	lbl.add_theme_color_override("font_color", COLOR_ACCENT)
+	return lbl
 
-	_discovery_btn = Button.new()
-	_discovery_btn.text = "Scout Discovery (D100)"
-	_discovery_btn.custom_minimum_size = Vector2(0, 48)
-	_discovery_btn.pressed.connect(_on_discovery_pressed)
-	action_row.add_child(_discovery_btn)
 
-	_continue_btn = Button.new()
-	_continue_btn.text = "Continue to Next Step"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	_continue_btn.visible = false
-	btn_box.add_child(_continue_btn)
+func _prose(text: String) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	return lbl
+
+
+## An action button sized to its text. `choice` is for the sentence-length answers to a
+## Discovery: those wrap and fill the width, because an unwrapped Button reports its whole
+## text as a minimum and pushes a phone page off the right edge; a wrapping one left at
+## SHRINK_CENTER would shrink to a one-word sliver instead.
+func _button(text: String, handler: Callable, choice: bool = false) -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	if choice:
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	else:
+		btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	btn.pressed.connect(handler)
+	return btn
+
+
+func _result_box() -> VBoxContainer:
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 4)
+	return box
+
+
+func _show_lines(box: VBoxContainer, lines: Array) -> void:
+	for child in box.get_children():
+		child.queue_free()
+	for line in lines:
+		var lbl := Label.new()
+		lbl.text = str(line)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		box.add_child(lbl)
 
 
 ## ============================================================================
-## SCOUT INFO
+## STATE → SCREEN
 ## ============================================================================
 
-func _build_scout_info() -> void:
-	_add_info_text(
-		"Each campaign turn, your scout teams explore the world.")
-	_add_info_text(
-		"[b]Scout Explore:[/b] Select an unexploited sector. Roll 2D6 twice (pick lowest each) for Resource and Hazard levels.")
-	_add_info_text(
-		"[b]Scout Discovery:[/b] Optional D100 roll on the Scout Discovery table.")
-	_add_info_text(
-		"[color=#9ca3af]Assigning a scout character gives them bonus XP on certain results.[/color]")
+## Draw every part from the phase manager's receipt.
+func _render() -> void:
+	if not _campaign or not _grid:
+		return
+	var receipt: Dictionary = _phase_manager.scout_receipt() if _phase_manager else {}
+	var explored: bool = receipt.has("explore")
+	var settled: bool = _explore_settled(receipt)
+	var discovery: Dictionary = receipt.get("discovery", {})
+	var intel_done: bool = receipt.has("enemy_information")
+	var picking_report: bool = _picking_report(receipt)
+
+	var pickable: Array = []
+	if not settled:
+		pickable = MapScript.explore_targets(_campaign)
+		_map_hint.text = ("Tap a sector to explore. It cannot be enemy-held or already "
+				+ "Exploited (p.60). Your colony is marked H.")
+	elif not explored:
+		# Every sector is enemy-held or Exploited: nothing can be explored, and the step
+		# must still finish (processing Enemy Information does not need an Explore).
+		_map_hint.text = ("Every sector is enemy-held or already Exploited, so there is "
+				+ "nothing to explore this turn (p.60).")
+	elif picking_report:
+		pickable = MapScript.unexplored_keys(_campaign)
+		_map_hint.text = "Exploration report: tap a sector that has not been Explored (p.59)."
+	else:
+		_map_hint.text = "This turn's Scout Explore is done."
+	_grid.configure(_campaign, pickable, _pending_sector)
+
+	_explore_btn.visible = not explored
+	_explore_btn.disabled = _pending_sector == "" or explored
+	_explore_btn.text = "Explore %s" % MapScript.label(_pending_sector) \
+			if _pending_sector != "" and not explored else "Explore the selected sector"
+	_show_lines(_explore_result, receipt.get("explore", {}).get("lines", []))
+
+	# A disabled button says why, in a line under it.
+	# Discovery follows an Explore (p.60), so it is hidden when nothing could be explored.
+	_scout_select.disabled = not explored or not discovery.is_empty() or intel_done
+	_discovery_btn.visible = discovery.is_empty() and not intel_done \
+			and (explored or not settled)
+	_discovery_btn.disabled = not explored
+	_show_why(_discovery_why, _discovery_btn, "Explore a sector first.")
+	_render_discovery(discovery)
+
+	_intel_btn.visible = not intel_done
+	_intel_btn.disabled = not settled or picking_report
+	_show_why(_intel_why, _intel_btn, "Explore a sector first." if not settled
+			else "Tap the sector for the Exploration Report first.")
+	_show_lines(_intel_result, receipt.get("enemy_information", {}).get("lines", []))
+	TouchScrollOpenerRef.open_subtree(self)
+	step_status_changed.emit()
+
+
+func _show_why(why: Label, btn: Button, reason: String) -> void:
+	why.text = reason
+	why.visible = btn.visible and btn.disabled
+
+
+## Scout Explore is done, or cannot be done because no sector may be explored (p.60).
+func _explore_settled(receipt: Dictionary) -> bool:
+	return receipt.has("explore") or MapScript.explore_targets(_campaign).is_empty()
+
+
+## A Scout Discovery Exploration Report is waiting for the player to pick its sector.
+func _picking_report(receipt: Dictionary) -> bool:
+	var discovery: Dictionary = receipt.get("discovery", {})
+	return not discovery.is_empty() and not bool(discovery.get("applied", false)) \
+			and str(discovery.get("choice", "")) == "sector"
+
+
+func _render_discovery(discovery: Dictionary) -> void:
+	for child in _choice_box.get_children():
+		child.queue_free()
+	if discovery.is_empty():
+		_show_lines(_discovery_result, [])
+		return
+	var entry: Dictionary = discovery.get("entry", {})
+	var head: Array = ["D100 %d: %s. %s" % [int(entry.get("roll", 0)), str(entry.get("name", "")),
+			str(entry.get("description", ""))]]
+	if bool(discovery.get("applied", false)):
+		_show_lines(_discovery_result, head + discovery.get("lines", []))
+		return
+	_show_lines(_discovery_result, head)
+	match str(discovery.get("choice", "")):
+		"sector":
+			var apply_btn := _button("Explore %s" % MapScript.label(_pending_sector)
+					if _pending_sector != "" else "Tap a sector on the map above",
+					func() -> void: _apply_discovery({"sector": _pending_sector}))
+			apply_btn.disabled = _pending_sector == ""
+			_choice_box.add_child(apply_btn)
+		"enemy":
+			_choice_box.add_child(_prose("Recon patrol: choose the enemy to gain 1 Enemy "
+					+ "Information on (p.59)."))
+			for idx in MapScript.active_indices(_campaign):
+				var i: int = int(idx)
+				_choice_box.add_child(_button(MapScript.enemy_name(_campaign, i),
+						func() -> void: _apply_discovery({"enemy_index": i}), true))
+		"scout_down":
+			_choice_box.add_child(_button("Escape on foot: an injury roll, +2 XP if they survive",
+					func() -> void: _apply_discovery({"scout_down": "escape"}), true))
+			_choice_box.add_child(_button("Play the Scout Down! mission this turn",
+					func() -> void: _apply_discovery({"scout_down": "mission"}), true))
+		_:
+			_apply_discovery({})
 
 
 func _populate_scout_select() -> void:
-	_scout_select.clear()
-	_scout_select.add_item("(No scout assigned)", 0)
-
-	if not _campaign or not "roster" in _campaign:
+	if not _scout_select:
 		return
-
+	_scout_select.clear()
+	_scout_select.add_item("No scout assigned", 0)
+	_scout_select.set_item_metadata(0, "")
+	if not _campaign or not _campaign.has_method("get_active_roster"):
+		return
 	var idx: int = 1
-	for char_dict in _campaign.roster:
-		if char_dict is not Dictionary:
-			continue
-		var char_class: String = char_dict.get("class", "")
-		var char_name: String = char_dict.get("name", "Unknown")
-		var cid: String = char_dict.get("id", "")
-		# Check not in sick bay
-		var in_sick_bay: bool = false
-		if "sick_bay" in _campaign:
-			in_sick_bay = _campaign.sick_bay.has(cid) and _campaign.sick_bay[cid] > 0
-		if not in_sick_bay and char_class == "scout":
-			_scout_select.add_item("%s (Scout)" % char_name, idx)
-			_scout_select.set_item_metadata(idx, cid)
+	for c in _campaign.get_active_roster():
+		if c is Dictionary and str(c.get("class", "")) == "scout":
+			_scout_select.add_item("%s (Scout)" % str(c.get("name", "Scout")), idx)
+			_scout_select.set_item_metadata(idx, str(c.get("id", "")))
 			idx += 1
 
 
 ## ============================================================================
-## SCOUT EXPLORE
+## ACTIONS (each one call into the phase manager, then a redraw)
 ## ============================================================================
+
+func _on_sector_picked(sector_key: String) -> void:
+	_pending_sector = sector_key
+	_render()
+
 
 func _on_explore_pressed() -> void:
-	_explore_btn.disabled = true
-	_explore_done = true
+	if not _phase_manager or _pending_sector == "":
+		return
+	_phase_manager.scout_explore(_pending_sector)
+	_pending_sector = ""
+	_render()
 
-	# Roll 2D6 twice, take lowest each time for Resource and Hazard
-	var r1: int = _resolver.roll_d6()
-	var r2: int = _resolver.roll_d6()
-	var resource_level: int = mini(r1, r2)
-
-	var h1: int = _resolver.roll_d6()
-	var h2: int = _resolver.roll_d6()
-	var hazard_level: int = mini(h1, h2)
-
-	_add_result_bbcode("[b]Scout Explore Results:[/b]")
-	_add_result_bbcode(
-		"  Resource Level: 2D6 (%d, %d) → %d" % [r1, r2, resource_level])
-	_add_result_bbcode(
-		"  Hazard Level: 2D6 (%d, %d) → %d" % [h1, h2, hazard_level])
-
-	# Check for Ancient Sign (double 4, 5, or 6)
-	var ancient_sign: bool = false
-	if r1 == r2 and r1 >= 4:
-		ancient_sign = true
-	elif h1 == h2 and h1 >= 4:
-		ancient_sign = true
-
-	if ancient_sign:
-		_add_result_bbcode(
-			"\n[color=#4FC3F7]Ancient Sign discovered in this sector![/color]")
-
-	_add_result_bbcode(
-		"\n[color=#10B981]Mark these values on your colony map for the explored sector.[/color]")
-
-	_result_data["explore"] = {
-		"resource_level": resource_level,
-		"hazard_level": hazard_level,
-		"ancient_sign": ancient_sign
-	}
-
-	_check_can_continue()
-
-
-## ============================================================================
-## SCOUT DISCOVERY
-## ============================================================================
 
 func _on_discovery_pressed() -> void:
-	_discovery_btn.disabled = true
-	_discovery_done = true
-
-	var roll: int = _resolver.roll_d100()
-
-	# Scout Discovery table (Planetfall p.59)
-	var discovery: Dictionary = _resolve_scout_discovery(roll)
-	var name: String = discovery.get("name", "Unknown")
-	var desc: String = discovery.get("description", "")
-
-	_add_result_bbcode("\n[b]Scout Discovery (D100: %d):[/b]" % roll)
-	_add_result_bbcode("[b]%s[/b]" % name)
-	_add_result_bbcode(desc)
-
-	# Apply scout XP if assigned
-	var scout_idx: int = _scout_select.get_selected_id()
-	if scout_idx > 0:
-		var scout_id: String = str(_scout_select.get_item_metadata(scout_idx))
-		var xp_bonus: int = discovery.get("scout_xp", 0)
-		if xp_bonus > 0:
-			_apply_xp_to_character(scout_id, xp_bonus)
-			var scout_name: String = _get_character_name(scout_id)
-			_add_result_bbcode(
-				"\n[color=#10B981]+%d XP for assigned scout %s[/color]" % [
-					xp_bonus, scout_name])
-
-	_result_data["discovery"] = discovery
-	_check_can_continue()
-
-
-func _resolve_scout_discovery(roll: int) -> Dictionary:
-	## Inline Scout Discovery table (Planetfall p.59).
-	## This table is small enough to inline rather than a separate JSON.
-	if roll <= 10:
-		return {"name": "Routine Trip", "description": "The scouts find nothing at all.", "scout_xp": 0}
-	elif roll <= 20:
-		return {"name": "Good Practice", "description": "The scouts find nothing, but it is a good opportunity to rehearse the basics. If a scout was assigned, they receive +2 XP.", "scout_xp": 2}
-	elif roll <= 25:
-		return {"name": "SOS Signal", "description": "The scouts report a distress signal. You may play a Rescue Mission this turn. If you do not, Colony Morale drops by -3.", "scout_xp": 0}
-	elif roll <= 30:
-		return {"name": "Scout Down!", "description": "The scout vehicle crashes. If you assigned a scout, they need rescue. You can opt to have them escape on foot (roll on injury table, +2 XP if survived) or play the Scout Down! mission.", "scout_xp": 2}
-	elif roll <= 60:
-		return {"name": "Exploration Report", "description": "Select any sector that has not yet been Explored and generate Resource and Hazard levels.", "scout_xp": 0}
-	elif roll <= 70:
-		return {"name": "Recon Patrol", "description": "If there are Tactical Enemies on the map, select one and add 1 Enemy Information. If no enemies present, no event.", "scout_xp": 0}
-	elif roll <= 80:
-		return {"name": "Ancient Sign", "description": "Randomly select a map sector, then mark that it has an Ancient Sign. Completing any mission in that sector awards the Ancient Sign.", "scout_xp": 0}
-	else:
-		return {"name": "Revised Survey", "description": "Randomly pick a map sector. If not Explored, generate values. If Explored but not Exploited, increase Resource +1. If already Exploited, generate new values — can Exploit again.", "scout_xp": 0}
-
-
-## ============================================================================
-## HELPERS
-## ============================================================================
-
-func _check_can_continue() -> void:
-	if _explore_done:
-		_continue_btn.visible = true
-		_continue_btn.disabled = false
-
-
-func _on_continue_pressed() -> void:
-	_continue_btn.disabled = true
-	phase_completed.emit(_result_data)
-
-
-func _get_character_name(character_id: String) -> String:
-	if not _campaign or not "roster" in _campaign:
-		return character_id
-	for char_dict in _campaign.roster:
-		if char_dict is Dictionary:
-			if char_dict.get("id", "") == character_id:
-				return char_dict.get("name", character_id)
-	return character_id
-
-
-func _apply_xp_to_character(character_id: String, xp: int) -> void:
-	# Through the core's one XP writer (p.71 Personal tragedy is checked there).
-	if _campaign and _campaign.has_method("award_xp"):
-		_campaign.award_xp(character_id, xp)
-
-
-func _add_info_text(text: String) -> void:
-	var lbl := RichTextLabel.new()
-	lbl.bbcode_enabled = true
-	lbl.fit_content = true
-	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
-	_content_vbox.add_child(lbl)
-
-
-func _add_result_bbcode(text: String) -> void:
-	var lbl := RichTextLabel.new()
-	lbl.bbcode_enabled = true
-	lbl.fit_content = true
-	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
-	_result_container.add_child(lbl)
-
-
-func _clear_container(container: VBoxContainer) -> void:
-	if not container:
+	if not _phase_manager:
 		return
-	for child in container.get_children():
-		child.queue_free()
+	var scout_id: String = str(_scout_select.get_selected_metadata()) \
+			if _scout_select.selected >= 0 else ""
+	_phase_manager.scout_discovery_roll(scout_id)
+	_render()
+
+
+func _apply_discovery(choice: Dictionary) -> void:
+	if not _phase_manager:
+		return
+	_phase_manager.scout_discovery_apply(choice)
+	_pending_sector = ""
+	_render()
+
+
+func _on_intel_pressed() -> void:
+	if not _phase_manager:
+		return
+	_phase_manager.scout_enemy_information()
+	_render()
+

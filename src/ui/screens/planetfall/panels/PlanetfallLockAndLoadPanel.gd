@@ -6,6 +6,9 @@ extends Control
 ## Source: Planetfall p.65
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallArmoryScript := preload(
 	"res://src/core/systems/PlanetfallArmorySystem.gd")
@@ -17,6 +20,8 @@ const COLOR_BORDER := UIColors.COLOR_BORDER
 const COLOR_ACCENT := UIColors.COLOR_BLUE
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_WARNING := UIColors.COLOR_AMBER
+const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
+const TOUCH_TARGET_MIN := 48
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
@@ -52,7 +57,6 @@ var _mission_info_section: VBoxContainer
 var _weapon_container: VBoxContainer
 var _deploy_count_label: Label
 var _grunt_count_label: Label
-var _confirm_btn: Button
 
 
 func _ready() -> void:
@@ -104,8 +108,6 @@ func refresh() -> void:
 	_build_roster_list()
 	_build_grunt_section()
 	_update_deploy_count()
-	if _confirm_btn:
-		_confirm_btn.disabled = false
 
 
 func complete() -> void:
@@ -185,12 +187,6 @@ func _build_ui() -> void:
 	_weapon_container.add_theme_constant_override("separation", SPACING_SM)
 	vbox.add_child(_weapon_container)
 
-	_confirm_btn = Button.new()
-	_confirm_btn.text = "Deploy for Mission"
-	_confirm_btn.custom_minimum_size = Vector2(0, 48)
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
-	vbox.add_child(_confirm_btn)
-	_confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 ## ============================================================================
@@ -299,30 +295,25 @@ func _build_roster_list() -> void:
 		row.add_theme_constant_override("separation", SPACING_SM)
 		_roster_container.add_child(row)
 
-		# Deploy checkbox
+		# The character's name IS the deploy toggle, so the whole name is the tap
+		# target. It used to be a bare 16-px box with the name in a separate Label that
+		# did nothing when tapped (Sprint U capture: the box was all but invisible).
 		var check := CheckBox.new()
-		check.text = ""
+		var status: String = " [SICK BAY]" if in_sick_bay \
+				else (" [%s]" % blocked if not blocked.is_empty() else "")
+		check.text = "%s (%s)%s%s" % [cname, cclass.capitalize(), status, _note_tags(cid)]
+		check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		check.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		check.custom_minimum_size.y = TOUCH_TARGET_MIN
+		check.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		check.disabled = in_sick_bay or not blocked.is_empty()
 		check.toggled.connect(_on_deploy_toggled.bind(cid))
 		row.add_child(check)
 		_deploy_checks[cid] = check
 
-		# Name + class
-		var name_lbl := Label.new()
-		var status: String = " [SICK BAY]" if in_sick_bay \
-				else (" [%s]" % blocked if not blocked.is_empty() else "")
-		name_lbl.text = "%s (%s)%s%s" % [cname, cclass.capitalize(), status, _note_tags(cid)]
-		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-		name_lbl.add_theme_color_override(
-			"font_color",
-			COLOR_TEXT_SECONDARY if in_sick_bay else COLOR_TEXT_PRIMARY)
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(name_lbl)
-
 		# Weapon selector
 		var weapon_select := OptionButton.new()
-		weapon_select.custom_minimum_size.x = 180
+		weapon_select.custom_minimum_size = Vector2(260, TOUCH_TARGET_MIN)
 		weapon_select.disabled = in_sick_bay
 		_populate_weapon_options(weapon_select, cclass)
 		weapon_select.item_selected.connect(
@@ -357,11 +348,13 @@ func _populate_weapon_options(
 	var weapons: Array = _armory.get_weapons_for_class(_campaign, character_class)
 	for i in range(weapons.size()):
 		var w: Dictionary = weapons[i]
-		var label: String = "%s (R:%s S:%s D:%+d)" % [
+		# Whole numbers, an inch mark and words: it printed "Handgun (R:6.0 S:1.0 D:+0)",
+		# the JSON floats verbatim (DisplayText exists for exactly this).
+		var label: String = "%s · %s\" · %s · Dmg %+d" % [
 			w.get("name", "?"),
-			str(w.get("range", 0)),
-			str(w.get("shots", 0)),
-			w.get("damage", 0)
+			DisplayTextRef.number(w.get("range", 0)),
+			DisplayTextRef.pluralize(w.get("shots", 0), "shot"),
+			int(w.get("damage", 0))
 		]
 		option_btn.add_item(label, i)
 		option_btn.set_item_metadata(i, w.get("id", ""))
@@ -407,6 +400,7 @@ func _on_weapon_selected(
 
 
 func _update_deploy_count() -> void:
+	step_status_changed.emit()
 	if _deploy_count_label:
 		var grunt_text: String = ""
 		if _max_grunts > 0:
@@ -473,9 +467,24 @@ func _on_grunt_fireteam_toggled(toggled: bool, ft_idx: int, count: int) -> void:
 	_update_deploy_count()
 
 
+## What the turn screen's footer shows for this step. A battle needs someone on the
+## table; deploying nobody used to be accepted. When no character CAN deploy (all in
+## Sick Bay or blocked) and no grunts are offered, the step stays finishable so the turn
+## cannot lock.
+func step_status() -> Dictionary:
+	if _deployed.size() + _grunts_deployed > 0:
+		return {"ready": true, "reason": "", "label": "Deploy %d for the Mission" % (
+				_deployed.size() + _grunts_deployed)}
+	var can_pick: bool = _max_grunts > 0
+	for c in find_children("*", "CheckBox", true, false):
+		if not (c as CheckBox).disabled:
+			can_pick = true
+	if not can_pick:
+		return {"ready": true, "reason": ""}
+	return {"ready": false, "reason": "Pick at least one character or grunt fireteam above."}
+
+
 func _on_confirm_pressed() -> void:
-	if _confirm_btn:
-		_confirm_btn.disabled = true
 	phase_completed.emit({
 		"deployed_characters": _deployed.duplicate(true),
 		"deploy_count": _deployed.size(),

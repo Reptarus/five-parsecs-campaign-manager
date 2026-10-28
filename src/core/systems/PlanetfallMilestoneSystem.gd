@@ -12,6 +12,7 @@ const EnemyScript := preload("res://src/core/systems/PlanetfallTacticalEnemyGene
 const MissionDataScript := preload("res://src/core/systems/PlanetfallMissionDataSystem.gd")
 const CalamityScript := preload("res://src/core/systems/PlanetfallCalamitySystem.gd")
 const ConditionScript := preload("res://src/core/systems/PlanetfallConditionSystem.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 
 ## The four kinds of source on p.156's "Tech that Grants Milestones" list, in the order a
 ## step checks them, with the name a receipt uses.
@@ -123,10 +124,10 @@ func apply_milestone(campaign: Resource, milestone_index: int) -> Dictionary:
 
 			"ancient_sign":
 				var amount: int = effect.get("amount", 0)
-				if "ancient_signs" in campaign:
-					for _i in range(amount):
-						campaign.ancient_signs.append({})
 				result["effects_applied"].append("+%d Ancient Sign(s)" % amount)
+				# p.61: each Sign is tested for an Ancient Site as it is obtained.
+				result["effects_applied"].append_array(
+						MapScript.obtain_ancient_signs(campaign, amount))
 
 			"mission_data":
 				var amount: int = effect.get("amount", 0)
@@ -404,12 +405,14 @@ func _resolve_action(campaign: Resource, index: int, action: Dictionary) -> Arra
 			var enemy_type: Dictionary = enemy.get("type", {}) \
 					if enemy.get("type") is Dictionary else {}
 			# pp.156-157: the 1st keeps clear of the colony; the 2nd and 3rd of any other
-			# enemy's sectors as well.
-			var clear_of: String = "your colony" if index == 1 \
-					else "your colony and any sector another enemy holds"
-			return ["A Tactical Enemy emerges: %s. It controls a random map sector, not in "
-					% str(enemy_type.get("name", "Tactical Enemy"))
-					+ "or adjacent to %s" % clear_of]
+			# enemy's sectors as well. The enemy takes its sector on the map here.
+			var at: String = MapScript.emerge(campaign, campaign.tactical_enemies.size() - 1,
+					index > 1)
+			return ["A Tactical Enemy emerges: %s. It controls %s, clear of %s (p.%d)." % [
+					str(enemy_type.get("name", "Tactical Enemy")),
+					MapScript.label(at) if at != "" else "no free map sector",
+					"your colony" if index == 1 else "your colony and every other enemy",
+					156 if index <= 2 else 157]]
 		"roll_lifeform_evolution":
 			var evo: Dictionary = LifeformScript.new().evolve_random(campaign)
 			var slot_no: int = int(evo.get("slot", 0)) + 1
@@ -430,33 +433,19 @@ func _resolve_action(campaign: Resource, index: int, action: Dictionary) -> Arra
 		"check_calamity":
 			return resolve_calamity_check(campaign, index == MILESTONES_REQUIRED)
 		"expand_enemies":
-			return ["Every enemy on the map expands to occupy a random sector adjacent "
-					+ "to it"]
+			# p.156 2nd Milestone: "Every enemy on the map expands to occupy a random map
+			# sector adjacent to them." p.62's "If this would be your colony ... Raid" is the
+			# Enemy Activity rule, so this expansion never picks the colony at all.
+			var lines: Array = []
+			for i in MapScript.active_indices(campaign):
+				lines.append_array(MapScript.expand(campaign, i, 1, false).get("lines", []))
+			return lines if not lines.is_empty() \
+					else ["No Tactical Enemy is on the map to expand"]
 	return []
 
 
 func _add_mission_data(campaign: Resource, amount: int) -> Array:
-	var md := MissionDataScript.new()
-	var outcome: Dictionary = md.add_and_check(campaign, amount)
-	# No roll means nothing was added: p.169, after the Fourth Breakthrough "Mission
-	# Data no longer has any value".
-	if not outcome.has("roll"):
-		return ["Mission Data no longer has any value (all four Breakthroughs made)"]
-	var lines: Array = ["+%d Mission Data" % amount]
-	if not bool(outcome.get("breakthrough", false)):
-		lines.append("No Mission Data Breakthrough (rolled %d against %d)" % [
-				int(outcome.roll), int(outcome.get("md_total", 0))])
-		return lines
-	var bt: Dictionary = outcome.get("result", {})
-	lines.append("Mission Data Breakthrough %d: %s" % [
-			int(outcome.get("breakthrough_index", 0)), str(bt.get("name", ""))])
-	for needed in bt.get("actions_needed", []):
-		if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
-			var last: Dictionary = md.roll_final_breakthrough(
-					campaign, _d100("Planetfall Final Breakthrough"))
-			lines.append("Final Breakthrough: %s" % str(last.get("name", "")))
-	return lines
-
+	return MissionDataScript.new().receive(campaign, amount, "Milestone")
 
 func _owned(campaign: Resource, store: String, key: String) -> Array:
 	if not store in campaign:

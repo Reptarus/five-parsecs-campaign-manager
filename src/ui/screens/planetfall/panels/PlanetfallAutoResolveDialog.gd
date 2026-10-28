@@ -10,6 +10,9 @@ extends Control
 ## Implements the standard panel interface contract.
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
@@ -47,7 +50,10 @@ var _waited: bool = false
 var _title_label: Label
 var _description_label: RichTextLabel
 var _resolve_btn: Button
-var _continue_btn: Button
+## The step's result is in and nothing is waiting for the player, so the turn
+## screen's footer may continue. This used to be a "Continue" button inside the
+## scroll, beside a footer "Complete Phase" that was disabled on every step.
+var _can_continue: bool = false
 var _result_container: VBoxContainer
 
 
@@ -89,9 +95,7 @@ func refresh() -> void:
 		_resolve_btn.visible = _needs_resolve_button()
 		_resolve_btn.disabled = false
 		_resolve_btn.text = _get_resolve_button_text()
-	if _continue_btn:
-		_continue_btn.visible = not _needs_resolve_button()
-		_continue_btn.disabled = false
+	_can_continue = not _needs_resolve_button()
 	# Clear previous results
 	if _result_container:
 		for child in _result_container.get_children():
@@ -100,6 +104,7 @@ func refresh() -> void:
 		_prepare_colony_integrity()
 	if _step_id == "enemy_activity" and _result_container:
 		_prepare_enemy_activity()
+	step_status_changed.emit()
 
 
 func complete() -> void:
@@ -162,13 +167,6 @@ func _build_ui() -> void:
 	_resolve_btn.visible = _needs_resolve_button()
 	btn_box.add_child(_resolve_btn)
 
-	_continue_btn = Button.new()
-	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	_continue_btn.visible = not _needs_resolve_button()
-	btn_box.add_child(_continue_btn)
-
 
 ## ============================================================================
 ## STEP-SPECIFIC LOGIC
@@ -190,13 +188,11 @@ func _on_resolve_pressed() -> void:
 		_:
 			_add_result_text("Step resolved.", COLOR_TEXT_PRIMARY)
 
-	# Show continue button
-	_continue_btn.visible = true
-	_continue_btn.disabled = false
+	_set_can_continue(true)
 
 
 func _on_continue_pressed() -> void:
-	_continue_btn.disabled = true
+	_can_continue = false
 	var result_data: Dictionary = _build_result_data()
 	phase_completed.emit(result_data)
 
@@ -362,7 +358,7 @@ func _prepare_colony_integrity() -> void:
 		_render_lines(done)
 		_resolved = true
 		_resolve_btn.visible = false
-		_continue_btn.visible = true
+		_can_continue = true
 		return
 	var integrity: int = int(_campaign.colony_integrity)
 	_add_result_text("Current Colony Integrity: %d (maximum %d)."
@@ -420,12 +416,13 @@ func _resolve_update_tracking() -> void:
 ## HELPERS
 ## ============================================================================
 
+## The book's step heading, read from the phase manager's one name table. These used
+## to be hand-copied per panel, and Step 18 drifted to "Update Colony Sheet" against
+## p.70's "Update Colony Tracking Sheet".
 func _get_step_title() -> String:
-	match _step_id:
-		"recovery": return "Step 1: Recovery"
-		"enemy_activity": return "Step 4: Enemy Activity"
-		"colony_integrity": return "Step 16: Colony Integrity"
-		"update_tracking": return "Step 18: Update Colony Sheet"
+	var names: Dictionary = load("res://src/core/campaign/PlanetfallPhaseManager.gd").PHASE_NAMES
+	if names.has(_phase_index):
+		return "Step %d: %s" % [_phase_index + 1, names[_phase_index]]
 	return "Auto-Resolve Step"
 
 
@@ -484,3 +481,17 @@ func _build_result_data() -> Dictionary:
 			data["colony_damage"] = _raid_damage
 			data["waited"] = _waited
 	return data
+
+
+## What the turn screen's footer shows for this step: {ready, reason}. The footer
+## names the next step itself.
+func step_status() -> Dictionary:
+	var status: Dictionary = {"ready": _can_continue, "reason": ""}
+	if not _can_continue:
+		status.reason = "Press \"%s\" above first." % _get_resolve_button_text()
+	return status
+
+
+func _set_can_continue(value: bool) -> void:
+	_can_continue = value
+	step_status_changed.emit()

@@ -284,13 +284,16 @@ func test_a_broken_bot_and_a_just_repaired_bot_stay_off_the_table() -> void:
 	panel.set_mission_context({"selected_mission": {"id": "patrol"}})
 	panel.refresh()
 	var bot_row: HBoxContainer = null
+	# The name is the deploy CheckBox's own text (child 0), so the whole name is the tap
+	# target; it used to sit in a separate Label at child 1.
 	for row in panel._roster_container.get_children():
-		if row is HBoxContainer and row.get_child_count() > 1 \
-				and (row.get_child(1) as Label).text.begins_with("Bolt"):
+		if row is HBoxContainer and row.get_child_count() > 0 \
+				and row.get_child(0) is CheckBox \
+				and (row.get_child(0) as CheckBox).text.begins_with("Bolt"):
 			bot_row = row
 	assert_object(bot_row).override_failure_message("premise: the bot has a row").is_not_null()
 	assert_bool((bot_row.get_child(0) as CheckBox).disabled).is_true()
-	assert_str((bot_row.get_child(1) as Label).text).contains("[REPAIRED THIS TURN]")
+	assert_str((bot_row.get_child(0) as CheckBox).text).contains("[REPAIRED THIS TURN]")
 	core.campaign_turn += 1
 	assert_str(core.deployment_block_reason("b1", "patrol")).is_equal("")
 

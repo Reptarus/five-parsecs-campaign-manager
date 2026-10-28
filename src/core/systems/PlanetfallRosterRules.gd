@@ -10,6 +10,7 @@ extends RefCounted
 
 const CLASSES_PATH := "res://data/planetfall/character_classes.json"
 const BUILDINGS_PATH := "res://data/planetfall/buildings.json"
+const SUBSPECIES_PATH := "res://data/planetfall/human_subspecies.json"
 ## The classes p.69 lets a replacement be ("a trooper / a scientist / a scout").
 const REPLACEMENT_CLASSES := ["trooper", "scientist", "scout"]
 
@@ -89,3 +90,85 @@ static func next_character_id(campaign: Resource) -> String:
 	while used.has("pf_char_%d" % n):
 		n += 1
 	return "pf_char_%d" % n
+
+
+## ============================================================================
+## THE FOUNDING ROSTER (pp.14-20)
+## ============================================================================
+
+static var _subspecies: Dictionary = {}
+
+
+## The p.19 Human sub-species and the p.20 Soulless emissary, keyed by id.
+## A character's profile as the Colony Tracking Sheet lists it (p.18). The roster step,
+## the review and the dashboard all print this one line; they carried three copies.
+static func profile_line(c: Dictionary) -> String:
+	var line: String = "Reactions %d · Speed %d\" · Combat %+d · Toughness %d · Savvy %+d" % [
+			int(c.get("reactions", 0)), int(c.get("speed", 0)), int(c.get("combat_skill", 0)),
+			int(c.get("toughness", 0)), int(c.get("savvy", 0))]
+	if c.has("saving_throw"):
+		line += " · Save %d+" % int(c.saving_throw)
+	return line
+
+
+static func subspecies_data() -> Dictionary:
+	if _subspecies.is_empty():
+		_subspecies = _read(SUBSPECIES_PATH).get("subspecies", {})
+	return _subspecies
+
+
+## `character` rebuilt as its class's standard character with `subspecies_id` applied
+## ("" for none), keeping its id and name. The profile values are what the character
+## BEGINS with, not additions: "Hulkers begin with Toughness 5" (p.19), the Soulless
+## "begins the campaign with Toughness 4 and a +1 Savvy score" and "receives a 6+ Saving
+## Throw" (p.20). Feral and Stalker change no value (p.19).
+static func with_subspecies(character: Dictionary, subspecies_id: String) -> Dictionary:
+	var out: Dictionary = standard_character(str(character.get("class", "trooper")),
+			str(character.get("id", "")), str(character.get("name", "")))
+	var entry: Dictionary = subspecies_data().get(subspecies_id, {})
+	if entry.is_empty():
+		return out
+	out["subspecies"] = subspecies_id
+	for stat in entry.get("stat_modifications", {}):
+		out[stat] = int(entry.stat_modifications[stat])
+	if entry.has("saving_throw"):
+		out["saving_throw"] = int(entry.saving_throw)
+	for ability in entry.get("abilities", []):
+		out["abilities"].append((ability as Dictionary).duplicate(true))
+	return out
+
+
+## Every reason `roster` is not yet a legal founding roster, one sentence each with its
+## page; [] when it is. p.14: "an initial roster of eight characters", "any combination
+## of these three classes, but you must include at least one of each", and imported
+## characters "count against your roster limit". p.19: "a maximum of one Feral plus one
+## sub-species of choice (Hulker, Stalker, or a second Feral)". p.20: "a single Soulless
+## emissary", who "can only occupy the Trooper class".
+static func roster_problems(roster: Array) -> Array:
+	var problems: Array = []
+	var size: int = int(class_data().get("roster_rules", {}).get("initial_roster_size", 8))
+	if roster.size() != size:
+		problems.append("The founding roster has %d characters, and the colony starts with %d (p.14)."
+				% [roster.size(), size])
+	var per_class: Dictionary = {}
+	var per_kind: Dictionary = {}
+	for c in roster:
+		if c is Dictionary:
+			per_class[str(c.get("class", ""))] = int(per_class.get(str(c.get("class", "")), 0)) + 1
+			per_kind[str(c.get("subspecies", ""))] = int(per_kind.get(
+					str(c.get("subspecies", "")), 0)) + 1
+			if str(c.get("subspecies", "")) == "soulless_emissary" \
+					and str(c.get("class", "")) != "trooper":
+				problems.append("%s is a Soulless emissary, who can only be a Trooper (p.20)."
+						% str(c.get("name", "A character")))
+	for cls in REPLACEMENT_CLASSES:
+		if int(per_class.get(cls, 0)) < 1:
+			problems.append("Add at least one %s (p.14)." % str(cls).capitalize())
+	var feral: int = int(per_kind.get("feral", 0))
+	var other: int = int(per_kind.get("hulker", 0)) + int(per_kind.get("stalker", 0))
+	if feral > 2 or other > 1 or feral + other > 2:
+		problems.append("At most one Feral plus one more of Hulker, Stalker or a second Feral "
+				+ "(p.19).")
+	if int(per_kind.get("soulless_emissary", 0)) > 1:
+		problems.append("Only one Soulless emissary may join the colony (p.20).")
+	return problems

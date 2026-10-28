@@ -8,6 +8,9 @@ extends Control
 ## Implements the standard panel interface contract.
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
@@ -49,7 +52,7 @@ var _content_vbox: VBoxContainer
 var _result_container: VBoxContainer
 var _roll_btn: Button
 var _choice_container: VBoxContainer
-var _continue_btn: Button
+var _can_continue: bool = false
 
 
 func _ready() -> void:
@@ -82,10 +85,12 @@ func refresh() -> void:
 	_clear_container(_result_container)
 	_clear_container(_choice_container)
 	if _roll_btn:
+		# The Milestone re-arm relabels this button; without the reset the NEXT turn's
+		# first event offered itself as a Milestone event.
+		_roll_btn.text = "Roll Colony Event (D100)"
 		_roll_btn.visible = true
 		_roll_btn.disabled = false
-	if _continue_btn:
-		_continue_btn.visible = false
+	_set_can_continue(false)
 
 	# Show flavor text
 	_add_info_text(
@@ -149,12 +154,6 @@ func _build_ui() -> void:
 	_roll_btn.pressed.connect(_on_roll_pressed)
 	btn_box.add_child(_roll_btn)
 
-	_continue_btn = Button.new()
-	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	_continue_btn.visible = false
-	btn_box.add_child(_continue_btn)
 
 
 ## ============================================================================
@@ -187,12 +186,12 @@ func _on_roll_pressed() -> void:
 
 	if not requires_choice:
 		_apply_automatic_effects(effect, event_id)
-		_continue_btn.visible = true
-		_continue_btn.disabled = false
 		_roll_btn.visible = false
+		_set_can_continue(true)
 	else:
 		_build_choice_ui(event_id, effect)
 		_roll_btn.visible = false
+		step_status_changed.emit()
 
 
 func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
@@ -235,10 +234,12 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 
 	if effect.has("ancient_signs"):
 		# p.63 Colonists find. This printed the sign and recorded nothing until 2026-10-27.
-		if _campaign.has_method("apply_colony_event"):
-			_campaign.apply_colony_event({"ancient_signs": int(effect.get("ancient_signs", 0))})
 		_add_result_bbcode(
 			"\n[color=#10B981]+%d Ancient Sign(s)[/color]" % effect.get("ancient_signs", 0))
+		if _campaign.has_method("apply_colony_event"):
+			for line in _campaign.apply_colony_event(
+					{"ancient_signs": int(effect.get("ancient_signs", 0))}):
+				_add_result_bbcode(str(line))
 
 	if effect.has("xp_all_characters"):
 		var xp: int = effect.get("xp_all_characters", 0)
@@ -547,8 +548,7 @@ func _finalize_choice() -> void:
 	for b in _choice_container.find_children("*", "BaseButton", true, false):
 		(b as BaseButton).disabled = true
 	_record_event()
-	_continue_btn.visible = true
-	_continue_btn.disabled = false
+	_set_can_continue(true)
 
 
 func _resolve_virus_event() -> void:
@@ -594,7 +594,7 @@ func _on_continue_pressed() -> void:
 	if _events_rolled < _events_owed:
 		# A Milestone still owes an event: Continue re-arms the roll for it.
 		_rolled = false
-		_continue_btn.visible = false
+		_set_can_continue(false)
 		_roll_btn.text = "Roll Milestone Colony Event (D100)"
 		_roll_btn.visible = true
 		_roll_btn.disabled = false
@@ -603,8 +603,27 @@ func _on_continue_pressed() -> void:
 
 
 func _emit_completion() -> void:
-	_continue_btn.disabled = true
+	_can_continue = false
 	phase_completed.emit(_result_data)
+
+
+## What the turn screen's footer shows for this step: {ready, reason, label}. While a
+## Milestone still owes an event (p.156) the footer re-arms the roll rather than ending
+## the step, and says so.
+func step_status() -> Dictionary:
+	if _can_continue:
+		if _events_rolled < _events_owed:
+			return {"ready": true, "reason": "",
+				"label": "Next: Milestone Colony Event %d of %d" % [_events_rolled, _events_owed - 1]}
+		return {"ready": true, "reason": ""}
+	if not _rolled:
+		return {"ready": false, "reason": "Press \"%s\" above first." % _roll_btn.text}
+	return {"ready": false, "reason": "Make the choice above to resolve this event."}
+
+
+func _set_can_continue(value: bool) -> void:
+	_can_continue = value
+	step_status_changed.emit()
 
 
 ## ============================================================================

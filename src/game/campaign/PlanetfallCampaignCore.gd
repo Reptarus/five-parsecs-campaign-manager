@@ -4,6 +4,7 @@ extends Resource
 ## Atomic save writer. All four cores share ONE implementation so the write path
 ## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 
 ## Planetfall Campaign Core Resource
 ## Stores complete Planetfall colony campaign data for save/load operations.
@@ -119,6 +120,12 @@ var milestone_sources_unseeded: bool = false
 ## 2026-10-27, so no End Game bonus that names a Breakthrough (pp.161-163) could apply.
 @export var final_breakthrough: String = ""
 
+## Final Breakthrough rows that name characters of the player's choice (p.169 21-30 "add 2
+## XP to three characters of your choice", 51-60 "Select three characters on your roster
+## and raise their Reaction scores by +1"). Queued here so the screen that is up when the
+## roll lands can ask, and a save in between keeps them. Each {stat, amount, picks, source}.
+var pending_character_awards: Array = []
+
 ## End Game progress (pp.160-163): {stage, summit, result}. The Summit votes and the
 ## stage were held on the panel, so a relaunch re-held the Summit with fresh dice.
 var endgame_state: Dictionary = {}
@@ -157,6 +164,13 @@ var event_sitout: Dictionary = {}
 ## p.63 Hostile wildlife: the turn whose Colony Morale -2 is owed "unless you play a
 ## Patrol Mission this turn", or -1. Settled at Mission Determination.
 @export var patrol_required_turn: int = -1
+## Missions a pre-battle step offers "this campaign turn", {mission_id: {turn, ...}}:
+##   rescue          p.59 SOS signal: Colony Morale -3 if another mission is chosen
+##   scout_down      p.59 Scout Down!: scout_id (the assigned scout, "" when none)
+##   strike          p.62 Patrol: enemy_index, patrol (normal numbers, one Leader, p.128)
+##   pitched_battle  p.62 Attack: enemy_index, forced; a loss takes Raid damage
+## An offer from an earlier turn is stale and reads as absent (get_mission_offer).
+var mission_offers: Dictionary = {}
 ## pp.70-71 Character Events that outlast Step 17, {character_id: {key: value}}:
 ##   away_until (int)       R&R: "gone for 2 campaign turns" (no missions, no events)
 ##   calibrated (bool)      Personal calibrations: +1 hit with one weapon, next mission
@@ -204,14 +218,17 @@ var lifeform_evolutions: Array = []
 ## Battlefield Condition Table (10-slot, persists — Planetfall p.110)
 var condition_table: Array = []
 
-## Tactical Enemies (3 total, appear at milestones 1, 2, 5 — Planetfall p.50)
-## Each: {type, profile, enemy_info: int, boss_located: bool, strongpoint_located: bool, defeated: bool, occupied_sectors: []}
+## Tactical Enemies: three in total, one emerging at each of the first three Milestones
+## (p.50). Each: {type, grunt/specialist/leader weapons, defeated, occupied_sectors
+## ["r,c" map keys], strongpoint_located, strongpoint_sector, boss_located (tracked THIS
+## turn, p.61), boss_sector}. PlanetfallMap is the one writer of the map keys.
 var tactical_enemies: Array = []
 
 ## Enemy Information per enemy (keyed by enemy index)
 var enemy_info: Dictionary = {}
 
-## Ancient Signs discovered (sector coordinates)
+## Ancient Signs held and not yet spent (p.61): each is {turn}. A successful 1D6 against
+## the count locates an Ancient Site on the map and discards them all.
 var ancient_signs: Array = []
 
 ## Active calamities (Array of Dictionaries)
@@ -550,6 +567,50 @@ func slay_character(character_id: String) -> void:
 	_update_modified_time()
 
 
+## Queue a Final Breakthrough award the player assigns (see pending_character_awards).
+func queue_character_award(stat: String, amount: int, picks: int, source: String) -> void:
+	pending_character_awards.append({"stat": stat, "amount": amount, "picks": picks,
+			"source": source})
+	_update_modified_time()
+
+
+## Drop the first queued award: the roster has no one left to give it to.
+func discard_character_award() -> void:
+	if not pending_character_awards.is_empty():
+		pending_character_awards.remove_at(0)
+		_update_modified_time()
+
+
+## Give the first queued award to one character and spend one of its picks. Returns the
+## line to show, or "" when nothing is queued or the character is not on the roster.
+func grant_character_award(character_id: String) -> String:
+	if pending_character_awards.is_empty():
+		return ""
+	var award: Dictionary = pending_character_awards[0]
+	var c: Variant = get_roster_character_by_id(character_id)
+	# "three characters": three different ones.
+	var chosen: Array = award.get("chosen", []) if award.get("chosen") is Array else []
+	if not c is Dictionary or chosen.has(character_id):
+		return ""
+	chosen.append(character_id)
+	award["chosen"] = chosen
+	var amount: int = int(award.get("amount", 0))
+	var line: String = ""
+	match str(award.get("stat", "")):
+		"xp":
+			line = "%s gains %d XP (%s)." % [str(c.get("name", character_id)),
+					award_xp(character_id, amount), str(award.get("source", ""))]
+		"reactions":
+			c["reactions"] = int(c.get("reactions", 0)) + amount
+			line = "%s's Reactions rise by %d to %d (%s)." % [str(c.get("name", character_id)),
+					amount, int(c["reactions"]), str(award.get("source", ""))]
+	award["picks"] = int(award.get("picks", 0)) - 1
+	if int(award["picks"]) <= 0:
+		pending_character_awards.remove_at(0)
+	_update_modified_time()
+	return line
+
+
 ## Every XP gain in a turn comes through here, so p.71 Personal tragedy ("Next campaign
 ## turn they forfeit all XP they would have earned that turn") holds for every source.
 ## Returns the XP actually awarded.
@@ -874,15 +935,43 @@ func has_artifact(artifact_id: String) -> bool:
 	return false
 
 
+## p.51: "Once you have obtained 6 Enemy Information, there is no need to get any more"
+## and p.61: "Excess Enemy Information is ignored."
+const ENEMY_INFO_MAX := 6
+
+
+## The ONE store of Enemy Information, keyed by enemy index. Each enemy record also
+## carried an `enemy_info` field that nothing wrote; readers use get_enemy_info_count().
 func increment_enemy_info(enemy_index: int, amount: int) -> void:
 	var key: String = str(enemy_index)
-	var current: int = enemy_info.get(key, 0)
-	enemy_info[key] = current + amount
+	var current: int = int(enemy_info.get(key, 0))
+	enemy_info[key] = clampi(current + amount, 0, ENEMY_INFO_MAX)
 	_update_modified_time()
 
 
 func get_enemy_info_count(enemy_index: int) -> int:
-	return enemy_info.get(str(enemy_index), 0)
+	return int(enemy_info.get(str(enemy_index), 0))
+
+
+## Record a mission a pre-battle step offers for THIS turn (see mission_offers).
+func offer_mission(mission_id: String, details: Dictionary = {}) -> void:
+	var offer: Dictionary = details.duplicate(true)
+	offer["turn"] = campaign_turn
+	mission_offers[mission_id] = offer
+	_update_modified_time()
+
+
+## This turn's offer for a mission, or {} (none, or one left over from an earlier turn).
+func get_mission_offer(mission_id: String) -> Dictionary:
+	var offer: Variant = mission_offers.get(mission_id, {})
+	if offer is Dictionary and int((offer as Dictionary).get("turn", -1)) == campaign_turn:
+		return offer
+	return {}
+
+
+func clear_mission_offer(mission_id: String) -> void:
+	mission_offers.erase(mission_id)
+	_update_modified_time()
 
 
 func is_slyn_active() -> bool:
@@ -903,10 +992,12 @@ func add_mission_data_points(amount: int) -> void:
 ## PlanetfallPhaseManager.resolve_morale_step() / resolve_integrity_step().
 
 
-func apply_colony_event(event_data: Dictionary) -> void:
+func apply_colony_event(event_data: Dictionary) -> Array:
 	## Apply the effects of a colony event (Step 5). Planetfall pp.63-64.
 	## Panels will call specific mutation methods; this is a convenience stub
-	## for events that only need simple stat changes.
+	## for events that only need simple stat changes. Returns the lines only the
+	## application knows (an Ancient Sign's Site roll).
+	var lines: Array = []
 	if event_data.has("colony_morale"):
 		adjust_morale(int(event_data.get("colony_morale", 0)))
 	if event_data.has("research_points"):
@@ -915,11 +1006,13 @@ func apply_colony_event(event_data: Dictionary) -> void:
 		var bp: int = crisis_adjusted_gain(int(event_data.get("build_points", 0)))
 		buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + bp
 	if event_data.has("ancient_signs"):
-		for _i in range(event_data.get("ancient_signs", 0)):
-			ancient_signs.append({})
+		# p.61: each Sign obtained is tested for an Ancient Site as it arrives.
+		lines.append_array(MapScript.obtain_ancient_signs(self,
+				int(event_data.get("ancient_signs", 0))))
 	if event_data.has("grunts"):
 		grunts += event_data.get("grunts", 0)
 	_update_modified_time()
+	return lines
 
 
 func repair_colony(points: int) -> int:
@@ -1073,6 +1166,7 @@ func to_dictionary() -> Dictionary:
 			"research_points_wasted": research_points_wasted,
 			"event_sitout": event_sitout.duplicate(),
 			"patrol_required_turn": patrol_required_turn,
+			"mission_offers": mission_offers.duplicate(true),
 			"character_notes": character_notes.duplicate(true),
 			"disputes": disputes.duplicate(true),
 		},
@@ -1092,6 +1186,7 @@ func to_dictionary() -> Dictionary:
 			"slyn_departed": slyn_departed,
 			"endgame_path": endgame_path,
 			"final_breakthrough": final_breakthrough,
+			"pending_character_awards": pending_character_awards.duplicate(true),
 			"endgame_state": endgame_state.duplicate(true)
 		},
 		"map_data": map_data.duplicate(true),
@@ -1181,6 +1276,8 @@ func from_dictionary(data: Dictionary) -> void:
 		var es: Variant = colony.get("event_sitout", {})
 		event_sitout = (es as Dictionary).duplicate() if es is Dictionary else {}
 		patrol_required_turn = int(colony.get("patrol_required_turn", -1))
+		var mo: Variant = colony.get("mission_offers", {})
+		mission_offers = (mo as Dictionary).duplicate(true) if mo is Dictionary else {}
 		var cn: Variant = colony.get("character_notes", {})
 		character_notes = (cn as Dictionary).duplicate(true) if cn is Dictionary else {}
 		var dp: Variant = colony.get("disputes", [])
@@ -1210,6 +1307,8 @@ func from_dictionary(data: Dictionary) -> void:
 		slyn_departed = prog.get("slyn_departed", false)
 		endgame_path = prog.get("endgame_path", "")
 		final_breakthrough = str(prog.get("final_breakthrough", ""))
+		var pca: Variant = prog.get("pending_character_awards", [])
+		pending_character_awards = (pca as Array).duplicate(true) if pca is Array else []
 		var es: Variant = prog.get("endgame_state", {})
 		endgame_state = (es as Dictionary).duplicate(true) if es is Dictionary else {}
 

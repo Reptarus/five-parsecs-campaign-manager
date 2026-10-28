@@ -7,6 +7,9 @@ extends Control
 ## Source: Planetfall pp.64-65, 114-133
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -35,7 +38,6 @@ var _condition_sys: PlanetfallConditionScript
 var _title_label: Label
 var _list_container: VBoxContainer
 var _detail_container: VBoxContainer
-var _confirm_btn: Button
 
 
 func _ready() -> void:
@@ -61,8 +63,7 @@ func refresh() -> void:
 	_clear_container(_list_container)
 	_clear_container(_detail_container)
 	_build_mission_list()
-	if _confirm_btn:
-		_confirm_btn.disabled = true
+	step_status_changed.emit()
 
 
 func complete() -> void:
@@ -129,13 +130,6 @@ func _build_ui() -> void:
 	_detail_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(_detail_container)
 
-	_confirm_btn = Button.new()
-	_confirm_btn.text = "Confirm Mission Selection"
-	_confirm_btn.custom_minimum_size = Vector2(0, 48)
-	_confirm_btn.disabled = true
-	_confirm_btn.pressed.connect(_on_confirm_pressed)
-	vbox.add_child(_confirm_btn)
-	_confirm_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 ## ============================================================================
@@ -189,8 +183,7 @@ func _build_mission_list() -> void:
 func _on_mission_selected(mission: Dictionary) -> void:
 	_selected_mission = mission
 	_show_mission_detail(mission)
-	if _confirm_btn:
-		_confirm_btn.disabled = false
+	step_status_changed.emit()
 
 
 func _show_mission_detail(mission: Dictionary) -> void:
@@ -376,10 +369,15 @@ func _format_rewards(mission: Dictionary) -> String:
 	return "No special rewards."
 
 
-func _on_confirm_pressed() -> void:
-	if _confirm_btn:
-		_confirm_btn.disabled = true
+## What the turn screen's footer shows for this step: it confirms the mission picked.
+func step_status() -> Dictionary:
+	if _selected_mission.is_empty():
+		return {"ready": false, "reason": "Pick a mission above."}
+	return {"ready": true, "reason": "",
+		"label": "Confirm %s" % str(_selected_mission.get("name", "Mission"))}
 
+
+func _on_confirm_pressed() -> void:
 	var forces: Dictionary = _selected_mission.get("player_forces", {})
 	var force_limits: Dictionary = {
 		"max_characters": forces.get("max_characters", 6),

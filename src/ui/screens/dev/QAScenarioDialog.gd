@@ -289,6 +289,35 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 		"note": "p.147 Step 3 Defensive Abilities"},
 	{"key": "Planetfall Lifeform Unique Ability", "sides": 100, "target": 1,
 		"note": "p.148 Step 4 Unique Ability"},
+	# --- The Planetfall campaign map (PlanetfallMap). Step 3 Scout Reports, p.61 Ancient
+	# Signs, p.62 enemy expansion, and the mission Campaign Factors (pp.116-124).
+	{"key": "Planetfall Scout Discovery", "sides": 100, "target": 26,
+		"note": "p.59 - 26-30 Scout Down!, 31-60 Exploration report, 61-70 Recon patrol"},
+	{"key": "Planetfall Explore Resource", "sides": 6, "target": 4,
+		"note": "p.60 - 2D6 pick lowest, so force BOTH dice; a double 4-6 is an Ancient Sign"},
+	{"key": "Planetfall Explore Hazard", "sides": 6, "target": 4,
+		"note": "p.60 - 2D6 pick lowest, so force BOTH dice; a double 4-6 is an Ancient Sign"},
+	{"key": "Planetfall Enemy Information", "sides": 6, "target": 1,
+		"note": "pp.60-61 - equal to or under the enemy's Enemy Information tracks its Boss"},
+	{"key": "Planetfall Ancient Sign", "sides": 6, "target": 1,
+		"note": "p.61 - equal to or under the Signs held locates an Ancient Site"},
+	{"key": "Planetfall Contested Sector", "sides": 6, "target": 4,
+		"note": "p.62 - expanding into another enemy's sector: 4-6 takes it"},
+	{"key": "Planetfall Recon Marker", "sides": 6, "target": 6,
+		"note": "p.117 Scouting - each Recon marker on a 6 adds +1 Resource"},
+	{"key": "Planetfall Hunt Hazard", "sides": 6, "target": 5,
+		"note": "p.121 Hunt - 5-6 lowers the sector's Hazard by 1"},
+	{"key": "Planetfall Exploration Objective", "sides": 6, "target": 1,
+		"note": "p.118 Exploration - 1 Resource +1, 2 nothing, 3-6 Resource -1"},
+	# --- Planetfall colony creation (PlanetfallExpeditionPanel, PlanetfallBackgrounds).
+	{"key": "Planetfall Expedition Type", "sides": 100, "target": 16,
+		"note": "p.52 - 16-30 Corporate Funded, which adds 2 Investigation Sites"},
+	{"key": "Planetfall Motivation", "sides": 100, "target": 96,
+		"note": "p.21 - 96-00 Obligation; every founding character rolls one"},
+	{"key": "Planetfall Prior Experience", "sides": 100, "target": 97,
+		"note": "p.22 - 97-00 Access Denied: +1 Story Point; 01-05 Army: +1 Reactions"},
+	{"key": "Planetfall Notable Event", "sides": 100, "target": 41,
+		"note": "p.22 - 41-45 Went missing; story only"},
 ]
 
 var _roll_picker: OptionButton = null

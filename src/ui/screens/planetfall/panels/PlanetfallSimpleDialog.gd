@@ -10,6 +10,9 @@ extends Control
 ## Implements the standard panel interface contract.
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
@@ -47,7 +50,10 @@ var _title_label: Label
 var _content_vbox: VBoxContainer
 var _result_container: VBoxContainer
 var _action_btn: Button
-var _continue_btn: Button
+## The step's result is in and nothing is waiting for the player, so the turn
+## screen's footer may continue. This used to be a "Continue" button inside the
+## scroll, beside a footer "Complete Phase" that was disabled on every step.
+var _can_continue: bool = false
 
 ## Step-specific controls
 var _rm_spinner: SpinBox
@@ -106,8 +112,23 @@ func refresh() -> void:
 		_action_btn.visible = true
 		_action_btn.disabled = false
 		_action_btn.text = _get_action_button_text()
-	if _continue_btn:
-		_continue_btn.visible = false
+	# With no damage and no broken bot the Repairs step has nothing to decide (p.59),
+	# so it is ready as built; making the player press "Apply Repairs" to apply nothing
+	# only put a disabled footer and an amber "press above first" in the way.
+	if _step_id == "repairs" and _nothing_to_repair():
+		_resolved = true
+		if _action_btn:
+			_action_btn.visible = false
+		_set_can_continue(true)
+		return
+	_set_can_continue(false)
+
+
+func _nothing_to_repair() -> bool:
+	if not _campaign:
+		return true
+	var bot_ok: bool = _campaign.bot_operational if "bot_operational" in _campaign else true
+	return _colony_damage() <= 0 and bot_ok
 
 
 func complete() -> void:
@@ -163,13 +184,6 @@ func _build_ui() -> void:
 	_action_btn.custom_minimum_size = Vector2(0, 48)
 	_action_btn.pressed.connect(_on_action_pressed)
 	btn_box.add_child(_action_btn)
-
-	_continue_btn = Button.new()
-	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	_continue_btn.visible = false
-	btn_box.add_child(_continue_btn)
 
 
 ## ============================================================================
@@ -303,12 +317,12 @@ func _on_action_pressed() -> void:
 		"character_event":
 			_resolve_character_event()
 
-	_continue_btn.visible = true
-	_continue_btn.disabled = false
 	# A Change of assignment waits for the player's answer before the step can end.
+	var waiting: bool = false
 	for e in _assignment_choices:
 		if not bool(e.decided):
-			_continue_btn.disabled = true
+			waiting = true
+	_set_can_continue(not waiting)
 
 
 func _on_continue_pressed() -> void:
@@ -318,7 +332,7 @@ func _on_continue_pressed() -> void:
 	for e in _assignment_choices.duplicate():
 		if not bool(e.decided):
 			_decide_assignment(e, false)
-	_continue_btn.disabled = true
+	_can_continue = false
 	phase_completed.emit(_result_data)
 
 
@@ -601,20 +615,19 @@ func _after_assignment_decided() -> void:
 	for e in _assignment_choices:
 		if not bool(e.decided):
 			return
-	if _continue_btn:
-		_continue_btn.disabled = false
+	_set_can_continue(true)
 
 
 ## ============================================================================
 ## HELPERS
 ## ============================================================================
 
+## The book's step heading, read from the phase manager's one name table rather than
+## hand-copied here (see PlanetfallAutoResolveDialog._get_step_title()).
 func _get_step_title() -> String:
-	match _step_id:
-		"repairs": return "Step 2: Repairs"
-		"track_enemy_info": return "Step 12: Track Enemy Info & Mission Data"
-		"replacements": return "Step 13: Replacements"
-		"character_event": return "Step 17: Character Event"
+	var names: Dictionary = load("res://src/core/campaign/PlanetfallPhaseManager.gd").PHASE_NAMES
+	if names.has(_phase_index):
+		return "Step %d: %s" % [_phase_index + 1, names[_phase_index]]
 	return "Simple Dialog"
 
 
@@ -654,3 +667,18 @@ func _clear_container(container: VBoxContainer) -> void:
 		return
 	for child in container.get_children():
 		child.queue_free()
+
+
+## What the turn screen's footer shows for this step: {ready, reason}. The footer
+## names the next step itself.
+func step_status() -> Dictionary:
+	var status: Dictionary = {"ready": _can_continue, "reason": ""}
+	if not _can_continue:
+		status.reason = "Press \"%s\" above first." % _get_action_button_text() if not _resolved \
+				else "Answer the Change of Assignment above first (p.70)."
+	return status
+
+
+func _set_can_continue(value: bool) -> void:
+	_can_continue = value
+	step_status_changed.emit()

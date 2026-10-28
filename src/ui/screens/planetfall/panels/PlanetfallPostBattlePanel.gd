@@ -8,6 +8,9 @@ extends Control
 ## Source: Planetfall pp.66-68, 134-136
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
@@ -65,7 +68,7 @@ var _section_label: Label
 var _content_vbox: VBoxContainer
 var _result_container: VBoxContainer
 var _action_btn: Button
-var _continue_btn: Button
+var _can_continue: bool = false
 
 
 func _ready() -> void:
@@ -108,38 +111,37 @@ func refresh() -> void:
 
 	match _current_sub_step:
 		SubStep.INJURIES:
-			_title_label.text = "POST-BATTLE — INJURIES"
-			_section_label.text = "Step 9: Roll for injuries on each casualty"
+			_title_label.text = "STEP 9: INJURIES"
+			_section_label.text = "Roll for injuries on each casualty."
 			_action_btn.text = "Roll Injuries"
 		SubStep.EXPERIENCE:
-			_title_label.text = "POST-BATTLE — EXPERIENCE"
-			_section_label.text = "Step 10: Award XP to participating characters"
+			_title_label.text = "STEP 10: EXPERIENCE PROGRESSION"
+			_section_label.text = "Award XP to the characters who took part."
 			_action_btn.text = "Award XP"
 		SubStep.MORALE:
-			_title_label.text = "POST-BATTLE — MORALE"
-			_section_label.text = "Step 11: Calculate colony morale adjustments"
+			_title_label.text = "STEP 11: COLONY MORALE ADJUSTMENTS"
+			_section_label.text = "Work out this turn's colony Morale adjustments."
 			_action_btn.text = "Calculate Morale"
 		SubStep.POST_MISSION_FINDS:
-			_title_label.text = "POST-BATTLE — MISSION FINDS"
-			_section_label.text = "Step 12a: Roll for Post-Mission Finds"
+			_title_label.text = "STEP 12: POST-MISSION FINDS"
+			_section_label.text = "Roll for Post-Mission Finds."
 			_action_btn.text = "Roll Finds"
 		SubStep.ENEMY_INFO:
-			_title_label.text = "POST-BATTLE — ENEMY INFO"
-			_section_label.text = "Step 12b: Track Enemy Information & Mission Data"
+			_title_label.text = "STEP 12: TRACK ENEMY INFORMATION & MISSION DATA"
+			_section_label.text = "Record the Enemy Information and Mission Data this mission earned."
 			_action_btn.text = "Process Intel"
 
 	_build_sub_step_info()
 	_action_btn.visible = true
 	_action_btn.disabled = false
-	_continue_btn.visible = false
+	_set_can_continue(false)
 	# A resume into a Step 11 that already rolled shows its receipt (built above) and
 	# must not offer the roll again.
 	if _current_sub_step == SubStep.MORALE and _phase_manager \
 			and _phase_manager.has_method("get_morale_receipt") \
 			and not _phase_manager.get_morale_receipt().is_empty():
 		_action_btn.visible = false
-		_continue_btn.visible = true
-		_continue_btn.disabled = false
+		_set_can_continue(true)
 	_show_recorded_receipt()
 	TouchScrollOpenerRef.open_subtree(_scroll)
 
@@ -202,12 +204,6 @@ func _build_ui() -> void:
 	_action_btn.pressed.connect(_on_action_pressed)
 	btn_box.add_child(_action_btn)
 
-	_continue_btn = Button.new()
-	_continue_btn.text = "Continue"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	_continue_btn.visible = false
-	btn_box.add_child(_continue_btn)
 
 
 ## ============================================================================
@@ -276,19 +272,18 @@ func _on_action_pressed() -> void:
 		SubStep.ENEMY_INFO:
 			_resolve_enemy_info()
 
-	# Step 9 and Step 11 keep their receipts in the phase manager already; the rest
+	# Steps 9, 11 and 12b keep their receipts in the phase manager already; the rest
 	# record what was printed, in the same frame as the mutation it describes.
 	var key: String = _receipt_key()
-	if key != "" and key != "injuries" and _phase_manager \
+	if key != "" and key != "injuries" and key != "intel" and _phase_manager \
 			and _phase_manager.has_method("record_step_receipt"):
 		_phase_manager.record_step_receipt(key, _receipt_lines)
 
-	_continue_btn.visible = true
-	_continue_btn.disabled = false
+	_set_can_continue(true)
 
 
 func _on_continue_pressed() -> void:
-	_continue_btn.disabled = true
+	_can_continue = false
 
 	# MORALE transitions to POST_MISSION_FINDS instead of emitting
 	if _current_sub_step == SubStep.MORALE:
@@ -299,16 +294,16 @@ func _on_continue_pressed() -> void:
 			phase_completed.emit({})
 			return
 		_transition_to_sub_step(SubStep.POST_MISSION_FINDS,
-			"POST-BATTLE — MISSION FINDS",
-			"Step 12a: Roll for Post-Mission Finds",
+			"STEP 12: POST-MISSION FINDS",
+			"Roll for Post-Mission Finds.",
 			"Roll Finds")
 		return
 
 	# POST_MISSION_FINDS transitions to ENEMY_INFO instead of emitting
 	if _current_sub_step == SubStep.POST_MISSION_FINDS:
 		_transition_to_sub_step(SubStep.ENEMY_INFO,
-			"POST-BATTLE — ENEMY INFO",
-			"Step 12b: Track Enemy Information & Mission Data",
+			"STEP 12: TRACK ENEMY INFORMATION & MISSION DATA",
+			"Record the Enemy Information and Mission Data this mission earned.",
 			"Process Intel")
 		return
 
@@ -486,8 +481,7 @@ func _show_recorded_receipt() -> void:
 	for line in receipt.get("lines", []):
 		_add_result_bbcode(str(line))
 	_action_btn.visible = false
-	_continue_btn.visible = true
-	_continue_btn.disabled = false
+	_set_can_continue(true)
 
 ## ============================================================================
 ## EXPERIENCE RESOLUTION (Step 10)
@@ -741,7 +735,8 @@ func _resolve_post_mission_finds() -> void:
 
 		# Apply to campaign
 		if _campaign:
-			_post_mission.apply_find_to_campaign(_campaign, find)
+			for line in _post_mission.apply_find_to_campaign(_campaign, find):
+				_add_result_bbcode("    " + str(line))
 
 		_finds_rolled.append(find)
 
@@ -754,51 +749,13 @@ func _resolve_post_mission_finds() -> void:
 ## ============================================================================
 
 func _resolve_enemy_info() -> void:
-	## Planetfall p.68 — track Enemy Information and Mission Data.
-	var won: bool = _battle_results.get("won", false)
-	var enemy_index: int = _battle_results.get("tactical_enemy_index", -1)
-	var md_gained: int = _battle_results.get("mission_data_gained", 0)
-
+	## Planetfall p.68 Step 12: the phase manager rolls and applies it ONCE (Enemy
+	## Information, the map's Campaign Factors, Mission Data); this renders the receipt.
 	_add_result_bbcode("[b]Intelligence Report:[/b]")
-
-	# Enemy Information
-	if won and enemy_index >= 0 and _campaign:
-		var status: Dictionary = _post_mission.process_enemy_info_gain(
-			_campaign, enemy_index, 1)
-		var total: int = status.get("total_info", 0)
-		_add_result_bbcode(
-			"  +1 Enemy Information (total: %d)" % total)
-
-		if status.get("boss_located", false):
-			_add_result_bbcode(
-				"  [color=#D97706]Boss location identified! Strike Mission now available.[/color]")
-		# p.51 The Strongpoint Attack: "Succeeding in the Assault destroys that enemy
-		# and removes them from the campaign", its sectors are abandoned, and "You may
-		# immediately increase Colony Morale by +5."
-		if str(_battle_results.get("mission_id", "")) == "assault" \
-				and _campaign.has_method("mark_enemy_defeated"):
-			_campaign.mark_enemy_defeated(enemy_index)
-			_campaign.adjust_morale(5)
-			_add_result_bbcode("  [color=#10B981]The Strongpoint falls: this enemy is "
-					+ "removed from the campaign and Colony Morale rises by 5 (p.51).[/color]")
-		# p.68: "they cannot take an action next campaign turn" (p.61 Disruption).
-		elif _campaign.has_method("disrupt_enemy"):
-			_campaign.disrupt_enemy(enemy_index)
-			_add_result_bbcode("  This enemy cannot take an action next campaign turn (p.68).")
-	elif won:
-		_add_result_bbcode("  No Tactical Enemy fought — no Enemy Information gained.")
-	else:
-		_add_result_bbcode("  Mission not won — no Enemy Information gained.")
-
-	# Mission Data — add and note for breakthrough check at Step 12
-	if md_gained > 0 and _campaign:
-		if _campaign.has_method("add_mission_data_points"):
-			_campaign.add_mission_data_points(md_gained)
-		var md_total: int = _campaign.mission_data if "mission_data" in _campaign else 0
-		_add_result_bbcode(
-			"\n  +%d Mission Data (total: %d)" % [md_gained, md_total])
-		_add_result_bbcode(
-			"  [color=#9ca3af]Breakthrough check will occur at Step 12.[/color]")
+	if not _phase_manager or not _phase_manager.has_method("resolve_intel_step"):
+		return
+	for line in _phase_manager.resolve_intel_step().get("lines", []):
+		_add_result_bbcode("  " + str(line))
 
 
 ## ============================================================================
@@ -868,9 +825,29 @@ func _transition_to_sub_step(
 	_build_sub_step_info()
 	_action_btn.visible = true
 	_action_btn.disabled = false
-	_continue_btn.visible = false
+	_set_can_continue(false)
 	_show_recorded_receipt()
 	TouchScrollOpenerRef.open_subtree(_scroll)
+
+
+## What the turn screen's footer shows for this step: {ready, reason, label}. Step 12's
+## two parts follow Morale inside this panel, so the footer names them itself; the turn
+## screen would otherwise call the next press "Step 13".
+func step_status() -> Dictionary:
+	if not _can_continue:
+		return {"ready": false, "reason": "Press \"%s\" above first." % _action_btn.text}
+	match _current_sub_step:
+		SubStep.MORALE:
+			if not (_campaign and _campaign.has_method("is_failed") and _campaign.is_failed()):
+				return {"ready": true, "reason": "", "label": "Continue to Post-Mission Finds"}
+		SubStep.POST_MISSION_FINDS:
+			return {"ready": true, "reason": "", "label": "Continue to Enemy Information"}
+	return {"ready": true, "reason": ""}
+
+
+func _set_can_continue(value: bool) -> void:
+	_can_continue = value
+	step_status_changed.emit()
 
 
 func _clear_container(container: VBoxContainer) -> void:

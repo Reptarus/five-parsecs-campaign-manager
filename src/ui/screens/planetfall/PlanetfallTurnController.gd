@@ -9,6 +9,7 @@ extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 const PlanetfallPhaseManagerScript := preload(
 	"res://src/core/campaign/PlanetfallPhaseManager.gd")
 const BattleGuideScript := preload("res://src/core/battle/PlanetfallBattleGuide.gd")
+const ItemChoicePopupScript := preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
 const PlaceholderPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallPlaceholderPanel.gd")
 const AutoResolveScript := preload(
@@ -63,8 +64,12 @@ var _enemy_gen: TacticalEnemyGenScript
 
 var _turn_label: Label
 var _phase_label: Label
-var _stat_strip: HBoxContainer
+## A flow container, so the colony's resources wrap onto a second line on a phone
+## instead of being hidden there (it used to drop RM, Grunts and Milestones in portrait).
+var _stat_strip: HFlowContainer
 var _advance_button: Button
+## Why the footer button is disabled, shown above it (a phone has no hover).
+var _footer_reason: Label
 var _save_button: Button
 var _dashboard_button: Button
 var _top_row: HBoxContainer
@@ -72,10 +77,13 @@ var _panel_container: Control
 var _phase_scroll: ScrollContainer
 var _phase_indicator_box: HBoxContainer
 var _phase_indicators: Array[Label] = []
+## The page margin. Its left/right are recomputed on every resize so the turn reads as
+## one centred column on a tablet in landscape instead of a 2,000-px-wide strip with
+## its prose on the far left and its buttons in the middle (Sprint U captures).
+var _page_margin: MarginContainer
 
-## Lower-priority stat keys collapsed away in portrait so the high-priority
-## colony stats (MORALE/INTEGRITY/SP) keep room and are not crushed.
-const _TOPBAR_PORTRAIT_HIDDEN_STATS: Array[String] = ["RM", "GRUNTS", "MILESTONES"]
+## The widest the turn's column grows, in design px.
+const MAX_TURN_WIDTH := 1200
 ## Tracks whether _apply_topbar_responsive() last applied the portrait shape, so a
 ## layout_class_changed that does not flip orientation is a cheap no-op.
 var _topbar_is_portrait_applied: bool = false
@@ -106,6 +114,9 @@ func _exit_tree() -> void:
 	if rm and rm.has_signal("layout_class_changed") \
 			and rm.layout_class_changed.is_connected(_on_topbar_layout_class_changed):
 		rm.layout_class_changed.disconnect(_on_topbar_layout_class_changed)
+	var vp := get_viewport()
+	if vp and vp.size_changed.is_connected(_apply_turn_column_width):
+		vp.size_changed.disconnect(_apply_turn_column_width)
 	super._exit_tree()
 
 
@@ -164,6 +175,8 @@ func _start_or_resume_turn() -> void:
 			phase_manager.start_new_turn()
 		else:
 			_resume_turn(turn)
+	# A Breakthrough award left unassigned when the app closed is asked for again.
+	_offer_character_awards.call_deferred()
 
 
 ## Resume a turn already under way, on the step the campaign recorded (T1). This used
@@ -217,6 +230,7 @@ func _build_layout() -> void:
 	margin.add_theme_constant_override("margin_right", SPACING_MD)
 	margin.add_theme_constant_override("margin_bottom", SPACING_SM)
 	add_child(margin)
+	_page_margin = margin
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
@@ -248,8 +262,9 @@ func _build_layout() -> void:
 	_top_row.add_child(_dashboard_button)
 
 	# Colony stat strip
-	_stat_strip = HBoxContainer.new()
-	_stat_strip.add_theme_constant_override("separation", SPACING_MD)
+	_stat_strip = HFlowContainer.new()
+	_stat_strip.add_theme_constant_override("h_separation", SPACING_MD)
+	_stat_strip.add_theme_constant_override("v_separation", SPACING_XS)
 	vbox.add_child(_stat_strip)
 	_build_stat_strip()
 
@@ -265,11 +280,13 @@ func _build_layout() -> void:
 	_phase_scroll.add_child(_phase_indicator_box)
 	_build_phase_indicators()
 
-	# Current phase title
+	# Where the turn stands: the p.58 group and the step count. The step's NAME is the
+	# panel's own title ("STEP 3: SCOUT REPORTS"); this label used to repeat it as
+	# "PRE-BATTLE — SCOUT REPORTS", so every step opened with its name printed twice.
 	_phase_label = Label.new()
-	_phase_label.text = "RECOVERY"
-	_phase_label.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
-	_phase_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	_phase_label.text = "PRE-BATTLE · STEP 1 OF 18"
+	_phase_label.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_SM))
+	_phase_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(_phase_label)
 
@@ -280,6 +297,13 @@ func _build_layout() -> void:
 	vbox.add_child(_panel_container)
 
 	# Bottom navigation
+	_footer_reason = Label.new()
+	_footer_reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_footer_reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_footer_reason.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_SM))
+	_footer_reason.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
+	_footer_reason.visible = false
+	vbox.add_child(_footer_reason)
 	var nav := HBoxContainer.new()
 	nav.add_theme_constant_override("separation", SPACING_MD)
 	nav.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -298,6 +322,22 @@ func _build_layout() -> void:
 	# reshape fires on every rotation regardless of column-count dedupe.
 	_connect_topbar_responsive()
 	_apply_topbar_responsive()
+	_apply_turn_column_width()
+	var vp := get_viewport()
+	if vp and not vp.size_changed.is_connected(_apply_turn_column_width):
+		vp.size_changed.connect(_apply_turn_column_width)
+
+
+## Centre the turn in a column no wider than MAX_TURN_WIDTH. Width arithmetic in the
+## design space the layout itself uses, so get_visible_rect() is the right reading
+## here; orientation questions still go to ResponsiveManager.
+func _apply_turn_column_width() -> void:
+	if not is_instance_valid(_page_margin) or not is_inside_tree():
+		return
+	var width: float = get_viewport().get_visible_rect().size.x
+	var side: int = maxi(SPACING_MD, int((width - MAX_TURN_WIDTH) / 2.0))
+	_page_margin.add_theme_constant_override("margin_left", side)
+	_page_margin.add_theme_constant_override("margin_right", side)
 
 
 ## ============================================================================
@@ -317,11 +357,9 @@ func _on_topbar_layout_class_changed(_effective_columns: int) -> void:
 	_apply_topbar_responsive()
 
 
-## Reshape ONLY the top bar (top row + 6-label stat strip) for the current
-## orientation. Landscape is left byte-for-byte identical to the original layout;
-## portrait stacks the top row vertically (so Turn/Save/Dashboard are not crushed),
-## hides the three lower-priority colony stats so MORALE/INTEGRITY/SP keep room,
-## and bumps both buttons to >= TOUCH_TARGET_MIN (48) high.
+## Reshape ONLY the top row for the current orientation. Portrait stacks it
+## vertically (so Turn/Save/Dashboard are not crushed) and bumps both buttons to
+## >= TOUCH_TARGET_MIN (48) high. The stat strip needs nothing here: it wraps.
 func _apply_topbar_responsive() -> void:
 	if not is_instance_valid(_top_row):
 		return
@@ -346,10 +384,7 @@ func _apply_topbar_responsive() -> void:
 		if is_instance_valid(_dashboard_button):
 			_dashboard_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 			_dashboard_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		# Drop the low-priority stats so the kept three are not squeezed.
-		for key in _TOPBAR_PORTRAIT_HIDDEN_STATS:
-			if _stat_labels.has(key) and is_instance_valid(_stat_labels[key]):
-				_stat_labels[key].visible = false
+		# The stat strip wraps (HFlowContainer), so no colony stat is hidden here.
 	else:
 		# Restore the original landscape shape exactly.
 		_top_row.vertical = false
@@ -362,9 +397,6 @@ func _apply_topbar_responsive() -> void:
 		if is_instance_valid(_dashboard_button):
 			_dashboard_button.custom_minimum_size = Vector2(100, 36)
 			_dashboard_button.size_flags_horizontal = Control.SIZE_FILL
-		for key in _TOPBAR_PORTRAIT_HIDDEN_STATS:
-			if _stat_labels.has(key) and is_instance_valid(_stat_labels[key]):
-				_stat_labels[key].visible = true
 
 
 ## True when the current layout should collapse the top bar to its portrait shape.
@@ -385,8 +417,7 @@ func _topbar_is_portrait() -> bool:
 
 
 func _build_stat_strip() -> void:
-	var stat_keys: Array[String] = ["MORALE", "INTEGRITY", "SP", "RM", "GRUNTS", "MILESTONES"]
-	for key in stat_keys:
+	for key in COLONY_STAT_ORDER:
 		var lbl := Label.new()
 		lbl.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_CYAN)
@@ -395,33 +426,35 @@ func _build_stat_strip() -> void:
 	_refresh_stat_strip()
 
 
+## Build and Research Points are the pools Steps 14-15 spend (p.69); the turn used to
+## show neither, so a player reached Research without seeing what they could afford.
+## The values come from colony_stats(), which the dashboard reads too.
 func _refresh_stat_strip() -> void:
 	if not campaign:
 		return
-	var morale: int = campaign.colony_morale if "colony_morale" in campaign else 0
-	var integrity: int = campaign.colony_integrity if "colony_integrity" in campaign else 0
-	var sp: int = campaign.story_points if "story_points" in campaign else 0
-	var rm: int = campaign.raw_materials if "raw_materials" in campaign else 0
-	var grunts: int = campaign.grunts if "grunts" in campaign else 0
-	var milestones: int = campaign.milestones_completed if "milestones_completed" in campaign else 0
-
-	if _stat_labels.has("MORALE"):
-		_stat_labels["MORALE"].text = "Morale: %d" % morale
-	if _stat_labels.has("INTEGRITY"):
-		_stat_labels["INTEGRITY"].text = "Integrity: %d" % integrity
-	if _stat_labels.has("SP"):
-		_stat_labels["SP"].text = "SP: %d" % sp
-	if _stat_labels.has("RM"):
-		_stat_labels["RM"].text = "RM: %d" % rm
-	if _stat_labels.has("GRUNTS"):
-		_stat_labels["GRUNTS"].text = "Grunts: %d" % grunts
-	if _stat_labels.has("MILESTONES"):
-		_stat_labels["MILESTONES"].text = "Milestones: %d/7" % milestones
+	var stats: Dictionary = colony_stats(campaign)
+	for key in _stat_labels:
+		if stats.has(key):
+			_stat_labels[key].text = "%s: %s" % [stats[key][0], str(stats[key][2])]
 
 
+## The 18 steps, grouped the way p.58 prints them (Pre-Battle 1-6, Battle 7-8,
+## Post-Battle 9-18), with each group named. It used to be eighteen bare numbers.
 func _build_phase_indicators() -> void:
 	_phase_indicators.clear()
+	var last_group := ""
 	for i in range(PlanetfallPhaseManagerScript.PHASE_COUNT):
+		var group: String = str(PlanetfallPhaseManagerScript.PHASE_CATEGORIES.get(i, ""))
+		if group != last_group:
+			if last_group != "":
+				_phase_indicator_box.add_child(VSeparator.new())
+			var caption := Label.new()
+			caption.text = group
+			caption.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XS))
+			caption.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			_phase_indicator_box.add_child(caption)
+			last_group = group
 		var indicator := Label.new()
 		var short_name: String = PlanetfallPhaseManagerScript.PHASE_NAMES.get(i, "?")
 		indicator.text = "%d" % (i + 1)
@@ -574,9 +607,9 @@ func _on_phase_changed(_old_phase: int, new_phase: int) -> void:
 		return
 
 	# Auto-skip TRACK_ENEMY_INFO (phase 11) — PostBattlePanel at phase 10
-	# already handles POST_MISSION_FINDS and ENEMY_INFO internally.
+	# already handles POST_MISSION_FINDS and ENEMY_INFO internally. Mission Data is not
+	# checked here: p.68 notes it and a Milestone checks it (PlanetfallMissionDataSystem).
 	if new_phase == ph.TRACK_ENEMY_INFO:
-		_process_mission_data_check()
 		phase_manager.complete_current_phase({})
 		return
 
@@ -589,6 +622,7 @@ func _on_phase_changed(_old_phase: int, new_phase: int) -> void:
 		var panel: Control = panels[new_phase]
 		if panel.has_method("refresh"):
 			panel.refresh()
+	_refresh_footer()
 
 	# Scroll phase indicator into view
 	_scroll_indicator_into_view(new_phase)
@@ -621,6 +655,8 @@ func _on_turn_completed(_turn: int) -> void:
 		return
 	_advance_button.text = "Start Next Turn"
 	_advance_button.disabled = false
+	_advance_button.visible = true
+	_footer_reason.visible = false
 	_phase_label.text = "TURN COMPLETE"
 	_refresh_stat_strip()
 
@@ -669,8 +705,11 @@ func _on_advance_pressed() -> void:
 			phase_manager.complete_current_phase({})
 
 
-func _on_navigation_updated(_can_back: bool, can_forward: bool) -> void:
-	_advance_button.disabled = not can_forward
+## The phase manager marks a phase complete only as it advances past it, so its
+## can_forward was false on every step and the footer read "Complete Phase", disabled,
+## everywhere. The footer now follows the step itself (_refresh_footer).
+func _on_navigation_updated(_can_back: bool, _can_forward: bool) -> void:
+	_refresh_footer()
 
 
 func _on_save_pressed() -> void:
@@ -703,26 +742,76 @@ func _on_save_pressed() -> void:
 func _show_panel(phase_idx: int) -> void:
 	if current_panel:
 		current_panel.hide()
+		if current_panel.has_signal("step_status_changed") \
+				and current_panel.step_status_changed.is_connected(_refresh_footer):
+			current_panel.step_status_changed.disconnect(_refresh_footer)
 	if phase_idx >= 0 and phase_idx < panels.size():
 		current_panel = panels[phase_idx]
 		current_panel.show()
+		if current_panel.has_signal("step_status_changed"):
+			current_panel.step_status_changed.connect(_refresh_footer)
+
+
+## The pinned footer is a step's one completion control. A step that reports
+## step_status() -> {ready, reason} (and an optional "label") drives it: enabled when ready, otherwise
+## disabled with the reason shown above it, and pressing it calls the step's
+## complete(). A step that does not report one finishes from its own panel, so the
+## footer is hidden rather than shown disabled. Between turns the footer is "Start
+## Next Turn" (_on_turn_completed) and this leaves it alone.
+func _refresh_footer() -> void:
+	if not is_instance_valid(_advance_button) or phase_manager == null:
+		return
+	if phase_manager.current_phase == PlanetfallPhaseManagerScript.Phase.NONE:
+		return
+	var status: Dictionary = {}
+	if is_instance_valid(current_panel) and current_panel.has_method("step_status"):
+		status = current_panel.step_status()
+	if status.is_empty():
+		_advance_button.visible = false
+		_footer_reason.visible = false
+		return
+	var ready: bool = bool(status.get("ready", false))
+	_advance_button.visible = true
+	_advance_button.text = str(status.get("label",
+			_next_step_label(phase_manager.current_phase)))
+	_advance_button.disabled = not ready
+	_footer_reason.text = "" if ready else str(status.get("reason", ""))
+	_footer_reason.visible = _footer_reason.text != ""
+
+
+## "Continue to Step N" for the step after `phase`, or "End Turn N" on the last one.
+## Step 12 (Track Enemy Info) is folded into the post-battle panel and skipped, so the
+## label names the step the player will actually see.
+func _next_step_label(phase: int) -> String:
+	var next: int = phase + 1
+	if next == PlanetfallPhaseManagerScript.Phase.TRACK_ENEMY_INFO:
+		next += 1
+	if next >= PlanetfallPhaseManagerScript.PHASE_COUNT:
+		return "End Turn %d" % phase_manager.turn_number
+	return "Continue to Step %d" % (next + 1)
 
 
 func _update_phase_display(phase: int) -> void:
-	var phase_name: String = phase_manager.get_phase_name(phase)
 	var category: String = phase_manager.get_phase_category(phase)
-	_phase_label.text = "%s — %s" % [category, phase_name.to_upper()]
-	_advance_button.text = "Complete Phase"
+	_phase_label.text = "%s · STEP %d OF %d" % [
+			category, phase + 1, PlanetfallPhaseManagerScript.PHASE_COUNT]
+	_refresh_footer()
 	_update_phase_indicators()
 
 
 func _update_phase_indicators() -> void:
 	for i in range(_phase_indicators.size()):
 		var indicator: Label = _phase_indicators[i]
+		indicator.remove_theme_stylebox_override("normal")
 		if i < phase_manager.current_phase:
 			indicator.add_theme_color_override("font_color", COLOR_SUCCESS)
 		elif i == phase_manager.current_phase:
+			# The current step sits on a chip, so it can be found at a glance.
 			indicator.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+			var chip := StyleBoxFlat.new()
+			chip.bg_color = COLOR_ACCENT
+			chip.set_corner_radius_all(4)
+			indicator.add_theme_stylebox_override("normal", chip)
 		else:
 			indicator.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 
@@ -952,37 +1041,45 @@ func _show_milestone_receipt(receipt: Dictionary) -> void:
 	if lines.is_empty():
 		return
 	_refresh_stat_strip()
-	AcknowledgeDialog.show_message(self, "\n".join(PackedStringArray(lines)))
+	var dialog: AcknowledgeDialog = AcknowledgeDialog.show_message(
+			self, "\n".join(PackedStringArray(lines)))
+	if dialog:
+		dialog.acknowledged.connect(_offer_character_awards, CONNECT_ONE_SHOT)
 
 
-func _process_mission_data_check() -> void:
-	## After Step 12 (Track Enemy Info), check if any accumulated mission data
-	## triggers a breakthrough.
-	if not _md_sys or not campaign:
+## p.169 Final Breakthrough awards to "characters of your choice", queued on the campaign
+## by PlanetfallMissionDataSystem: one pick at a time until the queue is empty.
+func _offer_character_awards() -> void:
+	if not campaign or not "pending_character_awards" in campaign \
+			or campaign.pending_character_awards.is_empty():
 		return
-	var md_total: int = campaign.mission_data if "mission_data" in campaign else 0
-	if md_total <= 0:
+	var award: Dictionary = campaign.pending_character_awards[0]
+	var chosen: Array = award.get("chosen", []) if award.get("chosen") is Array else []
+	var label_to_id: Dictionary = {}
+	for c in campaign.roster:
+		if not c is Dictionary or chosen.has(str(c.get("id", ""))):
+			continue
+		var label: String = str(c.get("name", "Character"))
+		if label_to_id.has(label):
+			label = "%s (%d)" % [label, label_to_id.size() + 1]
+		label_to_id[label] = str(c.get("id", ""))
+	if label_to_id.is_empty():
+		# Fewer characters than the award names: the rest of its picks lapse.
+		campaign.discard_character_award()
+		_offer_character_awards()
 		return
-	# The check happens inside add_and_check — but we only check here,
-	# we don't add more data. The PostBattlePanel already added the MD.
-	# We just need to roll the D6 check.
-	var roll: int = randi_range(1, 6)
-	if roll <= md_total:
-		# Breakthrough!
-		if "mission_data" in campaign:
-			campaign.mission_data -= roll
-		if "mission_data_breakthroughs" in campaign:
-			campaign.mission_data_breakthroughs += 1
-		var bt_index: int = campaign.mission_data_breakthroughs
-		var bt_result: Dictionary = _md_sys.process_breakthrough(campaign, bt_index)
-		push_warning("Mission Data Breakthrough #%d: %s" % [
-			bt_index, bt_result.get("name", "Unknown")])
-
-		# Handle 4th breakthrough (Final D100 table)
-		for needed in bt_result.get("actions_needed", []):
-			if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
-				var final_roll: int = randi_range(1, 100)
-				_md_sys.roll_final_breakthrough(campaign, final_roll)
+	var amount: int = int(award.get("amount", 0))
+	var what: String = ("+%d XP" % amount) if str(award.get("stat", "")) == "xp" \
+			else ("+%d Reactions" % amount)
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = str(award.get("source", "Breakthrough"))
+	popup.item_chosen.connect(func(picked: String) -> void:
+		if campaign.grant_character_award(str(label_to_id.get(picked, ""))) != "":
+			_refresh_stat_strip()
+		_offer_character_awards.call_deferred())
+	add_child(popup)
+	popup.show_choices("%s: %s" % [str(award.get("source", "")), what], label_to_id.keys(),
+			"Choose a character (%d left, p.169)" % int(award.get("picks", 1)))
 
 
 ## Accessors for progression systems (used by panels)

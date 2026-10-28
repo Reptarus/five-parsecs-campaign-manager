@@ -1,9 +1,10 @@
 class_name PlanetfallPostMissionSystem
 extends RefCounted
 
-## Processes Post-Mission Finds, Alien Artifact distribution, and campaign
-## factor resolution after completing missions.
-## Source: Planetfall pp.134-136
+## Processes Post-Mission Finds and Alien Artifact distribution after missions.
+## Source: Planetfall pp.134-136. Campaign Factors live in PlanetfallMap.
+
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 
 var _finds: Array = []
 var _artifacts: Array = []
@@ -75,10 +76,12 @@ func roll_find_with_bonuses(roll: int, has_scientist: bool, has_scout: bool) -> 
 	return result
 
 
-func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> void:
-	## Apply the reward from a Post-Mission Find to campaign state.
+func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> Array:
+	## Apply the reward from a Post-Mission Find to campaign state. Returns the lines only
+	## the application can know (an Ancient Sign's roll).
+	var lines: Array = []
 	if not campaign:
-		return
+		return lines
 	var reward: Dictionary = find.get("reward", {})
 
 	# One Find is one source. p.90: in a Crisis "every RP/BP/RM source gives 1 point
@@ -118,9 +121,11 @@ func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> void:
 	if reward.has("colony_morale") and campaign.has_method("adjust_morale"):
 		campaign.adjust_morale(reward["colony_morale"])
 
-	if reward.has("ancient_signs") and "ancient_signs" in campaign:
-		for _i in range(reward["ancient_signs"]):
-			campaign.ancient_signs.append({})
+	# p.61: each Sign obtained is tested for an Ancient Site at once. These were appended
+	# as {} with no roll until 2026-10-28, so a Find never located a Site.
+	if reward.has("ancient_signs"):
+		lines.append_array(MapScript.obtain_ancient_signs(campaign, int(reward["ancient_signs"])))
+	return lines
 
 
 ## ============================================================================
@@ -158,128 +163,6 @@ func get_artifact_by_id(artifact_id: String) -> Dictionary:
 
 func get_all_artifacts() -> Array:
 	return _artifacts.duplicate(true)
-
-
-## ============================================================================
-## CAMPAIGN FACTORS
-## ============================================================================
-
-func process_campaign_factors(campaign: Resource, mission_id: String,
-		battle_result: Dictionary) -> Dictionary:
-	## Apply post-mission campaign state changes based on mission type and result.
-	## Returns a summary of all changes made.
-	var changes: Dictionary = {"applied": []}
-
-	if not campaign:
-		return changes
-
-	var won: bool = battle_result.get("won", false)
-
-	match mission_id:
-		"exploration":
-			# Roll D6 per objective: 1=Hazard+1, 2=nothing, 3-6=Resource-1
-			var objectives_completed: int = battle_result.get("objectives_completed", 0)
-			var sector_id: String = battle_result.get("sector_id", "")
-			changes["exploration_results"] = []
-			for _i in range(objectives_completed):
-				var obj_roll: int = roll_d6()
-				changes["exploration_results"].append({"roll": obj_roll})
-
-		"scouting":
-			# Sector becomes Explored. Resource = 2D6 pick lowest. Hazard = 2D6 pick lowest.
-			if won:
-				var r1: int = roll_d6()
-				var r2: int = roll_d6()
-				var resource_level: int = mini(r1, r2)
-				var h1: int = roll_d6()
-				var h2: int = roll_d6()
-				var hazard_level: int = mini(h1, h2)
-				changes["sector_explored"] = true
-				changes["resource_level"] = resource_level
-				changes["hazard_level"] = hazard_level
-				changes["applied"].append("Sector explored: Resource %d, Hazard %d" % [resource_level, hazard_level])
-
-		"science":
-			# Resource -1 if any samples collected
-			var samples: int = battle_result.get("samples_collected", 0)
-			if samples > 0:
-				changes["resource_reduction"] = 1
-				changes["applied"].append("Sector Resource value reduced by 1.")
-
-		"hunt":
-			# If sector has Hazard, D6 on 5-6 reduce by 1
-			var hazard_roll: int = roll_d6()
-			if hazard_roll >= 5:
-				changes["hazard_reduction"] = 1
-				changes["applied"].append("Sector Hazard reduced by 1.")
-
-		"skirmish":
-			# Both objectives = enemy no longer occupies sector
-			var both_done: bool = battle_result.get("both_objectives", false)
-			if both_done:
-				changes["enemy_sector_cleared"] = true
-				changes["applied"].append("Enemy no longer occupies this sector.")
-
-		"rescue":
-			# -1 Morale per colonist not saved. Squad casualties don't affect Morale.
-			var colonists_lost: int = battle_result.get("colonists_lost", 0)
-			if colonists_lost > 0 and campaign.has_method("adjust_morale"):
-				campaign.adjust_morale(-colonists_lost)
-				changes["morale_loss"] = colonists_lost
-				changes["applied"].append("Lost %d Colony Morale (colonists not saved)." % colonists_lost)
-
-		"scout_down":
-			# Non-roster scout saved = +1 Morale. Sector may become Explored.
-			var scout_saved: bool = battle_result.get("scout_saved", false)
-			var is_roster_scout: bool = battle_result.get("is_roster_scout", false)
-			if scout_saved and not is_roster_scout:
-				if campaign.has_method("adjust_morale"):
-					campaign.adjust_morale(1)
-				changes["morale_gain"] = 1
-				changes["applied"].append("+1 Colony Morale (scout rescued).")
-
-		"pitched_battle":
-			# Win = +1 XP per survivor. Loss = D100 Campaign Consequences.
-			if won:
-				changes["survivor_xp"] = 1
-				changes["applied"].append("+1 XP to each survivor.")
-
-		"assault":
-			# Win = enemy eliminated from campaign, roll Resource/Hazard for sector
-			if won:
-				changes["enemy_eliminated"] = true
-				changes["applied"].append("Enemy eliminated from campaign. All sectors relinquished.")
-
-	return changes
-
-
-func process_enemy_info_gain(campaign: Resource, enemy_index: int,
-		gained: int) -> Dictionary:
-	## Increment enemy info counter. Check boss_located and strongpoint_located.
-	## Returns status dict.
-	if not campaign or not campaign.has_method("increment_enemy_info"):
-		return {}
-
-	campaign.increment_enemy_info(enemy_index, gained)
-	var total: int = campaign.get_enemy_info_count(enemy_index)
-
-	var status: Dictionary = {
-		"enemy_index": enemy_index,
-		"total_info": total,
-		"boss_located": false,
-		"strongpoint_located": false
-	}
-
-	# Check thresholds on the tactical enemy
-	if "tactical_enemies" in campaign and enemy_index < campaign.tactical_enemies.size():
-		var enemy: Variant = campaign.tactical_enemies[enemy_index]
-		if enemy is Dictionary:
-			# Boss located after Strike mission with sufficient info
-			if total >= 3 and not enemy.get("boss_located", false):
-				enemy["boss_located"] = true
-				status["boss_located"] = true
-
-	return status
 
 
 ## ============================================================================

@@ -18,6 +18,10 @@ signal step_changed(step: int, total_steps: int)
 var current_step: int = 0
 var total_steps: int = 6
 
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const RosterRulesScript := preload("res://src/core/systems/PlanetfallRosterRules.gd")
+const BackgroundsScript := preload("res://src/core/systems/PlanetfallBackgrounds.gd")
+
 ## Accumulated creation state
 var config_data: Dictionary = {}
 var roster_data: Array = []
@@ -58,6 +62,10 @@ func _update_navigation() -> void:
 	navigation_updated.emit(can_back, can_forward, can_finish)
 
 
+func is_step_complete(step: int) -> bool:
+	return step >= 0 and step < _step_complete.size() and _step_complete[step]
+
+
 func _can_finish() -> bool:
 	# Must have expedition type, roster, and backgrounds at minimum
 	return _step_complete[0] and _step_complete[1] and _step_complete[2]
@@ -73,38 +81,36 @@ func update_expedition(data: Dictionary) -> void:
 	_update_navigation()
 
 
+## The roster step is done when RosterRules finds nothing wrong (pp.14-20): the screen
+## lists the same problems, so the Next button and the warnings cannot disagree. Until
+## 2026-10-28 any roster of 3 or more passed, against the book's eight, and sub-species
+## limits were not checked. Backgrounds rolled for a character no longer on the roster
+## are dropped, so a changed roster never carries a stale result.
 func update_roster(characters: Array) -> void:
 	roster_data = characters.duplicate(true)
-	# Validate: at least 3 characters, min 1 of each class
-	var class_counts := {"scientist": 0, "scout": 0, "trooper": 0}
-	for char_dict in roster_data:
-		var cls: String = char_dict.get("class", "")
-		if class_counts.has(cls):
-			class_counts[cls] += 1
-	var valid := roster_data.size() >= 3
-	for cls in class_counts:
-		if class_counts[cls] < 1:
-			valid = false
-	_step_complete[1] = valid
+	_step_complete[1] = RosterRulesScript.roster_problems(roster_data).is_empty()
+	var ids: Dictionary = {}
+	for c in roster_data:
+		ids[str(c.get("id", ""))] = true
+	for cid in background_data.keys():
+		if not ids.has(cid):
+			background_data.erase(cid)
+	_step_complete[2] = BackgroundsScript.backgrounds_complete(roster_data, background_data)
 	_update_navigation()
 
 
+## Done when every character has a Motivation and exactly four, chosen by the player,
+## also have Prior Experience and a Notable Event (p.21).
 func update_backgrounds(data: Dictionary) -> void:
 	background_data = data.duplicate(true)
-	# All characters must have motivation assigned
-	var all_have_motivation := true
-	for char_dict in roster_data:
-		var cid: String = char_dict.get("id", "")
-		if not background_data.has(cid) or not background_data[cid].has("motivation"):
-			all_have_motivation = false
-			break
-	_step_complete[2] = all_have_motivation
+	_step_complete[2] = BackgroundsScript.backgrounds_complete(roster_data, background_data)
 	_update_navigation()
 
 
 func update_map_config(data: Dictionary) -> void:
 	map_config = data.duplicate(true)
-	_step_complete[3] = data.has("grid_size")
+	# p.53: the map step is done once the grid and the home sector are chosen.
+	_step_complete[3] = data.has("grid_size") and data.has("home_sector")
 	_update_navigation()
 
 
@@ -133,14 +139,36 @@ func finalize() -> void:
 		push_warning("PlanetfallCreationCoordinator: Cannot finalize — incomplete steps")
 		return
 
+	var campaign: PlanetfallCampaignCore = build_campaign()
+
+	# Register with GameState
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("set_current_campaign"):
+		game_state.set_current_campaign(campaign)
+
+	# Save to disk
+	var save_dir := "user://saves/"
+	if not DirAccess.dir_exists_absolute(save_dir):
+		DirAccess.make_dir_recursive_absolute(save_dir)
+	var save_path := save_dir + campaign.get_campaign_id() + ".save"
+	campaign.save_to_file(save_path)
+
+	# Navigate to dashboard
+	var router := get_node_or_null("/root/SceneRouter")
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("planetfall_dashboard")
+
+
+## The colony the wizard's choices describe, built and started but not saved, registered
+## or navigated to. finalize() is the app's caller; the screen-capture harness and the
+## tests build their colony here too, so there is one way to found one.
+func build_campaign() -> PlanetfallCampaignCore:
 	var campaign := PlanetfallCampaignCore.new()
 
 	# Config
-	var campaign_name: String = config_data.get("campaign_name", "New Colony")
-	var colony_name: String = config_data.get("colony_name", campaign_name)
 	campaign.set_config({
-		"campaign_name": campaign_name,
-		"colony_name": colony_name,
+		"campaign_name": campaign_name(),
+		"colony_name": colony_name(),
 		"expedition_type": config_data.get("expedition_type", ""),
 		"difficulty": config_data.get("difficulty", "normal")
 	})
@@ -151,27 +179,10 @@ func finalize() -> void:
 	# Initialize roster with backgrounds applied
 	var final_roster: Array = []
 	for char_dict in roster_data:
-		var enriched: Dictionary = char_dict.duplicate(true)
-		var cid: String = char_dict.get("id", "")
-		if background_data.has(cid):
-			var bg: Dictionary = background_data[cid]
-			enriched["motivation"] = bg.get("motivation", "")
-			enriched["prior_experience"] = bg.get("prior_experience", "")
-			enriched["notable_event"] = bg.get("notable_event", "")
-			# Apply stat bonuses from prior experience
-			if bg.has("bonus_stat"):
-				var stat: String = bg.bonus_stat
-				var bonus: int = bg.get("bonus_value", 0)
-				enriched[stat] = enriched.get(stat, 0) + bonus
-			if bg.has("bonus_xp"):
-				enriched["xp"] = enriched.get("xp", 0) + bg.bonus_xp
-			if bg.has("bonus_loyalty"):
-				enriched["loyalty"] = bg.bonus_loyalty
-			if bg.has("bonus_kp"):
-				enriched["kp"] = enriched.get("kp", 0) + bg.bonus_kp
-			if bg.has("bonus_story_point"):
-				campaign.add_story_points(bg.bonus_story_point)
-		final_roster.append(enriched)
+		var bg: Dictionary = background_data.get(str(char_dict.get("id", "")), {})
+		final_roster.append(BackgroundsScript.apply_to(char_dict, bg))
+		if bg.has("bonus_story_point"):
+			campaign.add_story_points(int(bg.bonus_story_point))
 	campaign.initialize_roster(final_roster)
 
 	# Apply tutorial bonuses
@@ -197,77 +208,81 @@ func finalize() -> void:
 		"beacons": false, "analysis": false, "perimeter": false
 	})
 
-	# Initialize map
-	var grid_rows: int = map_config.get("grid_rows", 6)
-	var grid_cols: int = map_config.get("grid_cols", 6)
-	campaign.initialize_map({
-		"grid_size": [grid_rows, grid_cols],
-		"home_sector": map_config.get("home_sector", [0, 0]),
-		"investigation_sites": map_config.get("investigation_sites", []),
-		"sectors": {}
-	})
+	# The map (pp.52-53): the grid and home sector the player chose, and the Investigation
+	# Sites rolled once, here, through DiceManager: 10, plus the expedition's own (p.52
+	# Corporate Funded "2 additional"), which PlanetfallMap.site_count_for reads.
+	var home: Array = []
+	if map_config.get("home_sector") is Array:
+		home = map_config.home_sector
+	MapScript.generate(campaign, int(map_config.get("grid_rows", MapScript.DEFAULT_SIZE)),
+			int(map_config.get("grid_cols", MapScript.DEFAULT_SIZE)), home,
+			MapScript.site_count_for(str(campaign.expedition_type)))
 
 	# Start campaign
 	campaign.start_campaign()
-
-	# Register with GameState
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("set_current_campaign"):
-		game_state.set_current_campaign(campaign)
-
-	# Save to disk
-	var save_dir := "user://saves/"
-	if not DirAccess.dir_exists_absolute(save_dir):
-		DirAccess.make_dir_recursive_absolute(save_dir)
-	var save_path := save_dir + campaign.get_campaign_id() + ".save"
-	campaign.save_to_file(save_path)
-
-	# Navigate to dashboard
-	var router := get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("navigate_to"):
-		router.navigate_to("planetfall_dashboard")
+	return campaign
 
 
 func _apply_expedition_bonus(campaign: PlanetfallCampaignCore) -> void:
-	var exp_type: String = config_data.get("expedition_type", "")
-	# Load from JSON
-	var json_path := "res://data/planetfall/expedition_types.json"
-	var file := FileAccess.open(json_path, FileAccess.READ)
-	if not file:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		file.close()
-		return
-	file.close()
-	var data: Dictionary = json.data
-	for entry in data.get("entries", []):
-		if entry.get("type", "") == exp_type:
-			var bonus: Dictionary = entry.get("bonus", {})
-			if bonus.has("research_points"):
-				# current_rp, not starting_rp — see the tutorial award above. This is
-				# the "Scientific Mission" expedition's 3 RP
-				# (data/planetfall/expedition_types.json), one of six player-selectable
-				# options at creation, and it was landing in a key nothing reads while
-				# every sibling bonus below used a real mutator.
-				campaign.research_data["current_rp"] = \
-					int(campaign.research_data.get("current_rp", 0)) + int(bonus.research_points)
-			if bonus.has("raw_materials"):
-				campaign.add_raw_materials(bonus.raw_materials)
-			if bonus.has("story_points"):
-				campaign.add_story_points(bonus.story_points)
-			if bonus.has("grunts"):
-				campaign.gain_grunts(bonus.grunts)
-			if bonus.has("colony_morale"):
-				campaign.adjust_morale(bonus.colony_morale)
-			if bonus.has("extra_investigation_sites"):
-				map_config["extra_investigation_sites"] = bonus.extra_investigation_sites
-			break
+	var entry: Dictionary = expedition_entry()
+	if not entry.is_empty():
+		var bonus: Dictionary = entry.get("bonus", {})
+		if bonus.has("research_points"):
+			# current_rp, not starting_rp — see the tutorial award above. This is
+			# the "Scientific Mission" expedition's 3 RP
+			# (data/planetfall/expedition_types.json), one of six player-selectable
+			# options at creation, and it was landing in a key nothing reads while
+			# every sibling bonus below used a real mutator.
+			campaign.research_data["current_rp"] = \
+				int(campaign.research_data.get("current_rp", 0)) + int(bonus.research_points)
+		if bonus.has("raw_materials"):
+			campaign.add_raw_materials(bonus.raw_materials)
+		if bonus.has("story_points"):
+			campaign.add_story_points(bonus.story_points)
+		if bonus.has("grunts"):
+			campaign.gain_grunts(bonus.grunts)
+		if bonus.has("colony_morale"):
+			campaign.adjust_morale(bonus.colony_morale)
+		# extra_investigation_sites (Corporate Funded) is read by the map itself,
+		# PlanetfallMap.site_count_for(); it was copied into map_config here, where
+		# nothing read it, so the two sites were never placed.
 
 
 ## ============================================================================
 ## DATA ACCESS (for review panel)
 ## ============================================================================
+
+const DEFAULT_CAMPAIGN_NAME := "New Colony"
+
+
+## The name the colony will be founded under: what the player typed, or the default
+## when the box is empty. A cleared box stores "" under the key, so .get(key, default)
+## alone returned the empty string and founded a nameless colony.
+func campaign_name() -> String:
+	var typed: String = str(config_data.get("campaign_name", "")).strip_edges()
+	return typed if typed != "" else DEFAULT_CAMPAIGN_NAME
+
+
+## "Name your colony (or leave blank for campaign name)" (the step 1 hint).
+func colony_name() -> String:
+	var typed: String = str(config_data.get("colony_name", "")).strip_edges()
+	return typed if typed != "" else campaign_name()
+
+
+## The p.52 Expedition Type row the player rolled, or {} before the roll.
+func expedition_entry() -> Dictionary:
+	var exp_type: String = str(config_data.get("expedition_type", ""))
+	if exp_type == "":
+		return {}
+	var file := FileAccess.open("res://data/planetfall/expedition_types.json", FileAccess.READ)
+	if not file:
+		return {}
+	var parsed: Variant = JSON.parse_string(file.get_as_text())
+	if parsed is Dictionary:
+		for entry in (parsed as Dictionary).get("entries", []):
+			if entry is Dictionary and str(entry.get("type", "")) == exp_type:
+				return entry
+	return {}
 
 func get_all_data() -> Dictionary:
 	return {

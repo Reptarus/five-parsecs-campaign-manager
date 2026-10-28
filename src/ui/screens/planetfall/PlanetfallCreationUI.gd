@@ -204,6 +204,9 @@ func _connect_signals() -> void:
 
 func _on_step_changed(step: int, _total: int) -> void:
 	_show_panel(step)
+	# The ONE label update per step. _show_panel() used to make a second one after its
+	# fade-out await, which re-triggered the punch mid-flight and, before TweenManager
+	# restored rest values on stop(), grew the label ~15% on every step.
 	_update_step_label()
 	# Refresh review panel when visible
 	if step == 5 and panels[5].has_method("refresh"):
@@ -219,13 +222,14 @@ func _show_panel(step: int) -> void:
 		current_panel.modulate.a = 0.0
 		current_panel.show()
 		TweenFX.fade_in(current_panel, 0.2)
-	_update_step_label()
 
 
 func _update_step_label() -> void:
 	var idx: int = coordinator.current_step if coordinator else 0
 	_step_label.text = "Step %d of 6: %s" % [idx + 1, STEP_NAMES[idx]]
-	_step_label.pivot_offset = _step_label.size / 2
+	# Left-aligned text in a full-width Label: a centred pivot slid the text sideways
+	# while it scaled, so it is anchored on the left edge.
+	_step_label.pivot_offset = Vector2(0.0, _step_label.size.y / 2.0)
 	TweenFX.punch_in(_step_label, 0.15, 0.15)
 
 

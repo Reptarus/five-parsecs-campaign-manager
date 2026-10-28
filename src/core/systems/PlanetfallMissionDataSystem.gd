@@ -2,10 +2,13 @@ class_name PlanetfallMissionDataSystem
 extends RefCounted
 
 ## Manages Mission Data accumulation and the 4 sequential Breakthroughs.
-## Each time MD is gained: roll 1D6, if roll <= total MD, breakthrough occurs
-## (subtract roll from total). The 4th breakthrough triggers a D100 roll on
-## the Final Breakthrough table. After that, MD no longer has value.
+## Mission Data is noted as it arrives and checked at each Campaign Milestone (see
+## note()/receive() for the p.68 / p.169 conflict): roll 1D6, if roll <= total MD, a
+## breakthrough occurs (subtract roll from total). The 4th breakthrough triggers a D100
+## roll on the Final Breakthrough table. After that, MD no longer has value.
 ## Source: Planetfall pp.169-172
+
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 
 var _breakthroughs: Array = []
 var _final_table: Array = []
@@ -135,7 +138,8 @@ func process_breakthrough(campaign: Resource, breakthrough_index: int) -> Dictio
 	if effects.has("ancient_sites"):
 		result["actions_needed"].append({
 			"action": "place_ancient_sites",
-			"count": effects["ancient_sites"]
+			"count": effects["ancient_sites"],
+			"md_per_site": int(effects.get("md_per_site_explored", 0))
 		})
 
 	if effects.has("explore_sectors"):
@@ -177,7 +181,17 @@ func roll_final_breakthrough(campaign: Resource, roll: int) -> Dictionary:
 		var effects: Dictionary = entry.get("immediate_effect", {})
 
 		if effects.has("story_points") and campaign.has_method("add_story_points"):
-			campaign.add_story_points(effects["story_points"])
+			campaign.add_story_points(int(effects["story_points"]))
+
+		# "add 2 XP to three characters of your choice" / "Select three characters on your
+		# roster and raise their Reaction scores by +1": the player picks, so queue them.
+		if effects.has("character_xp") and campaign.has_method("queue_character_award"):
+			campaign.queue_character_award("xp", int(effects["character_xp"]),
+					int(effects.get("character_xp_count", 1)), str(entry.get("name", "")))
+		if effects.has("character_reaction_bonus") \
+				and campaign.has_method("queue_character_award"):
+			campaign.queue_character_award("reactions", int(effects["character_reaction_bonus"]),
+					int(effects.get("character_reaction_count", 1)), str(entry.get("name", "")))
 
 		if effects.has("research_points"):
 			if campaign.has_method("earn_research_points"):
@@ -216,6 +230,71 @@ func roll_final_breakthrough(campaign: Resource, roll: int) -> Dictionary:
 
 
 ## ============================================================================
+## RECEIVE — the one way Mission Data enters a campaign
+## ============================================================================
+
+## WHEN the check is made is a book conflict, resolved for the procedural pages. p.169
+## says "Each time you received Mission Data, process it". The turn sequence says
+## otherwise: p.68 Step 12, "If you obtained any Mission Data, note it on your roster. It
+## is resolved when you reach a Campaign Milestone (see page 156)", and every p.156-158
+## Milestone reads "Add N points of Mission Data and check for Mission Data progress".
+## Two procedural pages agree, so (the 75-credit precedent) Mission Data from a mission, a
+## Building, an Artifact or a Site is NOTED, and the check is made at a Milestone.
+##
+## note(): add Mission Data without the check (p.68). Returns the lines.
+func note(campaign: Resource, amount: int, source: String = "") -> Array:
+	if campaign == null or amount <= 0:
+		return []
+	var made: int = int(campaign.mission_data_breakthroughs) \
+			if "mission_data_breakthroughs" in campaign else 0
+	if made >= 4:
+		return ["Mission Data no longer has any value (all four Breakthroughs made) (p.169)"]
+	if campaign.has_method("add_mission_data_points"):
+		campaign.add_mission_data_points(amount)
+	var total: int = int(campaign.mission_data) if "mission_data" in campaign else amount
+	return ["+%d Mission Data%s, %d noted; it is checked at the next Campaign Milestone (p.68)."
+			% [amount, " (%s)" % source if source != "" else "", total]]
+
+
+## receive(): a Milestone's "Add N points of Mission Data and check" (p.156). Adds `amount`,
+## makes the p.169 check, and carries a Breakthrough through to the map and the Final
+## table. Returns the lines to show.
+func receive(campaign: Resource, amount: int, source: String = "") -> Array:
+	if campaign == null or amount <= 0:
+		return []
+	var outcome: Dictionary = add_and_check(campaign, amount)
+	# No roll means nothing was added: after the Fourth "Mission Data no longer has any
+	# value" (p.169).
+	if not outcome.has("roll"):
+		return ["Mission Data no longer has any value (all four Breakthroughs made) (p.169)"]
+	var lines: Array = ["+%d Mission Data%s" % [amount, " (%s)" % source if source != "" else ""]]
+	if not bool(outcome.get("breakthrough", false)):
+		lines.append("No Mission Data Breakthrough: 1D6 %d against %d (p.169)." % [
+				int(outcome.roll), int(outcome.get("md_total", 0))])
+		return lines
+	var bt: Dictionary = outcome.get("result", {})
+	lines.append("Mission Data Breakthrough %d: 1D6 %d, %d Mission Data left. %s (p.169)" % [
+			int(outcome.get("breakthrough_index", 0)), int(outcome.roll),
+			int(outcome.get("md_remaining", 0)), str(bt.get("name", ""))])
+	var actions: Array = []
+	for needed in bt.get("actions_needed", []):
+		if not needed is Dictionary:
+			continue
+		if needed.get("action", "") == "roll_final_breakthrough":
+			var roll: int = _d100("Planetfall Final Breakthrough")
+			var last: Dictionary = roll_final_breakthrough(campaign, roll)
+			lines.append("Final Breakthrough, D100 %d: %s (p.169)" % [roll, str(last.get("name", ""))])
+			actions.append_array(last.get("actions_needed", []))
+		else:
+			actions.append(needed)
+	lines.append_array(MapScript.apply_breakthrough_actions(campaign, actions))
+	if campaign.has_method("queue_character_award") and "pending_character_awards" in campaign \
+			and not campaign.pending_character_awards.is_empty():
+		lines.append("Choose the characters for the Breakthrough's award.")
+	return lines
+
+
+## ============================================================================
 ## PROGRESS QUERY
 ## ============================================================================
 
@@ -251,6 +330,11 @@ static func _dice() -> Node:
 func _d6(context: String) -> int:
 	var dm := _dice()
 	return int(dm.roll_d6(context)) if dm else randi_range(1, 6)
+
+
+func _d100(context: String) -> int:
+	var dm := _dice()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
 
 
 func is_loaded() -> bool:

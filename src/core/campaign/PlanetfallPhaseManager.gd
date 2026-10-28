@@ -23,6 +23,8 @@ signal campaign_ended(reason: String)
 const ColonyCrisisScript := preload("res://src/core/systems/PlanetfallColonyCrisis.gd")
 const MilestoneScript := preload("res://src/core/systems/PlanetfallMilestoneSystem.gd")
 const RosterRulesScript := preload("res://src/core/systems/PlanetfallRosterRules.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const MissionDataScript := preload("res://src/core/systems/PlanetfallMissionDataSystem.gd")
 const BattleNormalizerScript := preload(
 	"res://src/core/battle/PlanetfallBattleResultNormalizer.gd")
 
@@ -56,7 +58,7 @@ const PHASE_NAMES := {
 	Phase.COLONY_EVENTS: "Colony Events",
 	Phase.MISSION_DETERMINATION: "Mission Determination",
 	Phase.LOCK_AND_LOAD: "Lock and Load",
-	Phase.PLAY_OUT_MISSION: "Play Out Mission",
+	Phase.PLAY_OUT_MISSION: "Play Out Your Mission",
 	Phase.INJURIES: "Injuries",
 	Phase.EXPERIENCE: "Experience Progression",
 	Phase.MORALE_ADJUSTMENTS: "Colony Morale Adjustments",
@@ -66,7 +68,8 @@ const PHASE_NAMES := {
 	Phase.BUILDING: "Building",
 	Phase.COLONY_INTEGRITY: "Colony Integrity",
 	Phase.CHARACTER_EVENT: "Character Event",
-	Phase.UPDATE_TRACKING: "Update Colony Sheet"
+	# The step names are the book's own step headings (p.58 list, pp.58-70 headings).
+	Phase.UPDATE_TRACKING: "Update Colony Tracking Sheet"
 }
 
 ## Phase category labels for the indicator strip (Planetfall p.58)
@@ -331,8 +334,141 @@ func resolve_injury_step() -> Dictionary:
 	return receipt
 
 
-## Steps 10 and 12 resolve in the panel (XP is written to roster dicts, Finds and
-## intel through PlanetfallPostMissionSystem). The panel records what it did here, in
+## Resolve Step 12 ONCE and apply it. p.68: "If you fought a Tactical Enemy and won, add
+## 1 Enemy Information for that enemy type. You should also note that they cannot take an
+## action next campaign turn." Then the mission's Campaign Factors on the map (pp.115-133)
+## and "If you obtained any Mission Data, note it on your roster" (p.68).
+func resolve_intel_step() -> Dictionary:
+	if _step_receipts.has("intel") or not campaign:
+		return _step_receipts.get("intel", {})
+	var lines: Array = []
+	var ops: Array = []
+	MapScript.ensure_map(campaign)
+	var won: bool = bool(_battle_result.get("won", false))
+	var idx: int = int(_battle_result.get("tactical_enemy_index", -1))
+	# Read before the factors: a won Assault removes the enemy (p.51), and a removed
+	# enemy needs neither Information nor a missed turn.
+	var fought: bool = idx >= 0 and MapScript.is_active(campaign, idx)
+	var factors: Dictionary = MapScript.apply_mission_factors(campaign, _battle_result)
+	lines.append_array(factors.get("lines", []))
+	ops.append_array(factors.get("ops", []))
+	if won and fought and MapScript.is_active(campaign, idx):
+		ops.append({"op": "enemy_info", "enemy_index": idx, "amount": 1})
+		campaign.disrupt_enemy(idx)
+		lines.append("+1 Enemy Information on %s, who cannot take an action next campaign "
+				% MapScript.enemy_name(campaign, idx) + "turn (p.68).")
+	elif won and not fought:
+		lines.append("No Tactical Enemy was fought: no Enemy Information (p.68).")
+	elif not won:
+		lines.append("The mission was not won: no Enemy Information (p.68).")
+	var md: int = int(_battle_result.get("mission_data_gained", 0))
+	if md > 0:
+		ops.append({"op": "mission_data", "amount": md, "source": "the mission"})
+	lines.append_array(_apply_stability_ops(ops))
+	var receipt: Dictionary = {"lines": lines}
+	_step_receipts["intel"] = receipt
+	_persist_phase()
+	return receipt
+
+
+## ============================================================================
+## STEP 3: SCOUT REPORTS (pp.59-61)
+## ============================================================================
+## Resolved in the book's order, one part at a time, each recorded the moment it happens
+## so a resumed turn renders what was rolled and rolls nothing twice. Until 2026-10-28
+## the Scout Reports screen rolled its own dice, told the player to "mark these values on
+## your colony map", and wrote nothing: no sector was ever explored, and its inlined
+## Discovery table applied none of its results.
+
+func scout_receipt() -> Dictionary:
+	return _step_receipts.get("scout", {})
+
+
+func _scout_part(part: String) -> Dictionary:
+	return scout_receipt().get(part, {})
+
+
+func _record_scout(part: String, value: Dictionary) -> void:
+	var receipt: Dictionary = _step_receipts.get("scout", {})
+	receipt[part] = value
+	_step_receipts["scout"] = receipt
+	_persist_phase()
+
+
+## p.59: "During this step you may perform one Scout Explore action", on a sector "not
+## enemy occupied, and which has not already been Exploited" (p.60).
+func scout_explore(sector_key: String) -> Array:
+	if not campaign:
+		return []
+	var done: Dictionary = _scout_part("explore")
+	if not done.is_empty():
+		return done.get("lines", [])
+	MapScript.ensure_map(campaign)
+	if not MapScript.explore_targets(campaign).has(sector_key):
+		return ["%s cannot be explored: it is enemy-held or already Exploited (p.60)."
+				% MapScript.label(sector_key)]
+	var lines: Array = MapScript.explore(campaign, sector_key)
+	_record_scout("explore", {"sector": sector_key, "lines": lines})
+	return lines
+
+
+## p.60 Scout Discovery, optional: "After carrying out your Scout Explore action, you may
+## roll D100". `scout_id` is the scout leading it ("" for none; "Scouts in Sick Bay cannot
+## be assigned"). Returns the record, whose "choice" names what the player must pick
+## before it applies ("" when nothing).
+func scout_discovery_roll(scout_id: String) -> Dictionary:
+	if not campaign or _scout_part("explore").is_empty():
+		return {}
+	var done: Dictionary = _scout_part("discovery")
+	if not done.is_empty():
+		return done
+	var entry: Dictionary = MapScript.roll_discovery()
+	var record: Dictionary = {
+		"entry": entry, "scout_id": scout_id, "applied": false, "lines": [],
+		"choice": MapScript.discovery_choice(campaign, entry, scout_id),
+	}
+	_record_scout("discovery", record)
+	return record
+
+
+## Apply the rolled Discovery with the player's pick (see PlanetfallMap.apply_discovery).
+func scout_discovery_apply(choice: Dictionary = {}) -> Array:
+	var record: Dictionary = _scout_part("discovery")
+	if record.is_empty():
+		return []
+	if bool(record.get("applied", false)):
+		return record.get("lines", [])
+	var result: Dictionary = MapScript.apply_discovery(campaign, record.get("entry", {}),
+			str(record.get("scout_id", "")), choice)
+	var lines: Array = (result.get("lines", []) as Array).duplicate()
+	lines.append_array(_apply_stability_ops(result.get("ops", [])))
+	record["applied"] = true
+	record["lines"] = lines
+	_record_scout("discovery", record)
+	return lines
+
+
+## pp.60-61 Process Enemy Information, the step's last part: one 1D6 per enemy against
+## its Enemy Information. A Discovery rolled and not yet applied is applied first with
+## no pick (its defaults), so a result is never left half-done.
+func scout_enemy_information() -> Array:
+	if not campaign:
+		return []
+	var done: Dictionary = _scout_part("enemy_information")
+	if not done.is_empty():
+		return done.get("lines", [])
+	if not _scout_part("discovery").is_empty():
+		scout_discovery_apply()
+	MapScript.ensure_map(campaign)
+	var lines: Array = MapScript.process_enemy_information(campaign)
+	if lines.is_empty():
+		lines = ["No Enemy Information gathered yet, so no Boss can be tracked (p.60)."]
+	_record_scout("enemy_information", {"lines": lines})
+	return lines
+
+
+## Step 10 resolves in the panel (XP is written to roster dicts, Finds through
+## PlanetfallPostMissionSystem). The panel records what it did here, in
 ## the same frame as the mutation, so a resume renders the receipt and rolls nothing.
 func record_step_receipt(step: String, lines: Array) -> void:
 	_step_receipts[step] = {"lines": lines.duplicate()}
@@ -537,6 +673,10 @@ func _apply_stability_ops(ops: Array) -> Array:
 				campaign.break_bot()
 			"grunt_lost":
 				campaign.lose_grunt()
+			# p.68: mission, Site and Building Mission Data is noted, not checked.
+			"mission_data":
+				notes.append_array(MissionDataScript.new().note(campaign,
+						int(op.get("amount", 0)), str(op.get("source", ""))))
 	return notes
 
 

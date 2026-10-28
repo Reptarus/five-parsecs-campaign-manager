@@ -152,6 +152,17 @@ func roll_d3(context: String = "D3 Roll") -> int:
 	dice_result_ready.emit(result, context)
 	return result
 
+## Planetfall p.52 picks a random adjacent map sector with a D8, counted clockwise from
+## the top left. Its own method for the same reason as roll_d3: roll_custom() does not
+## honour forcing.
+func roll_d8(context: String = "D8 Roll") -> int:
+	var forced: int = _take_forced(context, 1, 8)
+	var result: int = forced if forced > 0 else randi_range(1, 8)
+	_record_roll(result, context, "D8 (forced)" if forced > 0 else "D8")
+	dice_roll_requested.emit(context, "D8")
+	dice_result_ready.emit(result, context)
+	return result
+
 ## Replace: randi() % 100 + 1
 func roll_d100(context: String = "D100 Roll") -> int:
 	var forced: int = _take_forced(context, 1, 100)

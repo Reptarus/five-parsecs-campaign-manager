@@ -1,9 +1,9 @@
 extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 
-## Planetfall Dashboard — Colony overview screen.
-## Shows colony stats, roster, map, research tree, buildings, and milestones.
-## Follows BugHuntDashboard pattern: code-built, factory methods from CampaignScreenBase.
-## TODO: Full implementation in Colony Systems sprint.
+## Planetfall Dashboard: the colony between turns. Every number the colony tracks, the
+## colony map with each Tactical Enemy's state, the screens a player opens between turns,
+## and the roster as the Colony Tracking Sheet records it (p.24).
+## Code-built from CampaignScreenBase's factories, like BugHuntDashboard.
 
 const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCard.gd")
 # Used at :142 but never declared here, so this screen failed to PARSE and the
@@ -26,10 +26,22 @@ const EndGamePanelScript = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd")
 const ImportPanelClass = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd")
+const SectorGridScript := preload("res://src/ui/screens/planetfall/panels/PlanetfallSectorGrid.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const RosterRules := preload("res://src/core/systems/PlanetfallRosterRules.gd")
+const BackgroundsScript := preload("res://src/core/systems/PlanetfallBackgrounds.gd")
+const PhaseManagerScript := preload("res://src/core/campaign/PlanetfallPhaseManager.gd")
+
+## Wider than a form: the dashboard lays its cards out in columns on a tablet.
+const MAX_DASHBOARD_WIDTH := 1400
 
 var _campaign: Resource
 var _content: VBoxContainer
 var _overlay_container: Control
+var _root_scroll: ScrollContainer
+## Whether the dashboard was last built for a phone (one column), so a rotation that
+## changes it rebuilds.
+var _built_narrow: bool = false
 
 
 func _setup_screen() -> void:
@@ -42,9 +54,7 @@ func _setup_screen() -> void:
 ## CampaignScreenBase hook — rebuild after veterans muster in.
 func _on_transfers_applied() -> void:
 	_campaign = _get_planetfall_campaign()
-	for child in get_children():
-		child.queue_free()
-	_build_dashboard()
+	_rebuild()
 
 
 ## ── Character transfer ──────────────────────────────────────────────────
@@ -82,9 +92,7 @@ func _apply_import(pf_char: Dictionary) -> void:
 			push_warning(
 				"PlanetfallDashboard: imported %s but could not remove them from %s"
 				% [src_id, src_path])
-	for child in get_children():
-		child.queue_free()
-	_build_dashboard()
+	_rebuild()
 
 
 func _on_muster_out_pressed() -> void:
@@ -123,9 +131,7 @@ func _do_muster_out(char_data: Dictionary, target_mode: String, overlay: Node) -
 
 	if is_instance_valid(overlay):
 		overlay.queue_free()
-	for child in get_children():
-		child.queue_free()
-	_build_dashboard()
+	_rebuild()
 
 
 func _write_transfer_file(envelope: Dictionary, char_data: Dictionary) -> bool:
@@ -222,8 +228,16 @@ func _build_muster_out_overlay(roster: Array) -> Control:
 
 
 func _build_dashboard() -> void:
-	var layout := _create_scroll_layout()
+	var layout := _create_scroll_layout(MAX_DASHBOARD_WIDTH)
+	_root_scroll = layout.scroll
 	_content = layout.content
+	_built_narrow = _is_narrow()
+
+	# Overlay container for detail panels (rendered on top)
+	_overlay_container = Control.new()
+	_overlay_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_overlay_container.visible = false
+	add_child(_overlay_container)
 
 	if not _campaign or not "roster" in _campaign:
 		var EmptyStateWidgetClass = load("res://src/ui/components/common/EmptyStateWidget.gd")
@@ -238,14 +252,47 @@ func _build_dashboard() -> void:
 			_content.add_child(empty)
 		return
 
-	# Header
+	_build_header()
+	_build_stats_section()
+	_build_continue_card()
+	_build_map_section()
+	_build_hub_section()
+	_build_roster_section(_campaign.roster if "roster" in _campaign else [])
+	TouchScrollOpenerRef.open_subtree(self)
+
+
+## Rebuild after something changed the colony (an import, a muster-out) or the layout
+## class changed (rotation). Only the dashboard's own nodes are freed: the base screen's
+## background stays.
+func _rebuild() -> void:
+	for node in [_root_scroll, _overlay_container]:
+		if is_instance_valid(node):
+			remove_child(node)
+			node.queue_free()
+	_build_dashboard()
+
+
+## A rotation can change how many columns fit, so rebuild when it does.
+func _update_layout_for_mode() -> void:
+	super._update_layout_for_mode()
+	if _campaign and is_instance_valid(_content) and _is_narrow() != _built_narrow:
+		_rebuild()
+
+
+func _is_narrow() -> bool:
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	return rm != null and rm.has_method("should_collapse_to_single_column") \
+			and rm.should_collapse_to_single_column()
+
+
+func _build_header() -> void:
 	var name_str: String = _campaign.campaign_name \
 		if "campaign_name" in _campaign else "Unknown Colony"
 	var colony: String = _campaign.colony_name if "colony_name" in _campaign else ""
+	var turn: int = int(_campaign.campaign_turn) if "campaign_turn" in _campaign else 0
 
 	var header_box := VBoxContainer.new()
 	header_box.add_theme_constant_override("separation", SPACING_XS)
-
 	var title := Label.new()
 	title.text = name_str
 	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL + 4))
@@ -256,231 +303,246 @@ func _build_dashboard() -> void:
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_box.add_child(title)
 
+	var sub_parts: Array = []
 	if not colony.is_empty() and colony != name_str:
-		var colony_lbl := Label.new()
-		colony_lbl.text = "Colony: %s" % colony
-		colony_lbl.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_LG))
-		colony_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-		colony_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		colony_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		colony_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		header_box.add_child(colony_lbl)
-
+		sub_parts.append("Colony: %s" % colony)
+	# campaign_turn counts turns STARTED (advance_turn() runs at turn start), so 0 means
+	# none yet; "Campaign turn 0" read like a fault on a freshly founded colony.
+	sub_parts.append("Campaign turn %d" % turn if turn > 0 else "Colony founded, no turn played yet")
+	var expedition: String = str(_campaign.expedition_type) \
+			if "expedition_type" in _campaign else ""
+	if expedition != "":
+		sub_parts.append(expedition)
+	var sub := Label.new()
+	sub.text = " · ".join(PackedStringArray(sub_parts))
+	sub.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_MD))
+	sub.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_box.add_child(sub)
 	_content.add_child(header_box)
 
-	# Stat strip
-	var turn: int = _campaign.campaign_turn if "campaign_turn" in _campaign else 0
-	var morale: int = _campaign.colony_morale if "colony_morale" in _campaign else 0
-	var integrity: int = _campaign.colony_integrity if "colony_integrity" in _campaign else 0
-	var sp: int = _campaign.story_points if "story_points" in _campaign else 5
-	var grunt_count: int = _campaign.grunts if "grunts" in _campaign else 12
-	var roster_arr: Array = _campaign.roster if "roster" in _campaign else []
-	var milestones: int = _campaign.milestones_completed \
-		if "milestones_completed" in _campaign else 0
 
-	var stats := {
-		"TURN": turn,
-		"MORALE": morale,
-		"INTEGRITY": integrity,
-		"SP": sp,
-		"ROSTER": roster_arr.size(),
-		"GRUNTS": grunt_count,
-		"MILESTONES": "%d/7" % milestones
-	}
-	var stat_grid := _create_stats_grid(stats, mini(stats.size(), 4))
-	_content.add_child(stat_grid)
+## Every number the colony tracks (p.24 Colony Tracking Sheet), from the one reader the
+## turn screen also uses. The roster count sits beside them.
+func _build_stats_section() -> void:
+	var all: Dictionary = colony_stats(_campaign)
+	var stats: Dictionary = {}
+	for key in COLONY_STAT_ORDER:
+		if all.has(key):
+			stats[all[key][1]] = all[key][2]
+	stats["Characters"] = (_campaign.roster as Array).size() if "roster" in _campaign else 0
+	var grid := _create_stats_grid(stats, 2 if _built_narrow else 5)
+	# A GridContainer splits spare width only among children that EXPAND; without this
+	# the tiles sat at their 64 px minimum in a clump at the column's left edge.
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for tile in grid.get_children():
+		(tile as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.add_child(grid)
 
-	# Navigation hub cards
-	var hub_box := VBoxContainer.new()
-	hub_box.add_theme_constant_override("separation", SPACING_SM)
-	_content.add_child(hub_box)
 
+func _build_continue_card() -> void:
 	var continue_card := HubFeatureCardClass.new()
 	var gp: String = _campaign.game_phase if "game_phase" in _campaign else ""
-	var is_endgame: bool = gp == "endgame"
-	var is_completed: bool = gp == "completed"
 	if gp == "failed":
 		continue_card.setup("", "Campaign Failure",
 			"Unity forces have taken control of the colony (p.90)")
-	elif is_endgame:
+	elif gp == "endgame":
 		continue_card.setup("", "Enter End Game",
 			"The 7th Milestone has been achieved")
-	elif is_completed:
+	elif gp == "completed":
 		continue_card.setup("", "Campaign Complete", "View your colony's final story")
 	else:
-		continue_card.setup("", "Continue Campaign", "Start the next campaign turn")
+		continue_card.setup("", "Continue Campaign", _continue_hint())
 	continue_card.card_pressed.connect(func(): _navigate("planetfall_turn_controller"))
-	hub_box.add_child(continue_card)
+	_content.add_child(continue_card)
 
-	var save_card := HubFeatureCardClass.new()
-	save_card.setup("", "Save Campaign", "Save current progress to disk")
-	save_card.card_pressed.connect(_on_save)
-	hub_box.add_child(save_card)
 
-	var menu_card := HubFeatureCardClass.new()
-	menu_card.setup("", "Main Menu", "Return to the main menu")
-	menu_card.card_pressed.connect(func(): _navigate("main_menu"))
-	hub_box.add_child(menu_card)
+## Where Continue takes the player: the step a turn was left on, or a new turn.
+func _continue_hint() -> String:
+	if _campaign.has_method("has_recorded_turn_phase") and _campaign.has_recorded_turn_phase():
+		var phase: int = int(_campaign.turn_phase)
+		if phase >= 0:
+			return "Resume turn %d at Step %d: %s" % [int(_campaign.campaign_turn), phase + 1,
+					str(PhaseManagerScript.PHASE_NAMES.get(phase, ""))]
+	return "Start campaign turn %d" % (int(_campaign.campaign_turn) + 1)
 
-	# Character transfer (Planetfall pp.26-29 import, pp.165-166 export)
-	var transfer_box := VBoxContainer.new()
-	transfer_box.add_theme_constant_override("separation", SPACING_SM)
-	_content.add_child(transfer_box)
 
-	var import_card := HubFeatureCardClass.new()
-	import_card.setup("", "Import Veterans",
-		"Bring a 5PFH or Bug Hunt veteran into the colony")
-	import_card.card_pressed.connect(_on_import_pressed)
-	transfer_box.add_child(import_card)
+## The colony map (pp.52-53) and what the colony knows of each Tactical Enemy (pp.50-51):
+## the sectors it holds, its Enemy Information, and a located Strongpoint or tracked Boss.
+## The dashboard showed no map at all until 2026-10-28, and the enemy card only counted
+## enemies.
+func _build_map_section() -> void:
+	_content.add_child(_create_section_header("COLONY MAP"))
+	if _campaign.map_data is Dictionary and not (_campaign.map_data as Dictionary).is_empty():
+		var grid: Control = SectorGridScript.new()
+		grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_content.add_child(grid)
+		grid.show_map(_campaign)
+	else:
+		_content.add_child(_line("No map yet.", COLOR_TEXT_SECONDARY))
+	var enemies: Array = _campaign.tactical_enemies if "tactical_enemies" in _campaign else []
+	if enemies.is_empty():
+		_content.add_child(_line("No Tactical Enemy has been encountered yet (p.50).",
+				COLOR_TEXT_SECONDARY))
+	for i in range(enemies.size()):
+		_content.add_child(_line(enemy_summary(_campaign, i), COLOR_TEXT_PRIMARY
+				if MapScript.is_active(_campaign, i) else COLOR_TEXT_SECONDARY))
 
-	var muster_card := HubFeatureCardClass.new()
-	muster_card.setup("", "Muster Colonists Out",
-		"Send a colonist to a 5PFH or Bug Hunt campaign")
-	muster_card.card_pressed.connect(_on_muster_out_pressed)
-	transfer_box.add_child(muster_card)
 
-	# Detail hub cards (Sprint 4)
-	var detail_box := VBoxContainer.new()
-	detail_box.add_theme_constant_override("separation", SPACING_SM)
-	_content.add_child(detail_box)
+## One line about Tactical Enemy `idx`, for the dashboard and a test.
+static func enemy_summary(campaign: Resource, idx: int) -> String:
+	var name: String = MapScript.enemy_name(campaign, idx)
+	if not MapScript.is_active(campaign, idx):
+		return "%s: defeated." % name
+	var held: int = MapScript.held_by(campaign, idx).size()
+	var parts: Array = ["holds %d sector%s" % [held, "" if held == 1 else "s"]]
+	var info: int = int(campaign.get_enemy_info_count(idx)) \
+			if campaign.has_method("get_enemy_info_count") else 0
+	parts.append("Enemy Information %d" % info)
+	var marks: Dictionary = MapScript.enemy_marks(campaign, idx)
+	if str(marks.strongpoint) != "":
+		parts.append("Strongpoint located at %s" % MapScript.label(str(marks.strongpoint)))
+	if str(marks.boss) != "":
+		parts.append("Boss tracked at %s" % MapScript.label(str(marks.boss)))
+	return "%s: %s." % [name, ", ".join(PackedStringArray(parts))]
 
-	var detail_header := Label.new()
-	detail_header.text = "COLONY MANAGEMENT"
-	detail_header.add_theme_font_size_override(
-		"font_size", get_responsive_font_size(FONT_SIZE_LG))
-	detail_header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
-	detail_box.add_child(detail_header)
 
-	var colony_status_card := HubFeatureCardClass.new()
+## The screens a player opens between turns, in a grid that is one column on a phone and
+## three on a tablet. They used to be one column of 2560 px wide cards.
+func _build_hub_section() -> void:
+	_content.add_child(_create_section_header("COLONY MANAGEMENT"))
+	var hub := GridContainer.new()
+	hub.columns = 1 if _built_narrow else 3
+	hub.add_theme_constant_override("h_separation", SPACING_SM)
+	hub.add_theme_constant_override("v_separation", SPACING_SM)
+	_content.add_child(hub)
+
 	var r_summary: Dictionary = _campaign.get_research_summary() \
 		if _campaign.has_method("get_research_summary") else {}
 	var b_summary: Dictionary = _campaign.get_building_summary() \
 		if _campaign.has_method("get_building_summary") else {}
-	colony_status_card.setup("", "Colony Status",
-		"Research: %d theories | Buildings: %d constructed" % [
-			r_summary.get("completed_theories", 0),
-			b_summary.get("constructed", 0)])
-	colony_status_card.card_pressed.connect(func(): _show_overlay_panel("colony_status"))
-	detail_box.add_child(colony_status_card)
-
-	var armory_card := HubFeatureCardClass.new()
-	armory_card.setup("", "Armory", "Browse available weapons and equipment")
-	armory_card.card_pressed.connect(func(): _show_overlay_panel("equipment"))
-	detail_box.add_child(armory_card)
-
-	var enemy_card := HubFeatureCardClass.new()
-	var enemies: Array = _campaign.tactical_enemies \
-		if "tactical_enemies" in _campaign else []
-	var signs: Array = _campaign.ancient_signs \
-		if "ancient_signs" in _campaign else []
-	enemy_card.setup("", "Enemy Tracker",
-		"%d tactical enemies | %d ancient signs" % [
-			enemies.size(), signs.size()])
-	enemy_card.card_pressed.connect(func(): _show_overlay_panel("enemy_tracker"))
-	detail_box.add_child(enemy_card)
-
+	_hub_card(hub, "Colony Status", "Research: %d theories | Buildings: %d constructed" % [
+			r_summary.get("completed_theories", 0), b_summary.get("constructed", 0)],
+			func(): _show_overlay_panel("colony_status"))
+	_hub_card(hub, "Armory", "Weapons the colony can field, and what unlocks the rest",
+			func(): _show_overlay_panel("equipment"))
+	var enemies: Array = _campaign.tactical_enemies if "tactical_enemies" in _campaign else []
+	var signs: Array = _campaign.ancient_signs if "ancient_signs" in _campaign else []
+	_hub_card(hub, "Enemy Tracker", "%d tactical enemies | %d ancient signs" % [
+			enemies.size(), signs.size()], func(): _show_overlay_panel("enemy_tracker"))
 	var aug_count: int = _campaign.get_augmentation_count() \
 		if _campaign.has_method("get_augmentation_count") else 0
-	var aug_ap: int = _campaign.augmentation_points \
-		if "augmentation_points" in _campaign else 0
-	var aug_card := HubFeatureCardClass.new()
-	aug_card.setup("", "Augmentations",
-		"%d owned | %d AP available" % [aug_count, aug_ap])
-	aug_card.card_pressed.connect(func(): _show_overlay_panel("augmentation"))
-	detail_box.add_child(aug_card)
-
-	# Milestones & Progression
+	var aug_ap: int = _campaign.augmentation_points if "augmentation_points" in _campaign else 0
+	_hub_card(hub, "Augmentations", "%d owned | %d AP available" % [aug_count, aug_ap],
+			func(): _show_overlay_panel("augmentation"))
 	var ms_count: int = _campaign.milestones_completed \
 		if "milestones_completed" in _campaign else 0
-	var milestone_card := HubFeatureCardClass.new()
-	milestone_card.setup("", "Milestones & Progression",
-		"%d / 7 completed" % ms_count)
-	milestone_card.card_pressed.connect(func(): _show_overlay_panel("milestones"))
-	detail_box.add_child(milestone_card)
-
-	# Active Calamities (only show if any exist)
+	_hub_card(hub, "Milestones & Progression", "%d / 7 completed" % ms_count,
+			func(): _show_overlay_panel("milestones"))
 	var active_calamities: Array = []
 	if "active_calamities" in _campaign:
 		for cal in _campaign.active_calamities:
 			if cal is Dictionary and not cal.get("resolved", false):
 				active_calamities.append(cal)
 	if not active_calamities.is_empty():
-		var calamity_card := HubFeatureCardClass.new()
-		calamity_card.setup("", "Active Calamities",
-			"%d calamit%s" % [active_calamities.size(),
-				"y" if active_calamities.size() == 1 else "ies"])
-		calamity_card.card_pressed.connect(func(): _show_overlay_panel("calamities"))
-		detail_box.add_child(calamity_card)
+		_hub_card(hub, "Active Calamities", "%d calamit%s" % [active_calamities.size(),
+				"y" if active_calamities.size() == 1 else "ies"],
+				func(): _show_overlay_panel("calamities"))
+	# Character transfer (Planetfall pp.26-29 import, pp.165-166 export)
+	_hub_card(hub, "Import Veterans", "Bring a 5PFH or Bug Hunt veteran into the colony",
+			_on_import_pressed)
+	_hub_card(hub, "Muster Colonists Out", "Send a colonist to a 5PFH or Bug Hunt campaign",
+			_on_muster_out_pressed)
+	_hub_card(hub, "Save Campaign", "Save current progress to disk", _on_save)
+	_hub_card(hub, "Main Menu", "Return to the main menu", func(): _navigate("main_menu"))
 
-	# Roster summary
-	_build_roster_section(roster_arr)
 
-	# Overlay container for detail panels (rendered on top)
-	_overlay_container = Control.new()
-	_overlay_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_overlay_container.visible = false
-	add_child(_overlay_container)
+func _hub_card(parent: Control, title: String, desc: String, handler: Callable) -> void:
+	var card := HubFeatureCardClass.new()
+	card.setup("", title, desc)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.card_pressed.connect(handler)
+	parent.add_child(card)
 
 
 func _build_roster_section(roster: Array) -> void:
-	var section_header := _create_section_header("COLONY ROSTER")
-	_content.add_child(section_header)
-
+	_content.add_child(_create_section_header("COLONY ROSTER (%d)" % roster.size()))
+	var grid := GridContainer.new()
+	grid.columns = 1 if _built_narrow else 2
+	grid.add_theme_constant_override("h_separation", SPACING_SM)
+	grid.add_theme_constant_override("v_separation", SPACING_SM)
+	_content.add_child(grid)
 	for char_dict in roster:
-		if char_dict is not Dictionary:
-			continue
-		var card := _build_character_card(char_dict)
-		_content.add_child(card)
+		if char_dict is Dictionary:
+			grid.add_child(_build_character_card(char_dict))
+	_content.add_child(_line("Plus %d grunts and the colony bot (pp.16-17)." % (
+			int(_campaign.grunts) if "grunts" in _campaign else 0), COLOR_TEXT_SECONDARY))
 
 
+## A character as the Colony Tracking Sheet records them (p.24): class and sub-species,
+## loyalty, the full profile, XP and Kill Points, Sick Bay, and the backgrounds rolled at
+## creation with the Prior Experience bonus named, so a raised score explains itself.
 func _build_character_card(char_dict: Dictionary) -> PanelContainer:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_apply_panel_style(panel, "elevated")
-
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", SPACING_SM)
-	panel.add_child(hbox)
-
-	# Name + class
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_XS)
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(vbox)
+	panel.add_child(vbox)
 
-	var name_lbl := Label.new()
-	name_lbl.text = char_dict.get("name", "Unknown")
-	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
-	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	var name_lbl := _line(str(char_dict.get("name", "Unknown")), COLOR_TEXT_PRIMARY,
+			FONT_SIZE_MD)
 	vbox.add_child(name_lbl)
 
-	var pill_row := HBoxContainer.new()
-	pill_row.add_theme_constant_override("separation", SPACING_XS)
+	var pill_row := HFlowContainer.new()
+	pill_row.add_theme_constant_override("h_separation", SPACING_XS)
+	pill_row.add_theme_constant_override("v_separation", SPACING_XS)
 	pill_row.add_child(_create_class_pill(char_dict.get("class", "")))
+	var kind: String = str(RosterRules.subspecies_data().get(
+			str(char_dict.get("subspecies", "")), {}).get("name", ""))
+	if kind != "":
+		pill_row.add_child(_create_pill(kind, COLOR_TEXT_SECONDARY))
 	pill_row.add_child(_create_loyalty_pill(char_dict.get("loyalty", "committed")))
 	if char_dict.get("is_imported", false):
 		pill_row.add_child(_create_pill("Imported", UIColors.COLOR_PURPLE))
+	var cid: String = str(char_dict.get("id", ""))
+	var sick: Dictionary = _campaign.sick_bay if "sick_bay" in _campaign else {}
+	if int(sick.get(cid, 0)) > 0:
+		pill_row.add_child(_create_pill("Sick Bay: %d turn%s" % [int(sick[cid]),
+				"" if int(sick[cid]) == 1 else "s"], UIColors.COLOR_AMBER))
 	vbox.add_child(pill_row)
 
-	# Stat line
-	var stat_parts: Array[String] = []
-	for key in ["reactions", "speed", "combat_skill", "toughness", "savvy"]:
-		var abbrev: String
-		match key:
-			"reactions": abbrev = "R"
-			"speed": abbrev = "Spd"
-			"combat_skill": abbrev = "CS"
-			"toughness": abbrev = "T"
-			"savvy": abbrev = "Sv"
-			_: abbrev = key
-		stat_parts.append("%s:%d" % [abbrev, char_dict.get(key, 0)])
-	var stat_lbl := Label.new()
-	stat_lbl.text = "  ".join(stat_parts)
-	stat_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
-	stat_lbl.add_theme_color_override("font_color", COLOR_CYAN)
-	vbox.add_child(stat_lbl)
+	var profile: String = RosterRules.profile_line(char_dict)
+	profile += " · %d XP · %d KP" % [int(char_dict.get("xp", 0)), int(char_dict.get("kp", 0))]
+	vbox.add_child(_line(profile, COLOR_CYAN, FONT_SIZE_SM))
 
+	var bg_parts: Array = []
+	if str(char_dict.get("motivation", "")) != "":
+		bg_parts.append("Motivation: %s" % str(char_dict.motivation))
+	var prior: String = str(char_dict.get("prior_experience", ""))
+	if prior != "":
+		var bonus: String = BackgroundsScript.bonus_text_for(prior)
+		bg_parts.append("Prior Experience: %s%s" % [prior,
+				(" (%s)" % bonus) if bonus != "" else ""])
+	if str(char_dict.get("notable_event", "")) != "":
+		bg_parts.append("Notable Event: %s" % str(char_dict.notable_event))
+	if not bg_parts.is_empty():
+		vbox.add_child(_line(". ".join(PackedStringArray(bg_parts)) + ".",
+				COLOR_TEXT_SECONDARY, FONT_SIZE_SM))
 	return panel
+
+
+func _line(text: String, color: Color, size: int = FONT_SIZE_SM) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
 
 
 func _show_overlay_panel(panel_type: String) -> void:

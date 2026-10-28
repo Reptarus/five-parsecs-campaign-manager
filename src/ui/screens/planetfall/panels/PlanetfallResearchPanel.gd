@@ -6,6 +6,9 @@ extends Control
 ## Source: Planetfall pp.91-96
 
 signal phase_completed(result_data: Dictionary)
+## The turn screen's pinned footer is this step's one completion control; it re-reads
+## step_status() whenever this fires.
+signal step_status_changed
 
 const PlanetfallResearchScript := preload(
 	"res://src/core/systems/PlanetfallResearchSystem.gd")
@@ -37,7 +40,6 @@ var _rp_label: Label
 var _theory_list: VBoxContainer
 var _detail_container: VBoxContainer
 var _result_container: VBoxContainer
-var _continue_btn: Button
 
 
 func _ready() -> void:
@@ -71,8 +73,7 @@ func refresh() -> void:
 
 	_update_rp_display()
 	_build_theory_list()
-	if _continue_btn:
-		_continue_btn.disabled = false
+	step_status_changed.emit()
 
 
 func complete() -> void:
@@ -132,12 +133,6 @@ func _build_ui() -> void:
 	_result_container.add_theme_constant_override("separation", SPACING_SM)
 	right_vbox.add_child(_result_container)
 
-	_continue_btn = Button.new()
-	_continue_btn.text = "Done Researching"
-	_continue_btn.custom_minimum_size = Vector2(0, 48)
-	_continue_btn.pressed.connect(_on_continue_pressed)
-	vbox.add_child(_continue_btn)
-	_continue_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 ## ============================================================================
@@ -336,9 +331,13 @@ func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
 
 
 func _on_continue_pressed() -> void:
-	if _continue_btn:
-		_continue_btn.disabled = true
 	phase_completed.emit({})
+
+
+## What the turn screen's footer shows for this step. Spending points is optional, so the
+## step can always be finished; the footer names the next step itself.
+func step_status() -> Dictionary:
+	return {"ready": true, "reason": ""}
 
 
 ## ============================================================================
