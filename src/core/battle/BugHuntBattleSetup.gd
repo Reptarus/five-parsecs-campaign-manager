@@ -70,10 +70,22 @@ func generate_battle_context(mission_context: Dictionary, campaign: Resource = n
 		"tactical_locations": tactical_locations,
 		"signals": signals,
 		"spawn_points": spawn_points,
-		"terrain_theme": "indoor",
-		"contact_table_rules": _spawn_data.get("contact_markers", {}).get("contact_table", []),
-		"aggression_dice": _spawn_data.get("contact_markers", {}).get("aggression", {}),
-		"chance_dice": _spawn_data.get("contact_markers", {}).get("chance", {}),
+		# ⚠ These three keys used to be contact_table_rules / aggression_dice / chance_dice,
+		# and the last two read `aggression` and `chance`, keys the data file does not have
+		# (it nests both dice under `movement`), so they were always {}. Nothing read any
+		# of the three. The battle now reads the whole blocks through BugHuntBattleGuide.
+		"contact_rules": _spawn_data.get("contact_markers", {}),
+		"spawn_point_rules": _spawn_data.get("spawn_points", {}),
+		# The difficulty row in force for this mission (p.186, with the p.194 Numbers
+		# adjustment). Stamped by BugHuntMissionPanel, so the battle and the briefing
+		# read the same row.
+		"difficulty": str(mission_context.get("difficulty", "mess_me_up")),
+		"difficulty_rules": mission_context.get("difficulty_rules", {}),
+		# p.187 loadout and pp.188-189 support, as BugHuntMissionPanel decided them.
+		# ⚠ This return is a FIXED key literal, so a key the panel stamps and this
+		# list does not name never reaches the battle (MG-8, MG-9).
+		"loadout": (mission_context.get("loadout", {}) as Dictionary).duplicate(true),
+		"support": (mission_context.get("support", []) as Array).duplicate(true),
 		"weapons_table": _weapons_data.get("weapons", []),
 		"armor_table": _armor_data.get("armor", [])
 	}

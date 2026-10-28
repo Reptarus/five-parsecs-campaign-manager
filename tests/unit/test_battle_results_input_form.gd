@@ -248,3 +248,36 @@ func _collect_overflowing(node: Node, limit: float, out: Array[String]) -> void:
 				out.append("%s (%s, needs %.1f)"
 					% [c.name, c.get_class(), c.get_combined_minimum_size().x])
 		_collect_overflowing(child, limit, out)
+
+
+# --- BR-10: the 5PFH XP / injury card stays out of a Bug Hunt battle ----------
+
+## Bug Hunt pays XP from p.204 and rolls injuries on the p.202 table; nothing on its
+## path reads first_casualty_by, unique_kills or the two injury nominations. Both arms
+## are asserted, so a guard that hid the card everywhere would also fail.
+func test_bug_hunt_battle_does_not_offer_the_5pfh_xp_card() -> void:
+	var standard := _make_form_for_mode("")
+	assert_bool(_has_label_containing(standard, "XP CREDIT")) 		.override_failure_message("a standard battle must still offer the p.123 XP card") 		.is_true()
+	var bug_hunt := _make_form_for_mode("bug_hunt")
+	assert_bool(_has_label_containing(bug_hunt, "XP CREDIT")) 		.override_failure_message("Bug Hunt XP is p.204; the 5PFH p.123 card does nothing there") 		.is_false()
+	var result := _submit(bug_hunt)
+	assert_str(str(result.get("first_casualty_by", "x"))).is_equal("")
+
+
+func _make_form_for_mode(battle_mode: String) -> Control:
+	var form = FormClass.new()
+	add_child(form)
+	auto_free(form)
+	var crew: Array = [{"character_name": "Alpha", "combat": 1, "reactions": 1,
+		"toughness": 3, "speed": 4}]
+	form.setup(crew, 5, {"battle_mode": battle_mode} if battle_mode != "" else {}, {})
+	return form
+
+
+func _has_label_containing(node: Node, text: String) -> bool:
+	for child in node.get_children():
+		if child is Label and (child as Label).text.contains(text):
+			return true
+		if _has_label_containing(child, text):
+			return true
+	return false

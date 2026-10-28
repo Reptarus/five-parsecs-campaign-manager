@@ -1,5 +1,6 @@
 {
-	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.184-190 (Mission Generation), with the objective scoring on p.201 (Ending the Mission). difficulty_settings: p.186 table; numbers_modifier is the p.194 Numbers adjustment (-1 on I'm too pretty to die, +1 on Mega-violence and Living Nightmare), moved here 2026-10-27 from bug_hunt_enemies.json:difficulty_modifiers, whose keys matched no setting the app uses; reinforcement_contact_per_six is p.193 (Living Nightmare places a Contact marker for each 6 rolled instead); extra_contacts is p.190; pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed pp.184-190 (Mission Generation), with the objective scoring on p.201 (Ending the Mission). difficulty_settings: p.186 table; numbers_modifier is the p.194 Numbers adjustment (-1 on I'm too pretty to die, +1 on Mega-violence and Living Nightmare), moved here 2026-10-27 from bug_hunt_enemies.json:difficulty_modifiers, whose keys matched no setting the app uses; reinforcement_contact_per_six is p.193 (Living Nightmare places a Contact marker for each 6 rolled instead); p.190's extra centre Contact marker is initial_contacts_modifier; pages verified 2026-09-20 against the PDF page tails and the p.223 index",
+	"_removed_2026_10_27": "encounter_modifier and extra_contacts were second encodings of rules already carried by this table. The p.186 ENCOUNTER MODIFIER column is the p.194 Numbers adjustment (-1 on I'm too pretty to die, +1 on Mega-violence and Living Nightmare; no other encounter roll exists on pp.182-207), now numbers_modifier. p.190's extra centre Contact marker on Mega-violence and Living Nightmare (and its omission on the two easier settings) is the p.186 INITIAL CONTACT MARKERS column, initial_contacts_modifier. Reading both copies would have doubled each adjustment.",
 	"description": "Bug Hunt mission generation - Compendium pp.184-190. 9-step mission setup procedure.",
 	"setup_steps": [
 		"Set up battle area",
@@ -70,9 +71,7 @@
 			"id": "im_too_pretty_to_die",
 			"name": "I'm Too Pretty to Die",
 			"initial_contacts_modifier": -1,
-			"encounter_modifier": -1,
 			"extra_support_points": 2,
-			"extra_contacts": 0,
 			"numbers_modifier": -1,
 			"special_rule": null
 		},
@@ -80,9 +79,7 @@
 			"id": "hey_not_too_crazy",
 			"name": "Hey, Not Too Crazy",
 			"initial_contacts_modifier": -1,
-			"encounter_modifier": 0,
 			"extra_support_points": 0,
-			"extra_contacts": 0,
 			"numbers_modifier": 0,
 			"special_rule": null
 		},
@@ -90,9 +87,7 @@
 			"id": "mess_me_up",
 			"name": "Mess Me Up",
 			"initial_contacts_modifier": 0,
-			"encounter_modifier": 0,
 			"extra_support_points": 0,
-			"extra_contacts": 0,
 			"numbers_modifier": 0,
 			"special_rule": null
 		},
@@ -100,9 +95,7 @@
 			"id": "mega_violence",
 			"name": "Mega-violence",
 			"initial_contacts_modifier": 1,
-			"encounter_modifier": 1,
 			"extra_support_points": 0,
-			"extra_contacts": 1,
 			"numbers_modifier": 1,
 			"special_rule": null
 		},
@@ -110,9 +103,7 @@
 			"id": "living_nightmare",
 			"name": "Living Nightmare",
 			"initial_contacts_modifier": 1,
-			"encounter_modifier": 1,
 			"extra_support_points": 0,
-			"extra_contacts": 1,
 			"numbers_modifier": 1,
 			"reinforcement_contact_per_six": true,
 			"special_rule": "At end of each battle round, if fewer than 3 Contact markers on table, place 1 new Contact marker at center of random battlefield edge."

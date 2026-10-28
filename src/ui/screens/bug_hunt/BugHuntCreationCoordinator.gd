@@ -73,8 +73,8 @@ func update_equipment(data: Dictionary) -> void:
 ## CHARACTER GENERATION
 ## ============================================================================
 
-func generate_squad(names: Array = []) -> Dictionary:
-	return char_gen.generate_squad(names)
+func generate_squad(names: Array = [], count: int = 0) -> Dictionary:
+	return char_gen.generate_squad(names, count)
 
 
 func generate_regiment_name() -> Dictionary:
@@ -90,37 +90,7 @@ func finalize() -> void:
 		push_warning("BugHuntCreationCoordinator: Cannot finalize - incomplete steps")
 		return
 
-	var all_data := state_manager.get_all_data()
-	var campaign := BugHuntCampaignCore.create_new_campaign(
-		all_data.config.campaign_name,
-		all_data.config.difficulty
-	)
-
-	# Apply config
-	campaign.set_config(all_data.config)
-
-	# Initialize squad
-	var squad: Dictionary = all_data.squad
-	campaign.initialize_squad(squad.main_characters, [])
-	# Route through GameStateManager for single-source-of-truth
-	var _gsm = get_node_or_null("/root/GameStateManager")
-	if _gsm and _gsm.has_method("set_reputation"):
-		_gsm.set_reputation(squad.get("total_reputation", 0))
-	else:
-		campaign.reputation = squad.get("total_reputation", 0)  # lint:ignore — fallback
-
-	# Generate initial free fire team
-	var fire_team := char_gen.generate_fire_team(4)
-	campaign.grunts = fire_team
-
-	# Register with GameState before saving
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("set_current_campaign"):
-		game_state.set_current_campaign(campaign)
-	elif game_state:
-		game_state.current_campaign = campaign
-
-	campaign.start_campaign()
+	var campaign := build_campaign(state_manager.get_all_data())
 
 	# Save once after start_campaign() so game_phase is correct
 	var save_dir := "user://saves/"
@@ -135,3 +105,39 @@ func finalize() -> void:
 	var router = get_node_or_null("/root/SceneRouter")
 	if router and router.has_method("navigate_to"):
 		router.navigate_to("bug_hunt_dashboard")
+
+
+## Create, register and seed the new campaign. Split out of finalize() so a test can
+## inspect the campaign it produces without writing a save or navigating away.
+func build_campaign(all_data: Dictionary) -> BugHuntCampaignCore:
+	var campaign := BugHuntCampaignCore.create_new_campaign(
+		all_data.config.campaign_name,
+		all_data.config.difficulty
+	)
+	campaign.set_config(all_data.config)
+
+	var squad: Dictionary = all_data.squad
+	campaign.initialize_squad(squad.main_characters, [])
+
+	# Generate initial free fire team
+	campaign.grunts = char_gen.generate_fire_team(4)
+
+	# Register BEFORE the Reputation write. GameStateManager.set_reputation() writes
+	# through to GameState.current_campaign, and that write used to run first, so it
+	# landed on the PREVIOUS campaign (overwriting a 5PFH crew's Reputation) while the
+	# new squad started at 0.
+	var game_state = get_node_or_null("/root/GameState")
+	if game_state and game_state.has_method("set_current_campaign"):
+		game_state.set_current_campaign(campaign)
+	elif game_state:
+		game_state.current_campaign = campaign
+
+	var reputation: int = int(squad.get("total_reputation", 0))
+	var _gsm = get_node_or_null("/root/GameStateManager")
+	if _gsm and _gsm.has_method("set_reputation") and game_state 			and game_state.current_campaign == campaign:
+		_gsm.set_reputation(reputation)
+	else:
+		campaign.reputation = reputation  # lint:ignore — no live GameState to route through
+
+	campaign.start_campaign()
+	return campaign

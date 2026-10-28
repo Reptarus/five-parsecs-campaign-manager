@@ -110,7 +110,7 @@ var total_missions_played: int = 0
 func _init() -> void:
 	created_at = Time.get_datetime_string_from_system()
 	last_modified = created_at
-	# Initialize movie magic from JSON (Compendium pp.182-183), fallback to hardcoded
+	# Initialize movie magic from JSON (Compendium p.181), fallback to hardcoded
 	_init_movie_magic()
 
 func _init_movie_magic() -> void:
@@ -211,13 +211,70 @@ func get_main_character_by_id(character_id: String) -> Variant:
 
 
 func get_active_main_characters() -> Array:
-	## Returns main characters not in sick bay
+	## Main characters who take the field this mission: not in Sick Bay, and not
+	## held back by a p.206 Military Life result ("miss the next mission").
 	var active: Array = []
 	for mc in main_characters:
 		var cid: String = mc.get("id", mc.get("character_id", ""))
-		if not sick_bay.has(cid) or sick_bay[cid] <= 0:
-			active.append(mc)
+		if sick_bay.has(cid) and sick_bay[cid] > 0:
+			continue
+		if military_life_flag(cid, "miss_next_mission") > 0:
+			continue
+		active.append(mc)
 	return active
+
+
+## ============================================================================
+## MILITARY LIFE FLAGS (Compendium p.206)
+## ============================================================================
+## BugHuntPhaseManager._set_military_life_flag() writes them after a battle; these
+## are the readers. ⚠ Until 2026-10-27 all five were written and read by nothing, so
+## a marine in the Brig still deployed, a reprimanded marine still took an
+## assignment, and a recommendation's +2 never reached a roll (PB-2).
+##   miss_next_mission               16-20 Brig, 61-65 special duties
+##   priority_modifier               11-15 Intel Corps (+1 or -1, the player's pick)
+##   special_assignment_bonus        36-40 recommendation, 86-90 favor
+##   special_assignment_blocked      41-45 reprimand
+##   extra_special_assignment_rolls  61-65 special duties
+
+func military_life_flag(character_id: String, flag: String) -> int:
+	var by_char: Variant = military_life_modifiers.get("characters", {})
+	if by_char is not Dictionary:
+		return 0
+	var flags: Variant = (by_char as Dictionary).get(character_id, {})
+	return int((flags as Dictionary).get(flag, 0)) if flags is Dictionary else 0
+
+
+## The sum across the squad, for an effect that lands on the mission rather than on
+## one character (the Intel Corps Priority shift).
+func military_life_flag_total(flag: String) -> int:
+	var total: int = 0
+	var by_char: Variant = military_life_modifiers.get("characters", {})
+	if by_char is Dictionary:
+		for cid in by_char:
+			total += military_life_flag(str(cid), flag)
+	return total
+
+
+## An effect is spent once it has applied. Clearing it here, on the owner, is what
+## keeps a one-turn result from applying every turn after.
+func consume_military_life_flag(character_id: String, flag: String) -> void:
+	var by_char: Variant = military_life_modifiers.get("characters", {})
+	if by_char is not Dictionary or not (by_char as Dictionary).has(character_id):
+		return
+	var flags: Variant = by_char[character_id]
+	if flags is Dictionary and (flags as Dictionary).has(flag):
+		(flags as Dictionary).erase(flag)
+		if (flags as Dictionary).is_empty():
+			(by_char as Dictionary).erase(character_id)
+		_update_modified_time()
+
+
+func consume_military_life_flag_everywhere(flag: String) -> void:
+	var by_char: Variant = military_life_modifiers.get("characters", {})
+	if by_char is Dictionary:
+		for cid in (by_char as Dictionary).keys():
+			consume_military_life_flag(str(cid), flag)
 
 
 ## ============================================================================
@@ -230,6 +287,26 @@ func use_movie_magic(ability_id: String) -> bool:
 	movie_magic_used[ability_id] = true
 	_update_modified_time()
 	return true
+
+
+## The p.181 abilities still unused, in book order, as their data rows. ⚠ Before
+## 2026-10-27 use_movie_magic() had no caller, so the ten once-per-campaign cards were
+## tracked, saved and never offered anywhere (PB-4).
+func movie_magic_available() -> Array:
+	var out: Array = []
+	for row in movie_magic_abilities():
+		if row is Dictionary and is_movie_magic_available(str(row.get("id", ""))):
+			out.append(row)
+	return out
+
+
+static func movie_magic_abilities() -> Array:
+	var f := FileAccess.open("res://data/bug_hunt/bug_hunt_movie_magic.json", FileAccess.READ)
+	if f == null:
+		return []
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	return (parsed as Dictionary).get("abilities", []) if parsed is Dictionary else []
 
 
 func is_movie_magic_available(ability_id: String) -> bool:
@@ -291,20 +368,23 @@ func add_reputation(amount: int) -> void:
 ## ============================================================================
 
 func validate() -> bool:
-	if campaign_name.is_empty():
-		return false
-	if main_characters.size() < 3:
-		return false
-	return true
+	return get_validation_errors().is_empty()
 
 
 func get_validation_errors() -> Array[String]:
+	return validation_errors_for(campaign_name, main_characters.size())
+
+
+## The ONE squad check, shared with the creation wizard's Review step, which holds
+## plain dictionaries rather than a core. ⚠ The Review step used to keep its own copy
+## that had no upper bound, so a 6-character squad read "Ready to deploy".
+static func validation_errors_for(name: String, character_count: int) -> Array[String]:
 	var errors: Array[String] = []
-	if campaign_name.is_empty():
+	if name.is_empty():
 		errors.append("Pick a name for your campaign. Anything memorable works.")
-	if main_characters.size() < 3:
+	if character_count < 3:
 		errors.append("Bug Hunt needs at least 3 Main Characters. Add a few in the Characters step.")
-	if main_characters.size() > 5:
+	if character_count > 5:
 		errors.append("Bug Hunt caps at 5 Main Characters (Compendium p.170). Remove one to continue.")
 	return errors
 

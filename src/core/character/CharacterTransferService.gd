@@ -150,6 +150,30 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 				die1, die2, combat_bonus, patron_bonus, total, ENLISTMENT_TARGET]
 		}
 
+	var accepted := _accept_enlistment(character_data)
+	accepted.merge({"roll": total, "dice": [die1, die2], "combat_bonus": combat_bonus,
+		# Present on the failure dict since the p.212 bonus landed, absent here -- so the
+		# panel could not print a sum that added up on a successful roll. Symmetric now.
+		"patron_bonus": patron_bonus, "target": ENLISTMENT_TARGET})
+	return accepted
+
+
+## Compendium p.212: "If the roll fails, 1 Story Point will get you in with any
+## suitable explanation." The roll is not made again: the character is accepted as if
+## it had passed. The caller spends the point FIRST (spend_story_point_in_save), so an
+## enlistment never lands without its price. ⚠ The rescue was printed as text on the
+## rejection screen with nothing to press until 2026-10-27 (DU-13).
+func enlist_with_story_point(character_data: Dictionary) -> Dictionary:
+	var validation := validate_enlistment(character_data)
+	if not validation.eligible:
+		return {"success": false, "roll": 0, "target": ENLISTMENT_TARGET, "reason": validation.reason}
+	var accepted := _accept_enlistment(character_data)
+	accepted["story_point_spent"] = true
+	accepted["target"] = ENLISTMENT_TARGET
+	return accepted
+
+
+func _accept_enlistment(character_data: Dictionary) -> Dictionary:
 	# Transfer successful — create Bug Hunt version.
 	#
 	# Route through the canonical hub rather than calling _convert_to_bug_hunt()
@@ -168,13 +192,6 @@ func attempt_enlistment(character_data: Dictionary) -> Dictionary:
 
 	return {
 		"success": true,
-		"roll": total,
-		"dice": [die1, die2],
-		"combat_bonus": combat_bonus,
-		# Present on the failure dict since the p.212 bonus landed, absent here — so the
-		# panel could not print a sum that added up on a successful roll. Symmetric now.
-		"patron_bonus": patron_bonus,
-		"target": ENLISTMENT_TARGET,
 		"transferred_character": transferred,
 		"stashed_equipment": _stashed_equipment.get(character_data.get("id", character_data.get("character_id", "")), [])
 	}
@@ -685,6 +702,36 @@ static func _validate_transfer_data(data) -> bool:
 	if not (sp is int or sp is float) or sp < 0:
 		return false
 	return true
+
+
+## The Story Points the SOURCE crew holds, read from its save on disk (the enlisting
+## character's campaign is not the loaded one). -1 means there is no pool to draw on:
+## not a 5PFH save, or a difficulty that switches Story Points off (Core Rules p.65,
+## through the one predicate StoryPointSystem uses).
+static func story_points_in_save(save_path: String) -> int:
+	if save_path.is_empty():
+		return -1
+	var SaveWriter = load("res://src/core/state/SaveFileWriter.gd")
+	var data: Dictionary = SaveWriter.read_json_with_fallback(save_path)
+	var res: Variant = data.get("resources", null)
+	if res is not Dictionary or not (res as Dictionary).has("story_points"):
+		return -1
+	var cfg: Variant = data.get("config", data.get("meta", {}))
+	if cfg is Dictionary and DifficultyModifiers.are_story_points_disabled(
+			int((cfg as Dictionary).get("difficulty", 0))):
+		return -1
+	return int(res["story_points"])
+
+
+## Spend one of the source crew's Story Points in its save file, atomically. Returns
+## false, writing nothing, when there is none to spend.
+static func spend_story_point_in_save(save_path: String) -> bool:
+	if story_points_in_save(save_path) < 1:
+		return false
+	var SaveWriter = load("res://src/core/state/SaveFileWriter.gd")
+	var data: Dictionary = SaveWriter.read_json_with_fallback(save_path)
+	data["resources"]["story_points"] = int(data["resources"]["story_points"]) - 1
+	return SaveWriter.write_text_atomic(save_path, JSON.stringify(data, "\t")) == OK
 
 
 static func remove_character_from_save(save_path: String, character_id: String) -> bool:

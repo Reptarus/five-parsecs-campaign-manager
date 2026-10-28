@@ -1,7 +1,7 @@
 extends Control
 
 ## Bug Hunt Squad Panel — Step 2 of 4
-## Generate 3-4 main characters, view their stats and backgrounds.
+## Generate 3-5 main characters (Compendium p.170), view their stats and backgrounds.
 
 signal squad_updated(data: Dictionary)
 
@@ -18,6 +18,7 @@ var _characters_container: VBoxContainer
 var _generate_button: Button
 var _status_label: Label
 var _name_edits: Array[LineEdit] = []
+var _size_option: OptionButton
 
 var _squad_data: Dictionary = {
 	"main_characters": [],
@@ -58,15 +59,24 @@ func _build_ui() -> void:
 	vbox.add_child(title)
 
 	var desc := Label.new()
-	desc.text = "Your squad consists of 3-4 Main Characters. Enter names below (or leave blank for auto-names), then generate your squad."
+	desc.text = "A squad has 3 Main Characters. You may raise it to 4 or even 5 for a " 		+ "slightly easier game, or to play with a friend (Compendium p.170). Enter names " 		+ "below (or leave them blank for auto-names), then generate your squad."
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
 
+	var size_card := _create_card("Squad Size", vbox)
+	_size_option = OptionButton.new()
+	_size_option.custom_minimum_size.y = 48
+	_size_option.add_item("3 Main Characters (standard)", 3)
+	_size_option.add_item("4 Main Characters (easier)", 4)
+	_size_option.add_item("5 Main Characters (easier)", 5)
+	_size_option.select(0)
+	size_card.add_child(_size_option)
+
 	# Name inputs
 	var names_card := _create_card("Character Names", vbox)
 	_name_edits.clear()
-	for i in range(4):
+	for i in range(5):
 		var hbox := HBoxContainer.new()
 		hbox.add_theme_constant_override("separation", 8)
 		names_card.add_child(hbox)
@@ -78,7 +88,7 @@ func _build_ui() -> void:
 		hbox.add_child(lbl)
 
 		var edit := LineEdit.new()
-		edit.placeholder_text = "Auto-generate name" if i < 3 else "(Optional 4th character)"
+		edit.placeholder_text = "Auto-generate name" if i < 3 			else "(Name for character %d, if the squad is that large)" % (i + 1)
 		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		edit.custom_minimum_size.y = 40
 		hbox.add_child(edit)
@@ -140,7 +150,9 @@ func _on_generate_squad() -> void:
 		if not txt.is_empty():
 			names.append(txt)
 
-	var result: Dictionary = _coordinator.generate_squad(names)
+	# The picker is the player's choice; a name typed past it does not grow the squad.
+	var size: int = _size_option.get_selected_id() if _size_option else 3
+	var result: Dictionary = _coordinator.generate_squad(names.slice(0, size), size)
 	_squad_data = result.duplicate(true)
 
 	_display_squad()

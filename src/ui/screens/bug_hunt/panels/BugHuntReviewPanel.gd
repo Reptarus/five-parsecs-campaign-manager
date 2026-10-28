@@ -125,12 +125,8 @@ func _display_summary() -> void:
 
 
 func _get_validation_errors(config: Dictionary, characters: Array) -> Array:
-	var errors: Array = []
-	if config.get("campaign_name", "").is_empty():
-		errors.append("Pick a name for your campaign. Anything memorable works.")
-	if characters.size() < 3:
-		errors.append("Bug Hunt needs at least 3 Main Characters. Add a few in the Characters step.")
-	return errors
+	return BugHuntCampaignCore.validation_errors_for(
+		str(config.get("campaign_name", "")), characters.size())
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:

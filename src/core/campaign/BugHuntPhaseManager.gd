@@ -240,8 +240,13 @@ func _apply_post_battle_results(result: Dictionary) -> void:
 	for e in receipt.get("effects", []):
 		if not (e is Dictionary):
 			continue
-		var cancel_key: String = str(e.get("cancel_choice", ""))
-		if not cancel_key.is_empty() and cancelled.has(cancel_key):
+		# One key, or several: a Lost Marine's roll can be cancelled by Movie Magic
+		# "Escape" (every lost marine) OR "Survived" (that one character), p.181.
+		var cancel_keys: Variant = e.get("cancel_choice", "")
+		if cancel_keys is Array:
+			if (cancel_keys as Array).any(func(k: Variant) -> bool: return cancelled.has(str(k))):
+				continue
+		elif not str(cancel_keys).is_empty() and cancelled.has(str(cancel_keys)):
 			continue
 		_apply_post_battle_effect(e)
 
@@ -326,6 +331,10 @@ func _apply_post_battle_effect(e: Dictionary) -> void:
 
 		"replace_character":
 			_replace_main_character()
+
+		"use_movie_magic":
+			if campaign.has_method("use_movie_magic"):
+				campaign.use_movie_magic(str(e.get("ability", "")))
 
 		"reputation":
 			# Through the core's OWN mutators, not a direct write -- Reputation is a

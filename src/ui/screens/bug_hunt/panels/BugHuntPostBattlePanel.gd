@@ -389,6 +389,11 @@ func _build_snapshot() -> Dictionary:
 		# Banked by a paid early R&R on a previous turn (p.206). Step 7 of THIS
 		# resolve consumes it and emits the clear, so it must be read, not assumed.
 		"pending_military_life_rolls": int(mlm.get("pending_rolls", 0)),
+		# p.181 ids still in hand, so the resolver offers Survived / Escape only if
+		# the card has not been played.
+		"movie_magic_available": (_campaign.movie_magic_available() as Array).map(
+			func(r: Variant) -> String: return str((r as Dictionary).get("id", "")))
+			if _campaign.has_method("movie_magic_available") else [],
 	}
 
 
@@ -469,7 +474,8 @@ func _render_choice(choice: Dictionary, card: VBoxContainer) -> void:
 	var prompt: String = str(choice.get("prompt", ""))
 
 	match kind:
-		"court_martial_buyout", "advanced_care", "military_life_purchase", "early_rr":
+		"court_martial_buyout", "advanced_care", "military_life_purchase", "early_rr", \
+				"retire_injured", "movie_magic_survived", "movie_magic_escape":
 			var check := CheckBox.new()
 			check.text = prompt
 			check.add_theme_font_size_override("font_size", _scaled_font(13))
@@ -615,7 +621,8 @@ func _collect_answers() -> Dictionary:
 			continue
 
 		match kind:
-			"court_martial_buyout", "advanced_care", "military_life_purchase", "early_rr":
+			"court_martial_buyout", "advanced_care", "military_life_purchase", "early_rr", \
+					"retire_injured", "movie_magic_survived", "movie_magic_escape":
 				answers[cid] = (node as CheckBox).button_pressed
 			"mvp":
 				var mopt := node as OptionButton

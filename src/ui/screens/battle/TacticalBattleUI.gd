@@ -22,6 +22,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # prompts, objective win text — Core Rules pp.88-90, 110). Path preload:
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
+const BugHuntBattleGuideClass = preload("res://src/core/battle/BugHuntBattleGuide.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
@@ -2835,6 +2836,12 @@ func _build_battle_card() -> Control:
 		contract = gs.get_battlefield_data()
 	var md: Dictionary = (_stored_mission_data
 		if _stored_mission_data is Dictionary else {})
+	# A Bug Hunt mission has no p.88 condition, p.89 sight or p.90 objective table; it
+	# has Contacts, Tactical Locations and Spawn Points (Compendium pp.190-199). Branch
+	# on the mission's own battle_mode: _is_bug_hunt_mode is set AFTER a pre-selected
+	# tier can already have opened this card.
+	if str(md.get("battle_mode", "")) == "bug_hunt":
+		return _build_bug_hunt_battle_card(md)
 	var ef: Dictionary = _battle_context.get("enemy_force",
 		md.get("enemy_force", {}))
 
@@ -2935,6 +2942,74 @@ func _build_battle_card() -> Control:
 		card.queue_free()
 		return null
 	return card
+
+## The Bug Hunt Battle Card: what BugHuntBattleSetup placed and the rules the players
+## run every round, from BugHuntBattleGuide. ⚠ Before 2026-10-27 a Bug Hunt battle
+## showed the 5PFH card and none of its own mission.
+func _build_bug_hunt_battle_card(md: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#252542")
+	style.border_color = Color("#3A3A5C")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(12)
+	card.add_theme_stylebox_override("panel", style)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
+	var title := Label.new()
+	title.text = "BUG HUNT BATTLE CARD"
+	title.add_theme_font_size_override("font_size", _scaled_font(12))
+	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(title)
+	for row in BugHuntBattleGuideClass.briefing_rows(md):
+		_battle_card_row(vbox, str(row.get("head", "")), str(row.get("detail", "")),
+			UIColors.COLOR_AMBER)
+	_add_movie_magic_rows(vbox)
+	return card
+
+
+## p.181 Movie Magic: ten cards, each "employed once in your campaign". Seven act
+## during the battle, so the unused ones are listed here with their timing and a
+## button that spends the card. Guarded on the OWNER: only a core that tracks
+## `movie_magic_used` (Bug Hunt) gets the section.
+func _add_movie_magic_rows(vbox: VBoxContainer) -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	var camp: Variant = gs.get("current_campaign") if gs else null
+	if camp == null or not ("movie_magic_used" in camp) \
+			or not camp.has_method("movie_magic_available"):
+		return
+	var cards: Array = camp.movie_magic_available()
+	if cards.is_empty():
+		return
+	_battle_card_row(vbox, "Movie Magic: %d card(s) left, each once per campaign (Compendium p.181)"
+		% cards.size(), "", UIColors.COLOR_AMBER)
+	for row in cards:
+		if row is not Dictionary:
+			continue
+		var line := HBoxContainer.new()
+		line.add_theme_constant_override("separation", 8)
+		var text := Label.new()
+		text.text = "%s. %s %s" % [str(row.get("name", "")), str(row.get("timing", "")),
+			str(row.get("effect", ""))]
+		text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		text.add_theme_font_size_override("font_size", _scaled_font(12))
+		text.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		line.add_child(text)
+		var use := Button.new()
+		use.text = "Use"
+		use.custom_minimum_size = Vector2(64, 44)
+		var ability_id: String = str(row.get("id", ""))
+		use.pressed.connect(func() -> void:
+			if camp.use_movie_magic(ability_id):
+				use.disabled = true
+				use.text = "Used"
+		)
+		line.add_child(use)
+		vbox.add_child(line)
+
 
 func _battle_card_row(parent: Node, head: String, detail: String,
 		color: Color) -> void:
@@ -3150,9 +3225,11 @@ func _ensure_results_form_drawer() -> void:
 		crew_data = [{"character_name": "Crew", "combat": 1, "reactions": 1,
 			"toughness": 3, "speed": 4}]
 
+	# 0 means the app does not know the total (a Bug Hunt battle's enemies arrive from
+	# Contacts at the table), and the form treats it as unknown. ⚠ This used to
+	# substitute 8, a number in no book, so the form read "/ 8 total" and reported
+	# 8 minus the kills as enemies remaining.
 	var enemy_count: int = enemy_units.size()
-	if enemy_count == 0:
-		enemy_count = 8
 
 	_log_only_results_form.setup(
 		crew_data, enemy_count,
@@ -4527,7 +4604,15 @@ func _show_end_phase_ui() -> void:
 	# constraint above, and the single most consequential thing about the mission.
 	round_prompts.append_array(BattleFlowGuideClass.build_black_job_round_prompts(
 		_current_round_number(), _is_black_job_battle(), _black_job_objective_met()))
+	# Compendium pp.186/193/199: Spawn Points, Living Nightmare's top-up and the
+	# "Beep... Sir?" roll for the next round. Built from the mission the setup placed.
+	if _is_bug_hunt_mode:
+		round_prompts.append_array(BugHuntBattleGuideClass.round_end_prompts(
+			_current_round_number(),
+			_stored_mission_data if _stored_mission_data is Dictionary else {}))
 	var banner_lines: Array[String] = [
+		"End of round: work through the Bug Hunt steps below. Bug Hunt has no morale."
+		if _is_bug_hunt_mode else
 		"Run the end-of-round checklist on the table: morale, any battle event, then the victory check."]
 	for prompt in round_prompts:
 		banner_lines.append("⚠ %s" % str(prompt.get("text", "")))

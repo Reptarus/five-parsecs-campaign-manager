@@ -18,6 +18,7 @@ const COLOR_ACCENT := _UC.COLOR_ACCENT
 
 const MISSIONS_PATH := "res://data/bug_hunt/bug_hunt_missions.json"
 const SUPPORT_PATH := "res://data/bug_hunt/bug_hunt_support_teams.json"
+const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
 
 var _campaign: Resource
 var _phase_manager = null
@@ -62,6 +63,11 @@ func set_phase_manager(pm) -> void:
 func refresh() -> void:
 	_mission_generated = false
 	_mission_context.clear()
+	_signals_roll = 0  # a new mission rolls its own Signals (p.208)
+	_rep_priority_shift = 0
+	_rep_for_support = 0
+	_support_requests_made = 0
+	_support_buttons.clear()
 	_clear_containers()
 
 
@@ -76,6 +82,9 @@ func complete() -> void:
 func _load_data() -> void:
 	_missions_data = _load_json(MISSIONS_PATH)
 	_support_data = _load_json(SUPPORT_PATH)
+	for w in _load_json(WEAPONS_PATH).get("weapons", []):
+		if w is Dictionary:
+			_weapons_by_id[str(w.get("id", ""))] = w
 
 
 func _load_json(path: String) -> Dictionary:
@@ -211,6 +220,16 @@ func _generate_mission() -> void:
 		priority += 2
 	elif vital_objective >= 0:
 		priority += 1
+	# p.206 "Friend in the Intel Corps": "Modify Priority of next mission by +/- 1",
+	# the sign being the player's pick, banked by the post-battle step.
+	var military_life: int = _campaign.military_life_flag_total("priority_modifier") \
+		if _campaign and _campaign.has_method("military_life_flag_total") else 0
+	priority += military_life
+	# p.187: "Regardless of points spent or modifiers, Priority cannot be reduced below
+	# 1 or raised above 6." The clamp comes LAST, so the unclamped value is kept for
+	# the Reputation adjustment (MG-1) to start from.
+	_base_priority = priority
+	_rep_priority_shift = 0
 	priority = clampi(priority, 1, 6)
 
 	## ── Step 5: Spawn Rating ──────
@@ -239,6 +258,7 @@ func _generate_mission() -> void:
 	_mission_context = {
 		"priority": priority,
 		"spawn_rating": spawn_rating,
+		"military_life_priority": military_life,
 		"escalation_step": _escalation_step,
 		"objectives": active_objectives,
 		"objective_count": objective_count,
@@ -246,6 +266,9 @@ func _generate_mission() -> void:
 		"has_critical": critical_objective >= 0,
 		"contact_markers": total_contacts,
 		"difficulty": difficulty,
+		# The p.186 row in force travels with the mission, like `scoring` below, so the
+		# battle applies the same Numbers adjustment (p.194) the briefing was built from.
+		"difficulty_rules": diff_settings.duplicate(true),
 		"turn": turn,
 		# The thresholds IN FORCE for this mission travel with it, so the debrief
 		# scores against what the player was briefed with rather than against
@@ -279,8 +302,12 @@ func _generate_mission() -> void:
 		_add_row(briefing_card, "  #%d%s" % [obj.die_value, rating_tag],
 			"%s — %s" % [obj_type.get("name", "Patrol"), obj_type.get("achieved_when", "")])
 
-	_add_row(briefing_card, "Priority", str(priority))
-	_add_row(briefing_card, "Spawn Rating", str(spawn_rating))
+	_priority_lbl = _add_row(briefing_card, "Priority", str(priority))
+	if military_life != 0:
+		_add_row(briefing_card, "Military Life", "%+d Priority, a friend in the Intel Corps (p.206)"
+			% military_life)
+	_spawn_lbl = _add_row(briefing_card, "Spawn Rating", str(spawn_rating))
+	_build_priority_control(briefing_card)
 	_add_row(briefing_card, "Contact Markers", str(total_contacts))
 	_add_row(briefing_card, "Difficulty", difficulty.replace("_", " ").capitalize())
 
@@ -296,8 +323,12 @@ func _generate_mission() -> void:
 		# roll its own 1D6 at launch and keep the number to itself, so the p.201
 		# rule ("4 or more signals initially ... investigate at least 2") had no
 		# initial count to test against after the battle.
+		# ⚠ ONCE per mission (MG-10). It used to re-roll on every toggle, so turning
+		# the rule off and on again re-rolled the p.208 1D6 until it suited.
 		if pressed:
-			_mission_context["signals_total"] = _roll_d6("Bug Hunt Signals: count")
+			if _signals_roll <= 0:
+				_signals_roll = _roll_d6("Bug Hunt Signals: count")
+			_mission_context["signals_total"] = _signals_roll
 		else:
 			_mission_context["signals_total"] = 0
 	)
@@ -312,7 +343,7 @@ func _generate_mission() -> void:
 	_build_loadout_selection()
 
 	## ── Step 7: Support Teams (Compendium pp.188-189) ──────
-	_roll_support_teams(priority)
+	_roll_support_teams()
 
 	_launch_button.visible = true
 
@@ -332,6 +363,7 @@ func _build_loadout_selection() -> void:
 	# A Dictionary is a reference, so all the closures share one fact.
 	var hand_cannon := {"assigned": false}
 	_participant_ids.clear()
+	_mission_context["loadout"] = {}
 
 	for mc in _campaign.main_characters:
 		if mc is not Dictionary:
@@ -340,6 +372,15 @@ func _build_loadout_selection() -> void:
 		var char_name: String = mc.get("name", mc.get("character_name", "Unknown"))
 
 		if sick_bay.has(char_id):
+			continue
+		# p.206 "Time in the Brig" / "Detached on special duties": misses this mission.
+		if _campaign.has_method("military_life_flag") \
+				and _campaign.military_life_flag(char_id, "miss_next_mission") > 0:
+			var held := Label.new()
+			held.text = "%s misses this mission (Military Life, Compendium p.206)." % char_name
+			held.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			held.add_theme_color_override("font_color", COLOR_WARNING)
+			loadout_card.add_child(held)
 			continue
 		# Took the field. p.203: "Update this number by 1 if the character took
 		# the field. Characters in Sick Bay do not update their tally." This is
@@ -359,18 +400,30 @@ func _build_loadout_selection() -> void:
 		name_lbl.custom_minimum_size.x = 140
 		hbox.add_child(name_lbl)
 
-		# Mission weapon choice
+		# Mission weapon choice (p.187), read from data. ⚠ These were three string
+		# literals carrying their own stats, and the choice was never stamped, so the
+		# battle never knew which weapon anyone carried (MG-9).
+		var choices: Array = _loadout_choices()
+		var loadout: Dictionary = _mission_context.get("loadout", {})
+		loadout[char_id] = {"name": char_name,
+			"weapon": str(choices[0]) if not choices.is_empty() else "", "hand_cannon": false}
+		_mission_context["loadout"] = loadout
 		var weapon_opt := OptionButton.new()
-		weapon_opt.add_item("Combat Rifle (26\" | 1 Shot | Dmg 0)")
-		weapon_opt.add_item("Shotgun (12\" | 2 Shots | Dmg 1 | Focused)")
-		weapon_opt.add_item("Boarding Sword (Melee | +2 Brawl)")
+		for wid in choices:
+			weapon_opt.add_item(_weapon_label(str(wid)))
 		weapon_opt.custom_minimum_size.x = 280
+		var entry_ref: Dictionary = loadout[char_id]
+		weapon_opt.item_selected.connect(func(idx: int) -> void:
+			if idx >= 0 and idx < choices.size():
+				entry_ref["weapon"] = str(choices[idx])
+		)
 		hbox.add_child(weapon_opt)
 
 		# Hand Cannon swap (only 1 MC)
 		var hc_check := CheckBox.new()
 		hc_check.text = "Hand Cannon swap"
-		hc_check.tooltip_text = "Swap Service Pistol for Hand Cannon (8\" | 1 Shot | Dmg 1). One MC only."
+		hc_check.tooltip_text = "Swap the Service Pistol for a %s. One main character only." \
+			% _weapon_label("hand_cannon")
 		var hc_ref := hc_check
 		var hc_holder := hand_cannon
 		hc_check.toggled.connect(func(pressed: bool):
@@ -381,6 +434,7 @@ func _build_loadout_selection() -> void:
 				hc_ref.set_pressed_no_signal(false)
 				return
 			hc_holder["assigned"] = pressed
+			entry_ref["hand_cannon"] = pressed
 		)
 		hbox.add_child(hc_check)
 
@@ -403,7 +457,12 @@ func _calculate_priority(turn: int, difficulty: String) -> int:
 		var escalation: Dictionary = _missions_data.get("campaign_escalation_option", {})
 		var sequence: Array = escalation.get("priority_sequence", [])
 		if sequence.size() > 0:
-			var idx: int = (turn - 1) % sequence.size()
+			# p.187 prints eight ratings and says nothing of mission 9. The option's own
+			# purpose is a campaign that "slowly escalates", so the last rating HOLDS;
+			# this was `% size`, which dropped mission 9 back to Priority 1 (MG-13). The
+			# clamp also keeps a turn of 0 off index -1, which GDScript reads as the LAST
+			# element and would have opened the campaign at Priority 6.
+			var idx: int = clampi(turn - 1, 0, sequence.size() - 1)
 			_escalation_step = idx
 			return int(sequence[idx])
 		push_warning("BugHuntMissionPanel: campaign escalation is on but the data has no priority_sequence; rolling instead.")
@@ -464,41 +523,79 @@ func _get_difficulty_settings(difficulty: String) -> Dictionary:
 	return {}
 
 
-var _support_points_remaining: int = 0
+## The p.208 Signals 1D6, rolled the first time the rule is switched on (MG-10).
+var _signals_roll: int = 0
+## p.187 Reputation spending. Committed here, spent once at launch.
+const MAX_PRIORITY_REPUTATION := 2
+var _base_priority: int = 1
+var _rep_priority_shift: int = 0
+var _rep_for_support: int = 0
+var _support_requests_made: int = 0
+var _support_buttons: Array[Button] = []
+var _priority_lbl: Label
+var _spawn_lbl: Label
+var _prio_down_btn: Button
+var _prio_up_btn: Button
+var _buy_support_btn: Button
+var _support_points_lbl: Label
+var _extra_support_check: CheckBox
+var _weapons_by_id: Dictionary = {}
 var _support_results_box: VBoxContainer
 
 
-func _roll_support_teams(priority: int) -> void:
+func _roll_support_teams() -> void:
 	## Step 7: Force Strength (Compendium pp.187-189)
-	## Support points = Priority. +2 for "I'm Too Pretty". 1 Rep = +1 Support.
-	## Each point grants one 2D6 roll against a support type.
+	## Each Support point grants one 2D6 roll against a support type. The points are
+	## computed by _support_points_total() from the STAMPED Priority, never passed in,
+	## because the Step 4 Reputation control can still move Priority after this card
+	## is built.
 	var support_options: Array = _support_data.get("support_options", [])
 	if support_options.is_empty():
 		return
 
 	var support_card := _create_card("Step 7: Force Strength", _support_container)
+	_support_requests_made = 0
+	_rep_for_support = 0
+	_support_buttons.clear()
+	_mission_context["support"] = []
 
-	# Free fire team (always provided)
+	# Free fire team (always provided). The text is the data's, and the team is the
+	# Support table's own Fire Team row, so the label cannot disagree with either.
 	var free_lbl := Label.new()
-	free_lbl.text = "FREE: Fire Team — 4 Grunts with Combat Rifles (always included)"
+	free_lbl.text = "FREE: %s %s" % [str(_support_data.get("free_fire_team", "")),
+		_fire_team_contents()]
+	free_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	free_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 	support_card.add_child(free_lbl)
 
-	# Calculate support points
-	var bonus: int = 0
-	var difficulty: String = _mission_context.get("difficulty", "mess_me_up")
-	if difficulty == "im_too_pretty_to_die":
-		bonus = 2
-	_support_points_remaining = priority + bonus
+	_support_points_lbl = Label.new()
+	_support_points_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_support_points_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	support_card.add_child(_support_points_lbl)
 
-	var points_lbl := Label.new()
-	points_lbl.text = "Support Points: %d (Priority %d + difficulty bonus %d)" % [
-		_support_points_remaining, priority, bonus]
-	points_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-	support_card.add_child(points_lbl)
+	# p.187: "1 point of Reputation may be spent to gain +1 Support." ⚠ This used to be a
+	# label only, with nothing to press (MG-2).
+	_buy_support_btn = Button.new()
+	_buy_support_btn.text = "Spend 1 Reputation: +1 Support Point"
+	_buy_support_btn.custom_minimum_size.y = 44
+	_buy_support_btn.pressed.connect(_on_buy_support_point)
+	support_card.add_child(_buy_support_btn)
+
+	# p.181 Movie Magic "Extra Support": "The first Support option you request does not
+	# require a die roll." Once per campaign; spent when that request is made.
+	_extra_support_check = null
+	if _campaign and _campaign.has_method("is_movie_magic_available") \
+			and _campaign.is_movie_magic_available("extra_support"):
+		_extra_support_check = CheckBox.new()
+		_extra_support_check.text = "Movie Magic, Extra Support: the first request needs " \
+			+ "no roll. Once per campaign (p.181)."
+		_extra_support_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		support_card.add_child(_extra_support_check)
 
 	var rep_note := Label.new()
-	rep_note.text = "Spend 1 Reputation for +1 Support Point. Each option can only be requested once."
+	rep_note.text = "%s Each option can only be requested once, and each request is " \
+		% str(_support_data.get("support_points_rule", "")) \
+		+ "rolled before the next is chosen (p.187)."
 	rep_note.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	rep_note.add_theme_font_size_override("font_size", _scaled_font(13))
 	rep_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -530,19 +627,43 @@ func _roll_support_teams(priority: int) -> void:
 		var opt_ref: Dictionary = opt
 		var btn_ref: Button = request_btn
 		var desc_ref := desc_lbl
+		_support_buttons.append(request_btn)
 		request_btn.pressed.connect(func():
-			if _support_points_remaining <= 0:
+			if _support_points_remaining() <= 0:
 				desc_ref.text = "No Support Points remaining!"
 				desc_ref.add_theme_color_override("font_color", COLOR_WARNING)
 				return
-			_support_points_remaining -= 1
+			var free: bool = _support_requests_made == 0 and _extra_support_check != null \
+				and _extra_support_check.button_pressed
+			_support_requests_made += 1
 			var support_name: String = str(opt_ref.get("name", "?"))
-			var d1: int = _roll_d6("Bug Hunt Support die 1: %s" % support_name)
-			var d2: int = _roll_d6("Bug Hunt Support die 2: %s" % support_name)
+			var d1: int = 0
+			var d2: int = 0
+			if free:
+				_campaign.use_movie_magic("extra_support")
+			else:
+				d1 = _roll_d6("Bug Hunt Support die 1: %s" % support_name)
+				d2 = _roll_d6("Bug Hunt Support die 2: %s" % support_name)
+			if _extra_support_check:
+				_extra_support_check.disabled = true
 			var total: int = d1 + d2
 			var tgt: int = opt_ref.get("target_2d6", 99)
 			btn_ref.disabled = true
-			if total >= tgt:
+			btn_ref.set_meta("requested", true)
+			# The battle needs to know what arrived (MG-8). ⚠ The result used to live only
+			# in this label, so approved support never reached the battle.
+			(_mission_context["support"] as Array).append({
+				"id": str(opt_ref.get("id", "")), "name": support_name,
+				"contents": str(opt_ref.get("contents", "")),
+				"notes": str(opt_ref.get("notes", "")),
+				"roll": total, "target": tgt, "approved": free or total >= tgt,
+				"movie_magic": free})
+			_refresh_support_controls()
+			if free:
+				desc_ref.text = "%s — Movie Magic, no roll — APPROVED! %s" % [
+					support_name, opt_ref.get("contents", "")]
+				desc_ref.add_theme_color_override("font_color", COLOR_SUCCESS)
+			elif total >= tgt:
 				desc_ref.text = "%s — Rolled %d+%d=%d vs %d — APPROVED! %s" % [
 					opt_ref.get("name", "?"), d1, d2, total, tgt, opt_ref.get("contents", "")]
 				desc_ref.add_theme_color_override("font_color", COLOR_SUCCESS)
@@ -553,6 +674,175 @@ func _roll_support_teams(priority: int) -> void:
 		)
 		hbox.add_child(request_btn)
 		hbox.add_child(desc_lbl)
+	_refresh_support_controls()
+
+
+# ── Step 4 / Step 7 Reputation spending (Compendium p.187) ───────────────────────
+
+## "You may spend up to 2 points of Reputation, with each point raising or lowering
+## the Priority Rating by 1." Priority sets the Spawn Rating and the Support points,
+## so it is locked once a Support request has been rolled.
+func _build_priority_control(parent: VBoxContainer) -> void:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	parent.add_child(row)
+	_prio_down_btn = Button.new()
+	_prio_down_btn.text = "Priority -1 (1 Reputation)"
+	_prio_down_btn.custom_minimum_size.y = 44
+	_prio_down_btn.pressed.connect(_on_shift_priority.bind(-1))
+	row.add_child(_prio_down_btn)
+	_prio_up_btn = Button.new()
+	_prio_up_btn.text = "Priority +1 (1 Reputation)"
+	_prio_up_btn.custom_minimum_size.y = 44
+	_prio_up_btn.pressed.connect(_on_shift_priority.bind(1))
+	row.add_child(_prio_up_btn)
+
+
+func _on_shift_priority(delta: int) -> void:
+	var shifted: int = _rep_priority_shift + delta
+	if absi(shifted) > MAX_PRIORITY_REPUTATION or _support_requests_made > 0:
+		return
+	if absi(shifted) > absi(_rep_priority_shift) and _reputation_available() <= 0:
+		return
+	_rep_priority_shift = shifted
+	var priority: int = clampi(_base_priority + _rep_priority_shift, 1, 6)
+	_mission_context["priority"] = priority
+	_mission_context["spawn_rating"] = clampi(priority - 1, 0, 3)  # p.187 Step 5
+	_mission_context["priority_reputation_shift"] = _rep_priority_shift
+	if _priority_lbl:
+		_priority_lbl.text = str(priority) if _rep_priority_shift == 0 \
+			else "%d (%+d for %d Reputation)" % [priority, _rep_priority_shift,
+				absi(_rep_priority_shift)]
+	if _spawn_lbl:
+		_spawn_lbl.text = str(_mission_context["spawn_rating"])
+	_refresh_support_controls()
+
+
+func _on_buy_support_point() -> void:
+	if _reputation_available() <= 0:
+		return
+	_rep_for_support += 1
+	_refresh_support_controls()
+
+
+## Reputation not yet committed to a Priority shift or a Support point. Nothing is
+## SPENT until launch (_spend_committed_reputation), so backing out costs nothing.
+func _reputation_available() -> int:
+	var held: int = int(_campaign.reputation) if _campaign and "reputation" in _campaign else 0
+	return held - absi(_rep_priority_shift) - _rep_for_support
+
+
+## p.187: Support points = Priority, +2 on I'm too pretty to die (the difficulty row's
+## extra_support_points), +1 per Reputation spent, plus p.205's permanent "+1 Support
+## roll in future missions" (campaign.extra_support_rolls). ⚠ The difficulty bonus was
+## a literal and the last two were never added (MG-3, MG-4).
+func _support_points_total() -> int:
+	var rules: Dictionary = _mission_context.get("difficulty_rules", {})
+	var permanent: int = int(_campaign.extra_support_rolls) \
+		if _campaign and "extra_support_rolls" in _campaign else 0
+	return int(_mission_context.get("priority", 1)) + int(rules.get("extra_support_points", 0)) \
+		+ permanent + _rep_for_support
+
+
+func _support_points_remaining() -> int:
+	return _support_points_total() - _support_requests_made
+
+
+## One place decides what is pressable. ⚠ Every request button stayed enabled with no
+## points left (MG-11, "12 requests enabled vs 1 point" on the tablet).
+func _refresh_support_controls() -> void:
+	var remaining: int = _support_points_remaining()
+	for b in _support_buttons:
+		if is_instance_valid(b):
+			b.disabled = remaining <= 0 or bool(b.get_meta("requested", false))
+	var locked: bool = _support_requests_made > 0
+	if _prio_down_btn:
+		_prio_down_btn.disabled = locked or _rep_priority_shift <= -MAX_PRIORITY_REPUTATION \
+			or (_rep_priority_shift <= 0 and _reputation_available() <= 0)
+	if _prio_up_btn:
+		_prio_up_btn.disabled = locked or _rep_priority_shift >= MAX_PRIORITY_REPUTATION \
+			or (_rep_priority_shift >= 0 and _reputation_available() <= 0)
+	if _buy_support_btn:
+		_buy_support_btn.disabled = _reputation_available() <= 0
+	if _support_points_lbl:
+		_support_points_lbl.text = "Support Points: %d left of %d (Priority %d, difficulty " \
+			% [remaining, _support_points_total(), int(_mission_context.get("priority", 1))] \
+			+ "%+d, campaign %+d, Reputation %+d)" % [
+				int((_mission_context.get("difficulty_rules", {}) as Dictionary).get(
+					"extra_support_points", 0)),
+				int(_campaign.extra_support_rolls) if _campaign
+					and "extra_support_rolls" in _campaign else 0,
+				_rep_for_support]
+	_mission_context["support_reputation_spent"] = _rep_for_support
+
+
+## Spend what was committed, ONCE: a launch that fails can be retried, and a second
+## press must not charge again.
+func _spend_committed_reputation() -> void:
+	if bool(_mission_context.get("reputation_spent", false)):
+		return
+	var cost: int = absi(_rep_priority_shift) + _rep_for_support
+	if cost > 0 and _campaign and _campaign.has_method("spend_reputation"):
+		_campaign.spend_reputation(mini(cost, int(_campaign.reputation)))
+	_mission_context["reputation_spent"] = true
+
+
+## p.187: the loadout is "for the duration of the mission", so it goes on the battle's
+## COPY of each character (the caller passes duplicates), never on the campaign roster.
+func _apply_loadout(crew: Array) -> void:
+	var loadout: Dictionary = _mission_context.get("loadout", {})
+	for member in crew:
+		if member is not Dictionary:
+			continue
+		# Same key fallback as the stamp in _build_loadout_selection().
+		var pick: Dictionary = loadout.get(
+			str(member.get("id", member.get("character_id", ""))), {})
+		if pick.is_empty():
+			continue
+		var gear: Array = (member.get("equipment", []) as Array).duplicate()
+		if bool(pick.get("hand_cannon", false)) and gear.has("service_pistol"):
+			gear[gear.find("service_pistol")] = "hand_cannon"
+		if str(pick.get("weapon", "")) != "":
+			gear.append(str(pick.weapon))
+		member["equipment"] = gear
+		member["mission_weapon"] = str(pick.get("weapon", ""))
+
+
+## p.206 results that land on THIS mission are spent by launching it, exactly once.
+## "Miss the next mission" is spent for everyone who carried it, Sick Bay included:
+## a mission was flown and they were not on it.
+func _spend_military_life_flags() -> void:
+	if bool(_mission_context.get("military_life_spent", false)) or not _campaign \
+			or not _campaign.has_method("consume_military_life_flag_everywhere"):
+		return
+	_campaign.consume_military_life_flag_everywhere("miss_next_mission")
+	_campaign.consume_military_life_flag_everywhere("priority_modifier")
+	_mission_context["military_life_spent"] = true
+
+
+func _loadout_choices() -> Array:
+	var choices: Variant = _missions_data.get("loadout", {}).get("mission_weapon_choices", [])
+	return choices if choices is Array else []
+
+
+func _weapon_label(weapon_id: String) -> String:
+	var w: Dictionary = _weapons_by_id.get(weapon_id, {})
+	if w.is_empty():
+		return weapon_id
+	if str(w.get("category", "")) == "melee":
+		return "%s (Melee: %s)" % [str(w.get("name", weapon_id)), str(w.get("description", ""))]
+	var traits: Array = w.get("traits", [])
+	return "%s (%d\" | %d Shot%s | Dmg %d%s)" % [str(w.get("name", weapon_id)),
+		int(w.get("range", 0)), int(w.get("shots", 0)),
+		"" if int(w.get("shots", 0)) == 1 else "s", int(w.get("damage", 0)),
+		"" if traits.is_empty() else " | " + ", ".join(PackedStringArray(traits)).capitalize()]
+
+
+func _fire_team_contents() -> String:
+	for opt in _support_data.get("support_options", []):
+		if opt is Dictionary and str(opt.get("id", "")) == "fire_team":
+			return "(%s)" % str(opt.get("contents", ""))
+	return ""
 
 
 func _launch_mission() -> void:
@@ -568,6 +858,8 @@ func _launch_mission() -> void:
 		return
 
 	_mission_context["participant_ids"] = _participant_ids.duplicate()
+	_spend_committed_reputation()
+	_spend_military_life_flags()
 	_persist_stamped_mission()
 
 	var battle_setup = BugHuntBattleSetupClass.new()
@@ -586,11 +878,17 @@ func _launch_mission() -> void:
 	var crew: Array = []
 	if _campaign:
 		if _campaign.has_method("get_active_main_characters"):
-			crew = _campaign.get_active_main_characters().duplicate(true)
+			# Filtered by the STAMP as well: the p.206 flags were spent above, so a
+			# re-derived roster would field a marine the loadout step held back.
+			for mc in _campaign.get_active_main_characters():
+				if mc is Dictionary \
+						and str(mc.get("id", mc.get("character_id", ""))) in _participant_ids:
+					crew.append(mc.duplicate(true))
 		elif "main_characters" in _campaign:
 			crew = _campaign.main_characters.duplicate(true)
 		if "grunts" in _campaign and _campaign.grunts is Array:
 			crew.append_array(_campaign.grunts.duplicate(true))
+	_apply_loadout(crew)
 	var wrapped := {
 		"crew": crew,
 		"enemies": [],
@@ -638,7 +936,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	return vbox
 
 
-func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> void:
+func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> Label:
 	var hbox := HBoxContainer.new()
 	parent.add_child(hbox)
 
@@ -653,6 +951,7 @@ func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> 
 	val.add_theme_color_override("font_color", COLOR_TEXT)
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hbox.add_child(val)
+	return val
 
 
 ## ── Dice routing ────────────────────────────────────────────────────────────

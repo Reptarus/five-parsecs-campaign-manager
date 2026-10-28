@@ -2450,6 +2450,31 @@ data reads; it is 5PFH, Alpha-1, and outside this sprint's file list.
 
 ---
 
+## ✅ 2026-10-27 — review-build plan, Sprint 3 (setup → battle → post-battle delivery)
+
+Row ids are the review plan's (Sprint 3 of the feature-complete review-build plan, which lives in
+the owner's plans directory, not this repo), not this ledger's. Each fix is test-pinned and detection-proven by isolated revert.
+
+| Row | Outcome |
+|---|---|
+| MG-1, MG-2 | p.187 Reputation moves Priority ±2 (clamp 1-6) and buys +1 Support; the spend is committed at launch, once |
+| MG-3, MG-4, MG-11 | Support points = Priority + `extra_support_points` (p.186) + `extra_support_rolls` (p.205) + Reputation; request buttons disable at zero points |
+| MG-5, MG-7 | The duplicate `encounter_modifier` / `extra_contacts` keys were removed in Sprint 1 (pp.186/190/194); the live keys are read |
+| MG-8, MG-9 | Support results and the p.187 loadout are stamped on the mission, survive `BugHuntBattleSetup`'s fixed return literal, and print on the battle card |
+| MG-10 | Signals are rolled once per mission (pp.190/208) |
+| MG-12 | **CONFIRMED-OK**, see the section below |
+| MG-13 | **FIXED, not confirmed.** The plan proposed keeping `(turn-1) % 8` as book-ambiguous. Reading p.187 decided it: the option exists so a campaign *"slowly escalates"*, and the wrap dropped mission 9 back to Priority 1. The last rating now holds. The same clamp keeps turn 0 off index `-1`, which GDScript reads as the LAST element (Priority 6) |
+| PB-1 | p.203: an injured trooper may retire. p.213 makes retirement a muster-out, so it writes the transfer file and is replaced |
+| PB-2 | All five Military Life flags now have readers (the census found a fifth, `priority_modifier`) |
+| PB-4 | Movie Magic (p.181): Extra Support, Survived and Escape are mechanised; the other seven are listed with a Use button on the battle card |
+| PB-5 | A Court Martial removal is replaced (p.203) |
+| BP-12 | The Compendium view shows a Bug Hunt enemy in the p.194 columns, including Damage and its special rule |
+| CR-1, CR-2, CR-5 | 3-5 main characters (p.170); creation Reputation lands on the NEW campaign; the review panel calls the core's validator |
+| BR-10, DU-7 | The 5PFH XP section is hidden in Bug Hunt; the consumer census reads code, not comments |
+| DU-11 | **False lead.** The 0.95 backdrop is the overlay convention (`PlanetfallCharacterImportPanel`, `PlanetfallDashboard`, `TacticsVeteranImportPanel`); pinned, not changed |
+| DU-12 | `CharacterTransferPanel` opens its touch chain after every builder. ⚠ The Planetfall and Tactics import panels have the same gap and belong to Sprint 4's touch pass |
+| DU-13 | p.212's Story Point rescue is a button. It spends from the SOURCE crew's save first, and is not offered where Story Points are off (Core Rules p.65) |
+
 ## ✅ CONFIRMED-OK — correct code, recorded so nobody "fixes" it
 
 This section is as load-bearing as the defects. §C4 failed by recording "verified" without checking
@@ -2466,6 +2491,11 @@ delivery; these rows were checked **both** ways.
 - **Weapons 60/60 fields**; enemy table 16/16 rows; variants 6/6; pack leaders 6/6; Movie Magic 10/10.
 - Priority `mini(d1,d2)` with +1 Vital / +2 Critical and clamp 1-6; Spawn Rating
   `clampi(priority-1, 0, 3)`; initial contacts `objectives + 1` with the difficulty modifier — all correct.
+- **The Vital/Critical bump applies on top of a Campaign escalation rating** (MG-12, CONFIRMED
+  2026-10-27 against the PDF). p.187 says escalation is used *"instead of rolling"*, which replaces
+  the 2D6 roll and nothing else; *"If a Vital Objective is on the table, increase Priority by +1"* is
+  its own paragraph, and the 1-6 clamp still binds. Pinned by
+  `test_bug_hunt_mission_setup.gd::test_a_vital_objective_still_raises_an_escalation_rating`.
 - D100 last-row ranges encode **100**, not 0 — no off-by-one anywhere in the tables.
 - **Stars of the Story and Story Points are correctly EXCLUDED** per Compendium p.214 — documented
   at `src/core/character/CharacterTransferService.gd:29`. Do not "fix" this.

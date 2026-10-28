@@ -57,6 +57,11 @@ func complete() -> void:
 	if _completed:
 		return
 	_completed = true
+	# p.206 "Received a reprimand" and "Detached on special duties" are for the NEXT
+	# campaign turn's Special Assignments, which is this step, rolled or not.
+	if _campaign and _campaign.has_method("consume_military_life_flag_everywhere"):
+		_campaign.consume_military_life_flag_everywhere("special_assignment_blocked")
+		_campaign.consume_military_life_flag_everywhere("extra_special_assignment_rolls")
 	# Gather results and emit
 	var results := {"completed_assignments": _assignment_slots.duplicate(true)}
 	phase_completed.emit(results)
@@ -144,6 +149,13 @@ func _populate_characters() -> void:
 			sick_card.add_child(sick_lbl)
 			continue
 
+		# p.206 "Received a reprimand": no Special Assignment this campaign turn.
+		if _military_life(char_id, "special_assignment_blocked") > 0:
+			var rep_card := _create_card(char_name + " (Reprimanded)", _characters_container)
+			rep_card.add_child(_note("Received a reprimand: no Special Assignment this "
+				+ "campaign turn (Military Life, Compendium p.206).", COLOR_WARNING))
+			continue
+
 		var card := _create_card(char_name, _characters_container)
 
 		# Show current stats for reference
@@ -156,61 +168,75 @@ func _populate_characters() -> void:
 		stats_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 		card.add_child(stats_lbl)
 
-		# Assignment dropdown — filter by eligibility (Compendium p.183)
 		var char_completed: Array = completed.get(char_id, [])
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 12)
-		card.add_child(hbox)
+		var bonus: int = _military_life(char_id, "special_assignment_bonus")
+		if bonus > 0:
+			card.add_child(_note("+%d to this character's next Special Assignment roll " % bonus
+				+ "(Military Life, Compendium p.206).", COLOR_SUCCESS))
+		_add_assignment_slot(card, mc, char_id, char_name, char_completed, "Assignment:")
+		# p.206 "Detached on special duties": "a bonus roll on the Special Assignments
+		# table". ⚠ The flag was written and read by nothing (PB-2).
+		for _i in _military_life(char_id, "extra_special_assignment_rolls"):
+			_add_assignment_slot(card, mc, char_id, char_name, char_completed,
+				"Bonus roll (p.206):")
 
-		var assign_lbl := Label.new()
-		assign_lbl.text = "Assignment:"
-		assign_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-		hbox.add_child(assign_lbl)
 
-		var option := OptionButton.new()
-		option.add_item("None (Skip)", 0)
-		# Track which JSON index maps to which dropdown item
-		var _eligible_indices: Array = []
-		for i in range(_assignments_data.size()):
-			var assignment: Dictionary = _assignments_data[i]
-			var a_id: String = assignment.get("id", "")
-			var target: int = assignment.get("target_2d6", 99)
+func _add_assignment_slot(card: VBoxContainer, mc: Dictionary, char_id: String,
+		char_name: String, char_completed: Array, caption: String) -> void:
+	# Assignment dropdown — filter by eligibility (Compendium p.183)
+	var hbox := HBoxContainer.new()
+	hbox.add_theme_constant_override("separation", 12)
+	card.add_child(hbox)
 
-			# Check: already completed this assignment (once per career)
-			if a_id in char_completed:
-				continue
+	var assign_lbl := Label.new()
+	assign_lbl.text = caption
+	assign_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	hbox.add_child(assign_lbl)
 
-			# Check requirements
-			if not _meets_requirements(mc, assignment):
-				continue
+	var option := OptionButton.new()
+	option.add_item("None (Skip)", 0)
+	# Track which JSON index maps to which dropdown item
+	var _eligible_indices: Array = []
+	for i in range(_assignments_data.size()):
+		var assignment: Dictionary = _assignments_data[i]
+		var a_id: String = assignment.get("id", "")
+		var target: int = assignment.get("target_2d6", 99)
 
-			_eligible_indices.append(i)
-			var suffix := ""
-			# Show stat cap info if applicable
-			if assignment.has("stat_cap"):
-				var cap: Dictionary = assignment.stat_cap
-				var current_val: int = mc.get(cap.get("stat", ""), 0)
-				if current_val > cap.get("max_before_bonus", 99):
-					suffix = " [at cap]"
-			option.add_item("%s (2D6 >= %d)%s" % [assignment.get("name", "?"), target, suffix], i + 1)
-		option.custom_minimum_size.x = 320
-		hbox.add_child(option)
+		# Check: already completed this assignment (once per career)
+		if a_id in char_completed:
+			continue
 
-		if _eligible_indices.is_empty():
-			var done_lbl := Label.new()
-			done_lbl.text = "All eligible assignments completed!"
-			done_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-			card.add_child(done_lbl)
+		# Check requirements
+		if not _meets_requirements(mc, assignment):
+			continue
 
-		# Store reference for later
-		_assignment_slots.append({
-			"character_id": char_id,
-			"character_name": char_name,
-			"character_data": mc,
-			"option_button": option,
-			"assignment_id": "",
-			"result": ""
-		})
+		_eligible_indices.append(i)
+		var suffix := ""
+		# Show stat cap info if applicable
+		if assignment.has("stat_cap"):
+			var cap: Dictionary = assignment.stat_cap
+			var current_val: int = mc.get(cap.get("stat", ""), 0)
+			if current_val > cap.get("max_before_bonus", 99):
+				suffix = " [at cap]"
+		option.add_item("%s (2D6 >= %d)%s" % [assignment.get("name", "?"), target, suffix], i + 1)
+	option.custom_minimum_size.x = 320
+	hbox.add_child(option)
+
+	if _eligible_indices.is_empty():
+		var done_lbl := Label.new()
+		done_lbl.text = "All eligible assignments completed!"
+		done_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		card.add_child(done_lbl)
+
+	# Store reference for later
+	_assignment_slots.append({
+		"character_id": char_id,
+		"character_name": char_name,
+		"character_data": mc,
+		"option_button": option,
+		"assignment_id": "",
+		"result": ""
+	})
 
 
 func _meets_requirements(char_data: Dictionary, assignment: Dictionary) -> bool:
@@ -254,6 +280,7 @@ func _on_roll_all() -> void:
 		child.queue_free()
 
 	var total_rep_gain: int = 0
+	var bonus_spent: Array = []
 
 	for slot in _assignment_slots:
 		var option: OptionButton = slot.get("option_button")
@@ -273,6 +300,15 @@ func _on_roll_all() -> void:
 
 		var assignment: Dictionary = _assignments_data[assignment_data_idx]
 		var target: int = assignment.get("target_2d6", 99)
+		var char_id: String = slot.character_id
+		# A bonus roll may not repeat an assignment the first roll just completed
+		# (p.183: each assignment is completed once per career).
+		var done_now: Array = _campaign.completed_assignments.get(char_id, []) \
+			if _campaign and "completed_assignments" in _campaign else []
+		if str(assignment.get("id", "")) in done_now:
+			slot.assignment_id = ""
+			slot.result = "skipped"
+			continue
 
 		# Roll 2D6. The dice stay separate because the result card below prints
 		# them back to the player individually, so roll_2d6() (which returns only
@@ -280,13 +316,20 @@ func _on_roll_all() -> void:
 		var assign_name: String = str(assignment.get("name", "?"))
 		var die1: int = _roll_d6("Bug Hunt Special Assignment die 1: %s" % assign_name)
 		var die2: int = _roll_d6("Bug Hunt Special Assignment die 2: %s" % assign_name)
-		var total: int = die1 + die2
+		# p.206: the recommendation / favor bonus is for the character's NEXT roll, so
+		# the first roll they actually make takes all of it and spends it.
+		var bonus: int = 0
+		if char_id not in bonus_spent:
+			bonus = _military_life(char_id, "special_assignment_bonus")
+			if bonus > 0:
+				bonus_spent.append(char_id)
+				_campaign.consume_military_life_flag(char_id, "special_assignment_bonus")
+		var total: int = die1 + die2 + bonus
 		var success: bool = total >= target
 
 		slot.assignment_id = assignment.get("id", "")
 		slot.result = "success" if success else "failure"
 
-		var char_id: String = slot.character_id
 		var char_data: Dictionary = slot.get("character_data", {})
 
 		# Display result
@@ -294,7 +337,9 @@ func _on_roll_all() -> void:
 
 		var roll_lbl := Label.new()
 		roll_lbl.text = "%s — Rolled %d+%d=%d vs %d" % [
-			assignment.get("name", "?"), die1, die2, total, target]
+			assignment.get("name", "?"), die1, die2, total, target] if bonus == 0 \
+			else "%s — Rolled %d+%d, +%d Military Life = %d vs %d" % [
+				assignment.get("name", "?"), die1, die2, bonus, total, target]
 		roll_lbl.add_theme_color_override("font_color", COLOR_SUCCESS if success else COLOR_WARNING)
 		result_card.add_child(roll_lbl)
 
@@ -382,6 +427,21 @@ func _apply_single_stat(char_data: Dictionary, cap: Dictionary, awards: Array) -
 		awards.append("%s %d→%d" % [stat_name.capitalize().replace("_", " "), current, current + bonus])
 	else:
 		awards.append("%s already at cap (%d)" % [stat_name.capitalize().replace("_", " "), current])
+
+
+func _military_life(char_id: String, flag: String) -> int:
+	if _campaign and _campaign.has_method("military_life_flag"):
+		return int(_campaign.military_life_flag(char_id, flag))
+	return 0
+
+
+func _note(text: String, color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", color)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+	return lbl
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:

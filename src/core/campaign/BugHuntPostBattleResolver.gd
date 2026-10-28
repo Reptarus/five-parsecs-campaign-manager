@@ -25,6 +25,7 @@ const CITE_XP := "Compendium p.204"
 const CITE_OP_PROGRESS := "Compendium p.205"
 const CITE_MILITARY_LIFE := "Compendium p.206"
 const CITE_RR := "Compendium p.206"
+const CITE_MOVIE_MAGIC := "Compendium p.181"
 
 ## The XP `condition` strings are DATA KEYS, not prose we author. They select
 ## which row of `experience.awards` supplies the value, so every XP number stays
@@ -106,6 +107,8 @@ func resolve(snapshot: Dictionary) -> Dictionary:
 		"objectives": objectives,
 		"priority": priority,
 		"reputation": int(snapshot.get("reputation", 0)),
+		# p.181 cards still in hand. Survived and Escape act on step 1's rolls.
+		"movie_magic": _as_string_array(snapshot.get("movie_magic_available", [])),
 		"op_modifier": int(snapshot.get("operational_progress_modifier", 0)),
 		"missions_in_operation": int(snapshot.get("missions_in_current_operation", 0)),
 		# Filled by step 1 and read by steps 2-5.
@@ -114,6 +117,7 @@ func resolve(snapshot: Dictionary) -> Dictionary:
 		# second, differently-shaped R&R effect.
 		"rr_triggered": false,
 		"killed": [],
+		"mustered": [],
 		"sick_bay_after": {},
 		"tallied": {},
 	}
@@ -123,6 +127,7 @@ func resolve(snapshot: Dictionary) -> Dictionary:
 	steps.append(_step_casualties(ctx))
 	steps.append(_step_tally(ctx))
 	steps.append(_step_muster_out(ctx))
+	steps.append(_step_retire_injured(ctx))
 	steps.append(_step_reputation(ctx))
 	steps.append(_step_experience(ctx))
 	steps.append(_step_operational_progress(ctx))
@@ -203,6 +208,15 @@ func _step_court_martial(ctx: Dictionary) -> Dictionary:
 		"op": "remove_character", "target": leader_id, "cite": CITE_COURT_MARTIAL,
 		"cancel_choice": "court_martial_buyout",
 	})
+	# p.202: a main character who "leaves the campaign because of injuries or any other
+	# reason" is replaced by "a new character ... rolled up", and p.203 replaces "dead,
+	# removed, and retired troopers". ⚠ This removal used to be the one exit that
+	# emitted no replacement, so a Court Martial shrank the squad for good. It shares
+	# the buyout's cancel_choice: saving the leader cancels both effects.
+	step.effects.append({
+		"op": "replace_character", "target": leader_id, "cite": CITE_MUSTER,
+		"cancel_choice": "court_martial_buyout",
+	})
 	if cost > 0 and int(ctx.reputation) >= cost:
 		step.choices.append({
 			"id": "court_martial_buyout", "kind": "court_martial_buyout",
@@ -242,6 +256,7 @@ func _step_casualties(ctx: Dictionary) -> Dictionary:
 		if row.is_empty():
 			step.lines.append("%s (%s, rolled %d) — no table row matched." % [_char_name(member), label, roll])
 			continue
+		var first_effect: int = step.effects.size()
 
 		step.lines.append("%s (%s, rolled %d): %s — %s" % [
 			_char_name(member), label, roll, row.get("name", ""), row.get("effect", "")])
@@ -253,6 +268,7 @@ func _step_casualties(ctx: Dictionary) -> Dictionary:
 			# p.203: "If a main character leaves for any reason, a new character
 			# is rolled up as a replacement."
 			step.effects.append({"op": "replace_character", "target": cid, "cite": CITE_MUSTER})
+			_offer_movie_magic(ctx, step, cid, member, is_lost, first_effect)
 			continue
 
 		var bonus_xp: int = int(row.get("bonus_xp", 0))
@@ -276,7 +292,41 @@ func _step_casualties(ctx: Dictionary) -> Dictionary:
 					"prompt": "Spend 1 Reputation to cut %s's Sick Bay time to %d turn(s)?" % [
 						_char_name(member), maxi(turns - 1, 0)],
 				})
+		_offer_movie_magic(ctx, step, cid, member, is_lost, first_effect)
 	return step
+
+
+## p.181 "Survived": "A character of your choice may ignore the effects of an injury
+## roll." p.181 "Escape": "Any characters that moved across a battlefield edge do not
+## have to roll on the Lost Marine table." Both act on THIS step's rolls, so they are
+## choices that CANCEL the roll's effects, the shape the Court Martial buyout already
+## uses, and the card is spent only when the player takes it.
+func _offer_movie_magic(ctx: Dictionary, step: Dictionary, cid: String, member: Dictionary,
+		is_lost: bool, first_effect: int) -> void:
+	var keys: Array = []
+	if "survived" in ctx.movie_magic:
+		keys.append("movie_magic_survived:%s" % cid)
+	if is_lost and "escape" in ctx.movie_magic:
+		keys.append("movie_magic_escape")
+	if keys.is_empty() or step.effects.size() == first_effect:
+		return
+	for i in range(first_effect, step.effects.size()):
+		step.effects[i]["cancel_choice"] = keys.duplicate()
+	if "survived" in ctx.movie_magic:
+		step.choices.append({
+			"id": "movie_magic_survived:%s" % cid, "kind": "movie_magic_survived",
+			"target": cid, "target_name": _char_name(member), "cite": CITE_MOVIE_MAGIC,
+			"prompt": "Movie Magic, Survived: %s ignores the effects of this roll. " \
+				% _char_name(member) + "Once per campaign (p.181).",
+		})
+	var offered: bool = step.choices.any(func(c: Variant) -> bool:
+		return c is Dictionary and str(c.get("id", "")) == "movie_magic_escape")
+	if is_lost and "escape" in ctx.movie_magic and not offered:
+		step.choices.append({
+			"id": "movie_magic_escape", "kind": "movie_magic_escape", "cite": CITE_MOVIE_MAGIC,
+			"prompt": "Movie Magic, Escape: every marine who crossed a battlefield edge " \
+				+ "skips the Lost Marine table. Once per campaign (p.181).",
+		})
 
 
 ## The Sick Bay column is `null` (dead), a String formula ("1D3", "1D3+1") or an
@@ -348,6 +398,7 @@ func _step_muster_out(ctx: Dictionary) -> Dictionary:
 		if bool(row.get("automatic", false)):
 			step.lines.append("%s has %d completed missions and leaves automatically." % [
 				_char_name(member), count])
+			ctx.mustered.append(cid)
 			step.effects.append({"op": "muster_out", "target": cid, "amount": count,
 				"cite": CITE_MUSTER, "reason": "automatic"})
 			step.effects.append({"op": "replace_character", "target": cid, "cite": CITE_MUSTER})
@@ -365,12 +416,55 @@ func _step_muster_out(ctx: Dictionary) -> Dictionary:
 		if roll >= int(target):
 			step.lines.append("%s rolled %d against %d at %d missions — they muster out." % [
 				_char_name(member), roll, int(target), count])
+			ctx.mustered.append(cid)
 			step.effects.append({"op": "muster_out", "target": cid, "amount": count,
 				"cite": CITE_MUSTER, "reason": "rolled %d vs %d" % [roll, int(target)]})
 			step.effects.append({"op": "replace_character", "target": cid, "cite": CITE_MUSTER})
 		else:
 			step.lines.append("%s rolled %d against %d at %d missions — they stay." % [
 				_char_name(member), roll, int(target), count])
+	return step
+
+
+## p.203 "Oh man... and I was getting short!": "You may opt to retire an injured
+## trooper if you like. If so, they are removed from your roster. Dead, removed, and
+## retired troopers are replaced at this stage." p.213 lets a trooper who RETIRES
+## carry over into Five Parsecs From Home exactly as one who musters out does, so a
+## retirement is the muster-out op plus the replacement. ⚠ The book's option had no
+## implementation at all before 2026-10-27 (PB-1).
+##
+## Offered for everyone in Sick Bay once this battle is resolved, whether they were
+## hurt in it or were already there, and never for a trooper already leaving.
+func _step_retire_injured(ctx: Dictionary) -> Dictionary:
+	# Index 0 renders as an unnumbered heading: the book prints this as a sidebar inside
+	# step 3, so a second "Step 3" heading would misnumber the page.
+	var step := _new_step(0, "Retire an Injured Trooper (optional)", CITE_MUSTER)
+	var injured: Dictionary = {}
+	for cid in ctx.sick_bay:
+		if int(ctx.sick_bay[cid]) > 0:
+			injured[str(cid)] = int(ctx.sick_bay[cid])
+	for cid in ctx.sick_bay_after:
+		injured[str(cid)] = int(ctx.sick_bay_after[cid])
+	for cid in injured:
+		if cid in ctx.killed or cid in ctx.mustered:
+			continue
+		var member: Dictionary = ctx.by_id.get(cid, {})
+		if member.is_empty():
+			continue
+		var name: String = _char_name(member)
+		step.lines.append("%s is in Sick Bay for %d turn(s)." % [name, injured[cid]])
+		step.choices.append({
+			"id": "retire_injured:%s" % cid, "kind": "retire_injured",
+			"target": cid, "target_name": name,
+			"completed_missions": int(ctx.tallied.get(cid,
+				member.get("completed_missions_count", 0))),
+			"cite": CITE_MUSTER,
+			"prompt": "Retire %s rather than go into the next battle short-handed? " % name
+				+ "A replacement is rolled up, and %s can carry over into Five Parsecs " % name
+				+ "From Home (p.213).",
+		})
+	if step.choices.is_empty():
+		step.skipped = true
 	return step
 
 
@@ -824,6 +918,7 @@ func _clear_owed_step(count: int) -> Dictionary:
 static func apply_choices(receipt: Dictionary, answers: Dictionary) -> Dictionary:
 	var effects: Array = []
 	var cancelled: Array = []
+	var survived_spent: bool = false  # one card, so one character (p.181)
 	var by_id: Dictionary = {}
 	for c in receipt.get("choices_needed", []):
 		if c is Dictionary:
@@ -866,6 +961,21 @@ static func apply_choices(receipt: Dictionary, answers: Dictionary) -> Dictionar
 								"stat": str(stat), "amount": 1,
 								"max_value": int(opt.get("max_value", 0)), "cite": cite})
 							break
+			"movie_magic_survived":
+				if bool(answer) and not survived_spent:
+					survived_spent = true
+					cancelled.append(key)
+					effects.append({"op": "use_movie_magic", "ability": "survived", "cite": cite})
+			"movie_magic_escape":
+				if bool(answer):
+					cancelled.append(key)
+					effects.append({"op": "use_movie_magic", "ability": "escape", "cite": cite})
+			"retire_injured":
+				if bool(answer):
+					effects.append({"op": "muster_out", "target": target,
+						"amount": int(choice.get("completed_missions", 0)),
+						"cite": cite, "reason": "retired while injured"})
+					effects.append({"op": "replace_character", "target": target, "cite": cite})
 			"military_life_priority":
 				effects.append({"op": "military_life_flag", "target": target,
 					"flag": "priority_modifier", "amount": int(answer), "cite": cite})

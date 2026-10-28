@@ -25,8 +25,16 @@
 ##     including several that name a key precisely to record that nothing reads it.
 ##     `lint_orphan_assets.py` learned this the expensive way (2026-09-04): it built its
 ##     reachability graph from raw source and counted a file's own obituary as a
-##     reference, so eleven genuine orphans read as reachable. Strip LEADING-`#` lines
-##     only -- a trailing-comment strip would eat `"#ff9a52"` colour literals.
+##     reference, so eleven genuine orphans read as reachable. Comments are stripped
+##     with a regex that matches STRING LITERALS FIRST, so a trailing comment goes and
+##     a `"#ff9a52"` colour literal survives (the shape lint_orphan_assets.py uses).
+##     ⚠ Until 2026-10-27 only LEADING-`#` lines were dropped, so a trailing comment
+##     naming a key counted as its reader (DU-7).
+##
+## (a2) ONLY A READ COUNTS. A hit is `.get("k"`, `.has("k"`, `["k"]` that is not being
+##     assigned to, or `"k" in`. ⚠ Until 2026-10-27 any `"k"` counted, so a dict-literal
+##     WRITE (`{"k": v}`) or an assignment (`d["k"] = v`) scored a key as consumed: a
+##     producer counted as its own consumer, the exact defect this census exists for.
 ##
 ## (b) A HIT IS BUCKETED BY PATH, WITH A NAMED OVERRIDE. Several of these key names --
 ##     `priority`, `objectives`, `deployment`, `evac`, `weapons` -- are generic enough
@@ -68,6 +76,9 @@ const RESOLVER_PATH := "res://src/core/campaign/BugHuntPostBattleResolver.gd"
 const NORMALIZER_PATH := "res://src/core/battle/BugHuntBattleResultNormalizer.gd"
 
 ## Keys whose reader is deliberately NOT a bug-hunt-named file. One entry, measured.
+## CompendiumDataProvider registers the key as `"json_key": "<key>"` and resolves it
+## with `cat.get("json_key", "")` (:250), so for a named reader that registration form
+## counts as the read. It is accepted HERE only, never in the general census.
 const NAMED_READERS := {
 	"bug_hunt_enemies.json::enemy_table":
 		"res://src/core/compendium/CompendiumDataProvider.gd",
@@ -82,18 +93,9 @@ const ALLOWLIST := {
 	"bug_hunt_character_creation.json::combat_operation_commendation":
 		"DUPLICATED. _check_commendation() (BugHuntCharacterGeneration.gd:311) hardcodes" +
 		" 2D6, trigger 6, +1 XP and +1 Reputation -- every value this key declares.",
-	"bug_hunt_missions.json::loadout":
-		"DUPLICATED. BugHuntMissionPanel.gd:364-366 lists the three weapon choices and" +
-		" :370-373 the Hand Cannon swap, as literals carrying their stats too.",
-	"bug_hunt_support_teams.json::support_points_rule":
-		"DUPLICATED (and see finding P6-F). BugHuntMissionPanel.gd:488-492 computes" +
-		" priority + 2 for 'I'm Too Pretty to Die'. The rule's THIRD clause, spending 1" +
-		" Reputation for +1 Support Point, is printed as a label at :502 and is not" +
-		" actionable -- 'reputation' appears zero times in that file.",
-	"bug_hunt_support_teams.json::free_fire_team":
-		"DUPLICATED. BugHuntMissionPanel.gd:483 labels 'FREE: Fire Team -- 4 Grunts with" +
-		" Combat Rifles', duplicating the fire_team row of support_options, which IS read" +
-		" and carries team_size 4 and weapons [combat_rifle].",
+	# (2026-10-27) `loadout`, `support_points_rule` and `free_fire_team` left this list:
+	# BugHuntMissionPanel now builds the weapon choices from `loadout`, prints the book's
+	# support rule from data, and labels the free Fire Team from both support keys.
 	"bug_hunt_special_assignments.json::eligibility":
 		"DUPLICATED. SpecialAssignmentsPanel.gd:129/:139 reads sick_bay directly and" +
 		" :173-187 filters per assignment, so the gate this key describes is enforced.",
@@ -132,14 +134,36 @@ const ALLOWLIST := {
 
 # ---------------------------------------------------------------- shared helpers
 
+var _comment_re: RegEx = null
+
+
 func _code_only(text: String) -> String:
-	## Drop LEADING-`#` lines. String literals survive on purpose (see note (a)).
-	var out: PackedStringArray = []
-	for line in text.split("\n"):
-		if line.strip_edges().begins_with("#"):
-			continue
-		out.append(line)
-	return "\n".join(out)
+	## Drop every `#` comment, leading or trailing, and keep string literals (note (a)).
+	## Strings are matched FIRST, so a `#` inside one never starts a comment.
+	if _comment_re == null:
+		_comment_re = RegEx.create_from_string(
+			"\"(?:[^\"\\\\]|\\\\.)*\"|'(?:[^'\\\\]|\\\\.)*'|#[^\\n]*")
+	var out := ""
+	var last := 0
+	for m: RegExMatch in _comment_re.search_all(text):
+		out += text.substr(last, m.get_start() - last)
+		if not m.get_string().begins_with("#"):
+			out += m.get_string()
+		last = m.get_end()
+	return out + text.substr(last)
+
+
+## A named reader may read through CompendiumDataProvider's `json_key` registration.
+func _named_reader_reads(code: String, key: String) -> bool:
+	return _reads_key(code, key) or code.contains("\"json_key\": \"%s\"" % key)
+
+
+## Note (a2): only a READ of the key counts. Keys are JSON identifiers, so no escaping.
+func _reads_key(code: String, key: String) -> bool:
+	var re := RegEx.create_from_string(
+		("(?:\\.(?:get|has|get_or_add)\\(\\s*|\\[\\s*)\"%s\"(?!\\s*\\]\\s*=[^=])"
+			+ "|\"%s\"\\s+(?:not\\s+)?in\\b") % [key, key])
+	return re.search(code) != null
 
 
 func _gd_files(root: String, into: PackedStringArray) -> void:
@@ -234,10 +258,23 @@ func test_the_source_index_and_the_data_directory_are_both_populated() -> void:
 
 	# Comment stripping must remove comments and KEEP strings, or note (a) is not true
 	# of the code that implements it. Proven on a line that is both.
-	var probe := "# \"decoy_key\" named only in a comment\nvar x := \"kept_key\"\n"
+	var probe := "# \"decoy_key\" named only in a comment\nvar x := \"kept_key\"\n" \
+		+ "var y := 1  # \"trailing_key\" in a trailing comment\nvar c := \"#ff9a52\"\n"
 	var stripped := _code_only(probe)
 	assert_str(stripped).not_contains("decoy_key")
 	assert_str(stripped).contains("kept_key")
+	assert_str(stripped).not_contains("trailing_key")
+	assert_str(stripped).contains("\"#ff9a52\"")
+
+	# Note (a2): reads count, writes do not.
+	assert_bool(_reads_key("x = d.get(\"k\", 0)", "k")).is_true()
+	assert_bool(_reads_key("if d.has(\"k\"):", "k")).is_true()
+	assert_bool(_reads_key("x = d[\"k\"]", "k")).is_true()
+	assert_bool(_reads_key("if d[\"k\"] == 1:", "k")).is_true()
+	assert_bool(_reads_key("if \"k\" in d:", "k")).is_true()
+	assert_bool(_reads_key("return {\"k\": 1}", "k")).is_false()
+	assert_bool(_reads_key("d[\"k\"] = 1", "k")).is_false()
+	assert_bool(_reads_key("x = d.get(\"kk\", 0)", "k")).is_false()
 
 
 func _bug_hunt_data_files() -> PackedStringArray:
@@ -313,10 +350,9 @@ func _section_keys(file_name: String) -> PackedStringArray:
 
 
 func _reader_paths(key: String, index: Dictionary) -> PackedStringArray:
-	var needle := "\"%s\"" % key
 	var hits: PackedStringArray = []
 	for path: String in index.keys():
-		if not str(index[path]).contains(needle):
+		if not _reads_key(str(index[path]), key):
 			continue
 		if path.to_lower().contains("bug_hunt") or path.to_lower().contains("bughunt"):
 			hits.append(path)
@@ -334,7 +370,7 @@ func test_every_bug_hunt_data_section_key_has_a_reader_or_a_stated_reason() -> v
 				continue
 			var override: String = str(NAMED_READERS.get(row, ""))
 			if not override.is_empty() \
-					and str(index.get(override, "")).contains("\"%s\"" % key):
+					and _named_reader_reads(str(index.get(override, "")), key):
 				continue
 			if ALLOWLIST.has(row):
 				continue
@@ -398,11 +434,11 @@ func test_the_named_reader_override_is_not_load_bearing_by_accident() -> void:
 		assert_bool(index.has(reader)) \
 			.override_failure_message("Named reader %s does not exist." % reader) \
 			.is_true()
-		assert_str(str(index[reader])) \
+		assert_bool(_named_reader_reads(str(index[reader]), key)) \
 			.override_failure_message(
 				"Named reader %s no longer reads \"%s\" -- the override is stale."
 				% [reader, key]) \
-			.contains("\"%s\"" % key)
+			.is_true()
 
 		# And the override must still be NEEDED: if a bug-hunt file has started reading
 		# the key, the plain bucket covers it and this entry should go.

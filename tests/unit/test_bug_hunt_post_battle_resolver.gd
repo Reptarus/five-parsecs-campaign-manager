@@ -58,10 +58,17 @@ const PANEL_BANNED_CALLS: Array[String] = [
 	"add_to_sick_bay", "tick_sick_bay", "apply_assignments", "advance_turn",
 ]
 
+const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
+## The phase manager's persist() goes through GameState.save_campaign(), which also
+## rewrites last_campaign: unguarded, the next process auto-loads this Bug Hunt core
+## and a 5PFH suite reads its String difficulty (measured 2026-10-27, Sprint 3 gate).
+
 var _dm: Node = null
+var _user_state: Dictionary
 
 
 func before_test() -> void:
+	_user_state = SaveDirGuard.snapshot()
 	_dm = get_tree().root.get_node_or_null("/root/DiceManager")
 	# INSTRUMENT THE PREMISE. Without the autoload every queue_forced_result() below is
 	# a no-op and every behavioural case passes on whatever the RNG happened to give --
@@ -75,6 +82,7 @@ func before_test() -> void:
 func after_test() -> void:
 	if _dm != null:
 		_dm.clear_forced_results()
+	SaveDirGuard.restore(_user_state)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -184,6 +192,53 @@ func test_court_martial_removes_the_mission_leader_on_a_forced_one() -> void:
 	assert_str(str(removed[0].get("target", ""))).is_equal("b")
 	# The buyout is a CHOICE that cancels the removal, never a write that undoes one.
 	assert_str(str(removed[0].get("cancel_choice", ""))).is_equal("court_martial_buyout")
+
+
+## p.202/p.203: a character who leaves "for any other reason" is replaced. A Court
+## Martial removal used to be the one exit with no replacement, so the squad shrank
+## permanently. The buyout must cancel the replacement too, or saving the leader
+## would ALSO roll up a new character.
+func test_a_court_martial_removal_is_replaced_unless_bought_out() -> void:
+	_quiet()
+	_dm.queue_forced_result("Bug Hunt Court Martial", 1)
+	var receipt: Dictionary = Resolver.new().resolve(_snapshot(
+		[_marine("a", "Alpha"), _marine("b", "Bravo")],
+		{"participant_ids": ["a", "b"], "objectives_completed": 0,
+			"mission_leader_id": "b"}))
+	var replaced: Array = _ops(receipt, "replace_character")
+	assert_int(replaced.size()).override_failure_message(
+		"p.202: a Court Martial removal must roll up a replacement").is_equal(1)
+	assert_str(str(replaced[0].get("cancel_choice", ""))).is_equal("court_martial_buyout")
+
+
+## p.203: "You may opt to retire an injured trooper if you like. If so, they are
+## removed from your roster. Dead, removed, and retired troopers are replaced at this
+## stage." p.213: a retiree may carry over into 5PFH, so a retirement is the muster-out
+## op (which writes the transfer file) plus the replacement. A trooper ALREADY in Sick
+## Bay is offered it too, and declining changes nothing.
+func test_an_injured_trooper_may_retire_and_is_replaced() -> void:
+	_quiet()
+	var receipt: Dictionary = Resolver.new().resolve(_snapshot(
+		[_marine("a", "Alpha", {"completed_missions_count": 4}), _marine("b", "Bravo")],
+		{"participant_ids": ["b"], "objectives_completed": 1},
+		{"sick_bay": {"a": 2}}))
+	var offered: Array = []
+	for c in receipt.get("choices_needed", []):
+		if c is Dictionary and str(c.get("kind", "")) == "retire_injured":
+			offered.append(c)
+	assert_int(offered.size()).override_failure_message(
+		"p.203: the trooper in Sick Bay must be offered retirement").is_equal(1)
+	assert_str(str(offered[0].target)).is_equal("a")
+	var declined: Dictionary = Resolver.apply_choices(receipt, {str(offered[0].id): false})
+	assert_array(declined.effects).is_empty()
+	var retired: Dictionary = Resolver.apply_choices(receipt, {str(offered[0].id): true})
+	var ops: Array = []
+	for e in retired.effects:
+		ops.append(str(e.op))
+	assert_array(ops).contains_exactly(["muster_out", "replace_character"])
+	assert_int(int(retired.effects[0].amount)) \
+		.override_failure_message("p.213 mustering credits read the Completed Missions") \
+		.is_equal(4)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -297,13 +297,17 @@ func _build_ui() -> void:
 
 	_enemies_defeated_spin = SpinBox.new()
 	_enemies_defeated_spin.min_value = 0
+	# 0 = the total is unknown (a Bug Hunt battle's enemies come from Contacts at the
+	# table), so the count has no upper bound and starts at 0 rather than at a total.
 	_enemies_defeated_spin.max_value = _enemy_count
+	_enemies_defeated_spin.allow_greater = _enemy_count <= 0
 	_enemies_defeated_spin.value = _enemy_count
 	_enemies_defeated_spin.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
 	enemy_row.add_child(_enemies_defeated_spin)
 
 	_enemies_total_label = Label.new()
-	_enemies_total_label.text = "/ %d total" % _enemy_count
+	_enemies_total_label.text = ("/ %d total" % _enemy_count) if _enemy_count > 0 \
+		else "(total revealed at the table)"
 	_enemies_total_label.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_MD)
 	_enemies_total_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	enemy_row.add_child(_enemies_total_label)
@@ -351,76 +355,86 @@ func _build_ui() -> void:
 		_injury_checks.append(check)
 	vbox.add_child(inj_section[0])
 
-	# === XP CREDIT SECTION (Core Rules p.123) ===
-	#
-	# Two of the book's seven XP sources are per-character and depend on
-	# something only the player saw happen on their table:
-	#   "First character to inflict a casualty  +1"
-	#   "Killed Unique Individual                +1"
-	# Both were read by ExperienceTrainingProcessor from battle_result keys that
-	# NO PRODUCER EVER WROTE, so neither bonus had ever been awarded. They cannot
-	# be derived — the app does not watch the dice — so it asks, which is the
-	# whole companion-app premise.
-	var xp_section := _create_section("XP CREDIT  (Core Rules p.123)")
-	var xp_card: VBoxContainer = xp_section[1]
+	# ⚠ The card below is 5PFH only: p.123 XP credit, Compendium p.34 Reduced
+	# Lethality and p.125 Medical school. Bug Hunt pays XP from p.204 and rolls
+	# injuries on the p.202 table, and nothing on its path reads these keys, so in a
+	# Bug Hunt battle the card offered three choices that did nothing (BR-10). The
+	# references are cleared first because this function rebuilds.
+	_first_casualty_btn = null
+	_unique_kill_btn = null
+	_reduced_lethality_btn = null
+	_medical_nominee_btn = null
+	if not _is_bug_hunt_battle():
+		# === XP CREDIT SECTION (Core Rules p.123) ===
+		#
+		# Two of the book's seven XP sources are per-character and depend on
+		# something only the player saw happen on their table:
+		#   "First character to inflict a casualty  +1"
+		#   "Killed Unique Individual                +1"
+		# Both were read by ExperienceTrainingProcessor from battle_result keys that
+		# NO PRODUCER EVER WROTE, so neither bonus had ever been awarded. They cannot
+		# be derived — the app does not watch the dice — so it asks, which is the
+		# whole companion-app premise.
+		var xp_section := _create_section("XP CREDIT  (Core Rules p.123)")
+		var xp_card: VBoxContainer = xp_section[1]
 
-	var xp_hint := Label.new()
-	xp_hint.text = "Optional. Leave as \"Nobody\" if it did not happen."
-	xp_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	xp_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
-	xp_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-	xp_card.add_child(xp_hint)
+		var xp_hint := Label.new()
+		xp_hint.text = "Optional. Leave as \"Nobody\" if it did not happen."
+		xp_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		xp_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+		xp_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		xp_card.add_child(xp_hint)
 
-	_first_casualty_btn = _build_crew_picker(
-		xp_card, "First to inflict a casualty (+1 XP)")
-	# Errata v1.06 (update 1.03): the bonus goes to the first crew figure that
-	# inflicts a casualty AND CAN EARN XP — Bots are ignored, so they are not
-	# offered here at all.
-	_unique_kill_btn = _build_crew_picker(
-		xp_card, "Killed a Unique Individual (+1 XP)")
+		_first_casualty_btn = _build_crew_picker(
+			xp_card, "First to inflict a casualty (+1 XP)")
+		# Errata v1.06 (update 1.03): the bonus goes to the first crew figure that
+		# inflicts a casualty AND CAN EARN XP — Bots are ignored, so they are not
+		# offered here at all.
+		_unique_kill_btn = _build_crew_picker(
+			xp_card, "Killed a Unique Individual (+1 XP)")
 
-	# Compendium p.34 Reduced Lethality: "Before rolling for post-battle
-	# injuries, If you have two or more injured characters you may select one to
-	# be exempt from rolling."
-	#
-	# Asked HERE, on the results form, for the same reason the objective and the
-	# first-casualty credit are: the app cannot make this call, and this is the
-	# one moment the player is already telling it what happened. It also keeps
-	# the choice BEFORE the rolls, as the book requires — the post-battle screen
-	# would be too late, because the orchestrator has already rolled the Injury
-	# Table by the time that screen renders, and choosing with the results
-	# visible would make the option strictly stronger than the book's.
-	if CompendiumTogglesRef.is_toggle_active("reduced_lethality"):
-		var rl_hint := Label.new()
-		rl_hint.text = ("Reduced Lethality (Compendium p.34): with two or more"
-			+ " injured, one may skip the injury roll entirely — full recovery,"
-			+ " no Sick Bay. Choose before the rolls are made.")
-		rl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rl_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
-		rl_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		xp_card.add_child(rl_hint)
-		_reduced_lethality_btn = _build_crew_picker(
-			xp_card, "Exempt from the injury roll")
+		# Compendium p.34 Reduced Lethality: "Before rolling for post-battle
+		# injuries, If you have two or more injured characters you may select one to
+		# be exempt from rolling."
+		#
+		# Asked HERE, on the results form, for the same reason the objective and the
+		# first-casualty credit are: the app cannot make this call, and this is the
+		# one moment the player is already telling it what happened. It also keeps
+		# the choice BEFORE the rolls, as the book requires — the post-battle screen
+		# would be too late, because the orchestrator has already rolled the Injury
+		# Table by the time that screen renders, and choosing with the results
+		# visible would make the option strictly stronger than the book's.
+		if CompendiumTogglesRef.is_toggle_active("reduced_lethality"):
+			var rl_hint := Label.new()
+			rl_hint.text = ("Reduced Lethality (Compendium p.34): with two or more"
+				+ " injured, one may skip the injury roll entirely — full recovery,"
+				+ " no Sick Bay. Choose before the rolls are made.")
+			rl_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			rl_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			rl_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			xp_card.add_child(rl_hint)
+			_reduced_lethality_btn = _build_crew_picker(
+				xp_card, "Exempt from the injury roll")
 
-	# Core Rules p.125 Medical school: "you may nominate a casualty that will roll
-	# twice on the Injury Table, picking the better result." Asked here for the
-	# same reason as Reduced Lethality above — the nomination precedes the roll,
-	# and by the time the post-battle screen renders the Injury Table has already
-	# been rolled. Only shown when a crew member actually holds the course, so a
-	# crew without it never sees a control it cannot use.
-	if _crew_has_training("medical"):
-		var med_hint := Label.new()
-		med_hint.text = ("Medical school (p.125): your medic may nominate one"
-			+ " casualty to roll twice on the Injury Table and keep the better"
-			+ " result. Choose before the rolls are made.")
-		med_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		med_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
-		med_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		xp_card.add_child(med_hint)
-		_medical_nominee_btn = _build_crew_picker(
-			xp_card, "Nominate for the Medical school reroll")
+		# Core Rules p.125 Medical school: "you may nominate a casualty that will roll
+		# twice on the Injury Table, picking the better result." Asked here for the
+		# same reason as Reduced Lethality above — the nomination precedes the roll,
+		# and by the time the post-battle screen renders the Injury Table has already
+		# been rolled. Only shown when a crew member actually holds the course, so a
+		# crew without it never sees a control it cannot use.
+		if _crew_has_training("medical"):
+			var med_hint := Label.new()
+			med_hint.text = ("Medical school (p.125): your medic may nominate one"
+				+ " casualty to roll twice on the Injury Table and keep the better"
+				+ " result. Choose before the rolls are made.")
+			med_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			med_hint.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			med_hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			xp_card.add_child(med_hint)
+			_medical_nominee_btn = _build_crew_picker(
+				xp_card, "Nominate for the Medical school reroll")
 
-	vbox.add_child(xp_section[0])
+		vbox.add_child(xp_section[0])
 
 	# === SUBMIT BUTTON ===
 	vbox.add_child(HSeparator.new())
@@ -586,6 +600,10 @@ func _is_bot(member) -> bool:
 	if member and "species_id" in member:
 		return str(member.species_id).to_lower() in ["bot", "soulless"]
 	return false
+
+func _is_bug_hunt_battle() -> bool:
+	return str(_mission_data.get("battle_mode", "")) == "bug_hunt"
+
 
 func _picked_crew_id(picker: OptionButton) -> String:
 	## The crew_id behind the current selection, or "" for "Nobody".
@@ -807,7 +825,7 @@ func _on_submit() -> void:
 		# Statistics
 		"rounds_fought": int(_rounds_spin.value),
 		"enemies_defeated_count": enemies_defeated,
-		"enemies_remaining": _enemy_count - enemies_defeated,
+		"enemies_remaining": maxi(_enemy_count - enemies_defeated, 0),
 		"crew_alive": crew_alive,
 		"psionic_uses": (int(_psionic_uses_spin.value)
 			if _psionic_uses_spin != null else 0),

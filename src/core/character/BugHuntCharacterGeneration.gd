@@ -152,10 +152,18 @@ func generate_main_character(character_name: String = "") -> Dictionary:
 	}
 
 
-func generate_squad(names: Array = []) -> Dictionary:
-	## Generate a full Bug Hunt squad (3-4 main characters).
+## Compendium p.170: a squad has three main characters, and "You could increase the
+## number of main characters to four or even five, if you wanted to have a slightly
+## easier game". ⚠ This used to stop at 4, and only a TYPED 4th name produced a 4th
+## character. `count` <= 0 keeps that name-driven default for existing callers.
+const MIN_SQUAD := 3
+const MAX_SQUAD := 5
+
+
+func generate_squad(names: Array = [], count: int = 0) -> Dictionary:
+	## Generate a full Bug Hunt squad (3-5 main characters, p.170).
 	## Returns {main_characters: Array, total_reputation: int}
-	var count := 4 if names.size() >= 4 else maxi(names.size(), 3)
+	count = clampi(maxi(count, names.size()), MIN_SQUAD, MAX_SQUAD)
 	var characters: Array = []
 	var total_reputation: int = 0
 

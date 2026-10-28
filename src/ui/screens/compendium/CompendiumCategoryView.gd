@@ -677,8 +677,10 @@ func _build_detail_body(item: Dictionary) -> String:
 	match cat_id:
 		"weapons":
 			return _build_weapon_detail(item)
-		"enemies", "bug_hunt_enemies":
+		"enemies":
 			return _build_enemy_detail(item)
+		"bug_hunt_enemies":
+			return _build_bug_hunt_enemy_detail(item)
 		"species":
 			return _build_species_detail(item)
 		"keywords":
@@ -750,6 +752,38 @@ func _build_enemy_detail(item: Dictionary) -> String:
 		for rule: Variant in item["special_rules"]:
 			parts.append("  • %s" % str(rule))
 
+	return "\n".join(parts)
+
+
+## Compendium p.194: the Bug Hunt enemy table has its own columns: D100, Numbers,
+## Speed, Combat Skill, Toughness and Damage ("used when enemies inflict a hit on a
+## trooper"), with the special rule printed beneath the row. ⚠ Until 2026-10-27 these
+## rows went through the 5PFH builder above, which printed Panic, AI and Weapons as
+## blanks (a Bug Hunt enemy has none of them) and dropped both Damage and the special
+## rule, which is singular here (BP-12).
+func _build_bug_hunt_enemy_detail(item: Dictionary) -> String:
+	var parts: PackedStringArray = []
+	var d100: Variant = item.get("d100_range", [])
+	if d100 is Array and (d100 as Array).size() == 2:
+		parts.append("[color=#9ca3af]Enemy table D100: %02d-%02d[/color]"
+			% [int(d100[0]) % 100, int(d100[1]) % 100])
+		parts.append("")
+	parts.append(
+		"[color=#06b6d4]Numbers:[/color] %s  " % _fmt_val(item.get("numbers", "—"))
+		+ "[color=#06b6d4]Speed:[/color] %s\"" % _fmt_val(item.get("speed", "—"))
+	)
+	parts.append(
+		"[color=#06b6d4]Combat Skill:[/color] %s  " % _fmt_val(item.get("combat_skill", "—"))
+		+ "[color=#06b6d4]Toughness:[/color] %s  " % _fmt_val(item.get("toughness", "—"))
+		+ "[color=#06b6d4]Damage:[/color] %s" % _fmt_val(item.get("damage", "—"))
+	)
+	var rule: String = str(item.get("special_rule", "")).strip_edges()
+	if rule != "" and rule != "<null>":
+		parts.append("")
+		parts.append(rule)
+	parts.append("")
+	parts.append("[color=#9ca3af]Numbers is the roll made when a Contact is revealed as "
+		+ "enemies; the difficulty setting can adjust it (Compendium p.194).[/color]")
 	return "\n".join(parts)
 
 

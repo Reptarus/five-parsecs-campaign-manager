@@ -33,6 +33,7 @@ const COLOR_ACCENT := _UC.COLOR_ACCENT
 const COLOR_CYAN := _UC.COLOR_CYAN
 
 const TransferServiceClass := preload("res://src/core/character/CharacterTransferService.gd")
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 var _transfer_service: TransferServiceClass
 var _source_characters: Array = []
@@ -134,6 +135,7 @@ func _build_ui() -> void:
 ## ── STEP 1: Explain the process + Select character ──────────────────────
 
 func _show_step_1() -> void:
+	call_deferred("_open_touch_chain")  # no await in this function (see below)
 	_clear_steps()
 
 	# Title
@@ -259,6 +261,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 ## ── STEP 2: Preview changes + Confirm ───────────────────────────────────
 
 func _show_step_2(char_data: Dictionary) -> void:
+	call_deferred("_open_touch_chain")  # no await in this function
 	_clear_steps()
 	_selected_character = char_data
 
@@ -427,6 +430,7 @@ func report_commit_error(message: String) -> void:
 
 
 func _show_enlistment_result(result: Dictionary) -> void:
+	call_deferred("_open_touch_chain")  # no await in this function
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -506,7 +510,7 @@ func _show_enlistment_result(result: Dictionary) -> void:
 		if commit_failed:
 			msg.text = "The enlistment was accepted, but it could not be written to your campaign, so nothing has changed.\n\nResolve the reason shown above, then try again."
 		elif rolled:
-			msg.text = "Application denied. The military has standards, apparently.\n\nYou may try again after your next mission. (1 Story Point can also bypass the roll.)"
+			msg.text = "Application denied. The military has standards, apparently.\n\nYou may try again after your next mission."
 		else:
 			msg.text = "This character is not eligible for Bug Hunt service.
 
@@ -521,11 +525,32 @@ Resolve the reason shown above, then try again."
 		back_btn.pressed.connect(func(): _show_step_1())
 		_step_container.add_child(back_btn)
 
+		# p.212: "If the roll fails, 1 Story Point will get you in." Offered only for a
+		# FAILED ROLL and only when the source crew has a point to spend.
+		var held: int = TransferServiceClass.story_points_in_save(_source_save_path)
+		if bool(result.get("story_point_rescue_available", false)) and held >= 1:
+			var rescue_btn := Button.new()
+			rescue_btn.text = "Spend 1 Story Point to enlist anyway (%d held, p.212)" % held
+			rescue_btn.custom_minimum_size = Vector2(0, 48)
+			rescue_btn.pressed.connect(_on_story_point_rescue)
+			_step_container.add_child(rescue_btn)
+
 	_step_container.add_child(title)
 	_step_container.move_child(title, 0)
 
 
+## The point is spent from the source save BEFORE the enlistment is committed, so a
+## failure to write it leaves the character where they were and nothing is charged.
+func _on_story_point_rescue() -> void:
+	if not TransferServiceClass.spend_story_point_in_save(_source_save_path):
+		return
+	_clear_steps()
+	_show_enlistment_result(_commit_enlistment(
+		_transfer_service.enlist_with_story_point(_selected_character)))
+
+
 func _show_muster_result(result: Dictionary) -> void:
+	call_deferred("_open_touch_chain")  # no await in this function
 	var title := Label.new()
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -582,6 +607,15 @@ func _show_muster_result(result: Dictionary) -> void:
 
 
 ## ── HELPERS ─────────────────────────────────────────────────────────────
+
+## Every card, row and button here defaults to MOUSE_FILTER_STOP, so a finger dragged
+## over the list died before reaching the ScrollContainer (DU-12, the T9-45 shape).
+## ⚠ Deferred from the TOP of each builder, which equals "after it" only while no
+## builder awaits: add an await and the sweep runs before the new cards exist.
+func _open_touch_chain() -> void:
+	if is_instance_valid(_content):
+		TouchScrollOpenerRef.open_subtree(_content)
+
 
 func _clear_steps() -> void:
 	if _step_container:
