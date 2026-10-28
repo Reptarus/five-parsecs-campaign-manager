@@ -77,6 +77,9 @@ func refresh() -> void:
 	_resolved = false
 	_result_data = {}
 	_selected_character_id = ""
+	# The content below is freed and rebuilt, and a turn with no damage builds no
+	# spinner, so a kept reference would point at last turn's freed node.
+	_rm_spinner = null
 	if _title_label:
 		_title_label.text = _get_step_title().to_upper()
 	# Clear previous content and results
@@ -178,21 +181,25 @@ func _build_repairs_content() -> void:
 	var repair_rate: int = _campaign.repair_capacity if "repair_capacity" in _campaign else 1
 	var rm: int = _campaign.raw_materials if "raw_materials" in _campaign else 0
 	var bot_broken: bool = not (_campaign.bot_operational if "bot_operational" in _campaign else true)
+	var damage: int = _colony_damage()
 
 	_add_info_text("Colony Integrity: %d" % integrity)
+	if "max_colony_integrity" in _campaign:
+		_add_info_text("Maximum Integrity: %d" % _campaign.max_colony_integrity)
 	_add_info_text("Base Repair Rate: %d point(s) per turn" % repair_rate)
 	_add_info_text("Raw Materials Available: %d" % rm)
 
-	if integrity >= 0:
+	if damage <= 0:
 		_add_info_text("\n[color=#10B981]No colony damage to repair.[/color]")
 
 	if bot_broken:
 		_add_info_text(
 			"\n[color=#D97706]Colony Bot is Broken — it will be repaired but cannot deploy this turn.[/color]")
 
-	# RM-to-repair spinner (max 3 per turn, capped by available RM)
-	if integrity < 0 and rm > 0:
-		var max_rm: int = mini(3, rm)
+	# RM-to-repair spinner: p.59 "up to 3 units", capped by what is held AND by the
+	# damage the base rate leaves, so the dialog cannot take a unit that repairs nothing.
+	var max_rm: int = mini(mini(3, rm), maxi(0, damage - repair_rate))
+	if max_rm > 0:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", SPACING_SM)
 		_content_vbox.add_child(row)
@@ -279,7 +286,6 @@ func _resolve_repairs() -> void:
 	## Step 2 resolution. Planetfall p.59.
 	if not _campaign:
 		return
-	var integrity: int = _campaign.colony_integrity if "colony_integrity" in _campaign else 0
 	var repair_rate: int = _campaign.repair_capacity if "repair_capacity" in _campaign else 1
 
 	# Base repair
@@ -291,13 +297,13 @@ func _resolve_repairs() -> void:
 		rm_spent = int(_rm_spinner.value)
 		total_repair += rm_spent
 
-	# Only repair if there's damage (integrity < 0)
-	if integrity < 0:
-		var actual_repair: int = mini(total_repair, -integrity)
-		if _campaign.has_method("repair_colony"):
-			_campaign.repair_colony(actual_repair)
-		if rm_spent > 0 and _campaign.has_method("spend_raw_materials"):
-			_campaign.spend_raw_materials(rm_spent)
+	# p.87: repairs restore Integrity up to its MAXIMUM, which buildings raise; this
+	# used to stop at 0, so a colony that had built Integrity could never repair.
+	# The Raw Materials are REPORTED in rm_spent and spent by the phase manager: this
+	# dialog spent them as well until 2026-10-27, so every unit cost two (T2a).
+	if _colony_damage() > 0:
+		var actual_repair: int = _campaign.repair_colony(total_repair) \
+			if _campaign.has_method("repair_colony") else 0
 		_add_result_bbcode(
 			"[color=#10B981]Repaired %d point(s) of colony damage.[/color]" % actual_repair)
 		if rm_spent > 0:
@@ -306,11 +312,19 @@ func _resolve_repairs() -> void:
 	else:
 		_add_result_bbcode("No colony damage to repair.")
 
-	# Bot repair
-	if _campaign and "bot_operational" in _campaign and not _campaign.bot_operational:
-		_campaign.bot_operational = true
+	# Bot repair. repair_bot() records the turn, which is what keeps the bot out of this
+	# turn's battle (p.59) -- setting the flag alone let it deploy straight away.
+	if _campaign and _campaign.has_method("repair_bot") and _campaign.repair_bot():
 		_add_result_bbcode(
 			"[color=#10B981]Colony Bot repaired![/color] (Cannot deploy this turn.)")
+
+
+## Damage a repair may restore: how far Integrity is below its maximum (p.87).
+func _colony_damage() -> int:
+	if _campaign and _campaign.has_method("integrity_damage"):
+		return _campaign.integrity_damage()
+	var integrity: int = _campaign.colony_integrity if _campaign and "colony_integrity" in _campaign else 0
+	return maxi(0, -integrity)
 
 
 func _resolve_track_info() -> void:

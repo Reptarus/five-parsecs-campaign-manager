@@ -1,0 +1,24 @@
+{
+	"_source": "Five Parsecs From Home: Planetfall, printed p.68 (Step 11), p.89 (Tracking Morale, Morale Incidents, The Crisis Check, Personal Appeals) and p.90 (Crisis rules, Morale Incident table, Crisis Outcome table, Campaign Failure). Extracted 2026-10-27 from docs/rules/planetfall_source.txt markers PAGE 70, 91-92 (marker = printed + 2).",
+	"incident_threshold": -10,
+	"incident_rule": "If Morale reaches -10 or worse during the Colony Morale step of the campaign turn sequence, an Incident occurs. Roll D100 on the table and apply the result. Morale is set back to 0. Add +1 to Political Upheaval every time you roll on the Morale Incident table.",
+	"personal_appeals": "When forced to test for a Morale Incident, you may spend 1 Story Point and count the test result as \"nothing happens\". This still sets the Morale score back to 0.",
+	"crisis_check": "Each time you receive a point of Political Upheaval, you must make a Crisis check. Roll 2D6. If the roll is equal to or below the amount of Political Upheaval, the colony suffers a collapse of government and enters a Crisis.",
+	"crisis_rules": "While in Crisis, Colony Morale is fixed at 0 and cannot be changed for any reason. All modifiers are ignored. All sources of Research Points, Build Points, or Raw Materials provide 1 point less than usual during a Crisis. Each campaign turn, during the Colony Morale Adjustments step, roll 2D6 to determine the outcome of the Crisis. A Story Point may be spent to roll twice and pick the better score.",
+	"campaign_failure": "If the Crisis Outcome results in campaign failure, Unity forces move in to secure the site and take over control.",
+	"incidents": [
+		{"min": 1, "max": 10, "id": "character_loyalty_loss", "name": "Character loyalty loss", "description": "A random character on your roster loses one level of Loyalty.", "effects": [{"op": "loyalty_loss"}]},
+		{"min": 11, "max": 25, "id": "protests", "name": "Protests", "description": "Widespread protests hit the colony. Select a trooper that is unable to undertake any missions next campaign turn. If you have to fight a Pitched Battle, the protests recede, and the trooper can take part normally.", "effects": []},
+		{"min": 26, "max": 35, "id": "sabotage", "name": "Sabotage", "description": "A dissident conducts large scale sabotage, causing 1D6 Colony Damage. This cannot be mitigated by buildings that normally mitigate damage.", "effects": [{"op": "colony_damage", "dice": "1D6", "mitigable": false}]},
+		{"min": 36, "max": 55, "id": "work_stoppage", "name": "Work stoppage", "description": "You suffer a -3 penalty to any BP and RP earned this campaign turn, though this will not affect points already spent.", "effects": [{"op": "income_penalty", "turn_offset": 0, "bp": 3, "rp": 3}]},
+		{"min": 56, "max": 75, "id": "colonist_demands", "name": "Colonist demands", "description": "Your scout teams are redirected to focus on threats close to the colony. Each campaign turn, assign any number of scouts or troopers to supervise security. They cannot take part in any missions except for Pitched Battles. For each character, roll 1D6+Savvy with a 5+ indicating the demands have been satisfied. Otherwise, they continue.", "effects": []},
+		{"min": 76, "max": 100, "id": "political_strife", "name": "Political strife", "description": "Administration is faced with a political challenge to its authority such as dissident groups, rival claims for administration, or secretive factions: Make a Crisis check.", "effects": [{"op": "crisis_check"}]}
+	],
+	"crisis_outcomes": [
+		{"min": 2, "max": 3, "id": "high_tensions", "name": "High tensions", "description": "Make another Crisis check using 2D6. If the result is equal to or below the amount of Political Upheaval, the colony collapses into open rebellion, and your campaign ends. If the roll is higher, add +1 Political Upheaval."},
+		{"min": 4, "max": 5, "id": "deteriorating_conditions", "name": "Deteriorating conditions", "description": "If you successfully completed a mission this turn, no changes occur. If you failed a mission, add +1 Political Upheaval."},
+		{"min": 6, "max": 7, "id": "deadlock", "name": "Deadlock", "description": "No agreement is reached, and no progress is made."},
+		{"min": 8, "max": 10, "id": "building_bridges", "name": "Building bridges", "description": "-1 to Political Upheaval. If this reduces the total to 0, treat as \"Agreements reached\"."},
+		{"min": 11, "max": 12, "id": "agreements_reached", "name": "Agreements reached", "description": "The crisis ends. Political upheaval and Morale are set to 0."}
+	]
+}

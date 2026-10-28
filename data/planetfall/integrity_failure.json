@@ -1,0 +1,24 @@
+{
+	"_source": "Five Parsecs From Home: Planetfall, printed pp.87-88 (Colony Integrity Failure, Integrity Failure table, Emergency Repairs). Extracted 2026-10-27 from docs/rules/planetfall_source.txt markers PAGE 89-90 (marker = printed + 2).",
+	"rule": "In the Colony Integrity step, if Integrity is -3 or worse, roll 3D6. If the roll is equal to or below the negative Integrity score flipped (Integrity -8 is treated as 8), you suffer an Integrity Failure: consult the score on the table. Integrity of -1 or -2 has no risk.",
+	"threshold": -3,
+	"emergency_repairs": "If you are required to roll on this table, you may spend 1 Story Point to avoid doing so. This does not change the underlying situation.",
+	"entries": [
+		{"roll": 3, "text": "-1 Colony Morale", "effects": [{"op": "morale", "amount": -1}]},
+		{"roll": 4, "text": "-2 Colony Morale", "effects": [{"op": "morale", "amount": -2}]},
+		{"roll": 5, "text": "1 Colony Damage", "effects": [{"op": "colony_damage", "amount": 1, "mitigable": true}]},
+		{"roll": 6, "text": "Reduce available Build and Research points next turn by 2 each.", "effects": [{"op": "income_penalty", "turn_offset": 1, "bp": 2, "rp": 2}]},
+		{"roll": 7, "text": "-3 Colony Morale", "effects": [{"op": "morale", "amount": -3}]},
+		{"roll": 8, "text": "3 Colony Damage. This can be mitigated normally.", "effects": [{"op": "colony_damage", "amount": 3, "mitigable": true}]},
+		{"roll": 9, "text": "-5 Colony Morale", "effects": [{"op": "morale", "amount": -5}]},
+		{"roll": 10, "text": "A random character on your roster must make an injury roll (see page 66); treat \"Death\" as 5 turns of recovery instead.", "effects": [{"op": "injury_roll", "death_as_recovery_turns": 5}]},
+		{"roll": 11, "text": "Reduce available Build points next turn by 5. This only affects points earned, not any stored or already spent.", "effects": [{"op": "income_penalty", "turn_offset": 1, "bp": 5, "rp": 0}]},
+		{"roll": 12, "text": "Reduce available Research points next turn by 5. This only affects points earned, not any stored or already spent.", "effects": [{"op": "income_penalty", "turn_offset": 1, "bp": 0, "rp": 5}]},
+		{"roll": 13, "text": "4 Colony Damage. This can be mitigated normally.", "effects": [{"op": "colony_damage", "amount": 4, "mitigable": true}]},
+		{"roll": 14, "text": "5 Colony Damage. This can be mitigated normally.", "effects": [{"op": "colony_damage", "amount": 5, "mitigable": true}]},
+		{"roll": 15, "text": "A random character on your roster must make an injury roll (see page 66).", "effects": [{"op": "injury_roll"}]},
+		{"roll": 16, "text": "5 Colony Damage. This cannot be mitigated.", "effects": [{"op": "colony_damage", "amount": 5, "mitigable": false}]},
+		{"roll": 17, "text": "A random character on your roster must make an injury roll (see page 66).", "effects": [{"op": "injury_roll"}]},
+		{"roll": 18, "text": "A random character on your roster is slain.", "effects": [{"op": "slain"}]}
+	]
+}

@@ -139,20 +139,52 @@ func resolve_replacement_class(roll_d6: int) -> String:
 ## DICE ROLLING HELPERS
 ## ============================================================================
 
-func roll_d100() -> int:
-	return randi_range(1, 100)
+## Every roll goes through DiceManager so the QA seam can force it
+## (DiceManager.queue_forced_result matches a substring of `context`). These were raw
+## randi_range() calls until 2026-10-27, so no Planetfall table could be forced.
+## This is RefCounted, so the autoload is reached through the main loop: a bare
+## get_node_or_null("/root/...") here ERRORS and aborts the roll.
+static func _dice() -> Node:
+	var loop := Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
 
 
-func roll_d6() -> int:
-	return randi_range(1, 6)
+func roll_d100(context: String = "Planetfall D100") -> int:
+	var dm := _dice()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
 
 
-func roll_2d6() -> int:
-	return randi_range(1, 6) + randi_range(1, 6)
+func roll_d6(context: String = "Planetfall D6") -> int:
+	var dm := _dice()
+	return int(dm.roll_d6(context)) if dm else randi_range(1, 6)
 
 
-func roll_1d3() -> int:
-	return randi_range(1, 3)
+func roll_2d6(context: String = "Planetfall 2D6") -> int:
+	var dm := _dice()
+	return int(dm.roll_2d6(context)) if dm else randi_range(1, 6) + randi_range(1, 6)
+
+
+func roll_1d3(context: String = "Planetfall D3") -> int:
+	var dm := _dice()
+	return int(dm.roll_d3(context)) if dm else randi_range(1, 3)
+
+
+func roll_3d6(context: String = "Planetfall 3D6") -> int:
+	var dm := _dice()
+	return int(dm.roll_3d6(context)) if dm else \
+			randi_range(1, 6) + randi_range(1, 6) + randi_range(1, 6)
+
+
+## "A random character on your roster": an index into `count` entries. roll_custom()
+## does not honour forcing, so this pick cannot be armed from the QA seam; a test that
+## needs a known victim uses a one-character roster.
+func pick_index(count: int, context: String = "Planetfall Random Character") -> int:
+	if count <= 1:
+		return 0
+	var dm := _dice()
+	var roll: int = int(dm.roll_custom(1, count, 0, context)) if dm else randi_range(1, count)
+	return clampi(roll - 1, 0, count - 1)
 
 
 ## ============================================================================

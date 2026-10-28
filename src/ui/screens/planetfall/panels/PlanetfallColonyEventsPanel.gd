@@ -149,7 +149,7 @@ func _on_roll_pressed() -> void:
 	_roll_btn.disabled = true
 	_rolled = true
 
-	var roll: int = _resolver.roll_d100()
+	var roll: int = _resolver.roll_d100("Planetfall Colony Event")
 	_current_event = _resolver.resolve_colony_event(roll)
 
 	var event_name: String = _current_event.get("name", "No Event")
@@ -201,11 +201,16 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 			"\n[color=%s]Colony Morale %+d[/color]" % [color, morale])
 
 	if effect.has("colony_damage"):
+		# REPORTED to the phase manager, which applies it once with any building
+		# mitigation and its Morale cost (p.87). Applied here it lowered Integrity but
+		# never reached Morale. "Cannot be mitigated" (p.63) travels as its own key.
 		var dmg: int = effect.get("colony_damage", 0)
-		if _campaign.has_method("adjust_integrity"):
-			_campaign.adjust_integrity(-dmg)
+		var key: String = "colony_damage_unmitigable" \
+				if effect.get("colony_damage_unmitigatable", false) else "colony_damage"
+		_result_data[key] = int(_result_data.get(key, 0)) + dmg
 		_add_result_bbcode(
-			"\n[color=#DC2626]Colony Damage: %d[/color]" % dmg)
+			"\n[color=#DC2626]Colony Damage: %d%s[/color]" % [
+				dmg, " (cannot be mitigated)" if key == "colony_damage_unmitigable" else ""])
 
 	if effect.has("ancient_signs"):
 		_add_result_bbcode(
@@ -239,10 +244,11 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 
 	if effect.has("colony_damage_repair"):
 		var repair: int = effect.get("colony_damage_repair", 0)
-		if _campaign.has_method("repair_colony"):
-			_campaign.repair_colony(repair)
+		# p.87: a repair stops at the maximum, so print what was actually restored.
+		var repaired: int = _campaign.repair_colony(repair) \
+			if _campaign.has_method("repair_colony") else 0
 		_add_result_bbcode(
-			"\n[color=#10B981]Repaired %d point(s) of Colony Damage.[/color]" % repair)
+			"\n[color=#10B981]Repaired %d point(s) of Colony Damage.[/color]" % repaired)
 
 	if effect.has("research_points_wasted"):
 		_add_result_bbcode(

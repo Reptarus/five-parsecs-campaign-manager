@@ -205,13 +205,6 @@ func research_application(
 	return {"success": true, "application": app}
 
 
-func add_research_points(campaign: Resource, amount: int) -> void:
-	## Add RP to the campaign pool.
-	var rd: Dictionary = _get_research_data(campaign)
-	rd["current_rp"] = rd.get("current_rp", 0) + amount
-	_set_research_data(campaign, rd)
-
-
 ## ============================================================================
 ## PRIVATE
 ## ============================================================================
@@ -233,8 +226,9 @@ func _apply_application_effect(
 		return
 	if effect.has("colony_morale") and campaign.has_method("adjust_morale"):
 		campaign.adjust_morale(effect.get("colony_morale", 0))
-	if effect.has("colony_integrity") and campaign.has_method("adjust_integrity"):
-		campaign.adjust_integrity(effect.get("colony_integrity", 0))
+	# p.87: an Integrity BONUS raises the maximum with the current score.
+	if effect.has("colony_integrity") and campaign.has_method("raise_integrity"):
+		campaign.raise_integrity(effect.get("colony_integrity", 0))
 	if effect.has("augmentation_points") and "augmentation_points" in campaign:
 		campaign.augmentation_points += effect.get("augmentation_points", 0)
 	if effect.has("research_points_per_turn") and "research_points_per_turn" in campaign:

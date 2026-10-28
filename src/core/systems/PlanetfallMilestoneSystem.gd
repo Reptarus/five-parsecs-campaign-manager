@@ -88,8 +88,9 @@ func apply_milestone(campaign: Resource, milestone_index: int) -> Dictionary:
 
 			"colony_integrity":
 				var amount: int = effect.get("amount", 0)
-				if campaign.has_method("adjust_integrity"):
-					campaign.adjust_integrity(amount)
+				# p.87: an Integrity BONUS raises the maximum with the current score.
+				if campaign.has_method("raise_integrity"):
+					campaign.raise_integrity(amount)
 				result["effects_applied"].append("+%d Colony Integrity" % amount)
 
 			"augmentation_points":

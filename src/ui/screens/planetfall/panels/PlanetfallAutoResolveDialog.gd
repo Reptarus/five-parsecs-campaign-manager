@@ -34,6 +34,15 @@ var _step_id: String = ""
 var _phase_index: int = -1
 var _resolver: PlanetfallEventResolverScript
 var _resolved: bool = false
+## Raid damage dealt this step, REPORTED to the phase manager, which applies it and
+## counts it for Step 11 Morale (p.89).
+var _raid_damage: int = 0
+## Step 16's Emergency Repairs choice (p.88), built only when a roll is owed.
+var _emergency_check: CheckBox
+## Step 4's Waiting for the Right Moment (p.61). The choice is REPORTED; the phase
+## manager spends the Story Point on completion.
+var _wait_check: CheckBox
+var _waited: bool = false
 
 var _title_label: Label
 var _description_label: RichTextLabel
@@ -70,6 +79,8 @@ func configure(step_id: String, phase_index: int) -> void:
 
 func refresh() -> void:
 	_resolved = false
+	_raid_damage = 0
+	_waited = false
 	if _title_label:
 		_title_label.text = _get_step_title().to_upper()
 	if _description_label:
@@ -85,6 +96,10 @@ func refresh() -> void:
 	if _result_container:
 		for child in _result_container.get_children():
 			child.queue_free()
+	if _step_id == "colony_integrity" and _result_container:
+		_prepare_colony_integrity()
+	if _step_id == "enemy_activity" and _result_container:
+		_prepare_enemy_activity()
 
 
 func complete() -> void:
@@ -231,15 +246,39 @@ func _resolve_enemy_activity() -> void:
 		_add_result_text("No campaign data.", COLOR_WARNING)
 		return
 
-	# Check if tactical enemies exist
-	var enemies: Array = _campaign.tactical_enemies if "tactical_enemies" in _campaign else []
+	# p.61: "If any Tactical Enemies are present on the map, randomly pick one and roll
+	# D100". One enemy acts, never all of them; one defeated at its Strongpoint is
+	# gone (p.51) and is not on the map.
+	var enemies: Array = _campaign.get_active_tactical_enemies() \
+			if _campaign.has_method("get_active_tactical_enemies") else []
 	if enemies.is_empty():
 		_add_result_text(
 			"No Tactical Enemies on map. Step skipped.",
 			COLOR_TEXT_SECONDARY)
 		return
 
-	var roll: int = _resolver.roll_d100()
+	if _wait_check != null and _wait_check.button_pressed:
+		_waited = true
+		_add_result_text("Waiting for the Right Moment: 1 Story Point is spent and the "
+				+ "enemy takes no action this turn (p.61).", COLOR_TEXT_PRIMARY)
+		return
+
+	var selected: Dictionary = enemies[_resolver.pick_index(enemies.size(),
+			"Planetfall Enemy Activity Target")]
+	var selected_type: Dictionary = selected.get("type", {}) \
+			if selected.get("type") is Dictionary else {}
+	_add_result_text("Acting enemy: [b]%s[/b]" % selected_type.get("name",
+			selected.get("name", "Tactical Enemy")), COLOR_TEXT_PRIMARY)
+	# p.61 Disruption: "If you won a battle against the selected enemy last turn, they
+	# do NOT carry out an activity unless they are the Converted."
+	if _campaign.has_method("is_enemy_disrupted") \
+			and _campaign.is_enemy_disrupted(int(selected.get("index", -1))) \
+			and not str(selected_type.get("id", "")).begins_with("converted"):
+		_add_result_text("Disruption: you beat this enemy last turn, so it carries out no "
+				+ "activity (p.61).", COLOR_TEXT_SECONDARY)
+		return
+
+	var roll: int = _resolver.roll_d100("Planetfall Enemy Activity")
 	var result: Dictionary = _resolver.resolve_enemy_activity(roll)
 	var name: String = result.get("name", "Unknown")
 	var desc: String = result.get("description", "")
@@ -251,19 +290,16 @@ func _resolve_enemy_activity() -> void:
 
 	# Apply colony damage for raids
 	if activity_type == "raid":
-		# Damage = occupied sectors + 1
-		var occupied: int = 0
-		for enemy in enemies:
-			if enemy is Dictionary:
-				var sectors: Array = enemy.get("occupied_sectors", [])
-				occupied += sectors.size()
-		var base_damage: int = occupied + 1
+		# p.62 Raid: Colony Damage = the sectors THIS enemy occupies + 1.
+		var sectors: Array = selected.get("occupied_sectors", []) \
+				if selected.get("occupied_sectors") is Array else []
+		var base_damage: int = sectors.size() + 1
 
 		# Colony defenses mitigation
 		var defenses: int = _campaign.colony_defenses if "colony_defenses" in _campaign else 0
 		var mitigated: int = 0
 		for idx in range(defenses):
-			if _resolver.roll_d6() >= 4:
+			if _resolver.roll_d6("Planetfall Colony Defenses") >= 4:
 				mitigated += 1
 
 		var final_damage: int = max(0, base_damage - mitigated)
@@ -272,72 +308,77 @@ func _resolve_enemy_activity() -> void:
 				final_damage, base_damage, mitigated],
 			COLOR_DANGER)
 
-		if _campaign.has_method("apply_enemy_activity"):
-			_campaign.apply_enemy_activity({"colony_damage": final_damage})
+		# REPORTED, not applied. This dialog applied the damage itself and reported
+		# nothing, so the phase manager's count stayed 0 and Step 11 never charged
+		# Morale for a raid (p.89: -1 Morale per point of Colony Damage).
+		_raid_damage = final_damage
 
 
+## Step 16, pp.87-88. Until 2026-10-27 this rolled a D6 per point of negative
+## Integrity and lost grunts on a 5-6, a table in neither book. The phase manager now
+## rolls the p.88 3D6 Integrity Failure table and applies it; this panel shows the
+## receipt and offers Emergency Repairs (1 Story Point, p.88) before the roll.
 func _resolve_colony_integrity() -> void:
-	## Step 16: Check if integrity ≤ -3. Planetfall p.69, p.87.
-	if not _campaign:
+	if not _campaign or not _phase_manager \
+			or not _phase_manager.has_method("resolve_integrity_step"):
 		_add_result_text("No campaign data.", COLOR_WARNING)
 		return
+	var options := {"emergency_repairs": _emergency_check != null
+			and _emergency_check.button_pressed}
+	_render_lines(_phase_manager.resolve_integrity_step(options))
 
-	var integrity: int = _campaign.colony_integrity if "colony_integrity" in _campaign else 0
-	_add_result_text("Current Colony Integrity: %d" % integrity, COLOR_TEXT_PRIMARY)
 
-	if integrity <= -3:
-		_add_result_text(
-			"\n[color=#DC2626]INTEGRITY FAILURE" +
-			" — Integrity %d (threshold: -3).[/color]" % integrity,
-			COLOR_DANGER)
+## Before the roll: the Emergency Repairs choice, offered only when a roll is owed and
+## a Story Point can be spent. A step already resolved (a resume) shows its receipt.
+func _prepare_colony_integrity() -> void:
+	_emergency_check = null
+	if not _campaign or not _phase_manager \
+			or not _phase_manager.has_method("get_integrity_receipt"):
+		return
+	var done: Dictionary = _phase_manager.get_integrity_receipt()
+	if not done.is_empty():
+		_render_lines(done)
+		_resolved = true
+		_resolve_btn.visible = false
+		_continue_btn.visible = true
+		return
+	var integrity: int = int(_campaign.colony_integrity)
+	_add_result_text("Current Colony Integrity: %d (maximum %d)."
+			% [integrity, int(_campaign.max_colony_integrity)], COLOR_TEXT_PRIMARY)
+	var preview: Dictionary = _phase_manager.preview_morale_step()
+	if integrity <= -3 and bool(preview.get("can_spend", false)):
+		_emergency_check = CheckBox.new()
+		_emergency_check.text = "Emergency Repairs: spend 1 Story Point to skip the " \
+				+ "Integrity Failure roll (p.88). %d Story Point(s) left." \
+				% int(preview.get("story_points", 0))
+		_emergency_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_emergency_check.custom_minimum_size = Vector2(0, 48)
+		_result_container.add_child(_emergency_check)
 
-		# Apply failure consequences (Planetfall p.87)
-		# Roll D6 for each point below 0 to determine damage severity
-		var damage_points: int = absi(integrity)
-		var morale_loss: int = 0
-		var grunts_lost: int = 0
 
-		for dmg_idx in range(damage_points):
-			var roll: int = randi_range(1, 6)
-			match roll:
-				1, 2:
-					# Minor structural damage — already reflected in integrity
-					pass
-				3, 4:
-					morale_loss += 1
-				5:
-					grunts_lost += 1
-				6:
-					morale_loss += 1
-					grunts_lost += 1
+## p.61 Waiting for the Right Moment: "You may forego a roll on the Enemy Activity
+## table ... by spending 1 Story Point." Offered before the roll, only when a Tactical
+## Enemy is on the map and a Story Point may be spent this turn.
+func _prepare_enemy_activity() -> void:
+	_wait_check = null
+	if not _campaign or not _phase_manager \
+			or not _phase_manager.has_method("can_spend_story_point") \
+			or not _phase_manager.can_spend_story_point():
+		return
+	if not _campaign.has_method("get_active_tactical_enemies") \
+			or _campaign.get_active_tactical_enemies().is_empty():
+		return
+	_wait_check = CheckBox.new()
+	_wait_check.text = "Waiting for the Right Moment: spend 1 Story Point to forgo the " \
+			+ "Enemy Activity roll (p.61). %d Story Point(s) left." % int(_campaign.story_points)
+	_wait_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_wait_check.custom_minimum_size = Vector2(0, 48)
+	_result_container.add_child(_wait_check)
 
-		if morale_loss > 0:
-			if _campaign.has_method("adjust_morale"):
-				_campaign.adjust_morale(-morale_loss)
-			_add_result_text(
-				"Colony Morale: -%d (instability)" % morale_loss,
-				COLOR_WARNING)
 
-		if grunts_lost > 0:
-			for grunt_idx in range(grunts_lost):
-				if _campaign.has_method("lose_grunt"):
-					_campaign.lose_grunt()
-			_add_result_text(
-				"Grunts lost: %d (collapse)" % grunts_lost,
-				COLOR_DANGER)
-
-		if morale_loss == 0 and grunts_lost == 0:
-			_add_result_text(
-				"The colony weathers the damage with no additional casualties.",
-				COLOR_WARNING)
-
-		_add_result_text(
-			"\nRepair via Repairs step (Step 2).",
-			COLOR_TEXT_SECONDARY)
-	else:
-		_add_result_text(
-			"\n[color=#10B981]Colony integrity is stable (above -3 threshold).[/color]",
-			COLOR_SUCCESS)
+func _render_lines(receipt: Dictionary) -> void:
+	for line in receipt.get("lines", []):
+		_add_result_text(str(line), COLOR_TEXT_PRIMARY)
 
 
 func _resolve_update_tracking() -> void:
@@ -373,7 +414,7 @@ func _get_step_description() -> String:
 		"enemy_activity":
 			return "If Tactical Enemies are present, one is randomly selected and rolls on the Enemy Activity table (D100)."
 		"colony_integrity":
-			return "If Colony Integrity is -3 or worse, check the Integrity Failure table for consequences."
+			return "If Colony Integrity is -3 or worse, roll 3D6. A roll equal to or below the Integrity score flipped (-8 counts as 8) is an Integrity Failure, looked up on the table (pp.87-88)."
 		"update_tracking":
 			return "Ensure all changes from this campaign turn are recorded. Campaign data will be saved automatically."
 	return ""
@@ -418,9 +459,6 @@ func _build_result_data() -> Dictionary:
 	var data: Dictionary = {"step_id": _step_id}
 	match _step_id:
 		"enemy_activity":
-			# Colony damage tracked by campaign already
-			pass
-		"colony_integrity":
-			var integrity: int = _campaign.colony_integrity if _campaign and "colony_integrity" in _campaign else 0
-			data["integrity_failure"] = integrity <= -3
+			data["colony_damage"] = _raid_damage
+			data["waited"] = _waited
 	return data

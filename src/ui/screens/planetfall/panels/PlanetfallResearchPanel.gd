@@ -63,10 +63,11 @@ func refresh() -> void:
 	_clear_container(_detail_container)
 	_clear_container(_result_container)
 
-	# Add per-turn RP income
-	if _campaign and "research_points_per_turn" in _campaign:
-		var rp_income: int = _campaign.research_points_per_turn
-		_research.add_research_points(_campaign, rp_income)
+	# Per-turn RP income, credited ONCE per turn by the core: refresh() runs again on a
+	# resume, and crediting here paid the turn twice. Penalties and the Crisis point
+	# (pp.88, 90) come off it there.
+	if _campaign and _campaign.has_method("claim_turn_income"):
+		_show_income(_campaign.claim_turn_income("rp"))
 
 	_update_rp_display()
 	_build_theory_list()
@@ -352,6 +353,19 @@ func _update_rp_display() -> void:
 func _rebuild_theory_list() -> void:
 	_clear_container(_theory_list)
 	_build_theory_list()
+
+
+func _show_income(receipt: Dictionary) -> void:
+	if bool(receipt.get("already", false)):
+		_add_result_bbcode("This turn's Research Points have already been credited.")
+		return
+	var notes: Array[String] = []
+	if int(receipt.get("penalty", 0)) > 0:
+		notes.append("-%d penalty" % int(receipt.penalty))
+	if int(receipt.get("crisis", 0)) > 0:
+		notes.append("-%d Crisis (p.90)" % int(receipt.crisis))
+	_add_result_bbcode("Research Points earned this turn: +%d%s" % [int(receipt.get("net", 0)),
+			" (%d %s)" % [int(receipt.get("gross", 0)), ", ".join(notes)] if not notes.is_empty() else ""])
 
 
 func _add_result_bbcode(text: String) -> void:

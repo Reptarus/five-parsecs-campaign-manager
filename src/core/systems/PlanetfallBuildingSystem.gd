@@ -167,12 +167,6 @@ func convert_rm_to_bp(
 	return actual
 
 
-func add_build_points(campaign: Resource, amount: int) -> void:
-	var bd: Dictionary = _get_buildings_data(campaign)
-	bd["current_bp"] = bd.get("current_bp", 0) + amount
-	_set_buildings_data(campaign, bd)
-
-
 func reclaim_building(
 		campaign: Resource, building_id: String) -> Dictionary:
 	## Destroy a building, receive half BP cost (rounded down) as Raw Materials.
@@ -215,12 +209,17 @@ func _apply_building_effect(
 		campaign: Resource, effect: Dictionary) -> void:
 	if effect.is_empty() or not campaign:
 		return
-	if effect.has("colony_integrity") and campaign.has_method("adjust_integrity"):
-		campaign.adjust_integrity(effect.get("colony_integrity", 0))
+	# p.87: an Integrity BONUS raises the maximum with the current score.
+	if effect.has("colony_integrity") and campaign.has_method("raise_integrity"):
+		campaign.raise_integrity(effect.get("colony_integrity", 0))
 	if effect.has("colony_morale") and campaign.has_method("adjust_morale"):
 		campaign.adjust_morale(effect.get("colony_morale", 0))
 	if effect.has("colony_defenses") and "colony_defenses" in campaign:
 		campaign.colony_defenses += effect.get("colony_defenses", 0)
+	# Colony Shield Network (p.87 mitigation). Read by take_colony_damage(); this key
+	# had no reader until 2026-10-27, so the building did nothing.
+	if effect.has("mitigate_colony_damage") and "colony_damage_mitigation" in campaign:
+		campaign.colony_damage_mitigation += int(effect.get("mitigate_colony_damage", 0))
 	if effect.has("repair_capacity") and "repair_capacity" in campaign:
 		campaign.repair_capacity += effect.get("repair_capacity", 0)
 	if effect.has("build_points_per_turn") and "build_points_per_turn" in campaign:

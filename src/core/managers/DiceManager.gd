@@ -142,6 +142,16 @@ func roll_d10(context: String = "D10 Roll") -> int:
 	dice_result_ready.emit(result, context)
 	return result
 
+## Added for Planetfall's 1D3 rolls: roll_custom() does not honour forcing, so a 1D3
+## routed through it could never be armed from the QA seam.
+func roll_d3(context: String = "D3 Roll") -> int:
+	var forced: int = _take_forced(context, 1, 3)
+	var result: int = forced if forced > 0 else randi_range(1, 3)
+	_record_roll(result, context, "D3 (forced)" if forced > 0 else "D3")
+	dice_roll_requested.emit(context, "D3")
+	dice_result_ready.emit(result, context)
+	return result
+
 ## Replace: randi() % 100 + 1
 func roll_d100(context: String = "D100 Roll") -> int:
 	var forced: int = _take_forced(context, 1, 100)
@@ -167,6 +177,17 @@ func roll_2d6(context: String = "2D6 Roll") -> int:
 	var result: int = forced if forced > 0 else randi_range(1, 6) + randi_range(1, 6)
 	_record_roll(result, context, "2D6 (forced)" if forced > 0 else "2D6")
 	dice_roll_requested.emit(context, "2D6")
+	dice_result_ready.emit(result, context)
+	return result
+
+## Added for the Planetfall p.88 Integrity Failure test, the one 3D6 roll in the books
+## this app runs. Its table is keyed 3-18, so a QA tester can arm any row of it.
+func roll_3d6(context: String = "3D6 Roll") -> int:
+	var forced: int = _take_forced(context, 3, 18)
+	var result: int = forced if forced > 0 \
+			else randi_range(1, 6) + randi_range(1, 6) + randi_range(1, 6)
+	_record_roll(result, context, "3D6 (forced)" if forced > 0 else "3D6")
+	dice_roll_requested.emit(context, "3D6")
 	dice_result_ready.emit(result, context)
 	return result
 

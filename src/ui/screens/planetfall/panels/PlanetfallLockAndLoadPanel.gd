@@ -37,6 +37,8 @@ var _force_limits: Dictionary = {}
 var _active_condition: Dictionary = {}
 var _slyn_attacking: bool = false
 var _opposition_type: String = ""
+## The chosen mission's type id ("pitched_battle" lifts the p.90 Protests sit-out).
+var _mission_id: String = ""
 
 var _title_label: Label
 var _roster_container: VBoxContainer
@@ -78,6 +80,8 @@ func set_mission_context(context: Dictionary) -> void:
 	_active_condition = context.get("active_condition", {})
 	_slyn_attacking = context.get("slyn_attacking", false)
 	_opposition_type = context.get("opposition_type", "")
+	var sel: Variant = context.get("selected_mission", {})
+	_mission_id = str((sel as Dictionary).get("id", "")) if sel is Dictionary else ""
 
 
 func refresh() -> void:
@@ -282,6 +286,10 @@ func _build_roster_list() -> void:
 		var cname: String = char_dict.get("name", "Unknown")
 		var cclass: String = char_dict.get("class", "")
 		var in_sick_bay: bool = _is_in_sick_bay(cid)
+		# p.90 Protests: the chosen trooper sits out this turn unless it is a Pitched
+		# Battle. The reason comes from the core, which owns the sit-out record.
+		var blocked: String = _campaign.deployment_block_reason(cid, _mission_id) \
+				if _campaign.has_method("deployment_block_reason") else ""
 
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", SPACING_SM)
@@ -290,13 +298,14 @@ func _build_roster_list() -> void:
 		# Deploy checkbox
 		var check := CheckBox.new()
 		check.text = ""
-		check.disabled = in_sick_bay
+		check.disabled = in_sick_bay or not blocked.is_empty()
 		check.toggled.connect(_on_deploy_toggled.bind(cid))
 		row.add_child(check)
 
 		# Name + class
 		var name_lbl := Label.new()
-		var status: String = " [SICK BAY]" if in_sick_bay else ""
+		var status: String = " [SICK BAY]" if in_sick_bay \
+				else (" [%s]" % blocked if not blocked.is_empty() else "")
 		name_lbl.text = "%s (%s)%s" % [cname, cclass.capitalize(), status]
 		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		name_lbl.add_theme_color_override(

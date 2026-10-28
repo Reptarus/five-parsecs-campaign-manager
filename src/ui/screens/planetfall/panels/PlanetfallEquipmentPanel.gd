@@ -166,7 +166,9 @@ func _build_weapon_list() -> void:
 
 		if not is_available:
 			var lock := Label.new()
-			lock.text = "LOCKED"
+			var reason: String = _armory.get_lock_reason(_campaign, wid)
+			lock.text = "LOCKED" if reason == "" else "LOCKED: %s" % reason
+			lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			lock.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lock.add_theme_color_override("font_color", COLOR_DANGER)
 			name_vbox.add_child(lock)

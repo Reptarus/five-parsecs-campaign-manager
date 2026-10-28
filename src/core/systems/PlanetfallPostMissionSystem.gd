@@ -81,20 +81,32 @@ func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> void:
 		return
 	var reward: Dictionary = find.get("reward", {})
 
-	if reward.has("research_points"):
-		var rd: Dictionary = campaign.research_data if "research_data" in campaign else {}
-		rd["current_rp"] = rd.get("current_rp", 0) + reward["research_points"]
-		if "research_data" in campaign:
-			campaign.research_data = rd
+	# One Find is one source. p.90: in a Crisis "every RP/BP/RM source gives 1 point
+	# less", so a Find's reward and its scientist/scout bonus are totalled per currency
+	# and reduced ONCE. These were written straight into the dictionaries before
+	# 2026-10-27, so a Crisis never reduced a Find; raw materials were reduced twice.
+	var rp: int = int(reward.get("research_points", 0))
+	var bp: int = int(reward.get("build_points", 0))
+	var rm: int = int(reward.get("raw_materials", 0))
+	for bonus_entry in find.get("applied_bonuses", []):
+		var bonus: Dictionary = bonus_entry.get("bonus", {})
+		rp += int(bonus.get("research_points", 0))
+		rm += int(bonus.get("raw_materials", 0))
+	var adjust := func(amount: int) -> int:
+		return campaign.crisis_adjusted_gain(amount) \
+				if amount > 0 and campaign.has_method("crisis_adjusted_gain") else amount
 
-	if reward.has("build_points"):
-		var bd: Dictionary = campaign.buildings_data if "buildings_data" in campaign else {}
-		bd["current_bp"] = bd.get("current_bp", 0) + reward["build_points"]
-		if "buildings_data" in campaign:
-			campaign.buildings_data = bd
+	if rp > 0 and "research_data" in campaign:
+		var rd: Dictionary = campaign.research_data
+		rd["current_rp"] = int(rd.get("current_rp", 0)) + adjust.call(rp)
 
-	if reward.has("raw_materials") and campaign.has_method("add_raw_materials"):
-		campaign.add_raw_materials(reward["raw_materials"])
+	if bp > 0 and "buildings_data" in campaign:
+		var bd: Dictionary = campaign.buildings_data
+		bd["current_bp"] = int(bd.get("current_bp", 0)) + adjust.call(bp)
+
+	# add_raw_materials applies the Crisis point itself, once per call.
+	if rm > 0 and campaign.has_method("add_raw_materials"):
+		campaign.add_raw_materials(rm)
 
 	if reward.has("story_points") and campaign.has_method("add_story_points"):
 		campaign.add_story_points(reward["story_points"])
@@ -105,15 +117,6 @@ func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> void:
 	if reward.has("ancient_signs") and "ancient_signs" in campaign:
 		for _i in range(reward["ancient_signs"]):
 			campaign.ancient_signs.append({})
-
-	# Apply bonuses
-	for bonus_entry in find.get("applied_bonuses", []):
-		var bonus: Dictionary = bonus_entry.get("bonus", {})
-		if bonus.has("research_points"):
-			var rd2: Dictionary = campaign.research_data if "research_data" in campaign else {}
-			rd2["current_rp"] = rd2.get("current_rp", 0) + bonus["research_points"]
-		if bonus.has("raw_materials") and campaign.has_method("add_raw_materials"):
-			campaign.add_raw_materials(bonus["raw_materials"])
 
 
 ## ============================================================================
@@ -279,12 +282,23 @@ func process_enemy_info_gain(campaign: Resource, enemy_index: int,
 ## DICE HELPERS
 ## ============================================================================
 
-func roll_d100() -> int:
-	return randi_range(1, 100)
+## Through DiceManager so the QA seam can force a Find; these were raw randi_range()
+## until 2026-10-27. RefCounted, so the autoload is reached through the main loop (a
+## bare get_node_or_null("/root/...") here ERRORS and aborts the roll).
+func roll_d100(context: String = "Planetfall Post-Mission Find") -> int:
+	var dm := _dice()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
 
 
-func roll_d6() -> int:
-	return randi_range(1, 6)
+func roll_d6(context: String = "Planetfall D6") -> int:
+	var dm := _dice()
+	return int(dm.roll_d6(context)) if dm else randi_range(1, 6)
+
+
+static func _dice() -> Node:
+	var loop := Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
 
 
 ## ============================================================================

@@ -170,6 +170,10 @@ func roll_final_breakthrough(campaign: Resource, roll: int) -> Dictionary:
 
 	# Apply immediate effects to campaign
 	if campaign:
+		# pp.161-163 name the Breakthrough an End Game bonus needs, so WHICH one was
+		# rolled is campaign state, not only that a fourth happened.
+		if "final_breakthrough" in campaign:
+			campaign.final_breakthrough = str(entry.get("id", ""))
 		var effects: Dictionary = entry.get("immediate_effect", {})
 
 		if effects.has("story_points") and campaign.has_method("add_story_points"):
@@ -195,10 +199,8 @@ func roll_final_breakthrough(campaign: Resource, roll: int) -> Dictionary:
 		if effects.has("ancient_sites"):
 			result["actions_needed"] = [{"action": "place_ancient_sites", "count": effects["ancient_sites"]}]
 
-		if effects.has("sleepers_lose_save"):
-			# Store flag on campaign for battle phase to read
-			if "progression" in campaign or true:
-				campaign.set_meta("sleepers_lose_save", true)
+		# "sleepers_lose_save" (Defense Network) is read off campaign.final_breakthrough.
+		# It was a set_meta() flag, which no save carries and nothing read.
 
 		if effects.has("reduce_all_hazard_levels"):
 			result["actions_needed"] = result.get("actions_needed", [])

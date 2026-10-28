@@ -207,9 +207,6 @@ func finalize() -> void:
 		"sectors": {}
 	})
 
-	# Initialize default colony equipment pool (standard weapons by class)
-	campaign.initialize_equipment_pool([])
-
 	# Start campaign
 	campaign.start_campaign()
 

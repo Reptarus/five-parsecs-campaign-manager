@@ -16,6 +16,13 @@ signal phase_completed(phase: int)
 signal campaign_turn_started(turn_number: int)
 signal campaign_turn_completed(turn_number: int)
 signal navigation_updated(can_back: bool, can_forward: bool)
+## p.90 Campaign Failure: "Unity forces move in to secure the site and take over
+## control." The turn stops; the controller shows the end screen.
+signal campaign_ended(reason: String)
+
+const ColonyCrisisScript := preload("res://src/core/systems/PlanetfallColonyCrisis.gd")
+const BattleNormalizerScript := preload(
+	"res://src/core/battle/PlanetfallBattleResultNormalizer.gd")
 
 enum Phase {
 	NONE = -1,
@@ -93,6 +100,20 @@ var turn_number: int = 0
 var _turn_casualties: int = 0
 var _turn_colony_damage: int = 0
 var _story_points_blocked: bool = false
+var _battle_result: Dictionary = {}
+## Step 11 / Step 16 receipts ({lines, ops}); non-empty means the step has resolved.
+## Persisted with the turn so a resume shows the result instead of rolling again.
+var _morale_receipt: Dictionary = {}
+var _integrity_receipt: Dictionary = {}
+## What the mission WAS, stamped before the battle (TurnController._launch_planetfall_
+## battle). The controller is rebuilt on the battle return and held this in memory
+## only, so before 2026-10-27 the post-battle steps had no mission id, no opposition
+## and no grunt count to read.
+var _mission_stamp: Dictionary = {}
+## Steps 9, 10 and 12 receipts by step name ({lines} at least). Same contract as the
+## two above: non-empty means resolved, persisted, never rolled again on a resume.
+var _step_receipts: Dictionary = {}
+var _crisis: ColonyCrisisScript
 
 var _phase_complete: Dictionary = {}
 
@@ -154,6 +175,10 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 	# Apply phase results to campaign
 	_apply_phase_results(current_phase, result_data)
 
+	if campaign and campaign.has_method("is_failed") and campaign.is_failed():
+		_end_failed_campaign()
+		return
+
 	# Advance or end turn
 	var next_phase: int = _get_next_phase(current_phase)
 	if next_phase != Phase.NONE:
@@ -182,6 +207,9 @@ func go_to_phase(phase: int) -> void:
 func _go_to_phase(phase: int) -> void:
 	previous_phase = current_phase
 	current_phase = phase
+	# Recorded BEFORE the signal: entering PLAY_OUT_MISSION navigates away and frees
+	# the turn controller, so nothing after the emit is guaranteed to run.
+	_persist_phase()
 	phase_changed.emit(previous_phase, current_phase)
 	_update_navigation()
 
@@ -194,6 +222,14 @@ func _get_next_phase(phase: int) -> int:
 
 
 func _complete_turn() -> void:
+	# The turn is over. Until 2026-10-27 the phase stayed on UPDATE_TRACKING, and the
+	# controller starts a turn only from NONE, so "Start Next Turn" re-completed step 18
+	# (a second turn-end save) and turn 2 never began in-session. Set before the save so
+	# the save records "between turns".
+	previous_phase = current_phase
+	current_phase = Phase.NONE
+	_persist_phase()
+
 	# Save campaign state after each turn
 	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") if Engine.get_main_loop() else null
 	if gs and gs.has_method("save_campaign"):
@@ -206,11 +242,331 @@ func _complete_turn() -> void:
 	_journal_log_turn_complete(turn_number)
 
 
+func _end_failed_campaign() -> void:
+	previous_phase = current_phase
+	current_phase = Phase.NONE
+	_persist_phase()
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") if Engine.get_main_loop() else null
+	if gs and gs.has_method("save_campaign"):
+		gs.save_campaign(campaign)
+	campaign_ended.emit("crisis_collapse")
+
+
 func _reset_turn_state() -> void:
 	_init_phase_completion()
 	_turn_casualties = 0
 	_turn_colony_damage = 0
 	_story_points_blocked = false
+	_battle_result = {}
+	_morale_receipt = {}
+	_integrity_receipt = {}
+	_mission_stamp = {}
+	_step_receipts = {}
+
+
+## ============================================================================
+## RESUME — the turn's position lives on the campaign (Planetfall p.58)
+## ============================================================================
+
+## Record what this turn's mission is, before the battle (see _mission_stamp).
+## stamp: id, mission_name, opposition_type, enemy_type, tactical_enemy_index,
+## grunts_deployed, deployed_ids.
+func stamp_mission(stamp: Dictionary) -> void:
+	_mission_stamp = stamp.duplicate(true)
+	_persist_phase()
+
+
+func get_mission_stamp() -> Dictionary:
+	return _mission_stamp
+
+
+## A Story Point may be spent: the colony has one and nothing this turn blocked them.
+func can_spend_story_point() -> bool:
+	return campaign != null and int(campaign.story_points) > 0 and not _story_points_blocked
+
+
+## The post-battle steps roll from this. It came only through temp_data, which a
+## save does not carry, so a resume at Injuries had no casualties to roll. It now
+## crosses PlanetfallBattleResultNormalizer, the one chokepoint that turns the battle
+## screen's figure lists and the stamp into the keys pp.66-68 read.
+func set_battle_result(result: Dictionary) -> void:
+	_battle_result = BattleNormalizerScript.normalize(
+			result.duplicate(true), _mission_stamp, _roster_snapshot(), {})
+	_turn_casualties = int(_battle_result.get("battle_casualty_count", 0))
+	_persist_phase()
+
+
+func get_battle_result() -> Dictionary:
+	return _battle_result
+
+
+## The player's debrief: what only the table knows (grunt casualties, Find rolls,
+## Mission Data, who killed a Boss or Leader, Cowardice, colonists lost). Applied IN
+## PLACE so every post-battle panel holding this dictionary sees it. Refused once
+## Step 9 has rolled, because the grunt count it carries has then been spent.
+func apply_battle_debrief(debrief: Dictionary) -> Dictionary:
+	if not campaign or _step_receipts.has("injuries"):
+		return _battle_result
+	BattleNormalizerScript.normalize(_battle_result, _mission_stamp, _roster_snapshot(),
+			debrief)
+	_turn_casualties = int(_battle_result.get("battle_casualty_count", 0))
+	_persist_phase()
+	return _battle_result
+
+
+## Resolve Step 9 ONCE and apply it (p.66).
+func resolve_injury_step() -> Dictionary:
+	if _step_receipts.has("injuries") or not campaign:
+		return _step_receipts.get("injuries", {})
+	var receipt: Dictionary = _crisis_resolver().resolve_injury_step({
+		"roster": _roster_snapshot(), "battle_result": _battle_result})
+	(receipt.lines as Array).append_array(_apply_stability_ops(receipt.ops))
+	_step_receipts["injuries"] = receipt
+	_persist_phase()
+	return receipt
+
+
+## Steps 10 and 12 resolve in the panel (XP is written to roster dicts, Finds and
+## intel through PlanetfallPostMissionSystem). The panel records what it did here, in
+## the same frame as the mutation, so a resume renders the receipt and rolls nothing.
+func record_step_receipt(step: String, lines: Array) -> void:
+	_step_receipts[step] = {"lines": lines.duplicate()}
+	_persist_phase()
+
+
+func get_step_receipt(step: String) -> Dictionary:
+	return _step_receipts.get(step, {})
+
+
+func _roster_snapshot() -> Array:
+	var roster: Array = []
+	if campaign and "roster" in campaign:
+		for c in campaign.roster:
+			if c is Dictionary:
+				roster.append(c)
+	return roster
+
+
+## This turn's battle casualties and the Colony Damage TAKEN so far. The post-battle
+## panels are three separate instances and only the Injuries one counts casualties, so
+## the Morale panel reads them here rather than from its own always-zero copy. The
+## damage is informational: p.87/p.89 charge Morale when it is taken.
+func get_morale_inputs() -> Dictionary:
+	return {"casualties": _turn_casualties, "colony_damage": _turn_colony_damage}
+
+
+## ============================================================================
+## STEP 11 / STEP 16 — the colony's stability (pp.68, 87-90)
+## ============================================================================
+
+func _crisis_resolver() -> ColonyCrisisScript:
+	if _crisis == null:
+		_crisis = ColonyCrisisScript.new()
+	return _crisis
+
+
+## What Step 11 will do, for the panel to show before the player commits a Story
+## Point: {in_crisis, change, before, after, incident, story_points, can_spend}.
+func preview_morale_step() -> Dictionary:
+	var ctx: Dictionary = _stability_context()
+	var change: int = 0 if ctx.in_crisis else ColonyCrisisScript.morale_change(
+			int(ctx.casualties), str(ctx.mission_id), int(ctx.colonists_lost))
+	var after: int = int(ctx.morale) + change
+	return {
+		"in_crisis": ctx.in_crisis,
+		"change": change,
+		"before": int(ctx.morale),
+		"after": after,
+		"incident": not ctx.in_crisis and after <= _crisis_resolver().incident_threshold(),
+		"upheaval": int(ctx.upheaval),
+		"story_points": int(ctx.story_points),
+		"can_spend": int(ctx.story_points) > 0 and not _story_points_blocked,
+		"colonist_demands": bool(ctx.colonist_demands),
+		"resolved": not _morale_receipt.is_empty(),
+	}
+
+
+## Resolve Step 11 ONCE and apply it. options: personal_appeals, crisis_reroll,
+## supervisors (character ids). A second call returns the first receipt.
+func resolve_morale_step(options: Dictionary = {}) -> Dictionary:
+	if not _morale_receipt.is_empty() or not campaign:
+		return _morale_receipt
+	var ctx: Dictionary = _stability_context()
+	ctx.merge(options, true)
+	var receipt: Dictionary = _crisis_resolver().resolve_morale_step(ctx)
+	(receipt.lines as Array).append_array(_apply_stability_ops(receipt.ops))
+	_morale_receipt = receipt
+	_persist_phase()
+	return receipt
+
+
+## Resolve Step 16 ONCE and apply it. options: emergency_repairs.
+func resolve_integrity_step(options: Dictionary = {}) -> Dictionary:
+	if not _integrity_receipt.is_empty() or not campaign:
+		return _integrity_receipt
+	var ctx: Dictionary = _stability_context()
+	ctx.merge(options, true)
+	var receipt: Dictionary = _crisis_resolver().resolve_integrity_step(ctx)
+	(receipt.lines as Array).append_array(_apply_stability_ops(receipt.ops))
+	_integrity_receipt = receipt
+	_persist_phase()
+	return receipt
+
+
+func get_morale_receipt() -> Dictionary:
+	return _morale_receipt
+
+
+func get_integrity_receipt() -> Dictionary:
+	return _integrity_receipt
+
+
+func _stability_context() -> Dictionary:
+	var roster: Array = []
+	for c in campaign.roster:
+		if c is Dictionary:
+			roster.append(c)
+	var owned: Array = campaign.research_data.get("augmentations_owned", []) \
+			if campaign.research_data is Dictionary else []
+	return {
+		"morale": int(campaign.colony_morale),
+		"integrity": int(campaign.colony_integrity),
+		"casualties": _turn_casualties,
+		"colonists_lost": int(_battle_result.get("colonists_lost", 0)),
+		"mission_id": str(_battle_result.get("mission_id", "")),
+		"mission_played": not _battle_result.is_empty(),
+		"mission_won": bool(_battle_result.get("won", false)),
+		"upheaval": int(campaign.political_upheaval),
+		"in_crisis": bool(campaign.in_crisis),
+		"colonist_demands": bool(campaign.colonist_demands),
+		"story_points": int(campaign.story_points),
+		"story_points_blocked": _story_points_blocked,
+		"turn": int(campaign.campaign_turn),
+		"roster": roster,
+		"psionic_cohesion": owned.has("psionic_cohesion"),
+	}
+
+
+## The one place a Step 11 / Step 16 result reaches the campaign. Returns the lines
+## only the application can know (mitigation, the Loyalty level reached).
+func _apply_stability_ops(ops: Array) -> Array:
+	var notes: Array = []
+	for op in ops:
+		if not op is Dictionary:
+			continue
+		match str(op.get("op", "")):
+			"morale_adjust":
+				campaign.adjust_morale(int(op.get("amount", 0)))
+			"morale_set":
+				campaign.set_morale(int(op.get("value", 0)))
+			"story_point":
+				campaign.spend_story_point()
+			"upheaval":
+				campaign.change_political_upheaval(int(op.get("amount", 0)))
+			"upheaval_set":
+				campaign.set_political_upheaval(int(op.get("value", 0)))
+			"crisis":
+				campaign.set_crisis(bool(op.get("active", false)))
+			"campaign_failure":
+				campaign.fail_campaign()
+			"colony_damage":
+				var res: Dictionary = campaign.take_colony_damage(
+						int(op.get("amount", 0)), bool(op.get("mitigable", true)))
+				_turn_colony_damage += int(res.get("taken", 0))
+				notes.append("Colony Damage taken: %d%s. Integrity is now %d." % [
+						int(res.get("taken", 0)),
+						" (%d mitigated)" % int(res.mitigated) if int(res.get("mitigated", 0)) > 0 else "",
+						int(campaign.colony_integrity)])
+			"income_penalty":
+				campaign.add_income_penalty(int(op.get("turn", 0)),
+						int(op.get("bp", 0)), int(op.get("rp", 0)))
+			"injury":
+				campaign.add_to_sick_bay(str(op.get("character_id", "")), int(op.get("turns", 0)))
+			"slain":
+				campaign.slay_character(str(op.get("character_id", "")))
+			"xp":
+				campaign.award_xp(str(op.get("character_id", "")), int(op.get("amount", 0)))
+			"loyalty_loss":
+				var lv: Dictionary = campaign.lower_loyalty(str(op.get("character_id", "")))
+				if not lv.is_empty():
+					notes.append("%s: Loyalty %s -> %s." % [lv.name,
+							str(lv.from).capitalize(), str(lv.to).capitalize()])
+			"protest":
+				campaign.mark_protest_pending()
+			"colonist_demands":
+				campaign.set_colonist_demands(bool(op.get("active", false)))
+			"bot_broken":
+				campaign.break_bot()
+			"grunt_lost":
+				campaign.lose_grunt()
+	return notes
+
+
+## A step's REPORTED Colony Damage: `colony_damage` can be mitigated by buildings,
+## `colony_damage_unmitigable` cannot (Catastrophic malfunction, p.63).
+func _take_reported_damage(data: Dictionary) -> void:
+	if not campaign.has_method("take_colony_damage"):
+		return
+	for key in ["colony_damage", "colony_damage_unmitigable"]:
+		var amount: int = int(data.get(key, 0))
+		if amount > 0:
+			var res: Dictionary = campaign.take_colony_damage(
+					amount, key == "colony_damage")
+			_turn_colony_damage += int(res.get("taken", 0))
+
+
+## p.90 Protests: the player picks the trooper who sits out next turn.
+func assign_protest(character_id: String) -> void:
+	if campaign and campaign.has_method("assign_protest"):
+		campaign.assign_protest(character_id)
+
+
+## Restore the turn-scoped state and return the step a resume should open on.
+## PHASE_UNRECORDED (a save older than the field) keeps the old answer, RECOVERY.
+## LOCK_AND_LOAD and PLAY_OUT_MISSION fall back to MISSION_DETERMINATION: the chosen
+## mission and the deployment are held by the controller in memory only, and neither
+## of those steps writes the campaign, so redoing them repeats no effect.
+func restore_from_campaign() -> int:
+	if not campaign or not campaign.has_method("has_recorded_turn_phase"):
+		return Phase.RECOVERY
+	var state: Dictionary = campaign.turn_state if campaign.turn_state is Dictionary else {}
+	_turn_casualties = int(state.get("casualties", 0))
+	_turn_colony_damage = int(state.get("colony_damage", 0))
+	_story_points_blocked = bool(state.get("story_points_blocked", false))
+	var br: Variant = state.get("battle_result", {})
+	_battle_result = (br as Dictionary).duplicate(true) if br is Dictionary else {}
+	var mr: Variant = state.get("morale_receipt", {})
+	_morale_receipt = (mr as Dictionary).duplicate(true) if mr is Dictionary else {}
+	var ir: Variant = state.get("integrity_receipt", {})
+	_integrity_receipt = (ir as Dictionary).duplicate(true) if ir is Dictionary else {}
+	var ms: Variant = state.get("mission_stamp", {})
+	_mission_stamp = (ms as Dictionary).duplicate(true) if ms is Dictionary else {}
+	var sr: Variant = state.get("step_receipts", {})
+	_step_receipts = (sr as Dictionary).duplicate(true) if sr is Dictionary else {}
+	if not campaign.has_recorded_turn_phase():
+		return Phase.RECOVERY
+	var phase: int = int(campaign.turn_phase)
+	if phase == Phase.LOCK_AND_LOAD or phase == Phase.PLAY_OUT_MISSION:
+		return Phase.MISSION_DETERMINATION
+	if phase < Phase.NONE or phase > Phase.UPDATE_TRACKING:
+		return Phase.RECOVERY
+	for i in range(maxi(phase, 0)):
+		_phase_complete[i] = true
+	return phase
+
+
+func _persist_phase() -> void:
+	if campaign and campaign.has_method("record_turn_phase"):
+		campaign.record_turn_phase(current_phase, {
+			"casualties": _turn_casualties,
+			"colony_damage": _turn_colony_damage,
+			"story_points_blocked": _story_points_blocked,
+			"battle_result": _battle_result,
+			"morale_receipt": _morale_receipt,
+			"integrity_receipt": _integrity_receipt,
+			"mission_stamp": _mission_stamp,
+			"step_receipts": _step_receipts,
+		})
 
 
 func _init_phase_completion() -> void:
@@ -250,14 +606,17 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			pass
 
 		Phase.ENEMY_ACTIVITY:
-			# Enemy activity effects applied by panel or auto-resolve
-			if data.has("colony_damage"):
-				_turn_colony_damage += data.get("colony_damage", 0)
-				if campaign.has_method("adjust_integrity"):
-					campaign.adjust_integrity(-data.get("colony_damage", 0))
+			# Enemy activity effects applied by panel or auto-resolve; Colony Damage
+			# is applied here so mitigation and its Morale cost happen once (p.87).
+			# p.61 Waiting for the Right Moment: the Story Point is spent HERE, on
+			# completion, so a resume of the step cannot spend it and then roll anyway.
+			if bool(data.get("waited", false)) and can_spend_story_point():
+				campaign.spend_story_point()
+			_take_reported_damage(data)
 
 		Phase.COLONY_EVENTS:
-			# Colony event effects applied by panel
+			# Colony event effects applied by panel, except Colony Damage (as above).
+			_take_reported_damage(data)
 			if data.has("story_points_blocked"):
 				_story_points_blocked = data.get("story_points_blocked", false)
 
@@ -274,23 +633,21 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			pass
 
 		Phase.INJURIES:
-			# Injury processing
-			if data.has("casualties_count"):
-				_turn_casualties = data.get("casualties_count", 0)
-			if data.has("grunt_losses"):
-				var losses: int = data.get("grunt_losses", 0)
-				for i in range(losses):
-					if campaign.has_method("lose_grunt"):
-						campaign.lose_grunt()
+			# p.66. The panel resolves it on its button, after the debrief; a step
+			# completed without that press still rolls here, once. The Step 11 casualty
+			# count is NOT taken from the panel any more: it is fixed at the battle by
+			# the normalizer (battle_casualty_count), before any injury roll.
+			resolve_injury_step()
 
 		Phase.EXPERIENCE:
 			# XP distribution handled by panel writing to roster dicts
 			pass
 
 		Phase.MORALE_ADJUSTMENTS:
-			# Automatic morale adjustments (Planetfall p.68)
-			if campaign.has_method("apply_morale_adjustments"):
-				campaign.apply_morale_adjustments(_turn_casualties, _turn_colony_damage)
+			# p.68 Step 11. The panel resolves it when the player presses its button
+			# (so a Story Point can be offered first); a step completed without that
+			# press still resolves here, and resolve_morale_step() runs only once.
+			resolve_morale_step()
 
 		Phase.TRACK_ENEMY_INFO:
 			# Enemy info + mission data counters updated by panel
@@ -309,8 +666,8 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			pass
 
 		Phase.COLONY_INTEGRITY:
-			# Integrity failure check handled by panel
-			pass
+			# pp.87-88 Step 16, resolved once, as Step 11.
+			resolve_integrity_step()
 
 		Phase.CHARACTER_EVENT:
 			# Character event effects applied by panel

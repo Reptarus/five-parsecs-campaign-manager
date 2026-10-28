@@ -90,7 +90,8 @@ func _apply_import(pf_char: Dictionary) -> void:
 func _on_muster_out_pressed() -> void:
 	if not _campaign or not "roster" in _campaign:
 		return
-	var roster: Array = _campaign.roster
+	var roster: Array = _campaign.get_musterable_roster() \
+			if _campaign.has_method("get_musterable_roster") else _campaign.roster
 	if roster.is_empty():
 		return
 	# Lightweight full-screen picker: each colonist row offers two destinations.
@@ -101,7 +102,8 @@ func _on_muster_out_pressed() -> void:
 func _do_muster_out(char_data: Dictionary, target_mode: String, overlay: Node) -> void:
 	# Stamp the campaign ending so end-of-campaign bonuses apply (empty mid-campaign).
 	var c: Dictionary = char_data.duplicate(true)
-	c["planetfall_ending"] = str(_campaign.endgame_path) if "endgame_path" in _campaign else ""
+	c["planetfall_ending"] = _campaign.get_planetfall_ending() \
+			if _campaign.has_method("get_planetfall_ending") else ""
 
 	var svc = CharacterTransferService.new()
 	var envelope: Dictionary = svc.transfer_character(c, "planetfall", target_mode)
@@ -297,7 +299,10 @@ func _build_dashboard() -> void:
 	var gp: String = _campaign.game_phase if "game_phase" in _campaign else ""
 	var is_endgame: bool = gp == "endgame"
 	var is_completed: bool = gp == "completed"
-	if is_endgame:
+	if gp == "failed":
+		continue_card.setup("", "Campaign Failure",
+			"Unity forces have taken control of the colony (p.90)")
+	elif is_endgame:
 		continue_card.setup("", "Enter End Game",
 			"The 7th Milestone has been achieved")
 	elif is_completed:

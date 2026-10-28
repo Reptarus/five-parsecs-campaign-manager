@@ -44,9 +44,32 @@ var _pending_qol_data: Dictionary = {}
 @export var game_phase: String = "creation"  # "creation", "tutorial", "active", "endgame", "completed"
 @export var campaign_turn: int = 0
 
+## Where the 18-step turn (Planetfall p.58) stands, so a resume lands on the step the
+## player left instead of replaying Recovery onward and re-applying every completed
+## step. -1 is the phase manager's NONE (between turns); PHASE_UNRECORDED marks a save
+## written before this field existed, which resumes as it always did.
+const PHASE_UNRECORDED := -2
+var turn_phase: int = PHASE_UNRECORDED
+## Turn-scoped facts the steps hand forward and nothing else keeps: the casualties and
+## colony damage Morale reads (p.68), the Story Point block a Colony Event sets, and
+## the battle result the post-battle steps (pp.66-68) roll from.
+var turn_state: Dictionary = {}
+
+
+func record_turn_phase(phase: int, state: Dictionary) -> void:
+	turn_phase = phase
+	turn_state = state.duplicate(true)
+
+
+func has_recorded_turn_phase() -> bool:
+	return turn_phase != PHASE_UNRECORDED
+
 ## Colony Statistics (Planetfall p.55, Colony Tracking Sheet p.190)
 @export var colony_morale: int = 0
 @export var colony_integrity: int = 0
+## p.87: the score repairs restore Integrity up to. 0 for a new colony; each
+## Integrity bonus raises it together with the current score (raise_integrity).
+@export var max_colony_integrity: int = 0
 @export var build_points_per_turn: int = 1
 @export var research_points_per_turn: int = 1
 @export var repair_capacity: int = 1
@@ -73,8 +96,39 @@ var _pending_qol_data: Dictionary = {}
 ## End Game path selected (Planetfall pp.160-164)
 @export var endgame_path: String = ""
 
+## The Fourth Mission Data Breakthrough rolled on the p.169 table (an id from
+## mission_data_breakthroughs.json, "" until rolled). Only a COUNT was kept before
+## 2026-10-27, so no End Game bonus that names a Breakthrough (pp.161-163) could apply.
+@export var final_breakthrough: String = ""
+
+## End Game progress (pp.160-163): {stage, summit, result}. The Summit votes and the
+## stage were held on the panel, so a relaunch re-held the Summit with fresh dice.
+var endgame_state: Dictionary = {}
+
 ## Bot state (1 per campaign — Planetfall p.17)
 @export var bot_operational: bool = true
+## p.59: a Broken bot "is repaired at this stage but cannot be deployed into combat
+## this turn" -- the turn it was repaired on, or -1.
+@export var bot_repaired_turn: int = -1
+## p.61 Disruption, see disrupt_enemy().
+var disrupted_enemies: Dictionary = {}
+
+## Colony stability (pp.87-90). Political Upheaval rises once per Morale Incident; a
+## Crisis fixes Morale at 0 and costs 1 point from every RP/BP/RM source.
+@export var political_upheaval: int = 0
+@export var in_crisis: bool = false
+## p.90 Colonist demands (Morale Incident 56-75): lasts until a supervisor rolls 5+.
+@export var colonist_demands: bool = false
+## p.90 Protests (Morale Incident 11-25): {character_id, turn} of the trooper sitting
+## out; protest_pending until the player has chosen one.
+var protest_sitout: Dictionary = {}
+var protest_pending: bool = false
+## p.87 mitigation per instance of Colony Damage (Colony Shield Network grants 1).
+@export var colony_damage_mitigation: int = 0
+## {"<turn>": {bp, rp}}: earned-income penalties (pp.88, 90).
+var income_penalties: Dictionary = {}
+## {"bp": turn, "rp": turn}: the turn each per-turn income was last credited.
+var income_credited: Dictionary = {}
 
 ## Character roster (Array of Dictionaries — lightweight, like Bug Hunt)
 ## Dict keys: id, name, class, subspecies, reactions, speed, combat_skill,
@@ -82,8 +136,10 @@ var _pending_qol_data: Dictionary = {}
 ## notable_event, abilities, is_imported, source_campaign
 var roster: Array = []
 
-## Equipment pool — central colony store, NOT per-character (Planetfall p.23)
-var equipment_pool: Array = []
+## There is no equipment pool to store. p.23's "central equipment store" is assigned at
+## Lock and Load, and p.76 makes it available "in any quantity needed", so the store is
+## the Armory's availability rule (PlanetfallArmorySystem), not a list. An
+## `equipment_pool` array stood here until 2026-10-27, written once as [] and never read.
 
 ## Grunt upgrades unlocked (Array of upgrade IDs — Planetfall p.79)
 var grunt_upgrades: Array = []
@@ -225,23 +281,62 @@ func initialize_map(data: Dictionary) -> void:
 	_update_modified_time()
 
 
-func initialize_equipment_pool(weapons: Array) -> void:
-	equipment_pool = weapons.duplicate(true)
-	_update_modified_time()
-
-
 ## ============================================================================
 ## COLONY MANAGEMENT
 ## ============================================================================
 
+## p.90: "While in Crisis, Colony Morale is fixed at 0 and cannot be changed for any
+## reason. All modifiers are ignored." Every Morale change goes through here.
 func adjust_morale(amount: int) -> void:
+	if in_crisis:
+		return
 	colony_morale += amount
 	_update_modified_time()
 
 
+## A Morale RESET, not a modifier: p.89 "Morale is set back to 0" after an Incident,
+## and p.90 "Political upheaval and Morale are set to 0" when a Crisis ends.
+func set_morale(value: int) -> void:
+	colony_morale = value
+	_update_modified_time()
+
+
+## Changes to the CURRENT score only. Colony Damage is take_colony_damage(), an
+## Integrity bonus is raise_integrity(), a repair is repair_colony().
 func adjust_integrity(amount: int) -> void:
 	colony_integrity += amount
 	_update_modified_time()
+
+
+## One instance of Colony Damage (p.87). Buildings mitigate it unless the source says
+## it cannot be mitigated (Colony Shield Network: "Mitigate 1 Colony Damage each time
+## you receive Colony Damage"). Only the damage TAKEN lowers Morale: "Any time
+## Integrity drops for any reason, Colony Morale drops by the same amount ... Damage
+## that is mitigated ... does not affect Morale." Returns {taken, mitigated}.
+func take_colony_damage(amount: int, mitigable: bool = true) -> Dictionary:
+	if amount <= 0:
+		return {"taken": 0, "mitigated": 0}
+	var mitigated: int = mini(amount, maxi(colony_damage_mitigation, 0)) if mitigable else 0
+	var taken: int = amount - mitigated
+	colony_integrity -= taken
+	adjust_morale(-taken)
+	_update_modified_time()
+	return {"taken": taken, "mitigated": mitigated}
+
+
+## p.87: "If you get a bonus to Integrity during the campaign, you increase both the
+## maximum Integrity score and the current value." Buildings, research and milestone
+## bonuses all went through adjust_integrity() until 2026-10-27, so no maximum was
+## ever recorded and repairs stopped at 0 however much the colony had built.
+func raise_integrity(amount: int) -> void:
+	max_colony_integrity += amount
+	colony_integrity += amount
+	_update_modified_time()
+
+
+## How far Integrity is below its maximum: the damage a repair may restore (p.87).
+func integrity_damage() -> int:
+	return maxi(0, max_colony_integrity - colony_integrity)
 
 
 func spend_raw_materials(amount: int) -> bool:
@@ -253,8 +348,211 @@ func spend_raw_materials(amount: int) -> bool:
 
 
 func add_raw_materials(amount: int) -> void:
-	raw_materials += amount
+	raw_materials += crisis_adjusted_gain(amount)
 	_update_modified_time()
+
+
+## p.90: "All sources of Research Points, Build Points, or Raw Materials provide 1 point
+## less than usual during a Crisis." Applied once per source, where it is credited.
+func crisis_adjusted_gain(amount: int) -> int:
+	if in_crisis and amount > 0:
+		return amount - 1
+	return amount
+
+
+## ============================================================================
+## PER-TURN INCOME (Steps 14 and 15)
+## ============================================================================
+
+## Credit this turn's Build ("bp") or Research ("rp") Points ONCE. The panels credited
+## income in refresh(), which runs again on a resume, so a reload paid the turn twice.
+## A penalty "only affects points earned, not any stored or already spent" (p.88), so
+## it reduces this income and never the pool. Returns {gross, penalty, crisis, net,
+## already}.
+func claim_turn_income(kind: String) -> Dictionary:
+	var gross: int = build_points_per_turn if kind == "bp" else research_points_per_turn
+	var receipt := {"gross": gross, "penalty": 0, "crisis": 0, "net": 0, "already": false}
+	if int(income_credited.get(kind, -1)) == campaign_turn:
+		receipt.already = true
+		return receipt
+	var pen: Dictionary = income_penalties.get(str(campaign_turn), {})
+	receipt.penalty = mini(int(pen.get(kind, 0)), gross)
+	var after_penalty: int = gross - int(receipt.penalty)
+	receipt.net = crisis_adjusted_gain(after_penalty)
+	receipt.crisis = after_penalty - int(receipt.net)
+	income_credited[kind] = campaign_turn
+	if kind == "bp":
+		buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + int(receipt.net)
+	else:
+		research_data["current_rp"] = int(research_data.get("current_rp", 0)) + int(receipt.net)
+	_update_modified_time()
+	return receipt
+
+
+## pp.88/90: Integrity Failure 6/11/12 hit NEXT turn's income, Work stoppage this one.
+func add_income_penalty(turn: int, bp: int, rp: int) -> void:
+	var key: String = str(turn)
+	var pen: Dictionary = income_penalties.get(key, {"bp": 0, "rp": 0})
+	pen["bp"] = int(pen.get("bp", 0)) + maxi(bp, 0)
+	pen["rp"] = int(pen.get("rp", 0)) + maxi(rp, 0)
+	income_penalties[key] = pen
+	for k in income_penalties.keys():
+		if int(k) < campaign_turn:
+			income_penalties.erase(k)
+	_update_modified_time()
+
+
+## ============================================================================
+## MORALE INCIDENT STATE (p.90)
+## ============================================================================
+
+## "loses one level of Loyalty": Loyal -> Committed -> Disloyal, never below Disloyal
+## (p.24 lists the three stages; the p.71 Disputes event says it "cannot drop below
+## Disloyal"). Returns {name, from, to}; from == to when already Disloyal.
+func lower_loyalty(character_id: String) -> Dictionary:
+	var c: Variant = get_roster_character_by_id(character_id)
+	if not c is Dictionary:
+		return {}
+	var from: String = str(c.get("loyalty", "committed")).to_lower()
+	var to: String = "committed" if from == "loyal" else "disloyal"
+	c["loyalty"] = to
+	_update_modified_time()
+	return {"name": str(c.get("name", character_id)), "from": from, "to": to}
+
+
+## The ending a mustered-out veteran carries into another mode (pp.164-166), in the
+## transfer matrix's vocabulary: "independence_won" / "independence_lost" / "loyalty" /
+## "isolation" / "ascension". "" until the End Game is RESOLVED: a chosen path is not an
+## ending, and the dashboard stamped endgame_path ("independence", which matches no
+## matrix row) before 2026-10-27.
+func get_planetfall_ending() -> String:
+	if str(game_phase) != "completed":
+		return ""
+	var result: Variant = endgame_state.get("result", {})
+	if result is Dictionary and str(result.get("ending_id", "")) != "":
+		return str(result.get("ending_id", ""))
+	# A save resolved before the result was recorded: the path id IS the ending for
+	# every path but Independence, whose won/lost split it cannot tell.
+	return "" if endgame_path == "independence" else endgame_path
+
+
+## p.164: after a lost War only "characters that escaped captivity" go on to another
+## campaign, so an arrested colonist cannot muster out.
+func get_musterable_roster() -> Array:
+	var out: Array = []
+	for c in roster:
+		if c is Dictionary and not bool(c.get("arrested", false)):
+			out.append(c)
+	return out
+
+
+## A character who dies leaves the roster and every turn record that names them.
+func slay_character(character_id: String) -> void:
+	remove_roster_character(character_id)
+	sick_bay.erase(character_id)
+	if str(protest_sitout.get("character_id", "")) == character_id:
+		protest_sitout = {}
+	_update_modified_time()
+
+
+func award_xp(character_id: String, amount: int) -> void:
+	var c: Variant = get_roster_character_by_id(character_id)
+	if c is Dictionary:
+		c["xp"] = int(c.get("xp", 0)) + amount
+		_update_modified_time()
+
+
+## p.89: +1 per roll on the Morale Incident table; p.90 Crisis Outcomes move it both ways.
+func change_political_upheaval(amount: int) -> void:
+	political_upheaval = maxi(0, political_upheaval + amount)
+	_update_modified_time()
+
+
+func set_political_upheaval(value: int) -> void:
+	political_upheaval = maxi(0, value)
+	_update_modified_time()
+
+
+## Entering a Crisis fixes Morale at 0 (p.90); leaving one leaves it where it was set.
+func set_crisis(active: bool) -> void:
+	in_crisis = active
+	if active:
+		colony_morale = 0
+	_update_modified_time()
+
+
+func set_colonist_demands(active: bool) -> void:
+	colonist_demands = active
+	_update_modified_time()
+
+
+func mark_protest_pending() -> void:
+	protest_pending = true
+	_update_modified_time()
+
+
+## p.90 Protests: "Select a trooper that is unable to undertake any missions next
+## campaign turn. If you have to fight a Pitched Battle ... the trooper can take part".
+func assign_protest(character_id: String) -> void:
+	protest_pending = false
+	protest_sitout = {"character_id": character_id, "turn": campaign_turn + 1}
+	_update_modified_time()
+
+
+## p.68 Step 12: a Tactical Enemy beaten in battle "cannot take an action next
+## campaign turn", which p.61 Disruption enforces at Enemy Activity (except the
+## Converted). Tactical enemy index (as a String key: JSON) -> the turn it sits out.
+func disrupt_enemy(enemy_index: int) -> void:
+	disrupted_enemies[str(enemy_index)] = campaign_turn + 1
+	_update_modified_time()
+
+
+func is_enemy_disrupted(enemy_index: int) -> bool:
+	return int(disrupted_enemies.get(str(enemy_index), -1)) == campaign_turn
+
+
+## p.66: "any bot that became a casualty is marked 'Broken' on your campaign roster
+## and cannot be used until repaired."
+func break_bot() -> void:
+	bot_operational = false
+	_update_modified_time()
+
+
+## p.59 Repairs: a Broken bot "is repaired at this stage but cannot be deployed into
+## combat this turn". Returns whether there was anything to repair.
+func repair_bot() -> bool:
+	if bot_operational:
+		return false
+	bot_operational = true
+	bot_repaired_turn = campaign_turn
+	_update_modified_time()
+	return true
+
+
+## Why this character may not deploy on this mission, or "" if they may.
+func deployment_block_reason(character_id: String, mission_id: String) -> String:
+	var who: Variant = get_roster_character_by_id(character_id)
+	if who is Dictionary and str(who.get("class", "")) == "bot":
+		if not bot_operational:
+			return "BROKEN"
+		if bot_repaired_turn == campaign_turn:
+			return "REPAIRED THIS TURN"
+	if protest_sitout.is_empty() or mission_id == "pitched_battle":
+		return ""
+	if str(protest_sitout.get("character_id", "")) == character_id \
+			and int(protest_sitout.get("turn", -1)) == campaign_turn:
+		return "PROTESTS"
+	return ""
+
+
+## p.90: "Unity forces move in to secure the site and take over control."
+func fail_campaign() -> void:
+	game_phase = "failed"
+	_update_modified_time()
+
+
+func is_failed() -> bool:
+	return game_phase == "failed"
 
 
 func spend_story_point() -> bool:
@@ -352,6 +650,8 @@ func mark_enemy_defeated(enemy_index: int) -> void:
 		var enemy: Variant = tactical_enemies[enemy_index]
 		if enemy is Dictionary:
 			enemy["defeated"] = true
+			# p.51: "all occupied sectors are abandoned immediately."
+			enemy["occupied_sectors"] = []
 		if enemy_index not in defeated_enemies:
 			defeated_enemies.append(enemy_index)
 		_update_modified_time()
@@ -411,18 +711,8 @@ func add_mission_data_points(amount: int) -> void:
 ## TURN-STEP HELPERS (used by PlanetfallPhaseManager + panels)
 ## ============================================================================
 
-func apply_morale_adjustments(casualties: int, colony_damage: int) -> void:
-	## Step 11: Automatic morale changes (Planetfall p.68).
-	## -1 per turn, -1 per battle casualty, -1 per colony damage this turn.
-	var total: int = -1 - casualties - colony_damage
-	colony_morale += total
-	_update_modified_time()
-
-
-func check_colony_integrity() -> bool:
-	## Step 16: Returns true if integrity failure test is needed (≤ -3).
-	## Planetfall p.69, p.87.
-	return colony_integrity <= -3
+## Step 11 and Step 16 are resolved by PlanetfallColonyCrisis and applied by
+## PlanetfallPhaseManager.resolve_morale_step() / resolve_integrity_step().
 
 
 func apply_colony_event(event_data: Dictionary) -> void:
@@ -430,19 +720,13 @@ func apply_colony_event(event_data: Dictionary) -> void:
 	## Panels will call specific mutation methods; this is a convenience stub
 	## for events that only need simple stat changes.
 	if event_data.has("colony_morale"):
-		colony_morale += event_data.get("colony_morale", 0)
+		adjust_morale(int(event_data.get("colony_morale", 0)))
 	if event_data.has("research_points"):
-		var rp: int = event_data.get("research_points", 0)
-		if research_data.has("current_rp"):
-			research_data["current_rp"] += rp
-		else:
-			research_data["current_rp"] = rp
+		var rp: int = crisis_adjusted_gain(int(event_data.get("research_points", 0)))
+		research_data["current_rp"] = int(research_data.get("current_rp", 0)) + rp
 	if event_data.has("build_points"):
-		var bp: int = event_data.get("build_points", 0)
-		if buildings_data.has("current_bp"):
-			buildings_data["current_bp"] += bp
-		else:
-			buildings_data["current_bp"] = bp
+		var bp: int = crisis_adjusted_gain(int(event_data.get("build_points", 0)))
+		buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + bp
 	if event_data.has("ancient_signs"):
 		for _i in range(event_data.get("ancient_signs", 0)):
 			ancient_signs.append({})
@@ -451,19 +735,13 @@ func apply_colony_event(event_data: Dictionary) -> void:
 	_update_modified_time()
 
 
-func apply_enemy_activity(activity_data: Dictionary) -> void:
-	## Apply enemy activity effects (Step 4). Planetfall p.62.
-	## Colony damage from raids is the primary effect.
-	if activity_data.has("colony_damage"):
-		var dmg: int = activity_data.get("colony_damage", 0)
-		colony_integrity -= dmg
+func repair_colony(points: int) -> int:
+	## Step 2: Restore colony integrity. Planetfall p.59. Returns the points restored:
+	## p.87 "Repairs can never increase Integrity above the maximum value".
+	var repaired: int = mini(maxi(points, 0), integrity_damage())
+	colony_integrity += repaired
 	_update_modified_time()
-
-
-func repair_colony(points: int) -> void:
-	## Step 2: Restore colony integrity. Planetfall p.59.
-	colony_integrity += points
-	_update_modified_time()
+	return repaired
 
 
 ## ============================================================================
@@ -585,6 +863,7 @@ func to_dictionary() -> Dictionary:
 		"colony": {
 			"colony_morale": colony_morale,
 			"colony_integrity": colony_integrity,
+			"max_colony_integrity": max_colony_integrity,
 			"build_points_per_turn": build_points_per_turn,
 			"research_points_per_turn": research_points_per_turn,
 			"repair_capacity": repair_capacity,
@@ -593,22 +872,35 @@ func to_dictionary() -> Dictionary:
 			"story_points": story_points,
 			"augmentation_points": augmentation_points,
 			"grunts": grunts,
-			"bot_operational": bot_operational
+			"bot_operational": bot_operational,
+			"bot_repaired_turn": bot_repaired_turn,
+			"disrupted_enemies": disrupted_enemies.duplicate(),
+			"political_upheaval": political_upheaval,
+			"in_crisis": in_crisis,
+			"colonist_demands": colonist_demands,
+			"protest_sitout": protest_sitout.duplicate(),
+			"protest_pending": protest_pending,
+			"colony_damage_mitigation": colony_damage_mitigation,
+			"income_penalties": income_penalties.duplicate(true),
+			"income_credited": income_credited.duplicate(),
 		},
 		"progression": {
 			"campaign_turn": campaign_turn,
+			"turn_phase": turn_phase,
+			"turn_state": turn_state.duplicate(true),
 			"milestones_completed": milestones_completed,
 			"calamity_points": calamity_points,
 			"mission_data": mission_data,
 			"mission_data_breakthroughs": mission_data_breakthroughs,
 			"slyn_victories": slyn_victories,
 			"slyn_departed": slyn_departed,
-			"endgame_path": endgame_path
+			"endgame_path": endgame_path,
+			"final_breakthrough": final_breakthrough,
+			"endgame_state": endgame_state.duplicate(true)
 		},
 		"map_data": map_data.duplicate(true),
 		"research_data": research_data.duplicate(true),
 		"buildings_data": buildings_data.duplicate(true),
-		"equipment_pool": equipment_pool.duplicate(true),
 		"grunt_upgrades": grunt_upgrades.duplicate(),
 		"lifeform_table": lifeform_table.duplicate(true),
 		"lifeform_evolutions": lifeform_evolutions.duplicate(),
@@ -661,6 +953,10 @@ func from_dictionary(data: Dictionary) -> void:
 		var colony: Dictionary = data.colony
 		colony_morale = colony.get("colony_morale", 0)
 		colony_integrity = colony.get("colony_integrity", 0)
+		# A save older than the field cannot say how much was built, but a positive
+		# score can only have come from bonuses, so the maximum is at least that.
+		max_colony_integrity = maxi(int(colony.get("max_colony_integrity", 0)),
+				int(colony_integrity))
 		build_points_per_turn = colony.get("build_points_per_turn", 1)
 		research_points_per_turn = colony.get("research_points_per_turn", 1)
 		repair_capacity = colony.get("repair_capacity", 1)
@@ -670,11 +966,30 @@ func from_dictionary(data: Dictionary) -> void:
 		augmentation_points = colony.get("augmentation_points", 0)
 		grunts = colony.get("grunts", 12)
 		bot_operational = colony.get("bot_operational", true)
+		bot_repaired_turn = int(colony.get("bot_repaired_turn", -1))
+		var dis: Variant = colony.get("disrupted_enemies", {})
+		disrupted_enemies = (dis as Dictionary).duplicate() if dis is Dictionary else {}
+		# int(): JSON hands every number back as a float.
+		political_upheaval = int(colony.get("political_upheaval", 0))
+		in_crisis = bool(colony.get("in_crisis", false))
+		colonist_demands = bool(colony.get("colonist_demands", false))
+		var ps: Variant = colony.get("protest_sitout", {})
+		protest_sitout = (ps as Dictionary).duplicate() if ps is Dictionary else {}
+		protest_pending = bool(colony.get("protest_pending", false))
+		colony_damage_mitigation = int(colony.get("colony_damage_mitigation", 0))
+		var ip: Variant = colony.get("income_penalties", {})
+		income_penalties = (ip as Dictionary).duplicate(true) if ip is Dictionary else {}
+		var ic: Variant = colony.get("income_credited", {})
+		income_credited = (ic as Dictionary).duplicate() if ic is Dictionary else {}
 
 	# Progression
 	if data.has("progression"):
 		var prog: Dictionary = data.progression
 		campaign_turn = prog.get("campaign_turn", 0)
+		# int(): JSON hands every number back as a float.
+		turn_phase = int(prog.get("turn_phase", PHASE_UNRECORDED))
+		var ts: Variant = prog.get("turn_state", {})
+		turn_state = (ts as Dictionary).duplicate(true) if ts is Dictionary else {}
 		milestones_completed = prog.get("milestones_completed", 0)
 		calamity_points = prog.get("calamity_points", 0)
 		mission_data = prog.get("mission_data", 0)
@@ -682,12 +997,14 @@ func from_dictionary(data: Dictionary) -> void:
 		slyn_victories = prog.get("slyn_victories", 0)
 		slyn_departed = prog.get("slyn_departed", false)
 		endgame_path = prog.get("endgame_path", "")
+		final_breakthrough = str(prog.get("final_breakthrough", ""))
+		var es: Variant = prog.get("endgame_state", {})
+		endgame_state = (es as Dictionary).duplicate(true) if es is Dictionary else {}
 
 	# Complex data
 	map_data = data.get("map_data", {}).duplicate(true)
 	research_data = data.get("research_data", {}).duplicate(true)
 	buildings_data = data.get("buildings_data", {}).duplicate(true)
-	equipment_pool = data.get("equipment_pool", []).duplicate(true)
 	grunt_upgrades = data.get("grunt_upgrades", []).duplicate()
 	lifeform_table = data.get("lifeform_table", []).duplicate(true)
 	lifeform_evolutions = data.get("lifeform_evolutions", []).duplicate()

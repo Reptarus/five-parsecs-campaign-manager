@@ -46,6 +46,8 @@ const TacticalEnemyGenScript := preload(
 var phase_manager: PlanetfallPhaseManagerScript
 var campaign: Resource  # PlanetfallCampaignCore
 var panels: Array[Control] = []
+## Untyped: its signals are declared on the panel script, not on Control.
+var _endgame_panel = null
 var current_panel: Control
 var _mission_context: Dictionary = {}  # Cached from Step 6+7 for battle launch
 var _deployed_data: Dictionary = {}    # Cached from Step 7 for battle launch
@@ -134,9 +136,14 @@ func _init_progression_systems() -> void:
 
 
 func _start_or_resume_turn() -> void:
-	# Check for endgame/completed — show EndGamePanel instead of turn flow
+	# A finished campaign opens on its conclusion. An End Game in progress does NOT stop
+	# here: Colony Security needs a destroyed Strongpoint and the final milestone needs
+	# BP and RP (pp.160-161), both earned in campaign turns, so a battle return or a turn
+	# under way resumes as normal and the End Game panel opens between turns
+	# (_on_turn_completed). This branch used to catch "endgame" too, which dropped the
+	# returning battle and left no way back to a turn.
 	var gp: String = campaign.game_phase if "game_phase" in campaign else ""
-	if gp == "endgame" or gp == "completed":
+	if gp == "completed" or gp == "failed":
 		_show_endgame_panel()
 		return
 
@@ -155,9 +162,30 @@ func _start_or_resume_turn() -> void:
 		if turn <= 0:
 			phase_manager.start_new_turn()
 		else:
-			phase_manager.turn_number = turn
-			phase_manager.campaign_turn_started.emit(turn)
-			phase_manager.go_to_phase(PlanetfallPhaseManagerScript.Phase.RECOVERY)
+			_resume_turn(turn)
+
+
+## Resume a turn already under way, on the step the campaign recorded (T1). This used
+## to jump to RECOVERY every time, replaying steps whose effects were already applied.
+## campaign_turn_started is deliberately NOT emitted: its handler runs the turn-start
+## Calamity effects, which roll and ADD progress, so re-emitting it advanced an active
+## Calamity once more on every relaunch.
+func _resume_turn(turn: int) -> void:
+	var ph := PlanetfallPhaseManagerScript.Phase
+	phase_manager.turn_number = turn
+	_turn_label.text = "TURN %d" % turn
+	_refresh_stat_strip()
+	var phase: int = phase_manager.restore_from_campaign()
+	if phase == ph.NONE:
+		# The last turn ended and was saved; the next one starts on the player's word.
+		_on_turn_completed(turn)
+		return
+	var result: Dictionary = phase_manager.get_battle_result()
+	if not result.is_empty() and phase >= ph.INJURIES and phase <= ph.TRACK_ENEMY_INFO:
+		for panel in panels:
+			if panel.has_method("set_battle_results"):
+				panel.set_battle_results(result)
+	phase_manager.go_to_phase(phase)
 
 
 func _load_campaign() -> void:
@@ -522,6 +550,8 @@ func _connect_signals() -> void:
 	phase_manager.phase_completed.connect(_on_phase_completed)
 	phase_manager.campaign_turn_started.connect(_on_turn_started)
 	phase_manager.campaign_turn_completed.connect(_on_turn_completed)
+	# p.90 Campaign Failure ends the turn mid-way; the end screen says why.
+	phase_manager.campaign_ended.connect(func(_reason: String): _show_endgame_panel())
 	phase_manager.navigation_updated.connect(_on_navigation_updated)
 
 	# Panel completion signals
@@ -583,6 +613,11 @@ func _on_turn_started(turn: int) -> void:
 
 
 func _on_turn_completed(_turn: int) -> void:
+	# p.160: "The summit takes place at the end of the current campaign turn and cannot
+	# be delayed." The 7th Milestone marks the End Game; the turn that earned it finishes.
+	if campaign and "game_phase" in campaign and str(campaign.game_phase) == "endgame":
+		_show_endgame_panel()
+		return
 	_advance_button.text = "Start Next Turn"
 	_advance_button.disabled = false
 	_phase_label.text = "TURN COMPLETE"
@@ -716,41 +751,75 @@ func _resume_after_battle(result: Dictionary) -> void:
 
 	_refresh_stat_strip()
 
+	# This controller and its phase manager were REBUILT for the return, so the turn's
+	# casualties, colony damage and Story Point block start at zero unless restored.
+	# They used to be lost on every battle, and Morale (p.68) then read no colony damage.
+	phase_manager.restore_from_campaign()
+	phase_manager.set_battle_result(result)
+
 	# Pass battle results to ALL PostBattlePanel instances BEFORE triggering
 	# phase change, because go_to_phase() synchronously fires phase_changed
-	# → refresh(). Phases 8-10 are separate PostBattlePanel instances.
+	# → refresh(). Phases 8-10 are separate PostBattlePanel instances. They get the
+	# phase manager's NORMALIZED dictionary, never the raw temp_data: the raw one has
+	# none of the keys pp.66-68 read, and sharing one dictionary is what lets the
+	# Step 9 debrief reach the Step 10 and Step 12 instances.
+	var normalized: Dictionary = phase_manager.get_battle_result()
 	for panel in panels:
 		if panel.has_method("set_battle_results"):
-			panel.set_battle_results(result)
+			panel.set_battle_results(normalized)
 
 	# Jump directly to INJURIES phase
 	phase_manager.go_to_phase(PlanetfallPhaseManagerScript.Phase.INJURIES)
 
 
 func _show_endgame_panel() -> void:
-	## Replace the normal turn flow with the EndGamePanel.
+	## Lay the EndGamePanel over the turn flow. The step panels are HIDDEN, not freed:
+	## an End Game that still needs Colony Security or BP/RP hands back to a campaign
+	## turn (_on_endgame_continue), which needs them.
 	if not _panel_container:
 		return
-	for child in _panel_container.get_children():
-		child.queue_free()
+	if is_instance_valid(_endgame_panel):
+		_endgame_panel.queue_free()
+	for panel in panels:
+		if is_instance_valid(panel):
+			panel.hide()
 
-	var endgame_panel := EndGamePanelScript.new()
-	endgame_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	endgame_panel.set_campaign(campaign)
-	_panel_container.add_child(endgame_panel)
+	_endgame_panel = EndGamePanelScript.new()
+	_endgame_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_endgame_panel.set_campaign(campaign)
+	_panel_container.add_child(_endgame_panel)
 
-	endgame_panel.phase_completed.connect(func(data: Dictionary):
+	_endgame_panel.phase_completed.connect(func(_data: Dictionary):
 		# Return to dashboard after endgame completion
 		_navigate("planetfall_dashboard")
 	)
+	_endgame_panel.continue_campaign_requested.connect(_on_endgame_continue)
 
-	endgame_panel.refresh()
+	_endgame_panel.refresh()
 
-	# Update header
+	# Update header. The panel carries its own buttons; the step button would advance a
+	# turn that is not running.
+	var failed: bool = campaign != null and campaign.has_method("is_failed") \
+			and campaign.is_failed()
 	if _turn_label:
-		_turn_label.text = "END GAME"
+		_turn_label.text = "CAMPAIGN OVER" if failed else "END GAME"
 	if _phase_label:
-		_phase_label.text = "Decide the fate of your colony"
+		_phase_label.text = "Unity forces have taken control" if failed \
+				else "Decide the fate of your colony"
+	if _advance_button:
+		_advance_button.visible = false
+
+
+## pp.160-161: Colony Security or the final milestone is not met yet, so the colony plays
+## another campaign turn. The End Game panel reopens when that turn ends.
+func _on_endgame_continue() -> void:
+	if is_instance_valid(_endgame_panel):
+		_endgame_panel.queue_free()
+	_endgame_panel = null
+	if _advance_button:
+		_advance_button.visible = true
+		_advance_button.text = "Complete Phase"
+	phase_manager.start_new_turn()
 
 
 func _launch_planetfall_battle() -> void:
@@ -800,6 +869,22 @@ func _launch_planetfall_battle() -> void:
 		"opposition_type": opp_type,
 	}
 
+	# Stamp what this mission IS before leaving. This controller is rebuilt on the
+	# battle return, so _mission_context does not survive it; the phase manager
+	# persists the stamp with the turn and normalizes the result against it (T9a).
+	var deployed_ids: Array = []
+	for c in crew:
+		deployed_ids.append(str(c.get("id", "")))
+	phase_manager.stamp_mission({
+		"id": mission_id,
+		"mission_name": _mission_context.get("name", ""),
+		"opposition_type": opp_type,
+		"enemy_type": str(enemies[0].get("name", "")) if not enemies.is_empty() else "",
+		"tactical_enemy_index": _battle_tactical_enemy_index() if opp_type == "tactical" else -1,
+		"grunts_deployed": int(_deployed_data.get("grunts_deployed", 0)),
+		"deployed_ids": deployed_ids,
+	})
+
 	# Build battle context for temp_data storage
 	var battle_context: Dictionary = {
 		"crew": crew,
@@ -830,6 +915,18 @@ func _launch_planetfall_battle() -> void:
 		phase_manager.complete_current_phase({"skipped": true})
 
 
+## The Tactical Enemy a tactical mission fights: the first one not yet defeated at its
+## Strongpoint (p.51), or -1. One reader for the opposition and the stamp.
+func _battle_tactical_enemy_index() -> int:
+	if not campaign or not "tactical_enemies" in campaign:
+		return -1
+	for i in range(campaign.tactical_enemies.size()):
+		var te: Variant = campaign.tactical_enemies[i]
+		if te is Dictionary and not te.get("defeated", false):
+			return i
+	return -1
+
+
 func _generate_opposition_for_battle(opp_type: String) -> Array:
 	## Generate a basic enemy roster for the TacticalBattleUI.
 	## This is a tabletop companion — the actual minis are on the physical table.
@@ -855,21 +952,21 @@ func _generate_opposition_for_battle(opp_type: String) -> Array:
 					"combat_skill": 1, "toughness": 4, "type": "lifeform"})
 
 		"tactical":
-			# Use campaign tactical enemies if available
-			if campaign and "tactical_enemies" in campaign:
-				for te in campaign.tactical_enemies:
-					if te is Dictionary and not te.get("defeated", false):
-						var te_type: Dictionary = te.get("type", {})
-						var cs = te_type.get("combat_skill", 0)
-						var tg = te_type.get("toughness", 3)
-						enemies.append({
-							"name": te_type.get("name", "Tactical Enemy"),
-							"speed": te_type.get("speed", 4),
-							"combat_skill": cs[0] if cs is Array else cs,
-							"toughness": tg[0] if tg is Array else tg,
-							"type": "tactical_enemy"
-						})
-						break
+			# The enemy fought is the one the stamp records, so p.68's +1 Enemy
+			# Information lands on the enemy whose profile was shown.
+			var te_index: int = _battle_tactical_enemy_index()
+			if te_index >= 0:
+				var te: Dictionary = campaign.tactical_enemies[te_index]
+				var te_type: Dictionary = te.get("type", {})
+				var cs = te_type.get("combat_skill", 0)
+				var tg = te_type.get("toughness", 3)
+				enemies.append({
+					"name": te_type.get("name", "Tactical Enemy"),
+					"speed": te_type.get("speed", 4),
+					"combat_skill": cs[0] if cs is Array else cs,
+					"toughness": tg[0] if tg is Array else tg,
+					"type": "tactical_enemy"
+				})
 			if enemies.is_empty():
 				enemies.append({"name": "Unknown Enemy", "speed": 4,
 					"combat_skill": 0, "toughness": 3, "type": "tactical_enemy"})
