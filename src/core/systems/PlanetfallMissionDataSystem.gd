@@ -75,7 +75,7 @@ func add_and_check(campaign: Resource, amount: int) -> Dictionary:
 	var total: int = campaign.mission_data if "mission_data" in campaign else 0
 
 	# Check: roll 1D6, if roll <= total MD, breakthrough occurs
-	var roll: int = randi_range(1, 6)
+	var roll: int = _d6("Planetfall Mission Data")
 	if roll <= total:
 		# Breakthrough! Subtract roll from total
 		if "mission_data" in campaign:
@@ -180,8 +180,11 @@ func roll_final_breakthrough(campaign: Resource, roll: int) -> Dictionary:
 			campaign.add_story_points(effects["story_points"])
 
 		if effects.has("research_points"):
-			var rd: Dictionary = campaign.research_data if "research_data" in campaign else {}
-			rd["current_rp"] = rd.get("current_rp", 0) + effects["research_points"]
+			if campaign.has_method("earn_research_points"):
+				campaign.earn_research_points(int(effects["research_points"]))
+			else:
+				var rd: Dictionary = campaign.research_data if "research_data" in campaign else {}
+				rd["current_rp"] = rd.get("current_rp", 0) + effects["research_points"]
 
 		if effects.has("build_points"):
 			var bd: Dictionary = campaign.buildings_data if "buildings_data" in campaign else {}
@@ -236,6 +239,18 @@ func _lookup_d100(table: Array, roll: int) -> Dictionary:
 			if roll >= entry.get("min", 0) and roll <= entry.get("max", 0):
 				return entry.duplicate()
 	return {}
+
+
+## Through DiceManager so the QA seam can arm the p.169 check ("Planetfall Mission Data").
+static func _dice() -> Node:
+	var loop := Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
+
+
+func _d6(context: String) -> int:
+	var dm := _dice()
+	return int(dm.roll_d6(context)) if dm else randi_range(1, 6)
 
 
 func is_loaded() -> bool:

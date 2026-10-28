@@ -23,6 +23,7 @@ const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
 # new class, same stale-cache gotcha.
 const BattleFlowGuideClass = preload("res://src/core/battle/BattleFlowGuide.gd")
 const BugHuntBattleGuideClass = preload("res://src/core/battle/BugHuntBattleGuide.gd")
+const PlanetfallBattleGuideClass = preload("res://src/core/battle/PlanetfallBattleGuide.gd")
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
@@ -293,6 +294,9 @@ var all_units: Array[TacticalUnit] = []
 var current_turn: int = 0
 var _is_bug_hunt_mode: bool = false
 var _is_planetfall_mode: bool = false
+## One Planetfall mission's Lifeform encounters: how many met, the creature the first
+## reveal fixed, and any Unique Ability rolled for this battle (p.146, p.159).
+var _planetfall_encounters: Dictionary = {}
 var _battle_mode_id: String = ""  # "" = standard 5PFH; gates No-Minis auto-resolve routing
 ## T11-49: set by a launcher that owns no campaign state (Battle Simulator, and the
 ## MCP/demo tier-select path). This is the POSITIVE ownership signal. The other two
@@ -2842,6 +2846,8 @@ func _build_battle_card() -> Control:
 	# tier can already have opened this card.
 	if str(md.get("battle_mode", "")) == "bug_hunt":
 		return _build_bug_hunt_battle_card(md)
+	if str(md.get("battle_mode", "")) == "planetfall":
+		return _build_planetfall_battle_card(md)
 	var ef: Dictionary = _battle_context.get("enemy_force",
 		md.get("enemy_force", {}))
 
@@ -2968,6 +2974,130 @@ func _build_bug_hunt_battle_card(md: Dictionary) -> Control:
 			UIColors.COLOR_AMBER)
 	_add_movie_magic_rows(vbox)
 	return card
+
+
+## The Planetfall Battle Card: the force the colony faces, the mission's own opposition
+## text and the Contact rules, from PlanetfallBattleGuide. ⚠ Before 2026-10-27 a
+## Planetfall battle showed the 5PFH card, built from a campaign contract it does not
+## have, and one literal enemy line.
+func _build_planetfall_battle_card(md: Dictionary) -> Control:
+	var card := PanelContainer.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("#252542")
+	style.border_color = Color("#3A3A5C")
+	style.set_border_width_all(1)
+	style.set_corner_radius_all(8)
+	style.set_content_margin_all(12)
+	card.add_theme_stylebox_override("panel", style)
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 6)
+	card.add_child(vbox)
+	var title := Label.new()
+	title.text = "PLANETFALL BATTLE CARD"
+	title.add_theme_font_size_override("font_size", _scaled_font(12))
+	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(title)
+	for row in PlanetfallBattleGuideClass.briefing_rows(md, _planetfall_campaign()):
+		_battle_card_row(vbox, str(row.get("head", "")), str(row.get("detail", "")),
+			UIColors.COLOR_AMBER)
+	if str(md.get("opposition_type", "")) == "lifeforms":
+		_battle_card_row(vbox, "Reveal Contacts from Mission Rules during the battle.",
+			"The app rolls the Contact Reveal D6 and your Lifeform Encounters table.",
+			UIColors.COLOR_CYAN)
+	return card
+
+
+## The campaign whose encounter table a reveal reads and fills. Guarded on the OWNER:
+## only a core with a `lifeform_table` (Planetfall) qualifies.
+func _planetfall_campaign() -> Resource:
+	var gs: Node = get_node_or_null("/root/GameState")
+	var camp: Variant = gs.get("current_campaign") if gs else null
+	return camp if camp is Resource and "lifeform_table" in camp else null
+
+
+## pp.41-42 and p.146 during play: Contacts are revealed whenever a figure sees one, so
+## the controls live in the Mission Rules drawer, which is reachable in every phase and
+## at every tier. A reveal fills a blank encounter entry on the campaign, as the book
+## does ("Going forward, every roll of that entry produces the same type of creature").
+func _setup_planetfall_contact_panel(md: Dictionary) -> void:
+	var host: Node = _mission_panel_host()
+	if host == null:
+		return
+	_planetfall_encounters = PlanetfallBattleGuideClass.new_encounter_state()
+	var camp: Resource = _planetfall_campaign()
+	var panel := VBoxContainer.new()
+	panel.name = "PlanetfallContacts"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	host.add_child(panel)
+	var title := Label.new()
+	title.text = "CONTACTS AND LIFEFORMS"
+	title.add_theme_font_size_override("font_size", _scaled_font(12))
+	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	panel.add_child(title)
+	for row in PlanetfallBattleGuideClass.contact_rule_rows():
+		_battle_card_row(panel, str(row.get("head", "")), str(row.get("detail", "")),
+			UIColors.COLOR_AMBER)
+	# p.121 Hunt: "one scout on the table may attempt to roll 1D6+Savvy. A 5+ means you
+	# can choose which Lifeform you are facing."
+	var chooser: OptionButton = null
+	var opposition: Dictionary = md.get("opposition", {})
+	if opposition.has("scout_identification") and camp != null:
+		chooser = OptionButton.new()
+		chooser.name = "ScoutChoice"
+		chooser.add_item("Roll the encounter table", -1)
+		for lf in PlanetfallBattleGuideClass.known_lifeforms(camp):
+			chooser.add_item("Scout chose: %s" % PlanetfallBattleGuideClass.entry_name(lf),
+				int(lf.get("slot_index", -1)))
+		chooser.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+		panel.add_child(chooser)
+	var buttons := HFlowContainer.new()
+	buttons.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	buttons.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
+	panel.add_child(buttons)
+	var results := VBoxContainer.new()
+	results.name = "EncounterResults"
+	results.add_theme_constant_override("separation", 4)
+	var reveal := Button.new()
+	reveal.name = "RevealContact"
+	reveal.text = "Reveal a Contact (D6)"
+	reveal.custom_minimum_size = Vector2(160, UIColors.TOUCH_TARGET_MIN)
+	reveal.pressed.connect(func() -> void:
+		var r: Dictionary = PlanetfallBattleGuideClass.reveal_contact(
+			camp, _planetfall_encounters, _scout_pick(chooser))
+		_show_planetfall_encounter(results, r.get("lines", []))
+	)
+	buttons.add_child(reveal)
+	var place := Button.new()
+	place.name = "PlaceLifeform"
+	place.text = "Place one Lifeform"
+	place.custom_minimum_size = Vector2(160, UIColors.TOUCH_TARGET_MIN)
+	place.pressed.connect(func() -> void:
+		var e: Dictionary = PlanetfallBattleGuideClass.encounter_lifeform(
+			camp, _planetfall_encounters, _scout_pick(chooser))
+		_show_planetfall_encounter(results, e.get("lines", []))
+	)
+	buttons.add_child(place)
+	panel.add_child(results)
+
+
+## The Hunt scout's pick, used only until the first reveal fixes the mission's creature.
+func _scout_pick(chooser: OptionButton) -> int:
+	if chooser == null or chooser.item_count == 0:
+		return -1
+	if int(_planetfall_encounters.get("mission_slot", -1)) >= 0:
+		return -1
+	return chooser.get_item_id(chooser.selected)
+
+
+func _show_planetfall_encounter(results: VBoxContainer, lines: Array) -> void:
+	for line in lines:
+		var lbl := Label.new()
+		lbl.text = str(line)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+		results.add_child(lbl)
+		_log_message(str(line), UIColors.COLOR_CYAN)
 
 
 ## p.181 Movie Magic: ten cards, each "employed once in your campaign". Seven act
@@ -5381,6 +5511,9 @@ func _reset_battle_state() -> void:
 	street_fight_panel = null
 	salvage_mission_panel = null
 	_mission_drawer_used = false
+	# p.146 counts "during a mission": a reused screen must not carry the last
+	# mission's creature or its pack-leader count into this one.
+	_planetfall_encounters = {}
 
 	# Per-figure model + its views.
 	crew_units.clear()
@@ -5615,6 +5748,8 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		_setup_street_fight_panel(compendium_payload)
 	elif mission_type == "salvage":
 		_setup_salvage_panel(compendium_payload)
+	elif _is_planetfall_mode and str(mission_dict.get("opposition_type", "")) == "lifeforms":
+		_setup_planetfall_contact_panel(mission_dict)
 
 	# Deferred from the pre-selected-tier branch at the top of this function, and
 	# the only place the campaign path opens its pre-battle modal. Must stay at

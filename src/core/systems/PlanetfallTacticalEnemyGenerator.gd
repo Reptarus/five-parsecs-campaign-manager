@@ -70,18 +70,28 @@ func generate_enemy_type(roll: int) -> Dictionary:
 	return _lookup_d100(_enemy_types, roll)
 
 
+const ENEMY_TYPE_DIE := "Planetfall Tactical Enemy Type"
+
+
+## One roll on the p.149 table. p.125 Scout Down! also uses this for an enemy that "does
+## not add that enemy to your map".
+func roll_enemy_type() -> Dictionary:
+	return generate_enemy_type(_d100(ENEMY_TYPE_DIE))
+
+
 func create_full_enemy(campaign: Resource) -> Dictionary:
 	## Full generation: roll type + weapons + create state fields.
 	## Returns a complete tactical enemy dict ready for campaign.tactical_enemies.
-	var type_roll: int = roll_d100()
+	var type_roll: int = _d100(ENEMY_TYPE_DIE)
 	var enemy_type: Dictionary = generate_enemy_type(type_roll)
 	if enemy_type.is_empty():
 		return {}
 
 	# Assign weapons
-	var grunt_weapon: Dictionary = _roll_weapon_table(_grunt_weapons)
-	var specialist_weapon: Dictionary = _roll_weapon_table(_specialist_weapons)
-	var leader_weapon: Dictionary = _roll_weapon_table(_leader_weapons)
+	var grunt_weapon: Dictionary = _roll_weapon_table(_grunt_weapons, GRUNT_WEAPONS_DIE)
+	var specialist_weapon: Dictionary = _roll_weapon_table(_specialist_weapons,
+			SPECIALIST_WEAPONS_DIE)
+	var leader_weapon: Dictionary = _roll_weapon_table(_leader_weapons, LEADER_WEAPONS_DIE)
 
 	# Build full enemy record
 	var enemy: Dictionary = {
@@ -105,9 +115,35 @@ func create_full_enemy(campaign: Resource) -> Dictionary:
 
 
 func get_enemy_count_for_battle(enemy_type: Dictionary) -> int:
-	## Roll the number formula from enemy type (e.g., "2D3+3").
+	## Roll the number formula from enemy type (e.g., "2D3+3"). p.151: "Weapons and
+	## numbers encountered are generated for each battle."
 	var formula: String = enemy_type.get("number", "1D6+3")
 	return _evaluate_dice_formula(formula)
+
+
+## The largest result a Number formula can give: p.129 Assault starts "with the maximum
+## enemy encounter size (for example if this is normally 1D3+5, it would be 8)".
+func max_of_formula(formula: String) -> int:
+	var result: int = 0
+	for part in formula.to_upper().split("+"):
+		part = part.strip_edges()
+		if "D" in part:
+			var dice_parts: PackedStringArray = part.split("D")
+			var count: int = int(dice_parts[0]) if dice_parts[0].length() > 0 else 1
+			result += count * (int(dice_parts[1]) if dice_parts.size() > 1 else 6)
+		else:
+			result += int(part)
+	return result
+
+
+## The current table entry for a type id. A campaign stores a COPY of its enemy's entry
+## when the enemy is generated, so keys added to the data later (K'Erin Champion, p.150)
+## are read from here.
+func type_by_id(type_id: String) -> Dictionary:
+	for entry in _enemy_types:
+		if entry is Dictionary and str(entry.get("id", "")) == type_id:
+			return entry.duplicate(true)
+	return {}
 
 
 ## ============================================================================
@@ -129,9 +165,9 @@ func get_weapon_trait_description(trait_id: String) -> String:
 func assign_battle_weapons(enemy_type: Dictionary) -> Dictionary:
 	## Roll weapons for an entire encounter group.
 	## Returns {grunt_weapons: Array, specialist_weapon: Dict, leader_weapon: Dict}.
-	var grunt_roll: Dictionary = _roll_weapon_table(_grunt_weapons)
-	var spec_roll: Dictionary = _roll_weapon_table(_specialist_weapons)
-	var leader_roll: Dictionary = _roll_weapon_table(_leader_weapons)
+	var grunt_roll: Dictionary = _roll_weapon_table(_grunt_weapons, GRUNT_WEAPONS_DIE)
+	var spec_roll: Dictionary = _roll_weapon_table(_specialist_weapons, SPECIALIST_WEAPONS_DIE)
+	var leader_roll: Dictionary = _roll_weapon_table(_leader_weapons, LEADER_WEAPONS_DIE)
 
 	# Resolve weapon IDs to full profiles
 	var grunt_profiles: Array = []
@@ -164,40 +200,60 @@ func get_leader_threshold() -> int:
 	return _leader_rules.get("threshold", 6)
 
 
-func get_leader_kp() -> int:
-	return _leader_rules.get("leader_kp", 1)
+## p.149 "Leaders have 1 KP"; a type with its own value (K'Erin Champion, p.150) wins.
+func get_leader_kp(enemy_type: Dictionary = {}) -> int:
+	return int(enemy_type.get("leader_kp", _leader_rules.get("leader_kp", 1)))
 
 
-func get_boss_stats() -> Dictionary:
+## p.149: "Bosses have 2 KP and add +1 to both their Combat Skill and Toughness."
+func get_boss_stats(enemy_type: Dictionary = {}) -> Dictionary:
 	return {
-		"kp": _leader_rules.get("boss_kp", 2),
+		"kp": int(enemy_type.get("boss_kp", _leader_rules.get("boss_kp", 2))),
 		"combat_bonus": _leader_rules.get("boss_combat_bonus", 1),
 		"toughness_bonus": _leader_rules.get("boss_toughness_bonus", 1)
 	}
 
 
 ## ============================================================================
-## DICE HELPERS
+## DICE (every roll through DiceManager so the QA seam can force it)
 ## ============================================================================
 
-func roll_d100() -> int:
-	return randi_range(1, 100)
+const GRUNT_WEAPONS_DIE := "Planetfall Enemy Grunt Weapons"
+const SPECIALIST_WEAPONS_DIE := "Planetfall Enemy Specialist Weapons"
+const LEADER_WEAPONS_DIE := "Planetfall Enemy Leader Weapons"
+const NUMBER_DIE := "Planetfall Enemy Number"
 
 
-func roll_d6() -> int:
-	return randi_range(1, 6)
+static func _dice() -> Node:
+	var loop := Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
 
 
-func roll_d3() -> int:
-	return randi_range(1, 3)
+func _d100(context: String) -> int:
+	var dm := _dice()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
+
+
+## One die of the Number formula. D3 and D6 are the only sizes on the p.149 table.
+func _die(sides: int, context: String) -> int:
+	var dm := _dice()
+	if dm == null:
+		return randi_range(1, sides)
+	if sides == 3:
+		return int(dm.roll_d3(context))
+	if sides == 6:
+		return int(dm.roll_d6(context))
+	return randi_range(1, sides)
 
 
 ## ============================================================================
 ## PRIVATE
 ## ============================================================================
 
-func _roll_weapon_table(table: Array) -> Dictionary:
-	var roll: int = roll_d6()
+func _roll_weapon_table(table: Array, context: String) -> Dictionary:
+	var dm := _dice()
+	var roll: int = int(dm.roll_d6(context)) if dm else randi_range(1, 6)
 	for entry in table:
 		if entry is Dictionary:
 			if roll >= entry.get("min", 0) and roll <= entry.get("max", 0):
@@ -215,8 +271,10 @@ func _evaluate_dice_formula(formula: String) -> int:
 			var dice_parts: PackedStringArray = part.split("D")
 			var count: int = int(dice_parts[0]) if dice_parts[0].length() > 0 else 1
 			var sides: int = int(dice_parts[1]) if dice_parts.size() > 1 else 6
+			# One context per die size: a forced 5 meant for a D6 would be DISCARDED by
+			# a D3 roll (DiceManager never clamps), so they cannot share a key.
 			for _i in range(count):
-				result += randi_range(1, sides)
+				result += _die(sides, "%s D%d" % [NUMBER_DIE, sides])
 		else:
 			result += int(part)
 	return result

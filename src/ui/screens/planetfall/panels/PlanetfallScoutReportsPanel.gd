@@ -334,13 +334,9 @@ func _get_character_name(character_id: String) -> String:
 
 
 func _apply_xp_to_character(character_id: String, xp: int) -> void:
-	if not _campaign or not "roster" in _campaign:
-		return
-	for char_dict in _campaign.roster:
-		if char_dict is Dictionary:
-			if char_dict.get("id", "") == character_id:
-				char_dict["xp"] = char_dict.get("xp", 0) + xp
-				break
+	# Through the core's one XP writer (p.71 Personal tragedy is checked there).
+	if _campaign and _campaign.has_method("award_xp"):
+		_campaign.award_xp(character_id, xp)
 
 
 func _add_info_text(text: String) -> void:

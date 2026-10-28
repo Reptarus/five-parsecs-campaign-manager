@@ -84,6 +84,24 @@ func has_recorded_turn_phase() -> bool:
 ## Milestone progression (7 required for End Game — Planetfall p.156)
 @export var milestones_completed: int = 0
 @export var calamity_points: int = 0
+## The sources that have granted a milestone, as "category:id" (p.156: each Building,
+## Application, Augmentation or Artifact on the list grants ONE). Nothing recorded this
+## before 2026-10-27, so one granting building granted again at every later Research
+## and Building step until the End Game launched by itself.
+@export var milestone_sources: Array = []
+## A save from before milestone_sources existed: the next check claims what is already
+## owned WITHOUT granting, because that save has already been paid for it (and more).
+var milestone_sources_unseeded: bool = false
+## Lasting milestone effects (pp.157-158): "tactical_panic_reduction" and
+## "tactical_specialist_kp" (3rd), "tactical_extra_specialists" and
+## "enemy_activity_every_enemy" (6th), "slyn_tracking" (4th), "calamities_ended" (7th).
+@export var milestone_flags: Dictionary = {}
+## Extra rolls a milestone owes "in addition to the normal event" (pp.156-157), by kind:
+## "character_event", "colony_event", "enemy_activity". Each step reads its count and
+## the phase manager clears it when that step completes.
+@export var pending_extra_rolls: Dictionary = {}
+## 4th milestone (p.157): conditions the player still has to choose to erase and replace.
+@export var pending_condition_replacements: int = 0
 
 ## Mission Data counter (4 breakthroughs — Planetfall p.169)
 @export var mission_data: int = 0
@@ -129,6 +147,26 @@ var protest_pending: bool = false
 var income_penalties: Dictionary = {}
 ## {"bp": turn, "rp": turn}: the turn each per-turn income was last credited.
 var income_credited: Dictionary = {}
+## p.63 Scientific dead end: "Your next 3 Research Points earned are wasted." Taken off
+## every RP gain by earn_research_points() until it is used up.
+@export var research_points_wasted: int = 0
+## p.63 Public relations demand: {character_id, turn} of the character who "will not be
+## able to participate in a mission this campaign turn" (no Pitched Battle exception,
+## unlike p.90 Protests).
+var event_sitout: Dictionary = {}
+## p.63 Hostile wildlife: the turn whose Colony Morale -2 is owed "unless you play a
+## Patrol Mission this turn", or -1. Settled at Mission Determination.
+@export var patrol_required_turn: int = -1
+## pp.70-71 Character Events that outlast Step 17, {character_id: {key: value}}:
+##   away_until (int)       R&R: "gone for 2 campaign turns" (no missions, no events)
+##   calibrated (bool)      Personal calibrations: +1 hit with one weapon, next mission
+##   double_xp (bool)       Personal reflection: double XP on the next mission
+##   saved_health (bool)    Excellent health, saved for the next injury
+##   xp_forfeit_turn (int)  Personal tragedy: no XP that turn
+var character_notes: Dictionary = {}
+## p.70 Dispute: [{a, b, turn}], the pair who "cannot both be assigned to the mission
+## next campaign turn unless you are fighting a Pitched Battle".
+var disputes: Array = []
 
 ## Character roster (Array of Dictionaries — lightweight, like Bug Hunt)
 ## Dict keys: id, name, class, subspecies, reactions, speed, combat_skill,
@@ -384,9 +422,45 @@ func claim_turn_income(kind: String) -> Dictionary:
 	if kind == "bp":
 		buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + int(receipt.net)
 	else:
-		research_data["current_rp"] = int(research_data.get("current_rp", 0)) + int(receipt.net)
+		var credited: int = earn_research_points(int(receipt.net))
+		receipt["wasted"] = int(receipt.net) - credited
+		receipt.net = credited
 	_update_modified_time()
 	return receipt
+
+
+## Every Research Point the colony EARNS goes through here, so p.63's Scientific dead end
+## ("Your next 3 Research Points earned are wasted") comes off whichever source pays
+## next. Spending never comes here. Returns the points actually credited.
+func earn_research_points(amount: int) -> int:
+	var wasted: int = mini(maxi(amount, 0), research_points_wasted)
+	research_points_wasted -= wasted
+	var credited: int = amount - wasted
+	research_data["current_rp"] = int(research_data.get("current_rp", 0)) + credited
+	_update_modified_time()
+	return credited
+
+
+## p.63 Public relations demand: the character sits out every mission this turn.
+func assign_event_sitout(character_id: String) -> void:
+	event_sitout = {"character_id": character_id, "turn": campaign_turn}
+	_update_modified_time()
+
+
+## p.63 Experimental local medicine: "reduce their recovery time by 2 turns. If the
+## character is completely recovered, they can act normally this campaign turn."
+## Returns the turns left (0 = out of Sick Bay).
+func reduce_recovery(character_id: String, turns: int) -> int:
+	if not sick_bay.has(character_id):
+		return 0
+	var left: int = int(sick_bay[character_id]) - maxi(turns, 0)
+	if left <= 0:
+		sick_bay.erase(character_id)
+		left = 0
+	else:
+		sick_bay[character_id] = left
+	_update_modified_time()
+	return left
 
 
 ## pp.88/90: Integrity Failure 6/11/12 hit NEXT turn's income, Work stoppage this one.
@@ -420,6 +494,18 @@ func lower_loyalty(character_id: String) -> Dictionary:
 	return {"name": str(c.get("name", character_id)), "from": from, "to": to}
 
 
+## The other direction (p.24 stages): Disloyal -> Committed -> Loyal, never above Loyal.
+func raise_loyalty(character_id: String) -> Dictionary:
+	var c: Variant = get_roster_character_by_id(character_id)
+	if not c is Dictionary:
+		return {}
+	var from: String = str(c.get("loyalty", "committed")).to_lower()
+	var to: String = "committed" if from == "disloyal" else "loyal"
+	c["loyalty"] = to
+	_update_modified_time()
+	return {"name": str(c.get("name", character_id)), "from": from, "to": to}
+
+
 ## The ending a mustered-out veteran carries into another mode (pp.164-166), in the
 ## transfer matrix's vocabulary: "independence_won" / "independence_lost" / "loyalty" /
 ## "isolation" / "ascension". "" until the End Game is RESOLVED: a chosen path is not an
@@ -446,20 +532,36 @@ func get_musterable_roster() -> Array:
 	return out
 
 
+## p.69 Step 13: "Dismissed characters cannot be returned to the campaign later." They
+## leave the roster and the turn records exactly as a death does.
+func dismiss_character(character_id: String) -> void:
+	slay_character(character_id)
+
+
 ## A character who dies leaves the roster and every turn record that names them.
 func slay_character(character_id: String) -> void:
 	remove_roster_character(character_id)
 	sick_bay.erase(character_id)
 	if str(protest_sitout.get("character_id", "")) == character_id:
 		protest_sitout = {}
+	if str(event_sitout.get("character_id", "")) == character_id:
+		event_sitout = {}
+	character_notes.erase(character_id)
 	_update_modified_time()
 
 
-func award_xp(character_id: String, amount: int) -> void:
+## Every XP gain in a turn comes through here, so p.71 Personal tragedy ("Next campaign
+## turn they forfeit all XP they would have earned that turn") holds for every source.
+## Returns the XP actually awarded.
+func award_xp(character_id: String, amount: int) -> int:
 	var c: Variant = get_roster_character_by_id(character_id)
-	if c is Dictionary:
-		c["xp"] = int(c.get("xp", 0)) + amount
-		_update_modified_time()
+	if not c is Dictionary:
+		return 0
+	if amount > 0 and int(get_character_note(character_id, "xp_forfeit_turn", -1)) == campaign_turn:
+		return 0
+	c["xp"] = int(c.get("xp", 0)) + amount
+	_update_modified_time()
+	return amount
 
 
 ## p.89: +1 per roll on the Morale Incident table; p.90 Crisis Outcomes move it both ways.
@@ -537,12 +639,73 @@ func deployment_block_reason(character_id: String, mission_id: String) -> String
 			return "BROKEN"
 		if bot_repaired_turn == campaign_turn:
 			return "REPAIRED THIS TURN"
+	if is_away(character_id):
+		return "R&R"
+	if str(event_sitout.get("character_id", "")) == character_id \
+			and int(event_sitout.get("turn", -1)) == campaign_turn:
+		return "PUBLIC RELATIONS"
 	if protest_sitout.is_empty() or mission_id == "pitched_battle":
 		return ""
 	if str(protest_sitout.get("character_id", "")) == character_id \
 			and int(protest_sitout.get("turn", -1)) == campaign_turn:
 		return "PROTESTS"
 	return ""
+
+
+## p.70 Dispute: why `character_id` cannot join `deployed` on this mission, or "".
+func deployment_conflict(character_id: String, deployed: Array, mission_id: String) -> String:
+	if mission_id == "pitched_battle":
+		return ""
+	for d in disputes:
+		if not d is Dictionary or int(d.get("turn", -1)) != campaign_turn:
+			continue
+		var a: String = str(d.get("a", ""))
+		var b: String = str(d.get("b", ""))
+		var other: String = b if a == character_id else (a if b == character_id else "")
+		if other != "" and deployed.has(other):
+			var who: Variant = get_roster_character_by_id(other)
+			return "In a dispute with %s (p.70)" % (str(who.get("name", other))
+					if who is Dictionary else other)
+	return ""
+
+
+func add_dispute(a: String, b: String, turn: int) -> void:
+	disputes = disputes.filter(func(d): return d is Dictionary and int(d.get("turn", -1)) >= campaign_turn)
+	disputes.append({"a": a, "b": b, "turn": turn})
+	_update_modified_time()
+
+
+## p.70 R&R: off world, so no mission and no event can reach them.
+func is_away(character_id: String) -> bool:
+	return campaign_turn <= int(get_character_note(character_id, "away_until", -1))
+
+
+func get_character_note(character_id: String, key: String, default: Variant = null) -> Variant:
+	return (character_notes.get(character_id, {}) as Dictionary).get(key, default)
+
+
+func set_character_note(character_id: String, key: String, value: Variant) -> void:
+	var notes: Dictionary = character_notes.get(character_id, {})
+	notes[key] = value
+	character_notes[character_id] = notes
+	_update_modified_time()
+
+
+func clear_character_note(character_id: String, key: String) -> void:
+	var notes: Dictionary = character_notes.get(character_id, {})
+	notes.erase(key)
+	if notes.is_empty():
+		character_notes.erase(character_id)
+	else:
+		character_notes[character_id] = notes
+	_update_modified_time()
+
+
+## p.70 Something in the water: "increase their recovery time by 1 turn".
+func extend_recovery(character_id: String, turns: int) -> void:
+	if sick_bay.has(character_id):
+		sick_bay[character_id] = int(sick_bay[character_id]) + maxi(turns, 0)
+		_update_modified_time()
 
 
 ## p.90: "Unity forces move in to secure the site and take over control."
@@ -614,6 +777,31 @@ func gain_grunts(amount: int) -> void:
 func add_milestone() -> void:
 	milestones_completed += 1
 	_update_modified_time()
+
+
+func get_milestone_flag(key: String, default: Variant = null) -> Variant:
+	return milestone_flags.get(key, default)
+
+
+func set_milestone_flag(key: String, value: Variant) -> void:
+	milestone_flags[key] = value
+	_update_modified_time()
+
+
+func queue_extra_roll(kind: String, count: int = 1) -> void:
+	if count <= 0:
+		return
+	pending_extra_rolls[kind] = int(pending_extra_rolls.get(kind, 0)) + count
+	_update_modified_time()
+
+
+func get_extra_rolls(kind: String) -> int:
+	return int(pending_extra_rolls.get(kind, 0))
+
+
+func clear_extra_rolls(kind: String) -> void:
+	if pending_extra_rolls.erase(kind):
+		_update_modified_time()
 
 
 func is_endgame_eligible() -> bool:
@@ -722,8 +910,7 @@ func apply_colony_event(event_data: Dictionary) -> void:
 	if event_data.has("colony_morale"):
 		adjust_morale(int(event_data.get("colony_morale", 0)))
 	if event_data.has("research_points"):
-		var rp: int = crisis_adjusted_gain(int(event_data.get("research_points", 0)))
-		research_data["current_rp"] = int(research_data.get("current_rp", 0)) + rp
+		earn_research_points(crisis_adjusted_gain(int(event_data.get("research_points", 0))))
 	if event_data.has("build_points"):
 		var bp: int = crisis_adjusted_gain(int(event_data.get("build_points", 0)))
 		buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + bp
@@ -883,6 +1070,11 @@ func to_dictionary() -> Dictionary:
 			"colony_damage_mitigation": colony_damage_mitigation,
 			"income_penalties": income_penalties.duplicate(true),
 			"income_credited": income_credited.duplicate(),
+			"research_points_wasted": research_points_wasted,
+			"event_sitout": event_sitout.duplicate(),
+			"patrol_required_turn": patrol_required_turn,
+			"character_notes": character_notes.duplicate(true),
+			"disputes": disputes.duplicate(true),
 		},
 		"progression": {
 			"campaign_turn": campaign_turn,
@@ -890,6 +1082,10 @@ func to_dictionary() -> Dictionary:
 			"turn_state": turn_state.duplicate(true),
 			"milestones_completed": milestones_completed,
 			"calamity_points": calamity_points,
+			"milestone_sources": milestone_sources.duplicate(),
+			"milestone_flags": milestone_flags.duplicate(true),
+			"pending_extra_rolls": pending_extra_rolls.duplicate(true),
+			"pending_condition_replacements": pending_condition_replacements,
 			"mission_data": mission_data,
 			"mission_data_breakthroughs": mission_data_breakthroughs,
 			"slyn_victories": slyn_victories,
@@ -981,6 +1177,14 @@ func from_dictionary(data: Dictionary) -> void:
 		income_penalties = (ip as Dictionary).duplicate(true) if ip is Dictionary else {}
 		var ic: Variant = colony.get("income_credited", {})
 		income_credited = (ic as Dictionary).duplicate() if ic is Dictionary else {}
+		research_points_wasted = int(colony.get("research_points_wasted", 0))
+		var es: Variant = colony.get("event_sitout", {})
+		event_sitout = (es as Dictionary).duplicate() if es is Dictionary else {}
+		patrol_required_turn = int(colony.get("patrol_required_turn", -1))
+		var cn: Variant = colony.get("character_notes", {})
+		character_notes = (cn as Dictionary).duplicate(true) if cn is Dictionary else {}
+		var dp: Variant = colony.get("disputes", [])
+		disputes = (dp as Array).duplicate(true) if dp is Array else []
 
 	# Progression
 	if data.has("progression"):
@@ -992,6 +1196,14 @@ func from_dictionary(data: Dictionary) -> void:
 		turn_state = (ts as Dictionary).duplicate(true) if ts is Dictionary else {}
 		milestones_completed = prog.get("milestones_completed", 0)
 		calamity_points = prog.get("calamity_points", 0)
+		var ms: Variant = prog.get("milestone_sources", null)
+		milestone_sources = (ms as Array).duplicate() if ms is Array else []
+		milestone_sources_unseeded = not prog.has("milestone_sources")
+		var mf: Variant = prog.get("milestone_flags", {})
+		milestone_flags = (mf as Dictionary).duplicate(true) if mf is Dictionary else {}
+		var per: Variant = prog.get("pending_extra_rolls", {})
+		pending_extra_rolls = (per as Dictionary).duplicate(true) if per is Dictionary else {}
+		pending_condition_replacements = int(prog.get("pending_condition_replacements", 0))
 		mission_data = prog.get("mission_data", 0)
 		mission_data_breakthroughs = prog.get("mission_data_breakthroughs", 0)
 		slyn_victories = prog.get("slyn_victories", 0)

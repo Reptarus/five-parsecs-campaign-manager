@@ -299,8 +299,9 @@ func _on_research_app_pressed(theory_id: String) -> void:
 		_add_result_bbcode(
 			"[color=#10B981]Discovered: %s (%s)![/color]" % [aname, atype])
 
-		# Check if this application grants a milestone
-		_check_milestone_grant("research_applications", theory_id)
+		# Check if this application grants a milestone. The APPLICATION, not the theory
+		# it came from: p.156 lists applications, and a theory id never matched one.
+		_check_milestone_grant("research_applications", str(app.get("id", "")))
 
 		_update_rp_display()
 		_show_theory_detail(theory_id)
@@ -331,7 +332,7 @@ func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
 				_add_result_bbcode(
 					"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
 				_add_result_bbcode(
-					"[color=#D97706]Milestone effects will be processed at end of turn.[/color]")
+					"[color=#D97706]Its effects are applied when you complete this step.[/color]")
 
 
 func _on_continue_pressed() -> void:
@@ -364,6 +365,8 @@ func _show_income(receipt: Dictionary) -> void:
 		notes.append("-%d penalty" % int(receipt.penalty))
 	if int(receipt.get("crisis", 0)) > 0:
 		notes.append("-%d Crisis (p.90)" % int(receipt.crisis))
+	if int(receipt.get("wasted", 0)) > 0:
+		notes.append("-%d wasted, Scientific dead end (p.63)" % int(receipt.wasted))
 	_add_result_bbcode("Research Points earned this turn: +%d%s" % [int(receipt.get("net", 0)),
 			" (%d %s)" % [int(receipt.get("gross", 0)), ", ".join(notes)] if not notes.is_empty() else ""])
 

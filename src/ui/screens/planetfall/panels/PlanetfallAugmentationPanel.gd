@@ -228,6 +228,8 @@ func _on_purchase_pressed(augmentation_id: String) -> void:
 		_add_result_bbcode(
 			"[color=#10B981]Purchased %s for %d AP![/color]" % [
 				aug.get("name", ""), cost])
+		for line in result.get("milestone_lines", []):
+			_add_result_bbcode("[color=#D97706]%s[/color]" % str(line))
 		augmentation_purchased.emit(aug)
 		_update_ap_display()
 		# Rebuild list to show owned status

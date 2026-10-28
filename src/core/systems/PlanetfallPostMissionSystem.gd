@@ -97,8 +97,12 @@ func apply_find_to_campaign(campaign: Resource, find: Dictionary) -> void:
 				if amount > 0 and campaign.has_method("crisis_adjusted_gain") else amount
 
 	if rp > 0 and "research_data" in campaign:
-		var rd: Dictionary = campaign.research_data
-		rd["current_rp"] = int(rd.get("current_rp", 0)) + adjust.call(rp)
+		# Through the core so p.63's wasted points come off it.
+		if campaign.has_method("earn_research_points"):
+			campaign.earn_research_points(adjust.call(rp))
+		else:
+			var rd: Dictionary = campaign.research_data
+			rd["current_rp"] = int(rd.get("current_rp", 0)) + adjust.call(rp)
 
 	if bp > 0 and "buildings_data" in campaign:
 		var bd: Dictionary = campaign.buildings_data

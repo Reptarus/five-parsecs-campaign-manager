@@ -230,11 +230,12 @@ func _apply_building_effect(
 		campaign.add_story_points(effect.get("story_points", 0))
 	if effect.has("augmentation_points") and "augmentation_points" in campaign:
 		campaign.augmentation_points += effect.get("augmentation_points", 0)
-	if effect.has("milestone") and campaign.has_method("add_milestone"):
-		campaign.add_milestone()
-	if effect.has("roster_slots"):
-		# Tracked in campaign metadata for validation
-		pass
+	# A "milestone" effect is NOT granted here: PlanetfallMilestoneSystem grants it once,
+	# with its effects, when Step 15 completes (p.156). Counting it here as well made one
+	# building worth two Milestones, the first with no effects at all.
+	# "roster_slots" (p.100) is not applied here either: PlanetfallRosterRules
+	# .roster_capacity() sums it over the constructed buildings, so a save that built the
+	# facility while this branch was a bare `pass` gets its slots without a migration.
 
 
 func _check_prerequisite(

@@ -384,6 +384,14 @@ func _apply_effect(effect: Dictionary, ctx: Dictionary, st: Dictionary, r: Dicti
 
 ## p.66 injury roll for an Integrity Failure victim. `death_as_recovery` > 0 is the
 ## row 10 clause: "treat 'Death' as 5 turns of recovery instead".
+## One p.66 injury roll as its own receipt, for a table outside this file that sends a
+## character to it (p.71 Accident, "Dead ... counts as 5 turns of recovery").
+func injury_roll_receipt(c: Dictionary, death_as_recovery: int = 0) -> Dictionary:
+	var r: Dictionary = {"lines": [], "ops": []}
+	_injury_roll(c, death_as_recovery, r)
+	return r
+
+
 func _injury_roll(c: Dictionary, death_as_recovery: int, r: Dictionary) -> void:
 	var cid: String = str(c.get("id", ""))
 	var cname: String = str(c.get("name", cid))

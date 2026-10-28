@@ -25,15 +25,12 @@ const SPACING_LG := 24
 
 const PlanetfallConditionScript := preload(
 	"res://src/core/systems/PlanetfallConditionSystem.gd")
-const PlanetfallMissionSetupScript := preload(
-	"res://src/core/systems/PlanetfallMissionSetup.gd")
 
 var _campaign: Resource
 var _phase_manager: Node
 var _missions: Array = []
 var _selected_mission: Dictionary = {}
 var _condition_sys: PlanetfallConditionScript
-var _mission_setup: PlanetfallMissionSetupScript
 
 var _title_label: Label
 var _list_container: VBoxContainer
@@ -43,7 +40,6 @@ var _confirm_btn: Button
 
 func _ready() -> void:
 	_condition_sys = PlanetfallConditionScript.new()
-	_mission_setup = PlanetfallMissionSetupScript.new()
 	_load_missions()
 	_build_ui()
 
@@ -152,6 +148,17 @@ func _build_mission_list() -> void:
 	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_list_container.add_child(header)
+
+	# p.63 Hostile wildlife, accepted at Step 5: the cost of any other mission is paid
+	# when this step completes (PlanetfallPhaseManager._settle_patrol_commitment).
+	if _campaign and "patrol_required_turn" in _campaign \
+			and int(_campaign.patrol_required_turn) == int(_campaign.campaign_turn):
+		var note := Label.new()
+		note.text = "Hostile wildlife: play a Patrol Mission this turn, or Colony Morale -2."
+		note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		note.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		note.add_theme_color_override("font_color", COLOR_WARNING)
+		_list_container.add_child(note)
 
 	for mission in _missions:
 		if mission is not Dictionary:
@@ -385,22 +392,14 @@ func _on_confirm_pressed() -> void:
 	var has_conditions: bool = _selected_mission.get(
 		"battlefield_conditions", false)
 	if has_conditions and _condition_sys and _campaign:
-		var slot_roll: int = randi_range(1, 100)
-		var slot: int = _condition_sys.get_slot_for_roll(slot_roll)
-		if slot >= 0:
-			var cond_roll: int = randi_range(1, 100)
-			active_condition = _condition_sys.fill_condition_slot(
-				_campaign, slot, cond_roll)
+		active_condition = _condition_sys.roll_mission_condition(_campaign)
 
-	# Check Slyn aggression for missions with slyn_check opposition
-	var slyn_attacking: bool = false
+	# The Slyn check is NOT rolled here. pp.117/121/125: "After deploying, roll 2D6." It
+	# used to be rolled at this step, so Lock and Load announced "SLYN ATTACKING!" before
+	# the player chose who to deploy. PlanetfallBattleGuide.resolve_opposition() rolls it
+	# at battle launch, after Lock and Load.
 	var opposition: Dictionary = _selected_mission.get("opposition", {})
 	var opp_type: String = opposition.get("type", "")
-	if opp_type == "slyn_check" and _mission_setup:
-		var mid: String = _selected_mission.get("id", "")
-		var aggro_roll: int = randi_range(1, 6) + randi_range(1, 6)
-		slyn_attacking = _mission_setup.check_slyn_aggression(
-			mid, aggro_roll)
 
 	phase_completed.emit({
 		"selected_mission": _selected_mission,
@@ -409,8 +408,7 @@ func _on_confirm_pressed() -> void:
 		"active_condition": active_condition,
 		"uncertain_features": _selected_mission.get(
 			"uncertain_features", false),
-		"slyn_attacking": slyn_attacking,
-		"opposition_type": "slyn" if slyn_attacking else opp_type
+		"opposition_type": opp_type
 	})
 
 

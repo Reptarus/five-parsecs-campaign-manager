@@ -263,8 +263,29 @@ func _resolve_enemy_activity() -> void:
 				+ "enemy takes no action this turn (p.61).", COLOR_TEXT_PRIMARY)
 		return
 
-	var selected: Dictionary = enemies[_resolver.pick_index(enemies.size(),
-			"Planetfall Enemy Activity Target")]
+	# Milestones widen the step: the 6th makes EVERY enemy act each turn (p.158), and the
+	# 3rd queues one extra roll "in addition to the normal event" (p.157), resolved here
+	# against another random enemy. The phase manager clears the queue on completion.
+	var acting: Array = []
+	if _campaign.has_method("get_milestone_flag") \
+			and bool(_campaign.get_milestone_flag("enemy_activity_every_enemy", false)):
+		acting = enemies.duplicate()
+	else:
+		acting.append(enemies[_resolver.pick_index(enemies.size(),
+				"Planetfall Enemy Activity Target")])
+	var extra: int = _campaign.get_extra_rolls("enemy_activity") \
+			if _campaign.has_method("get_extra_rolls") else 0
+	for _i in range(extra):
+		acting.append(enemies[_resolver.pick_index(enemies.size(),
+				"Planetfall Enemy Activity Target")])
+	_raid_damage = 0
+	for n in range(acting.size()):
+		if n > 0:
+			_add_result_text("", COLOR_TEXT_SECONDARY)
+		_resolve_one_enemy_activity(acting[n])
+
+
+func _resolve_one_enemy_activity(selected: Dictionary) -> void:
 	var selected_type: Dictionary = selected.get("type", {}) \
 			if selected.get("type") is Dictionary else {}
 	_add_result_text("Acting enemy: [b]%s[/b]" % selected_type.get("name",
@@ -310,8 +331,9 @@ func _resolve_enemy_activity() -> void:
 
 		# REPORTED, not applied. This dialog applied the damage itself and reported
 		# nothing, so the phase manager's count stayed 0 and Step 11 never charged
-		# Morale for a raid (p.89: -1 Morale per point of Colony Damage).
-		_raid_damage = final_damage
+		# Morale for a raid (p.89: -1 Morale per point of Colony Damage). Summed, since
+		# a Milestone can make more than one enemy act.
+		_raid_damage += final_damage
 
 
 ## Step 16, pp.87-88. Until 2026-10-27 this rolled a D6 per point of negative

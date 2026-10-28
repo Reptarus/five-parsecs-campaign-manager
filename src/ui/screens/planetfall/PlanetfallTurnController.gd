@@ -8,6 +8,7 @@ extends "res://src/ui/screens/planetfall/PlanetfallScreenBase.gd"
 
 const PlanetfallPhaseManagerScript := preload(
 	"res://src/core/campaign/PlanetfallPhaseManager.gd")
+const BattleGuideScript := preload("res://src/core/battle/PlanetfallBattleGuide.gd")
 const PlaceholderPanelScript := preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallPlaceholderPanel.gd")
 const AutoResolveScript := preload(
@@ -644,13 +645,11 @@ func _on_panel_phase_completed(result_data: Dictionary) -> void:
 	if current == PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD:
 		_deployed_data = result_data.duplicate(true)
 
-	# Step 14 (Research) / Step 15 (Building): Check for milestone grants
-	if current == PlanetfallPhaseManagerScript.Phase.RESEARCH:
-		_check_for_milestone_grants()
-	if current == PlanetfallPhaseManagerScript.Phase.BUILDING:
-		_check_for_milestone_grants()
-
 	phase_manager.complete_current_phase(result_data)
+
+	# Steps 14-15: the phase manager delivers any Milestone on completion (pp.156-158);
+	# this screen only shows what happened.
+	_show_milestone_receipt(phase_manager.take_milestone_receipt())
 
 
 func _on_advance_pressed() -> void:
@@ -830,69 +829,13 @@ func _launch_planetfall_battle() -> void:
 		push_warning("PlanetfallTurnController: No campaign for battle launch")
 		phase_manager.complete_current_phase({})
 		return
-
-	# Build crew array from deployed characters
-	var crew: Array = []
-	var deployed_chars: Dictionary = _deployed_data.get("deployed_characters", {})
-	if "roster" in campaign:
-		for char_dict in campaign.roster:
-			if char_dict is Dictionary:
-				var cid: String = char_dict.get("id", "")
-				if deployed_chars.has(cid):
-					var deployed_entry: Dictionary = deployed_chars[cid]
-					var crew_entry: Dictionary = char_dict.duplicate(true)
-					# Attach weapon assignment from Lock and Load
-					crew_entry["assigned_weapon"] = deployed_entry.get("weapon_id", "")
-					crew.append(crew_entry)
-
-	# Build enemies array (placeholder — actual enemy generation depends on
-	# mission type: Lifeforms, Tactical Enemies, Slyn, or Delve Hazards)
-	var enemies: Array = []
-	var mission_id: String = _mission_context.get("id", "")
-	var opposition: Dictionary = _mission_context.get("opposition", {})
-	var opp_type: String = opposition.get("type", "lifeforms")
-
-	# For now, generate a basic enemy group. Full generation would use
-	# PlanetfallLifeformGenerator / PlanetfallTacticalEnemyGenerator / Slyn profile
-	# based on the opposition type. The tabletop player handles the actual minis.
-	enemies = _generate_opposition_for_battle(opp_type)
-
-	# Build mission_data dict for TacticalBattleUI
-	var mission_data: Dictionary = {
-		"battle_mode": "planetfall",
-		"type": mission_id,
-		"title": _mission_context.get("name", "Planetfall Mission"),
-		"objective": _mission_context.get("description", ""),
-		"table_size": _mission_context.get("table_size", "3x3"),
-		"battlefield_conditions": _mission_context.get("battlefield_conditions", false),
-		"grunts_deployed": _deployed_data.get("grunts_deployed", 0),
-		"opposition_type": opp_type,
-	}
+	var payload: Dictionary = build_battle_payload()
 
 	# Stamp what this mission IS before leaving. This controller is rebuilt on the
 	# battle return, so _mission_context does not survive it; the phase manager
 	# persists the stamp with the turn and normalizes the result against it (T9a).
-	var deployed_ids: Array = []
-	for c in crew:
-		deployed_ids.append(str(c.get("id", "")))
-	phase_manager.stamp_mission({
-		"id": mission_id,
-		"mission_name": _mission_context.get("name", ""),
-		"opposition_type": opp_type,
-		"enemy_type": str(enemies[0].get("name", "")) if not enemies.is_empty() else "",
-		"tactical_enemy_index": _battle_tactical_enemy_index() if opp_type == "tactical" else -1,
-		"grunts_deployed": int(_deployed_data.get("grunts_deployed", 0)),
-		"deployed_ids": deployed_ids,
-	})
-
-	# Build battle context for temp_data storage
-	var battle_context: Dictionary = {
-		"crew": crew,
-		"enemies": enemies,
-		"mission_data": mission_data,
-		"mission_context": _mission_context.duplicate(true),
-		"deployed_data": _deployed_data.duplicate(true)
-	}
+	phase_manager.stamp_mission(payload.stamp)
+	var battle_context: Dictionary = payload.context
 
 	# Store in temp_data for TacticalBattleUI to pick up
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
@@ -915,6 +858,78 @@ func _launch_planetfall_battle() -> void:
 		phase_manager.complete_current_phase({"skipped": true})
 
 
+## What Step 8 hands the battle and what it stamps on the turn: {context, stamp}. It
+## ROLLS (the Slyn check and the force), so call it once per launch. Split from the
+## launch so a test reads it without leaving the screen.
+func build_battle_payload() -> Dictionary:
+	# Build crew array from deployed characters
+	var crew: Array = []
+	var deployed_chars: Dictionary = _deployed_data.get("deployed_characters", {})
+	if "roster" in campaign:
+		for char_dict in campaign.roster:
+			if char_dict is Dictionary:
+				var cid: String = char_dict.get("id", "")
+				if deployed_chars.has(cid):
+					var deployed_entry: Dictionary = deployed_chars[cid]
+					var crew_entry: Dictionary = char_dict.duplicate(true)
+					# Attach weapon assignment from Lock and Load
+					crew_entry["assigned_weapon"] = deployed_entry.get("weapon_id", "")
+					crew.append(crew_entry)
+
+	# The opposition, rolled now that Lock and Load is done (pp.117/121/125: "After
+	# deploying, roll 2D6"), and the force it fields (pp.148-153). The battle screen
+	# reads the rows; the figures are stat references for the minis on the table.
+	var mission_id: String = _mission_context.get("id", "")
+	var opposition: Dictionary = _mission_context.get("opposition", {})
+	var resolved: Dictionary = BattleGuideScript.resolve_opposition(_mission_context)
+	var opp_type: String = str(resolved.get("type", "lifeforms"))
+	var te_index: int = _battle_tactical_enemy_index() if opp_type == "tactical" else -1
+	var force: Dictionary = BattleGuideScript.build_force(campaign, opp_type, opposition,
+			te_index)
+	var enemies: Array = force.get("enemies", [])
+	var force_rows: Array = []
+	if str(resolved.get("line", "")) != "":
+		force_rows.append({"head": str(resolved.line), "detail": ""})
+	force_rows.append_array(force.get("rows", []))
+
+	# Build mission_data dict for TacticalBattleUI
+	var mission_data: Dictionary = {
+		"battle_mode": "planetfall",
+		"type": mission_id,
+		"title": _mission_context.get("name", "Planetfall Mission"),
+		"objective": _mission_context.get("description", ""),
+		"table_size": _mission_context.get("table_size", "3x3"),
+		"battlefield_conditions": _mission_context.get("battlefield_conditions", false),
+		"grunts_deployed": _deployed_data.get("grunts_deployed", 0),
+		"opposition_type": opp_type,
+		"slyn_attacking": bool(resolved.get("slyn_attacking", false)),
+		"opposition": opposition.duplicate(true),
+		"opposition_force_rows": force_rows,
+		"enemy_type": str(force.get("enemy_type", "")),
+	}
+
+	var deployed_ids: Array = []
+	for c in crew:
+		deployed_ids.append(str(c.get("id", "")))
+	var stamp: Dictionary = {
+		"id": mission_id,
+		"mission_name": _mission_context.get("name", ""),
+		"opposition_type": opp_type,
+		"enemy_type": str(force.get("enemy_type", "")),
+		"tactical_enemy_index": te_index,
+		"grunts_deployed": int(_deployed_data.get("grunts_deployed", 0)),
+		"deployed_ids": deployed_ids,
+	}
+	var battle_context: Dictionary = {
+		"crew": crew,
+		"enemies": enemies,
+		"mission_data": mission_data,
+		"mission_context": _mission_context.duplicate(true),
+		"deployed_data": _deployed_data.duplicate(true)
+	}
+	return {"context": battle_context, "stamp": stamp}
+
+
 ## The Tactical Enemy a tactical mission fights: the first one not yet defeated at its
 ## Strongpoint (p.51), or -1. One reader for the opposition and the stamp.
 func _battle_tactical_enemy_index() -> int:
@@ -927,148 +942,17 @@ func _battle_tactical_enemy_index() -> int:
 	return -1
 
 
-func _generate_opposition_for_battle(opp_type: String) -> Array:
-	## Generate a basic enemy roster for the TacticalBattleUI.
-	## This is a tabletop companion — the actual minis are on the physical table.
-	## The enemies here provide stat references for the battle UI.
-	var enemies: Array = []
-
-	match opp_type:
-		"lifeforms":
-			# Use campaign lifeform table if available
-			if campaign and "lifeform_table" in campaign:
-				for slot in campaign.lifeform_table:
-					if slot is Dictionary and not slot.is_empty():
-						enemies.append({
-							"name": "Lifeform",
-							"speed": slot.get("speed", 6),
-							"combat_skill": slot.get("combat_skill", 1),
-							"toughness": slot.get("toughness", 4),
-							"type": "lifeform"
-						})
-						break  # Use first filled slot as representative
-			if enemies.is_empty():
-				enemies.append({"name": "Unknown Lifeform", "speed": 6,
-					"combat_skill": 1, "toughness": 4, "type": "lifeform"})
-
-		"tactical":
-			# The enemy fought is the one the stamp records, so p.68's +1 Enemy
-			# Information lands on the enemy whose profile was shown.
-			var te_index: int = _battle_tactical_enemy_index()
-			if te_index >= 0:
-				var te: Dictionary = campaign.tactical_enemies[te_index]
-				var te_type: Dictionary = te.get("type", {})
-				var cs = te_type.get("combat_skill", 0)
-				var tg = te_type.get("toughness", 3)
-				enemies.append({
-					"name": te_type.get("name", "Tactical Enemy"),
-					"speed": te_type.get("speed", 4),
-					"combat_skill": cs[0] if cs is Array else cs,
-					"toughness": tg[0] if tg is Array else tg,
-					"type": "tactical_enemy"
-				})
-			if enemies.is_empty():
-				enemies.append({"name": "Unknown Enemy", "speed": 4,
-					"combat_skill": 0, "toughness": 3, "type": "tactical_enemy"})
-
-		"slyn_check", "slyn":
-			var slyn: Dictionary = {"name": "Slyn", "speed": 5,
-				"combat_skill": 1, "toughness": 4, "type": "slyn"}
-			enemies.append(slyn)
-
-		"delve_hazards":
-			# Delve missions don't have conventional enemies at start
-			enemies.append({"name": "Sleeper", "speed": 5,
-				"combat_skill": 1, "toughness": 4, "type": "sleeper"})
-
-		_:
-			enemies.append({"name": "Unknown", "speed": 4,
-				"combat_skill": 0, "toughness": 3, "type": "unknown"})
-
-	return enemies
-
-
 ## ============================================================================
 ## PROGRESSION SYSTEM WIRING
 ## ============================================================================
 
-func _check_for_milestone_grants() -> void:
-	## Check if any recently completed building/research/augmentation/artifact
-	## grants a milestone. Called after Research (Step 14) and Building (Step 15).
-	if not _milestone_sys or not campaign:
+## Show the Milestones a step delivered (pp.156-158), once, in plain text.
+func _show_milestone_receipt(receipt: Dictionary) -> void:
+	var lines: Array = receipt.get("lines", []) if receipt is Dictionary else []
+	if lines.is_empty():
 		return
-
-	# Check buildings
-	if "buildings_data" in campaign:
-		for building_id in campaign.buildings_data.get("constructed", []):
-			if _milestone_sys.check_tech_grants_milestone("buildings", str(building_id)):
-				_trigger_milestone()
-				return
-
-	# Check research applications
-	if "research_data" in campaign:
-		for app_id in campaign.research_data.get("unlocked_applications", []):
-			if _milestone_sys.check_tech_grants_milestone("research_applications", str(app_id)):
-				_trigger_milestone()
-				return
-
-	# Check augmentations
-	if "research_data" in campaign:
-		for aug_id in campaign.research_data.get("augmentations_owned", []):
-			if _milestone_sys.check_tech_grants_milestone("augmentations", str(aug_id)):
-				_trigger_milestone()
-				return
-
-	# Check artifacts
-	if "artifacts_found" in campaign:
-		for artifact in campaign.artifacts_found:
-			if artifact is Dictionary:
-				var aid: String = artifact.get("id", "")
-				if _milestone_sys.check_tech_grants_milestone("alien_artifacts", aid):
-					_trigger_milestone()
-					return
-
-
-func _trigger_milestone() -> void:
-	## Apply milestone effects and process all cascading actions.
-	if not _milestone_sys or not campaign:
-		return
-	var current_milestones: int = campaign.milestones_completed \
-		if "milestones_completed" in campaign else 0
-	var next_index: int = current_milestones + 1
-	if next_index > 7:
-		return  # Already completed all milestones
-
-	var result: Dictionary = _milestone_sys.apply_milestone(campaign, next_index)
-
-	# Process actions_needed from milestone
-	for action in result.get("actions_needed", []):
-		if action is not Dictionary:
-			continue
-		var action_type: String = action.get("action", "")
-
-		match action_type:
-			"create_tactical_enemy":
-				if _enemy_gen:
-					_enemy_gen.create_full_enemy(campaign)
-
-			"roll_lifeform_evolution":
-				if _lifeform_gen and campaign and "lifeform_table" in campaign:
-					var slot: int = randi_range(0, 9)
-					var evo_roll: int = randi_range(1, 100)
-					_lifeform_gen.apply_evolution(campaign, slot, evo_roll)
-
-			"add_mission_data":
-				var amount: int = action.get("amount", 0)
-				_process_mission_data_addition(amount)
-
-			"check_calamity":
-				if _milestone_sys.check_calamity_trigger(campaign):
-					if _calamity_sys:
-						var cal_roll: int = randi_range(1, 100)
-						_calamity_sys.trigger_calamity(campaign, cal_roll)
-
 	_refresh_stat_strip()
+	AcknowledgeDialog.show_message(self, "\n".join(PackedStringArray(lines)))
 
 
 func _process_mission_data_check() -> void:
@@ -1095,20 +979,6 @@ func _process_mission_data_check() -> void:
 			bt_index, bt_result.get("name", "Unknown")])
 
 		# Handle 4th breakthrough (Final D100 table)
-		for needed in bt_result.get("actions_needed", []):
-			if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
-				var final_roll: int = randi_range(1, 100)
-				_md_sys.roll_final_breakthrough(campaign, final_roll)
-
-
-func _process_mission_data_addition(amount: int) -> void:
-	## Add mission data and check for breakthrough via MissionDataSystem.
-	if not _md_sys or not campaign:
-		return
-	var result: Dictionary = _md_sys.add_and_check(campaign, amount)
-	if result.get("breakthrough", false):
-		var bt_result: Dictionary = result.get("result", {})
-		push_warning("Mission Data Breakthrough: %s" % bt_result.get("name", "Unknown"))
 		for needed in bt_result.get("actions_needed", []):
 			if needed is Dictionary and needed.get("action", "") == "roll_final_breakthrough":
 				var final_roll: int = randi_range(1, 100)

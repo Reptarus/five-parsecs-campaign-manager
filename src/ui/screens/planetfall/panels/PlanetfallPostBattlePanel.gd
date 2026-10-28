@@ -508,6 +508,10 @@ func _resolve_experience() -> void:
 	_add_result_bbcode("[b]XP Awards:[/b]")
 	for pid in participants:
 		var char_name: String = _get_character_name(str(pid))
+		# pp.70-71: this was the character's next mission, so Personal reflection and
+		# Personal calibrations are spent on it whatever the XP comes to.
+		var double_xp: bool = _take_note(str(pid), "double_xp")
+		_take_note(str(pid), "calibrated")
 		# p.67 Cowardice: "moved off a battlefield edge in the first two rounds of a
 		# battle forfeits all XP awards from that battle".
 		if cowards.has(str(pid)):
@@ -524,7 +528,13 @@ func _resolve_experience() -> void:
 			xp += 1
 			reasons.append("+1 killed Boss/Leader")
 
-		_apply_xp_to_character(str(pid), xp)
+		if double_xp:
+			xp *= 2
+			reasons.append("doubled, Personal reflection (p.71)")
+
+		if _apply_xp_to_character(str(pid), xp) == 0:
+			_add_result_bbcode("  %s: no XP (Personal tragedy, p.71)." % char_name)
+			continue
 		_add_result_bbcode(
 			"  %s: +%d XP (%s)" % [char_name, xp, ", ".join(reasons)])
 
@@ -805,14 +815,21 @@ func _get_character_name(character_id: String) -> String:
 	return character_id
 
 
-func _apply_xp_to_character(character_id: String, xp: int) -> void:
-	if not _campaign or not "roster" in _campaign:
-		return
-	for char_dict in _campaign.roster:
-		if char_dict is Dictionary:
-			if char_dict.get("id", "") == character_id:
-				char_dict["xp"] = char_dict.get("xp", 0) + xp
-				break
+## A one-use Character Event note (pp.70-71): true if it was set, and it is cleared.
+func _take_note(character_id: String, key: String) -> bool:
+	if not _campaign or not _campaign.has_method("get_character_note"):
+		return false
+	if not bool(_campaign.get_character_note(character_id, key, false)):
+		return false
+	_campaign.clear_character_note(character_id, key)
+	return true
+
+
+func _apply_xp_to_character(character_id: String, xp: int) -> int:
+	# Through the core's one XP writer (p.71 Personal tragedy is checked there).
+	if not _campaign or not _campaign.has_method("award_xp"):
+		return 0
+	return _campaign.award_xp(character_id, xp)
 
 
 func _add_info_text(text: String) -> void:

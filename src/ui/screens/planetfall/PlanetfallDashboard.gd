@@ -513,6 +513,10 @@ func _show_overlay_panel(panel_type: String) -> void:
 	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	if panel.has_method("set_campaign"):
 		panel.set_campaign(_campaign)
+	# An overlay that changes the campaign (the 4th Milestone's condition replacement)
+	# says so, and the dashboard saves it at once so a force-stop cannot undo it.
+	if panel.has_signal("campaign_changed"):
+		panel.campaign_changed.connect(_on_save)
 	_overlay_container.add_child(panel)
 	_overlay_container.visible = true
 

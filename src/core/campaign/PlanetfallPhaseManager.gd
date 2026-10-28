@@ -21,6 +21,8 @@ signal navigation_updated(can_back: bool, can_forward: bool)
 signal campaign_ended(reason: String)
 
 const ColonyCrisisScript := preload("res://src/core/systems/PlanetfallColonyCrisis.gd")
+const MilestoneScript := preload("res://src/core/systems/PlanetfallMilestoneSystem.gd")
+const RosterRulesScript := preload("res://src/core/systems/PlanetfallRosterRules.gd")
 const BattleNormalizerScript := preload(
 	"res://src/core/battle/PlanetfallBattleResultNormalizer.gd")
 
@@ -114,6 +116,9 @@ var _mission_stamp: Dictionary = {}
 ## two above: non-empty means resolved, persisted, never rolled again on a resume.
 var _step_receipts: Dictionary = {}
 var _crisis: ColonyCrisisScript
+## The Milestones the last Research or Building step delivered, for the controller to
+## show once (take_milestone_receipt). The milestone state itself is on the campaign.
+var _milestone_receipt: Dictionary = {}
 
 var _phase_complete: Dictionary = {}
 
@@ -481,7 +486,40 @@ func _apply_stability_ops(ops: Array) -> Array:
 				campaign.add_income_penalty(int(op.get("turn", 0)),
 						int(op.get("bp", 0)), int(op.get("rp", 0)))
 			"injury":
-				campaign.add_to_sick_bay(str(op.get("character_id", "")), int(op.get("turns", 0)))
+				var hurt: String = str(op.get("character_id", ""))
+				var turns: int = int(op.get("turns", 0))
+				# p.71 Excellent health, saved: "reduce the time required by 2 turns".
+				if turns > 0 and bool(campaign.get_character_note(hurt, "saved_health", false)):
+					campaign.clear_character_note(hurt, "saved_health")
+					turns = maxi(turns - 2, 0)
+					notes.append("Excellent health (saved, p.71): recovery 2 turns shorter.")
+				if turns > 0:
+					campaign.add_to_sick_bay(hurt, turns)
+			"loyalty_gain":
+				var up: Dictionary = campaign.raise_loyalty(str(op.get("character_id", "")))
+				if not up.is_empty():
+					notes.append("%s: Loyalty %s -> %s." % [up.name,
+							str(up.from).capitalize(), str(up.to).capitalize()])
+			"enemy_info":
+				campaign.increment_enemy_info(int(op.get("enemy_index", 0)), int(op.get("amount", 1)))
+			"sick_bay_extend":
+				campaign.extend_recovery(str(op.get("character_id", "")), int(op.get("turns", 0)))
+			"reduce_recovery":
+				campaign.reduce_recovery(str(op.get("character_id", "")), int(op.get("turns", 0)))
+			"recover_fully":
+				campaign.reduce_recovery(str(op.get("character_id", "")), 999)
+			"departed":
+				campaign.dismiss_character(str(op.get("character_id", "")))
+			"away":
+				campaign.set_character_note(str(op.get("character_id", "")), "away_until",
+						int(op.get("until_turn", 0)))
+			"dispute":
+				campaign.add_dispute(str(op.get("a", "")), str(op.get("b", "")), int(op.get("turn", 0)))
+			"note":
+				campaign.set_character_note(str(op.get("character_id", "")), str(op.get("key", "")),
+						op.get("value"))
+			"story_point_gain":
+				campaign.add_story_points(int(op.get("amount", 0)))
 			"slain":
 				campaign.slay_character(str(op.get("character_id", "")))
 			"xp":
@@ -585,6 +623,106 @@ func _update_navigation() -> void:
 ## PHASE RESULT APPLICATION
 ## ============================================================================
 
+## pp.156-158. Every newly owned source on the Milestone list grants one Milestone, and
+## everything it owes is resolved now. Public so a test (or a later caller) can drive it.
+func deliver_milestones() -> Dictionary:
+	if not campaign:
+		return {}
+	var receipt: Dictionary = MilestoneScript.new().deliver_new_milestones(campaign)
+	if not (receipt.get("lines", []) as Array).is_empty():
+		_milestone_receipt = receipt
+	return receipt
+
+
+## The last Milestone receipt, handed over once.
+func take_milestone_receipt() -> Dictionary:
+	var receipt: Dictionary = _milestone_receipt
+	_milestone_receipt = {}
+	return receipt
+
+
+## pp.70-71 Step 17. What PlanetfallCharacterEvents reads: the roster, Sick Bay, who is
+## off world, how many Tactical Enemies there are, and whether this turn's mission was won
+## (null when no battle result is recorded).
+func character_event_context() -> Dictionary:
+	if not campaign:
+		return {}
+	var away: Array = []
+	for c in campaign.roster:
+		if c is Dictionary and campaign.is_away(str(c.get("id", ""))):
+			away.append(str(c.get("id", "")))
+	return {
+		"roster": campaign.roster.duplicate(true),
+		"sick_bay": campaign.sick_bay.duplicate(),
+		"campaign_turn": int(campaign.campaign_turn),
+		"tactical_enemy_count": campaign.tactical_enemies.size() \
+				if "tactical_enemies" in campaign else 0,
+		"last_mission_won": bool(_battle_result.won) if _battle_result.has("won") else null,
+		"away": away,
+	}
+
+
+## The one place a Character Event result reaches the campaign (the Step 11/16 applier).
+## Returns the lines only the application can know (the Loyalty level reached).
+func apply_character_event_ops(ops: Array) -> Array:
+	if not campaign:
+		return []
+	var notes: Array = _apply_stability_ops(ops)
+	_persist_phase()
+	return notes
+
+
+## p.63 Hostile wildlife: "Unless you play a Patrol Mission this turn, adjust Colony
+## Morale by -2." Owed only when the event was accepted (declining pays at once), and
+## settled once, when the mission is chosen. Pitched Battle forced on the colony is not a
+## Patrol either, so it pays too.
+func _settle_patrol_commitment(data: Dictionary) -> void:
+	if not "patrol_required_turn" in campaign \
+			or int(campaign.patrol_required_turn) != int(campaign.campaign_turn):
+		return
+	campaign.patrol_required_turn = -1
+	var mission: Variant = data.get("selected_mission", {})
+	var mission_id: String = str(mission.get("id", "")) if mission is Dictionary else ""
+	if mission_id == "patrol":
+		record_step_receipt("mission_determination",
+				["Hostile wildlife: the Patrol Mission keeps the colonists calm."])
+		return
+	campaign.adjust_morale(-2)
+	record_step_receipt("mission_determination",
+			["Hostile wildlife: no Patrol Mission this turn. Colony Morale -2 (p.63)."])
+
+
+## p.69 Step 13. Dismissals first ("cannot be returned"), then each replacement the player
+## took, as the class's standard character at Loyalty Committed, while the roster has
+## room. Returns the ids added. Public so a test can drive it without the dialog.
+func resolve_replacements(data: Dictionary) -> Array:
+	var added: Array = []
+	if not campaign or not "roster" in campaign:
+		return added
+	for id in data.get("dismissed", []):
+		if campaign.has_method("dismiss_character"):
+			campaign.dismiss_character(str(id))
+	var capacity: int = RosterRulesScript.roster_capacity(campaign)
+	for entry in data.get("new_characters", []):
+		if campaign.roster.size() >= capacity:
+			break
+		var cls: String = str((entry as Dictionary).get("class", "")) if entry is Dictionary else ""
+		if not RosterRulesScript.REPLACEMENT_CLASSES.has(cls):
+			continue
+		var id: String = RosterRulesScript.next_character_id(campaign)
+		campaign.add_roster_character(RosterRulesScript.standard_character(
+				cls, id, "Colonist %d" % (campaign.roster.size() + 1)))
+		added.append(id)
+	return added
+
+
+## The extra rolls a Milestone queued for this step are spent with it, whether or not
+## the step found anything to roll against.
+func _spend_extra_rolls(kind: String) -> void:
+	if campaign.has_method("clear_extra_rolls"):
+		campaign.clear_extra_rolls(kind)
+
+
 func _apply_phase_results(phase: int, data: Dictionary) -> void:
 	if not campaign:
 		return
@@ -613,16 +751,18 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			if bool(data.get("waited", false)) and can_spend_story_point():
 				campaign.spend_story_point()
 			_take_reported_damage(data)
+			_spend_extra_rolls("enemy_activity")
 
 		Phase.COLONY_EVENTS:
 			# Colony event effects applied by panel, except Colony Damage (as above).
 			_take_reported_damage(data)
+			_spend_extra_rolls("colony_event")
 			if data.has("story_points_blocked"):
 				_story_points_blocked = data.get("story_points_blocked", false)
 
 		Phase.MISSION_DETERMINATION:
 			# Selected mission stored for Lock and Load
-			pass
+			_settle_patrol_commitment(data)
 
 		Phase.LOCK_AND_LOAD:
 			# Deployment configured, equipment assigned
@@ -654,16 +794,14 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 			pass
 
 		Phase.REPLACEMENTS:
-			# New characters/grunts added by panel
-			pass
+			# p.69 Step 13. The dialog reports what the player took; nothing read it
+			# before, so every replacement was announced and lost.
+			resolve_replacements(data)
 
-		Phase.RESEARCH:
-			# RP spending handled by panel + ResearchSystem
-			pass
-
-		Phase.BUILDING:
-			# BP spending handled by panel + BuildingSystem
-			pass
+		Phase.RESEARCH, Phase.BUILDING:
+			# RP / BP spending is handled by the panels. A source on p.156's list grants
+			# its Milestone here, once (the controller used to re-grant every step).
+			deliver_milestones()
 
 		Phase.COLONY_INTEGRITY:
 			# pp.87-88 Step 16, resolved once, as Step 11.
@@ -671,7 +809,7 @@ func _apply_phase_results(phase: int, data: Dictionary) -> void:
 
 		Phase.CHARACTER_EVENT:
 			# Character event effects applied by panel
-			pass
+			_spend_extra_rolls("character_event")
 
 		Phase.UPDATE_TRACKING:
 			# Final save — handled by _complete_turn()

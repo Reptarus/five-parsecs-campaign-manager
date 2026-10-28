@@ -11,6 +11,9 @@ signal phase_completed(result_data: Dictionary)
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
+const LifeformScript := preload("res://src/core/systems/PlanetfallLifeformGenerator.gd")
+const ConditionScript := preload("res://src/core/systems/PlanetfallConditionSystem.gd")
+const RosterRules := preload("res://src/core/systems/PlanetfallRosterRules.gd")
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -33,6 +36,13 @@ var _resolver: PlanetfallEventResolverScript
 var _rolled: bool = false
 var _current_event: Dictionary = {}
 var _result_data: Dictionary = {}
+## The normal event plus any a Milestone queued (p.156 2nd Milestone: "Immediately roll
+## for a Colony Event ... in addition to the normal event").
+var _events_owed: int = 1
+var _events_rolled: int = 0
+## The character / class picked in the choice on screen (pp.63-64).
+var _choice_pick: OptionButton
+var _choice_class: OptionButton
 
 var _title_label: Label
 var _content_vbox: VBoxContainer
@@ -63,6 +73,9 @@ func refresh() -> void:
 	_rolled = false
 	_current_event = {}
 	_result_data = {}
+	_events_rolled = 0
+	_events_owed = 1 + (_campaign.get_extra_rolls("colony_event")
+			if _campaign and _campaign.has_method("get_extra_rolls") else 0)
 	if _title_label:
 		_title_label.text = "STEP 5: COLONY EVENTS"
 	_clear_container(_content_vbox)
@@ -79,6 +92,9 @@ func refresh() -> void:
 		"Life on Home is unpredictable. Roll D100 to determine which event takes place this campaign turn.")
 
 
+## One footer press is one player click: roll the event owed, or continue past the one
+## on screen, which re-arms the roll while a Milestone still owes another. Rolling them
+## all at once would finish the step before the player saw an event or made a choice.
 func complete() -> void:
 	if not _rolled:
 		_on_roll_pressed()
@@ -148,6 +164,11 @@ func _build_ui() -> void:
 func _on_roll_pressed() -> void:
 	_roll_btn.disabled = true
 	_rolled = true
+	_events_rolled += 1
+	_clear_container(_choice_container)
+	if _events_rolled > 1:
+		_add_result_bbcode("\n[b]Milestone Colony Event %d of %d[/b]" % [
+				_events_rolled - 1, _events_owed - 1])
 
 	var roll: int = _resolver.roll_d100("Planetfall Colony Event")
 	_current_event = _resolver.resolve_colony_event(roll)
@@ -213,6 +234,9 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 				dmg, " (cannot be mitigated)" if key == "colony_damage_unmitigable" else ""])
 
 	if effect.has("ancient_signs"):
+		# p.63 Colonists find. This printed the sign and recorded nothing until 2026-10-27.
+		if _campaign.has_method("apply_colony_event"):
+			_campaign.apply_colony_event({"ancient_signs": int(effect.get("ancient_signs", 0))})
 		_add_result_bbcode(
 			"\n[color=#10B981]+%d Ancient Sign(s)[/color]" % effect.get("ancient_signs", 0))
 
@@ -220,10 +244,10 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 		var xp: int = effect.get("xp_all_characters", 0)
 		_add_result_bbcode(
 			"\n[color=#10B981]+%d XP to all roster characters[/color]" % xp)
-		if _campaign and "roster" in _campaign:
+		if _campaign and "roster" in _campaign and _campaign.has_method("award_xp"):
 			for char_dict in _campaign.roster:
-				if char_dict is Dictionary:
-					char_dict["xp"] = char_dict.get("xp", 0) + xp
+				if _is_present(char_dict):
+					_campaign.award_xp(str(char_dict.get("id", "")), xp)
 
 	if effect.has("grunts"):
 		var g: int = effect.get("grunts", 0)
@@ -251,6 +275,9 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 			"\n[color=#10B981]Repaired %d point(s) of Colony Damage.[/color]" % repaired)
 
 	if effect.has("research_points_wasted"):
+		# p.63 Scientific dead end; the core takes it off the next points earned.
+		if "research_points_wasted" in _campaign:
+			_campaign.research_points_wasted += int(effect.get("research_points_wasted", 0))
 		_add_result_bbcode(
 			"\n[color=#DC2626]Your next %d Research Points earned will be wasted.[/color]" %
 			effect.get("research_points_wasted", 0))
@@ -260,23 +287,48 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 			"\n[color=#DC2626]Cannot use Story Points for the rest of this turn.[/color]")
 		_result_data["story_points_blocked"] = true
 
+	# p.64 Animal migrations / Changing climate conditions. Both printed "has been erased"
+	# and erased nothing until 2026-10-27.
 	if effect.has("erase_lifeform_entry"):
-		_add_result_bbcode(
-			"\n[color=#D97706]A random Lifeform Encounter entry has been erased.[/color]")
+		_report_erased("Lifeform Encounter", LifeformScript.new().erase_random_entry(_campaign))
 
 	if effect.has("erase_conditions_entry"):
-		_add_result_bbcode(
-			"\n[color=#D97706]A random Campaign Conditions entry has been erased.[/color]")
+		_report_erased("Campaign Conditions", ConditionScript.new().erase_random_entry(_campaign))
 
 	if effect.has("virus_spread"):
 		_resolve_virus_event()
 
-	_result_data["event"] = _current_event
+	_record_event()
+
+
+func _report_erased(table: String, slot: int) -> void:
+	if slot < 0:
+		_add_result_bbcode("\nNo %s entry has been filled yet, so there is none to erase." % table)
+		return
+	_add_result_bbcode("\n[color=#D97706]%s entry %d erased. It is filled again when that "
+			% [table, slot + 1] + "entry is rolled.[/color]")
+
+
+## Every event rolled this step, in order; "event" stays the first for older readers.
+## Keyed on the count, not on equality: an accepted choice can record the same event
+## twice, while two rolls of the same row are two events.
+func _record_event() -> void:
+	var events: Array = _result_data.get("events", [])
+	if events.size() < _events_rolled:
+		events.append(_current_event)
+	_result_data["events"] = events
+	if not _result_data.has("event"):
+		_result_data["event"] = _current_event
 
 
 func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
-	## Build player choice controls for events that need them.
+	## Build the player's choice for the events that need one. pp.63-64. Until
+	## 2026-10-27 every pick here went to roster[0], the Public relations demand kept
+	## nobody out, Experimental medicine shortened no recovery and the Supply ship always
+	## took Research Points.
 	_clear_container(_choice_container)
+	_choice_pick = null
+	_choice_class = null
 
 	var choice_label := RichTextLabel.new()
 	choice_label.bbcode_enabled = true
@@ -284,36 +336,51 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	choice_label.scroll_active = false
 	choice_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	choice_label.add_theme_color_override("default_color", COLOR_WARNING)
+	_choice_container.add_child(choice_label)
 
 	match event_id:
 		"public_relations_demand":
-			choice_label.text = "Choose: Select a character to be unavailable, or accept -2 Colony Morale."
+			choice_label.text = "Select a character who will not take part in any mission this " \
+					+ "campaign turn, or decline and adjust Colony Morale by -2."
+			_choice_pick = _character_picker(_can_sit_out)
+			_add_choice_button("Keep them out this turn", event_id, effect)
 		"specialist_training":
-			choice_label.text = "Choose: Add a new character (if vacancy) or grant +3 XP to existing."
+			choice_label.text = "Add a new character to your roster if you have a vacancy, " \
+					+ "OR grant +3 XP to an existing character."
+			if _has_vacancy():
+				_choice_class = OptionButton.new()
+				_choice_class.custom_minimum_size = Vector2(0, 48)
+				for cls in RosterRules.REPLACEMENT_CLASSES:
+					_choice_class.add_item(str(cls).capitalize())
+				_choice_container.add_child(_choice_class)
+				_add_choice_button("Add a new character", event_id, effect, "add")
+			_choice_pick = _character_picker()
+			_add_choice_button("+3 XP to the selected character", event_id, effect, "xp")
 		"hostile_wildlife":
-			choice_label.text = "Choose: Play a Patrol Mission this turn, or accept -2 Colony Morale."
+			choice_label.text = "Play a Patrol Mission this turn, or adjust Colony Morale by -2. " \
+					+ "If you commit and then play a different mission, the -2 still applies."
+			_add_choice_button("Commit to a Patrol Mission", event_id, effect)
 		"experimental_medicine":
-			choice_label.text = "Select an injured character to heal 2 turns faster."
+			choice_label.text = "Select a character recovering from injuries: their recovery " \
+					+ "time is reduced by 2 turns. Colony Morale +1."
+			_choice_pick = _character_picker(_is_recovering)
+			_add_choice_button("Apply", event_id, effect)
 		"report_on_progress":
-			choice_label.text = "Select a character to earn 1D6 XP."
+			choice_label.text = "Select one character to earn 1D6 XP. Colony Morale +1."
+			_choice_pick = _character_picker()
+			_add_choice_button("Award the XP", event_id, effect)
 		"gold_rush":
-			choice_label.text = "Select 2 sectors for resource generation."
+			choice_label.text = "Select 2 random sectors: unexplored or Exploited ones roll " \
+					+ "Resource and Hazard values; Explored but not Exploited ones gain +1 Resource."
+			_add_choice_button("Accept Event", event_id, effect)
 		"supply_ship":
-			choice_label.text = "Choose priority: Research Points or Build Points?"
+			choice_label.text = "Choose the priority, then roll 2D6: the highest die goes to " \
+					+ "your priority and the lowest to the other. +1 grunt."
+			_add_choice_button("Research Points priority", event_id, effect, "rp")
+			_add_choice_button("Build Points priority", event_id, effect, "bp")
 		_:
 			choice_label.text = "Make your choice for this event."
-
-	_choice_container.add_child(choice_label)
-
-	# For most choice events, provide simple accept/decline buttons
-	var accept_btn := Button.new()
-	accept_btn.text = "Accept Event"
-	accept_btn.custom_minimum_size = Vector2(0, 48)
-	accept_btn.pressed.connect(func():
-		_apply_choice_accept(event_id, effect)
-		accept_btn.disabled = true
-	)
-	_choice_container.add_child(accept_btn)
+			_add_choice_button("Accept Event", event_id, effect)
 
 	# Decline option where applicable
 	var penalty: int = effect.get("morale_penalty_if_declined", 0)
@@ -327,53 +394,147 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 			_add_result_bbcode(
 				"\n[color=#DC2626]Event declined. Colony Morale %+d[/color]" % penalty)
 			_finalize_choice()
-			decline_btn.disabled = true
-			accept_btn.disabled = true
 		)
 		_choice_container.add_child(decline_btn)
 
 
-func _apply_choice_accept(event_id: String, effect: Dictionary) -> void:
+func _add_choice_button(text: String, event_id: String, effect: Dictionary,
+		option: String = "") -> Button:
+	var btn := Button.new()
+	btn.text = text
+	btn.custom_minimum_size = Vector2(0, 48)
+	btn.pressed.connect(func(): _apply_choice_accept(event_id, effect, option))
+	_choice_container.add_child(btn)
+	return btn
+
+
+## An OptionButton over the roster characters `filter` accepts; each item's metadata is
+## the character id. A character away on R&R is never offered: p.70 "they cannot be the
+## target of events".
+func _character_picker(filter: Callable = Callable()) -> OptionButton:
+	var pick := OptionButton.new()
+	pick.custom_minimum_size = Vector2(0, 48)
+	if _campaign and "roster" in _campaign:
+		for c in _campaign.roster:
+			if _is_present(c) and (not filter.is_valid() or bool(filter.call(c))):
+				pick.add_item("%s (%s)" % [str(c.get("name", "?")),
+						str(c.get("class", "")).capitalize()])
+				pick.set_item_metadata(pick.item_count - 1, str(c.get("id", "")))
+	if pick.item_count == 0:
+		pick.add_item("No eligible character")
+		pick.disabled = true
+	_choice_container.add_child(pick)
+	return pick
+
+
+func _picked_id() -> String:
+	if _choice_pick == null or _choice_pick.disabled or _choice_pick.selected < 0:
+		return ""
+	return str(_choice_pick.get_item_metadata(_choice_pick.selected))
+
+
+func _picked_name() -> String:
+	return _name_of(_picked_id())
+
+
+func _name_of(id: String) -> String:
+	var who: Variant = _campaign.get_roster_character_by_id(id) \
+			if id != "" and _campaign.has_method("get_roster_character_by_id") else null
+	return str(who.get("name", id)) if who is Dictionary else id
+
+
+## p.69: "If a character is currently absent from the campaign entirely, such as during
+## the R&R event, they cannot be the target of events." Every roster walk here uses it.
+func _is_present(c: Variant) -> bool:
+	if not c is Dictionary:
+		return false
+	return not (_campaign.has_method("is_away") and _campaign.is_away(str(c.get("id", ""))))
+
+
+func _recovery_left(c: Dictionary) -> int:
+	var bay: Dictionary = _campaign.sick_bay if "sick_bay" in _campaign else {}
+	return int(bay.get(str(c.get("id", "")), 0))
+
+
+## p.63: "They can be [a] character currently in Sick Bay if they have only one turn of
+## recovery left."
+func _can_sit_out(c: Dictionary) -> bool:
+	return _recovery_left(c) <= 1
+
+
+func _is_recovering(c: Dictionary) -> bool:
+	return _recovery_left(c) > 0
+
+
+func _has_vacancy() -> bool:
+	return _campaign != null and "roster" in _campaign \
+			and _campaign.roster.size() < RosterRules.roster_capacity(_campaign)
+
+
+func _apply_choice_accept(event_id: String, effect: Dictionary, option: String = "") -> void:
 	match event_id:
-		"supply_ship":
-			# Roll 2D6, split high/low — default RP priority
-			var d1: int = _resolver.roll_d6()
-			var d2: int = _resolver.roll_d6()
-			var high: int = max(d1, d2)
-			var low: int = min(d1, d2)
-			_add_result_bbcode(
-				"\n[color=#10B981]Supply Ship: 2D6 = %d, %d → +%d RP (priority), +%d BP[/color]" % [
-					d1, d2, high, low])
-			if _campaign.has_method("apply_colony_event"):
-				_campaign.apply_colony_event({"research_points": high, "build_points": low})
-			if _campaign.has_method("gain_grunts"):
-				_campaign.gain_grunts(1)
-			_add_result_bbcode("[color=#10B981]+1 Grunt[/color]")
+		"public_relations_demand":
+			var id := _picked_id()
+			if id != "" and _campaign.has_method("assign_event_sitout"):
+				_campaign.assign_event_sitout(id)
+				_add_result_bbcode("\n[color=#D97706]%s will not take part in a mission this "
+						% _picked_name() + "campaign turn.[/color]")
 
 		"specialist_training":
+			if option == "add" and _choice_class != null and _has_vacancy():
+				var cls: String = str(RosterRules.REPLACEMENT_CLASSES[maxi(_choice_class.selected, 0)])
+				var new_id: String = RosterRules.next_character_id(_campaign)
+				_campaign.add_roster_character(RosterRules.standard_character(
+						cls, new_id, "Colonist %d" % (_campaign.roster.size() + 1)))
+				_add_result_bbcode("\n[color=#10B981]A new %s joins the roster.[/color]"
+						% cls.capitalize())
+			elif _picked_id() != "" and _campaign.has_method("award_xp"):
+				_campaign.award_xp(_picked_id(), 3)
+				_add_result_bbcode("\n[color=#10B981]+3 XP to %s.[/color]" % _picked_name())
+
+		"hostile_wildlife":
+			if "patrol_required_turn" in _campaign:
+				_campaign.patrol_required_turn = int(_campaign.campaign_turn)
+			_add_result_bbcode("\n[color=#4FC3F7]Committed to a Patrol Mission this turn. Any "
+					+ "other mission costs Colony Morale -2 at Mission Determination.[/color]")
+
+		"supply_ship":
+			var d1: int = _resolver.roll_d6("Planetfall Supply Ship")
+			var d2: int = _resolver.roll_d6("Planetfall Supply Ship")
+			var high: int = maxi(d1, d2)
+			var low: int = mini(d1, d2)
+			var rp: int = high if option != "bp" else low
+			var bp: int = low if option != "bp" else high
 			_add_result_bbcode(
-				"\n[color=#10B981]+3 XP applied to first roster character.[/color]")
-			if _campaign and "roster" in _campaign and not _campaign.roster.is_empty():
-				var char_dict: Dictionary = _campaign.roster[0]
-				if char_dict is Dictionary:
-					char_dict["xp"] = char_dict.get("xp", 0) + 3
+				"\n[color=#10B981]Supply Ship: 2D6 = %d, %d. +%d RP, +%d BP (%s priority)[/color]" % [
+					d1, d2, rp, bp, "Build Points" if option == "bp" else "Research Points"])
+			if _campaign.has_method("apply_colony_event"):
+				_campaign.apply_colony_event({"research_points": rp, "build_points": bp})
+			if _campaign.has_method("gain_grunts"):
+				_campaign.gain_grunts(int(effect.get("grunts", 1)))
+			_add_result_bbcode("[color=#10B981]+1 Grunt[/color]")
 
 		"report_on_progress":
-			var xp_roll: int = _resolver.roll_d6()
-			_add_result_bbcode(
-				"\n[color=#10B981]+%d XP (D6) to selected character. +1 Morale.[/color]" % xp_roll)
-			if _campaign and "roster" in _campaign and not _campaign.roster.is_empty():
-				var char_dict: Dictionary = _campaign.roster[0]
-				if char_dict is Dictionary:
-					char_dict["xp"] = char_dict.get("xp", 0) + xp_roll
-			if _campaign and _campaign.has_method("adjust_morale"):
-				_campaign.adjust_morale(1)
+			var xp_roll: int = _resolver.roll_d6("Planetfall Report XP")
+			if _picked_id() != "" and _campaign.has_method("award_xp"):
+				_campaign.award_xp(_picked_id(), xp_roll)
+			_add_result_bbcode("\n[color=#10B981]+%d XP (D6) to %s. +1 Morale.[/color]"
+					% [xp_roll, _picked_name()])
+			if _campaign.has_method("adjust_morale"):
+				_campaign.adjust_morale(int(effect.get("colony_morale", 1)))
 
 		"experimental_medicine":
-			_add_result_bbcode(
-				"\n[color=#10B981]Recovery time reduced by 2 turns. +1 Morale.[/color]")
-			if _campaign and _campaign.has_method("adjust_morale"):
-				_campaign.adjust_morale(1)
+			var id := _picked_id()
+			if id != "" and _campaign.has_method("reduce_recovery"):
+				var left: int = _campaign.reduce_recovery(id, int(effect.get("reduce_recovery", 2)))
+				_add_result_bbcode("\n[color=#10B981]%s: %s[/color]" % [_picked_name(),
+						"fully recovered and can act normally this turn" if left == 0
+						else "%d turn(s) of recovery left" % left])
+			else:
+				_add_result_bbcode("\nNo one is recovering from injuries.")
+			if _campaign.has_method("adjust_morale"):
+				_campaign.adjust_morale(int(effect.get("colony_morale", 1)))
+			_add_result_bbcode("[color=#10B981]Colony Morale +1[/color]")
 
 		_:
 			_add_result_bbcode("\n[color=#10B981]Event accepted.[/color]")
@@ -383,56 +544,65 @@ func _apply_choice_accept(event_id: String, effect: Dictionary) -> void:
 
 
 func _finalize_choice() -> void:
-	_result_data["event"] = _current_event
+	for b in _choice_container.find_children("*", "BaseButton", true, false):
+		(b as BaseButton).disabled = true
+	_record_event()
 	_continue_btn.visible = true
 	_continue_btn.disabled = false
 
 
 func _resolve_virus_event() -> void:
-	## Hostile Virus — roll D6 per character. Planetfall pp.63-64.
+	## Hostile Virus. Planetfall p.64: "Roll a D6 for each character on your roster; any who
+	## roll a natural 1 have contracted the virus. Once you have rolled for every character,
+	## for each infected character pick a random non-infected character and roll again.
+	## Continue until no more natural 1s are rolled." Each infected character spreads ONCE:
+	## the old loop re-rolled for every infected character each round. The Morale -2 comes
+	## from the event's colony_morale key; this applied it a second time until 2026-10-27.
 	if not _campaign or not "roster" in _campaign:
 		return
 	var infected: Array[String] = []
 	for char_dict in _campaign.roster:
-		if char_dict is Dictionary:
-			if _resolver.roll_d6() == 1:
-				infected.append(char_dict.get("id", ""))
-	# Spread phase
-	var spread_round: int = 0
-	while spread_round < 10:  # Safety cap
-		var new_infected: Array[String] = []
-		for inf_id in infected:
-			# Pick random non-infected
-			var candidates: Array = []
-			for cd in _campaign.roster:
-				if cd is Dictionary:
-					var cid: String = cd.get("id", "")
-					if not infected.has(cid) and not new_infected.has(cid):
-						candidates.append(cid)
-			if not candidates.is_empty():
-				var target: String = candidates[randi_range(0, candidates.size() - 1)]
-				if _resolver.roll_d6() == 1:
-					new_infected.append(target)
-		if new_infected.is_empty():
+		if _is_present(char_dict):
+			if _resolver.roll_d6("Planetfall Virus Infection") == 1:
+				infected.append(str(char_dict.get("id", "")))
+	var to_spread: Array[String] = infected.duplicate()
+	while not to_spread.is_empty():
+		to_spread.pop_front()
+		var candidates: Array = []
+		for cd in _campaign.roster:
+			if _is_present(cd) and not infected.has(str(cd.get("id", ""))):
+				candidates.append(str(cd.get("id", "")))
+		if candidates.is_empty():
 			break
-		infected.append_array(new_infected)
-		spread_round += 1
+		var target: String = candidates[_resolver.pick_index(candidates.size(),
+				"Planetfall Virus Target")]
+		if _resolver.roll_d6("Planetfall Virus Infection") == 1:
+			infected.append(target)
+			to_spread.append(target)
 
-	# Apply sick bay
 	for inf_id in infected:
-		var turns: int = _resolver.roll_1d3()
+		var turns: int = _resolver.roll_1d3("Planetfall Virus Recovery")
 		if _campaign.has_method("add_to_sick_bay"):
 			_campaign.add_to_sick_bay(inf_id, turns)
-
+		_add_result_bbcode("[color=#DC2626]%s: %d turn(s) in Sick Bay[/color]"
+				% [_name_of(inf_id), turns])
 	_add_result_bbcode(
-		"\n[color=#DC2626]Hostile Virus: %d character(s) infected, sent to Sick Bay.[/color]" %
-		infected.size())
-	if _campaign.has_method("adjust_morale"):
-		_campaign.adjust_morale(-2)
-	_add_result_bbcode("[color=#DC2626]Colony Morale -2[/color]")
+		"\n[color=#DC2626]Hostile Virus: %d character(s) infected.[/color]" % infected.size())
 
 
 func _on_continue_pressed() -> void:
+	if _events_rolled < _events_owed:
+		# A Milestone still owes an event: Continue re-arms the roll for it.
+		_rolled = false
+		_continue_btn.visible = false
+		_roll_btn.text = "Roll Milestone Colony Event (D100)"
+		_roll_btn.visible = true
+		_roll_btn.disabled = false
+		return
+	_emit_completion()
+
+
+func _emit_completion() -> void:
 	_continue_btn.disabled = true
 	phase_completed.emit(_result_data)
 

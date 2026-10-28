@@ -370,7 +370,8 @@ func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
 					_add_result_bbcode(
 						"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
 					_add_result_bbcode(
-						"[color=#D97706]Effects processed at end of turn.[/color]")
+						"[color=#D97706]Its effects are applied when you complete this "
+						+ "step.[/color]")
 			return
 		parent = parent.get_parent()
 

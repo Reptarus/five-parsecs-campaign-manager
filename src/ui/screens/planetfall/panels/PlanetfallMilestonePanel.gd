@@ -9,6 +9,13 @@ const PlanetfallMilestoneScript := preload(
 	"res://src/core/systems/PlanetfallMilestoneSystem.gd")
 const PlanetfallMissionDataScript := preload(
 	"res://src/core/systems/PlanetfallMissionDataSystem.gd")
+const PlanetfallConditionScript := preload(
+	"res://src/core/systems/PlanetfallConditionSystem.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
+
+## Emitted after this panel changes the campaign, so the host can save it.
+signal campaign_changed
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -30,12 +37,16 @@ const SPACING_LG := 24
 var _campaign: Resource
 var _milestone_sys: PlanetfallMilestoneScript
 var _md_sys: PlanetfallMissionDataScript
+var _condition_sys: PlanetfallConditionScript
 var _content: VBoxContainer
+var _close_btn: Button
+var _replacement_note: String = ""
 
 
 func _ready() -> void:
 	_milestone_sys = PlanetfallMilestoneScript.new()
 	_md_sys = PlanetfallMissionDataScript.new()
+	_condition_sys = PlanetfallConditionScript.new()
 	_build_ui()
 
 
@@ -46,9 +57,14 @@ func set_campaign(campaign_resource: Resource) -> void:
 func refresh() -> void:
 	if not _content:
 		return
+	# The Close button lives in _content and must survive the rebuild. This loop freed
+	# it too, and the dashboard refreshes straight after adding the panel, so the
+	# overlay opened with no way to close it.
 	for child in _content.get_children():
-		child.queue_free()
+		if child != _close_btn:
+			child.queue_free()
 	_build_content()
+	TouchScrollOpenerRef.open_subtree(_content)
 
 
 ## ============================================================================
@@ -75,12 +91,12 @@ func _build_ui() -> void:
 	scroll.add_child(_content)
 
 	# Close button
-	var close_btn := Button.new()
-	close_btn.text = "Close"
-	close_btn.custom_minimum_size = Vector2(120, 40)
-	close_btn.pressed.connect(func(): visible = false)
-	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_content.add_child(close_btn)
+	_close_btn = Button.new()
+	_close_btn.text = "Close"
+	_close_btn.custom_minimum_size = Vector2(120, 48)
+	_close_btn.pressed.connect(func(): visible = false)
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_content.add_child(_close_btn)
 
 
 func _build_content() -> void:
@@ -116,6 +132,8 @@ func _build_content() -> void:
 		"%d (Breakthroughs: %d/4)" % [md_total, md_bt],
 		"Each time gained: D6, if <= total = breakthrough." if md_progress.get("md_valuable", true) else "MD no longer has value (4th breakthrough reached).",
 		COLOR_ACCENT)
+
+	_build_conditions_section()
 
 	# Tech that grants milestones
 	_build_tech_checklist()
@@ -198,10 +216,73 @@ func _build_stat_card(title_text: String, value_text: String,
 	inner.add_child(d)
 
 
+## The Campaign Condition table (p.110), and the 4th Milestone's "erase one campaign
+## battlefield condition ... and generate a new condition to take its place" (p.157):
+## the milestone owes the replacement, the player picks the entry here.
+func _build_conditions_section() -> void:
+	var header := Label.new()
+	header.text = "Campaign Battlefield Conditions"
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	_content.add_child(header)
+
+	if _replacement_note != "":
+		_add_wrapped_label(_replacement_note, COLOR_SUCCESS)
+	var owed: int = int(_campaign.pending_condition_replacements) \
+			if "pending_condition_replacements" in _campaign else 0
+	if owed > 0:
+		_add_wrapped_label("4th Milestone: erase one condition and generate a new one in "
+				+ "its place (%d owed)." % owed, COLOR_WARNING)
+
+	var table: Array = _campaign.condition_table if "condition_table" in _campaign else []
+	var filled: int = 0
+	for i in range(table.size()):
+		var entry: Variant = table[i]
+		if not entry is Dictionary or (entry as Dictionary).is_empty():
+			continue
+		filled += 1
+		var text: String = "Entry %d: %s" % [i + 1, str(entry.get("name", ""))]
+		var detail: Variant = entry.get("resolved_sub_roll", {})
+		if detail is Dictionary and not (detail as Dictionary).is_empty():
+			text += " (%s)" % str(detail.get("name", ""))
+		_add_wrapped_label(text, COLOR_TEXT_PRIMARY)
+		if owed > 0:
+			var btn := Button.new()
+			btn.text = "Erase and replace entry %d" % (i + 1)
+			btn.custom_minimum_size = Vector2(0, 48)
+			btn.pressed.connect(_on_replace_condition.bind(i))
+			_content.add_child(btn)
+	if filled == 0:
+		_add_wrapped_label("No conditions generated yet. A mission that calls for one "
+				+ "rolls on this table (p.110).", COLOR_TEXT_SECONDARY)
+
+
+func _on_replace_condition(slot: int) -> void:
+	var receipt: Dictionary = _condition_sys.replace_condition(_campaign, slot)
+	if receipt.is_empty():
+		return
+	var erased: Dictionary = receipt.get("erased", {})
+	var fresh: Dictionary = receipt.get("condition", {})
+	_replacement_note = "Entry %d: %s erased, %s generated in its place." % [
+			slot + 1, str(erased.get("name", "")), str(fresh.get("name", ""))]
+	campaign_changed.emit()
+	refresh()
+
+
+func _add_wrapped_label(text: String, color: Color) -> void:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.add_theme_color_override("font_color", color)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_content.add_child(lbl)
+
+
 func _build_tech_checklist() -> void:
 	var tech: Dictionary = _milestone_sys.get_milestone_granting_tech()
 	if tech.is_empty():
 		return
+	var owned: Array = _milestone_sys.owned_granting_sources(_campaign)
 
 	var header := Label.new()
 	header.text = "Tech That Grants Milestones"
@@ -214,9 +295,9 @@ func _build_tech_checklist() -> void:
 		for item_id in items:
 			var lbl := Label.new()
 			var display_name: String = str(item_id).replace("_", " ").capitalize()
-			var owned: bool = _check_tech_owned(category, str(item_id))
+			var is_owned: bool = owned.has("%s:%s" % [category, str(item_id)])
 			lbl.text = "%s  %s (%s)" % [
-				"[x]" if owned else "[ ]",
+				"[x]" if is_owned else "[ ]",
 				display_name,
 				category.replace("_", " ")]
 			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
@@ -242,25 +323,3 @@ func _build_next_milestone_section(next_index: int, effects: Array) -> void:
 		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(lbl)
-
-
-func _check_tech_owned(category: String, tech_id: String) -> bool:
-	if not _campaign:
-		return false
-	match category:
-		"buildings":
-			if "buildings_data" in _campaign:
-				var constructed: Array = _campaign.buildings_data.get("constructed", [])
-				return tech_id in constructed
-		"research_applications":
-			if "research_data" in _campaign:
-				var unlocked: Array = _campaign.research_data.get("unlocked_applications", [])
-				return tech_id in unlocked
-		"augmentations":
-			if "research_data" in _campaign:
-				var owned: Array = _campaign.research_data.get("augmentations_owned", [])
-				return tech_id in owned
-		"alien_artifacts":
-			if _campaign.has_method("has_artifact"):
-				return _campaign.has_artifact(tech_id)
-	return false

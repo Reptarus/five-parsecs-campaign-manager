@@ -10,6 +10,7 @@ signal roster_updated(characters: Array)
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
 const ImportPanelClass = preload(
 	"res://src/ui/screens/planetfall/panels/PlanetfallCharacterImportPanel.gd")
+const RosterRules = preload("res://src/core/systems/PlanetfallRosterRules.gd")
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
@@ -66,34 +67,11 @@ func _build_placeholder() -> void:
 
 func _on_auto_generate() -> void:
 	_roster.clear()
-	# Load class data
-	var classes_data := _load_json("res://data/planetfall/character_classes.json")
 	var composition := ["scientist", "scientist", "scout", "scout",
 			"trooper", "trooper", "trooper", "trooper"]
 	for i in range(composition.size()):
-		var cls: String = composition[i]
-		var profile: Dictionary = classes_data.get("classes", {}).get(cls, {}).get("profiles", {})
-		var char_dict := {
-			"id": "pf_char_%d" % i,
-			"name": "Colonist %d" % (i + 1),
-			"class": cls,
-			"subspecies": "",
-			"reactions": profile.get("reactions", 1),
-			"speed": profile.get("speed", 4),
-			"combat_skill": profile.get("combat_skill", 0),
-			"toughness": profile.get("toughness", 3),
-			"savvy": profile.get("savvy", 0),
-			"xp": 0,
-			"kp": 0,
-			"loyalty": "committed",
-			"motivation": "",
-			"prior_experience": "",
-			"notable_event": "",
-			"abilities": classes_data.get("classes", {}).get(cls, {}).get("abilities", []),
-			"is_imported": false,
-			"source_campaign": ""
-		}
-		_roster.append(char_dict)
+		_roster.append(RosterRules.standard_character(
+				composition[i], "pf_char_%d" % i, "Colonist %d" % (i + 1)))
 	roster_updated.emit(_roster)
 
 
@@ -107,15 +85,3 @@ func _on_import_pressed() -> void:
 		_roster.append(pf_char)
 		roster_updated.emit(_roster))
 	panel.load_all_sources()
-
-
-func _load_json(path: String) -> Dictionary:
-	var file := FileAccess.open(path, FileAccess.READ)
-	if not file:
-		return {}
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK:
-		file.close()
-		return {}
-	file.close()
-	return json.data if json.data is Dictionary else {}

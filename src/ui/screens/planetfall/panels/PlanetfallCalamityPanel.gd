@@ -8,6 +8,8 @@ extends Control
 
 const PlanetfallCalamityScript := preload(
 	"res://src/core/systems/PlanetfallCalamitySystem.gd")
+const TouchScrollOpenerRef = preload(
+	"res://src/ui/components/common/TouchScrollOpener.gd")
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -29,6 +31,7 @@ const SPACING_LG := 24
 var _campaign: Resource
 var _calamity_sys: PlanetfallCalamityScript
 var _content: VBoxContainer
+var _close_btn: Button
 
 
 func _ready() -> void:
@@ -43,9 +46,13 @@ func set_campaign(campaign_resource: Resource) -> void:
 func refresh() -> void:
 	if not _content:
 		return
+	# Keep the Close button (see PlanetfallMilestonePanel.refresh): freeing it left the
+	# overlay with no way out, because the dashboard refreshes right after adding it.
 	for child in _content.get_children():
-		child.queue_free()
+		if child != _close_btn:
+			child.queue_free()
 	_build_content()
+	TouchScrollOpenerRef.open_subtree(_content)
 
 
 ## ============================================================================
@@ -70,12 +77,12 @@ func _build_ui() -> void:
 	_content.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(_content)
 
-	var close_btn := Button.new()
-	close_btn.text = "Close"
-	close_btn.custom_minimum_size = Vector2(120, 40)
-	close_btn.pressed.connect(func(): visible = false)
-	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
-	_content.add_child(close_btn)
+	_close_btn = Button.new()
+	_close_btn.text = "Close"
+	_close_btn.custom_minimum_size = Vector2(120, 48)
+	_close_btn.pressed.connect(func(): visible = false)
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_content.add_child(_close_btn)
 
 
 func _build_content() -> void:

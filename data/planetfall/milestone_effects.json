@@ -86,9 +86,9 @@
 		}
 	],
 	"tech_that_grants_milestones": {
-		"buildings": ["galactic_comms_relay", "orbital_facility", "genetic_adaptation_facility", "terraforming_control_centre"],
+		"buildings": ["galactic_comms_relay", "orbital_facility", "genetic_adaptation_facility", "terraforming_control_center"],
 		"augmentations": ["mental_links"],
 		"alien_artifacts": ["neo_ancient_data_cache"],
-		"research_applications": ["frontier_world_doctrines", "integrated_post_organic_demarcation", "psionic_personality_integration"]
+		"research_applications": ["frontier_doctrines", "post_organic_demarcation", "psionic_integration"]
 	}
 }

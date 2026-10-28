@@ -339,6 +339,8 @@
 				"type": "tactical",
 				"slyn_immune": true,
 				"double_force": true,
+				"_force_number_modifiers_source": "Planetfall p.126: first force reduce the number encountered by 1, second force increase it by 1",
+				"force_number_modifiers": [-1, 1],
 				"force_description": "Two enemy forces, each with own leaders and specialists. First force: normal numbers -1. Second force: normal numbers +1.",
 				"deployment": "Opposite edge. 3 markers equally spaced. Round 1 Enemy Phase: first force at random marker (remove it). Round 2: second force at random remaining marker."
 			},
@@ -403,6 +405,11 @@
 				"type": "tactical",
 				"slyn_immune": true,
 				"max_encounter": true,
+				"_extra_figures_source": "Planetfall p.129: add 2 additional regular enemies, 2 additional specialists, and 1 additional leader; the additional leader receives +1 KP",
+				"extra_regular": 2,
+				"extra_specialists": 2,
+				"extra_leaders": 1,
+				"extra_leader_kp": 1,
 				"force_description": "Maximum encounter size + 2 regular + 2 specialist + 1 additional leader (+1 KP). Deployed evenly throughout central 12x12 area in cover as sentries.",
 				"readiness": "Round 1 Enemy Phase: enemies that had LoS to firing crew or saw crew without cover are ready (activate normally). Others not ready (can't activate Round 1). Round 2+ all ready."
 			},

@@ -35,12 +35,17 @@ var _grunt_fireteams: int = 0
 var _grunts_deployed: int = 0
 var _force_limits: Dictionary = {}
 var _active_condition: Dictionary = {}
-var _slyn_attacking: bool = false
 var _opposition_type: String = ""
+## The chosen mission's opposition block, so a Slyn-check mission can say when it is decided.
+var _opposition: Dictionary = {}
 ## The chosen mission's type id ("pitched_battle" lifts the p.90 Protests sit-out).
 var _mission_id: String = ""
+## character_id → its deploy CheckBox, so a refused toggle can be put back.
+var _deploy_checks: Dictionary = {}
 
 var _title_label: Label
+## Says why the last deploy toggle was refused (p.70 Dispute); hidden otherwise.
+var _conflict_label: Label
 var _roster_container: VBoxContainer
 var _grunt_section: VBoxContainer
 var _mission_info_section: VBoxContainer
@@ -78,14 +83,16 @@ func set_force_limits(limits: Dictionary) -> void:
 func set_mission_context(context: Dictionary) -> void:
 	## Called by TurnController with condition/slyn data from MissionPanel.
 	_active_condition = context.get("active_condition", {})
-	_slyn_attacking = context.get("slyn_attacking", false)
 	_opposition_type = context.get("opposition_type", "")
 	var sel: Variant = context.get("selected_mission", {})
 	_mission_id = str((sel as Dictionary).get("id", "")) if sel is Dictionary else ""
+	var opp: Variant = (sel as Dictionary).get("opposition", {}) if sel is Dictionary else {}
+	_opposition = opp if opp is Dictionary else {}
 
 
 func refresh() -> void:
 	_deployed = {}
+	_deploy_checks = {}
 	_grunts_deployed = 0
 	_clear_container(_roster_container)
 	_clear_container(_weapon_container)
@@ -197,17 +204,6 @@ func _build_mission_info() -> void:
 
 	var has_info: bool = false
 
-	# Slyn warning
-	if _slyn_attacking:
-		has_info = true
-		var slyn_card := _create_info_card(
-			"SLYN ATTACKING!",
-			"The Slyn have been detected. You will fight Slyn " +
-			"pairs instead of the regular opposition. Prepare " +
-			"for beam focus weapons and short-range distortion.",
-			UIColors.COLOR_RED)
-		_mission_info_section.add_child(slyn_card)
-
 	# Active battlefield condition
 	if not _active_condition.is_empty():
 		has_info = true
@@ -225,10 +221,18 @@ func _build_mission_info() -> void:
 			UIColors.COLOR_AMBER)
 		_mission_info_section.add_child(cond_card)
 
-	# Opposition type
-	if not _opposition_type.is_empty() and not _slyn_attacking:
+	# Opposition type. A Slyn-check mission is decided AFTER deployment (pp.117/121/125:
+	# "After deploying, roll 2D6"), so this screen names the roll instead of its result.
+	# ⚠ It used to show "SLYN ATTACKING!" here, rolled a step early.
+	if not _opposition_type.is_empty():
 		has_info = true
 		var opp_text: String = _opposition_type.replace("_", " ").capitalize()
+		if _opposition_type == "slyn_check":
+			var aggro: Dictionary = _opposition.get("slyn_aggression", {})
+			opp_text = "rolled after you deploy. 2D6 %d-%d: the Slyn attack. Otherwise %s." % [
+				int(aggro.get("slyn_range_min", 2)), int(aggro.get("slyn_range_max", 4)),
+				"Tactical Enemies" if _opposition.get("tactical_fallback", false)
+				else "Lifeforms, using Contacts"]
 		var opp_lbl := Label.new()
 		opp_lbl.text = "Opposition: %s" % opp_text
 		opp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
@@ -301,12 +305,14 @@ func _build_roster_list() -> void:
 		check.disabled = in_sick_bay or not blocked.is_empty()
 		check.toggled.connect(_on_deploy_toggled.bind(cid))
 		row.add_child(check)
+		_deploy_checks[cid] = check
 
 		# Name + class
 		var name_lbl := Label.new()
 		var status: String = " [SICK BAY]" if in_sick_bay \
 				else (" [%s]" % blocked if not blocked.is_empty() else "")
-		name_lbl.text = "%s (%s)%s" % [cname, cclass.capitalize(), status]
+		name_lbl.text = "%s (%s)%s%s" % [cname, cclass.capitalize(), status, _note_tags(cid)]
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		name_lbl.add_theme_color_override(
 			"font_color",
@@ -322,6 +328,27 @@ func _build_roster_list() -> void:
 		weapon_select.item_selected.connect(
 			_on_weapon_selected.bind(cid, weapon_select))
 		row.add_child(weapon_select)
+
+	_conflict_label = Label.new()
+	_conflict_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_conflict_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	_conflict_label.add_theme_color_override("font_color", COLOR_WARNING)
+	_conflict_label.visible = false
+	_roster_container.add_child(_conflict_label)
+
+
+## The Character Event results (pp.70-71) a player must remember at the table.
+func _note_tags(cid: String) -> String:
+	if not _campaign.has_method("get_character_note"):
+		return ""
+	var tags: Array[String] = []
+	if _campaign.get_character_note(cid, "calibrated", false):
+		tags.append("Calibrated: +1 to hit with one weapon this mission")
+	if _campaign.get_character_note(cid, "double_xp", false):
+		tags.append("Double XP this mission")
+	if int(_campaign.get_character_note(cid, "xp_forfeit_turn", -1)) == int(_campaign.campaign_turn):
+		tags.append("Earns no XP this turn")
+	return "" if tags.is_empty() else " [%s]" % ", ".join(tags)
 
 
 func _populate_weapon_options(
@@ -342,10 +369,32 @@ func _populate_weapon_options(
 
 func _on_deploy_toggled(toggled: bool, character_id: String) -> void:
 	if toggled:
+		# p.70 Dispute: the two "cannot both be assigned to the mission next campaign turn
+		# unless you are fighting a Pitched Battle". The core owns the dispute record.
+		var conflict: String = _campaign.deployment_conflict(
+				character_id, _deployed.keys(), _mission_id) \
+				if _campaign.has_method("deployment_conflict") else ""
+		if not conflict.is_empty():
+			var check: Variant = _deploy_checks.get(character_id)
+			if check is CheckBox:
+				(check as CheckBox).set_pressed_no_signal(false)
+			if _conflict_label:
+				_conflict_label.text = "%s cannot deploy: %s" % [
+						_character_name(character_id), conflict]
+				_conflict_label.visible = true
+			return
 		_deployed[character_id] = {"weapon_id": ""}
 	else:
 		_deployed.erase(character_id)
+	if _conflict_label:
+		_conflict_label.visible = false
 	_update_deploy_count()
+
+
+func _character_name(character_id: String) -> String:
+	var who: Variant = _campaign.get_roster_character_by_id(character_id) \
+			if _campaign.has_method("get_roster_character_by_id") else null
+	return str(who.get("name", character_id)) if who is Dictionary else character_id
 
 
 func _on_weapon_selected(

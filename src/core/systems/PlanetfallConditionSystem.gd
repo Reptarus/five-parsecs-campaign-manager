@@ -92,12 +92,55 @@ func fill_condition_slot(campaign: Resource, slot_index: int, condition_roll: in
 
 	# If condition has sub-rolls, resolve them now so the result is persisted
 	if condition.has("sub_roll"):
-		var sub_roll_value: int = roll_d100()
+		var sub_roll_value: int = _d100("Planetfall Condition Detail")
 		var sub_result: Dictionary = resolve_sub_roll(condition, sub_roll_value)
 		condition["resolved_sub_roll"] = sub_result
 
 	campaign.condition_table[slot_index] = condition
 	return condition
+
+
+## A mission that determines a Condition (p.110): D100 on the Campaign Condition
+## table; a blank entry rolls the Master Condition table and is written in, a filled
+## entry is "the same Condition again, including any secondary rolls". The Master roll
+## happens only for a blank entry, so a forced value is never spent on a filled one.
+func roll_mission_condition(campaign: Resource) -> Dictionary:
+	if not campaign or not "condition_table" in campaign:
+		return {}
+	var slot: int = get_slot_for_roll(_d100("Planetfall Condition Slot"))
+	if slot < 0:
+		return {}
+	if slot < campaign.condition_table.size() and campaign.condition_table[slot] is Dictionary \
+			and not (campaign.condition_table[slot] as Dictionary).is_empty():
+		return campaign.condition_table[slot]
+	return fill_condition_slot(campaign, slot, _d100("Planetfall Battlefield Condition"))
+
+
+## 4th Milestone (p.157): "Erase one campaign battlefield condition from the table on
+## your Colony Tracking Sheet and generate a new condition to take its place." The
+## player picks the entry; the new one is a fresh Master Condition roll written into
+## the same entry, and may repeat the old one (the page does not say to reroll). Spends
+## one owed replacement. Returns {slot, erased, condition}, or {} when nothing is owed
+## or the entry is blank.
+func replace_condition(campaign: Resource, slot_index: int) -> Dictionary:
+	if not campaign or not "condition_table" in campaign \
+			or not "pending_condition_replacements" in campaign:
+		return {}
+	if int(campaign.pending_condition_replacements) <= 0:
+		return {}
+	if slot_index < 0 or slot_index >= campaign.condition_table.size():
+		return {}
+	var old: Variant = campaign.condition_table[slot_index]
+	if not old is Dictionary or (old as Dictionary).is_empty():
+		return {}
+	campaign.condition_table[slot_index] = {}
+	var fresh: Dictionary = fill_condition_slot(campaign, slot_index,
+			_d100("Planetfall Battlefield Condition"))
+	if fresh.is_empty():
+		campaign.condition_table[slot_index] = old
+		return {}
+	campaign.pending_condition_replacements -= 1
+	return {"slot": slot_index, "erased": old, "condition": fresh}
 
 
 func get_active_conditions(campaign: Resource) -> Array:
@@ -114,7 +157,30 @@ func get_active_conditions(campaign: Resource) -> Array:
 	return result
 
 
-func get_condition_count(campaign: Resource) -> int:
+## p.64 Changing climate conditions: "Erase a random existing entry from your Campaign
+## Conditions table. It is filled again when you roll that entry again." Picked as
+## PlanetfallLifeformGenerator.erase_random_entry() picks. Returns the slot, or -1.
+func erase_random_entry(campaign: Resource) -> int:
+	if not campaign or not "condition_table" in campaign:
+		return -1
+	var filled: Array = []
+	for i in range(campaign.condition_table.size()):
+		var entry: Variant = campaign.condition_table[i]
+		if entry is Dictionary and not (entry as Dictionary).is_empty():
+			filled.append(i)
+	if filled.is_empty():
+		return -1
+	var slot: int = filled[0]
+	for _try in range(100):
+		var pick: int = _d10("Planetfall Erase Condition") - 1
+		if filled.has(pick):
+			slot = pick
+			break
+	campaign.condition_table[slot] = {}
+	return slot
+
+
+static func get_condition_count(campaign: Resource) -> int:
 	## Returns how many condition slots have been filled.
 	var count: int = 0
 	if campaign and "condition_table" in campaign:
@@ -128,8 +194,20 @@ func get_condition_count(campaign: Resource) -> int:
 ## DICE HELPERS
 ## ============================================================================
 
-func roll_d100() -> int:
-	return randi_range(1, 100)
+static func _dice() -> Node:
+	var loop := Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
+
+
+func _d100(context: String) -> int:
+	var dm := _dice()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
+
+
+func _d10(context: String) -> int:
+	var dm := _dice()
+	return int(dm.roll_d10(context)) if dm else randi_range(1, 10)
 
 
 ## ============================================================================

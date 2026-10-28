@@ -7,6 +7,8 @@ extends RefCounted
 ## Applies to all current and future characters (except Bots/Soulless).
 ## Source: Planetfall p.105
 
+const MilestoneScript := preload("res://src/core/systems/PlanetfallMilestoneSystem.gd")
+
 var _augmentations: Array = []
 var _cost_formula: String = ""
 var _max_per_turn: int = 1
@@ -140,16 +142,20 @@ func apply_augmentation(
 	# Mark purchased this turn
 	campaign.research_data["augmentation_purchased_this_turn"] = true
 
-	# Apply immediate campaign effects (milestone, story points)
+	# Apply immediate campaign effects (story points)
 	var effect: Dictionary = aug.get("effect", {})
-	if effect.has("milestone"):
-		if campaign.has_method("add_milestone"):
-			campaign.add_milestone()
 	if effect.has("story_points"):
 		if campaign.has_method("add_story_points"):
 			campaign.add_story_points(effect.get("story_points", 0))
 
-	return {"success": true, "augmentation": aug, "cost": cost}
+	# Mental links "counts as a Milestone" (p.105) and is on p.156's list. Augmentations
+	# can be bought "at any point", even between turns, so the Milestone is delivered
+	# here, with its effects, through the one grant site; add_milestone() alone counted
+	# it with none of them.
+	var milestone: Dictionary = MilestoneScript.new().deliver_new_milestones(campaign)
+
+	return {"success": true, "augmentation": aug, "cost": cost,
+		"milestone_lines": milestone.get("lines", [])}
 
 
 func clear_turn_flag(campaign: Resource) -> void:

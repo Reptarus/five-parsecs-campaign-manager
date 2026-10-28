@@ -13,6 +13,11 @@ signal phase_completed(result_data: Dictionary)
 
 const PlanetfallEventResolverScript := preload(
 	"res://src/core/systems/PlanetfallEventResolver.gd")
+const RosterRules := preload("res://src/core/systems/PlanetfallRosterRules.gd")
+const CharacterEventsScript := preload("res://src/core/systems/PlanetfallCharacterEvents.gd")
+## p.70 Change of assignment: "transferred to another Five Parsecs game of your choice".
+const TRANSFER_TARGETS := [["five_parsecs", "Five Parsecs From Home"], ["bug_hunt", "Bug Hunt"],
+		["tactics", "Tactics"]]
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -47,6 +52,13 @@ var _continue_btn: Button
 ## Step-specific controls
 var _rm_spinner: SpinBox
 var _selected_character_id: String = ""
+## Step 13: each replacement on offer {class, take: CheckBox, pick: OptionButton or null},
+## and a Dismiss box per roster character, keyed by id (p.69).
+var _replacement_offers: Array = []
+var _dismiss_checks: Dictionary = {}
+## Step 17: each Change of assignment awaiting the player's answer (p.70),
+## {character_id, mode_pick: OptionButton, buttons: Array, decided: bool}.
+var _assignment_choices: Array = []
 
 
 func _ready() -> void:
@@ -80,6 +92,9 @@ func refresh() -> void:
 	# The content below is freed and rebuilt, and a turn with no damage builds no
 	# spinner, so a kept reference would point at last turn's freed node.
 	_rm_spinner = null
+	_replacement_offers = []
+	_dismiss_checks = {}
+	_assignment_choices = []
 	if _title_label:
 		_title_label.text = _get_step_title().to_upper()
 	# Clear previous content and results
@@ -234,16 +249,31 @@ func _build_replacements_content() -> void:
 	if not _campaign:
 		return
 	var roster_size: int = _campaign.roster.size() if "roster" in _campaign else 0
-	var max_roster: int = 8
+	var capacity: int = RosterRules.roster_capacity(_campaign)
 	var milestones: int = _campaign.milestones_completed if "milestones_completed" in _campaign else 0
 	var attempts: int = 1 + milestones
 
-	_add_info_text("Current Roster: %d / %d" % [roster_size, max_roster])
+	_add_info_text("Current Roster: %d / %d" % [roster_size, capacity])
 	_add_info_text("Replacement Attempts Available: %d (1 + %d milestones)" % [attempts, milestones])
 
-	if roster_size >= max_roster:
-		_add_info_text(
-			"\n[color=#D97706]Roster is full — no replacements needed.[/color]")
+	if roster_size >= capacity:
+		_add_info_text("\n[color=#D97706]Roster is full. Dismiss a character below "
+				+ "before rolling to make room.[/color]")
+
+	# p.69: "you may dismiss characters from your roster at this stage. Dismissed
+	# characters cannot be returned to the campaign later." Chosen before the roll, so a
+	# dismissal can make the room a replacement needs.
+	if roster_size > 0:
+		_add_info_text("\nDismiss (cannot return to the campaign later):")
+		for c in _campaign.roster:
+			if c is not Dictionary:
+				continue
+			var check := CheckBox.new()
+			check.text = "%s (%s)" % [str(c.get("name", "?")),
+					str(c.get("class", "")).capitalize()]
+			check.custom_minimum_size = Vector2(0, 48)
+			_content_vbox.add_child(check)
+			_dismiss_checks[str(c.get("id", ""))] = check
 
 
 func _build_character_event_content() -> void:
@@ -275,9 +305,19 @@ func _on_action_pressed() -> void:
 
 	_continue_btn.visible = true
 	_continue_btn.disabled = false
+	# A Change of assignment waits for the player's answer before the step can end.
+	for e in _assignment_choices:
+		if not bool(e.decided):
+			_continue_btn.disabled = true
 
 
 func _on_continue_pressed() -> void:
+	if _step_id == "replacements":
+		_collect_replacements()
+	# The footer can continue without an answer: the character stays (declines).
+	for e in _assignment_choices.duplicate():
+		if not bool(e.decided):
+			_decide_assignment(e, false)
 	_continue_btn.disabled = true
 	phase_completed.emit(_result_data)
 
@@ -335,26 +375,30 @@ func _resolve_track_info() -> void:
 
 
 func _resolve_replacements() -> void:
-	## Step 13 resolution. Planetfall p.69.
+	## Step 13 resolution. Planetfall p.69. This printed "N new character(s) added to
+	## roster" while nothing read new_characters, and a 9-12 "replacement of your choice"
+	## silently became a trooper. Each success is now an OFFER the player takes or not
+	## ("You may take"); the phase manager adds what was taken when the step completes.
 	if not _campaign:
 		return
-	var roster_size: int = _campaign.roster.size() if "roster" in _campaign else 0
-	var max_roster: int = 8
-
-	if roster_size >= max_roster:
-		_add_result_bbcode("Roster is full — no replacements needed.")
+	for check in _dismiss_checks.values():
+		(check as CheckBox).disabled = true
+	var roster_size: int = (_campaign.roster.size() if "roster" in _campaign else 0) \
+			- _dismissed_ids().size()
+	var capacity: int = RosterRules.roster_capacity(_campaign)
+	if roster_size >= capacity:
+		_add_result_bbcode("Roster is full: no replacements needed.")
 		return
 
 	var milestones: int = _campaign.milestones_completed if "milestones_completed" in _campaign else 0
 	var attempts: int = 1 + milestones
-	var new_characters: Array = []
 
 	for attempt_num in range(attempts):
-		if roster_size + new_characters.size() >= max_roster:
-			_add_result_bbcode("Roster full — remaining attempts skipped.")
+		if roster_size + _replacement_offers.size() >= capacity:
+			_add_result_bbcode("Roster full: remaining attempts skipped.")
 			break
 
-		var roll: int = _resolver.roll_2d6()
+		var roll: int = _resolver.roll_2d6("Planetfall Replacement Roll")
 		var result: Dictionary = _resolver.resolve_replacement(roll)
 		var result_type: String = result.get("result", "none")
 
@@ -365,22 +409,63 @@ func _resolve_replacements() -> void:
 			"none":
 				_add_result_bbcode("  No replacement available.")
 			"random_class":
-				var class_roll: int = _resolver.roll_d6()
+				var class_roll: int = _resolver.roll_d6("Planetfall Replacement Class")
 				var char_class: String = _resolver.resolve_replacement_class(class_roll)
 				_add_result_bbcode(
 					"  [color=#10B981]Replacement available![/color] D6 = %d → %s" % [
 						class_roll, char_class.capitalize()])
-				new_characters.append({"class": char_class, "loyalty": "committed"})
+				_add_replacement_offer(char_class, false)
 			"player_choice":
 				_add_result_bbcode(
 					"  [color=#10B981]Replacement of your choice available![/color]")
-				# Default to trooper for auto-resolve; real panel would offer choice
-				new_characters.append({"class": "trooper", "loyalty": "committed"})
+				_add_replacement_offer("trooper", true)
 
-	if not new_characters.is_empty():
-		_add_result_bbcode(
-			"\n[color=#10B981]%d new character(s) added to roster.[/color]" % new_characters.size())
-	_result_data["new_characters"] = new_characters
+	if not _replacement_offers.is_empty():
+		_add_result_bbcode("\nEach replacement you take joins the roster with the standard "
+				+ "profile at Loyalty Committed when you continue.")
+
+
+func _add_replacement_offer(char_class: String, choice: bool) -> void:
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", SPACING_SM)
+	var take := CheckBox.new()
+	take.button_pressed = true
+	take.custom_minimum_size = Vector2(0, 48)
+	take.text = "Take a replacement of your choice:" if choice \
+			else "Take the %s" % char_class.capitalize()
+	row.add_child(take)
+	var pick: OptionButton = null
+	if choice:
+		pick = OptionButton.new()
+		for cls in RosterRules.REPLACEMENT_CLASSES:
+			pick.add_item(str(cls).capitalize())
+		pick.custom_minimum_size = Vector2(0, 48)
+		row.add_child(pick)
+	_result_container.add_child(row)
+	_replacement_offers.append({"class": char_class, "take": take, "pick": pick})
+
+
+func _dismissed_ids() -> Array:
+	var out: Array = []
+	for id in _dismiss_checks:
+		if (_dismiss_checks[id] as CheckBox).button_pressed:
+			out.append(id)
+	return out
+
+
+## What the player chose at Step 13, for the phase manager to apply.
+func _collect_replacements() -> void:
+	var taken: Array = []
+	for offer in _replacement_offers:
+		if not (offer.take as CheckBox).button_pressed:
+			continue
+		var cls: String = str(offer["class"])
+		var pick: OptionButton = offer.pick
+		if pick != null and pick.selected >= 0:
+			cls = str(RosterRules.REPLACEMENT_CLASSES[pick.selected])
+		taken.append({"class": cls})
+	_result_data["new_characters"] = taken
+	_result_data["dismissed"] = _dismissed_ids()
 
 
 func _resolve_character_event() -> void:
@@ -394,61 +479,130 @@ func _resolve_character_event() -> void:
 		_add_result_bbcode("No characters in roster.")
 		return
 
-	# Random character selection
-	var char_idx: int = randi_range(0, roster.size() - 1)
-	var char_dict: Dictionary = roster[char_idx]
-	var char_name: String = char_dict.get("name", "Unknown")
-	_selected_character_id = char_dict.get("id", "")
+	# The normal event plus any a Milestone queued (p.156: "Roll 2 Character Events
+	# immediately ... in addition to the normal event"). The phase manager clears the
+	# queue when this step completes.
+	var extra: int = _campaign.get_extra_rolls("character_event") \
+			if _campaign.has_method("get_extra_rolls") else 0
+	var events: Array = []
+	for n in range(1 + extra):
+		if n > 0:
+			_add_result_bbcode("\n[b]Milestone Character Event %d of %d[/b]" % [n, extra])
+		events.append(_resolve_one_character_event(roster))
+	_result_data["events"] = events
 
-	# Roll D100
-	var roll: int = _resolver.roll_d100()
-	var event: Dictionary = _resolver.resolve_character_event(roll)
-	var event_name: String = event.get("name", "Unknown Event")
-	var event_desc: String = event.get("description", "")
 
-	_add_result_bbcode("[b]Selected Character:[/b] %s" % char_name)
+## pp.70-71. PlanetfallCharacterEvents decides, the phase manager applies. Until
+## 2026-10-27 this applied six of the twenty rows itself and printed the rest.
+func _resolve_one_character_event(_roster: Array) -> Dictionary:
+	# p.70 R&R: a character off world "cannot be the target of events".
+	var eligible: Array = []
+	for c in _campaign.roster:
+		if c is Dictionary and not (_campaign.has_method("is_away")
+				and _campaign.is_away(str(c.get("id", "")))):
+			eligible.append(c)
+	if eligible.is_empty():
+		_add_result_bbcode("Every character is off world: no Character Event.")
+		return {}
+	var char_dict: Dictionary = eligible[_resolver.pick_index(eligible.size(),
+			"Planetfall Event Character Pick")]
+	_selected_character_id = str(char_dict.get("id", ""))
+
+	var roll: int = _resolver.roll_d100("Planetfall Step 17 Event")
+	var ctx: Dictionary = _phase_manager.character_event_context() \
+			if _phase_manager and _phase_manager.has_method("character_event_context") \
+			else {"roster": _campaign.roster.duplicate(true), "campaign_turn": _campaign.campaign_turn}
+	var receipt: Dictionary = CharacterEventsScript.new().resolve(ctx, _selected_character_id, roll)
+	var event: Dictionary = receipt.get("event", {})
+
+	_add_result_bbcode("[b]Selected Character:[/b] %s" % str(char_dict.get("name", "Unknown")))
 	_add_result_bbcode("[b]D100 Roll:[/b] %d" % roll)
-	_add_result_bbcode("\n[b]%s[/b]" % event_name)
-	_add_result_bbcode(event_desc)
+	_add_result_bbcode("\n[b]%s[/b]" % str(event.get("name", "Unknown Event")))
+	_add_result_bbcode(str(event.get("description", "")))
+	for line in receipt.get("lines", []):
+		_add_result_bbcode("[color=#10B981]%s[/color]" % str(line))
+	for note in _apply_event_ops(receipt.get("ops", [])):
+		_add_result_bbcode("[color=#10B981]%s[/color]" % str(note))
+	if not (receipt.get("choice", {}) as Dictionary).is_empty():
+		_add_assignment_choice(receipt.choice)
 
-	# Apply simple effects
-	var effect: Dictionary = event.get("effect", {})
-	if effect.has("xp"):
-		var xp: int = effect.get("xp", 0)
-		char_dict["xp"] = char_dict.get("xp", 0) + xp
-		_add_result_bbcode(
-			"\n[color=#10B981]+%d XP for %s[/color]" % [xp, char_name])
-	if effect.has("loyalty_up"):
-		_add_result_bbcode(
-			"\n[color=#10B981]%s gains a level of Loyalty[/color]" % char_name)
-	if effect.has("loyalty_down"):
-		_add_result_bbcode(
-			"\n[color=#DC2626]%s loses a level of Loyalty[/color]" % char_name)
-	if effect.has("sick_bay_turns"):
-		var turns: int = effect.get("sick_bay_turns", 0)
-		if _campaign.has_method("add_to_sick_bay"):
-			_campaign.add_to_sick_bay(_selected_character_id, turns)
-		_add_result_bbcode(
-			"\n[color=#D97706]%s sent to Sick Bay for %d turn(s)[/color]" % [char_name, turns])
-	if effect.has("colony_morale"):
-		var morale: int = effect.get("colony_morale", 0)
-		if _campaign.has_method("adjust_morale"):
-			_campaign.adjust_morale(morale)
-		var color: String = "#10B981" if morale > 0 else "#DC2626"
-		_add_result_bbcode(
-			"\n[color=%s]Colony Morale %+d[/color]" % [color, morale])
-	if effect.has("story_points"):
-		var sp: int = effect.get("story_points", 0)
-		if _campaign.has_method("add_story_points"):
-			_campaign.add_story_points(sp)
-		_add_result_bbcode(
-			"\n[color=#10B981]+%d Story Point(s)[/color]" % sp)
-	if effect.has("enemy_information"):
-		_add_result_bbcode(
-			"\n[color=#4FC3F7]+1 Enemy Information[/color]")
+	if not _result_data.has("character_id"):
+		_result_data["character_id"] = _selected_character_id
+		_result_data["event"] = event
+	return {"character_id": _selected_character_id, "event": event}
 
-	_result_data["character_id"] = _selected_character_id
-	_result_data["event"] = event
+
+func _apply_event_ops(ops: Array) -> Array:
+	if ops.is_empty() or not _phase_manager \
+			or not _phase_manager.has_method("apply_character_event_ops"):
+		return []
+	return _phase_manager.apply_character_event_ops(ops)
+
+
+## p.70 Change of assignment: "Decide if they accept. If they do, they immediately earn
+## 5 XP and are transferred to another Five Parsecs game of your choice. If they decline,
+## gain 1 level of Loyalty."
+func _add_assignment_choice(choice: Dictionary) -> void:
+	var entry: Dictionary = {"character_id": str(choice.get("character_id", "")),
+		"decided": false, "buttons": []}
+	var mode_pick := OptionButton.new()
+	mode_pick.custom_minimum_size = Vector2(0, 48)
+	for t in TRANSFER_TARGETS:
+		mode_pick.add_item(str(t[1]))
+	entry["mode_pick"] = mode_pick
+	_result_container.add_child(mode_pick)
+	for accept in [true, false]:
+		var btn := Button.new()
+		btn.text = "Accept the transfer" if accept else "Decline (gain a level of Loyalty)"
+		btn.custom_minimum_size = Vector2(0, 48)
+		btn.pressed.connect(_decide_assignment.bind(entry, accept))
+		_result_container.add_child(btn)
+		(entry.buttons as Array).append(btn)
+	_assignment_choices.append(entry)
+
+
+func _decide_assignment(entry: Dictionary, accept: bool) -> void:
+	if bool(entry.decided):
+		return
+	entry.decided = true
+	for b in entry.buttons:
+		(b as Button).disabled = true
+	(entry.mode_pick as OptionButton).disabled = true
+	var cid: String = str(entry.character_id)
+	if not accept:
+		for note in _apply_event_ops([{"op": "loyalty_gain", "character_id": cid}]):
+			_add_result_bbcode("[color=#10B981]%s[/color]" % str(note))
+		_after_assignment_decided()
+		return
+	_apply_event_ops([{"op": "xp", "character_id": cid, "amount": CharacterEventsScript.TRANSFER_XP}])
+	var who: Variant = _campaign.get_roster_character_by_id(cid)
+	var mode: String = str(TRANSFER_TARGETS[maxi((entry.mode_pick as OptionButton).selected, 0)][0])
+	var path := ""
+	if who is Dictionary:
+		var envelope: Dictionary = CharacterTransferService.new().transfer_character(
+				(who as Dictionary).duplicate(true), "planetfall", mode)
+		envelope["source_campaign_id"] = _campaign.campaign_id if "campaign_id" in _campaign else ""
+		path = CharacterTransferService.write_pending_transfer(envelope)
+	# The transfer file is the only copy once the character leaves, so the roster entry
+	# is dropped only after it is on disk.
+	if path == "":
+		_add_result_bbcode("[color=#DC2626]The transfer could not be written; the "
+				+ "character stays on the roster.[/color]")
+	else:
+		_campaign.dismiss_character(cid)
+		(_result_data.get_or_add("transfers", []) as Array).append(path)
+		_add_result_bbcode("[color=#10B981]+%d XP, and transferred to %s.[/color]"
+				% [CharacterEventsScript.TRANSFER_XP, str(TRANSFER_TARGETS[
+				maxi((entry.mode_pick as OptionButton).selected, 0)][1])])
+	_after_assignment_decided()
+
+
+func _after_assignment_decided() -> void:
+	for e in _assignment_choices:
+		if not bool(e.decided):
+			return
+	if _continue_btn:
+		_continue_btn.disabled = false
 
 
 ## ============================================================================

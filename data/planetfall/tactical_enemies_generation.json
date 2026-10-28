@@ -87,7 +87,10 @@
 			"number": "1D3+4", "speed": 4, "combat_skill": [1], "toughness": [4, 5], "panic": "1",
 			"description": "The K'Erin are a species priding themselves on never backing down from a struggle.",
 			"special_rule": "paramilitary",
-			"special_rule_description": "Leaders, Bosses, and Specialists have a 6+ Saving Throw. Champion: Leader has 2 KP as standard; Bosses have 3 KP."
+			"special_rule_description": "Leaders, Bosses, and Specialists have a 6+ Saving Throw. Champion: Leader has 2 KP as standard; Bosses have 3 KP.",
+			"_champion_source": "Planetfall p.150 Champion, the K'Erin landing party's second rule",
+			"leader_kp": 2,
+			"boss_kp": 3
 		},
 		{
 			"min": 96, "max": 100,
