@@ -37,9 +37,22 @@ extends RefCounted
 ## Controls whose own drag handling should never be competed with. Everything
 ## else is opened.
 const _SKIP := [
-	"ScrollContainer", "Tree", "ItemList", "TextEdit", "RichTextLabel",
-	"GraphEdit",
+	"ScrollContainer", "Tree", "ItemList", "TextEdit", "GraphEdit",
 ]
+
+
+## True for a control that owns a drag of its own and must keep claiming it. A
+## RichTextLabel does only while it scrolls its own text: this list used to name every
+## RichTextLabel, so a fitted result line (`scroll_active = false`, which is how the
+## variant-mode turn panels print nearly everything) kept STOP and a finger dragged over
+## it moved nothing. PASS still hands a [url] tap to the label first.
+static func keeps_its_gesture(c: Control) -> bool:
+	if c is RichTextLabel:
+		return (c as RichTextLabel).scroll_active
+	for cls: String in _SKIP:
+		if c.is_class(cls):
+			return true
+	return false
 
 
 ## Relax every STOP descendant of `root` so drags reach the owning scroll.
@@ -56,15 +69,50 @@ static func open_subtree(root: Node) -> int:
 		return 0
 	var opened: int = 0
 	for child in root.get_children():
-		if child is Control:
-			var c := child as Control
-			var skip: bool = false
-			for cls: String in _SKIP:
-				if c.is_class(cls):
-					skip = true
-					break
-			if not skip and c.mouse_filter == Control.MOUSE_FILTER_STOP:
-				c.mouse_filter = Control.MOUSE_FILTER_PASS
-				opened += 1
+		if child is Control and open_one(child as Control):
+			opened += 1
 		opened += open_subtree(child)
 	return opened
+
+
+## Open `root` now and keep it open: every control that later enters the tree under it
+## is opened as it arrives. A sweep reaches only the children that exist when it runs,
+## so a result line added after a press arrived STOP and swallowed the drag meant for
+## the page, and every rebuild path had to remember to sweep again. Order-independent,
+## the shape KeyboardAvoidance uses for Windows. The keeper is a child of `root`, so it
+## is freed with it and nothing outlives the screen. Idempotent per root.
+static func keep_open(root: Node) -> void:
+	if root == null or root.has_node(NodePath(_Keeper.NODE_NAME)):
+		return
+	open_subtree(root)
+	var keeper := _Keeper.new()
+	keeper.name = _Keeper.NODE_NAME
+	root.add_child(keeper)
+
+
+class _Keeper extends Node:
+	const NODE_NAME := "__TouchScrollKeeper"
+
+	func _ready() -> void:
+		get_tree().node_added.connect(_on_node_added)
+
+	func _on_node_added(node: Node) -> void:
+		var root: Node = get_parent()
+		if node is Control and root != null and root.is_ancestor_of(node):
+			# Deferred: a control that sets its own filter in _ready() is read after.
+			_open.call_deferred(node)
+
+	func _open(node: Node) -> void:
+		if is_instance_valid(node) and node is Control:
+			TouchScrollOpenerScript.open_one(node as Control)
+
+
+const TouchScrollOpenerScript := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+
+
+## Open one control (not its children). True when it was STOP and is now PASS.
+static func open_one(c: Control) -> bool:
+	if c == null or keeps_its_gesture(c) or c.mouse_filter != Control.MOUSE_FILTER_STOP:
+		return false
+	c.mouse_filter = Control.MOUSE_FILTER_PASS
+	return true

@@ -128,3 +128,13 @@ static func pluralize(count: Variant, singular: String, plural: String = "") -> 
 	var n: String = number(count)
 	var word: String = plural if not plural.is_empty() else singular + "s"
 	return "%s %s" % [n, singular if n == "1" else word]
+
+
+## A weapon's profile as the player reads it: `6" · 1 shot · Dmg +0`.
+##
+## Three Planetfall screens printed the same weapon (Lock and Load, the Research
+## application, the Armory). Two had written this line out by hand, and the third
+## printed the JSON floats verbatim ("R:6.0 S:1.0 D:+0"). One function keeps them equal.
+static func weapon_profile(weapon: Dictionary) -> String:
+	return "%s\" · %s · Dmg %+d" % [number(weapon.get("range", 0)),
+			pluralize(weapon.get("shots", 0), "shot"), int(weapon.get("damage", 0))]

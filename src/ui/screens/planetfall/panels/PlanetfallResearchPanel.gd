@@ -128,6 +128,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 14: RESEARCH"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -250,10 +251,7 @@ func application_effect_text(app: Dictionary) -> String:
 		"weapon":
 			var w: Dictionary = _armory_weapon(str(app.get("unlocks_weapon", "")))
 			if not w.is_empty():
-				parts.append("New weapon: %s\" · %s · Dmg %+d" % [
-					DisplayTextRef.number(w.get("range", 0)),
-					DisplayTextRef.pluralize(w.get("shots", 0), "shot"),
-					int(w.get("damage", 0))])
+				parts.append("New weapon: %s" % DisplayTextRef.weapon_profile(w))
 	if str(app.get("bonus", "")) != "":
 		parts.append(str(app.bonus))
 	return "; ".join(parts) + ("." if not parts.is_empty() else "")
@@ -308,7 +306,7 @@ func _show_theory_detail(theory_id: String) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = theory.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(desc, ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc)
 
@@ -393,12 +391,12 @@ func _on_invest_pressed(theory_id: String, amount: int) -> void:
 		_campaign, theory_id, amount)
 	if result.get("success", false):
 		_add_result_bbcode(
-			"[color=#10B981]Invested %d RP in %s.[/color]" % [
+			"[color=ui-success]Invested %d RP in %s.[/color]" % [
 				result.get("invested", 0),
 				str(_research.get_theory(theory_id).get("name", theory_id))])
 		if result.get("completed", false):
 			_add_result_bbcode(
-				"[color=#10B981]Theory completed! Applications now available.[/color]")
+				"[color=ui-success]Theory completed! Applications now available.[/color]")
 		_update_rp_display()
 		_show_theory_detail(theory_id)
 		_rebuild_theory_list()
@@ -412,7 +410,7 @@ func _on_research_app_pressed(theory_id: String) -> void:
 		var aname: String = app.get("name", "Unknown")
 		var atype: String = app.get("type", "")
 		_add_result_bbcode(
-			"[color=#10B981]Discovered: %s (%s)![/color]" % [aname, atype])
+			"[color=ui-success]Discovered: %s (%s)![/color]" % [aname, atype])
 
 		# Check if this application grants a milestone. The APPLICATION, not the theory
 		# it came from: p.156 lists applications, and a theory id never matched one.
@@ -423,7 +421,7 @@ func _on_research_app_pressed(theory_id: String) -> void:
 		_rebuild_theory_list()
 	else:
 		_add_result_bbcode(
-			"[color=#DC2626]%s[/color]" % result.get("error", "Failed"))
+			"[color=ui-danger]%s[/color]" % result.get("error", "Failed"))
 
 
 func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
@@ -445,9 +443,9 @@ func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
 		if ms and ms.has_method("check_tech_grants_milestone"):
 			if ms.check_tech_grants_milestone(tech_type, tech_id):
 				_add_result_bbcode(
-					"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
+					"\n[color=ui-warning]*** MILESTONE GRANTED! ***[/color]")
 				_add_result_bbcode(
-					"[color=#D97706]Its effects are applied when you complete this step.[/color]")
+					"[color=ui-warning]Its effects are applied when you complete this step.[/color]")
 
 
 func _on_continue_pressed() -> void:
@@ -495,8 +493,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -139,6 +139,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 15: BUILDING"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -360,7 +361,7 @@ func _show_building_detail(building_id: String) -> void:
 	desc_rtl.fit_content = true
 	desc_rtl.scroll_active = false
 	desc_rtl.text = desc
-	desc_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(desc_rtl, ScreenChrome.font_size(FONT_SIZE_SM))
 	desc_rtl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc_rtl)
 
@@ -435,7 +436,7 @@ func _on_convert_pressed() -> void:
 	var gained: int = _building_sys.convert_rm_to_bp(_campaign, amount)
 	if gained > 0:
 		_add_result_bbcode(
-			"[color=#10B981]Converted %d RM → %d BP[/color]" % [gained, gained])
+			"[color=ui-success]Converted %d RM → %d BP[/color]" % [gained, gained])
 	_rm_spinner.value = 0
 	_update_resource_display()
 	if _selected_building_id != "":
@@ -448,14 +449,14 @@ func _on_invest_pressed(building_id: String, amount: int) -> void:
 	var building: Dictionary = _building_sys.get_building(building_id)
 	var bname: String = building.get("name", building_id)
 	if not result.get("success", false):
-		_add_result_bbcode("[color=#F59E0B]%s[/color]" % str(result.get("error", "")))
+		_add_result_bbcode("[color=ui-warning]%s[/color]" % str(result.get("error", "")))
 		return
 	_add_result_bbcode(
-		"[color=#10B981]Invested %d BP in %s.[/color]" % [
+		"[color=ui-success]Invested %d BP in %s.[/color]" % [
 			result.get("invested", 0), bname])
 	if result.get("completed", false):
 		_add_result_bbcode(
-			"[color=#10B981]%s construction complete![/color]" % bname)
+			"[color=ui-success]%s construction complete![/color]" % bname)
 		# Check if this building grants a milestone
 		_check_milestone_grant("buildings", building_id)
 	_update_resource_display()
@@ -472,9 +473,9 @@ func _on_reclaim_pressed(building_id: String) -> void:
 	var bname: String = str(_building_sys.get_building(building_id).get("name", building_id))
 	var result: Dictionary = _building_sys.reclaim_building(_campaign, building_id)
 	if not result.get("success", false):
-		_add_result_bbcode("[color=#F59E0B]%s[/color]" % str(result.get("error", "")))
+		_add_result_bbcode("[color=ui-warning]%s[/color]" % str(result.get("error", "")))
 		return
-	_add_result_bbcode("[color=#F59E0B]%s reclaimed: +%d Raw Materials.[/color]" % [
+	_add_result_bbcode("[color=ui-warning]%s reclaimed: +%d Raw Materials.[/color]" % [
 			bname, int(result.get("raw_materials_gained", 0))])
 	_update_resource_display()
 	_show_building_detail(building_id)
@@ -492,9 +493,9 @@ func _check_milestone_grant(tech_type: String, tech_id: String) -> void:
 			if ms and ms.has_method("check_tech_grants_milestone"):
 				if ms.check_tech_grants_milestone(tech_type, tech_id):
 					_add_result_bbcode(
-						"\n[color=#D97706]*** MILESTONE GRANTED! ***[/color]")
+						"\n[color=ui-warning]*** MILESTONE GRANTED! ***[/color]")
 					_add_result_bbcode(
-						"[color=#D97706]Its effects are applied when you complete this "
+						"[color=ui-warning]Its effects are applied when you complete this "
 						+ "step.[/color]")
 			return
 		parent = parent.get_parent()
@@ -557,8 +558,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -90,7 +90,7 @@ func _setup_ui() -> void:
 	# Description label
 	description_label = RichTextLabel.new()
 	description_label.custom_minimum_size = Vector2(0, 80)
-	description_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	ScreenChrome.size_rich_text(description_label, FONT_SIZE_MD)
 	description_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	description_label.bbcode_enabled = true
 	description_label.fit_content = true

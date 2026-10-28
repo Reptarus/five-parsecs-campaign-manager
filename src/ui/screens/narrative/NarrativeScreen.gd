@@ -202,8 +202,7 @@ func _build_ui() -> void:
 	_narrative_text.bbcode_enabled = true
 	_narrative_text.fit_content = true
 	_narrative_text.scroll_active = false
-	_narrative_text.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(_narrative_text, ScreenChrome.font_size(FONT_SIZE_MD))
 	_narrative_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	vbox.add_child(_narrative_text)
@@ -249,8 +248,7 @@ func _build_ui() -> void:
 	_advisor_quote_lbl.bbcode_enabled = true
 	_advisor_quote_lbl.fit_content = true
 	_advisor_quote_lbl.scroll_active = false
-	_advisor_quote_lbl.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(_advisor_quote_lbl, ScreenChrome.font_size(FONT_SIZE_MD))
 	_advisor_quote_lbl.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	advisor_vbox.add_child(_advisor_quote_lbl)
@@ -267,8 +265,7 @@ func _build_ui() -> void:
 	_briefing_text.bbcode_enabled = true
 	_briefing_text.fit_content = true
 	_briefing_text.scroll_active = false
-	_briefing_text.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(_briefing_text, ScreenChrome.font_size(FONT_SIZE_MD))
 	_briefing_text.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY)
 	_briefing_text.visible = false
@@ -279,8 +276,7 @@ func _build_ui() -> void:
 	_restrictions_text.bbcode_enabled = true
 	_restrictions_text.fit_content = true
 	_restrictions_text.scroll_active = false
-	_restrictions_text.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(_restrictions_text, ScreenChrome.font_size(FONT_SIZE_SM))
 	_restrictions_text.visible = false
 	vbox.add_child(_restrictions_text)
 
@@ -294,8 +290,7 @@ func _build_ui() -> void:
 	_bonus_text.bbcode_enabled = true
 	_bonus_text.fit_content = true
 	_bonus_text.scroll_active = false
-	_bonus_text.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(_bonus_text, ScreenChrome.font_size(FONT_SIZE_SM))
 	_bonus_text.add_theme_color_override("default_color", COLOR_SUCCESS)
 	_bonus_panel.add_child(_bonus_text)
 
@@ -314,8 +309,7 @@ func _build_ui() -> void:
 	_outcome_text.bbcode_enabled = true
 	_outcome_text.fit_content = true
 	_outcome_text.scroll_active = false
-	_outcome_text.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(_outcome_text, ScreenChrome.font_size(FONT_SIZE_MD))
 	_outcome_panel.add_child(_outcome_text)
 
 	_continue_button = Button.new()

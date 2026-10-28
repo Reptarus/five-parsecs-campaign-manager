@@ -126,6 +126,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 5: COLONY EVENTS"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -201,14 +202,14 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 	if effect.has("research_points"):
 		var rp: int = effect.get("research_points", 0)
 		_add_result_bbcode(
-			"\n[color=#10B981]+%d Research Point(s)[/color]" % rp)
+			"\n[color=ui-success]+%d Research Point(s)[/color]" % rp)
 		if _campaign.has_method("apply_colony_event"):
 			_campaign.apply_colony_event({"research_points": rp})
 
 	if effect.has("build_points"):
 		var bp: int = effect.get("build_points", 0)
 		_add_result_bbcode(
-			"\n[color=#10B981]+%d Build Point(s)[/color]" % bp)
+			"\n[color=ui-success]+%d Build Point(s)[/color]" % bp)
 		if _campaign.has_method("apply_colony_event"):
 			_campaign.apply_colony_event({"build_points": bp})
 
@@ -216,7 +217,7 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 		var morale: int = effect.get("colony_morale", 0)
 		if _campaign.has_method("adjust_morale"):
 			_campaign.adjust_morale(morale)
-		var color: String = "#10B981" if morale > 0 else "#DC2626"
+		var color: String = "ui-success" if morale > 0 else "ui-danger"
 		_add_result_bbcode(
 			"\n[color=%s]Colony Morale %+d[/color]" % [color, morale])
 
@@ -229,13 +230,13 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 				if effect.get("colony_damage_unmitigatable", false) else "colony_damage"
 		_result_data[key] = int(_result_data.get(key, 0)) + dmg
 		_add_result_bbcode(
-			"\n[color=#DC2626]Colony Damage: %d%s[/color]" % [
+			"\n[color=ui-danger]Colony Damage: %d%s[/color]" % [
 				dmg, " (cannot be mitigated)" if key == "colony_damage_unmitigable" else ""])
 
 	if effect.has("ancient_signs"):
 		# p.63 Colonists find. This printed the sign and recorded nothing until 2026-10-27.
 		_add_result_bbcode(
-			"\n[color=#10B981]+%d Ancient Sign(s)[/color]" % effect.get("ancient_signs", 0))
+			"\n[color=ui-success]+%d Ancient Sign(s)[/color]" % effect.get("ancient_signs", 0))
 		if _campaign.has_method("apply_colony_event"):
 			for line in _campaign.apply_colony_event(
 					{"ancient_signs": int(effect.get("ancient_signs", 0))}):
@@ -244,7 +245,7 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 	if effect.has("xp_all_characters"):
 		var xp: int = effect.get("xp_all_characters", 0)
 		_add_result_bbcode(
-			"\n[color=#10B981]+%d XP to all roster characters[/color]" % xp)
+			"\n[color=ui-success]+%d XP to all roster characters[/color]" % xp)
 		if _campaign and "roster" in _campaign and _campaign.has_method("award_xp"):
 			for char_dict in _campaign.roster:
 				if _is_present(char_dict):
@@ -255,17 +256,17 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 		if _campaign.has_method("gain_grunts"):
 			_campaign.gain_grunts(g)
 		_add_result_bbcode(
-			"\n[color=#10B981]+%d Grunt(s)[/color]" % g)
+			"\n[color=ui-success]+%d Grunt(s)[/color]" % g)
 
 	if effect.has("free_scout_action"):
 		_add_result_bbcode(
-			"\n[color=#4FC3F7]You may perform a free Scout action this turn.[/color]")
+			"\n[color=ui-info]You may perform a free Scout action this turn.[/color]")
 
 	if effect.has("repair_all_bots"):
 		if _campaign and "bot_operational" in _campaign:
 			_campaign.bot_operational = true
 		_add_result_bbcode(
-			"\n[color=#10B981]All bots repaired immediately.[/color]")
+			"\n[color=ui-success]All bots repaired immediately.[/color]")
 
 	if effect.has("colony_damage_repair"):
 		var repair: int = effect.get("colony_damage_repair", 0)
@@ -273,19 +274,19 @@ func _apply_automatic_effects(effect: Dictionary, event_id: String) -> void:
 		var repaired: int = _campaign.repair_colony(repair) \
 			if _campaign.has_method("repair_colony") else 0
 		_add_result_bbcode(
-			"\n[color=#10B981]Repaired %d point(s) of Colony Damage.[/color]" % repaired)
+			"\n[color=ui-success]Repaired %d point(s) of Colony Damage.[/color]" % repaired)
 
 	if effect.has("research_points_wasted"):
 		# p.63 Scientific dead end; the core takes it off the next points earned.
 		if "research_points_wasted" in _campaign:
 			_campaign.research_points_wasted += int(effect.get("research_points_wasted", 0))
 		_add_result_bbcode(
-			"\n[color=#DC2626]Your next %d Research Points earned will be wasted.[/color]" %
+			"\n[color=ui-danger]Your next %d Research Points earned will be wasted.[/color]" %
 			effect.get("research_points_wasted", 0))
 
 	if effect.has("story_points_blocked_this_turn"):
 		_add_result_bbcode(
-			"\n[color=#DC2626]Cannot use Story Points for the rest of this turn.[/color]")
+			"\n[color=ui-danger]Cannot use Story Points for the rest of this turn.[/color]")
 		_result_data["story_points_blocked"] = true
 
 	# p.64 Animal migrations / Changing climate conditions. Both printed "has been erased"
@@ -306,7 +307,7 @@ func _report_erased(table: String, slot: int) -> void:
 	if slot < 0:
 		_add_result_bbcode("\nNo %s entry has been filled yet, so there is none to erase." % table)
 		return
-	_add_result_bbcode("\n[color=#D97706]%s entry %d erased. It is filled again when that "
+	_add_result_bbcode("\n[color=ui-warning]%s entry %d erased. It is filled again when that "
 			% [table, slot + 1] + "entry is rolled.[/color]")
 
 
@@ -335,7 +336,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 	choice_label.bbcode_enabled = true
 	choice_label.fit_content = true
 	choice_label.scroll_active = false
-	choice_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(choice_label, ScreenChrome.font_size(FONT_SIZE_SM))
 	choice_label.add_theme_color_override("default_color", COLOR_WARNING)
 	_choice_container.add_child(choice_label)
 
@@ -393,7 +394,7 @@ func _build_choice_ui(event_id: String, effect: Dictionary) -> void:
 			if _campaign and _campaign.has_method("adjust_morale"):
 				_campaign.adjust_morale(penalty)
 			_add_result_bbcode(
-				"\n[color=#DC2626]Event declined. Colony Morale %+d[/color]" % penalty)
+				"\n[color=ui-danger]Event declined. Colony Morale %+d[/color]" % penalty)
 			_finalize_choice()
 		)
 		_choice_container.add_child(decline_btn)
@@ -478,7 +479,7 @@ func _apply_choice_accept(event_id: String, effect: Dictionary, option: String =
 			var id := _picked_id()
 			if id != "" and _campaign.has_method("assign_event_sitout"):
 				_campaign.assign_event_sitout(id)
-				_add_result_bbcode("\n[color=#D97706]%s will not take part in a mission this "
+				_add_result_bbcode("\n[color=ui-warning]%s will not take part in a mission this "
 						% _picked_name() + "campaign turn.[/color]")
 
 		"specialist_training":
@@ -487,16 +488,16 @@ func _apply_choice_accept(event_id: String, effect: Dictionary, option: String =
 				var new_id: String = RosterRules.next_character_id(_campaign)
 				_campaign.add_roster_character(RosterRules.standard_character(
 						cls, new_id, "Colonist %d" % (_campaign.roster.size() + 1)))
-				_add_result_bbcode("\n[color=#10B981]A new %s joins the roster.[/color]"
+				_add_result_bbcode("\n[color=ui-success]A new %s joins the roster.[/color]"
 						% cls.capitalize())
 			elif _picked_id() != "" and _campaign.has_method("award_xp"):
 				_campaign.award_xp(_picked_id(), 3)
-				_add_result_bbcode("\n[color=#10B981]+3 XP to %s.[/color]" % _picked_name())
+				_add_result_bbcode("\n[color=ui-success]+3 XP to %s.[/color]" % _picked_name())
 
 		"hostile_wildlife":
 			if "patrol_required_turn" in _campaign:
 				_campaign.patrol_required_turn = int(_campaign.campaign_turn)
-			_add_result_bbcode("\n[color=#4FC3F7]Committed to a Patrol Mission this turn. Any "
+			_add_result_bbcode("\n[color=ui-info]Committed to a Patrol Mission this turn. Any "
 					+ "other mission costs Colony Morale -2 at Mission Determination.[/color]")
 
 		"supply_ship":
@@ -507,19 +508,19 @@ func _apply_choice_accept(event_id: String, effect: Dictionary, option: String =
 			var rp: int = high if option != "bp" else low
 			var bp: int = low if option != "bp" else high
 			_add_result_bbcode(
-				"\n[color=#10B981]Supply Ship: 2D6 = %d, %d. +%d RP, +%d BP (%s priority)[/color]" % [
+				"\n[color=ui-success]Supply Ship: 2D6 = %d, %d. +%d RP, +%d BP (%s priority)[/color]" % [
 					d1, d2, rp, bp, "Build Points" if option == "bp" else "Research Points"])
 			if _campaign.has_method("apply_colony_event"):
 				_campaign.apply_colony_event({"research_points": rp, "build_points": bp})
 			if _campaign.has_method("gain_grunts"):
 				_campaign.gain_grunts(int(effect.get("grunts", 1)))
-			_add_result_bbcode("[color=#10B981]+1 Grunt[/color]")
+			_add_result_bbcode("[color=ui-success]+1 Grunt[/color]")
 
 		"report_on_progress":
 			var xp_roll: int = _resolver.roll_d6("Planetfall Report XP")
 			if _picked_id() != "" and _campaign.has_method("award_xp"):
 				_campaign.award_xp(_picked_id(), xp_roll)
-			_add_result_bbcode("\n[color=#10B981]+%d XP (D6) to %s. +1 Morale.[/color]"
+			_add_result_bbcode("\n[color=ui-success]+%d XP (D6) to %s. +1 Morale.[/color]"
 					% [xp_roll, _picked_name()])
 			if _campaign.has_method("adjust_morale"):
 				_campaign.adjust_morale(int(effect.get("colony_morale", 1)))
@@ -528,17 +529,17 @@ func _apply_choice_accept(event_id: String, effect: Dictionary, option: String =
 			var id := _picked_id()
 			if id != "" and _campaign.has_method("reduce_recovery"):
 				var left: int = _campaign.reduce_recovery(id, int(effect.get("reduce_recovery", 2)))
-				_add_result_bbcode("\n[color=#10B981]%s: %s[/color]" % [_picked_name(),
+				_add_result_bbcode("\n[color=ui-success]%s: %s[/color]" % [_picked_name(),
 						"fully recovered and can act normally this turn" if left == 0
 						else "%d turn(s) of recovery left" % left])
 			else:
 				_add_result_bbcode("\nNo one is recovering from injuries.")
 			if _campaign.has_method("adjust_morale"):
 				_campaign.adjust_morale(int(effect.get("colony_morale", 1)))
-			_add_result_bbcode("[color=#10B981]Colony Morale +1[/color]")
+			_add_result_bbcode("[color=ui-success]Colony Morale +1[/color]")
 
 		_:
-			_add_result_bbcode("\n[color=#10B981]Event accepted.[/color]")
+			_add_result_bbcode("\n[color=ui-success]Event accepted.[/color]")
 			_apply_automatic_effects(effect, event_id)
 
 	_finalize_choice()
@@ -584,10 +585,10 @@ func _resolve_virus_event() -> void:
 		var turns: int = _resolver.roll_1d3("Planetfall Virus Recovery")
 		if _campaign.has_method("add_to_sick_bay"):
 			_campaign.add_to_sick_bay(inf_id, turns)
-		_add_result_bbcode("[color=#DC2626]%s: %d turn(s) in Sick Bay[/color]"
+		_add_result_bbcode("[color=ui-danger]%s: %d turn(s) in Sick Bay[/color]"
 				% [_name_of(inf_id), turns])
 	_add_result_bbcode(
-		"\n[color=#DC2626]Hostile Virus: %d character(s) infected.[/color]" % infected.size())
+		"\n[color=ui-danger]Hostile Virus: %d character(s) infected.[/color]" % infected.size())
 
 
 func _on_continue_pressed() -> void:
@@ -635,8 +636,8 @@ func _add_info_text(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -646,8 +647,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

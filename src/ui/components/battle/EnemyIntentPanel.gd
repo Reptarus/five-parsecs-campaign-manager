@@ -322,7 +322,7 @@ func _display_oracle_result(result: Dictionary) -> void:
 	instruction_lbl.bbcode_enabled = true
 	instruction_lbl.fit_content = true
 	instruction_lbl.scroll_active = false
-	instruction_lbl.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	ScreenChrome.size_rich_text(instruction_lbl, FONT_SIZE_MD)
 	instruction_lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	instruction_lbl.text = result.get("instruction", "No instruction available.")
 	inner.add_child(instruction_lbl)

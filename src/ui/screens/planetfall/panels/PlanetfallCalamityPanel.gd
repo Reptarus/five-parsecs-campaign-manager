@@ -91,6 +91,7 @@ func _build_content() -> void:
 
 	var title := Label.new()
 	title.text = "ACTIVE CALAMITIES"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_DANGER)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -104,6 +105,7 @@ func _build_content() -> void:
 		empty.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		empty.add_theme_color_override("font_color", COLOR_SUCCESS)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_content.add_child(empty)
 		return
 
@@ -129,6 +131,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	# Name
 	var name_lbl := Label.new()
 	name_lbl.text = cal.get("name", "Unknown Calamity")
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_DANGER)
 	inner.add_child(name_lbl)
@@ -139,7 +142,7 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = cal.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(desc, ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(desc)
 
@@ -177,6 +180,7 @@ func _add_section(parent: VBoxContainer, title_text: String,
 		content_text: String, accent: Color) -> void:
 	var t := Label.new()
 	t.text = title_text
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	t.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	t.add_theme_color_override("font_color", accent)
 	parent.add_child(t)
@@ -186,7 +190,7 @@ func _add_section(parent: VBoxContainer, title_text: String,
 	c.fit_content = true
 	c.scroll_active = false
 	c.text = content_text
-	c.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+	ScreenChrome.size_rich_text(c, ScreenChrome.font_size(FONT_SIZE_XS))
 	c.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	parent.add_child(c)
 
@@ -222,6 +226,7 @@ func _add_progress_display(parent: VBoxContainer, cal_id: String,
 	if not progress_text.is_empty():
 		var lbl := Label.new()
 		lbl.text = "Progress: %s" % progress_text
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		parent.add_child(lbl)

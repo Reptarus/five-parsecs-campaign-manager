@@ -75,7 +75,7 @@ autowrap_mode = 3
 [node name="CurrentStepLabel" type="Label" parent="MarginContainer/VBoxContainer/Header"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_colors/font_color = Color(0.6117647, 0.6392157, 0.6862745, 1)
 theme_type_variation = &"TextLG"
 text = "Step 1 of 6: Upkeep"
 horizontal_alignment = 1

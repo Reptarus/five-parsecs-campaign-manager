@@ -138,18 +138,13 @@ const MIN_NODES := {
 
 
 ## Record `class @ path` for every STOP control the opener would rewrite, WITHOUT
-## rewriting it. Mirrors TouchScrollOpener's own skip list so the two cannot disagree.
+## rewriting it. Asks the opener's own predicate, so the two cannot disagree (this
+## held a hand copy of the skip list, which is how both kept skipping result lines).
 func _name_stops(root: Node, n: Node, out: Array[String]) -> void:
 	for child in n.get_children():
 		if child is Control:
 			var c := child as Control
-			var skip := false
-			for cls: String in ["ScrollContainer", "Tree", "ItemList", "TextEdit",
-					"RichTextLabel", "GraphEdit"]:
-				if c.is_class(cls):
-					skip = true
-					break
-			if not skip and c.mouse_filter == Control.MOUSE_FILTER_STOP:
+			if not OpenerCls.keeps_its_gesture(c) and c.mouse_filter == Control.MOUSE_FILTER_STOP:
 				out.append("%s @ %s" % [c.get_class(), str(root.get_path_to(c))])
 		_name_stops(root, child, out)
 

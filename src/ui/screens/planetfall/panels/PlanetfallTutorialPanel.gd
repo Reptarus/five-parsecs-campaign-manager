@@ -56,6 +56,7 @@ func _build_ui() -> void:
 
 	var header := Label.new()
 	header.text = "INITIAL MISSIONS (Optional)"
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	content.add_child(header)
@@ -94,6 +95,7 @@ func _build_ui() -> void:
 		var subtitle: String = str(m.get("subtitle", ""))
 		title_lbl.text = ("%s — %s" % [str(m.get("name", "Mission")), subtitle]) \
 			if not subtitle.is_empty() else str(m.get("name", "Mission"))
+		title_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		title_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(16))
 		title_lbl.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 		vbox.add_child(title_lbl)
@@ -129,8 +131,13 @@ func _build_ui() -> void:
 			all_six.toggled.connect(_on_all_six_toggled)
 			vbox.add_child(all_six)
 
-		var btn_row := HBoxContainer.new()
-		btn_row.add_theme_constant_override("separation", 8)
+		# A flow, not an HBox: the two buttons side by side asked for 290 px, which with
+		# the card's padding pushed every card past the right edge of a phone (the
+		# column's minimum rides up through the disabled horizontal scroll). Wrapped,
+		# the minimum is the wider button alone.
+		var btn_row := HFlowContainer.new()
+		btn_row.add_theme_constant_override("h_separation", 8)
+		btn_row.add_theme_constant_override("v_separation", 8)
 		vbox.add_child(btn_row)
 
 		var success_btn := Button.new()

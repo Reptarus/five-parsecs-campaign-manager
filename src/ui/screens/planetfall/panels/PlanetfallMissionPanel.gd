@@ -142,6 +142,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 6: MISSION DETERMINATION"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -264,6 +265,7 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	# Mission name
 	var name_lbl := Label.new()
 	name_lbl.text = mission.get("name", "Unknown")
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_detail_container.add_child(name_lbl)
@@ -284,7 +286,7 @@ func _show_mission_detail(mission: Dictionary) -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = mission.get("description", "")
-	desc.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(desc, ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_detail_container.add_child(desc)
 
@@ -373,7 +375,7 @@ func _add_briefing_section(title: String, content: String) -> void:
 	content_lbl.fit_content = true
 	content_lbl.scroll_active = false
 	content_lbl.text = content
-	content_lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+	ScreenChrome.size_rich_text(content_lbl, ScreenChrome.font_size(FONT_SIZE_XS))
 	content_lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(content_lbl)
 

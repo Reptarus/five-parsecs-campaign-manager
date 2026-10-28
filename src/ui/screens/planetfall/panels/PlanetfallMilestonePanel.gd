@@ -13,6 +13,15 @@ const PlanetfallConditionScript := preload(
 	"res://src/core/systems/PlanetfallConditionSystem.gd")
 const TouchScrollOpenerRef = preload(
 	"res://src/ui/components/common/TouchScrollOpener.gd")
+const BuildingScript := preload("res://src/core/systems/PlanetfallBuildingSystem.gd")
+const ResearchScript := preload("res://src/core/systems/PlanetfallResearchSystem.gd")
+const AugmentationScript := preload("res://src/core/systems/PlanetfallAugmentationSystem.gd")
+const PostMissionScript := preload("res://src/core/systems/PlanetfallPostMissionSystem.gd")
+const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
+
+## What each granting source is, in the singular, for the checklist.
+const SOURCE_KIND := {"buildings": "Building", "research_applications": "Research Application",
+		"augmentations": "Augmentation", "alien_artifacts": "Alien Artifact"}
 
 ## Emitted after this panel changes the campaign, so the host can save it.
 signal campaign_changed
@@ -111,6 +120,7 @@ func _build_content() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "CAMPAIGN PROGRESSION"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -150,9 +160,13 @@ func _build_milestone_bar(completed: int, total: int) -> void:
 	bar_box.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(bar_box)
 
+	# The seven segments share the row, from a 28 px floor. At a fixed 40 px each they
+	# asked for 328 px, past the right edge of a phone.
+	bar_box.add_theme_constant_override("separation", 4)
 	for i in range(total):
 		var segment := PanelContainer.new()
-		segment.custom_minimum_size = Vector2(40, 40)
+		segment.custom_minimum_size = Vector2(28, 40)
+		segment.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var style := StyleBoxFlat.new()
 		style.set_corner_radius_all(4)
 		style.set_content_margin_all(4)
@@ -198,12 +212,14 @@ func _build_stat_card(title_text: String, value_text: String,
 
 	var t := Label.new()
 	t.text = title_text
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	t.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	t.add_theme_color_override("font_color", accent)
 	inner.add_child(t)
 
 	var v := Label.new()
 	v.text = value_text
+	v.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	v.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	inner.add_child(v)
@@ -290,20 +306,41 @@ func _build_tech_checklist() -> void:
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_content.add_child(header)
 
+	# Each name is read from the file that owns it. Re-derived from the id it printed
+	# "Post Organic Demarcation" for the book's "Integrated Post-Organic Demarcation".
+	var owners := {"buildings": BuildingScript.new(), "research_applications":
+			ResearchScript.new(), "augmentations": AugmentationScript.new(),
+			"alien_artifacts": PostMissionScript.new()}
 	for category in tech:
 		var items: Array = tech[category]
 		for item_id in items:
 			var lbl := Label.new()
-			var display_name: String = str(item_id).replace("_", " ").capitalize()
 			var is_owned: bool = owned.has("%s:%s" % [category, str(item_id)])
 			lbl.text = "%s  %s (%s)" % [
 				"[x]" if is_owned else "[ ]",
-				display_name,
-				category.replace("_", " ")]
+				_source_name(owners.get(category), str(category), str(item_id)),
+				SOURCE_KIND.get(category, DisplayTextRef.title_case(str(category)))]
+			lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+			# This row's own state. It read `owned` (the whole list), so owning ONE source
+			# turned every row green.
 			lbl.add_theme_color_override("font_color",
-				COLOR_SUCCESS if owned else COLOR_TEXT_SECONDARY)
+				COLOR_SUCCESS if is_owned else COLOR_TEXT_SECONDARY)
 			_content.add_child(lbl)
+
+
+## A granting source's name as its own data spells it; the title-cased id only when the
+## owner does not know it.
+static func _source_name(owner: Object, category: String, id: String) -> String:
+	var record: Dictionary = {}
+	if owner != null:
+		match category:
+			"buildings": record = owner.get_building(id)
+			"research_applications": record = owner.get_application(id)
+			"augmentations": record = owner.get_augmentation(id)
+			"alien_artifacts": record = owner.get_artifact_by_id(id)
+	var name_text: String = str(record.get("name", ""))
+	return name_text if name_text != "" else DisplayTextRef.title_case(id)
 
 
 func _build_next_milestone_section(next_index: int, effects: Array) -> void:

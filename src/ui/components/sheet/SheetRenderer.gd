@@ -477,7 +477,7 @@ func _build_field_node(field: Dictionary, ctx: Dictionary) -> Control:
 			rtl.fit_content = false
 			rtl.scroll_active = false
 			rtl.text = str(value) if value != null else ""
-			rtl.add_theme_font_size_override("normal_font_size", font_size)
+			ScreenChrome.size_rich_text(rtl, font_size)
 			rtl.position = rect_src.position
 			rtl.size = rect_src.size
 			rtl.add_theme_color_override("default_color", Color.BLACK)

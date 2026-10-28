@@ -125,8 +125,7 @@ func _build_ui() -> void:
 	_log_display.bbcode_enabled = true
 	_log_display.scroll_following = true
 	_log_display.selection_enabled = true
-	_log_display.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(12))
+	ScreenChrome.size_rich_text(_log_display, ScreenChrome.font_size(12))
 	_log_display.add_theme_color_override(
 		"default_color", UIColors.COLOR_TEXT_SECONDARY
 	)

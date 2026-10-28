@@ -90,3 +90,26 @@ const ACCENT_COLOR := COLOR_AMBER
 const TEXT_PRIMARY := COLOR_TEXT_PRIMARY
 const TEXT_SECONDARY := COLOR_TEXT_SECONDARY
 const TEXT_DISABLED := COLOR_TEXT_DISABLED
+
+## Colour ROLES for RichTextLabel text, written `[color=ui-success]...[/color]` and
+## resolved to the palette by bbcode(). Panels hand-wrote hex tags (64 in the
+## Planetfall panels alone, in three shades of amber and two of red), so their hues
+## never followed the palette, and a receipt saved with a hex kept that hex forever.
+const BBCODE_ROLES := {
+	"ui-success": COLOR_SUCCESS,
+	"ui-warning": COLOR_WARNING,
+	"ui-danger": COLOR_DANGER,
+	"ui-info": INFO_COLOR,
+	"ui-secondary": COLOR_TEXT_SECONDARY,
+}
+
+
+## `text` with every `[color=<role>]` replaced by the role's palette hex. Call it where
+## the text reaches the label, so a stored receipt resolves against today's palette.
+static func bbcode(text: String) -> String:
+	if not text.contains("[color=ui-"):
+		return text
+	for role in BBCODE_ROLES:
+		text = text.replace("[color=%s]" % role,
+				"[color=#%s]" % (BBCODE_ROLES[role] as Color).to_html(false))
+	return text

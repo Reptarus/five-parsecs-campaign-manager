@@ -22,6 +22,10 @@ const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
 
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const MilestoneScript := preload("res://src/core/systems/PlanetfallMilestoneSystem.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+
 var _campaign: Resource
 var _content: VBoxContainer
 var _close_btn: Button
@@ -38,6 +42,7 @@ func set_campaign(campaign_resource: Resource) -> void:
 func refresh() -> void:
 	_clear_container(_content)
 	_build_content()
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 ## ============================================================================
@@ -59,8 +64,12 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size = Vector2(0, 48)
+	_close_btn.custom_minimum_size = Vector2(120, 48)
 	_close_btn.pressed.connect(func(): hide())
+	# First and top right, as on every dashboard overlay: reachable the moment it opens.
+	# _clear_container() keeps it, so every rebuilt section lands below it.
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_content.add_child(_close_btn)
 
 
 func _build_content() -> void:
@@ -69,24 +78,29 @@ func _build_content() -> void:
 
 	var title := Label.new()
 	title.text = "TACTICAL ENEMIES"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_content.add_child(title)
 
+	var arrivals: String = _arrival_milestones()
 	var info := RichTextLabel.new()
 	info.bbcode_enabled = true
 	info.fit_content = true
 	info.scroll_active = false
-	info.text = "Tactical Enemies appear at milestones 1, 2, and 5. Gather Enemy Information through missions and scout patrols to locate their Bosses and Strongpoints."
-	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	info.text = ("A Tactical Enemy emerges at Milestones %s (p.50). Win battles against "
+			+ "an enemy and send scouts out to gather Enemy Information: it tracks down a "
+			+ "Boss, and a captured Boss reveals the Strongpoint (p.51).") % arrivals
+	ScreenChrome.size_rich_text(info, ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content.add_child(info)
 
 	var enemies: Array = _campaign.tactical_enemies if "tactical_enemies" in _campaign else []
 	if enemies.is_empty():
 		var empty := Label.new()
-		empty.text = "No Tactical Enemies present yet. They appear at Milestones 1, 2, and 5."
+		empty.text = "No Tactical Enemy is on the map yet."
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		empty.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -99,9 +113,6 @@ func _build_content() -> void:
 
 	# Ancient Signs section
 	_build_ancient_signs_section()
-
-	_content.add_child(_close_btn)
-	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 func _build_enemy_card(enemy: Dictionary, index: int) -> void:
@@ -126,9 +137,11 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 	header_row.add_theme_constant_override("separation", SPACING_MD)
 	vbox.add_child(header_row)
 
-	var enemy_type: String = enemy.get("type", "Unknown Enemy")
+	# `type` is the generator's whole type record, so printing it put a Dictionary on
+	# the card; the map module owns the name.
 	var name_lbl := Label.new()
-	name_lbl.text = "Enemy %d: %s" % [index + 1, enemy_type]
+	name_lbl.text = "Enemy %d: %s" % [index + 1, MapScript.enemy_name(_campaign, index)]
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -141,50 +154,57 @@ func _build_enemy_card(enemy: Dictionary, index: int) -> void:
 		status.add_theme_color_override("font_color", COLOR_SUCCESS)
 		header_row.add_child(status)
 
-	# Info level
-	var enemy_info_val: int = enemy.get("enemy_info", 0)
-	var info_lbl := Label.new()
-	info_lbl.text = "Enemy Information: %d / 6" % enemy_info_val
-	info_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	info_lbl.add_theme_color_override("font_color", COLOR_CYAN)
-	vbox.add_child(info_lbl)
+	# Enemy Information lives in ONE store on the core. Each enemy record also carries an
+	# `enemy_info` field that nothing writes, and this card read it, so it showed 0 for
+	# every enemy however much the scouts and victories had gathered.
+	var max_info: int = PlanetfallCampaignCore.ENEMY_INFO_MAX
+	var gathered: int = _campaign.get_enemy_info_count(index) \
+			if _campaign.has_method("get_enemy_info_count") else 0
+	_add_line(vbox, "Enemy Information: %d / %d" % [gathered, max_info], COLOR_CYAN)
+	if gathered >= max_info:
+		_add_line(vbox, "With %d Enemy Information you can always opt to carry out the "
+				% max_info + "Strike (p.61).", COLOR_SUCCESS, FONT_SIZE_XS)
 
-	if enemy_info_val >= 6:
-		var full_intel := Label.new()
-		full_intel.text = "Full intel — can always attempt Strike Mission"
-		full_intel.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
-		full_intel.add_theme_color_override("font_color", COLOR_SUCCESS)
-		vbox.add_child(full_intel)
+	# Where the Boss is this turn and where the Strongpoint stands, by sector (p.51, p.61).
+	var marks: Dictionary = MapScript.enemy_marks(_campaign, index)
+	var boss_at: String = str(marks.get("boss", ""))
+	var sp_at: String = str(marks.get("strongpoint", ""))
+	_add_line(vbox, "Boss: %s" % ("tracked down in %s" % MapScript.label(boss_at)
+			if boss_at != "" else "not tracked down"),
+			COLOR_WARNING if boss_at != "" else COLOR_TEXT_SECONDARY)
+	_add_line(vbox, "Strongpoint: %s" % (MapScript.label(sp_at) if sp_at != ""
+			else "not located"), COLOR_DANGER if sp_at != "" else COLOR_TEXT_SECONDARY)
 
-	# Boss + Strongpoint status
-	var boss_located: bool = enemy.get("boss_located", false)
-	var strongpoint: bool = enemy.get("strongpoint_located", false)
+	# The sectors it holds, named the way the map names them, not only counted.
+	var held: Array = MapScript.held_by(_campaign, index)
+	var names: Array[String] = []
+	for k in held:
+		names.append(MapScript.label(str(k)))
+	_add_line(vbox, ("Holds %d sector%s: %s" % [held.size(), "" if held.size() == 1 else "s",
+			", ".join(names)]) if not held.is_empty() else "Holds no sectors.",
+			COLOR_TEXT_SECONDARY)
 
-	var status_row := HBoxContainer.new()
-	status_row.add_theme_constant_override("separation", SPACING_LG)
-	vbox.add_child(status_row)
 
-	var boss_lbl := Label.new()
-	boss_lbl.text = "Boss: %s" % ("Located" if boss_located else "Unknown")
-	boss_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	boss_lbl.add_theme_color_override(
-		"font_color", COLOR_WARNING if boss_located else COLOR_TEXT_SECONDARY)
-	status_row.add_child(boss_lbl)
+func _add_line(parent: Control, text: String, color: Color,
+		size: int = FONT_SIZE_SM) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
+	lbl.add_theme_color_override("font_color", color)
+	parent.add_child(lbl)
+	return lbl
 
-	var sp_lbl := Label.new()
-	sp_lbl.text = "Strongpoint: %s" % ("Located" if strongpoint else "Unknown")
-	sp_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	sp_lbl.add_theme_color_override(
-		"font_color", COLOR_DANGER if strongpoint else COLOR_TEXT_SECONDARY)
-	status_row.add_child(sp_lbl)
 
-	# Occupied sectors
-	var sectors: Array = enemy.get("occupied_sectors", [])
-	var sectors_lbl := Label.new()
-	sectors_lbl.text = "Occupied Sectors: %d" % sectors.size()
-	sectors_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-	sectors_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	vbox.add_child(sectors_lbl)
+## The milestones a Tactical Enemy arrives on, read from the milestone table.
+static func _arrival_milestones() -> String:
+	var at: Array = MilestoneScript.new().milestones_with_effect("tactical_enemy_emerges")
+	var parts: Array[String] = []
+	for n in at:
+		parts.append(str(n))
+	if parts.size() <= 1:
+		return "".join(parts)
+	return ", ".join(parts.slice(0, parts.size() - 1)) + " and " + parts[-1]
 
 
 func _build_ancient_signs_section() -> void:
@@ -196,7 +216,9 @@ func _build_ancient_signs_section() -> void:
 	_content.add_child(section)
 
 	var desc := Label.new()
-	desc.text = "Roll 1D6 when obtaining a sign. On a roll equal to or below total signs, locate an Ancient Site for a Delve mission."
+	desc.text = ("Each time you obtain a Sign, roll 1D6. Equal to or below the Signs you "
+			+ "hold locates an Ancient Site for a Delve, and all Signs are then discarded "
+			+ "(p.61).")
 	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

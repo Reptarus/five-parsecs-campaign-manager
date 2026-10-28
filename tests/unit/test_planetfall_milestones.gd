@@ -409,7 +409,7 @@ func test_the_dashboard_saves_when_an_overlay_changes_the_campaign() -> void:
 	await get_tree().process_frame
 	dash._show_overlay_panel("milestones")
 	var panel: Node = null
-	for child in dash._overlay_container.get_children():
+	for child in dash._overlay_frame.get_children():
 		if child.has_signal("campaign_changed") and not child.is_queued_for_deletion():
 			panel = child
 	assert_object(panel).override_failure_message("premise: the overlay opened") \

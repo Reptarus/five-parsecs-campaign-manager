@@ -161,6 +161,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "STEP 7: LOCK AND LOAD"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -182,7 +183,7 @@ func _build_ui() -> void:
 	info.text = "Tick who deploys and choose each character's weapon. Each list holds " \
 			+ "what that character's class may carry from the Armory (pp.75-76). " \
 			+ "Characters in Sick Bay cannot deploy."
-	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(info, ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 
@@ -292,7 +293,7 @@ func _create_info_card(title_text: String, desc_text: String,
 	d.fit_content = true
 	d.scroll_active = false
 	d.text = desc_text
-	d.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(d, ScreenChrome.font_size(FONT_SIZE_SM))
 	d.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	inner.add_child(d)
 
@@ -390,12 +391,7 @@ func _populate_weapon_options(
 		var w: Dictionary = weapons[i]
 		# Whole numbers, an inch mark and words: it printed "Handgun (R:6.0 S:1.0 D:+0)",
 		# the JSON floats verbatim (DisplayText exists for exactly this).
-		var label: String = "%s · %s\" · %s · Dmg %+d" % [
-			w.get("name", "?"),
-			DisplayTextRef.number(w.get("range", 0)),
-			DisplayTextRef.pluralize(w.get("shots", 0), "shot"),
-			int(w.get("damage", 0))
-		]
+		var label: String = "%s · %s" % [w.get("name", "?"), DisplayTextRef.weapon_profile(w)]
 		option_btn.add_item(label, i)
 		option_btn.set_item_metadata(i, w.get("id", ""))
 

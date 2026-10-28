@@ -811,8 +811,7 @@ func _build_victory_conditions_section(parent: Control) -> void:
 	victory_condition_description.custom_minimum_size = Vector2(0, 60)
 	victory_condition_description.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
-	victory_condition_description.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(victory_condition_description, ScreenChrome.font_size(FONT_SIZE_SM))
 
 	var content = VBoxContainer.new()
 	content.add_theme_constant_override("separation", SPACING_MD)

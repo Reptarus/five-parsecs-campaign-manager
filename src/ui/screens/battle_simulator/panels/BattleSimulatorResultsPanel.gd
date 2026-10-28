@@ -71,7 +71,7 @@ func _build_ui() -> void:
 	_stats_label.bbcode_enabled = true
 	_stats_label.fit_content = true
 	_stats_label.custom_minimum_size = Vector2(0, 80)
-	_stats_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_MD)
+	ScreenChrome.size_rich_text(_stats_label, FONT_SIZE_MD)
 	_stats_label.add_theme_color_override("default_color", COLOR_TEXT)
 	vbox.add_child(_stats_label)
 

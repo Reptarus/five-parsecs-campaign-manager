@@ -121,6 +121,22 @@ func get_available_applications(
 
 ## The Application that unlocks `building_id` (p.93 "(Building)"), with its Theory's
 ## name added as `theory_name`; {} when no Application does.
+## An Application by its id, with the Theory it sits under. Empty when unknown.
+func get_application(app_id: String) -> Dictionary:
+	if app_id == "":
+		return {}
+	for theory in _theories:
+		if theory is not Dictionary:
+			continue
+		for app in theory.get("applications", []):
+			if app is Dictionary and str(app.get("id", "")) == app_id:
+				var found: Dictionary = (app as Dictionary).duplicate(true)
+				found["theory_id"] = str(theory.get("id", ""))
+				found["theory_name"] = str(theory.get("name", ""))
+				return found
+	return {}
+
+
 func application_for_building(building_id: String) -> Dictionary:
 	if building_id == "":
 		return {}

@@ -468,7 +468,7 @@ func _build_content_split() -> Control:
 	_detail_richtext.fit_content = true
 	_detail_richtext.scroll_active = false
 	_detail_richtext.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_detail_richtext.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(_detail_richtext, ScreenChrome.font_size(FONT_SIZE_MD))
 	_detail_richtext.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_detail_richtext.meta_clicked.connect(_on_meta_clicked)
 	detail_vbox.add_child(_detail_richtext)

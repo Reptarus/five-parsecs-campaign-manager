@@ -5,6 +5,7 @@ extends Control
 ## Shows all weapons available to the colony, filtered by tier and class.
 ## Weapons are NOT individually owned — they come from the colony pool.
 
+const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
 const PlanetfallArmoryScript := preload(
 	"res://src/core/systems/PlanetfallArmorySystem.gd")
 
@@ -30,7 +31,7 @@ var _armory: PlanetfallArmoryScript
 var _current_filter: String = "all"  # "all", "standard", "tier_1", "tier_2"
 
 var _content: VBoxContainer
-var _filter_row: HBoxContainer
+var _filter_row: HFlowContainer
 var _weapon_list: VBoxContainer
 var _close_btn: Button
 
@@ -67,8 +68,17 @@ func _build_ui() -> void:
 	_content.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(_content)
 
+	# First and top right, as on every dashboard overlay: reachable the moment it opens.
+	_close_btn = Button.new()
+	_close_btn.text = "Close"
+	_close_btn.custom_minimum_size = Vector2(120, 48)
+	_close_btn.pressed.connect(func(): hide())
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_content.add_child(_close_btn)
+
 	var title := Label.new()
 	title.text = "COLONY ARMORY"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -82,10 +92,12 @@ func _build_ui() -> void:
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(info)
 
-	# Filter buttons
-	_filter_row = HBoxContainer.new()
-	_filter_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	_filter_row.add_theme_constant_override("separation", SPACING_SM)
+	# Filter buttons. A flow, so the four wrap two-and-two on a phone instead of running
+	# the last one off the right edge.
+	_filter_row = HFlowContainer.new()
+	_filter_row.alignment = FlowContainer.ALIGNMENT_CENTER
+	_filter_row.add_theme_constant_override("h_separation", SPACING_SM)
+	_filter_row.add_theme_constant_override("v_separation", SPACING_SM)
 	_content.add_child(_filter_row)
 
 	for filter in ["all", "standard", "tier_1", "tier_2"]:
@@ -99,12 +111,6 @@ func _build_ui() -> void:
 	_weapon_list.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(_weapon_list)
 
-	_close_btn = Button.new()
-	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size = Vector2(0, 48)
-	_close_btn.pressed.connect(func(): hide())
-	_content.add_child(_close_btn)
-	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 
 
 ## ============================================================================
@@ -142,27 +148,49 @@ func _build_weapon_list() -> void:
 		card.add_theme_stylebox_override("panel", style)
 		_weapon_list.add_child(card)
 
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", SPACING_MD)
-		card.add_child(hbox)
+		# Stacked, not a row. The traits label wrapped inside an HBox beside two other
+		# columns, so it got no width of its own and printed one letter per line, which made
+		# every card several hundred pixels tall on a tablet as well as a phone.
+		var vbox := VBoxContainer.new()
+		vbox.add_theme_constant_override("separation", 4)
+		card.add_child(vbox)
 
-		# Name + tier
-		var name_vbox := VBoxContainer.new()
-		name_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		hbox.add_child(name_vbox)
+		var name_row := HBoxContainer.new()
+		name_row.add_theme_constant_override("separation", SPACING_SM)
+		vbox.add_child(name_row)
 
 		var name_lbl := Label.new()
 		name_lbl.text = wname
+		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override(
 			"font_color", COLOR_TEXT_PRIMARY if is_available else COLOR_TEXT_SECONDARY)
-		name_vbox.add_child(name_lbl)
+		name_row.add_child(name_lbl)
 
 		var tier_lbl := Label.new()
-		tier_lbl.text = tier.replace("_", " ").capitalize()
+		tier_lbl.text = DisplayTextRef.title_case(tier)
 		tier_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		tier_lbl.add_theme_color_override("font_color", COLOR_ACCENT)
-		name_vbox.add_child(tier_lbl)
+		name_row.add_child(tier_lbl)
+
+		var stats_lbl := Label.new()
+		stats_lbl.text = DisplayTextRef.weapon_profile(weapon)
+		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		stats_lbl.add_theme_color_override("font_color", COLOR_CYAN)
+		vbox.add_child(stats_lbl)
+
+		var traits: Array = weapon.get("traits", [])
+		if not traits.is_empty():
+			var names: Array = []
+			for t in traits:
+				names.append(DisplayTextRef.title_case(str(t)))
+			var traits_lbl := Label.new()
+			traits_lbl.text = ", ".join(PackedStringArray(names))
+			traits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+			traits_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+			traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			vbox.add_child(traits_lbl)
 
 		if not is_available:
 			var lock := Label.new()
@@ -171,27 +199,7 @@ func _build_weapon_list() -> void:
 			lock.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			lock.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lock.add_theme_color_override("font_color", COLOR_DANGER)
-			name_vbox.add_child(lock)
-
-		# Stats
-		var stats_lbl := Label.new()
-		var range_val: Variant = weapon.get("range", 0)
-		var shots_val: Variant = weapon.get("shots", 0)
-		var dmg: int = weapon.get("damage", 0)
-		stats_lbl.text = "R:%s  S:%s  D:%+d" % [str(range_val), str(shots_val), dmg]
-		stats_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-		stats_lbl.add_theme_color_override("font_color", COLOR_CYAN)
-		hbox.add_child(stats_lbl)
-
-		# Traits
-		var traits: Array = weapon.get("traits", [])
-		if not traits.is_empty():
-			var traits_lbl := Label.new()
-			traits_lbl.text = ", ".join(traits)
-			traits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
-			traits_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-			traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			hbox.add_child(traits_lbl)
+			vbox.add_child(lock)
 
 
 func _on_filter_pressed(filter: String) -> void:

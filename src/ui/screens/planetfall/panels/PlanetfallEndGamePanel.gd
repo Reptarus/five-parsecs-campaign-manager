@@ -111,6 +111,7 @@ func _build_ui() -> void:
 
 	var title := Label.new()
 	title.text = "THE END GAME"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -217,6 +218,9 @@ func _build_path_selection() -> void:
 			"" if secure else " [SECURITY NOT MET]"]
 		btn.custom_minimum_size = Vector2(0, 48)
 		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# "Independence (Cost: 15 BP, 5 RP) [SECURITY NOT MET]" on one line ran past a
+		# phone and dragged the whole stage off-centre.
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.pressed.connect(_on_path_selected.bind(path_id))
 		_content.add_child(btn)
 
@@ -302,8 +306,10 @@ func _build_loyalty_pick() -> void:
 			.get("colony_future_entries", [])
 	_add_text("The colony's long-term plan: pick either die.", FONT_SIZE_SM,
 			COLOR_TEXT_PRIMARY)
-	var row := HFlowContainer.new()
-	row.add_theme_constant_override("h_separation", SPACING_SM)
+	# Stacked and wrapping: a rolled 2 is "Staging ground for continued colonization
+	# missions", which no phone fits on one button line.
+	var row := VBoxContainer.new()
+	row.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(row)
 	for value in _colony_future_dice:
 		var name: String = ""
@@ -315,6 +321,7 @@ func _build_loyalty_pick() -> void:
 		btn.button_pressed = _loyalty_pick == int(value)
 		btn.text = "%d: %s" % [int(value), name]
 		btn.custom_minimum_size = Vector2(0, 48)
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		btn.pressed.connect(_on_loyalty_pick.bind(int(value)))
 		row.add_child(btn)
 	_action_btn.disabled = _loyalty_pick <= 0

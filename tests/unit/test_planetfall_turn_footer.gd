@@ -291,6 +291,81 @@ func test_the_turn_header_follows_the_layout_class() -> void:
 	assert_object(tc._save_button.get_parent()).is_not_same(tc._top_row)
 
 
+## Every Planetfall heading wraps. Unwrapped, "STEP 18: UPDATE COLONY TRACKING SHEET" was
+## wider than a phone, clipped mid-word, and set the whole column's minimum width with it.
+## Built from every panel, so a new panel's heading is held to the same rule.
+func test_every_heading_wraps_on_a_phone() -> void:
+	var heading_px: int = ScreenChrome.font_size(UIColors.FONT_SIZE_LG)
+	var headings: Array[Label] = []
+	var where: Dictionary = {}
+	var walked := 0
+	for file in DirAccess.get_files_at(PANELS):
+		if not file.ends_with(".gd"):
+			continue
+		var script: GDScript = load(PANELS + file)
+		if not script.can_instantiate():
+			continue
+		var node: Object = script.new()
+		if not node is Control:
+			if not node is RefCounted:
+				node.free()
+			continue
+		add_child(node)
+		auto_free(node)
+		walked += 1
+		for lbl in (node as Control).find_children("*", "Label", true, false):
+			if lbl.has_theme_font_size_override("font_size") \
+					and lbl.get_theme_font_size("font_size") >= heading_px:
+				headings.append(lbl)
+				where[lbl] = file
+	assert_int(walked).override_failure_message("premise: the panels were built") \
+		.is_greater(20)
+	assert_int(headings.size()).override_failure_message("premise: headings found") \
+		.is_greater(12)
+	var unwrapped: Array[String] = []
+	for lbl in headings:
+		if lbl.autowrap_mode == TextServer.AUTOWRAP_OFF:
+			unwrapped.append("%s '%s'" % [where[lbl], lbl.text])
+	assert_array(unwrapped).override_failure_message("headings that do not wrap: %s"
+		% str(unwrapped)).is_empty()
+
+	# The one the phone capture showed clipping: Step 18's heading, as the turn screen
+	# builds it. Wrapped, it no longer asks the column for its whole line.
+	var tc: Control = await _screen(_core(Phase.UPDATE_TRACKING))
+	var title: Label = tc.current_panel._title_label
+	assert_str(title.text).override_failure_message("premise: Step 18 is on screen") \
+		.contains("UPDATE COLONY TRACKING SHEET")
+	var font: Font = title.get_theme_font("font")
+	var wide: float = font.get_string_size(title.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+			title.get_theme_font_size("font_size")).x
+	assert_float(title.get_combined_minimum_size().x).override_failure_message(
+		"Step 18's heading still demands its whole line (%.0f px)" % wide).is_less(wide / 2.0)
+
+
+## The lines a step prints after its button is pressed do not swallow the drag that
+## scrolls the page. The turn screen swept once, at build; every result line arrived
+## afterwards at STOP, so on a phone a finger on the results moved nothing.
+func test_result_lines_added_after_a_press_let_the_page_scroll() -> void:
+	const Opener = preload("res://src/ui/components/common/TouchScrollOpener.gd")
+	var core := _core(Phase.RECOVERY)
+	core.sick_bay = {"s1": 2}
+	var tc: Control = await _screen(core)
+	var panel: Control = tc.current_panel
+	var before: int = panel._result_container.get_child_count()
+	panel._on_resolve_pressed()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_int(panel._result_container.get_child_count()).override_failure_message(
+		"premise: the press printed result lines").is_greater(before)
+	var stops: Array[String] = []
+	for n in tc.find_children("*", "Control", true, false):
+		var c := n as Control
+		if c.mouse_filter == Control.MOUSE_FILTER_STOP and not Opener.keeps_its_gesture(c):
+			stops.append("%s %s" % [c.get_class(), c.name])
+	assert_array(stops).override_failure_message(
+		"controls still swallowing a drag: %s" % str(stops)).is_empty()
+
+
 ## A new turn opens with Step 1's own footer. "Start Next Turn" was followed by a write
 ## of "Complete Phase" AFTER the new step had set the footer, so every turn opened on a
 ## label no step uses.

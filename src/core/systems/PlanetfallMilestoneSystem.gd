@@ -75,6 +75,19 @@ func get_milestone_effects(index: int) -> Array:
 	return []
 
 
+## The milestone numbers whose effects include `effect_type`, ascending. A screen that
+## names when something happens reads it here: the Enemy Tracker printed "Milestones
+## 1, 2, and 5" for the Tactical Enemy arrivals, which p.50 and this table put at 1-3.
+func milestones_with_effect(effect_type: String) -> Array:
+	var out: Array = []
+	for index in range(1, MILESTONES_REQUIRED + 1):
+		for effect in get_milestone_effects(index):
+			if effect is Dictionary and str(effect.get("type", "")) == effect_type:
+				out.append(index)
+				break
+	return out
+
+
 func apply_milestone(campaign: Resource, milestone_index: int) -> Dictionary:
 	## Apply all effects for this milestone to the campaign.
 	## Does NOT create sub-systems — returns what needs to happen so the

@@ -110,21 +110,10 @@ func _load_from_save_file(save_path: String) -> void:
 
 
 func _build_ui() -> void:
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(COLOR_BASE, 0.95)
-	add_child(bg)
-
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.add_theme_constant_override("margin_left", 24)
-	scroll.add_theme_constant_override("margin_right", 24)
-	add_child(scroll)
-
-	_content = VBoxContainer.new()
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The shared overlay page: its scroll's margin override was a no-op, and the
+	# horizontal axis was left on, so the page touched both edges and scrolled sideways.
+	_content = ScreenChrome.overlay_page(self)
 	_content.add_theme_constant_override("separation", 16)
-	scroll.add_child(_content)
 
 	_step_container = VBoxContainer.new()
 	_step_container.add_theme_constant_override("separation", 12)
@@ -137,6 +126,7 @@ func _show_step_1() -> void:
 	_clear_steps()
 
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "IMPORT VETERAN INTO COLONY"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -155,6 +145,7 @@ func _show_step_1() -> void:
 		])
 
 	var header := Label.new()
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.text = "SELECT VETERAN"
 	header.add_theme_font_size_override("font_size", _scaled_font(16))
 	header.add_theme_color_override("font_color", COLOR_TEXT_SEC)
@@ -174,6 +165,7 @@ func _show_step_1() -> void:
 
 	if not any:
 		var empty := Label.new()
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.text = "No eligible 5PFH or Bug Hunt veterans found in your saves."
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
@@ -193,6 +185,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 	var card := _create_glass_card(_step_container)
 
 	var name_lbl := Label.new()
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.text = "%s  [%s]" % [char_name, "Bug Hunt" if sm == "bug_hunt" else "5PFH"]
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
@@ -206,6 +199,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 		char_data.get("savvy", 0),
 		char_data.get("luck", 0)]
 	var detail_lbl := Label.new()
+	detail_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail_lbl.text = stats
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
@@ -213,6 +207,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
+	select_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func() -> void: _show_step_2(captured))
@@ -243,6 +238,7 @@ func _show_step_2(source_char: Dictionary) -> void:
 
 	var char_name: String = planetfall_char.get("name", "Unknown")
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "IMPORT PREVIEW: %s" % char_name
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -273,6 +269,8 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var next_btn := Button.new()
 	next_btn.text = "Proceed to Class Training"
 	next_btn.custom_minimum_size = Vector2(0, 52)
+	next_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	next_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	next_btn.pressed.connect(func() -> void:
 		_show_step_3_training(planetfall_char, canonical))
 	btn_row.add_child(next_btn)
@@ -280,6 +278,8 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
 	back_btn.custom_minimum_size = Vector2(0, 48)
+	back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	back_btn.pressed.connect(func() -> void: _show_step_1())
 	btn_row.add_child(back_btn)
 
@@ -290,6 +290,7 @@ func _show_step_3_training(planetfall_char: Dictionary, canonical: Dictionary) -
 	_clear_steps()
 
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "CLASS TRAINING"
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -359,6 +360,7 @@ func _show_training_result(
 		res["success"] = false
 
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -366,6 +368,7 @@ func _show_training_result(
 		title.text = "TRAINING APPROVED"
 		title.add_theme_color_override("font_color", COLOR_SUCCESS)
 		var msg := Label.new()
+		msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var method := str(res.get("method", ""))
 		msg.text = "Assigned class: %s (%s)." % [assigned.capitalize(), method.replace("_", " ")]
 		if res.has("roll"):
@@ -426,6 +429,7 @@ func _clear_steps() -> void:
 
 func _add_explanation(parent: VBoxContainer, header_text: String, points: Array) -> void:
 	var header := Label.new()
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.text = header_text
 	header.add_theme_font_size_override("font_size", _scaled_font(16))
 	header.add_theme_color_override("font_color", COLOR_CYAN)

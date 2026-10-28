@@ -747,8 +747,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 			weapons_rtl.fit_content = true
 			weapons_rtl.scroll_active = false
 			weapons_rtl.text = KeywordLinker.wrap_known_keywords(raw_value)
-			weapons_rtl.add_theme_font_size_override(
-				"normal_font_size", _scaled_font(13))
+			ScreenChrome.size_rich_text(weapons_rtl, _scaled_font(13))
 			weapons_rtl.add_theme_color_override(
 				"default_color", Color("#4FC3F7"))
 			KeywordLinker.attach(weapons_rtl, _ensure_keyword_tooltip())
@@ -816,8 +815,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 			cat_rules_rtl.fit_content = true
 			cat_rules_rtl.scroll_active = false
 			cat_rules_rtl.text = KeywordLinker.wrap_known_keywords(category_rules)
-			cat_rules_rtl.add_theme_font_size_override(
-				"normal_font_size", _scaled_font(11))
+			ScreenChrome.size_rich_text(cat_rules_rtl, _scaled_font(11))
 			cat_rules_rtl.add_theme_color_override(
 				"default_color", UIColors.COLOR_TEXT_SECONDARY)
 			cat_rules_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -834,8 +832,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		rule_rtl.fit_content = true
 		rule_rtl.scroll_active = false
 		rule_rtl.text = KeywordLinker.wrap_known_keywords(str(rule))
-		rule_rtl.add_theme_font_size_override(
-			"normal_font_size", _scaled_font(12))
+		ScreenChrome.size_rich_text(rule_rtl, _scaled_font(12))
 		rule_rtl.add_theme_color_override(
 			"default_color", Color("#D97706"))
 		rule_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1038,7 +1035,7 @@ func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) 
 	terrain_log.fit_content = true
 	terrain_log.set_anchors_preset(Control.PRESET_FULL_RECT)
 	terrain_log.add_theme_color_override("default_color", Color("#f3f4f6"))
-	terrain_log.add_theme_font_size_override("normal_font_size", _scaled_font(14))
+	ScreenChrome.size_rich_text(terrain_log, _scaled_font(14))
 
 	var bbcode: String = "[b]Terrain Setup Guide[/b]\n\n"
 	if theme_name != "":

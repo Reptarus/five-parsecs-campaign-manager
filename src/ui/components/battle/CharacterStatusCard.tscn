@@ -88,8 +88,9 @@ vertical_alignment = 1
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
-theme_override_colors/default_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_colors/default_color = Color(0.6117647, 0.6392157, 0.6862745, 1)
 theme_override_font_sizes/normal_font_size = 12
+theme_override_font_sizes/bold_font_size = 12
 bbcode_enabled = true
 text = "Combat: 1 | Tough: 4 | Speed: 4"
 fit_content = true
@@ -148,7 +149,7 @@ theme_override_constants/separation = 6
 
 [node name="ActionLabel" type="Label" parent="CardMargin/CardLayout/ActionSection"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.502, 0.502, 0.502, 1)
+theme_override_colors/font_color = Color(0.6117647, 0.6392157, 0.6862745, 1)
 theme_override_font_sizes/font_size = 12
 text = "Quick Actions"
 horizontal_alignment = 1

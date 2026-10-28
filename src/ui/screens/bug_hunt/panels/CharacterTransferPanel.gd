@@ -110,22 +110,10 @@ func load_characters_from_array(characters: Array) -> void:
 
 
 func _build_ui() -> void:
-	# Full-screen backdrop
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(COLOR_BASE, 0.95)
-	add_child(bg)
-
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.add_theme_constant_override("margin_left", 24)
-	scroll.add_theme_constant_override("margin_right", 24)
-	add_child(scroll)
-
-	_content = VBoxContainer.new()
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The shared overlay page (opaque, gutters, clear of the Settings buttons). The
+	# scroll's margin override here was a no-op: ScrollContainer has no such constant.
+	_content = ScreenChrome.overlay_page(self)
 	_content.add_theme_constant_override("separation", 16)
-	scroll.add_child(_content)
 
 	_step_container = VBoxContainer.new()
 	_step_container.add_theme_constant_override("separation", 12)
@@ -140,6 +128,7 @@ func _show_step_1() -> void:
 
 	# Title
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _direction == "enlist":
 		title.text = "ENLIST INTO BUG HUNT"
 	else:
@@ -179,6 +168,7 @@ func _show_step_1() -> void:
 
 	# Character selection
 	var select_header := Label.new()
+	select_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	select_header.text = "SELECT CHARACTER"
 	select_header.add_theme_font_size_override("font_size", _scaled_font(16))
 	select_header.add_theme_color_override("font_color", COLOR_TEXT_SEC)
@@ -186,6 +176,7 @@ func _show_step_1() -> void:
 
 	if _source_characters.is_empty():
 		var empty := Label.new()
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.text = "No eligible characters found. Load a save file first."
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
@@ -228,6 +219,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 	var card := _create_glass_card(_step_container)
 
 	var name_lbl := Label.new()
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.text = char_name
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
@@ -245,6 +237,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 		char_data.get("missions_completed", 0))
 	var detail := "%s  |  XP: %d  |  Missions: %d" % [stats, xp_val, missions_val]
 	var detail_lbl := Label.new()
+	detail_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	detail_lbl.text = detail
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
@@ -252,6 +245,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
+	select_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func(): _show_step_2(captured))
@@ -268,6 +262,7 @@ func _show_step_2(char_data: Dictionary) -> void:
 	var char_name: String = char_data.get("name", char_data.get("character_name", "Unknown"))
 
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "CONFIRM TRANSFER: %s" % char_name
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -277,6 +272,7 @@ func _show_step_2(char_data: Dictionary) -> void:
 	# Preview card — show exactly what will change
 	var preview_card := _create_glass_card(_step_container)
 	var preview_title := Label.new()
+	preview_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	preview_title.text = "TRANSFER PREVIEW"
 	preview_title.add_theme_font_size_override("font_size", _scaled_font(16))
 	preview_title.add_theme_color_override("font_color", COLOR_CYAN)
@@ -294,6 +290,7 @@ func _show_step_2(char_data: Dictionary) -> void:
 
 		# Odds display
 		var odds_lbl := Label.new()
+		odds_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		var target := 7 - combat
 		var success_chance := _calculate_2d6_odds(target)
 		odds_lbl.text = "Success chance: ~%d%% (need %d+ on 2D6)" % [success_chance, maxi(target, 2)]
@@ -327,12 +324,16 @@ func _show_step_2(char_data: Dictionary) -> void:
 	else:
 		confirm_btn.text = "Confirm Muster Out"
 	confirm_btn.custom_minimum_size = Vector2(0, 52)
+	confirm_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	confirm_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	confirm_btn.pressed.connect(func(): _execute_transfer())
 	btn_row.add_child(confirm_btn)
 
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
 	back_btn.custom_minimum_size = Vector2(0, 48)
+	back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	back_btn.pressed.connect(func(): _show_step_1())
 	btn_row.add_child(back_btn)
 
@@ -432,6 +433,7 @@ func report_commit_error(message: String) -> void:
 func _show_enlistment_result(result: Dictionary) -> void:
 	call_deferred("_open_touch_chain")  # no await in this function
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -552,6 +554,7 @@ func _on_story_point_rescue() -> void:
 func _show_muster_result(result: Dictionary) -> void:
 	call_deferred("_open_touch_chain")  # no await in this function
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 
@@ -592,6 +595,7 @@ func _show_muster_result(result: Dictionary) -> void:
 		title.text = "TRANSFER FAILED"
 		title.add_theme_color_override("font_color", COLOR_DANGER)
 		var msg := Label.new()
+		msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		msg.text = result.get("reason", "Unknown error occurred.")
 		msg.add_theme_color_override("font_color", COLOR_WARNING)
 		result_card.add_child(msg)
@@ -641,6 +645,7 @@ func _on_load_save() -> void:
 
 	_clear_steps()
 	var header := Label.new()
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.text = "SELECT SAVE FILE"
 	header.add_theme_font_size_override("font_size", _scaled_font(20))
 	header.add_theme_color_override("font_color", COLOR_TEXT)
@@ -649,6 +654,7 @@ func _on_load_save() -> void:
 
 	if saves.is_empty():
 		var empty := Label.new()
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.text = "No save files found in user://saves/"
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
@@ -670,6 +676,7 @@ func _on_load_save() -> void:
 
 func _add_explanation(parent: VBoxContainer, header_text: String, points: Array) -> void:
 	var header := Label.new()
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.text = header_text
 	header.add_theme_font_size_override("font_size", _scaled_font(16))
 	header.add_theme_color_override("font_color", COLOR_CYAN)

@@ -80,6 +80,7 @@ func _build_ui() -> void:
 	# Expedition Type section
 	var exp_header := Label.new()
 	exp_header.text = "EXPEDITION TYPE"
+	exp_header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	exp_header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	exp_header.add_theme_color_override("font_color", UIColorsRef.COLOR_TEXT_PRIMARY)
 	_content.add_child(exp_header)

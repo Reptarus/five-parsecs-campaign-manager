@@ -181,8 +181,7 @@ func _build_roller() -> Control:
 	_result_label.fit_content = true
 	_result_label.scroll_active = false
 	_result_label.visible = false
-	_result_label.add_theme_font_size_override("normal_font_size",
-		UIColors.FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_result_label, UIColors.FONT_SIZE_SM)
 	box.add_child(_result_label)
 
 	_apply_btn = _make_button("Apply", UIColors.COLOR_EMERALD)

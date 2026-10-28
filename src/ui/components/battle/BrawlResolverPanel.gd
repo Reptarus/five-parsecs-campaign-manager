@@ -190,7 +190,7 @@ func _setup_ui() -> void:
 	_result_display.fit_content = true
 	_result_display.custom_minimum_size = Vector2(0, 100)
 	_result_display.scroll_active = true
-	_result_display.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_result_display, FONT_SIZE_SM)
 	_result_display.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	main.add_child(_result_display)
 

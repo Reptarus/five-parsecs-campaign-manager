@@ -106,6 +106,8 @@ func refresh() -> void:
 		_prepare_colony_integrity()
 	if _step_id == "enemy_activity" and _result_container:
 		_prepare_enemy_activity()
+	if _step_id == "update_tracking" and _result_container:
+		_prepare_update_tracking()
 	step_status_changed.emit()
 
 
@@ -146,6 +148,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = _get_step_title().to_upper()
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -157,7 +160,7 @@ func _build_ui() -> void:
 	_description_label.fit_content = true
 	_description_label.scroll_active = false
 	_description_label.text = _get_step_description()
-	_description_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(_description_label, ScreenChrome.font_size(FONT_SIZE_SM))
 	_description_label.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(_description_label)
 
@@ -195,8 +198,6 @@ func _on_resolve_pressed() -> void:
 			_resolve_enemy_activity()
 		"colony_integrity":
 			_resolve_colony_integrity()
-		"update_tracking":
-			_resolve_update_tracking()
 		_:
 			_add_result_text("Step resolved.", COLOR_TEXT_PRIMARY)
 
@@ -431,17 +432,14 @@ func _render_lines(receipt: Dictionary) -> void:
 		_add_result_text(str(line), COLOR_TEXT_PRIMARY)
 
 
-func _resolve_update_tracking() -> void:
-	## Step 18: Save campaign state. Planetfall p.70.
-	_add_result_text("Campaign data saved. Turn complete!", COLOR_SUCCESS)
-	_add_result_text(
-		"Take a moment to review your Colony Tracking Sheet.",
-		COLOR_TEXT_SECONDARY)
-
-	# Auto-save
-	var gs = get_node_or_null("/root/GameState") if is_inside_tree() else null
-	if gs and gs.has_method("save_campaign") and _campaign:
-		gs.save_campaign(_campaign)
+## Step 18 (p.71): tidy the paper Colony Tracking Sheet and, if the player keeps one,
+## the campaign diary. There is no roll and no choice, and the phase manager saves when
+## the turn closes (`_complete_turn`), so the step arrives ready. It used to wait on a
+## "Save & Complete" press whose own save ran first and recorded the turn as still on
+## Step 18, one save before the real one.
+func _prepare_update_tracking() -> void:
+	_skip_step("Tidy your Colony Tracking Sheet and, if you keep one, your campaign "
+			+ "diary (p.71). The campaign saves when the turn ends.")
 
 
 ## ============================================================================
@@ -450,7 +448,7 @@ func _resolve_update_tracking() -> void:
 
 ## The book's step heading, read from the phase manager's one name table. These used
 ## to be hand-copied per panel, and Step 18 drifted to "Update Colony Sheet" against
-## p.70's "Update Colony Tracking Sheet".
+## the contents list's "Update Colony Tracking Sheet" (p.70; the step itself is p.71).
 func _get_step_title() -> String:
 	var names: Dictionary = load("res://src/core/campaign/PlanetfallPhaseManager.gd").PHASE_NAMES
 	if names.has(_phase_index):
@@ -467,7 +465,7 @@ func _get_step_description() -> String:
 		"colony_integrity":
 			return "If Colony Integrity is -3 or worse, roll 3D6. A roll equal to or below the Integrity score flipped (-8 counts as 8) is an Integrity Failure, looked up on the table (pp.87-88)."
 		"update_tracking":
-			return "Ensure all changes from this campaign turn are recorded. Campaign data will be saved automatically."
+			return "The last step of the turn. Nothing is rolled."
 	return ""
 
 
@@ -476,7 +474,6 @@ func _get_resolve_button_text() -> String:
 		"recovery": return "Process Recovery"
 		"enemy_activity": return "Roll Enemy Activity"
 		"colony_integrity": return "Check Integrity"
-		"update_tracking": return "Save & Complete"
 	return "Resolve"
 
 
@@ -493,7 +490,7 @@ func _add_result_text(text: String, color: Color) -> void:
 	lbl.fit_content = true
 	lbl.scroll_active = false
 	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", color)
 	_result_container.add_child(lbl)
 

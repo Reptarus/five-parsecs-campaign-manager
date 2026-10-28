@@ -94,21 +94,10 @@ func _load_from_save_file(save_path: String) -> void:
 
 
 func _build_ui() -> void:
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(COLOR_BASE, 0.95)
-	add_child(bg)
-
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.add_theme_constant_override("margin_left", 24)
-	scroll.add_theme_constant_override("margin_right", 24)
-	add_child(scroll)
-
-	_content = VBoxContainer.new()
-	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# The shared overlay page (opaque, gutters, clear of the Settings buttons). The
+	# scroll's margin override here was a no-op: ScrollContainer has no such constant.
+	_content = ScreenChrome.overlay_page(self)
 	_content.add_theme_constant_override("separation", 16)
-	scroll.add_child(_content)
 
 	_step_container = VBoxContainer.new()
 	_step_container.add_theme_constant_override("separation", 12)
@@ -119,6 +108,7 @@ func _show_step_1() -> void:
 	_clear_steps()
 
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "COMMISSION VETERAN"
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -143,6 +133,7 @@ func _show_step_1() -> void:
 
 	if not any:
 		var empty := Label.new()
+		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.text = "No eligible veterans found in your saves."
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
@@ -163,6 +154,7 @@ func _build_select_card(char_data: Dictionary) -> void:
 	var card := _create_glass_card(_step_container)
 
 	var name_lbl := Label.new()
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	name_lbl.text = "%s  [%s]" % [char_name, origin]
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
@@ -170,6 +162,7 @@ func _build_select_card(char_data: Dictionary) -> void:
 
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
+	select_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	select_btn.custom_minimum_size = Vector2(0, 44)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func() -> void: _show_step_2(captured))
@@ -192,6 +185,7 @@ func _show_step_2(source_char: Dictionary) -> void:
 
 	var char_name: String = veteran.get("name", "Unknown")
 	var title := Label.new()
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.text = "COMMISSION PREVIEW: %s" % char_name
 	title.add_theme_font_size_override("font_size", _scaled_font(22))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
@@ -225,6 +219,8 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var commission_btn := Button.new()
 	commission_btn.text = "Commission %s" % char_name
 	commission_btn.custom_minimum_size = Vector2(0, 52)
+	commission_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	commission_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	commission_btn.pressed.connect(func() -> void:
 		_finalize(veteran, canonical))
 	btn_row.add_child(commission_btn)
@@ -232,6 +228,8 @@ func _show_step_2(source_char: Dictionary) -> void:
 	var back_btn := Button.new()
 	back_btn.text = "Go Back"
 	back_btn.custom_minimum_size = Vector2(0, 48)
+	back_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	back_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	back_btn.pressed.connect(func() -> void: _show_step_1())
 	btn_row.add_child(back_btn)
 

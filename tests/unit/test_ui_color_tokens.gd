@@ -179,6 +179,67 @@ func test_bbcode_hex_tokens_match_their_color_consts() -> void:
 		.is_equal(UIColorsRef.COLOR_TEXT_MUTED)
 
 
+# ── BBCode colour roles (Sprint U, 2026-10-28) ──────────────────────────────
+# The Planetfall panels hand-wrote 64 hex [color] tags in three ambers and two reds.
+# They now name a role ([color=ui-success]) that UIColors.bbcode() resolves.
+
+func test_every_bbcode_role_clears_aa_on_the_card() -> void:
+	for role: String in UIColorsRef.BBCODE_ROLES:
+		var ratio := _contrast(UIColorsRef.BBCODE_ROLES[role], UIColorsRef.COLOR_SECONDARY)
+		assert_float(ratio).override_failure_message(
+			"%s on the card = %.2f, below AA %.1f" % [role, ratio, AA_NORMAL_TEXT]) \
+			.is_greater_equal(AA_NORMAL_TEXT)
+
+
+func test_bbcode_resolves_every_role_to_its_palette_hex() -> void:
+	for role: String in UIColorsRef.BBCODE_ROLES:
+		var hex: String = (UIColorsRef.BBCODE_ROLES[role] as Color).to_html(false)
+		assert_str(UIColorsRef.bbcode("a [color=%s]b %d[/color] c" % [role, 3])) \
+			.is_equal("a [color=#%s]b 3[/color] c" % hex)
+	assert_str(UIColorsRef.bbcode("[color=#123456]kept[/color]")) \
+		.is_equal("[color=#123456]kept[/color]")
+
+
+func test_planetfall_text_names_roles_not_hex() -> void:
+	var files: Array = []
+	_collect_gd_files("res://src/ui/screens/planetfall", files)
+	assert_int(files.size()).override_failure_message(
+		"scanned %d Planetfall scripts; the walk is broken" % files.size()).is_greater(20)
+	# Both shapes: a literal tag, and a quoted hex fed to "[color=%s]" (one hid there).
+	# A Color("#...") constructor is a palette definition, not text.
+	var quoted_hex := RegEx.create_from_string("(?<!Color\\()\"#[0-9A-Fa-f]{6}\"")
+	var hex_tags: Array[String] = []
+	for path: String in files:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for i in range(lines.size()):
+			if lines[i].strip_edges().begins_with("#"):
+				continue
+			if lines[i].contains("[color=#") or quoted_hex.search(lines[i]) != null:
+				hex_tags.append("%s:%d" % [path, i + 1])
+	assert_array(hex_tags).override_failure_message(
+		"hex [color] tags are back: %s" % str(hex_tags)).is_empty()
+
+	# A misspelt role renders in the default colour with no error anywhere.
+	var src: Array = []
+	_collect_gd_files("res://src", src)
+	# A role can also arrive through a variable: `"[color=%s]" % color` with color "ui-…".
+	var role_re := RegEx.create_from_string(
+		"(?:\\[color=|\")(ui-[a-z_]+(?:-[a-z_]+)*)(?:\\]|\")")
+	var unknown: Array[String] = []
+	var seen := 0
+	for path: String in src:
+		var text := FileAccess.get_file_as_string(path)
+		if not text.contains("ui-"):
+			continue
+		for m in role_re.search_all(text):
+			seen += 1
+			if not UIColorsRef.BBCODE_ROLES.has(m.get_string(1)):
+				unknown.append("%s: %s" % [path, m.get_string(1)])
+	assert_int(seen).override_failure_message("premise: roles are in use").is_greater(60)
+	assert_array(unknown).override_failure_message("unknown roles: %s" % str(unknown)) \
+		.is_empty()
+
+
 # ── The drift guard ─────────────────────────────────────────────────────────
 
 func _collect_gd_files(dir_path: String, out: Array) -> void:
@@ -230,6 +291,93 @@ func test_the_failing_grey_is_gone_from_src() -> void:
 
 	assert_array(offenders).override_failure_message(
 		"the pre-2026-09-07 secondary grey is back at: %s" % str(offenders)).is_empty()
+
+
+## A scene stores the same grey as floats, so the hex scan above never saw it: five
+## Labels in four scenes (two step labels, a stats line, an action label, the tier
+## badge) still drew it on 2026-10-28.
+func test_the_failing_grey_is_gone_from_scenes() -> void:
+	var scenes: Array = []
+	_collect_files("res://src", [".tscn", ".tres"], scenes)
+	assert_int(scenes.size()).override_failure_message(
+		"scanned %d scenes; the walk is broken" % scenes.size()).is_greater(50)
+	var offenders: Array[String] = []
+	for path: String in scenes:
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for i in range(lines.size()):
+			if lines[i].contains("Color(0.502, 0.502, 0.502"):
+				offenders.append("%s:%d" % [path, i + 1])
+	assert_array(offenders).override_failure_message(
+		"the failing grey is in a scene at: %s" % str(offenders)).is_empty()
+
+
+## Bold and italic runs take the label's size. Overriding `normal_font_size` alone left
+## them at the theme's 16 px, so "Colony Morale will be: 5 -> [b]4[/b]" printed the 4
+## larger than the line. Every RichTextLabel size goes through the one helper.
+func test_rich_text_bold_takes_the_labels_size() -> void:
+	var rtl := RichTextLabel.new()
+	auto_free(rtl)
+	ScreenChrome.size_rich_text(rtl, 12)
+	for key: String in ["normal_font_size", "bold_font_size", "italics_font_size",
+			"bold_italics_font_size"]:
+		assert_bool(rtl.has_theme_font_size_override(key)).override_failure_message(
+			"%s is left at the theme size" % key).is_true()
+		assert_int(rtl.get_theme_font_size(key)).is_equal(12)
+
+	var files: Array = []
+	_collect_gd_files("res://src", files)
+	var raw: Array[String] = []
+	var helper_calls := 0
+	for path: String in files:
+		var text := FileAccess.get_file_as_string(path)
+		helper_calls += text.count("ScreenChrome.size_rich_text(")
+		if path.ends_with("/ScreenChrome.gd"):
+			continue
+		var lines := text.split("\n")
+		for i in range(lines.size()):
+			if lines[i].contains("\"normal_font_size\",") \
+					or lines[i].strip_edges().begins_with("\"normal_font_size\"") \
+					and lines[i].contains(","):
+				raw.append("%s:%d" % [path, i + 1])
+	assert_int(helper_calls).override_failure_message("premise: the helper is in use") \
+		.is_greater(60)
+	assert_array(raw).override_failure_message(
+		"a RichTextLabel sizes its normal text only: %s" % str(raw)).is_empty()
+
+	var scenes: Array = []
+	_collect_files("res://src", [".tscn"], scenes)
+	var bare: Array[String] = []
+	for path: String in scenes:
+		var text := FileAccess.get_file_as_string(path)
+		if text.contains("theme_override_font_sizes/normal_font_size = ") \
+				and text.contains("bbcode_enabled = true") \
+				and not text.contains("theme_override_font_sizes/bold_font_size = "):
+			for line in text.split("\n"):
+				if line.begins_with("theme_override_font_sizes/normal_font_size = ") \
+						and line.get_slice("= ", 1).to_int() != 16:
+					bare.append(path)
+					break
+	assert_array(bare).override_failure_message(
+		"a scene shrinks its rich text but not the bold runs: %s" % str(bare)).is_empty()
+
+
+func _collect_files(dir_path: String, exts: Array, out: Array) -> void:
+	var d := DirAccess.open(dir_path)
+	if d == null:
+		return
+	d.list_dir_begin()
+	var entry := d.get_next()
+	while entry != "":
+		if not entry.begins_with("."):
+			var full := dir_path.path_join(entry)
+			if d.current_is_dir():
+				_collect_files(full, exts, out)
+			else:
+				for ext: String in exts:
+					if entry.ends_with(ext):
+						out.append(full)
+		entry = d.get_next()
+	d.list_dir_end()
 
 
 # ── CheckBox icons (Sprint U, 2026-10-28) ───────────────────────────────────

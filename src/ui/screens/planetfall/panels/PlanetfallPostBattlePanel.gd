@@ -181,6 +181,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "POST-BATTLE"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -241,13 +242,13 @@ func _build_sub_step_info() -> void:
 			_add_info_text("Mission: %s" % mission_id.replace("_", " ").capitalize())
 			_add_info_text("Post-Mission Find rolls earned: %d" % find_rolls)
 			if not won:
-				_add_info_text("[color=#D97706]Mission not won — no Find rolls.[/color]")
+				_add_info_text("[color=ui-warning]Mission not won — no Find rolls.[/color]")
 			var has_scientist: bool = _battle_results.get("has_scientist_standing", false)
 			var has_scout: bool = _battle_results.get("has_scout_standing", false)
 			if has_scientist:
-				_add_info_text("[color=#10B981]Scientist on feet — bonus available[/color]")
+				_add_info_text("[color=ui-success]Scientist on feet — bonus available[/color]")
 			if has_scout:
-				_add_info_text("[color=#10B981]Scout on feet — bonus available[/color]")
+				_add_info_text("[color=ui-success]Scout on feet — bonus available[/color]")
 
 		SubStep.ENEMY_INFO:
 			var mission_id: String = _battle_results.get("mission_id", "")
@@ -551,7 +552,7 @@ func _resolve_experience() -> void:
 
 	_xp_awarded = true
 	_add_result_bbcode(
-		"\n[color=#10B981]XP awarded to %d character(s).[/color]" % participants.size())
+		"\n[color=ui-success]XP awarded to %d character(s).[/color]" % participants.size())
 
 
 ## ============================================================================
@@ -577,7 +578,7 @@ func _build_morale_choices() -> void:
 		return
 	var p: Dictionary = _phase_manager.preview_morale_step()
 	if bool(p.get("in_crisis", false)):
-		_add_info_text("[color=#DC2626]The colony is in Crisis[/color] (Political Upheaval "
+		_add_info_text("[color=ui-danger]The colony is in Crisis[/color] (Political Upheaval "
 				+ "%d). Colony Morale is fixed at 0; this step rolls 2D6 on the Crisis "
 				% int(p.get("upheaval", 0)) + "Outcome table (p.90).")
 		if bool(p.get("can_spend", false)):
@@ -593,7 +594,7 @@ func _build_morale_choices() -> void:
 		_add_info_text("Colony Morale will be: %d -> [b]%d[/b]"
 				% [int(p.get("before", 0)), int(p.get("after", 0))])
 		if bool(p.get("incident", false)):
-			_add_info_text("[color=#DC2626]That is -10 or worse: a Morale Incident will be "
+			_add_info_text("[color=ui-danger]That is -10 or worse: a Morale Incident will be "
 					+ "rolled (D100, p.90).[/color]")
 			if bool(p.get("can_spend", false)):
 				_appeals_check = _story_point_check(
@@ -670,7 +671,7 @@ func _render_morale_receipt(receipt: Dictionary) -> void:
 			int(_campaign.colony_morale), int(_campaign.political_upheaval),
 			", in Crisis" if _campaign.in_crisis else ""])
 	if _campaign.is_failed():
-		_add_result_bbcode("\n[color=#DC2626]The campaign has ended (p.90).[/color]")
+		_add_result_bbcode("\n[color=ui-danger]The campaign has ended (p.90).[/color]")
 		return
 	if _campaign.protest_pending:
 		_build_protest_picker()
@@ -747,7 +748,7 @@ func _resolve_post_mission_finds() -> void:
 			for bkey in bonus:
 				bonus_parts.append("+%d %s" % [bonus[bkey], bkey.replace("_", " ")])
 			_add_result_bbcode(
-				"    [color=#10B981]%s bonus: %s[/color]" % [
+				"    [color=ui-success]%s bonus: %s[/color]" % [
 					source.capitalize(), ", ".join(bonus_parts)])
 
 		# Apply to campaign
@@ -758,7 +759,7 @@ func _resolve_post_mission_finds() -> void:
 		_finds_rolled.append(find)
 
 	_add_result_bbcode(
-		"\n[color=#10B981]%d find(s) processed and applied.[/color]" % _finds_rolled.size())
+		"\n[color=ui-success]%d find(s) processed and applied.[/color]" % _finds_rolled.size())
 
 
 ## ============================================================================
@@ -811,8 +812,8 @@ func _add_info_text(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -822,8 +823,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 	_receipt_lines.append(text)

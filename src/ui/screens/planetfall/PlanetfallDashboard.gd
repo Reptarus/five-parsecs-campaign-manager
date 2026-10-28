@@ -38,6 +38,8 @@ const MAX_DASHBOARD_WIDTH := 1400
 var _campaign: Resource
 var _content: VBoxContainer
 var _overlay_container: Control
+## Where an overlay panel goes inside _overlay_container (ScreenChrome.overlay_frame).
+var _overlay_frame: MarginContainer
 var _root_scroll: ScrollContainer
 ## Whether the dashboard was last built for a phone (one column), so a rotation that
 ## changes it rebuilds.
@@ -175,22 +177,20 @@ func _notify_transfer_write_failed() -> void:
 func _build_muster_out_overlay(roster: Array) -> Control:
 	var overlay := Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(COLOR_BASE, 0.95)
-	overlay.add_child(bg)
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.add_theme_constant_override("margin_left", 24)
-	scroll.add_theme_constant_override("margin_right", 24)
-	overlay.add_child(scroll)
-	var vbox := VBoxContainer.new()
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 12)
-	scroll.add_child(vbox)
+	var vbox := ScreenChrome.overlay_page(overlay, MAX_FORM_WIDTH)
+
+	# First and top right, as on the dashboard's other overlays: below a long roster a
+	# phone had to scroll past every colonist to back out.
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.custom_minimum_size = Vector2(120, 48)
+	cancel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	cancel.pressed.connect(func() -> void: overlay.queue_free())
+	vbox.add_child(cancel)
 
 	var title := Label.new()
 	title.text = "MUSTER COLONISTS OUT"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -199,31 +199,34 @@ func _build_muster_out_overlay(roster: Array) -> Control:
 	for member in roster:
 		if member is not Dictionary:
 			continue
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", SPACING_SM)
+		# A flow: the name and the button pair share a line where they fit and the pair
+		# drops below the name on a phone (side by side they ran off the right edge).
+		var row := HFlowContainer.new()
+		row.add_theme_constant_override("h_separation", SPACING_SM)
+		row.add_theme_constant_override("v_separation", 4)
 		var name_lbl := Label.new()
 		name_lbl.text = str(member.get("name", "Colonist"))
-		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.custom_minimum_size.x = 180
+		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		row.add_child(name_lbl)
+		var buttons := HBoxContainer.new()
+		buttons.add_theme_constant_override("separation", SPACING_SM)
+		row.add_child(buttons)
 		var captured: Dictionary = (member as Dictionary).duplicate(true)
 		var to_5pfh := Button.new()
 		to_5pfh.text = "→ 5PFH"
+		to_5pfh.custom_minimum_size.y = 44
 		to_5pfh.pressed.connect(func() -> void:
 			_do_muster_out(captured, "five_parsecs", overlay))
-		row.add_child(to_5pfh)
+		buttons.add_child(to_5pfh)
 		var to_bh := Button.new()
 		to_bh.text = "→ Bug Hunt"
+		to_bh.custom_minimum_size.y = 44
 		to_bh.pressed.connect(func() -> void:
 			_do_muster_out(captured, "bug_hunt", overlay))
-		row.add_child(to_bh)
+		buttons.add_child(to_bh)
 		vbox.add_child(row)
-
-	var cancel := Button.new()
-	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(0, 44)
-	cancel.pressed.connect(func() -> void: overlay.queue_free())
-	vbox.add_child(cancel)
 	return overlay
 
 
@@ -233,11 +236,13 @@ func _build_dashboard() -> void:
 	_content = layout.content
 	_built_narrow = _is_narrow()
 
-	# Overlay container for detail panels (rendered on top)
+	# Overlay container for detail panels (rendered on top). One frame hosts all six,
+	# so each gets the page colour, a gutter and a top clear of the Settings buttons.
 	_overlay_container = Control.new()
 	_overlay_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_overlay_container.visible = false
 	add_child(_overlay_container)
+	_overlay_frame = ScreenChrome.overlay_frame(_overlay_container, MAX_FORM_WIDTH)
 
 	if not _campaign or not "roster" in _campaign:
 		var EmptyStateWidgetClass = load("res://src/ui/components/common/EmptyStateWidget.gd")
@@ -547,10 +552,11 @@ func _line(text: String, color: Color, size: int = FONT_SIZE_SM) -> Label:
 
 func _show_overlay_panel(panel_type: String) -> void:
 	## Show a detail panel as an overlay on top of the dashboard.
-	if not _overlay_container:
+	if not _overlay_container or not is_instance_valid(_overlay_frame):
 		return
 	# Clear existing overlay
-	for child in _overlay_container.get_children():
+	for child in _overlay_frame.get_children():
+		_overlay_frame.remove_child(child)
 		child.queue_free()
 
 	var panel: Control
@@ -579,7 +585,7 @@ func _show_overlay_panel(panel_type: String) -> void:
 	# says so, and the dashboard saves it at once so a force-stop cannot undo it.
 	if panel.has_signal("campaign_changed"):
 		panel.campaign_changed.connect(_on_save)
-	_overlay_container.add_child(panel)
+	_overlay_frame.add_child(panel)
 	_overlay_container.visible = true
 
 	# When panel hides itself, hide the overlay container

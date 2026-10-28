@@ -21,6 +21,7 @@ const ReviewPanel = preload("res://src/ui/screens/planetfall/panels/PlanetfallRe
 const SectorGridScript = preload("res://src/ui/screens/planetfall/panels/PlanetfallSectorGrid.gd")
 const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
 const NameRoller = preload("res://src/core/character/Generation/CharacterTableRoller.gd")
+const CreationUI = preload("res://src/ui/screens/planetfall/PlanetfallCreationUI.gd")
 
 const PHONE_DESIGN_WIDTH := 338.0
 const MIX := ["scientist", "scientist", "scout", "scout", "trooper", "trooper", "trooper",
@@ -390,8 +391,14 @@ func test_both_screens_fit_a_phone() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	for panel in [roster_panel, bg_panel]:
-		var page: Control = ((panel as Control).get_child(0) as ScrollContainer).get_child(0)
+		var scroll := (panel as Control).get_child(0) as ScrollContainer
+		var page: Control = scroll.get_child(0)
 		var width: float = page.get_combined_minimum_size().x
+		# The room a step really gets on a phone: the creation screen's two side margins and
+		# the page's own scrollbar come off the screen width. A bare "<= 338" passed a page
+		# that ran ~30 px off the right edge (the Initial Missions cards did exactly that).
+		var room: float = PHONE_DESIGN_WIDTH - 2.0 * CreationUI.NARROW_SIDE_MARGIN \
+				- scroll.get_v_scroll_bar().get_combined_minimum_size().x
 		var widest: String = ""
 		var widest_w: float = 0.0
 		for c in page.find_children("*", "Control", true, false):
@@ -399,6 +406,9 @@ func test_both_screens_fit_a_phone() -> void:
 			if w > widest_w and not c is Container:
 				widest_w = w
 				widest = "%s '%s'" % [c.get_class(), str(c.get("text")) if "text" in c else ""]
-		assert_float(width).override_failure_message("%s is %.0f px wide; widest leaf %s %.0f px"
-				% [(panel as Node).get_script().resource_path.get_file(), width, widest, widest_w]) \
-				.is_less_equal(PHONE_DESIGN_WIDTH)
+		assert_float(room).override_failure_message("premise: a phone leaves a step room") \
+				.is_greater(200.0)
+		assert_float(width).override_failure_message(
+				"%s is %.0f px wide against %.0f px of room; widest leaf %s %.0f px"
+				% [(panel as Node).get_script().resource_path.get_file(), width, room, widest,
+				widest_w]).is_less_equal(room)

@@ -184,7 +184,7 @@ func _build_layout() -> void:
 	_description.fit_content = false
 	_description.scroll_active = true
 	_description.scroll_following = false
-	_description.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(13))
+	ScreenChrome.size_rich_text(_description, ScreenChrome.font_size(13))
 	_description.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_description.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_description.size_flags_vertical = Control.SIZE_EXPAND_FILL

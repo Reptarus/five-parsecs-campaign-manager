@@ -185,7 +185,7 @@ func _build_ui() -> void:
 	_details_label.fit_content = true
 	_details_label.selection_enabled = true
 	_details_label.custom_minimum_size.y = 160
-	_details_label.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColorsScript.FONT_SIZE_XS))
+	ScreenChrome.size_rich_text(_details_label, ScreenChrome.font_size(UIColorsScript.FONT_SIZE_XS))
 	_details_label.add_theme_color_override("default_color", UIColorsScript.COLOR_TEXT_MUTED)
 	vbox.add_child(_details_label)
 

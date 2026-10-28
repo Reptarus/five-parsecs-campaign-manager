@@ -106,7 +106,7 @@ func _build_ui() -> void:
 	_crew_preview.bbcode_enabled = true
 	_crew_preview.fit_content = true
 	_crew_preview.custom_minimum_size = Vector2(0, 80)
-	_crew_preview.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_crew_preview, FONT_SIZE_SM)
 	_crew_preview.add_theme_color_override("default_color", COLOR_TEXT_SEC)
 	crew_content.add_child(_crew_preview)
 
@@ -159,7 +159,7 @@ func _build_ui() -> void:
 	_enemy_preview.bbcode_enabled = true
 	_enemy_preview.fit_content = true
 	_enemy_preview.custom_minimum_size = Vector2(0, 60)
-	_enemy_preview.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_enemy_preview, FONT_SIZE_SM)
 	_enemy_preview.add_theme_color_override("default_color", COLOR_TEXT_SEC)
 	enemy_content.add_child(_enemy_preview)
 

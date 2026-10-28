@@ -34,6 +34,8 @@ class Rig:
 	var scroll: ScrollContainer
 	var button: Button
 	var check: CheckBox
+	var rtl: RichTextLabel
+	var metas: int = 0
 	var presses: int = 0
 	var toggles: int = 0
 	var scroll_starts: int = 0
@@ -46,6 +48,9 @@ class Rig:
 
 	func _on_scroll_started() -> void:
 		scroll_starts += 1
+
+	func _on_meta(_meta: Variant) -> void:
+		metas += 1
 
 
 ## A ScrollContainer with more content than it can show, whose 3rd row is a Button and
@@ -73,7 +78,16 @@ func _build(open_filters: bool) -> Rig:
 
 	for i in range(ROWS):
 		var row: Control
-		if i == 2:
+		if i == 1:
+			# A result line the way the variant-mode panels print them: bbcode, fitted
+			# to its text, NOT scrolling itself. One [url] so a tap has something to hit.
+			r.rtl = RichTextLabel.new()
+			r.rtl.bbcode_enabled = true
+			r.rtl.fit_content = true
+			r.rtl.scroll_active = false
+			r.rtl.text = "[url=x]link[/url] result line %d" % i
+			row = r.rtl
+		elif i == 2:
 			r.button = Button.new()
 			r.button.text = "row %d" % i
 			row = r.button
@@ -92,6 +106,7 @@ func _build(open_filters: bool) -> Rig:
 
 	r.button.pressed.connect(r._on_pressed)
 	r.check.toggled.connect(r._on_toggled)
+	r.rtl.meta_clicked.connect(r._on_meta)
 	r.scroll.scroll_started.connect(r._on_scroll_started)
 
 	if open_filters:
@@ -190,6 +205,95 @@ func test_a_stop_filtered_button_swallows_the_drag() -> void:
 		+ "assertions prove nothing about the fix"
 	).is_equal(0)
 	assert_int(r.scroll_starts).is_equal(0)
+
+
+## A RichTextLabel that does not scroll owns no gesture, yet the opener skipped every
+## RichTextLabel, so a result line kept STOP and a finger dragged over it moved nothing.
+## Planetfall's turn steps are mostly result lines.
+func test_a_non_scrolling_rich_text_line_swallows_the_drag_until_opened() -> void:
+	var closed := _build(false)
+	await _settle(closed)
+	assert_int(closed.rtl.mouse_filter).override_failure_message(
+		"premise: a RichTextLabel defaults to STOP").is_equal(Control.MOUSE_FILTER_STOP)
+	await _drag(closed, closed.rtl.get_global_rect().get_center(), -100.0)
+	assert_int(closed.scroll.scroll_vertical).override_failure_message(
+		"premise: a STOP result line did not swallow the drag").is_equal(0)
+
+	var opened := _build(true)
+	await _settle(opened)
+	assert_int(opened.rtl.mouse_filter).is_equal(Control.MOUSE_FILTER_PASS)
+	await _drag(opened, opened.rtl.get_global_rect().get_center(), -100.0)
+	assert_int(opened.scroll.scroll_vertical).override_failure_message(
+		"a drag over an opened result line still did not scroll the page").is_greater(0)
+
+
+## Opening a result line keeps its link: PASS delivers the tap to the label first.
+func test_a_tap_on_an_opened_rich_text_link_still_fires() -> void:
+	# The premise: this tap reaches the link on an untouched label. A first version aimed
+	# at the 60 px row's middle, below the text line, and missed on BOTH arms.
+	var closed := _build(false)
+	await _settle(closed)
+	await _tap(closed, _link_point(closed))
+	assert_int(closed.metas).override_failure_message(
+		"premise: the tap does not reach the link even on a STOP label").is_equal(1)
+	var r := _build(true)
+	await _settle(r)
+	assert_int(r.rtl.mouse_filter).is_equal(Control.MOUSE_FILTER_PASS)
+	await _tap(r, _link_point(r))
+	assert_int(r.metas).override_failure_message(
+		"a tap on the [url] of an opened result line no longer fires meta_clicked") \
+		.is_equal(1)
+
+
+## keep_open() opens what arrives AFTER the sweep: the result lines a step adds when its
+## button is pressed. A one-shot sweep never saw them.
+func test_keep_open_opens_controls_added_later() -> void:
+	var root := Control.new()
+	add_child(root)
+	auto_free(root)
+	OpenerCls.keep_open(root)
+	OpenerCls.keep_open(root)
+	assert_int(root.get_children().filter(func(n: Node) -> bool:
+		return n.name.begins_with("__TouchScrollKeeper")).size()).override_failure_message(
+		"keep_open is not idempotent").is_equal(1)
+	var card := PanelContainer.new()
+	var line := RichTextLabel.new()
+	line.scroll_active = false
+	var log := RichTextLabel.new()
+	log.scroll_active = true
+	card.add_child(line)
+	root.add_child(card)
+	root.add_child(log)
+	assert_int(card.mouse_filter).override_failure_message("premise: arrives STOP") \
+		.is_equal(Control.MOUSE_FILTER_STOP)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	assert_int(card.mouse_filter).is_equal(Control.MOUSE_FILTER_PASS)
+	assert_int(line.mouse_filter).is_equal(Control.MOUSE_FILTER_PASS)
+	assert_int(log.mouse_filter).override_failure_message(
+		"a scrolling label lost its own gesture").is_equal(Control.MOUSE_FILTER_STOP)
+
+
+## A point inside the label's first word, which is the [url].
+func _link_point(r: Rig) -> Vector2:
+	var font: Font = r.rtl.get_theme_font("normal_font")
+	var fs: int = r.rtl.get_theme_font_size("normal_font_size")
+	# The row is 60 px tall and the text sits on its first line, so aim at that line.
+	return r.rtl.get_global_rect().position + Vector2(
+		font.get_string_size("li", HORIZONTAL_ALIGNMENT_LEFT, -1, fs).x,
+		font.get_height(fs) / 2.0)
+
+
+## A RichTextLabel that scrolls its own text keeps claiming its gesture.
+func test_a_scrolling_rich_text_label_keeps_its_gesture() -> void:
+	var rtl := RichTextLabel.new()
+	rtl.scroll_active = true
+	var holder := Control.new()
+	holder.add_child(rtl)
+	add_child(holder)
+	auto_free(holder)
+	OpenerCls.open_subtree(holder)
+	assert_int(rtl.mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
 
 
 # ── Half one: the drag reaches the scroll ───────────────────────────────────

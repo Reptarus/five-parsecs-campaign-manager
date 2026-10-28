@@ -69,8 +69,12 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Close"
-	_close_btn.custom_minimum_size = Vector2(0, 48)
+	_close_btn.custom_minimum_size = Vector2(120, 48)
 	_close_btn.pressed.connect(func(): hide())
+	# First and top right, as on every dashboard overlay: reachable the moment it opens.
+	# _clear_container() keeps it, so every rebuilt section lands below it.
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	_content.add_child(_close_btn)
 
 
 func _build_content() -> void:
@@ -80,6 +84,7 @@ func _build_content() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "COLONY STATUS"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -97,10 +102,6 @@ func _build_content() -> void:
 	# Buildings constructed
 	_build_buildings_section()
 
-	# Close button
-	_content.add_child(_close_btn)
-	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-
 
 func _build_milestone_section() -> void:
 	var milestones: int = _campaign.milestones_completed if "milestones_completed" in _campaign else 0
@@ -117,9 +118,12 @@ func _build_milestone_section() -> void:
 	bar_bg.color = COLOR_ELEVATED
 	_content.add_child(bar_bg)
 
+	# A share of the BAR, by anchors. It was a share of a fixed 400 px, so the bar read
+	# full at a different count on every screen width and overran a phone at 7/7.
 	var bar_fill := ColorRect.new()
 	var fill_pct: float = clampf(float(milestones) / 7.0, 0.0, 1.0)
-	bar_fill.custom_minimum_size = Vector2(fill_pct * 400, 24)
+	bar_fill.anchor_right = fill_pct
+	bar_fill.anchor_bottom = 1.0
 	bar_fill.color = COLOR_SUCCESS if milestones < 7 else COLOR_CYAN
 	bar_bg.add_child(bar_fill)
 
@@ -144,8 +148,9 @@ func _build_stats_section() -> void:
 		"BP/Turn": _campaign.build_points_per_turn if "build_points_per_turn" in _campaign else 1
 	}
 
-	var grid := GridContainer.new()
-	grid.columns = 4
+	# A flow, not four fixed columns: "Augmentation Points: 0" four abreast ran past the
+	# right edge of a phone.
+	var grid := HFlowContainer.new()
 	grid.add_theme_constant_override("h_separation", SPACING_LG)
 	grid.add_theme_constant_override("v_separation", SPACING_SM)
 	_content.add_child(grid)
@@ -193,6 +198,7 @@ func _build_research_section() -> void:
 			lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		_content.add_child(lbl)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 
 func _build_buildings_section() -> void:
@@ -219,6 +225,7 @@ func _build_buildings_section() -> void:
 		var remaining: int = in_progress[bid]
 		var lbl := Label.new()
 		lbl.text = "  [BUILDING] %s (%d BP remaining)" % [bname, remaining]
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)
 		_content.add_child(lbl)
@@ -230,6 +237,7 @@ func _build_buildings_section() -> void:
 		var prefix: String = "[M] " if is_milestone else ""
 		var lbl := Label.new()
 		lbl.text = "  %s%s" % [prefix, bname]
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		_content.add_child(lbl)

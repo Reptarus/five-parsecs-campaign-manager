@@ -202,7 +202,7 @@ func _build_tooltip() -> void:
 	_tooltip_label.scroll_active = false
 	_tooltip_label.custom_minimum_size = Vector2(180, 0)
 	_tooltip_label.add_theme_color_override("default_color", COLOR_TOOLTIP_TEXT)
-	_tooltip_label.add_theme_font_size_override("normal_font_size", 12)
+	ScreenChrome.size_rich_text(_tooltip_label, 12)
 	_tooltip_panel.add_child(_tooltip_label)
 
 	add_child(_tooltip_panel)

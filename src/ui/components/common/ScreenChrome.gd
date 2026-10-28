@@ -73,6 +73,17 @@ static func font_size(base: int) -> int:
 	return base
 
 
+## Size a RichTextLabel's text, bold and italic runs included. Overriding
+## `normal_font_size` alone left every [b]/[i] run at the theme's own size
+## (sci_fi_theme.tres: RichTextLabel bold_font_size = 16), so on a 14 px line a bold
+## number printed visibly larger than the words around it. Mono keeps the theme's
+## smaller size on purpose.
+static func size_rich_text(rtl: Control, size: int) -> void:
+	for key: String in ["normal_font_size", "bold_font_size", "italics_font_size",
+			"bold_italics_font_size"]:
+		rtl.add_theme_font_size_override(key, size)
+
+
 # ============================================================================
 # Header
 # ============================================================================
@@ -342,6 +353,95 @@ static func ensure_background(screen: Control) -> ColorRect:
 	screen.add_child(bg)
 	screen.move_child(bg, 0)
 	return bg
+
+
+## The side and top/bottom gutter of an overlay page, below its column's max width.
+const OVERLAY_GUTTER := 16
+const OVERLAY_FRAME_NAME := "OverlayFrame"
+
+
+## Frame an overlay that brings its own scroll: the page colour behind it, and a
+## MarginContainer whose column stays no wider than `max_width`, keeps a gutter on a
+## phone, and starts below the Settings and bug-report buttons. Put the panel in the
+## returned MarginContainer. A second call on the same host returns the same frame.
+##
+## Four of the Planetfall dashboard's six overlays had no background at all and drew
+## straight over the dashboard, all six sat flush against the screen edge, and their
+## titles ran under the buttons.
+static func overlay_frame(host: Control, max_width: int = 800) -> MarginContainer:
+	if host == null:
+		return null
+	var existing := host.get_node_or_null(NodePath(OVERLAY_FRAME_NAME))
+	if existing is MarginContainer:
+		return existing as MarginContainer
+	ensure_background(host)
+	var frame := MarginContainer.new()
+	frame.name = OVERLAY_FRAME_NAME
+	frame.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_gutter(frame, host, max_width)
+	host.add_child(frame)
+	_reserve_band_when_ready(host, host)
+	return frame
+
+
+## A whole overlay page for a builder with no scroll of its own: the page colour, a
+## scroll, and a column inside a MarginContainer fitted as overlay_frame() fits it.
+## Returns the column to fill.
+##
+## ⚠ The gutter has to be a MarginContainer INSIDE the scroll. Five overlays (Bug
+## Hunt's transfer panel, Planetfall's Import and Muster Out, Tactics' import panel
+## and its dashboard overlay) set margin_left/right on the ScrollContainer, which has
+## NO theme constants in Godot 4.6 (ThemeDB lists none for it, default or project
+## theme), so the override did nothing and every one of them touched both edges.
+static func overlay_page(host: Control, max_width: int = 800) -> VBoxContainer:
+	if host == null:
+		return null
+	ensure_background(host)
+	var scroll := ScrollContainer.new()
+	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	host.add_child(scroll)
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_gutter(margin, host, max_width)
+	scroll.add_child(margin)
+	var column := VBoxContainer.new()
+	column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	column.add_theme_constant_override("separation", 12)
+	margin.add_child(column)
+	_reserve_band_when_ready(host, scroll)
+	return column
+
+
+## Side margins from the HOST's width, never the margin's own: a MarginContainer's
+## minimum includes its margins, so measuring itself would let a wide column push the
+## margins wider on every pass. The host is a full-rect overlay whose size its
+## children cannot change.
+static func _gutter(margin: MarginContainer, host: Control, max_width: int) -> void:
+	margin.add_theme_constant_override("margin_top", OVERLAY_GUTTER)
+	margin.add_theme_constant_override("margin_bottom", OVERLAY_GUTTER)
+	var fit := func() -> void:
+		if not is_instance_valid(margin) or not is_instance_valid(host):
+			return
+		var side: int = maxi(OVERLAY_GUTTER, int((host.size.x - max_width) / 2.0))
+		margin.add_theme_constant_override("margin_left", side)
+		margin.add_theme_constant_override("margin_right", side)
+	host.resized.connect(fit)
+	fit.call()
+
+
+## reserve_band() needs the node in the tree, and an overlay is often built before it
+## is added.
+##
+## ⚠ Wait on the TARGET's tree_entered, not the host's. Godot emits a node's
+## tree_entered BEFORE its children enter the tree, so a scroll inside the host was
+## still outside it when the host's signal fired, reserve_band() returned early, and
+## Muster Out's title sat under the Settings buttons.
+static func _reserve_band_when_ready(host: Control, target: Node) -> void:
+	if host.is_inside_tree():
+		reserve_band(target)
+	else:
+		target.tree_entered.connect(func() -> void: reserve_band(target), CONNECT_ONE_SHOT)
 
 
 # ============================================================================

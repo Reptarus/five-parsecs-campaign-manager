@@ -154,9 +154,7 @@ func _build_ui() -> void:
 	_live_feed.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_live_feed.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_live_feed.custom_minimum_size = Vector2(0, 100)
-	_live_feed.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM
-	)
+	ScreenChrome.size_rich_text(_live_feed, FONT_SIZE_SM)
 	_live_feed.add_theme_color_override(
 		"default_color", COLOR_TEXT_PRIMARY
 	)
@@ -592,7 +590,7 @@ func _add_entry_to_journal(entry: Dictionary) -> void:
 		display_text += " [color=#9ca3af](%s)[/color]" % entry.details
 
 	text_label.text = display_text
-	text_label.add_theme_font_size_override("normal_font_size", 12)
+	ScreenChrome.size_rich_text(text_label, 12)
 	var color: Color = ENTRY_COLORS.get(entry.type, Color.WHITE)
 	text_label.add_theme_color_override("default_color", color)
 

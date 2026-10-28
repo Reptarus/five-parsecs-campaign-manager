@@ -85,7 +85,7 @@ func _build_ui() -> void:
 	_rtl.size_flags_horizontal = SIZE_EXPAND_FILL
 	_rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE  # see the note on `center`
 	_rtl.custom_minimum_size.x = 300
-	_rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(_rtl, ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	center.add_child(_rtl)
 

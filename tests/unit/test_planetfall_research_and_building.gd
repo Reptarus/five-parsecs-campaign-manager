@@ -222,6 +222,21 @@ func test_an_application_shows_what_it_does() -> void:
 		"unlocks_weapon": "handgun"})).contains("6\" · 1 shot · Dmg +0")
 
 
+## A result line reaches its label in the palette colour: the text names a role
+## ([color=ui-success]) and the panel resolves it, so the label holds the hex.
+func test_a_result_line_renders_in_the_palette_colour() -> void:
+	var core := _core()
+	core.raw_materials = 5
+	var panel := _mount(BuildingPanel, core)
+	panel._rm_spinner.value = 1
+	panel._on_convert_pressed()
+	var shown := ""
+	for n in panel._result_container.find_children("*", "RichTextLabel", true, false):
+		shown += (n as RichTextLabel).text
+	assert_str(shown).contains("[color=#%s]Converted" % UIColors.COLOR_SUCCESS.to_html(false))
+	assert_str(shown).not_contains("ui-success")
+
+
 ## The detail pane says what it is for before anything is picked; it opened empty.
 func test_the_detail_pane_says_what_to_pick() -> void:
 	assert_str(_texts(_mount(BuildingPanel, _core())._detail_container)) \

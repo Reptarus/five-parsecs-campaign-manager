@@ -134,8 +134,7 @@ func _build_ui() -> void:
 	_instruction_label.fit_content = true
 	_instruction_label.scroll_active = false
 	_instruction_label.custom_minimum_size = Vector2(0, 48)
-	_instruction_label.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_instruction_label, FONT_SIZE_SM)
 	vbox.add_child(_instruction_label)
 
 

@@ -116,6 +116,35 @@ func test_an_enemy_line_names_a_located_strongpoint_and_a_defeat() -> void:
 	assert_str(DashboardScript.enemy_summary(core, 0)).is_equal("Krorg Raiders: defeated.")
 
 
+## The Enemy Tracker reads the same stores the dashboard line does. It printed the whole
+## `type` Dictionary as the enemy's name, read the per-enemy `enemy_info` field nothing
+## writes (so "Enemy Information: 0 / 6" for ever), only counted the sectors held, and
+## said enemies arrive at "Milestones 1, 2, and 5" where p.50 and the table say 1-3.
+func test_the_enemy_tracker_reads_the_live_stores() -> void:
+	var core := _core()
+	core.tactical_enemies[0]["enemy_info"] = 0
+	core.tactical_enemies[0]["boss_located"] = true
+	core.tactical_enemies[0]["boss_sector"] = MapScript.key(0, 0)
+	var panel: Control = load(
+		"res://src/ui/screens/planetfall/panels/PlanetfallEnemyTrackerPanel.gd").new()
+	add_child(panel)
+	auto_free(panel)
+	panel.set_campaign(core)
+	panel.refresh()
+	var text: String = _text(panel)
+	for rt in panel.find_children("*", "RichTextLabel", true, false):
+		text += (rt as RichTextLabel).text + "\n"
+	var at: String = MapScript.label(MapScript.key(0, 0))
+	assert_str(text).contains("Enemy 1: Krorg Raiders\n")
+	assert_str(text).override_failure_message("read the dead per-enemy field") \
+		.contains("Enemy Information: 2 / 6")
+	assert_str(text).contains("Holds 1 sector: %s" % at)
+	assert_str(text).contains("Boss: tracked down in %s" % at)
+	assert_str(text).contains("Strongpoint: not located")
+	assert_str(text).override_failure_message("arrivals are not the table's") \
+		.contains("Milestones 1, 2 and 3 (p.50)")
+
+
 ## The raised Speed explains itself, and the profile is the full one, not "Spd:5".
 func test_a_roster_card_names_the_bonus_behind_a_raised_score() -> void:
 	var text: String = _text(await _screen(_core()))

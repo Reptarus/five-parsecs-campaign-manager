@@ -131,8 +131,7 @@ func _build_ui() -> void:
 	desc.fit_content = true
 	desc.scroll_active = false
 	desc.text = catalog.get("description", "")
-	desc.add_theme_font_size_override(
-		"normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(desc, ScreenChrome.font_size(FONT_SIZE_SM))
 	desc.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(desc)

@@ -158,7 +158,7 @@ func _setup_ui() -> void:
 	_status_label.fit_content = true
 	_status_label.custom_minimum_size = Vector2(0, 40)
 	_status_label.scroll_active = false
-	_status_label.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(_status_label, FONT_SIZE_SM)
 	_status_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	main_vbox.add_child(_status_label)
 

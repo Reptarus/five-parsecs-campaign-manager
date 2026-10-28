@@ -58,7 +58,7 @@ func _init() -> void:
 	_label.scroll_active = false
 	_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_label.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
-	_label.add_theme_font_size_override("normal_font_size", 14)
+	ScreenChrome.size_rich_text(_label, 14)
 	vbox.add_child(_label)
 
 	var button_row := HBoxContainer.new()

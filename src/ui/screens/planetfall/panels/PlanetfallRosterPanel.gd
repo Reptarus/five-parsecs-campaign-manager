@@ -87,6 +87,7 @@ func _build() -> void:
 
 	var header := Label.new()
 	header.text = "YOUR COLONY CREW"
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(18))
 	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	content.add_child(header)

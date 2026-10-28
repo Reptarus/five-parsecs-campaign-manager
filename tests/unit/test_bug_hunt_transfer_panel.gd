@@ -74,14 +74,21 @@ func _rescue_button(panel: Control) -> Button:
 
 # ── DU-11: pinned, and closed as a false lead ────────────────────────────────────
 
-## The 0.95 backdrop is the overlay convention shared with PlanetfallCharacterImportPanel,
-## PlanetfallDashboard and TacticsVeteranImportPanel, and a ColorRect's default STOP
-## filter is what keeps a tap from reaching the dashboard underneath.
-func test_the_backdrop_is_near_opaque_and_blocks_the_screen_behind() -> void:
-	var bg: ColorRect = _panel().get_child(0) as ColorRect
-	assert_object(bg).is_not_null()
-	assert_float(bg.color.a).is_greater_equal(0.9)
-	assert_int(bg.mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
+## Since 2026-10-28 every transfer page is ScreenChrome.overlay_page(): a fully opaque
+## page (it was 0.95, shared by copy with four other overlays) behind a column that has a
+## real gutter. What keeps a tap from reaching the screen underneath is the full-rect
+## panel itself: Godot hands a click to the topmost control that does not IGNORE it and
+## never re-picks a sibling below, so the panel must not be IGNORE.
+func test_the_backdrop_is_opaque_and_blocks_the_screen_behind() -> void:
+	var panel := _panel()
+	var bg := panel.get_node_or_null(NodePath(ScreenChrome.BACKGROUND_NAME)) as ColorRect
+	assert_object(bg).override_failure_message("no page behind the transfer panel") \
+		.is_not_null()
+	if bg == null:
+		return
+	assert_float(bg.color.a).is_greater_equal(0.999)
+	assert_int(panel.mouse_filter).override_failure_message(
+		"a tap would fall through to the screen behind").is_not_equal(Control.MOUSE_FILTER_IGNORE)
 
 
 # ── DU-12: a finger drag reaches the scroll ──────────────────────────────────────

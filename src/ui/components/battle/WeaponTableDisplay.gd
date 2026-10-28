@@ -185,7 +185,7 @@ func _create_weapon_entry(weapon: WeaponTableSystem.WeaponData) -> Control:
 		traits_rtl.scroll_active = false
 		traits_rtl.text = KeywordLinker.build_traits_bbcode(weapon.traits)
 		traits_rtl.custom_minimum_size.x = 120
-		traits_rtl.add_theme_font_size_override("normal_font_size", 12)
+		ScreenChrome.size_rich_text(traits_rtl, 12)
 		traits_rtl.add_theme_color_override("default_color", Color.GOLD)
 		KeywordLinker.attach(traits_rtl, _ensure_keyword_tooltip())
 		container.add_child(traits_rtl)

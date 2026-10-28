@@ -374,7 +374,7 @@ func _style_rich_text(rtl: RichTextLabel) -> void:
 	if not rtl:
 		return
 	rtl.add_theme_color_override("default_color", UIColors.COLOR_TEXT_PRIMARY)
-	rtl.add_theme_font_size_override("normal_font_size", _scaled_font(UIColors.FONT_SIZE_MD))
+	ScreenChrome.size_rich_text(rtl, _scaled_font(UIColors.FONT_SIZE_MD))
 
 # ── Validation Hint Infrastructure ───────────────────────────────
 

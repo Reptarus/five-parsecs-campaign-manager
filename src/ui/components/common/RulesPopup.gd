@@ -89,8 +89,7 @@ func _populate() -> void:
 		body.fit_content = true
 		body.scroll_active = true
 		body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		body.add_theme_font_size_override(
-			"normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
+		ScreenChrome.size_rich_text(body, ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		body.add_theme_color_override(
 			"default_color", UIColors.COLOR_TEXT_SECONDARY
 		)

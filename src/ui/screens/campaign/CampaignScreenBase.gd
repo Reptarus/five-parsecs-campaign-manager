@@ -118,6 +118,11 @@ func _ready() -> void:
 	# swallowed-drag defect. Deferred so it runs AFTER _setup_screen()'s children
 	# exist: a sweep that runs before them is a fix that silently does nothing.
 	call_deferred("_fix_touch_scroll_filters")
+	# ...and keep it open as the screen changes: a result line a step adds after a
+	# press arrives STOP, and every rebuild path had to remember to sweep again (Bug
+	# Hunt does, at four sites; Planetfall never did). PASS still hands the event to the
+	# control first, and propagates to its PARENT, never to a sibling underneath.
+	TouchScrollOpenerRef.keep_open(self)
 
 
 ## Open every STOP-filtered descendant so a finger drag reaches the owning scroll.

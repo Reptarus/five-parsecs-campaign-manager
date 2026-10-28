@@ -92,7 +92,7 @@ func _build_ui() -> void:
 	_instruction_display.fit_content = true
 	_instruction_display.custom_minimum_size = Vector2(0, 200)
 	_instruction_display.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	_instruction_display.add_theme_font_size_override("normal_font_size", 13)
+	ScreenChrome.size_rich_text(_instruction_display, 13)
 	_instruction_display.add_theme_color_override("default_color", COLOR_TEXT)
 	vbox.add_child(_instruction_display)
 

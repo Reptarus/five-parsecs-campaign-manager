@@ -159,7 +159,7 @@ func _build_section(index: int, title: String, content: String) -> void:
 	body.text = content
 	body.fit_content = true
 	body.scroll_active = false
-	body.add_theme_font_size_override("normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(body, FONT_SIZE_SM)
 	body.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	body.visible = false
 	_vbox.add_child(body)
@@ -257,8 +257,7 @@ func _insert_battle_section_at_top(title: String, content: String) -> void:
 	body.text = content
 	body.fit_content = true
 	body.scroll_active = false
-	body.add_theme_font_size_override(
-		"normal_font_size", FONT_SIZE_SM)
+	ScreenChrome.size_rich_text(body, FONT_SIZE_SM)
 	body.add_theme_color_override(
 		"default_color", COLOR_TEXT_SECONDARY)
 	body.visible = true # Starts expanded

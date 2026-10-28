@@ -297,19 +297,7 @@ func _notify_transfer_write_failed() -> void:
 func _build_retire_overlay(vets: Array) -> Control:
 	var overlay := Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.color = Color(COLOR_BASE, 0.95)
-	overlay.add_child(bg)
-	var scroll := ScrollContainer.new()
-	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scroll.add_theme_constant_override("margin_left", 24)
-	scroll.add_theme_constant_override("margin_right", 24)
-	overlay.add_child(scroll)
-	var vbox := VBoxContainer.new()
-	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vbox.add_theme_constant_override("separation", 12)
-	scroll.add_child(vbox)
+	var vbox := ScreenChrome.overlay_page(overlay)
 
 	var title := Label.new()
 	title.text = "RETIRE VETERAN"

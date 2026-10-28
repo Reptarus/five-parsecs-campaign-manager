@@ -4801,7 +4801,7 @@ func _build_enemy_action_content() -> Control:
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	rtl.add_theme_font_size_override("normal_font_size", 14)
+	ScreenChrome.size_rich_text(rtl, 14)
 	rtl.add_theme_color_override(
 		"default_color", UIColors.COLOR_TEXT_PRIMARY)
 

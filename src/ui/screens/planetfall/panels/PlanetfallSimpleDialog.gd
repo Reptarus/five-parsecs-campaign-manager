@@ -158,6 +158,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.text = _get_step_title().to_upper()
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -219,11 +220,11 @@ func _build_repairs_content() -> void:
 	_add_info_text("Raw Materials Available: %d" % rm)
 
 	if damage <= 0:
-		_add_info_text("\n[color=#10B981]No colony damage to repair.[/color]")
+		_add_info_text("\n[color=ui-success]No colony damage to repair.[/color]")
 
 	if bot_broken:
 		_add_info_text(
-			"\n[color=#D97706]Colony Bot is Broken — it will be repaired but cannot deploy this turn.[/color]")
+			"\n[color=ui-warning]Colony Bot is Broken — it will be repaired but cannot deploy this turn.[/color]")
 
 	# RM-to-repair spinner: p.59 "up to 3 units", capped by what is held AND by the
 	# damage the base rate leaves, so the dialog cannot take a unit that repairs nothing.
@@ -271,7 +272,7 @@ func _build_replacements_content() -> void:
 	_add_info_text("Replacement Attempts Available: %d (1 + %d milestones)" % [attempts, milestones])
 
 	if roster_size >= capacity:
-		_add_info_text("\n[color=#D97706]Roster is full. Dismiss a character below "
+		_add_info_text("\n[color=ui-warning]Roster is full. Dismiss a character below "
 				+ "before rolling to make room.[/color]")
 
 	# p.69: "you may dismiss characters from your roster at this stage. Dismissed
@@ -359,7 +360,7 @@ func _resolve_repairs() -> void:
 		var actual_repair: int = _campaign.repair_colony(total_repair) \
 			if _campaign.has_method("repair_colony") else 0
 		_add_result_bbcode(
-			"[color=#10B981]Repaired %d point(s) of colony damage.[/color]" % actual_repair)
+			"[color=ui-success]Repaired %d point(s) of colony damage.[/color]" % actual_repair)
 		if rm_spent > 0:
 			_add_result_bbcode("Spent %d Raw Material(s) for extra repairs." % rm_spent)
 		_result_data["rm_spent"] = rm_spent
@@ -370,7 +371,7 @@ func _resolve_repairs() -> void:
 	# turn's battle (p.59) -- setting the flag alone let it deploy straight away.
 	if _campaign and _campaign.has_method("repair_bot") and _campaign.repair_bot():
 		_add_result_bbcode(
-			"[color=#10B981]Colony Bot repaired![/color] (Cannot deploy this turn.)")
+			"[color=ui-success]Colony Bot repaired![/color] (Cannot deploy this turn.)")
 
 
 ## Damage a repair may restore: how far Integrity is below its maximum (p.87).
@@ -385,7 +386,7 @@ func _resolve_track_info() -> void:
 	## Step 12 resolution. Planetfall p.68.
 	_add_result_bbcode("Enemy Information and Mission Data tracked.")
 	_add_result_bbcode(
-		"[color=#9ca3af]Full tracking will be automated when battle results are wired.[/color]")
+		"[color=ui-secondary]Full tracking will be automated when battle results are wired.[/color]")
 
 
 func _resolve_replacements() -> void:
@@ -426,12 +427,12 @@ func _resolve_replacements() -> void:
 				var class_roll: int = _resolver.roll_d6("Planetfall Replacement Class")
 				var char_class: String = _resolver.resolve_replacement_class(class_roll)
 				_add_result_bbcode(
-					"  [color=#10B981]Replacement available![/color] D6 = %d → %s" % [
+					"  [color=ui-success]Replacement available![/color] D6 = %d → %s" % [
 						class_roll, char_class.capitalize()])
 				_add_replacement_offer(char_class, false)
 			"player_choice":
 				_add_result_bbcode(
-					"  [color=#10B981]Replacement of your choice available![/color]")
+					"  [color=ui-success]Replacement of your choice available![/color]")
 				_add_replacement_offer("trooper", true)
 
 	if not _replacement_offers.is_empty():
@@ -534,9 +535,9 @@ func _resolve_one_character_event(_roster: Array) -> Dictionary:
 	_add_result_bbcode("\n[b]%s[/b]" % str(event.get("name", "Unknown Event")))
 	_add_result_bbcode(str(event.get("description", "")))
 	for line in receipt.get("lines", []):
-		_add_result_bbcode("[color=#10B981]%s[/color]" % str(line))
+		_add_result_bbcode("[color=ui-success]%s[/color]" % str(line))
 	for note in _apply_event_ops(receipt.get("ops", [])):
-		_add_result_bbcode("[color=#10B981]%s[/color]" % str(note))
+		_add_result_bbcode("[color=ui-success]%s[/color]" % str(note))
 	if not (receipt.get("choice", {}) as Dictionary).is_empty():
 		_add_assignment_choice(receipt.choice)
 
@@ -585,7 +586,7 @@ func _decide_assignment(entry: Dictionary, accept: bool) -> void:
 	var cid: String = str(entry.character_id)
 	if not accept:
 		for note in _apply_event_ops([{"op": "loyalty_gain", "character_id": cid}]):
-			_add_result_bbcode("[color=#10B981]%s[/color]" % str(note))
+			_add_result_bbcode("[color=ui-success]%s[/color]" % str(note))
 		_after_assignment_decided()
 		return
 	_apply_event_ops([{"op": "xp", "character_id": cid, "amount": CharacterEventsScript.TRANSFER_XP}])
@@ -600,12 +601,12 @@ func _decide_assignment(entry: Dictionary, accept: bool) -> void:
 	# The transfer file is the only copy once the character leaves, so the roster entry
 	# is dropped only after it is on disk.
 	if path == "":
-		_add_result_bbcode("[color=#DC2626]The transfer could not be written; the "
+		_add_result_bbcode("[color=ui-danger]The transfer could not be written; the "
 				+ "character stays on the roster.[/color]")
 	else:
 		_campaign.dismiss_character(cid)
 		(_result_data.get_or_add("transfers", []) as Array).append(path)
-		_add_result_bbcode("[color=#10B981]+%d XP, and transferred to %s.[/color]"
+		_add_result_bbcode("[color=ui-success]+%d XP, and transferred to %s.[/color]"
 				% [CharacterEventsScript.TRANSFER_XP, str(TRANSFER_TARGETS[
 				maxi((entry.mode_pick as OptionButton).selected, 0)][1])])
 	_after_assignment_decided()
@@ -645,8 +646,8 @@ func _add_info_text(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	_content_vbox.add_child(lbl)
 
@@ -656,8 +657,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

@@ -64,6 +64,7 @@ func set_standalone(standalone: bool) -> void:
 	_standalone = standalone
 	if _close_btn:
 		_close_btn.text = "Close" if _standalone else "Continue"
+	_place_close_button()
 
 
 func refresh() -> void:
@@ -99,6 +100,7 @@ func _build_ui() -> void:
 
 	_title_label = Label.new()
 	_title_label.text = "GENETIC AUGMENTATION"
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	_title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -109,7 +111,7 @@ func _build_ui() -> void:
 	info.fit_content = true
 	info.scroll_active = false
 	info.text = "Purchase augmentations to enhance all current and future characters. Cost increases with each purchase. Max 1 per campaign turn. Bots and Soulless imports are excluded."
-	info.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(info, ScreenChrome.font_size(FONT_SIZE_SM))
 	info.add_theme_color_override("default_color", COLOR_TEXT_SECONDARY)
 	vbox.add_child(info)
 
@@ -141,10 +143,22 @@ func _build_ui() -> void:
 
 	_close_btn = Button.new()
 	_close_btn.text = "Continue"
-	_close_btn.custom_minimum_size = Vector2(0, 48)
+	_close_btn.custom_minimum_size = Vector2(120, 48)
 	_close_btn.pressed.connect(_on_close_pressed)
 	vbox.add_child(_close_btn)
-	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	_place_close_button()
+
+
+## Opened from the dashboard this is an overlay, so Close sits first and top right like
+## the other five (at the foot of eight cards a phone had to scroll the list to leave).
+## As a turn step the same button is the step's Continue, and that belongs last.
+func _place_close_button() -> void:
+	if not _close_btn or not _close_btn.get_parent():
+		return
+	var box := _close_btn.get_parent()
+	box.move_child(_close_btn, 0 if _standalone else box.get_child_count() - 1)
+	_close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END if _standalone \
+			else Control.SIZE_SHRINK_CENTER
 
 
 ## ============================================================================
@@ -195,6 +209,9 @@ func _build_augmentation_list() -> void:
 		name_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Wraps beside the Purchase button: "Boosted Decision Making" on one line asked
+		# for 179 px and pushed the card past the right edge of a phone.
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		name_row.add_child(name_lbl)
 
 		if not is_available:
@@ -226,10 +243,10 @@ func _on_purchase_pressed(augmentation_id: String) -> void:
 		var aug: Dictionary = result.get("augmentation", {})
 		var cost: int = result.get("cost", 0)
 		_add_result_bbcode(
-			"[color=#10B981]Purchased %s for %d AP![/color]" % [
+			"[color=ui-success]Purchased %s for %d AP![/color]" % [
 				aug.get("name", ""), cost])
 		for line in result.get("milestone_lines", []):
-			_add_result_bbcode("[color=#D97706]%s[/color]" % str(line))
+			_add_result_bbcode("[color=ui-warning]%s[/color]" % str(line))
 		augmentation_purchased.emit(aug)
 		_update_ap_display()
 		# Rebuild list to show owned status
@@ -237,7 +254,7 @@ func _on_purchase_pressed(augmentation_id: String) -> void:
 		_build_augmentation_list()
 	else:
 		_add_result_bbcode(
-			"[color=#DC2626]%s[/color]" % result.get("error", "Failed"))
+			"[color=ui-danger]%s[/color]" % result.get("error", "Failed"))
 
 
 func _on_close_pressed() -> void:
@@ -269,8 +286,8 @@ func _add_result_bbcode(text: String) -> void:
 	lbl.bbcode_enabled = true
 	lbl.fit_content = true
 	lbl.scroll_active = false
-	lbl.text = text
-	lbl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+	lbl.text = UIColors.bbcode(text)
+	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
 	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
 	_result_container.add_child(lbl)
 

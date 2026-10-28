@@ -107,8 +107,7 @@ func _populate(data: Dictionary) -> void:
 		desc_label.fit_content = true
 		desc_label.scroll_active = true
 		desc_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		desc_label.add_theme_font_size_override(
-			"normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
+		ScreenChrome.size_rich_text(desc_label, ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		desc_label.add_theme_color_override(
 			"default_color", UIColors.COLOR_TEXT_SECONDARY
 		)

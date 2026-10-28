@@ -20,6 +20,10 @@ const TutorialPanelScript := preload("res://src/ui/screens/planetfall/panels/Pla
 const ReviewPanelScript := preload("res://src/ui/screens/planetfall/panels/PlanetfallReviewPanel.gd")
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+## The side margin below the form's max width (a phone). A step's page gets the screen
+## width less two of these and its scrollbar, which the phone-fit tests read.
+const NARROW_SIDE_MARGIN := 20
 const COLOR_BASE := UIColorsRef.COLOR_BASE
 const COLOR_TEXT := UIColorsRef.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := UIColorsRef.COLOR_TEXT_SECONDARY
@@ -63,6 +67,9 @@ func _ready() -> void:
 	_update_buttons(false, false, false)
 	get_viewport().size_changed.connect(_apply_content_max_width)
 	_apply_content_max_width()
+	# This screen extends Control, so it has no base-class sweep; the Initial Missions
+	# step had none of its own, and every step adds content as the player works.
+	TouchScrollOpenerRef.keep_open(self)
 
 
 func _build_layout() -> void:
@@ -271,5 +278,5 @@ func _apply_content_max_width() -> void:
 		_content_margin.add_theme_constant_override("margin_left", side)
 		_content_margin.add_theme_constant_override("margin_right", side)
 	else:
-		_content_margin.add_theme_constant_override("margin_left", 20)
-		_content_margin.add_theme_constant_override("margin_right", 20)
+		_content_margin.add_theme_constant_override("margin_left", NARROW_SIDE_MARGIN)
+		_content_margin.add_theme_constant_override("margin_right", NARROW_SIDE_MARGIN)

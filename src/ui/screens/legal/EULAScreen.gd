@@ -179,7 +179,7 @@ func _build_ui() -> void:
 	# IGNORE costs text selection, which these documents do not need, and they
 	# contain no links (pinned by tests/tools/verify_legal_docs.gd).
 	_eula_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_eula_text.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(_eula_text, ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 	_eula_text.add_theme_color_override("default_color", UIColors.COLOR_TEXT_SECONDARY)
 	_scroll.add_child(_eula_text)
 
@@ -368,7 +368,7 @@ func _on_privacy_link_pressed() -> void:
 	# popup would not scroll on the tablet at all. The reader could see as far as
 	# "1.1 Data Stored Locally on Your Device" and no further.
 	rtl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rtl.add_theme_font_size_override("normal_font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
+	ScreenChrome.size_rich_text(rtl, ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 
 	var file := FileAccess.open("res://data/legal/privacy_policy.md", FileAccess.READ)
 	if file:

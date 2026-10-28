@@ -511,6 +511,20 @@ func test_a_step_with_nothing_to_do_says_so_and_continues() -> void:
 		"the step showed a result the phase manager never recorded").is_false()
 
 
+## Step 18 (p.71) is "tidy your Colony Tracking Sheet": no roll, no choice, and the turn
+## saves when it closes. It waited on "Save & Complete", whose own save ran first and
+## recorded the turn as still on Step 18.
+func test_step_18_arrives_ready_with_the_books_text() -> void:
+	var panel := _auto_step(_core(), "update_tracking", Phase.UPDATE_TRACKING)
+	assert_bool(panel.step_status().ready).override_failure_message(
+		"Step 18 still waited for a press").is_true()
+	assert_bool(panel._resolve_btn.visible).is_false()
+	assert_str(_shown(panel)).contains("Tidy your Colony Tracking Sheet")
+	assert_str(_shown(panel)).contains("(p.71)")
+	assert_bool(panel.has_method("_resolve_update_tracking")).override_failure_message(
+		"the panel-side save is back").is_false()
+
+
 ## p.87: the roll is owed at the threshold, read from the phase manager, not a literal.
 func test_step_16_waits_for_the_roll_at_the_threshold() -> void:
 	var core := _core()

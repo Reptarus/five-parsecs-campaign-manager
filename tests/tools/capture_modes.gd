@@ -128,6 +128,25 @@ func _planetfall() -> void:
 	var dash: Node = await _mount("res://src/ui/screens/planetfall/PlanetfallDashboard.tscn")
 	if dash:
 		await _shot("pf_dashboard", dash)
+		# Every card on the dashboard opens one of these as an overlay; none of them was
+		# ever rendered by a capture, a sweep or a layout check.
+		for overlay in ["colony_status", "equipment", "enemy_tracker", "augmentation",
+				"milestones", "calamities"]:
+			dash._show_overlay_panel(overlay)
+			await _shot("pf_dash_%s" % overlay, dash)
+		dash._overlay_container.visible = false
+		# Import and Muster Out mount on the root, not the dashboard.
+		for entry in [["import", "_on_import_pressed"], ["muster_out", "_on_muster_out_pressed"]]:
+			var before: int = root.get_child_count()
+			dash.call(entry[1])
+			await _settle(dash)
+			if root.get_child_count() > before:
+				var added: Node = root.get_child(root.get_child_count() - 1)
+				await _shot("pf_dash_%s" % entry[0], added)
+				added.queue_free()
+				await process_frame
+			else:
+				print("  SKIP pf_dash_%s: nothing was mounted" % entry[0])
 		await _unmount(dash)
 
 	# --- The 18-step turn, as the turn controller shows each step ---
@@ -163,6 +182,26 @@ func _planetfall() -> void:
 		guard += 1
 		if pm.current_phase <= before:
 			break
+	# The End Game, the way the turn controller lays it over the turn flow (pp.160-164).
+	tc._show_endgame_panel()
+	await _shot("pf_endgame", tc)
+	# Every stage for each of the four paths (p.160). The stages are reached directly: the
+	# dice and the payment are pinned by test_planetfall_endgame.gd, and this pass judges
+	# what each stage shows a player.
+	var eg: Node = tc._endgame_panel
+	var stage: Dictionary = load(
+		"res://src/ui/screens/planetfall/panels/PlanetfallEndGamePanel.gd").Stage
+	eg._on_action()  # Hold Summit
+	await _shot("pf_endgame_paths", tc)
+	for path_id in ["independence", "ascension", "loyalty", "isolation"]:
+		eg._on_path_selected(path_id)
+		await _shot("pf_endgame_%s_1_security" % path_id, tc)
+		eg._go_to(stage["FINAL_CONSTRUCTION"])
+		await _shot("pf_endgame_%s_2_final" % path_id, tc)
+		eg._go_to(stage["RESOLUTION"])
+		await _shot("pf_endgame_%s_3_resolution" % path_id, tc)
+	eg._resolve({})  # Isolation, the last path selected
+	await _shot("pf_endgame_isolation_4_complete", tc)
 	await _unmount(tc)
 
 
