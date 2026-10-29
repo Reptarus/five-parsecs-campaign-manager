@@ -46,6 +46,10 @@ var _emergency_check: CheckBox
 ## manager spends the Story Point on completion.
 var _wait_check: CheckBox
 var _waited: bool = false
+## Step 1: the p.168 Virus reward's banked turns, one SpinBox per character in Sick Bay
+## who owes more than this turn heals, keyed by id. The panel reports, the phase
+## manager spends.
+var _recovery_spins: Dictionary = {}
 
 var _title_label: Label
 var _description_label: RichTextLabel
@@ -87,6 +91,7 @@ func refresh() -> void:
 	_resolved = false
 	_raid_damage = 0
 	_waited = false
+	_recovery_spins = {}
 	if _title_label:
 		_title_label.text = _get_step_title().to_upper()
 	if _description_label:
@@ -198,6 +203,10 @@ func _on_resolve_pressed() -> void:
 			_resolve_enemy_activity()
 		"colony_integrity":
 			_resolve_colony_integrity()
+		"update_tracking":
+			if _phase_manager and _phase_manager.has_method("resolve_calamity_step"):
+				_render_lines(_phase_manager.resolve_calamity_step())
+			_add_result_text(UPDATE_TRACKING_TEXT, COLOR_TEXT_SECONDARY)
 		_:
 			_add_result_text("Step resolved.", COLOR_TEXT_PRIMARY)
 
@@ -215,6 +224,19 @@ func _resolve_recovery() -> void:
 	if not _campaign:
 		_add_result_text("No campaign data.", COLOR_WARNING)
 		return
+
+	# p.168: banked cure turns land before this turn's healing, so a character brought
+	# down to their last turn walks out of Sick Bay now.
+	var spends: Dictionary = {}
+	for cid in _recovery_spins:
+		var spin: SpinBox = _recovery_spins[cid]
+		spin.editable = false
+		if int(spin.value) > 0:
+			spends[cid] = int(spin.value)
+	if not spends.is_empty() and _phase_manager \
+			and _phase_manager.has_method("spend_recovery_bank"):
+		for line in _phase_manager.spend_recovery_bank(spends):
+			_add_result_text(str(line), COLOR_SUCCESS)
 
 	var recovered: Array = []
 	if _campaign.has_method("tick_sick_bay"):
@@ -253,10 +275,67 @@ func _note_broken_bot() -> void:
 
 ## p.58: "every character in sick bay will heal". With nobody there, nothing to do.
 func _prepare_recovery() -> void:
-	if not _campaign or not "sick_bay" in _campaign or not _campaign.sick_bay.is_empty():
+	if not _campaign or not "sick_bay" in _campaign:
+		return
+	if not _campaign.sick_bay.is_empty():
+		_build_recovery_bank()
 		return
 	_skip_step("No one is in Sick Bay, so no one has recovery time to reduce (p.58).")
 	_note_broken_bot()
+
+
+## p.168 Virus reward: "reduce any injury recovery times for injured characters by a
+## total of 4 turns ... You can save any of this effect for later." This turn heals one
+## turn on its own (p.58), so each character can take at most what they owe less one;
+## a character on their last turn gets no box. Nothing is spent until Resolve.
+func _build_recovery_bank() -> void:
+	var bank: int = int(_campaign.recovery_reduction_bank) \
+			if "recovery_reduction_bank" in _campaign else 0
+	if bank <= 0:
+		return
+	var held: Dictionary = _campaign.quarantined if "quarantined" in _campaign else {}
+	var rows: Array = []
+	for cid in _campaign.sick_bay:
+		var owed: int = int(held.get(cid, _campaign.sick_bay[cid]))
+		if owed > 1:
+			rows.append([str(cid), owed])
+	if rows.is_empty():
+		_add_result_text("%d banked recovery turn(s) are saved: no one in Sick Bay owes more "
+				% bank + "than this turn heals (p.168).", COLOR_TEXT_SECONDARY)
+		return
+	_add_result_text("Banked recovery from the Virus cure: %d turn(s) to spend now or save "
+			% bank + "(p.168). This turn's own healing covers each character's last turn.",
+			COLOR_ACCENT)
+	for r in rows:
+		var row := VBoxContainer.new()
+		var lbl := Label.new()
+		lbl.text = "%s owes %d turn(s). Turns to spend:" % [_get_character_name(r[0]), r[1]]
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		row.add_child(lbl)
+		var spin := SpinBox.new()
+		spin.min_value = 0
+		spin.max_value = mini(bank, int(r[1]) - 1)
+		spin.step = 1
+		spin.value = 0
+		spin.custom_minimum_size = Vector2(120, 48)
+		spin.value_changed.connect(_on_recovery_spend_changed.bind(str(r[0])))
+		row.add_child(spin)
+		_result_container.add_child(row)
+		_recovery_spins[str(r[0])] = spin
+
+
+## The boxes share one bank: a box raised past what the others leave is pulled back.
+func _on_recovery_spend_changed(value: float, cid: String) -> void:
+	var bank: int = int(_campaign.recovery_reduction_bank)
+	var others: int = 0
+	for k in _recovery_spins:
+		if k != cid:
+			others += int((_recovery_spins[k] as SpinBox).value)
+	var room: int = maxi(bank - others, 0)
+	if int(value) > room:
+		(_recovery_spins[cid] as SpinBox).value = room
 
 
 func _resolve_enemy_activity() -> void:
@@ -328,30 +407,18 @@ func _resolve_one_enemy_activity(selected: Dictionary) -> void:
 	_add_result_text("[b]%s[/b]" % name, COLOR_TEXT_PRIMARY)
 	_add_result_text(desc, COLOR_TEXT_SECONDARY)
 
-	# Apply colony damage for raids
-	if activity_type == "raid":
-		# p.62 Raid: Colony Damage = the sectors THIS enemy occupies + 1.
-		var sectors: Array = selected.get("occupied_sectors", []) \
-				if selected.get("occupied_sectors") is Array else []
-		var base_damage: int = sectors.size() + 1
-
-		# Colony defenses mitigation
-		var defenses: int = _campaign.colony_defenses if "colony_defenses" in _campaign else 0
-		var mitigated: int = 0
-		for idx in range(defenses):
-			if _resolver.roll_d6("Planetfall Colony Defenses") >= 4:
-				mitigated += 1
-
-		var final_damage: int = max(0, base_damage - mitigated)
-		_add_result_text("Raid Damage: %d (base %d, %d mitigated by defenses)" % [
-				final_damage, base_damage, mitigated],
-			COLOR_DANGER)
-
-		# REPORTED, not applied. This dialog applied the damage itself and reported
-		# nothing, so the phase manager's count stayed 0 and Step 11 never charged
-		# Morale for a raid (p.89: -1 Morale per point of Colony Damage). Summed, since
-		# a Milestone can make more than one enemy act.
-		_raid_damage += final_damage
+	# p.62 on the map, through the phase manager: the enemy moves, this turn's mission
+	# is offered, and every Raid is priced (PlanetfallMap.raid_damage). The damage is
+	# REPORTED, not applied, and summed, since a Milestone can make more than one enemy
+	# act; Step 11 charges Morale for it (p.89). Until 2026-10-28 this applied a Raid
+	# alone, from its own copy of the rule, and the other five results did nothing.
+	if _phase_manager and _phase_manager.has_method("resolve_enemy_activity"):
+		var r: Dictionary = _phase_manager.resolve_enemy_activity(
+				int(selected.get("index", -1)), activity_type)
+		for line in r.get("lines", []):
+			_add_result_text(str(line), COLOR_DANGER if str(line).begins_with("Raid")
+					else COLOR_TEXT_PRIMARY)
+		_raid_damage += int(r.get("colony_damage", 0))
 
 
 ## Step 16, pp.87-88. Until 2026-10-27 this rolled a D6 per point of negative
@@ -438,8 +505,23 @@ func _render_lines(receipt: Dictionary) -> void:
 ## "Save & Complete" press whose own save ran first and recorded the turn as still on
 ## Step 18, one save before the real one.
 func _prepare_update_tracking() -> void:
-	_skip_step("Tidy your Colony Tracking Sheet and, if you keep one, your campaign "
-			+ "diary (p.71). The campaign saves when the turn ends.")
+	# pp.165-168: an active Calamity rolls "at the end of each campaign turn". A step
+	# already rolled (a resume) shows its receipt and rolls nothing twice.
+	if _phase_manager and _phase_manager.has_method("get_calamity_receipt"):
+		var done: Dictionary = _phase_manager.get_calamity_receipt()
+		if not done.is_empty():
+			_render_lines(done)
+			_skip_step(UPDATE_TRACKING_TEXT)
+			return
+		if _phase_manager.calamity_step_owed():
+			_add_result_text("Your active Calamities roll at the end of the campaign turn "
+					+ "(pp.165-168).", COLOR_TEXT_PRIMARY)
+			return
+	_skip_step(UPDATE_TRACKING_TEXT)
+
+
+const UPDATE_TRACKING_TEXT := "Tidy your Colony Tracking Sheet and, if you keep one, your " \
+		+ "campaign diary (p.71). The campaign saves when the turn ends."
 
 
 ## ============================================================================
@@ -465,7 +547,7 @@ func _get_step_description() -> String:
 		"colony_integrity":
 			return "If Colony Integrity is -3 or worse, roll 3D6. A roll equal to or below the Integrity score flipped (-8 counts as 8) is an Integrity Failure, looked up on the table (pp.87-88)."
 		"update_tracking":
-			return "The last step of the turn. Nothing is rolled."
+			return "The last step of the turn. Only an active Calamity rolls here."
 	return ""
 
 
@@ -474,6 +556,7 @@ func _get_resolve_button_text() -> String:
 		"recovery": return "Process Recovery"
 		"enemy_activity": return "Roll Enemy Activity"
 		"colony_integrity": return "Check Integrity"
+		"update_tracking": return "Roll Calamities"
 	return "Resolve"
 
 

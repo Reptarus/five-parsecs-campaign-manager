@@ -11,10 +11,14 @@ extends RefCounted
 ## appropriate die type." PlanetfallMap.pick_index is that die (smallest that covers the
 ## count, high rolls rerolled), forceable under this context.
 const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const EventResolverScript := preload("res://src/core/systems/PlanetfallEventResolver.gd")
 const APPLICATION_DIE := "Planetfall Research Application"
+const BIO_ANALYSIS_PATH := "res://data/planetfall/bio_analysis.json"
+const BIO_ANALYSIS_DIE := "Planetfall Bio-Analysis"
 
 var _theories: Array = []
 var _loaded: bool = false
+var _bio: Dictionary = {}
 
 
 func _init() -> void:
@@ -91,18 +95,6 @@ func get_theory_progress(campaign: Resource, theory_id: String) -> int:
 	return progress.get(theory_id, 0)
 
 
-func get_available_theories(campaign: Resource) -> Array:
-	## Returns theories whose prerequisites are met and not yet completed.
-	var result: Array = []
-	for theory in _theories:
-		if theory is not Dictionary:
-			continue
-		var tid: String = theory.get("id", "")
-		if is_theory_available(campaign, tid) and not is_theory_researched(campaign, tid):
-			result.append(theory.duplicate(true))
-	return result
-
-
 func get_available_applications(
 		campaign: Resource, theory_id: String) -> Array:
 	## Returns applications from a completed theory that haven't been unlocked.
@@ -177,8 +169,13 @@ func invest_in_theory(
 		return {"success": false, "error": "Not enough RP"}
 
 	var rd: Dictionary = _get_research_data(campaign)
-	var theory_cost: int = theory.get("theory_cost", 0)
 	var progress: int = get_theory_progress(campaign, theory_id)
+	# p.136: a Theory STARTED while a translation discount is pending takes it.
+	if progress == 0 and _take_discount(rd):
+		var discounted: Array = rd.get("discounted_theories", [])
+		discounted.append(theory_id)
+		rd["discounted_theories"] = discounted
+	var theory_cost: int = theory_cost_for(campaign, theory_id)
 	var invest: int = mini(rp_amount, theory_cost - progress)
 
 	# Deduct RP
@@ -219,7 +216,7 @@ func research_application(
 	if available.is_empty():
 		return {"success": false, "error": "All applications already unlocked"}
 
-	var app_cost: int = theory.get("application_cost", 0)
+	var app_cost: int = application_cost_for(campaign, theory_id)
 	var current_rp: int = get_current_rp(campaign)
 	if current_rp < app_cost:
 		return {"success": false, "error": "Not enough RP (%d needed)" % app_cost}
@@ -227,6 +224,8 @@ func research_application(
 	# Deduct RP
 	var rd: Dictionary = _get_research_data(campaign)
 	rd["current_rp"] = current_rp - app_cost
+	if app_cost < int(theory.get("application_cost", 0)):
+		_take_discount(rd)
 
 	# p.93: randomly select from the undiscovered Applications. It was a raw randi_range,
 	# which no QA seam could force.
@@ -243,6 +242,114 @@ func research_application(
 
 	_set_research_data(campaign, rd)
 	return {"success": true, "application": app}
+
+
+## ============================================================================
+## RESEARCH COSTS (p.136 Alien translation guide)
+## ============================================================================
+
+## A Theory's full cost, halved (rounded up) when it was started under a discount.
+func theory_cost_for(campaign: Resource, theory_id: String) -> int:
+	var cost: int = int(get_theory(theory_id).get("theory_cost", 0))
+	var rd: Dictionary = _get_research_data(campaign)
+	return _halved(cost) if theory_id in rd.get("discounted_theories", []) else cost
+
+
+## What finishing this Theory costs if RP is invested now: a Theory not yet started takes
+## a pending discount with its first investment (invest_in_theory).
+func theory_cost_now(campaign: Resource, theory_id: String) -> int:
+	var cost: int = theory_cost_for(campaign, theory_id)
+	var started: bool = get_theory_progress(campaign, theory_id) > 0 \
+			or theory_id in _get_research_data(campaign).get("discounted_theories", [])
+	return _halved(cost) if not started and discounts_left(campaign) > 0 else cost
+
+
+## What the next Application of this Theory costs right now.
+func application_cost_for(campaign: Resource, theory_id: String) -> int:
+	var cost: int = int(get_theory(theory_id).get("application_cost", 0))
+	return _halved(cost) if discounts_left(campaign) > 0 else cost
+
+
+## p.136: "The next two research topics have their Research Point cost halved, rounded up."
+func discounts_left(campaign: Resource) -> int:
+	return int(_get_research_data(campaign).get("cost_halved_remaining", 0))
+
+
+func _take_discount(rd: Dictionary) -> bool:
+	var left: int = int(rd.get("cost_halved_remaining", 0))
+	if left <= 0:
+		return false
+	rd["cost_halved_remaining"] = left - 1
+	return true
+
+
+static func _halved(cost: int) -> int:
+	return ceili(cost / 2.0)
+
+
+## ============================================================================
+## BIO-ANALYSIS (p.92)
+## ============================================================================
+
+## p.92: "You may research any Lifeform on your campaign encounter chart ... You must
+## collect a sample from the Lifeform in question by successfully completing a Hunt
+## mission. Once a sample has been collected, you may conduct Bio-Analysis by spending 3
+## Research Points. Roll 1D6 on the table below". One benefit per form of the creature:
+## a profile change clears both the sample and the benefit (PlanetfallLifeformGenerator).
+func bio_analysis_cost(campaign: Resource) -> int:
+	var cost: int = int(_bio_data().get("cost_rp", 3))
+	return _halved(cost) if discounts_left(campaign) > 0 else cost
+
+
+## The encounter entries a player can see at the Research step: sampled ones, and any
+## already analyzed. [{slot, name, analysis}].
+func bio_analysis_candidates(campaign: Resource) -> Array:
+	var out: Array = []
+	if not campaign or not "lifeform_table" in campaign:
+		return out
+	for i in range(campaign.lifeform_table.size()):
+		var e: Variant = campaign.lifeform_table[i]
+		if e is Dictionary and (bool(e.get("sampled", false)) or e.has("bio_analysis")):
+			out.append({"slot": i, "name": str(e.get("name", "Encounter entry %d" % (i + 1))),
+				"analysis": e.get("bio_analysis", {})})
+	return out
+
+
+## Returns {success, roll, entry, cost} or {success: false, error}.
+func conduct_bio_analysis(campaign: Resource, slot: int) -> Dictionary:
+	if not campaign or not "lifeform_table" in campaign \
+			or slot < 0 or slot >= campaign.lifeform_table.size() \
+			or not campaign.lifeform_table[slot] is Dictionary:
+		return {"success": false, "error": "No such Lifeform"}
+	var entry: Dictionary = campaign.lifeform_table[slot]
+	if not bool(entry.get("sampled", false)):
+		return {"success": false, "error": "No sample collected: complete a Hunt (p.121)"}
+	if entry.has("bio_analysis"):
+		return {"success": false, "error": "Already analyzed in this form (p.92)"}
+	var cost: int = bio_analysis_cost(campaign)
+	var rd: Dictionary = _get_research_data(campaign)
+	var current_rp: int = get_current_rp(campaign)
+	if current_rp < cost:
+		return {"success": false, "error": "Not enough RP (%d needed)" % cost}
+	rd["current_rp"] = current_rp - cost
+	if cost < int(_bio_data().get("cost_rp", 3)):
+		_take_discount(rd)
+	var roll: int = EventResolverScript.new().roll_d6(BIO_ANALYSIS_DIE)
+	var found: Dictionary = {}
+	for e in _bio_data().get("entries", []):
+		if e is Dictionary and int(e.get("roll", 0)) == roll:
+			found = e
+	entry["bio_analysis"] = {"id": str(found.get("id", "")), "name": str(found.get("name", "")),
+		"description": str(found.get("description", ""))}
+	_set_research_data(campaign, rd)
+	return {"success": true, "roll": roll, "entry": entry["bio_analysis"], "cost": cost}
+
+
+func _bio_data() -> Dictionary:
+	if _bio.is_empty() and FileAccess.file_exists(BIO_ANALYSIS_PATH):
+		var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(BIO_ANALYSIS_PATH))
+		_bio = parsed if parsed is Dictionary else {}
+	return _bio
 
 
 ## ============================================================================

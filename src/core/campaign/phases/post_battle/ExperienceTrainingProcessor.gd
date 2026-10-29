@@ -288,7 +288,8 @@ func process_purchases(ctx: PostBattleContextClass) -> Array[Dictionary]:
 						credits -= cost
 					# add_to_ship_inventory does not exist (zero definitions repo-wide);
 					# the real ship-stash API is EquipmentManager.add_to_ship_stash.
-					if ctx.equipment_manager 							and ctx.equipment_manager.has_method("add_to_ship_stash"):
+					if ctx.equipment_manager \
+							and ctx.equipment_manager.has_method("add_to_ship_stash"):
 						ctx.equipment_manager.add_to_ship_stash(item)
 					purchases_made.append(item)
 

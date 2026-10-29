@@ -88,6 +88,7 @@ func refresh() -> void:
 
 	_update_rp_display()
 	_build_theory_list()
+	_build_bio_analysis()
 	# The detail pane opened empty beside the list, saying nothing about what it is for.
 	_detail_container.add_child(_small_label("Pick a Theory to invest RP in it or to "
 			+ "research one of its Applications (pp.92-93).", COLOR_TEXT_SECONDARY))
@@ -185,7 +186,7 @@ func _build_theory_list() -> void:
 		var completed: bool = _research.is_theory_researched(_campaign, tid)
 		var available: bool = _research.is_theory_available(_campaign, tid)
 		var progress: int = _research.get_theory_progress(_campaign, tid)
-		var cost: int = theory.get("theory_cost", 0)
+		var cost: int = _research.theory_cost_now(_campaign, tid)
 
 		var row := VBoxContainer.new()
 		row.add_theme_constant_override("separation", 2)
@@ -212,6 +213,54 @@ func _build_theory_list() -> void:
 		row.add_child(_small_label(str(theory.get("description", "")), COLOR_TEXT_SECONDARY))
 		if not available and not completed:
 			row.add_child(_small_label(_locked_reason(theory), COLOR_WARNING))
+
+
+## p.92 Bio-Analysis Research, below the Theories. A creature can be analyzed once a Hunt
+## has sampled it (p.121); the benefit is shown on the battle screen whenever it is met.
+func _build_bio_analysis() -> void:
+	var header := Label.new()
+	header.text = "BIO-ANALYSIS (p.92)"
+	header.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	_theory_list.add_child(header)
+	var left: int = _research.discounts_left(_campaign)
+	if left > 0:
+		_theory_list.add_child(_small_label("Alien translation guide: the next %d research " % left
+				+ "topic(s) cost half, rounded up (p.136).", COLOR_CYAN))
+	var candidates: Array = _research.bio_analysis_candidates(_campaign)
+	if candidates.is_empty():
+		_theory_list.add_child(_small_label("No Lifeform has been sampled. Two samples from a "
+				+ "Hunt mission authorize analyzing that creature (pp.92, 121).",
+				COLOR_TEXT_SECONDARY))
+		return
+	var cost: int = _research.bio_analysis_cost(_campaign)
+	for c in candidates:
+		var analysis: Dictionary = c.get("analysis", {})
+		if not analysis.is_empty():
+			_theory_list.add_child(_small_label("%s: %s. %s" % [str(c.name),
+					str(analysis.get("name", "")), str(analysis.get("description", ""))],
+					COLOR_SUCCESS))
+			continue
+		var btn := Button.new()
+		btn.text = "Analyze %s (%d RP)" % [str(c.name), cost]
+		btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		btn.custom_minimum_size.y = 48
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		btn.disabled = _research.get_current_rp(_campaign) < cost
+		btn.pressed.connect(_on_bio_analysis_pressed.bind(int(c.slot)))
+		_theory_list.add_child(btn)
+
+
+func _on_bio_analysis_pressed(slot: int) -> void:
+	var result: Dictionary = _research.conduct_bio_analysis(_campaign, slot)
+	if not result.get("success", false):
+		_add_result_bbcode("[color=ui-danger]%s[/color]" % result.get("error", "Failed"))
+		return
+	var entry: Dictionary = result.get("entry", {})
+	_add_result_bbcode("[color=ui-success]Bio-Analysis D6 %d: %s.[/color] %s" % [
+			int(result.roll), str(entry.get("name", "")), str(entry.get("description", ""))])
+	_update_rp_display()
+	_rebuild_theory_list()
 
 
 ## p.92: a Theory with prerequisites becomes available once they are "fully researched".
@@ -292,8 +341,9 @@ func _show_theory_detail(theory_id: String) -> void:
 	var tname: String = theory.get("name", "Unknown")
 	var completed: bool = _research.is_theory_researched(_campaign, theory_id)
 	var progress: int = _research.get_theory_progress(_campaign, theory_id)
-	var theory_cost: int = theory.get("theory_cost", 0)
-	var app_cost: int = theory.get("application_cost", 0)
+	# The costs the research will actually charge, a translation discount included (p.136).
+	var theory_cost: int = _research.theory_cost_now(_campaign, theory_id)
+	var app_cost: int = _research.application_cost_for(_campaign, theory_id)
 
 	var name_lbl := Label.new()
 	name_lbl.text = tname
@@ -471,6 +521,8 @@ func _update_rp_display() -> void:
 func _rebuild_theory_list() -> void:
 	_clear_container(_theory_list)
 	_build_theory_list()
+	_build_bio_analysis()
+	TouchScrollOpenerRef.open_subtree(self)
 
 
 func _show_income(receipt: Dictionary) -> void:

@@ -13,7 +13,6 @@ var _character_events: Array = []
 var _injury_table: Array = []
 var _grunt_casualty_data: Dictionary = {}
 var _replacement_table: Array = []
-var _replacement_rules: Dictionary = {}
 var _loaded: bool = false
 
 
@@ -41,7 +40,6 @@ func _load_tables() -> void:
 	var replacement_data: Dictionary = _load_json(
 		"res://data/planetfall/replacement_table.json")
 	_replacement_table = replacement_data.get("replacement_roll", [])
-	_replacement_rules = replacement_data.get("replacement_rules", {})
 
 	_loaded = not _colony_events.is_empty()
 
@@ -207,19 +205,3 @@ func _lookup_d100(table: Array, roll: int) -> Dictionary:
 
 func is_loaded() -> bool:
 	return _loaded
-
-
-func get_colony_events() -> Array:
-	return _colony_events
-
-
-func get_enemy_activity_table() -> Array:
-	return _enemy_activity
-
-
-func get_character_events() -> Array:
-	return _character_events
-
-
-func get_replacement_rules() -> Dictionary:
-	return _replacement_rules

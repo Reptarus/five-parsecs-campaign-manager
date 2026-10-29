@@ -329,7 +329,8 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 
 			var roll: int = ctx.roll_d6("Old captain's fate")
 			if roll != 1 or old_captain == null:
-				return "%s is the crew's new captain (+3 XP); the old captain stays on" % 					successor_name
+				return "%s is the crew's new captain (+3 XP); the old captain stays on" % \
+					successor_name
 			# "taking any items carried with them" — the gear leaves with them, so
 			# it is NOT returned to the stash.
 			var old_name: String = ctx.get_char_name(old_captain)
@@ -459,13 +460,15 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 			## taken casualties, did nothing.
 			var casualty: Variant = _last_battle_casualty(ctx)
 			if casualty != null and ctx.apply_luck_increase(casualty, 1):
-				return "In hindsight it made a great story: %s earns +1 Luck" % 					ctx.get_char_name(casualty)
+				return "In hindsight it made a great story: %s earns +1 Luck" % \
+					ctx.get_char_name(casualty)
 			ctx.add_story_points(1)
 			if casualty != null:
 				# Luck is capped (1, or 3 for Humans — p.123), so a maxed survivor
 				# cannot take it. The book gives no fallback; the story point is
 				# the nearest thing to it and is reported honestly.
-				return "A great story, but %s cannot hold more Luck — +1 Story Point instead" % 					ctx.get_char_name(casualty)
+				return "A great story, but %s cannot hold more Luck — +1 Story Point instead" % \
+					ctx.get_char_name(casualty)
 			return "Nobody got hurt, so it is just a great story: +1 Story Point"
 
 		_:

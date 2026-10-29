@@ -4,10 +4,15 @@ extends Control
 ## Equipment pool browser — accessible from Dashboard.
 ## Shows all weapons available to the colony, filtered by tier and class.
 ## Weapons are NOT individually owned — they come from the colony pool.
+## Below them, the colony's Alien Artifacts (pp.135-136): Colony Items in effect, Single-Use
+## items to activate, and Artifact equipment to give to one character for good.
 
 const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
 const PlanetfallArmoryScript := preload(
 	"res://src/core/systems/PlanetfallArmorySystem.gd")
+const ResearchScript := preload("res://src/core/systems/PlanetfallResearchSystem.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+const CoreScript := preload("res://src/game/campaign/PlanetfallCampaignCore.gd")
 
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
@@ -33,6 +38,8 @@ var _current_filter: String = "all"  # "all", "standard", "tier_1", "tier_2"
 var _content: VBoxContainer
 var _filter_row: HFlowContainer
 var _weapon_list: VBoxContainer
+var _grunt_list: VBoxContainer
+var _artifact_list: VBoxContainer
 var _close_btn: Button
 
 
@@ -49,6 +56,8 @@ func refresh() -> void:
 	_current_filter = "all"
 	_clear_container(_weapon_list)
 	_build_weapon_list()
+	_build_grunt_upgrades()
+	_build_artifact_list()
 
 
 ## ============================================================================
@@ -110,6 +119,16 @@ func _build_ui() -> void:
 	_weapon_list = VBoxContainer.new()
 	_weapon_list.add_theme_constant_override("separation", SPACING_SM)
 	_content.add_child(_weapon_list)
+
+	_grunt_list = VBoxContainer.new()
+	_grunt_list.name = "GruntUpgrades"
+	_grunt_list.add_theme_constant_override("separation", SPACING_SM)
+	_content.add_child(_grunt_list)
+
+	_artifact_list = VBoxContainer.new()
+	_artifact_list.name = "AlienArtifacts"
+	_artifact_list.add_theme_constant_override("separation", SPACING_SM)
+	_content.add_child(_artifact_list)
 
 
 
@@ -182,11 +201,11 @@ func _build_weapon_list() -> void:
 
 		var traits: Array = weapon.get("traits", [])
 		if not traits.is_empty():
-			var names: Array = []
+			var trait_lines: Array = []
 			for t in traits:
-				names.append(DisplayTextRef.title_case(str(t)))
+				trait_lines.append(_trait_line(str(t)))
 			var traits_lbl := Label.new()
-			traits_lbl.text = ", ".join(PackedStringArray(names))
+			traits_lbl.text = "\n".join(PackedStringArray(trait_lines))
 			traits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			traits_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 			traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -200,6 +219,142 @@ func _build_weapon_list() -> void:
 			lock.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 			lock.add_theme_color_override("font_color", COLOR_DANGER)
 			vbox.add_child(lock)
+
+
+## p.78 Weapon Traits: say what the trait DOES, from the Armory's own table, so a
+## player meeting "Stabilized" or "Hail of Fire" does not need the book open.
+func _trait_line(trait_id: String) -> String:
+	var info: Dictionary = _armory.get_weapon_trait(trait_id) if _armory else {}
+	var trait_name: String = str(info.get("name", ""))
+	if trait_name == "":
+		trait_name = DisplayTextRef.title_case(trait_id)
+	var what: String = str(info.get("description", ""))
+	return trait_name if what == "" else "%s: %s" % [trait_name, what]
+
+
+## ============================================================================
+## GRUNT UPGRADES (p.79)
+## ============================================================================
+
+## All six, each with whether the colony has it and, if not, what it still needs. The
+## upgrade list existed in the data and the Armory never showed it.
+func _build_grunt_upgrades() -> void:
+	_clear_container(_grunt_list)
+	_grunt_list.add_child(_line("GRUNT UPGRADES (p.79)", FONT_SIZE_MD, COLOR_TEXT_PRIMARY))
+	for u in _armory.grunt_upgrade_status(_campaign, ResearchScript.new()):
+		var on: bool = bool(u.get("available", false))
+		_grunt_list.add_child(_line("%s%s" % [str(u.get("name", "")),
+				": available to every fireteam" if on else ""], FONT_SIZE_SM,
+				COLOR_SUCCESS if on else COLOR_TEXT_PRIMARY))
+		_grunt_list.add_child(_line(str(u.get("description", "")), FONT_SIZE_XS,
+				COLOR_TEXT_SECONDARY))
+		if not on:
+			_grunt_list.add_child(_line("LOCKED: %s" % str(u.get("needs", "")),
+					FONT_SIZE_XS, COLOR_DANGER))
+
+
+## ============================================================================
+## ALIEN ARTIFACTS (pp.135-136)
+## ============================================================================
+
+func _build_artifact_list(result_lines: Array = []) -> void:
+	_clear_container(_artifact_list)
+	_artifact_list.add_child(_line("ALIEN ARTIFACTS (pp.135-136)", FONT_SIZE_MD,
+			COLOR_TEXT_PRIMARY))
+	for line in result_lines:
+		_artifact_list.add_child(_line(str(line), FONT_SIZE_SM, COLOR_SUCCESS))
+	var found: Array = _campaign.artifacts_found if _campaign and "artifacts_found" in _campaign \
+			else []
+	if found.is_empty():
+		_artifact_list.add_child(_line("None found yet. A Delve that finds its Artifact rolls "
+				+ "on the Artifacts table (pp.133, 135).", FONT_SIZE_SM, COLOR_TEXT_SECONDARY))
+	for a in found:
+		if a is Dictionary:
+			_artifact_list.add_child(_artifact_card(a))
+	TouchScrollOpenerRef.open_subtree(self)
+
+
+func _artifact_card(a: Dictionary) -> Control:
+	var card := VBoxContainer.new()
+	card.add_theme_constant_override("separation", 4)
+	var kind: String = str(a.get("type", ""))
+	card.add_child(_line("%s (%s)" % [str(a.get("name", "?")),
+			kind.replace("_", "-").capitalize()], FONT_SIZE_SM, COLOR_CYAN))
+	card.add_child(_line(str(a.get("description", "")), FONT_SIZE_XS, COLOR_TEXT_SECONDARY))
+	var aid: String = str(a.get("id", ""))
+	match kind:
+		"colony_item":
+			card.add_child(_line("Part of the colony: in effect.", FONT_SIZE_XS, COLOR_SUCCESS))
+		"single_use":
+			if bool(a.get("used", false)):
+				card.add_child(_line("Used.", FONT_SIZE_XS, COLOR_TEXT_SECONDARY))
+			else:
+				var target: String = CoreScript.artifact_target(a)
+				var picker: OptionButton = null
+				if target != "":
+					var who: Array = _campaign.fallen_now() if target == "fallen" \
+							else _campaign.roster
+					if who.is_empty():
+						card.add_child(_line("No character who died this campaign turn."
+								if target == "fallen" else "No character on the roster.",
+								FONT_SIZE_XS, COLOR_WARNING))
+						return card
+					picker = _character_picker(who)
+					card.add_child(picker)
+				var use := Button.new()
+				use.text = "Activate"
+				use.custom_minimum_size = Vector2(160, 48)
+				use.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+				use.pressed.connect(func() -> void:
+					_build_artifact_list(_campaign.use_artifact(aid, _picked(picker))))
+				card.add_child(use)
+		"equipment":
+			var carrier: String = str(a.get("carrier", ""))
+			if bool(a.get("lost", false)):
+				card.add_child(_line("Lost with its carrier.", FONT_SIZE_XS, COLOR_DANGER))
+			elif carrier != "":
+				var c: Variant = _campaign.get_roster_character_by_id(carrier)
+				card.add_child(_line("Carried by %s." % (str(c.get("name", carrier))
+						if c is Dictionary else carrier), FONT_SIZE_XS, COLOR_SUCCESS))
+			elif not _campaign.roster.is_empty():
+				var picker := _character_picker(_campaign.roster)
+				card.add_child(picker)
+				var give := Button.new()
+				give.text = "Give (cannot be traded later)"
+				give.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				give.custom_minimum_size = Vector2(160, 48)
+				give.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+				give.pressed.connect(func() -> void:
+					_build_artifact_list(_campaign.give_artifact(aid, _picked(picker))))
+				card.add_child(give)
+	return card
+
+
+func _character_picker(characters: Array) -> OptionButton:
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = 48
+	picker.clip_text = true
+	picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for c in characters:
+		if c is Dictionary:
+			picker.add_item(str(c.get("name", "?")))
+			picker.set_item_metadata(picker.item_count - 1, str(c.get("id", "")))
+	return picker
+
+
+func _picked(picker: OptionButton) -> String:
+	if picker == null or picker.item_count == 0 or picker.selected < 0:
+		return ""
+	return str(picker.get_item_metadata(picker.selected))
+
+
+func _line(text: String, size: int, color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(size))
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
 
 
 func _on_filter_pressed(filter: String) -> void:

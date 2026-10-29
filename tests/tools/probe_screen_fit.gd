@@ -299,7 +299,8 @@ func _min_width_spine(inst: Node) -> void:
 func _label_note(ctl: Control) -> String:
 	if ctl is Label:
 		var l := ctl as Label
-		var wrap := "AUTOWRAP OFF" if l.autowrap_mode == TextServer.AUTOWRAP_OFF 			else "autowrap on"
+		var wrap := "AUTOWRAP OFF" if l.autowrap_mode == TextServer.AUTOWRAP_OFF \
+			else "autowrap on"
 		return "  [Label %s, %d chars: %s]" % [
 			wrap, l.text.length(), l.text.substr(0, 48).replace("
 ", " ")]

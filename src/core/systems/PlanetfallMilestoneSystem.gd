@@ -311,7 +311,8 @@ func resolve_calamity_check(campaign: Resource, final_milestone: bool) -> Array:
 				campaign, _d100("Planetfall Calamity Table"))
 		if calamity.is_empty():
 			return ["A Calamity would strike, but every Calamity has already occurred"]
-		return ["Calamity: %s" % str(calamity.get("name", "Unknown"))]
+		return ["Calamity: %s" % str(calamity.get("name", "Unknown"))] \
+				+ calamity.get("lines", [])
 	var lines: Array = ["No Calamity; %d Calamity Points carried forward"
 			% int(campaign.calamity_points)]
 	if final_milestone and campaign.has_method("set_milestone_flag"):
@@ -338,7 +339,10 @@ func owned_granting_sources(campaign: Resource) -> Array:
 	}
 	if "artifacts_found" in campaign:
 		for artifact in campaign.artifacts_found:
-			if artifact is Dictionary:
+			# p.136 Neo-ancient data cache: "When activated, this counts as completing a
+			# campaign Milestone." A Single-Use Artifact counts once it is USED, not found.
+			if artifact is Dictionary and not (str(artifact.get("type", "")) == "single_use"
+					and not bool(artifact.get("used", false))):
 				owned["alien_artifacts"].append(str(artifact.get("id", "")))
 	for category in SOURCE_CATEGORIES:
 		for id in owned[category]:

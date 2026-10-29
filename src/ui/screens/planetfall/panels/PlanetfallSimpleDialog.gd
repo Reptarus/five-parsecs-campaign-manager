@@ -62,6 +62,8 @@ var _selected_character_id: String = ""
 ## and a Dismiss box per roster character, keyed by id (p.69).
 var _replacement_offers: Array = []
 var _dismiss_checks: Dictionary = {}
+## Step 13: how many banked Swarm recruits to take this turn (p.168), or null.
+var _recruit_spin: SpinBox = null
 ## Step 17: each Change of assignment awaiting the player's answer (p.70),
 ## {character_id, mode_pick: OptionButton, buttons: Array, decided: bool}.
 var _assignment_choices: Array = []
@@ -100,6 +102,7 @@ func refresh() -> void:
 	_rm_spinner = null
 	_replacement_offers = []
 	_dismiss_checks = {}
+	_recruit_spin = null
 	_assignment_choices = []
 	if _title_label:
 		_title_label.text = _get_step_title().to_upper()
@@ -271,6 +274,29 @@ func _build_replacements_content() -> void:
 	_add_info_text("Current Roster: %d / %d" % [roster_size, capacity])
 	_add_info_text("Replacement Attempts Available: %d (1 + %d milestones)" % [attempts, milestones])
 
+	# p.168 Swarm reward: "recruit one trooper to your roster if you have a vacancy. You
+	# may save this for a later time. This recruit does not count against your available
+	# replacements." Chosen before the roll, like a dismissal, because it takes room.
+	var banked: int = int(_campaign.bonus_recruits) if "bonus_recruits" in _campaign else 0
+	if banked > 0:
+		_add_info_text("\nBanked Swarm recruits: %d (p.168). Each joins as a trooper and "
+				% banked + "uses no replacement attempt; one with no vacancy stays banked.")
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", SPACING_SM)
+		_content_vbox.add_child(row)
+		var lbl := Label.new()
+		lbl.text = "Recruit now:"
+		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+		row.add_child(lbl)
+		_recruit_spin = SpinBox.new()
+		_recruit_spin.min_value = 0
+		_recruit_spin.max_value = banked
+		_recruit_spin.step = 1
+		_recruit_spin.value = mini(banked, maxi(capacity - roster_size, 0))
+		_recruit_spin.custom_minimum_size = Vector2(120, 48)
+		row.add_child(_recruit_spin)
+
 	if roster_size >= capacity:
 		_add_info_text("\n[color=ui-warning]Roster is full. Dismiss a character below "
 				+ "before rolling to make room.[/color]")
@@ -398,8 +424,10 @@ func _resolve_replacements() -> void:
 		return
 	for check in _dismiss_checks.values():
 		(check as CheckBox).disabled = true
+	if _recruit_spin:
+		_recruit_spin.editable = false
 	var roster_size: int = (_campaign.roster.size() if "roster" in _campaign else 0) \
-			- _dismissed_ids().size()
+			- _dismissed_ids().size() + _recruits_taken()
 	var capacity: int = RosterRules.roster_capacity(_campaign)
 	if roster_size >= capacity:
 		_add_result_bbcode("Roster is full: no replacements needed.")
@@ -460,6 +488,16 @@ func _add_replacement_offer(char_class: String, choice: bool) -> void:
 	_replacement_offers.append({"class": char_class, "take": take, "pick": pick})
 
 
+## Banked recruits joining this turn: what the box asks for, capped by the room
+## left after dismissals (the phase manager applies the same cap).
+func _recruits_taken() -> int:
+	if not _recruit_spin:
+		return 0
+	var room: int = RosterRules.roster_capacity(_campaign) - _campaign.roster.size() \
+			+ _dismissed_ids().size()
+	return clampi(int(_recruit_spin.value), 0, maxi(room, 0))
+
+
 func _dismissed_ids() -> Array:
 	var out: Array = []
 	for id in _dismiss_checks:
@@ -481,6 +519,7 @@ func _collect_replacements() -> void:
 		taken.append({"class": cls})
 	_result_data["new_characters"] = taken
 	_result_data["dismissed"] = _dismissed_ids()
+	_result_data["bonus_recruits"] = _recruits_taken()
 
 
 func _resolve_character_event() -> void:

@@ -321,7 +321,8 @@ func test_final_panel_receives_all_data() -> void:
 	assert_bool(bool(members[0].get("is_captain", false))).override_failure_message(
 		"the captain must be members[0] and flagged is_captain"
 	).is_true()
-	assert_str(str(members[0].get("character_name", members[0].get("name", "")))) 		.is_equal("Final Panel Captain")
+	assert_str(str(members[0].get("character_name", members[0].get("name", "")))) \
+		.is_equal("Final Panel Captain")
 
 
 func test_final_panel_displays_without_errors() -> void:

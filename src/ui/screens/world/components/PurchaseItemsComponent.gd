@@ -568,8 +568,10 @@ func _update_ui_display() -> void:
 	var remaining_credits: int = current_credits - cart_total
 	var can_afford_roll = remaining_credits >= TABLE_ROLL_COST
 	if roll_military_button:
-		roll_military_button.disabled = 			remaining_credits < _weapon_cost(TABLE_ROLL_COST)
-		roll_military_button.text = "Military Weapon Table (%d cr)" 			% _weapon_cost(TABLE_ROLL_COST)
+		roll_military_button.disabled = \
+			remaining_credits < _weapon_cost(TABLE_ROLL_COST)
+		roll_military_button.text = "Military Weapon Table (%d cr)" \
+			% _weapon_cost(TABLE_ROLL_COST)
 	if roll_gear_button:
 		roll_gear_button.disabled = not can_afford_roll
 	if roll_gadget_button:

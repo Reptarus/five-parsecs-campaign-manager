@@ -114,6 +114,22 @@ func _build() -> void:
 	_import_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_import_btn.pressed.connect(_on_import_pressed)
 	actions.add_child(_import_btn)
+	var presets: Array = RosterRules.preset_crews()
+	for preset in presets:
+		if not preset is Dictionary:
+			continue
+		var preset_btn := Button.new()
+		preset_btn.name = "PresetCrew"
+		preset_btn.text = "Use %s" % str(preset.get("name", "the pre-made crew"))
+		preset_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		preset_btn.pressed.connect(func() -> void:
+			_roster = RosterRules.with_preset(_roster, preset)
+			_changed())
+		actions.add_child(preset_btn)
+	if not presets.is_empty():
+		content.add_child(_prose("The pre-made crew pictured in the book gives your characters "
+				+ "their names and portraits. The book gives that crew no profiles, so each "
+				+ "class and sub-species stays yours to pick.", UIColors.COLOR_TEXT_SECONDARY))
 
 	_problems = VBoxContainer.new()
 	_problems.add_theme_constant_override("separation", 4)
@@ -179,7 +195,22 @@ func _character_card(i: int) -> Control:
 	name_edit.text_changed.connect(func(t: String) -> void:
 		_roster[i]["name"] = t
 		roster_updated.emit(_roster.duplicate(true)))
-	box.add_child(name_edit)
+	var art: String = str(c.get("portrait_path", ""))
+	if art != "" and ResourceLoader.exists(art):
+		var head := HBoxContainer.new()
+		head.add_theme_constant_override("separation", 8)
+		var pic := TextureRect.new()
+		pic.name = "Portrait"
+		pic.texture = load(art)
+		pic.custom_minimum_size = Vector2(64, 64)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		head.add_child(pic)
+		head.add_child(name_edit)
+		box.add_child(head)
+	else:
+		box.add_child(name_edit)
 
 	var pickers := HFlowContainer.new()
 	pickers.add_theme_constant_override("h_separation", 8)

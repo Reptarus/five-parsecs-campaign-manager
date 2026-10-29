@@ -32,6 +32,7 @@ const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
 
 const OperationalRulesRef = preload(
 	"res://src/core/campaign/TacticsOperationalRules.gd")
+const ReceiptCardRef := preload("res://src/ui/components/common/ReceiptCard.gd")
 const OperationalTurnRef = preload(
 	"res://src/core/campaign/TacticsOperationalTurn.gd")
 const TouchScrollOpenerRef = preload(
@@ -171,9 +172,7 @@ func _render() -> void:
 		return
 
 	_render_status()
-	for r in _receipts:
-		if r is Dictionary and not (r.get("lines", []) as Array).is_empty():
-			_add_card(str(r.get("title", "")), "\n".join(PackedStringArray(r.lines)))
+	_render_receipts()
 	_render_zones()
 
 	match _stage:
@@ -261,7 +260,8 @@ func _render_zones() -> void:
 		if _stage == Stage.COMBAT and OperationalTurnRef.can_assault(zone, "player"):
 			var box2: VBoxContainer = card.get_child(0)
 			var ab := CheckBox.new()
-			ab.text = "Launch an assault: +1 Combat Die, but -1 Army Strength if you " 				+ "fail to win (p.98)"
+			ab.text = "Launch an assault: +1 Combat Die, but -1 Army Strength if you " \
+				+ "fail to win (p.98)"
 			ab.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			ab.button_pressed = _assault_zones.has(zid)
 			ab.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
@@ -572,15 +572,24 @@ func _add_card(card_title: String, body: String) -> PanelContainer:
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(t)
 
-	var b = Label.new()
-	b.text = body
-	b.add_theme_font_size_override("font_size", _scaled_font(14))
-	b.add_theme_color_override("font_color", COLOR_TEXT)
-	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vbox.add_child(b)
+	if not body.is_empty():
+		var b = Label.new()
+		b.text = body
+		b.add_theme_font_size_override("font_size", _scaled_font(14))
+		b.add_theme_color_override("font_color", COLOR_TEXT)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		vbox.add_child(b)
 
 	_content.add_child(card)
 	return card
+
+
+## Each STRATEGIC step's dice, one card per step, through the shared receipt (UX-6).
+func _render_receipts() -> void:
+	for r in _receipts:
+		if r is Dictionary and not (r.get("lines", []) as Array).is_empty():
+			var card: PanelContainer = _add_card(str(r.get("title", "")), "")
+			ReceiptCardRef.fill(card.get_child(0), r, Callable(), 14)
 
 
 ## Emit what the STRATEGIC phase resolved.

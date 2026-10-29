@@ -257,9 +257,13 @@ func _collect_overflowing(node: Node, limit: float, out: Array[String]) -> void:
 ## are asserted, so a guard that hid the card everywhere would also fail.
 func test_bug_hunt_battle_does_not_offer_the_5pfh_xp_card() -> void:
 	var standard := _make_form_for_mode("")
-	assert_bool(_has_label_containing(standard, "XP CREDIT")) 		.override_failure_message("a standard battle must still offer the p.123 XP card") 		.is_true()
+	assert_bool(_has_label_containing(standard, "XP CREDIT")) \
+		.override_failure_message("a standard battle must still offer the p.123 XP card") \
+		.is_true()
 	var bug_hunt := _make_form_for_mode("bug_hunt")
-	assert_bool(_has_label_containing(bug_hunt, "XP CREDIT")) 		.override_failure_message("Bug Hunt XP is p.204; the 5PFH p.123 card does nothing there") 		.is_false()
+	assert_bool(_has_label_containing(bug_hunt, "XP CREDIT")) \
+		.override_failure_message("Bug Hunt XP is p.204; the 5PFH p.123 card does nothing there") \
+		.is_false()
 	var result := _submit(bug_hunt)
 	assert_str(str(result.get("first_casualty_by", "x"))).is_equal("")
 

@@ -280,10 +280,15 @@ func resolve_injury_step(ctx: Dictionary) -> Dictionary:
 		_line(r, "%s is a civvy: civvies do not roll on the Injury table (p.66)."
 				% by_id.get(str(cid), {}).get("name", str(cid)))
 	var grunts: int = int(br.get("grunt_casualties", 0))
+	# p.79 Bolstered survival kit: "When testing for post-mission grunt survival, only a
+	# roll of a 1 is counted as a permanent casualty."
+	var kit: bool = "bolstered_survival_kit" in ctx.get("grunt_upgrades", [])
 	for i in range(maxi(grunts, 0)):
 		var roll: int = _dice.roll_d6("Planetfall Grunt Casualty")
 		var res: Dictionary = _dice.resolve_grunt_casualty(roll)
-		if bool(res.get("permanent", false)):
+		if kit and roll > 1 and bool(res.get("permanent", false)):
+			_line(r, "Grunt %d, D6 %d: okay, Bolstered survival kit (p.79)." % [i + 1, roll])
+		elif bool(res.get("permanent", false)):
 			_op(r, {"op": "grunt_lost"})
 			_line(r, "Grunt %d, D6 %d: lost to the colony (p.66)." % [i + 1, roll])
 		else:

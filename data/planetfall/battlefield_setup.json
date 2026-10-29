@@ -53,6 +53,10 @@
 			{"min": 95, "max": 100, "id": "remnants", "name": "Remnants", "description": "Animal carcass or bones."}
 		]
 	},
+	"make_adjustments": {
+		"_source": "Planetfall pp.144-145, Make Adjustments",
+		"description": "Review the table: swap features that would look better side by side, replace a piece that does not look right, and add a few scatter features (rocks, crystals, or trees) to any open space that would take more than two rounds to cross."
+	},
 	"map_adjustments": {
 		"description": "If your location on the world map is characterized by a particular terrain type, one cluster at the center of the table will always feature that terrain type."
 	}

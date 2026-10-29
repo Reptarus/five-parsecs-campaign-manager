@@ -10,7 +10,7 @@
     "End Phase"
   ],
   "differences_from_5pfh": {
-    "no_luck_stat": "Luck does not exist in Planetfall. Story Points at campaign level replace it.",
+    "no_luck_stat": "Planetfall characters have no Luck. An imported character receives 1 Kill Point per Luck point they would have had; optionally, use the Luck system from the original rules instead (p.26).",
     "no_seize_initiative": "There is no Seize the Initiative roll in Planetfall.",
     "class_based_activation": {
       "scientist_bot_civvy_grunt": "Move + single action",

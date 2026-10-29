@@ -5,6 +5,9 @@ extends Resource
 ## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+## Loaded when used, not preloaded: both reach back into the campaign's systems.
+const MISSION_DATA_SYSTEM := "res://src/core/systems/PlanetfallMissionDataSystem.gd"
+const MILESTONE_SYSTEM := "res://src/core/systems/PlanetfallMilestoneSystem.gd"
 
 ## Planetfall Campaign Core Resource
 ## Stores complete Planetfall colony campaign data for save/load operations.
@@ -150,6 +153,11 @@ var protest_sitout: Dictionary = {}
 var protest_pending: bool = false
 ## p.87 mitigation per instance of Colony Damage (Colony Shield Network grants 1).
 @export var colony_damage_mitigation: int = 0
+## p.136 Regenerative building material schematic: "Mitigate 1 point of building damage
+## per campaign turn". Unlike the per-instance mitigation above it is spent once a turn;
+## turn_mitigation_used_turn is the turn it was last spent.
+@export var turn_damage_mitigation: int = 0
+var turn_mitigation_used_turn: int = -1
 ## {"<turn>": {bp, rp}}: earned-income penalties (pp.88, 90).
 var income_penalties: Dictionary = {}
 ## {"bp": turn, "rp": turn}: the turn each per-turn income was last credited.
@@ -236,6 +244,9 @@ var active_calamities: Array = []
 
 ## Alien Artifacts found (unique per campaign — Planetfall pp.135-136)
 var artifacts_found: Array = []
+## p.136 Organic pattern booster: "A character that just died can be restored to life."
+## The characters who died THIS turn, as {character, turn}; older entries are dropped.
+var fallen_this_turn: Array = []
 
 ## Defeated Tactical Enemy indices (eliminated via Assault missions)
 var defeated_enemies: Array = []
@@ -252,6 +263,18 @@ var tutorial_bonuses: Dictionary = {}
 
 ## Sick Bay (character_id → turns_remaining)
 var sick_bay: Dictionary = {}
+## p.168 Virus: a character who falls ill "must stay in Sick Bay (they are being
+## quarantined) and can take no actions of any kind" until the cure. They are held in
+## `sick_bay`, so every reader of it keeps them out of play; the value here is the injury
+## time still owed underneath the quarantine, which release_quarantine() hands back.
+var quarantined: Dictionary = {}
+## p.168 Virus reward: "reduce any injury recovery times for injured characters by a
+## total of 4 turns ... You can save any of this effect for later." Turns still banked.
+var recovery_reduction_bank: int = 0
+## p.168 Swarm reward: "recruit one trooper to your roster if you have a vacancy. You may
+## save this for a later time. This recruit does not count against your available
+## replacements." Recruits still banked.
+var bonus_recruits: int = 0
 
 ## DLC flags snapshot
 var dlc_flags: Dictionary = {}
@@ -331,11 +354,6 @@ func get_active_roster() -> Array:
 	return active
 
 
-func initialize_map(data: Dictionary) -> void:
-	map_data = data.duplicate(true)
-	_update_modified_time()
-
-
 ## ============================================================================
 ## COLONY MANAGEMENT
 ## ============================================================================
@@ -356,13 +374,6 @@ func set_morale(value: int) -> void:
 	_update_modified_time()
 
 
-## Changes to the CURRENT score only. Colony Damage is take_colony_damage(), an
-## Integrity bonus is raise_integrity(), a repair is repair_colony().
-func adjust_integrity(amount: int) -> void:
-	colony_integrity += amount
-	_update_modified_time()
-
-
 ## One instance of Colony Damage (p.87). Buildings mitigate it unless the source says
 ## it cannot be mitigated (Colony Shield Network: "Mitigate 1 Colony Damage each time
 ## you receive Colony Damage"). Only the damage TAKEN lowers Morale: "Any time
@@ -372,6 +383,10 @@ func take_colony_damage(amount: int, mitigable: bool = true) -> Dictionary:
 	if amount <= 0:
 		return {"taken": 0, "mitigated": 0}
 	var mitigated: int = mini(amount, maxi(colony_damage_mitigation, 0)) if mitigable else 0
+	if mitigable and turn_damage_mitigation > 0 and amount > mitigated \
+			and turn_mitigation_used_turn != campaign_turn:
+		mitigated += mini(amount - mitigated, turn_damage_mitigation)
+		turn_mitigation_used_turn = campaign_turn
 	var taken: int = amount - mitigated
 	colony_integrity -= taken
 	adjust_morale(-taken)
@@ -458,6 +473,39 @@ func earn_research_points(amount: int) -> int:
 	return credited
 
 
+## Every Build Point the colony EARNS outside its turn income (a Delve's 2 BP, p.133).
+## p.90: in a Crisis "All sources of ... Build Points ... provide 1 point less". Returns
+## the points credited.
+func earn_build_points(amount: int) -> int:
+	var bp: int = crisis_adjusted_gain(maxi(amount, 0))
+	buildings_data["current_bp"] = int(buildings_data.get("current_bp", 0)) + bp
+	_update_modified_time()
+	return bp
+
+
+## p.127 Interruption: "All building and research projects that are only partially
+## completed lose all progress." A Theory part-paid is partial (p.92 "note down how many
+## RP you have already spent"); a building in progress is partial. Returns the lines.
+func lose_project_progress() -> Array:
+	var lost: Array = []
+	var bd_progress: Variant = buildings_data.get("in_progress", {})
+	if bd_progress is Dictionary and not (bd_progress as Dictionary).is_empty():
+		for bid in (bd_progress as Dictionary).keys():
+			lost.append(str(bid).capitalize())
+		buildings_data["in_progress"] = {}
+	var tp: Variant = research_data.get("theory_progress", {})
+	var done: Array = research_data.get("completed_theories", [])
+	if tp is Dictionary:
+		for tid in (tp as Dictionary).keys():
+			if tid not in done and int(tp[tid]) > 0:
+				lost.append(str(tid).capitalize())
+				(tp as Dictionary).erase(tid)
+	_update_modified_time()
+	if lost.is_empty():
+		return ["No project was part-way through: nothing is lost (p.127)."]
+	return ["Progress lost on: %s (p.127)." % ", ".join(lost)]
+
+
 ## p.63 Public relations demand: the character sits out every mission this turn.
 func assign_event_sitout(character_id: String) -> void:
 	event_sitout = {"character_id": character_id, "turn": campaign_turn}
@@ -470,6 +518,12 @@ func assign_event_sitout(character_id: String) -> void:
 func reduce_recovery(character_id: String, turns: int) -> int:
 	if not sick_bay.has(character_id):
 		return 0
+	if quarantined.has(character_id):
+		# p.168: only the cure ends a quarantine; the injury beneath it still shortens.
+		quarantined[character_id] = maxi(int(quarantined[character_id]) - maxi(turns, 0), 0)
+		sick_bay[character_id] = maxi(int(quarantined[character_id]), 1)
+		_update_modified_time()
+		return int(sick_bay[character_id])
 	var left: int = int(sick_bay[character_id]) - maxi(turns, 0)
 	if left <= 0:
 		sick_bay.erase(character_id)
@@ -552,12 +606,24 @@ func get_musterable_roster() -> Array:
 ## p.69 Step 13: "Dismissed characters cannot be returned to the campaign later." They
 ## leave the roster and the turn records exactly as a death does.
 func dismiss_character(character_id: String) -> void:
-	slay_character(character_id)
+	slay_character(character_id, false)
 
 
 ## A character who dies leaves the roster and every turn record that names them.
-func slay_character(character_id: String) -> void:
+func slay_character(character_id: String, died: bool = true) -> void:
+	var who: Variant = get_roster_character_by_id(character_id)
+	quarantined.erase(character_id)
+	if died and who is Dictionary:
+		_prune_fallen()
+		fallen_this_turn.append({"character": (who as Dictionary).duplicate(true),
+				"turn": campaign_turn})
 	remove_roster_character(character_id)
+	# p.135: Artifact equipment "If the character dies or leaves the campaign, the item
+	# is lost." It stays found: Artifacts are unique, so it is never rolled again.
+	for a in artifacts_found:
+		if a is Dictionary and str(a.get("carrier", "")) == character_id:
+			a["carrier"] = ""
+			a["lost"] = true
 	sick_bay.erase(character_id)
 	if str(protest_sitout.get("character_id", "")) == character_id:
 		protest_sitout = {}
@@ -764,6 +830,11 @@ func clear_character_note(character_id: String, key: String) -> void:
 
 ## p.70 Something in the water: "increase their recovery time by 1 turn".
 func extend_recovery(character_id: String, turns: int) -> void:
+	if quarantined.has(character_id):
+		quarantined[character_id] = int(quarantined[character_id]) + maxi(turns, 0)
+		sick_bay[character_id] = maxi(int(quarantined[character_id]), 1)
+		_update_modified_time()
+		return
 	if sick_bay.has(character_id):
 		sick_bay[character_id] = int(sick_bay[character_id]) + maxi(turns, 0)
 		_update_modified_time()
@@ -797,14 +868,75 @@ func add_story_points(amount: int) -> void:
 ## ============================================================================
 
 func add_to_sick_bay(character_id: String, turns: int) -> void:
-	sick_bay[character_id] = turns
+	if quarantined.has(character_id):
+		quarantined[character_id] = turns
+		sick_bay[character_id] = maxi(turns, 1)
+	else:
+		sick_bay[character_id] = turns
 	_update_modified_time()
+
+
+## p.168: quarantined until the cure. Any injury time already owed stays owed beneath it.
+func quarantine(character_id: String) -> void:
+	if quarantined.has(character_id):
+		return
+	var owed: int = int(sick_bay.get(character_id, 0))
+	quarantined[character_id] = owed
+	sick_bay[character_id] = maxi(owed, 1)
+	_update_modified_time()
+
+
+func is_quarantined(character_id: String) -> bool:
+	return quarantined.has(character_id)
+
+
+## p.168: "your characters recover immediately". The quarantine ends; injury time owed
+## underneath it stays. Returns the ids released.
+func release_quarantine() -> Array:
+	var released: Array = quarantined.keys()
+	for cid in released:
+		var owed: int = int(quarantined[cid])
+		if owed > 0:
+			sick_bay[cid] = owed
+		else:
+			sick_bay.erase(cid)
+	quarantined.clear()
+	_update_modified_time()
+	return released
+
+
+## Spend banked Virus recovery turns (p.168) on one character in Sick Bay. Returns the
+## turns spent (never more than the bank or than the character still owes).
+func spend_recovery_reduction(character_id: String, turns: int) -> int:
+	if not sick_bay.has(character_id):
+		return 0
+	var owed: int = int(quarantined.get(character_id, sick_bay[character_id]))
+	var spend: int = mini(mini(maxi(turns, 0), recovery_reduction_bank), owed)
+	if spend <= 0:
+		return 0
+	recovery_reduction_bank -= spend
+	reduce_recovery(character_id, spend)
+	return spend
+
+
+## Spend one banked Swarm recruit (p.168). False when none is banked.
+func take_bonus_recruit() -> bool:
+	if bonus_recruits <= 0:
+		return false
+	bonus_recruits -= 1
+	_update_modified_time()
+	return true
 
 
 func tick_sick_bay() -> Array[String]:
 	var recovered: Array[String] = []
 	var to_remove: Array[String] = []
 	for cid in sick_bay:
+		if quarantined.has(cid):
+			# p.168: held until the cure; the injury beneath still heals.
+			quarantined[cid] = maxi(int(quarantined[cid]) - 1, 0)
+			sick_bay[cid] = maxi(int(quarantined[cid]), 1)
+			continue
 		sick_bay[cid] -= 1
 		if sick_bay[cid] <= 0:
 			recovered.append(cid)
@@ -865,34 +997,9 @@ func clear_extra_rolls(kind: String) -> void:
 		_update_modified_time()
 
 
-func is_endgame_eligible() -> bool:
-	return milestones_completed >= 7
-
-
 ## ============================================================================
 ## SECTION 3+4 HELPERS (Conditions, Lifeforms, Enemies, Artifacts)
 ## ============================================================================
-
-func add_condition(slot: int, condition: Dictionary) -> void:
-	while condition_table.size() < 10:
-		condition_table.append({})
-	if slot >= 0 and slot < 10:
-		condition_table[slot] = condition.duplicate(true)
-		_update_modified_time()
-
-
-func get_lifeform_at_slot(slot: int) -> Dictionary:
-	if slot >= 0 and slot < lifeform_table.size():
-		var entry: Variant = lifeform_table[slot]
-		if entry is Dictionary:
-			return entry
-	return {}
-
-
-func add_tactical_enemy(enemy: Dictionary) -> void:
-	tactical_enemies.append(enemy.duplicate(true))
-	_update_modified_time()
-
 
 func mark_enemy_defeated(enemy_index: int) -> void:
 	if enemy_index >= 0 and enemy_index < tactical_enemies.size():
@@ -928,6 +1035,223 @@ func add_artifact(artifact: Dictionary) -> bool:
 	return true
 
 
+## p.135: "Artifacts can belong to one of three types". A Colony Item "becomes part of
+## your colony", so it takes effect the moment it is found; a Single-Use item waits to be
+## activated; Equipment waits to be given to a character. An empty artifact means the
+## whole table has been found: p.135 treats such a Find as "1 Research Point, 1 Build
+## Point, and 1 unit of Raw Materials". Returns the lines the player reads.
+func acquire_artifact(artifact: Dictionary) -> Array:
+	if artifact.is_empty():
+		earn_research_points(crisis_adjusted_gain(1))
+		earn_build_points(1)
+		add_raw_materials(1)
+		return ["Every Artifact has been found: the Find is 1 Research Point, 1 Build Point "
+				+ "and 1 unit of Raw Materials instead (p.135)."]
+	var entry: Dictionary = artifact.duplicate(true)
+	match str(entry.get("type", "")):
+		"single_use":
+			entry["used"] = false
+		"equipment":
+			entry["carrier"] = ""
+	if not add_artifact(entry):
+		return ["%s was already found: Artifacts are unique (p.135)."
+				% str(entry.get("name", "?"))]
+	var lines: Array = ["Alien Artifact found: %s (%s). %s" % [str(entry.get("name", "?")),
+			str(entry.get("type", "")).replace("_", "-").capitalize(),
+			str(entry.get("description", ""))]]
+	if str(entry.get("type", "")) == "colony_item":
+		lines.append(_apply_colony_item(entry.get("effect", {})))
+	elif str(entry.get("type", "")) == "single_use":
+		lines.append("It is kept until you choose to activate it (p.135).")
+	else:
+		lines.append("Give it to a character on the Equipment screen; it is lost if they "
+				+ "die or leave (p.135).")
+	return lines
+
+
+## A Colony Item's effect, applied once when it is found (pp.135-136).
+func _apply_colony_item(effect: Dictionary) -> String:
+	if effect.has("repair_rate_bonus"):
+		repair_capacity += int(effect.repair_rate_bonus)
+		return "Colony Repair Rate is now %d (p.135)." % repair_capacity
+	if effect.has("research_points_per_turn"):
+		research_points_per_turn += int(effect.research_points_per_turn)
+		return "Research Points per turn are now %d (p.135)." % research_points_per_turn
+	if effect.has("build_points_per_turn"):
+		build_points_per_turn += int(effect.build_points_per_turn)
+		return "Build Points per turn are now %d (p.135)." % build_points_per_turn
+	if effect.has("colony_defenses_bonus"):
+		colony_defenses += int(effect.colony_defenses_bonus)
+		return "Colony Defenses are now %d (p.135)." % colony_defenses
+	if effect.has("building_damage_mitigation"):
+		turn_damage_mitigation += int(effect.building_damage_mitigation)
+		return "1 point of Colony Damage is mitigated each campaign turn (p.136)."
+	return ""
+
+
+## p.121 Hunt: "If you obtain a sample from two Lifeforms, it authorizes you to carry out
+## Bio-Analysis Research (see page 92)". The sample belongs to that creature's entry, so a
+## profile change (p.92, evolution) that replaces the entry takes it with it.
+func record_lifeform_sample(slot: int) -> Array:
+	if slot < 0 or slot >= lifeform_table.size() or not lifeform_table[slot] is Dictionary \
+			or (lifeform_table[slot] as Dictionary).is_empty():
+		return ["No Lifeform encounter entry was recorded for the samples (p.121)."]
+	var entry: Dictionary = lifeform_table[slot]
+	entry["sampled"] = true
+	_update_modified_time()
+	return ["Samples of %s authorize Bio-Analysis Research on it (pp.92, 121)."
+			% str(entry.get("name", "encounter entry %d" % (slot + 1)))]
+
+
+## ============================================================================
+## ARTIFACTS IN USE (pp.135-136)
+## ============================================================================
+
+## Who a Single-Use Artifact acts on: "" none, "roster" a living character, "fallen" a
+## character who died this turn (Organic pattern booster).
+static func artifact_target(artifact: Dictionary) -> String:
+	var effect: Dictionary = artifact.get("effect", {})
+	if effect.has("resurrect_character"):
+		return "fallen"
+	for key in ["permanent_toughness_bonus", "permanent_speed_bonus", "character_xp"]:
+		if effect.has(key):
+			return "roster"
+	return ""
+
+
+func get_found_artifact(artifact_id: String) -> Dictionary:
+	for a in artifacts_found:
+		if a is Dictionary and str(a.get("id", "")) == artifact_id:
+			return a
+	return {}
+
+
+## p.135 Single-Use: "Once they have been activated to receive the bonus in question,
+## they are gone. You can choose when to use them". Returns the lines, or one refusal.
+func use_artifact(artifact_id: String, character_id: String = "") -> Array:
+	var a: Dictionary = get_found_artifact(artifact_id)
+	if a.is_empty() or str(a.get("type", "")) != "single_use":
+		return ["That is not a Single-Use Artifact the colony holds."]
+	if bool(a.get("used", false)):
+		return ["%s has already been used (p.135)." % str(a.get("name", "?"))]
+	var target: String = artifact_target(a)
+	var who: Dictionary = {}
+	if target == "roster":
+		var c: Variant = get_roster_character_by_id(character_id)
+		if not c is Dictionary:
+			return ["Choose a character on the roster for %s." % str(a.get("name", "?"))]
+		who = c
+	elif target == "fallen":
+		who = _fallen(character_id)
+		if who.is_empty():
+			return ["Only a character who died this campaign turn can be restored (p.136)."]
+	var lines: Array = []
+	var effect: Dictionary = a.get("effect", {})
+	if effect.has("heal_all_sick_bay"):
+		var healed: Array = sick_bay.keys()
+		for cid in healed:
+			reduce_recovery(str(cid), 999)
+		lines.append("%d character(s) leave Sick Bay fully recovered (p.135)." % healed.size())
+	if effect.has("research_cost_halved_count"):
+		research_data["cost_halved_remaining"] = int(research_data.get(
+				"cost_halved_remaining", 0)) + int(effect.research_cost_halved_count)
+		lines.append("The next %d research topics cost half, rounded up (p.136)."
+				% int(effect.research_cost_halved_count))
+	if effect.has("augmentation_points"):
+		augmentation_points += int(effect.augmentation_points)
+		lines.append("+%d Augmentation Point(s) (p.136)." % int(effect.augmentation_points))
+	if effect.has("colony_integrity"):
+		lines.append("%d point(s) of Colony Integrity restored (p.136)."
+				% repair_colony(int(effect.colony_integrity)))
+	if effect.has("colony_morale"):
+		adjust_morale(int(effect.colony_morale))
+		lines.append("Colony Morale +%d (p.136)." % int(effect.colony_morale))
+	if effect.has("story_points"):
+		add_story_points(int(effect.story_points))
+		lines.append("+%d Story Points (p.136)." % int(effect.story_points))
+	if effect.has("permanent_toughness_bonus"):
+		who["toughness"] = int(who.get("toughness", 0)) + int(effect.permanent_toughness_bonus)
+		lines.append("%s's Toughness is permanently %d (p.136)." % [str(who.get("name", "?")),
+				int(who.toughness)])
+	if effect.has("permanent_speed_bonus"):
+		who["speed"] = int(who.get("speed", 0)) + int(effect.permanent_speed_bonus)
+		lines.append("%s's Speed is permanently %d\" (p.136)." % [str(who.get("name", "?")),
+				int(who.speed)])
+	if effect.has("character_xp"):
+		award_xp(str(who.get("id", "")), int(effect.character_xp))
+		lines.append("%s gains %d XP (p.136)." % [str(who.get("name", "?")),
+				int(effect.character_xp)])
+	if effect.has("resurrect_character"):
+		for i in range(fallen_this_turn.size() - 1, -1, -1):
+			if str((fallen_this_turn[i] as Dictionary).get("character", {}).get("id", "")) \
+					== str(who.get("id", "")):
+				fallen_this_turn.remove_at(i)
+		add_roster_character(who)
+		lines.append("%s is restored to life (p.136)." % str(who.get("name", "?")))
+	a["used"] = true
+	if effect.has("mission_data"):
+		lines.append_array(load(MISSION_DATA_SYSTEM).new().note(self,
+				int(effect.mission_data), str(a.get("name", "the Artifact"))))
+	if effect.has("grants_milestone"):
+		# p.136: "When activated, this counts as completing a campaign Milestone."
+		lines.append_array(load(MILESTONE_SYSTEM).new().deliver_new_milestones(self)
+				.get("lines", []))
+	_update_modified_time()
+	return ["%s is used." % str(a.get("name", "?"))] + lines
+
+
+## p.135 Equipment: "Artifact equipment is given to a specific character and cannot be
+## traded away later. If the character dies or leaves the campaign, the item is lost."
+## "Artifact weapons can be used by any character, regardless of class."
+func give_artifact(artifact_id: String, character_id: String) -> Array:
+	var a: Dictionary = get_found_artifact(artifact_id)
+	if a.is_empty() or str(a.get("type", "")) != "equipment":
+		return ["That is not Artifact equipment the colony holds."]
+	if bool(a.get("lost", false)):
+		return ["%s was lost with its carrier (p.135)." % str(a.get("name", "?"))]
+	if str(a.get("carrier", "")) != "":
+		return ["%s cannot be traded away once given (p.135)." % str(a.get("name", "?"))]
+	var c: Variant = get_roster_character_by_id(character_id)
+	if not c is Dictionary:
+		return ["Choose a character on the roster."]
+	a["carrier"] = character_id
+	_update_modified_time()
+	return ["%s is given to %s for good (p.135)." % [str(a.get("name", "?")),
+			str((c as Dictionary).get("name", "?"))]]
+
+
+## The Artifact equipment a character carries (shown wherever the character is).
+func artifacts_carried_by(character_id: String) -> Array:
+	var out: Array = []
+	for a in artifacts_found:
+		if a is Dictionary and str(a.get("carrier", "")) == character_id:
+			out.append(a)
+	return out
+
+
+## Characters who died this campaign turn, for the Organic pattern booster.
+func fallen_now() -> Array:
+	_prune_fallen()
+	var out: Array = []
+	for f in fallen_this_turn:
+		out.append((f as Dictionary).get("character", {}))
+	return out
+
+
+func _fallen(character_id: String) -> Dictionary:
+	for c in fallen_now():
+		if c is Dictionary and str(c.get("id", "")) == character_id:
+			return (c as Dictionary).duplicate(true)
+	return {}
+
+
+func _prune_fallen() -> void:
+	for i in range(fallen_this_turn.size() - 1, -1, -1):
+		var f: Variant = fallen_this_turn[i]
+		if not f is Dictionary or int(f.get("turn", -1)) != campaign_turn:
+			fallen_this_turn.remove_at(i)
+
+
 func has_artifact(artifact_id: String) -> bool:
 	for existing in artifacts_found:
 		if existing is Dictionary and existing.get("id", "") == artifact_id:
@@ -954,9 +1278,10 @@ func get_enemy_info_count(enemy_index: int) -> int:
 
 
 ## Record a mission a pre-battle step offers for THIS turn (see mission_offers).
-func offer_mission(mission_id: String, details: Dictionary = {}) -> void:
+## `turn` defaults to this one; p.167's Swarm offers a Pitched Battle "next campaign turn".
+func offer_mission(mission_id: String, details: Dictionary = {}, turn: int = -1) -> void:
 	var offer: Dictionary = details.duplicate(true)
-	offer["turn"] = campaign_turn
+	offer["turn"] = campaign_turn if turn < 0 else turn
 	mission_offers[mission_id] = offer
 	_update_modified_time()
 
@@ -969,14 +1294,22 @@ func get_mission_offer(mission_id: String) -> Dictionary:
 	return {}
 
 
-func clear_mission_offer(mission_id: String) -> void:
-	mission_offers.erase(mission_id)
-	_update_modified_time()
-
-
+## Whether a mission's Slyn check still rolls. p.153: the Slyn attack whenever "each
+## mission description" says to roll for them, from the first turn. p.157: once they
+## "decide to leave you alone", they "will no longer attack for the rest of this campaign".
+## ⚠ Until 2026-10-28 this also required 4 Milestones, a gate in neither page. It had no
+## caller, so the wrong gate suppressed nothing, and the departure was never honoured.
 func is_slyn_active() -> bool:
-	## Slyn attacks begin from 4th milestone and end when slyn_departed is true.
-	return milestones_completed >= 4 and not slyn_departed
+	return not slyn_departed
+
+
+## p.157: one more victory over the Slyn since the 4th Milestone. `departed` is the
+## verdict of the 2D6 the Rewards step rolled against the new count.
+func record_slyn_victory(departed: bool) -> void:
+	slyn_victories += 1
+	if departed:
+		slyn_departed = true
+	_update_modified_time()
 
 
 func add_mission_data_points(amount: int) -> void:
@@ -1051,59 +1384,12 @@ func get_augmentation_count() -> int:
 
 
 ## ============================================================================
-## VALIDATION
+## CAMPAIGN LIFECYCLE
 ## ============================================================================
 
-func validate() -> bool:
-	if campaign_name.is_empty():
-		return false
-	if roster.size() < 3:
-		return false
-	return true
-
-
-func get_validation_errors() -> Array[String]:
-	var errors: Array[String] = []
-	if campaign_name.is_empty():
-		errors.append("Pick a name for your campaign. Anything memorable works.")
-	if roster.size() < 3:
-		errors.append("Planetfall needs at least 3 roster characters. Add a few in the Roster step.")
-	if roster.size() > 10:
-		errors.append("Planetfall caps at 10 roster characters. Remove someone to continue.")
-	# Check class minimums
-	var class_counts := {"scientist": 0, "scout": 0, "trooper": 0}
-	for char_dict in roster:
-		var cls: String = char_dict.get("class", "")
-		if class_counts.has(cls):
-			class_counts[cls] += 1
-	for cls in class_counts:
-		if class_counts[cls] < 1:
-			errors.append("Roster must include at least one %s" % cls)
-	return errors
-
-
-## ============================================================================
-## CAMPAIGN SUMMARY
-## ============================================================================
-
-func get_campaign_summary() -> Dictionary:
-	return {
-		"name": campaign_name,
-		"type": "planetfall",
-		"colony": colony_name,
-		"expedition": expedition_type,
-		"difficulty": difficulty,
-		"roster_size": roster.size(),
-		"grunts": grunts,
-		"campaign_turn": campaign_turn,
-		"milestones": milestones_completed,
-		"morale": colony_morale,
-		"integrity": colony_integrity,
-		"story_points": story_points,
-		"created": created_at,
-		"status": game_phase
-	}
-
+## validate() / get_validation_errors() were deleted 2026-10-28: zero callers, and
+## they enforced a 3-10 roster with one of each class, a rule in neither book. The
+## roster rule is PlanetfallRosterRules (pp.14-20), which the creation wizard reads.
 
 func start_campaign() -> void:
 	game_phase = "active"
@@ -1161,6 +1447,8 @@ func to_dictionary() -> Dictionary:
 			"protest_sitout": protest_sitout.duplicate(),
 			"protest_pending": protest_pending,
 			"colony_damage_mitigation": colony_damage_mitigation,
+			"turn_damage_mitigation": turn_damage_mitigation,
+			"turn_mitigation_used_turn": turn_mitigation_used_turn,
 			"income_penalties": income_penalties.duplicate(true),
 			"income_credited": income_credited.duplicate(),
 			"research_points_wasted": research_points_wasted,
@@ -1201,10 +1489,14 @@ func to_dictionary() -> Dictionary:
 		"ancient_signs": ancient_signs.duplicate(true),
 		"active_calamities": active_calamities.duplicate(true),
 		"artifacts_found": artifacts_found.duplicate(true),
+		"fallen_this_turn": fallen_this_turn.duplicate(true),
 		"defeated_enemies": defeated_enemies.duplicate(),
 		"tutorial_missions": tutorial_missions.duplicate(),
 		"tutorial_bonuses": tutorial_bonuses.duplicate(),
 		"sick_bay": sick_bay.duplicate(),
+		"quarantined": quarantined.duplicate(),
+		"recovery_reduction_bank": recovery_reduction_bank,
+		"bonus_recruits": bonus_recruits,
 		"dlc_flags": dlc_flags.duplicate(),
 		"stashed_equipment": stashed_equipment.duplicate(true),
 		"original_character_snapshots": original_character_snapshots.duplicate(true),
@@ -1268,6 +1560,8 @@ func from_dictionary(data: Dictionary) -> void:
 		protest_sitout = (ps as Dictionary).duplicate() if ps is Dictionary else {}
 		protest_pending = bool(colony.get("protest_pending", false))
 		colony_damage_mitigation = int(colony.get("colony_damage_mitigation", 0))
+		turn_damage_mitigation = int(colony.get("turn_damage_mitigation", 0))
+		turn_mitigation_used_turn = int(colony.get("turn_mitigation_used_turn", -1))
 		var ip: Variant = colony.get("income_penalties", {})
 		income_penalties = (ip as Dictionary).duplicate(true) if ip is Dictionary else {}
 		var ic: Variant = colony.get("income_credited", {})
@@ -1325,10 +1619,16 @@ func from_dictionary(data: Dictionary) -> void:
 	ancient_signs = data.get("ancient_signs", []).duplicate(true)
 	active_calamities = data.get("active_calamities", []).duplicate(true)
 	artifacts_found = data.get("artifacts_found", []).duplicate(true)
+	var fallen: Variant = data.get("fallen_this_turn", [])
+	fallen_this_turn = (fallen as Array).duplicate(true) if fallen is Array else []
 	defeated_enemies = data.get("defeated_enemies", []).duplicate()
 	tutorial_missions = data.get("tutorial_missions", {"beacons": false, "analysis": false, "perimeter": false}).duplicate()
 	tutorial_bonuses = data.get("tutorial_bonuses", {}).duplicate()
 	sick_bay = data.get("sick_bay", {}).duplicate()
+	var held: Variant = data.get("quarantined", {})
+	quarantined = (held as Dictionary).duplicate() if held is Dictionary else {}
+	recovery_reduction_bank = int(data.get("recovery_reduction_bank", 0))
+	bonus_recruits = int(data.get("bonus_recruits", 0))
 	dlc_flags = data.get("dlc_flags", {}).duplicate()
 	stashed_equipment = data.get("stashed_equipment", {}).duplicate(true)
 	original_character_snapshots = data.get("original_character_snapshots", {}).duplicate(true)

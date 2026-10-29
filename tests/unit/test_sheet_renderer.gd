@@ -225,11 +225,14 @@ func test_set_blank_mode_toggles_field_visibility() -> void:
 	# behaviour. The T11-06 fix moved the fields under a transformed FieldLayer and the
 	# case went red with blank mode working perfectly. What matters is that no VALUE is
 	# painted, so assert exactly that.
-	assert_int(_visible_field_count(r)).is_equal(0) 		.override_failure_message(
-			"blank_mode=true should hide all field overlays; %d still visible" 				% _visible_field_count(r))
+	assert_int(_visible_field_count(r)).is_equal(0) \
+		.override_failure_message(
+			"blank_mode=true should hide all field overlays; %d still visible" \
+				% _visible_field_count(r))
 	# Toggle back.
 	r.set_blank_mode(false)
-	assert_int(_visible_field_count(r)).is_greater(0) 		.override_failure_message(
+	assert_int(_visible_field_count(r)).is_greater(0) \
+		.override_failure_message(
 			"blank_mode=false should restore field visibility")
 
 
@@ -281,8 +284,10 @@ func test_field_nodes_keep_their_manifest_rect_at_every_display_size() -> void:
 			if err > worst:
 				worst = err
 				worst_name = "%s src=%s got=%s" % [node.name, src, got]
-		assert_float(worst).is_less(0.01) 			.override_failure_message(
-				("field rects must stay in SOURCE pixels at renderer size %s; " 				+ "worst error %.2f px on %s") % [box, worst, worst_name])
+		assert_float(worst).is_less(0.01) \
+			.override_failure_message(
+				("field rects must stay in SOURCE pixels at renderer size %s; " \
+				+ "worst error %.2f px on %s") % [box, worst, worst_name])
 
 
 func test_no_two_populated_fields_overlap_at_a_phone_size() -> void:
@@ -315,7 +320,8 @@ func test_no_two_populated_fields_overlap_at_a_phone_size() -> void:
 	# A floor on the fixture itself. The first version of this case populated only 3
 	# crew members and found a ONE-pair margin against the defect, which is the shape
 	# that lets a detection proof quietly stop detecting.
-	assert_int(rects.size()).is_greater(100) 		.override_failure_message(
+	assert_int(rects.size()).is_greater(100) \
+		.override_failure_message(
 			("fixture rendered only %d populated fields; this case needs a DENSE "
 			+ "sheet or it stops discriminating") % rects.size())
 
@@ -325,8 +331,10 @@ func test_no_two_populated_fields_overlap_at_a_phone_size() -> void:
 			# grow(-0.5): a shared border is adjacency, not an overlap.
 			if (rects[i] as Rect2).grow(-0.5).intersects((rects[j] as Rect2).grow(-0.5)):
 				collisions.append("%s over %s" % [names[i], names[j]])
-	assert_int(collisions.size()).is_equal(0) 		.override_failure_message(
-			"populated fields must not overlap; %d pairs, first: %s" 				% [collisions.size(), collisions[0] if collisions.size() > 0 else ""])
+	assert_int(collisions.size()).is_equal(0) \
+		.override_failure_message(
+			"populated fields must not overlap; %d pairs, first: %s" \
+				% [collisions.size(), collisions[0] if collisions.size() > 0 else ""])
 
 
 func test_the_field_layer_carries_the_display_scale() -> void:
@@ -334,7 +342,8 @@ func test_the_field_layer_carries_the_display_scale() -> void:
 	r.render_sheet("crew_log", _make_data_context())
 	r.size = Vector2(421, 362)
 	var layer: Control = r.get_node_or_null("FieldLayer") as Control
-	assert_object(layer).is_not_null() 		.override_failure_message("the renderer must own a FieldLayer")
+	assert_object(layer).is_not_null() \
+		.override_failure_message("the renderer must own a FieldLayer")
 	# The layer's transform IS the display scale — if these diverge the fields no longer
 	# line up with the background PNG, which is the failure the shared _content_fit()
 	# exists to prevent.

@@ -36,6 +36,7 @@ var _section_bodies: Array[RichTextLabel] = []
 var _scroll: ScrollContainer
 var _vbox: VBoxContainer
 var _title_label: Label
+var _rules_mode: String = "core"
 
 func _ready() -> void:
 	_build_sections_data()
@@ -190,6 +191,37 @@ func collapse_all() -> void:
 	for i in range(_section_bodies.size()):
 		_section_bodies[i].visible = false
 		_section_buttons[i].text = "[+] %s" % _sections[i].title
+
+## A Planetfall battle reads Planetfall's combat rules (pp.26-40) instead of the Core Rules
+## sections: "Some rules have been tailored to the characters and combat environments of
+## Planetfall" (p.28). Until 2026-10-28 every battle mode got the Core Rules sheet, so a
+## colonist was told about Luck and Seize the Initiative, neither of which Planetfall has.
+## A "This Battle" section already inserted stays on top.
+func set_rules_mode(mode: String) -> void:
+	if mode == _rules_mode or _vbox == null:
+		return
+	_rules_mode = mode
+	if mode == "planetfall":
+		_sections.clear()
+		for s in CheatSheetSectionsRef.planetfall_sections():
+			_sections.append(s)
+		_title_label.text = "Planetfall Quick Reference"
+	else:
+		_build_sections_data()
+		_title_label.text = "Quick Reference"
+	for child in _vbox.get_children():
+		if child.name != "_battle_header" and child.name != "_battle_body":
+			_vbox.remove_child(child)
+			child.queue_free()
+	_section_buttons.clear()
+	_section_bodies.clear()
+	for i in range(_sections.size()):
+		_build_section(i, str(_sections[i].title), str(_sections[i].content))
+	for keep_name in ["_battle_body", "_battle_header"]:
+		var keep: Node = _vbox.get_node_or_null(keep_name)
+		if keep:
+			_vbox.move_child(keep, 0)
+
 
 ## Session 48: Set battle context and insert "This Battle" section at top.
 func set_battle_context(data: Dictionary) -> void:
@@ -682,5 +714,3 @@ func _escalating_battles_text() -> String:
 
 [b]Variation Mode:[/b] Duplicate results = no effect (doesn't count toward limit)
 [color=#D97706]NOT compatible with No-Minis Combat[/color]"""
-
-

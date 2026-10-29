@@ -75,6 +75,8 @@ const POPULATE: Dictionary = {
 	"res://src/ui/screens/world/WorldPhaseController.tscn": "world_phase",
 	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn": "bug_hunt",
 	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn": "bug_hunt",
+	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn": "planetfall",
+	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn": "planetfall",
 }
 
 var _root: Node = null
@@ -473,10 +475,10 @@ func _post_equipment_generation(inst: Node) -> void:
 ##
 ## ⚠ THIS WRITES A SHARED AUTOLOAD FIELD. The caller must put it back after the
 ## screen, or every 5PFH screen swept afterwards aborts against a BugHuntCampaignCore.
-## test_touch_scroll_sweep.gd:_sweep() holds and restores it. verify_layout.gd and
-## verify_rotation.gd list no Bug Hunt screen today (measured: zero "bug_hunt"
-## occurrences in either), so they never dispatch here -- add the restore before adding
-## one.
+## test_touch_scroll_sweep.gd:_sweep() holds and restores it, and verify_layout.gd puts
+## its baseline campaign back before every screen (_populate_pre). verify_rotation.gd
+## lists no variant-mode screen, so it never dispatches here -- add the restore before
+## adding one.
 ##
 ## BugHuntCreationUI.tscn deliberately has NO entry: it references GameState nowhere and
 ## builds its own wizard content, so it is already measured populated (nodes=101).
@@ -503,4 +505,59 @@ func _pre_bug_hunt() -> void:
 	# phase here, not the 5PFH "absent" sentinel.
 	core.campaign_turn = 1
 	core.current_turn_phase = 0
+	gs.current_campaign = core
+
+
+## Planetfall (added 2026-10-28). PlanetfallDashboard and PlanetfallTurnController read
+## GameState.current_campaign through PlanetfallScreenBase._get_planetfall_campaign() and
+## nothing else, so the fixture is a colony on that field.
+##
+## ⚠ THE SAME TEARDOWN RISK AS BUG HUNT, SO THE SAME ORDER. PlanetfallTurnController.
+## _load_campaign() routes to main_menu when the loaded campaign has no `roster`, which is
+## any 5PFH core, so the field is cleared FIRST and every early return leaves it null.
+##
+## The colony is founded the way the wizard founds one: PlanetfallCreationCoordinator.
+## build_campaign() (never finalize(), which saves and navigates), the recommended p.14
+## roster from PlanetfallRosterRules.standard_character(), and backgrounds rolled by
+## PlanetfallBackgrounds.roll_character() with the first experienced_count() characters
+## experienced, as the Backgrounds step asks. The fixture invents no value.
+##
+## Mid-turn, not turn zero: turn 1 on turn_phase 0 (RECOVERY) makes
+## PlanetfallTurnController._resume_turn() restore that step in place. start_new_turn()
+## would run the turn-start Calamity effects instead, a side effect a layout sweep must
+## not have. Nothing on the resume path saves: PlanetfallPhaseManager saves only when a
+## turn completes.
+##
+## PlanetfallCreationUI.tscn has NO entry: it reads no autoload (0 GameState references)
+## and builds its own wizard content.
+func _pre_planetfall() -> void:
+	var gs := _root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return
+	gs.current_campaign = null
+	var coord_script = load("res://src/ui/screens/planetfall/PlanetfallCreationCoordinator.gd")
+	var rules = load("res://src/core/systems/PlanetfallRosterRules.gd")
+	var backgrounds = load("res://src/core/systems/PlanetfallBackgrounds.gd")
+	var roster_panel = load("res://src/ui/screens/planetfall/panels/PlanetfallRosterPanel.gd")
+	if coord_script == null or rules == null or backgrounds == null or roster_panel == null:
+		return
+	var coord: Node = coord_script.new()
+	coord.config_data = {"campaign_name": "Sweep fixture", "colony_name": "New Hope",
+		"expedition_type": "Scientific Mission"}
+	var roster: Array = []
+	var classes: Array = roster_panel.RECOMMENDED
+	for i in range(classes.size()):
+		roster.append(rules.standard_character(str(classes[i]), "pf_sweep_%d" % i,
+				"Colonist %d" % (i + 1)))
+	coord.update_roster(roster)
+	var experienced: int = int(backgrounds.experienced_count())
+	for i in range(roster.size()):
+		coord.background_data[str(roster[i].get("id", ""))] = \
+				backgrounds.roll_character(i < experienced)
+	var core: Resource = coord.build_campaign()
+	coord.free()
+	if core == null:
+		return
+	core.campaign_turn = 1
+	core.turn_phase = 0
 	gs.current_campaign = core

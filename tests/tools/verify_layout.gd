@@ -80,8 +80,13 @@ const TOUCH_FLOOR_DP := 48.0
 ## Sub-pixel slack so a 0.0001 rounding artefact is not a failure.
 const EPS := 0.5
 
-## A1 alpha surface. Bug Hunt / Planetfall / Tactics are hidden by
-## MainMenu.is_a1_build() and are deliberately out of scope.
+## The A1 alpha surface, then the variant-mode screens. ⚠ This list used to declare Bug
+## Hunt / Planetfall / Tactics "deliberately out of scope" because MainMenu.is_a1_build()
+## hides them. That stopped being true when the review build (ReviewBuild.is_active())
+## made every mode reachable, so the note was a reason not to look. Planetfall is measured
+## from 2026-10-28; Bug Hunt and Tactics follow in the Sprint U screen pass. A variant
+## screen needs a ScreenPopulator fixture, because it reads current_campaign and nothing
+## else, and the populator puts that field back (see _populate_pre).
 const SCREENS: Array = [
 	"res://src/ui/screens/mainmenu/MainMenu.tscn",
 	"res://src/ui/screens/legal/EULAScreen.tscn",
@@ -130,6 +135,9 @@ const SCREENS: Array = [
 	"res://src/ui/screens/compendium/CompendiumCategoryView.tscn",
 	"res://src/ui/screens/print/PrintSheetScreen.tscn",
 	"res://src/ui/screens/store/StoreScreen.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn",
 ]
 
 var _frame := 0
@@ -157,7 +165,11 @@ func _run() -> void:
 	_force_windowed()
 	_stub_legal_consent()
 	_load_requested_campaign()
-	print("=== LAYOUT SWEEP: %d screens x %d sizes ===" % [SCREENS.size(), SIZES.size()])
+	var gs := root.get_node_or_null("/root/GameState")
+	_baseline_campaign = gs.current_campaign if gs else null
+	var only: String = _user_arg("only=")
+	print("=== LAYOUT SWEEP: %d screens x %d sizes%s ===" % [SCREENS.size(), SIZES.size(),
+			"" if only == "" else "  (only paths containing \"%s\")" % only])
 	# STATE MATTERS AND IS NOT ALWAYS THE SAME. Several screens build from the current
 	# campaign, so a machine that has one auto-loaded measures far more content than an
 	# empty one — CampaignDashboard's landscape overflow went 30.6 -> 154.8 px purely
@@ -167,6 +179,10 @@ func _run() -> void:
 	print("campaign state: %s" % _campaign_state())
 	print("populate: %s" % _populate_state())
 	for path in SCREENS:
+		# `-- only=Planetfall` sweeps the screens whose path contains the text, so one
+		# mode can be measured windowed without the whole list.
+		if only != "" and not String(path).contains(only):
+			continue
 		await _sweep_screen(path)
 	print("\n================ RESULT ================")
 	print("passed=%d failed=%d skipped=%d" % [_pass, _fail, _skip])
@@ -841,10 +857,28 @@ func _populate_state() -> String:
 	return p.state_line() if p != null else "populator FAILED TO LOAD"
 
 
+## The campaign this run started with (the auto-loaded one, or campaign=). A variant
+## fixture REPLACES GameState.current_campaign, so it is put back before every screen;
+## otherwise every 5PFH screen measured after a Planetfall one would build against a
+## colony and abort. Before every screen, not after the variant ones, so the order of
+## SCREENS cannot matter.
+var _baseline_campaign: Variant = null
+
+
 func _populate_pre(path: String) -> void:
+	var gs := root.get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = _baseline_campaign
 	var p = _get_populator()
 	if p != null:
 		p.populate_pre(path)
+
+
+func _user_arg(prefix: String) -> String:
+	for arg in OS.get_cmdline_user_args():
+		if String(arg).begins_with(prefix):
+			return String(arg).substr(prefix.length())
+	return ""
 
 
 func _populate_post(inst: Node, path: String) -> void:

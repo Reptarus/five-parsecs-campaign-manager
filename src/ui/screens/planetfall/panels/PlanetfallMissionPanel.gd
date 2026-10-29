@@ -508,6 +508,9 @@ func _on_confirm_pressed() -> void:
 	var chosen: Dictionary = _selected_mission.duplicate(true)
 	chosen["sector"] = str(_selected_site.get("key", ""))
 	chosen["site_enemy_index"] = int(_selected_site.get("enemy_index", -1))
+	# pp.165/167: a site the Swarm holds, or the super weapon's, decides the opposition.
+	chosen["swarm"] = bool(_selected_site.get("swarm", false))
+	chosen["weapon_site"] = bool(_selected_site.get("weapon_site", false))
 	phase_completed.emit({
 		"selected_mission": chosen,
 		"force_limits": force_limits,

@@ -50,11 +50,11 @@
 		"trooper": {"name": "Trooper", "description": "Restricted to trooper-class characters."}
 	},
 	"grunt_upgrades": [
-		{"id": "sharpshooter_sight", "name": "Sharpshooter Sight", "prerequisite_building": "early_warning_system", "description": "One grunt per fireteam may have a gun sight (+1 to hit when stationary). Military rifle only."},
+		{"id": "sharpshooter_sight", "name": "Sharpshooter Sight", "prerequisite_building": "early_warning_system", "description": "One grunt per fireteam may have a gun sight. This adds +1 to hit when stationary. May be fitted to military rifle only."},
 		{"id": "adapted_armor", "name": "Adapted Armor", "prerequisite_building": "locally_adapted_food_production_site", "description": "All grunts receive a 6+ Saving Throw."},
-		{"id": "bolstered_survival_kit", "name": "Bolstered Survival Kit", "prerequisite_application": "immune_bio_delineation", "description": "Post-mission grunt survival: only a roll of 1 is a permanent casualty."},
-		{"id": "ammo_packs", "name": "Ammo Packs", "prerequisite_building": "military_barracks", "description": "Once per battle, roll an extra die to hit for every grunt in the fireteam."},
-		{"id": "side_arms", "name": "Side Arms", "prerequisite_application": "shard_pistol", "description": "All grunts carry a handgun in addition to normal weapons."},
-		{"id": "sergeant_weaponry", "name": "Sergeant Weaponry", "prerequisite_application": "carver_blade", "description": "One grunt per fireteam receives a Damage +1 Melee weapon."}
+		{"id": "bolstered_survival_kit", "name": "Bolstered Survival Kit", "prerequisite_application": "immune_bio_delineation", "description": "When testing for post-mission grunt survival, only a roll of a 1 is counted as a permanent casualty."},
+		{"id": "ammo_packs", "name": "Ammo Packs", "prerequisite_building": "military_barracks", "description": "Once per battle you may roll an extra die to hit for every grunt in the fireteam. The bonus die must be used in the same battle round; you cannot save it up for some grunts and use it for others."},
+		{"id": "side_arms", "name": "Side Arms", "prerequisite_application": "shard_pistol", "description": "All grunts carry a handgun in addition to their normal weapons."},
+		{"id": "sergeant_weaponry", "name": "Sergeant Weaponry", "prerequisite_application": "carver_blade", "description": "One grunt per fireteam receives a Damage +1 Melee weapon in addition to their other weapons."}
 	]
 }

@@ -11,6 +11,7 @@ const COLOR_BASE := _UC.COLOR_BASE
 const COLOR_ELEVATED := _UC.COLOR_ELEVATED
 const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
+const ReceiptCardRef := preload("res://src/ui/components/common/ReceiptCard.gd")
 const COLOR_BORDER := _UC.COLOR_BORDER
 const COLOR_SUCCESS := _UC.COLOR_SUCCESS
 const COLOR_WARNING := _UC.COLOR_WARNING
@@ -418,45 +419,10 @@ func _render_receipt() -> void:
 
 
 func _render_step(step: Dictionary, by_step: Dictionary) -> void:
-	var index: int = int(step.get("step", 0))
-	var title: String = str(step.get("title", ""))
-	var heading: String = title if index <= 0 else "Step %d: %s" % [index, title]
-	var card := _create_card(heading, _content_container)
+	var card := _create_card(ReceiptCardRef.heading(step), _content_container)
 
-	var cite: String = str(step.get("cite", ""))
-	if not cite.is_empty():
-		_muted_label(cite, card, 11)
-
-	## A step's own rolls, in the shape the resolver records them:
-	## {die, value, subject?, modifier?, total?}. Showing the die and the number is
-	## what lets a player check a result against the printed table themselves.
-	for roll in step.get("rolls", []):
-		if not (roll is Dictionary):
-			continue
-		var txt: String = "%s -> %s" % [str(roll.get("die", "")), str(roll.get("value", ""))]
-		if roll.has("modifier") and int(roll["modifier"]) != 0:
-			txt += " %+d = %s" % [int(roll["modifier"]),
-				str(roll.get("total", roll.get("value", "")))]
-		var subj: String = str(roll.get("subject", ""))
-		if not subj.is_empty():
-			# _character_name returns the id unchanged when it matches nobody, which
-			# is what the objective rolls want -- their subject is "objective 2".
-			txt += "  (%s)" % _character_name(subj)
-		var col: String = str(roll.get("column", ""))
-		if not col.is_empty():
-			txt += " [%s]" % col
-		_muted_label(txt, card, 11)
-
-	var lines: Array = step.get("lines", [])
-	if lines.is_empty() and bool(step.get("skipped", false)):
-		_muted_label("Not applicable this turn.", card, 12)
-	for line in lines:
-		var lbl := Label.new()
-		lbl.text = str(line)
-		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
-		lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		card.add_child(lbl)
+	# The cite, the dice and the result lines, as every mode prints them (UX-6).
+	ReceiptCardRef.fill(card, step, _character_name, 13)
 
 	for c in step.get("choices", []):
 		if c is Dictionary and by_step.has(str(c.get("id", ""))):

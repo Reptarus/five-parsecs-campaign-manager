@@ -218,7 +218,9 @@ func test_the_whole_settings_screen_fits_a_phone_in_portrait() -> void:
 func _inside_h_scrollable(n: Node, stop: Node) -> bool:
 	var p := n.get_parent()
 	while p != null and p != stop:
-		if p is ScrollContainer 				and (p as ScrollContainer).horizontal_scroll_mode 					!= ScrollContainer.SCROLL_MODE_DISABLED:
+		if p is ScrollContainer \
+				and (p as ScrollContainer).horizontal_scroll_mode \
+					!= ScrollContainer.SCROLL_MODE_DISABLED:
 			return true
 		p = p.get_parent()
 	return false

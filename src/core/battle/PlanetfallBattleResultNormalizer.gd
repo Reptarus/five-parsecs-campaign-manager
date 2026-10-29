@@ -46,7 +46,8 @@ static func normalize(
 		var stamped_id: String = str(stamp.get("id", ""))
 		results["mission_id"] = stamped_id if stamped_id != "" \
 			else str(results.get("mission_type", ""))
-	for key in ["mission_name", "opposition_type", "enemy_type", "grunts_deployed", "sector"]:
+	for key in ["mission_name", "opposition_type", "enemy_type", "grunts_deployed", "sector",
+			"weapon_site"]:
 		if not results.has(key) and stamp.has(key):
 			results[key] = stamp[key]
 	if not results.has("tactical_enemy_index"):
@@ -138,6 +139,26 @@ static func normalize(
 		if debrief.has("find_rolls"):
 			results["find_rolls"] = maxi(int(debrief["find_rolls"]), 0) \
 				if bool(results.get("won", false)) else 0
+
+		# The mission's own objective count (pp.115-133), which its Campaign Factors and
+		# Rewards read. It had no producer until 2026-10-28, so every one read 0.
+		if debrief.has("objectives_completed"):
+			results["objectives_completed"] = maxi(int(debrief["objectives_completed"]), 0)
+
+		# A mission's own rewards only the table knows, such as an Investigation's Rewards
+		# and Action required results (p.115). PlanetfallMissionRewards caps each; only the
+		# sign is bounded here, and they stand win or lose: "You receive any rewards you
+		# acquired during the mission" (p.116).
+		if debrief.get("mission_rewards") is Dictionary:
+			var kept: Dictionary = {}
+			for key in debrief["mission_rewards"]:
+				kept[str(key)] = maxi(int(debrief["mission_rewards"][key]), 0)
+			results["mission_rewards"] = kept
+
+		# pp.165-168: what only the table knows about each active Calamity (an anomaly's
+		# samples, the nest's Lifeforms, Sleeper chips, Slyn killed, the Controller).
+		if debrief.get("calamity") is Dictionary:
+			results["calamity"] = (debrief["calamity"] as Dictionary).duplicate(true)
 
 		# p.68 Step 12: "If you obtained any Mission Data, note it on your roster."
 		if debrief.has("mission_data_gained"):

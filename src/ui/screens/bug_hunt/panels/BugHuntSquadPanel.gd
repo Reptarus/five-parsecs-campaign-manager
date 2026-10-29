@@ -59,7 +59,9 @@ func _build_ui() -> void:
 	vbox.add_child(title)
 
 	var desc := Label.new()
-	desc.text = "A squad has 3 Main Characters. You may raise it to 4 or even 5 for a " 		+ "slightly easier game, or to play with a friend (Compendium p.170). Enter names " 		+ "below (or leave them blank for auto-names), then generate your squad."
+	desc.text = "A squad has 3 Main Characters. You may raise it to 4 or even 5 for a " \
+		+ "slightly easier game, or to play with a friend (Compendium p.170). Enter names " \
+		+ "below (or leave them blank for auto-names), then generate your squad."
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
@@ -88,7 +90,8 @@ func _build_ui() -> void:
 		hbox.add_child(lbl)
 
 		var edit := LineEdit.new()
-		edit.placeholder_text = "Auto-generate name" if i < 3 			else "(Name for character %d, if the squad is that large)" % (i + 1)
+		edit.placeholder_text = "Auto-generate name" if i < 3 \
+			else "(Name for character %d, if the squad is that large)" % (i + 1)
 		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		edit.custom_minimum_size.y = 40
 		hbox.add_child(edit)

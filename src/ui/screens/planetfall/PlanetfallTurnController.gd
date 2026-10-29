@@ -648,14 +648,9 @@ func _on_turn_started(turn: int) -> void:
 	_turn_label.text = "TURN %d" % turn
 	_refresh_stat_strip()
 
-	# Process active calamity ongoing effects at turn start
-	if _calamity_sys and campaign:
-		var cal_effects: Dictionary = _calamity_sys.process_turn_effects(campaign)
-		for event in cal_effects.get("events", []):
-			if event is Dictionary:
-				var desc: String = event.get("description", "")
-				if not desc.is_empty():
-					push_warning("Calamity effect: %s" % desc)
+	# Calamities roll "at the end of each campaign turn" (pp.165-168): Step 18, through
+	# the phase manager, never here. This handler used to roll them at turn START and
+	# report them only as push_warning.
 
 
 func _on_turn_completed(_turn: int) -> void:
@@ -678,6 +673,9 @@ func _on_panel_phase_completed(result_data: Dictionary) -> void:
 	# Cache mission selection from Step 6 for battle launch
 	if current == PlanetfallPhaseManagerScript.Phase.MISSION_DETERMINATION:
 		_mission_context = result_data.get("selected_mission", {})
+		# pp.110-113: the Battlefield Condition rolled for this mission rides on it to the
+		# battle card. It reached only Lock and Load until 2026-10-28.
+		_mission_context["active_condition"] = result_data.get("active_condition", {})
 		# Pass force limits + mission context to LockAndLoadPanel
 		var lock_phase: int = PlanetfallPhaseManagerScript.Phase.LOCK_AND_LOAD
 		if lock_phase >= 0 and lock_phase < panels.size():
@@ -957,6 +955,14 @@ func _launch_planetfall_battle() -> void:
 		phase_manager.complete_current_phase({"skipped": true})
 
 
+## A mission's printed table size ("2x2" / "3x3" feet, pp.115-130) as the battle
+## screen's `table_size_ft`. It used to go out as `table_size`, which nothing read, so
+## every Planetfall battle was laid out on the player's default table.
+static func table_size_ft(size: String) -> float:
+	var ft: float = float(size.to_lower().split("x")[0])
+	return ft if ft > 0.0 else 3.0
+
+
 ## What Step 8 hands the battle and what it stamps on the turn: {context, stamp}. It
 ## ROLLS (the Slyn check and the force), so call it once per launch. Split from the
 ## launch so a test reads it without leaving the screen.
@@ -974,7 +980,6 @@ func build_battle_payload() -> Dictionary:
 					var crew_entry: Dictionary = char_dict.duplicate(true)
 					# Attach weapon assignment from Lock and Load
 					var wid: String = str(deployed_entry.get("weapon_id", ""))
-					crew_entry["assigned_weapon"] = wid
 					# The battle screen's quick roll reads a figure's `weapons` ROWS (range,
 					# shots, damage, traits); the bare id reached nothing, so every Planetfall
 					# shot fell back to a rifle.
@@ -988,16 +993,28 @@ func build_battle_payload() -> Dictionary:
 	# reads the rows; the figures are stat references for the minis on the table.
 	var mission_id: String = _mission_context.get("id", "")
 	var opposition: Dictionary = _mission_context.get("opposition", {})
-	var resolved: Dictionary = BattleGuideScript.resolve_opposition(_mission_context)
+	# p.167 Slyn assault: two Slyn checks while it lasts.
+	var calamities := CalamitySystemScript.new()
+	var resolved: Dictionary = BattleGuideScript.resolve_opposition(_mission_context,
+			campaign != null and not campaign.is_slyn_active(),
+			campaign != null and calamities.is_active(campaign, "slyn_assault"))
 	var opp_type: String = str(resolved.get("type", "lifeforms"))
 	var te_index: int = _battle_tactical_enemy_index() if opp_type == "tactical" else -1
 	var force: Dictionary = BattleGuideScript.build_force(campaign, opp_type, opposition,
-			te_index)
+			te_index, bool(resolved.get("slyn_eight", false)))
 	var enemies: Array = force.get("enemies", [])
 	var force_rows: Array = []
 	if str(resolved.get("line", "")) != "":
 		force_rows.append({"head": str(resolved.line), "detail": ""})
 	force_rows.append_array(force.get("rows", []))
+	# The rules each active Calamity adds to this battle (pp.165-168).
+	if campaign != null:
+		force_rows.append_array(calamities.battle_rows(campaign, mission_id,
+				str(_mission_context.get("sector", "")), opp_type))
+
+	# p.123: the Skirmish objectives are a table-setup roll, made once here; p.115's
+	# Discovery table is printed beside them.
+	var skirmish: Array = BattleGuideScript.roll_skirmish_objectives(_mission_context)
 
 	# Build mission_data dict for TacticalBattleUI
 	var mission_data: Dictionary = {
@@ -1005,13 +1022,17 @@ func build_battle_payload() -> Dictionary:
 		"type": mission_id,
 		"title": _mission_context.get("name", "Planetfall Mission"),
 		"objective": _mission_context.get("description", ""),
-		"table_size": _mission_context.get("table_size", "3x3"),
+		"table_size_ft": table_size_ft(str(_mission_context.get("table_size", "3x3"))),
 		"battlefield_conditions": _mission_context.get("battlefield_conditions", false),
 		"grunts_deployed": _deployed_data.get("grunts_deployed", 0),
 		"opposition_type": opp_type,
 		"slyn_attacking": bool(resolved.get("slyn_attacking", false)),
 		"opposition": opposition.duplicate(true),
 		"opposition_force_rows": force_rows,
+		"objective_rows": BattleGuideScript.objective_rows(_mission_context, skirmish),
+		"skirmish_objectives": skirmish,
+		"active_condition": _mission_context.get("active_condition", {}),
+		"uncertain_features": _mission_context.get("uncertain_features", false),
 		"enemy_type": str(force.get("enemy_type", "")),
 	}
 
@@ -1029,6 +1050,8 @@ func build_battle_payload() -> Dictionary:
 		# The Map Location sector picked at Step 6 (pp.115-130); Step 12's
 		# PlanetfallMap.apply_mission_factors() applies the mission's Campaign Factors to it.
 		"sector": str(_mission_context.get("sector", "")),
+		# p.165: a won Strike on the super weapon site ends the Calamity.
+		"weapon_site": bool(_mission_context.get("weapon_site", false)),
 	}
 	var battle_context: Dictionary = {
 		"crew": crew,
@@ -1047,6 +1070,10 @@ func _battle_tactical_enemy_index() -> int:
 		return -1
 	# A Skirmish, Strike, Assault or Pitched Battle is fought against the enemy its
 	# sector names (pp.123-128), not whichever enemy happens to be listed first.
+	# p.165: with no builder on the map, the weapon site's scouting force is "rolled on the
+	# Tactical Enemies table" and "not connected to any other group".
+	if bool(_mission_context.get("weapon_site", false)):
+		return -1
 	var site_idx: int = int(_mission_context.get("site_enemy_index", -1))
 	if site_idx >= 0 and site_idx < campaign.tactical_enemies.size():
 		return site_idx

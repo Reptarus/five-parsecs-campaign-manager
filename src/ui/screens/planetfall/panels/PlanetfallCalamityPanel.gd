@@ -156,10 +156,8 @@ func _build_calamity_card(cal: Dictionary) -> void:
 	if not resolution.is_empty():
 		_add_section(inner, "How to Resolve", resolution, COLOR_ACCENT)
 
-	# Progress tracking
-	var progress: Dictionary = cal.get("progress", {})
-	if not progress.is_empty():
-		_add_progress_display(inner, cal.get("id", ""), progress)
+	# Progress, in the engine's own words and numbers (pp.165-168).
+	_add_progress_display(inner, cal)
 
 	# Reward (shown for context)
 	var reward: String = cal.get("reward", "")
@@ -195,37 +193,12 @@ func _add_section(parent: VBoxContainer, title_text: String,
 	parent.add_child(c)
 
 
-func _add_progress_display(parent: VBoxContainer, cal_id: String,
-		progress: Dictionary) -> void:
-	var progress_text: String = ""
-
-	match cal_id:
-		"slyn_assault":
-			progress_text = "Slyn killed: %d / 30" % progress.get("slyn_killed", 0)
-		"robot_rampage":
-			progress_text = "Sleeper chips collected: %d / 5" % progress.get("chips_collected", 0)
-		"mega_predators":
-			progress_text = "Enhanced Lifeforms killed: %d / 5" % progress.get("enhanced_killed", 0)
-		"wildlife_aggression":
-			var found: bool = progress.get("controller_killed", false)
-			progress_text = "Controller: %s" % ("Killed!" if found else "Not yet found")
-		"virus":
-			var cure_data: int = progress.get("cure_data", 0)
-			progress_text = "Cure Data: %d (roll 2D6 <= %d to discover cure)" % [cure_data, cure_data]
-		"enemy_super_weapon":
-			var wp: int = progress.get("weapon_progress", 0)
-			progress_text = "Weapon progress: %d / 15" % wp
-		"swarm_infestation":
-			var sectors_cleared: int = progress.get("sectors_cleared", 0)
-			var sectors_infested: int = progress.get("sectors_infested", 1)
-			progress_text = "Sectors cleared: %d / %d infested" % [sectors_cleared, sectors_infested]
-		"environmental_risk":
-			var sectors_cleared: int = progress.get("sectors_cleared", 0)
-			progress_text = "Anomalous sectors cleared: %d / 3" % sectors_cleared
-
-	if not progress_text.is_empty():
+## Until 2026-10-28 this read `sectors_cleared`, `sectors_infested` and
+## `controller_killed`, which nothing wrote, and printed its own 30/5/15.
+func _add_progress_display(parent: VBoxContainer, cal: Dictionary) -> void:
+	for line in _calamity_sys.progress_lines(_campaign, cal):
 		var lbl := Label.new()
-		lbl.text = "Progress: %s" % progress_text
+		lbl.text = "Progress: %s" % str(line)
 		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		lbl.add_theme_color_override("font_color", COLOR_WARNING)

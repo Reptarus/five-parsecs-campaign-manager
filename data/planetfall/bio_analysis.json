@@ -1,0 +1,13 @@
+{
+	"_source": "Planetfall p.92, Bio-Analysis Research and the Bio-Analysis Table (D6)",
+	"_description": "Cost 3 Research Points. Needs a sample from the Lifeform, collected by a successful Hunt mission (p.121). The benefit applies whenever you fight that Lifeform. Effective against Lifeforms only, not Tactical Enemies, the Slyn or the Sleepers. If the Lifeform's profile changes for any reason, including evolution, the benefit is lost; the new form can be analyzed by following the same process again.",
+	"cost_rp": 3,
+	"entries": [
+		{"roll": 1, "id": "hit_bonus", "name": "Hit bonus", "description": "Analysis of evasive measures improves hit rates. All ranged attacks against the Lifeform receive +1 to hit."},
+		{"roll": 2, "id": "brawling_bonus", "name": "Brawling bonus", "description": "Development of close quarter techniques. All brawling combat against the Lifeform receives +1 to the roll."},
+		{"roll": 3, "id": "critical_hits", "name": "Critical hits", "description": "Knowledge of vulnerable locations. If both the hit and damage roll is a natural 6, the creature is slain regardless of KP, Saving Throws, or other defenses."},
+		{"roll": 4, "id": "defensive_reduction", "name": "Defensive reduction", "description": "Improved understanding of weak points. Reduce any Saving Throws the creature has by 1 step. If the creature does not have a Saving Throw, treat as a +1 Hit Bonus to all attacks against the creature."},
+		{"roll": 5, "id": "defensive_bonus", "name": "Defensive bonus", "description": "Better understanding of the attack forms of the creature. All characters receive a 6+ Saving Throw against all attacks from the Lifeform."},
+		{"roll": 6, "id": "predictive_movement", "name": "Predictive movement", "description": "You understand how the creature moves and can anticipate it in combat. Reduce the movement speed of the Lifeform by 1\"."}
+	]
+}

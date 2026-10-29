@@ -17,6 +17,9 @@ const PlanetfallEventResolverScript := preload(
 const PlanetfallPostMissionScript := preload(
 	"res://src/core/systems/PlanetfallPostMissionSystem.gd")
 const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
+const CalamityScript := preload("res://src/core/systems/PlanetfallCalamitySystem.gd")
+const RewardsScript := preload("res://src/core/systems/PlanetfallMissionRewards.gd")
 ## Each mission's own reward text, shown beside the Find-roll count it governs.
 const MISSION_TYPES_PATH := "res://data/planetfall/mission_types.json"
 
@@ -36,9 +39,12 @@ const MISSION_XP := {
 	"not_a_casualty": {"xp": 1, "label": "did not become a casualty"},
 	"boss_or_leader": {"xp": 1, "label": "directly killed an enemy Boss or Leader (once per battle)"},
 }
+## p.127 Pitched Battle Rewards: "If you win ... each survivor receives 1 additional XP."
+const PITCHED_SURVIVOR_XP := 1
 const FONT_SIZE_LG := 18
 const FONT_SIZE_MD := 16
 const FONT_SIZE_SM := 14
+const ReceiptCardRef := preload("res://src/ui/components/common/ReceiptCard.gd")
 const SPACING_SM := 8
 const SPACING_MD := 16
 const SPACING_LG := 24
@@ -57,6 +63,11 @@ var _grunt_spin: SpinBox
 var _colonist_spin: SpinBox
 var _find_spin: SpinBox
 var _md_spin: SpinBox
+var _objective_spin: SpinBox
+## pp.165-168: the Calamity questions this mission asks, {answer key: SpinBox|CheckBox}.
+var _calamity_inputs: Dictionary = {}
+## Spins for the mission's own rewards (PlanetfallMissionRewards.DEBRIEF_ASKS).
+var _mission_inputs: Dictionary = {}
 var _coward_checks: Dictionary = {}
 var _boss_checks: Dictionary = {}
 ## Every result line this sub-step printed, recorded as its receipt (Steps 10, 12).
@@ -231,6 +242,9 @@ func _build_sub_step_info() -> void:
 			for key in MISSION_XP:
 				rows.append("+%d %s" % [int(MISSION_XP[key].xp), MISSION_XP[key].label])
 			_add_info_text("Mission XP (p.67): %s." % ", ".join(rows))
+			if _pitched_win():
+				_add_info_text("Pitched Battle won: each survivor +%d XP (p.127)."
+						% PITCHED_SURVIVOR_XP)
 
 		SubStep.MORALE:
 			_build_morale_choices()
@@ -360,6 +374,8 @@ func _build_debrief() -> void:
 	_colonist_spin = null
 	_find_spin = null
 	_md_spin = null
+	_objective_spin = null
+	_mission_inputs = {}
 	_coward_checks = {}
 	_boss_checks = {}
 	var br: Dictionary = _battle_results
@@ -402,6 +418,68 @@ func _build_debrief() -> void:
 				int(br.get("find_rolls", 0)))
 	_md_spin = _debrief_spin("Mission Data obtained (p.68):", 10,
 			int(br.get("mission_data_gained", 0)))
+	# The mission's objectives, which its Campaign Factors and Rewards read (pp.115-133).
+	# Nothing asked for them until 2026-10-28, so every one of those rules read 0.
+	var mission_id: String = str(br.get("mission_id", ""))
+	if MapScript.OBJECTIVE_PROMPTS.has(mission_id):
+		_objective_spin = _debrief_spin(str(MapScript.OBJECTIVE_PROMPTS[mission_id]) + ":",
+				int(MapScript.OBJECTIVE_CAPS.get(mission_id, 10)),
+				int(br.get("objectives_completed", 0)))
+	_build_mission_reward_questions(br, mission_id)
+	_build_calamity_questions(br, mission_id)
+
+
+## pp.165-168: what only the table knows about each active Calamity, asked only on the
+## missions its rule names. Nothing asked any of it before 2026-10-28, so seven of the
+## eight Calamities could never end.
+## The mission's own rewards only the table knows (pp.115-133), from the asks its resolver
+## publishes, so the prompt and the cap live in one table. Until 2026-10-28 nothing asked
+## an Investigation for its Rewards or Action required results, so both were lost.
+func _build_mission_reward_questions(br: Dictionary, mission_id: String) -> void:
+	var asks: Array = RewardsScript.DEBRIEF_ASKS.get(mission_id, [])
+	if asks.is_empty():
+		return
+	var given: Dictionary = br.get("mission_rewards", {}) \
+			if br.get("mission_rewards") is Dictionary else {}
+	for a in asks:
+		_mission_inputs[str(a[0])] = _debrief_spin(str(a[2]), int(a[1]),
+				int(given.get(str(a[0]), 0)))
+
+
+func _build_calamity_questions(br: Dictionary, mission_id: String) -> void:
+	_calamity_inputs = {}
+	if _campaign == null:
+		return
+	var cal := CalamityScript.new()
+	var md: Dictionary = _campaign.map_data if "map_data" in _campaign else {}
+	var k: String = str(br.get("sector", ""))
+	var asks: Array = []
+	if mission_id == "patrol" and cal.is_active(_campaign, "environmental_risk") \
+			and k != "" and bool(MapScript.sector(md, k).get("anomaly", false)):
+		asks.append(["anomaly_cleared", 0, "With all three Objectives clear, a character "
+				+ "at one scored 6+ on 1D6+Savvy (scientists roll twice): the anomaly is "
+				+ "cleared (p.166)"])
+	if mission_id == "patrol" and cal.is_active(_campaign, "mega_predators"):
+		asks.append(["marked_lifeforms_killed", 10,
+				"Lifeforms from the marked Contacts killed (p.166):"])
+	if mission_id != "delve" and cal.is_active(_campaign, "robot_rampage"):
+		asks.append(["sleeper_chips", 10,
+				"Sleeper chips found, a 5+ on 1D6+Savvy where a Sleeper fell (p.166):"])
+	if str(br.get("opposition_type", "")) == "slyn" and cal.is_active(_campaign, "slyn_assault"):
+		asks.append(["slyn_killed", 8, "Slyn killed (p.167):"])
+	if mission_id == "hunt" and cal.is_active(_campaign, "wildlife_aggression"):
+		asks.append(["controller_killed", 0, "The Controller was killed and a character "
+				+ "reached where it fell (p.168)"])
+	if asks.is_empty():
+		return
+	_add_info_text("[b]Calamities (pp.165-168)[/b]")
+	var given: Dictionary = br.get("calamity", {}) if br.get("calamity") is Dictionary else {}
+	for a in asks:
+		var key: String = str(a[0])
+		if int(a[1]) == 0:
+			_calamity_inputs[key] = _debrief_check(str(a[2]), bool(given.get(key, false)))
+		else:
+			_calamity_inputs[key] = _debrief_spin(str(a[2]), int(a[1]), int(given.get(key, 0)))
 
 
 func _collect_debrief() -> Dictionary:
@@ -417,6 +495,23 @@ func _collect_debrief() -> Dictionary:
 		d["find_rolls"] = int(_find_spin.value)
 	if _md_spin:
 		d["mission_data_gained"] = int(_md_spin.value)
+	if _objective_spin:
+		d["objectives_completed"] = int(_objective_spin.value)
+	if not _mission_inputs.is_empty():
+		var rewards: Dictionary = {}
+		for key in _mission_inputs:
+			if is_instance_valid(_mission_inputs[key]):
+				rewards[key] = int((_mission_inputs[key] as SpinBox).value)
+		d["mission_rewards"] = rewards
+	if not _calamity_inputs.is_empty():
+		var answers: Dictionary = {}
+		for key in _calamity_inputs:
+			var input: Variant = _calamity_inputs[key]
+			if input is CheckBox and is_instance_valid(input):
+				answers[key] = (input as CheckBox).button_pressed
+			elif input is SpinBox and is_instance_valid(input):
+				answers[key] = int((input as SpinBox).value)
+		d["calamity"] = answers
 	return d
 
 
@@ -540,6 +635,10 @@ func _resolve_experience() -> void:
 			xp += int(MISSION_XP.boss_or_leader.xp)
 			reasons.append("+%d killed Boss/Leader" % int(MISSION_XP.boss_or_leader.xp))
 
+		if _pitched_win() and not casualties_list.has(pid):
+			xp += PITCHED_SURVIVOR_XP
+			reasons.append("+%d Pitched Battle survivor (p.127)" % PITCHED_SURVIVOR_XP)
+
 		if double_xp:
 			xp *= 2
 			reasons.append("doubled, Personal reflection (p.71)")
@@ -553,6 +652,11 @@ func _resolve_experience() -> void:
 	_xp_awarded = true
 	_add_result_bbcode(
 		"\n[color=ui-success]XP awarded to %d character(s).[/color]" % participants.size())
+
+
+func _pitched_win() -> bool:
+	return str(_battle_results.get("mission_id", "")) == "pitched_battle" \
+			and bool(_battle_results.get("won", false))
 
 
 ## ============================================================================
@@ -818,15 +922,10 @@ func _add_info_text(text: String) -> void:
 	_content_vbox.add_child(lbl)
 
 
+## One result line, live or replayed from the recorded receipt, through the shared
+## receipt renderer (UX-6) so every mode prints a result the same way.
 func _add_result_bbcode(text: String) -> void:
-	var lbl := RichTextLabel.new()
-	lbl.bbcode_enabled = true
-	lbl.fit_content = true
-	lbl.scroll_active = false
-	lbl.text = UIColors.bbcode(text)
-	ScreenChrome.size_rich_text(lbl, ScreenChrome.font_size(FONT_SIZE_SM))
-	lbl.add_theme_color_override("default_color", COLOR_TEXT_PRIMARY)
-	_result_container.add_child(lbl)
+	ReceiptCardRef.add_line(_result_container, text, true, FONT_SIZE_SM)
 	_receipt_lines.append(text)
 
 

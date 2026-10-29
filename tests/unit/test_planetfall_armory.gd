@@ -121,3 +121,18 @@ func test_the_equipment_screen_prints_the_reason() -> void:
 	assert_bool(found) \
 		.override_failure_message("a bare LOCKED cannot say what is missing: %s" % [texts]) \
 		.is_true()
+
+
+## p.78 Weapon Traits: the card says what a trait does, from the Armory's own table.
+func test_the_equipment_screen_says_what_a_trait_does() -> void:
+	var panel: Control = PanelScript.new()
+	add_child(panel)
+	auto_free(panel)
+	panel.set_campaign(_core([], []))
+	panel.refresh()
+	var texts: Array = []
+	for node in panel.find_children("*", "Label", true, false):
+		texts.append((node as Label).text)
+	var joined: String = "\n".join(PackedStringArray(texts))
+	assert_str(joined).contains("Pistol: +1 weapon bonus when brawling.") \
+		.contains("Civilian: Open to all classes except grunts.")

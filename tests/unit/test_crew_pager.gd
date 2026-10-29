@@ -359,7 +359,9 @@ func test_the_overlay_itself_is_not_rebuilt_per_page() -> void:
 	assert_object(first).is_not_null()
 	screen._navigate_crew(1)
 	await await_idle_frame()
-	assert_object(screen.hero_card.get_node_or_null("__HeroOverlay")) 		.override_failure_message(
+	assert_object(screen.hero_card.get_node_or_null("__HeroOverlay")) \
+		.override_failure_message(
 			"The hero overlay was replaced on a page turn, so counting its children "
-			+ "is no longer evidence about leaked buttons.") 		.is_same(first)
+			+ "is no longer evidence about leaked buttons.") \
+		.is_same(first)
 

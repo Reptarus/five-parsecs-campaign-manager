@@ -59,10 +59,15 @@ const OBJECTIVE_PROMPTS := {
 	"investigation": "Discovery markers completed (p.116: 1 or more clears the site)",
 	"scouting": "Recon markers investigated (p.117: each rolls 1D6, a 6 adds +1 Resource)",
 	"exploration": "Objectives completed (p.118: each rolls 1D6 on the sector)",
-	"science": "Samples collected (p.119: any lowers the Resource by 1)",
+	"science": "Samples collected (p.119: each rolls 1D6 for Research; any lowers the Resource)",
+	"hunt": "Lifeform samples obtained (p.121: two authorize Bio-Analysis of the creature)",
+	"patrol": "Objectives completed (p.122: 1 or more raises Colony Morale by 1)",
 	"skirmish": "Objectives completed (p.124: both clear the enemy from the sector)",
 	"delve": "Artifact acquired: 1, or 0 (p.133: the Ancient Site is removed)",
 }
+
+## The most a debrief may declare for a mission whose book page fixes the count.
+const OBJECTIVE_CAPS := {"delve": 1, "patrol": 3, "skirmish": 2}
 
 static var _discovery_cache: Array = []
 
@@ -165,6 +170,33 @@ static func _sector_for_write(campaign: Resource, sector_key: String) -> Diction
 	if not all.get(sector_key) is Dictionary:
 		all[sector_key] = {}
 	return all[sector_key]
+
+
+## Sectors carrying a Calamity flag ("anomaly" p.165, "swarm" p.167), in map order.
+static func flagged(md: Dictionary, flag: String) -> Array:
+	return all_keys(md).filter(func(k: String) -> bool:
+		return bool(sector(md, k).get(flag, false)))
+
+
+static func set_flag(campaign: Resource, sector_key: String, flag: String, on: bool) -> void:
+	var s: Dictionary = _sector_for_write(campaign, sector_key)
+	if on:
+		s[flag] = true
+	else:
+		s.erase(flag)
+
+
+## +`amount` Resource on a sector. An Explored or Exploited sector gains it now, and one
+## with Resources again is Explored (p.169 allows the same of a Breakthrough); a sector
+## not yet explored keeps it until it is (explore() reads it). Returns a line, no cite.
+static func raise_resource(campaign: Resource, sector_key: String, amount: int) -> String:
+	var s: Dictionary = _sector_for_write(campaign, sector_key)
+	if bool(s.get("explored", false)):
+		s["resource"] = int(s.get("resource", 0)) + amount
+		s["exploited"] = int(s.resource) <= 0
+		return "%s Resource +%d, now %d" % [label(sector_key), amount, int(s.resource)]
+	s["resource_bonus"] = int(s.get("resource_bonus", 0)) + amount
+	return "%s Resource +%d once it is explored" % [label(sector_key), amount]
 
 
 ## "unexplored", "explored" or "exploited" (p.54).
@@ -520,12 +552,16 @@ static func roll_explore() -> Dictionary:
 static func explore(campaign: Resource, sector_key: String, resource_bonus: int = 0) -> Array:
 	var roll: Dictionary = roll_explore()
 	var dice: Array = roll.dice
-	var resource: int = int(roll.resource) + resource_bonus
+	var held: int = int(sector(campaign.map_data, sector_key).get("resource_bonus", 0))
+	var resource: int = int(roll.resource) + resource_bonus + held
 	var hazard: int = maxi(int(roll.hazard) - hazard_reduction(campaign), 0)
 	set_explored(campaign, sector_key, resource, hazard)
-	var lines: Array = ["%s explored: Resource %d, Hazard %d (2D6 %d,%d and %d,%d, lowest each%s%s)."
+	if held > 0:
+		_sector_for_write(campaign, sector_key).erase("resource_bonus")
+	var lines: Array = ["%s explored: Resource %d, Hazard %d (2D6 %d,%d and %d,%d, lowest each%s%s%s)."
 			% [label(sector_key), resource, hazard, dice[0], dice[1], dice[2], dice[3],
 			", +%d Recon" % resource_bonus if resource_bonus > 0 else "",
+			", +%d held for it (p.166)" % held if held > 0 else "",
 			", Hazard -1 Semi-living Organism" if hazard_reduction(campaign) > 0 else ""]]
 	if bool(roll.ancient_sign):
 		mark_ancient_sign(campaign, sector_key)
@@ -535,11 +571,12 @@ static func explore(campaign: Resource, sector_key: String, resource_bonus: int 
 
 
 ## Sectors Scout Explore may pick: "not enemy occupied, and which has not already been
-## Exploited" (p.60).
+## Exploited" (p.60), and not infested: "The Swarm prevents all access" (p.167).
 static func explore_targets(campaign: Resource) -> Array:
 	var md: Dictionary = campaign.map_data
 	return all_keys(md).filter(func(k: String) -> bool:
-		return not is_occupied(campaign, k) and status(md, k) != "exploited")
+		return (not is_occupied(campaign, k) and status(md, k) != "exploited"
+				and not _infested(md, k)))
 
 
 ## An "A" on the map (p.53): "Completing any mission in the sector awards the Ancient
@@ -871,7 +908,7 @@ static func apply_enemy_activity(campaign: Resource, idx: int, activity: String)
 		"attack":
 			campaign.offer_mission("pitched_battle", {"enemy_index": idx, "forced": true})
 			return {"raids": 0, "lines": ["Play the Pitched Battle mission this turn; if you "
-					+ "lose, you take damage as per a Raid (p.62)."]}
+					+ "lose, roll on the Campaign Consequences table (pp.62, 127)."]}
 		"raid":
 			return {"raids": 1, "lines": []}
 	return {"raids": 0, "lines": []}
@@ -991,7 +1028,7 @@ static func mission_sites(campaign: Resource, mission: Dictionary) -> Array:
 	var mission_id: String = str(mission.get("id", ""))
 	var out: Array = []
 	var field := func(k: String) -> bool:
-		return k != hk and not is_occupied(campaign, k)
+		return k != hk and not is_occupied(campaign, k) and not _infested(md, k)
 	match str(mission.get("map_requirement", "")):
 		"sector_marked_for_investigation":
 			_add_sites(out, all_keys(md).filter(func(k: String) -> bool:
@@ -1021,14 +1058,21 @@ static func mission_sites(campaign: Resource, mission: Dictionary) -> Array:
 		"colony_sector":
 			var attack: Dictionary = campaign.get_mission_offer("pitched_battle")
 			if not attack.is_empty() and hk != "":
+				var swarm: bool = bool(attack.get("swarm", false))
 				out.append({"key": hk, "enemy_index": int(attack.get("enemy_index", -1)),
-						"label": "%s (your colony): %s attacks" % [label(hk),
-						enemy_name(campaign, int(attack.get("enemy_index", -1)))]})
+						"swarm": swarm, "label": "%s (your colony): %s attacks" % [label(hk),
+						"the Swarm" if swarm
+						else enemy_name(campaign, int(attack.get("enemy_index", -1)))]})
 		"enemy_occupied_sector":
 			for i in active_indices(campaign):
 				for k in held_by(campaign, i):
 					out.append({"key": k, "enemy_index": i,
 							"label": "%s: held by %s" % [label(k), enemy_name(campaign, i)]})
+			# p.167: "To defeat the Swarm ... This uses the Skirmish mission."
+			if mission_id == "skirmish":
+				for k in flagged(md, "swarm"):
+					out.append({"key": str(k), "enemy_index": -1, "swarm": true,
+							"label": "%s: infested by the Swarm (p.167)" % label(str(k))})
 		"adjacent_to_enemy_sector":
 			out.append_array(_strike_sites(campaign))
 		"enemy_strongpoint_located":
@@ -1040,7 +1084,7 @@ static func mission_sites(campaign: Resource, mission: Dictionary) -> Array:
 							"%s: %s Strongpoint" % [label(sp), enemy_name(campaign, i)]})
 		"ancient_site_located":
 			_add_sites(out, all_keys(md).filter(func(k: String) -> bool:
-				return (not is_occupied(campaign, k)
+				return (not is_occupied(campaign, k) and not _infested(md, k)
 						and bool(sector(md, k).get("ancient_site", false)))))
 		_:
 			if mission_id != "":
@@ -1078,6 +1122,10 @@ static func mission_availability(campaign: Resource, mission: Dictionary) -> Dic
 	var attack: Dictionary = campaign.get_mission_offer("pitched_battle") \
 			if campaign.has_method("get_mission_offer") else {}
 	if mission_id != "pitched_battle" and bool(attack.get("forced", false)):
+		if bool(attack.get("swarm", false)):
+			return {"available": false, "sites": [], "reason":
+					"The Swarm has reached the colony: the Pitched Battle must be played this "
+					+ "turn (p.167)."}
 		return {"available": false, "sites": [], "reason":
 				"%s is attacking the colony: the Pitched Battle must be played this turn (p.62)."
 				% enemy_name(campaign, int(attack.get("enemy_index", -1)))}
@@ -1100,6 +1148,10 @@ static func _site_label(k: String) -> String:
 	return label(k)
 
 
+static func _infested(md: Dictionary, k: String) -> bool:
+	return bool(sector(md, k).get("swarm", false))
+
+
 static func _near_home(campaign: Resource, reach: int) -> Array:
 	var md: Dictionary = campaign.map_data
 	var hk: String = home_key(md)
@@ -1117,7 +1169,7 @@ static func _strike_sites(campaign: Resource) -> Array:
 	var hk: String = home_key(md)
 	var out: Array = []
 	var free := func(k: String) -> bool:
-		return k != hk and not is_occupied(campaign, k)
+		return k != hk and not is_occupied(campaign, k) and not _infested(md, k)
 	var patrol: Dictionary = campaign.get_mission_offer("strike")
 	for i in active_indices(campaign):
 		var e: Dictionary = _enemy(campaign, i)
@@ -1142,7 +1194,37 @@ static func _strike_sites(campaign: Resource) -> Array:
 			out.append({"key": k, "enemy_index": i, "patrol": not boss,
 					"label": "%s: %s %s" % [label(k), enemy_name(campaign, i),
 					"Boss" if boss else "patrol (its Leader)"]})
+	var site: String = weapon_site(campaign)
+	if site != "":
+		out.append({"key": site, "enemy_index": -1, "weapon_site": true,
+				"label": "%s: the super weapon site, held by a scouting force (p.165)"
+				% label(site)})
 	return out
+
+
+## p.165: "Tracking down the weapon site requires an Enemy Information roll (see page
+## 60) ... If no Tactical Enemies are on the map currently, randomly roll on the Tactical
+## Enemies table to determine what you end up fighting." While a Tactical Enemy builds the
+## weapon, the p.60 roll that tracks down its Boss opens the Strike, and a won Strike on
+## it ends the Calamity (PlanetfallCalamitySystem.after_mission). With no builder on the
+## map there is no Enemy Information to roll against, so the tracking roll cannot be
+## made; the app opens the site to a Strike against the scouting force instead, the one
+## reading under which this Calamity can end. The site's sector, or "".
+static func weapon_site(campaign: Resource) -> String:
+	if campaign == null or not "active_calamities" in campaign:
+		return ""
+	for cal in campaign.active_calamities:
+		if not cal is Dictionary or bool(cal.get("resolved", false)) \
+				or str(cal.get("id", "")) != "enemy_super_weapon":
+			continue
+		var p: Variant = cal.get("progress", {})
+		if not p is Dictionary:
+			return ""
+		var idx: int = int((p as Dictionary).get("enemy_index", -1))
+		if idx >= 0 and is_active(campaign, idx):
+			return ""
+		return str((p as Dictionary).get("site_sector", ""))
+	return ""
 
 
 ## ============================================================================
@@ -1203,15 +1285,6 @@ static func apply_mission_factors(campaign: Resource, result: Dictionary) -> Dic
 				out.ops.append({"op": "morale_adjust", "amount": 1})
 				out.lines.append("The scout is not on your roster: +1 Colony Morale for saving "
 						+ "them (p.126).")
-		"pitched_battle":
-			var attack: Dictionary = campaign.get_mission_offer("pitched_battle")
-			if not won and not attack.is_empty():
-				var raider: int = int(attack.get("enemy_index", idx))
-				var dmg: Dictionary = raid_damage(campaign, raider)
-				out.ops.append({"op": "colony_damage", "amount": int(dmg.damage), "mitigable": true})
-				out.lines.append("The Attack succeeds: Raid damage %d (%d sectors +1, %d negated "
-						% [int(dmg.damage), int(dmg.base) - 1, int(dmg.mitigated)]
-						+ "by Colony Defenses) (p.62).")
 		"strike":
 			if is_active(campaign, idx):
 				_strike_factors(campaign, idx, won, bool(result.get("boss_present", false)), out)

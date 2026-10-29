@@ -146,23 +146,12 @@ func roll_artifact(roll: int, found_artifact_ids: Array) -> Dictionary:
 	return initial
 
 
-func apply_artifact_to_campaign(campaign: Resource, artifact: Dictionary) -> bool:
-	## Add artifact to campaign. Returns false if already found.
-	if not campaign or not campaign.has_method("add_artifact"):
-		return false
-	return campaign.add_artifact(artifact)
-
-
 func get_artifact_by_id(artifact_id: String) -> Dictionary:
 	## Look up a specific artifact by ID.
 	for artifact in _artifacts:
 		if artifact is Dictionary and artifact.get("id", "") == artifact_id:
 			return artifact.duplicate(true)
 	return {}
-
-
-func get_all_artifacts() -> Array:
-	return _artifacts.duplicate(true)
 
 
 ## ============================================================================

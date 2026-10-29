@@ -186,6 +186,26 @@ func test_the_tactical_force_follows_pp149_to_151() -> void:
 	assert_str(str(force.enemy_type)).is_equal("Outlaws")
 
 
+## p.151: the card prints the rule of every trait the fielded weapons carry, and no
+## other. Outlaws as above: grunts carry the Military rifle (no trait), the specialist
+## the Rattle gun (Heavy), the leader the Shotgun (Critical) as well.
+func test_the_force_card_prints_the_rules_of_the_traits_it_fields() -> void:
+	var core := _core("outlaws")
+	_force("Planetfall Enemy Number D3", [3, 3])
+	_force("Planetfall Enemy Grunt Weapons", [4])
+	_force("Planetfall Enemy Specialist Weapons", [5])
+	_force("Planetfall Enemy Leader Weapons", [6])
+	var force: Dictionary = Guide.build_force(core, "tactical", {}, 0)
+	var detail := ""
+	for r in force.rows:
+		if str(r.get("head", "")) == "Weapon traits (p.151)":
+			detail = str(r.get("detail", ""))
+	assert_str(detail).contains("Heavy: -1 to hit penalty if moving and firing.") \
+		.contains("Critical: A natural 6 to hit inflicts 2 hits on the target.") \
+		.not_contains("Melee").not_contains("Pistol").not_contains("Shockwave")
+	assert_str(str(_of_role(force.enemies, "specialist")[0].weapons[0])).contains("Heavy")
+
+
 ## p.149: a split Combat Skill's second value is for leaders AND specialists; a split
 ## Toughness's second value for the leader only.
 func test_split_values_go_to_the_right_figures() -> void:
@@ -408,7 +428,9 @@ func test_the_deployed_weapon_reaches_the_quick_roll() -> void:
 	_force("Planetfall Enemy Number D3", [3, 3])
 	var crew: Array = tc.build_battle_payload().context.crew
 	assert_int(crew.size()).override_failure_message("premise: Ash deployed").is_equal(1)
-	assert_str(str(crew[0].assigned_weapon)).is_equal("handgun")
+	assert_str(str(crew[0].weapons[0].id)).is_equal("handgun")
+	assert_bool(crew[0].has("assigned_weapon")).override_failure_message(
+		"the bare id is back, and nothing reads it").is_false()
 	var quick: Node = load("res://src/ui/components/battle/CharacterQuickRollPanel.gd").new()
 	add_child(quick)
 	auto_free(quick)
@@ -419,6 +441,72 @@ func test_the_deployed_weapon_reaches_the_quick_roll() -> void:
 		"the quick roll found no weapon on a Planetfall figure").is_equal(6)
 	assert_bool(quick._weapon_is_pistol(weapon)).override_failure_message(
 		"the Handgun's pistol trait did not reach the battle").is_true()
+
+
+## pp.115-130 print a table size on every mission; Scouting, Science, Rescue and Scout
+## Down are 2x2 feet. The battle map used the player's table setting for all of them.
+func test_a_2x2_mission_reaches_the_battle_map_at_2_feet() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("scouting")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	assert_float(float(md.get("table_size_ft", 0.0))).is_equal(2.0)
+	var ui: Control = auto_free(TacticalBattleScene.instantiate())
+	add_child(ui)
+	await get_tree().process_frame
+	ui._stored_mission_data = md
+	assert_float(ui._setup_table_size_ft({"table_size_ft": 3.0})).override_failure_message(
+		"a stale table contract outranked the mission's printed size").is_equal(2.0)
+	# Alpha-1: a 5PFH battle keeps its contract and setting, whatever the mission says.
+	ui._stored_mission_data = {"battle_mode": "standard", "table_size_ft": 2.0}
+	assert_float(ui._setup_table_size_ft({"table_size_ft": 3.0})).is_equal(3.0)
+
+
+func test_every_printed_table_size_converts() -> void:
+	var tc_script: GDScript = load("res://src/ui/screens/planetfall/PlanetfallTurnController.gd")
+	assert_float(tc_script.table_size_ft("2x2")).is_equal(2.0)
+	assert_float(tc_script.table_size_ft("3x3")).is_equal(3.0)
+	assert_float(tc_script.table_size_ft("")).is_equal(3.0)
+
+
+## p.123: "Roll 1D6 twice on the Skirmish Objective table below to determine what you are
+## here to do." Rolled once, at launch, and printed on the Battle Card.
+func test_a_skirmish_launches_with_its_two_objectives_rolled() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("skirmish")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	_force("Planetfall Skirmish Objective", [3, 6])
+	_force("Planetfall Skirmish Placement", [1, 5])
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	var objs: Array = md.get("skirmish_objectives", [])
+	assert_int(objs.size()).override_failure_message("p.123: two objectives, rolled at launch") \
+		.is_equal(2)
+	assert_str(str(objs[0].get("id", ""))).is_equal("destroy")
+	assert_str(str(objs[1].get("id", ""))).is_equal("retrieve")
+	assert_int(int(objs[0].get("distance", 0))).is_equal(2)
+	var card: String = "\n".join(Guide.briefing_rows(md, core).map(
+			func(r): return "%s %s" % [str(r.get("head", "")), str(r.get("detail", ""))]))
+	assert_str(card).contains("Skirmish Objective 1: Destroy")
+	assert_str(card).contains("Skirmish Objective 2: Retrieve")
+	assert_str(card).contains("Place it 6\" from the center")
+
+
+## p.115: a Discovery marker is rolled "immediately" when investigated, so the card prints
+## the table; no Skirmish die is spent on any other mission.
+func test_an_investigation_card_prints_the_discovery_table() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("investigation")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	assert_array(md.get("skirmish_objectives", [])).is_empty()
+	var card: String = "\n".join(Guide.briefing_rows(md, core).map(
+			func(r): return "%s %s" % [str(r.get("head", "")), str(r.get("detail", ""))]))
+	assert_str(card).contains("Discovery 1: Enemy")
+	assert_str(card).contains("Discovery 5-6: Data")
+	assert_str(card).contains("within 2\"")
 
 
 func test_a_slyn_attack_is_what_the_turn_controller_stamps() -> void:
@@ -432,6 +520,32 @@ func test_a_slyn_attack_is_what_the_turn_controller_stamps() -> void:
 	assert_int(payload.context.enemies.size()).is_equal(6)
 	assert_str(str(payload.context.mission_data.opposition_force_rows[0].head)) \
 		.contains("2D6 2")
+
+
+## p.157: once the Slyn "decide to leave you alone. They will no longer attack for the rest
+## of this campaign." A forced 2 would field them; the launch must not roll at all.
+func test_once_the_slyn_have_left_the_launch_fields_the_missions_fallback() -> void:
+	var core := _core()
+	core.slyn_departed = true
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("exploration")
+	tc._deployed_data = {}
+	_force("Planetfall Slyn Aggression", [2])
+	var payload: Dictionary = tc.build_battle_payload()
+	assert_str(str(payload.stamp.opposition_type)).override_failure_message(
+		"p.157: the departed Slyn still attacked").is_equal("lifeforms")
+	assert_str(str(payload.context.mission_data.opposition_force_rows[0].head)) \
+		.contains("left the colony alone")
+
+
+## p.153: the Slyn attack wherever a mission says to roll, from the first turn. The gate
+## once read "4 Milestones", which neither page says.
+func test_the_slyn_attack_before_any_milestone() -> void:
+	var core := _core()
+	core.milestones_completed = 0
+	assert_bool(core.is_slyn_active()).is_true()
+	core.slyn_departed = true
+	assert_bool(core.is_slyn_active()).is_false()
 
 
 func test_a_planetfall_battle_shows_the_planetfall_card() -> void:
@@ -454,7 +568,8 @@ func test_a_planetfall_battle_shows_the_planetfall_card() -> void:
 	assert_str(text).contains("PLANETFALL BATTLE CARD").contains("Outlaws: 5 figures")
 	assert_str(text).not_contains("Core Rules p.90")
 	assert_str(text).override_failure_message(
-		"p.117: Contacts are the wildlife battle's system, not a Tactical Enemy's") 		.not_contains("Contact Reveal")
+		"p.117: Contacts are the wildlife battle's system, not a Tactical Enemy's") \
+		.not_contains("Contact Reveal")
 	ui._stored_mission_data = {"battle_mode": "planetfall", "opposition_type": "lifeforms",
 		"opposition": _mission("investigation").opposition}
 	var wild: Control = auto_free(ui._build_battle_card())
@@ -525,3 +640,28 @@ func test_lock_and_load_says_the_slyn_check_comes_after_deployment() -> void:
 	var text := _labels(panel._mission_info_section)
 	assert_str(text).contains("rolled after you deploy").contains("2D6 2-4")
 	assert_str(text).not_contains("SLYN ATTACKING")
+
+
+
+## pp.110-113: the Battlefield Condition rolled at Mission Determination reaches the battle
+## card. It stopped at Lock and Load until 2026-10-28. A Skirmish places 2 Uncertain
+## features (p.123), and this condition adds one more (pp.137-138).
+func test_the_rolled_condition_and_uncertain_features_reach_the_battle_card() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	var pm_script: GDScript = load("res://src/core/campaign/PlanetfallPhaseManager.gd")
+	tc.phase_manager.current_phase = pm_script.Phase.MISSION_DETERMINATION
+	var cond := {"id": "uncertain_terrain_features", "name": "Uncertain terrain features",
+		"description": "Long range scans are particularly unreliable here.",
+		"additional_uncertain_features": 1}
+	tc._on_panel_phase_completed({"selected_mission": _mission("skirmish"),
+		"active_condition": cond, "force_limits": {}})
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	_force("Planetfall Enemy Number D3", [3, 3])
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	var heads: Array = []
+	for row in Guide.briefing_rows(md, core):
+		heads.append(str(row.get("head", "")))
+	assert_array(heads).contains(["Battlefield Condition: Uncertain terrain features (pp.110-113)",
+		"Uncertain terrain features: 2, +1 for the Uncertain terrain features condition "
+		+ "(optional rule, pp.137-138)"])

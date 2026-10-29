@@ -1716,7 +1716,8 @@ func _stamp_black_zone_objective(mission_data: Dictionary) -> void:
 ## Extracted so the arithmetic can be asserted without running the whole
 ## battle-launch sequence.
 func _seize_modifier_total(first_enemy: Dictionary, mission_data: Dictionary) -> int:
-	return int(first_enemy.get("seize_initiative_modifier", 0)) 		+ int(mission_data.get("seize_initiative_modifier", 0))
+	return int(first_enemy.get("seize_initiative_modifier", 0)) \
+		+ int(mission_data.get("seize_initiative_modifier", 0))
 
 func _can_seize_initiative(setup_bundle: Dictionary, mission_data: Dictionary) -> bool:
 	if not bool(setup_bundle.get("can_seize_initiative", true)):

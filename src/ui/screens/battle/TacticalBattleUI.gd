@@ -286,6 +286,9 @@ var _grid_setup_section: VBoxContainer = null
 ## Last BattlefieldGenerator result (sectors/combat_notes/visibility_limit) —
 ## drives the redesign's info-rail BATTLEFIELD card + TERRAIN KEY legend.
 var _battlefield_data: Dictionary = {}
+## Planetfall pp.143-145: the rolled table setup, rebuilt whole on a re-roll so a stale
+## ground line can never sit above fresh clusters.
+var _pf_table_box: VBoxContainer = null
 
 # Battle State
 var crew_units: Array[TacticalUnit] = []
@@ -297,6 +300,9 @@ var _is_planetfall_mode: bool = false
 ## One Planetfall mission's Lifeform encounters: how many met, the creature the first
 ## reveal fixed, and any Unique Ability rolled for this battle (p.146, p.159).
 var _planetfall_encounters: Dictionary = {}
+## One Planetfall mission's markers: the Delve Devices rolled and activated and the
+## Discovery markers investigated (pp.115, 133).
+var _planetfall_tools: Dictionary = {}
 var _battle_mode_id: String = ""  # "" = standard 5PFH; gates No-Minis auto-resolve routing
 ## T11-49: set by a launcher that owns no campaign state (Battle Simulator, and the
 ## MCP/demo tier-select path). This is the POSITIVE ownership signal. The other two
@@ -1125,6 +1131,11 @@ func _on_delegated_battle_completed(result: Dictionary) -> void:
 	## When battle was launched via SceneRouter delegation, store results
 	## in temp_data and navigate back to the calling turn controller.
 	var gs_mgr = get_node_or_null("/root/GameStateManager")
+	# Planetfall p.121: a Hunt's samples are of the creature this mission met, and only
+	# the encounter state knows which entry that was (PlanetfallMissionRewards reads it).
+	if _is_planetfall_mode and not result.has("lifeform_slot") \
+			and int(_planetfall_encounters.get("mission_slot", -1)) >= 0:
+		result["lifeform_slot"] = int(_planetfall_encounters.mission_slot)
 	if gs_mgr and gs_mgr.has_method("set_temp_data") and not _result_temp_key.is_empty():
 		gs_mgr.set_temp_data(_result_temp_key, result)
 
@@ -3004,6 +3015,14 @@ func _build_planetfall_battle_card(md: Dictionary) -> Control:
 		_battle_card_row(vbox, "Reveal Contacts from Mission Rules during the battle.",
 			"The app rolls the Contact Reveal D6 and your Lifeform Encounters table.",
 			UIColors.COLOR_CYAN)
+	if PlanetfallBattleGuideClass.has_mission_tools(str(md.get("type", ""))):
+		_battle_card_row(vbox, "Roll this mission's markers from Mission Rules during "
+			+ "the battle.", "The app rolls each table as a marker is revealed and each "
+			+ "Sleeper's weapon as it is placed.", UIColors.COLOR_CYAN)
+	if PlanetfallBattleGuideClass.uncertain_feature_text(md) != "":
+		_battle_card_row(vbox, "Reveal Uncertain features from Mission Rules during the "
+			+ "battle.", "The app rolls the Uncertain Features D100 as each is revealed.",
+			UIColors.COLOR_CYAN)
 	return card
 
 
@@ -3078,6 +3097,69 @@ func _setup_planetfall_contact_panel(md: Dictionary) -> void:
 		_show_planetfall_encounter(results, e.get("lines", []))
 	)
 	buttons.add_child(place)
+	panel.add_child(results)
+
+
+## pp.115, 130-133 and p.154 during play: a Delve's Hazards and Devices, an
+## Investigation's Discovery markers and any Sleeper placed are rolled here when the player
+## says so, beside the Contacts. ⚠ Until 2026-10-28 none of these tables was rolled or
+## printed anywhere in the app, so a Delve could not be played without the book.
+func _setup_planetfall_mission_tools(md: Dictionary) -> void:
+	var mission_id: String = str(md.get("type", ""))
+	var marker_mission: bool = PlanetfallBattleGuideClass.has_mission_tools(mission_id)
+	var host: Node = _mission_panel_host()
+	if host == null:
+		return
+	_planetfall_tools = PlanetfallBattleGuideClass.new_mission_tools_state()
+	var panel := VBoxContainer.new()
+	panel.name = "PlanetfallMissionTools"
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	host.add_child(panel)
+	var title := Label.new()
+	title.text = "DELVE HAZARDS AND DEVICES" if mission_id == "delve" \
+			else ("DISCOVERY MARKERS AND SLEEPERS" if marker_mission \
+			else "UNCERTAIN TERRAIN FEATURES")
+	title.add_theme_font_size_override("font_size", _scaled_font(12))
+	title.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	panel.add_child(title)
+	var buttons := HFlowContainer.new()
+	buttons.add_theme_constant_override("h_separation", UIColors.SPACING_SM)
+	buttons.add_theme_constant_override("v_separation", UIColors.SPACING_SM)
+	panel.add_child(buttons)
+	var results := VBoxContainer.new()
+	results.name = "MissionToolResults"
+	results.add_theme_constant_override("separation", 4)
+	var tools: Array = []
+	if mission_id == "delve":
+		tools.append(["RevealHazard", "Reveal a Delve Hazard (D6)",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.reveal_delve_hazard()])
+		tools.append(["RollDevice", "Roll a Delve Device (D6)",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.roll_delve_device(
+				_planetfall_tools)])
+		tools.append(["DeviceActivated", "A Device was activated",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.record_device_activation(
+				_planetfall_tools)])
+	elif marker_mission:
+		tools.append(["InvestigateDiscovery", "Investigate a Discovery marker (D6)",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.investigate_discovery(
+				mission_id, _planetfall_tools)])
+	if marker_mission:
+		tools.append(["PlaceSleeper", "Place a Sleeper (weapon D6)",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.place_sleeper()])
+	if PlanetfallBattleGuideClass.uncertain_feature_text(md) != "":
+		tools.append(["RevealUncertain", "Reveal an Uncertain feature (D100)",
+			func() -> Dictionary: return PlanetfallBattleGuideClass.reveal_uncertain_feature()])
+	for t in tools:
+		var b := Button.new()
+		b.name = str(t[0])
+		b.text = str(t[1])
+		b.custom_minimum_size = Vector2(160, UIColors.TOUCH_TARGET_MIN)
+		var roll: Callable = t[2]
+		b.pressed.connect(func() -> void:
+			_show_planetfall_encounter(results, roll.call().get("lines", []))
+		)
+		buttons.add_child(b)
 	panel.add_child(results)
 
 
@@ -5514,6 +5596,7 @@ func _reset_battle_state() -> void:
 	# p.146 counts "during a mission": a reused screen must not carry the last
 	# mission's creature or its pack-leader count into this one.
 	_planetfall_encounters = {}
+	_planetfall_tools = {}
 
 	# Per-figure model + its views.
 	crew_units.clear()
@@ -5665,6 +5748,18 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	if mission_data is Dictionary:
 		_standalone_declared = bool(
 			(mission_data as Dictionary).get("standalone", false))
+	# The battle MODE is ownership too, and _populate_setup_tab() below reads it:
+	# _is_standalone_battle() answers from _battle_mode_id, and the terrain branch from
+	# _is_planetfall_mode. ⚠ Until 2026-10-28 all three were assigned AFTER the tab was
+	# built, so on a fresh screen a Bug Hunt or Planetfall battle counted as
+	# campaign-owned while its table was laid out (consume-first would adopt a 5PFH table
+	# still in GameState's cache), and Planetfall's own table setup could never be chosen.
+	# Only Bug Hunt and Planetfall stamp battle_mode; a 5PFH battle stamps none, so it
+	# reaches the tab exactly as before.
+	var mode_dict: Dictionary = mission_data if mission_data is Dictionary else {}
+	_battle_mode_id = str(mode_dict.get("battle_mode", ""))
+	_is_bug_hunt_mode = _battle_mode_id == "bug_hunt"
+	_is_planetfall_mode = _battle_mode_id == "planetfall"
 	# Per-battle movement system (Compendium p.90) — resolved BEFORE the setup
 	# tab renders, because the tab prints the grid procedure. A scenario may
 	# stamp `use_grid_movement`; otherwise the DLC flag is the opt-in and the
@@ -5710,10 +5805,11 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 
 	# NOTE: Deployment phase starts AFTER tier selection completes
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
-	var battle_mode: String = mission_dict.get("battle_mode", "")
-	_battle_mode_id = battle_mode
-	_is_bug_hunt_mode = battle_mode == "bug_hunt"
-	_is_planetfall_mode = battle_mode == "planetfall"
+	# _battle_mode_id, _is_bug_hunt_mode and _is_planetfall_mode are assigned above,
+	# before the setup tab, because the tab reads them.
+	# p.28: a Planetfall battle reads Planetfall's combat rules in the Reference drawer.
+	if cheat_sheet_panel and cheat_sheet_panel.has_method("set_rules_mode"):
+		cheat_sheet_panel.set_rules_mode("planetfall" if _is_planetfall_mode else "core")
 	if _is_bug_hunt_mode:
 		_log_message("Bug Hunt mode — morale hidden, contact markers active", UIColors.COLOR_AMBER)
 	elif _is_planetfall_mode:
@@ -5750,6 +5846,11 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 		_setup_salvage_panel(compendium_payload)
 	elif _is_planetfall_mode and str(mission_dict.get("opposition_type", "")) == "lifeforms":
 		_setup_planetfall_contact_panel(mission_dict)
+	# pp.115, 130-133: a Delve's and an Investigation's markers roll tables of their own;
+	# pp.137-138: so does any mission's Uncertain features.
+	if _is_planetfall_mode and (PlanetfallBattleGuideClass.has_mission_tools(mission_type)
+			or PlanetfallBattleGuideClass.uncertain_feature_text(mission_dict) != ""):
+		_setup_planetfall_mission_tools(mission_dict)
 
 	# Deferred from the pre-selected-tier branch at the top of this function, and
 	# the only place the campaign path opens its pre-battle modal. Must stay at
@@ -7529,9 +7630,16 @@ func _populate_setup_tab(mission_data) -> void:
 
 		var seed_rng := RandomNumberGenerator.new()
 		seed_rng.randomize()
-		sector_data = _battlefield_generator.generate_terrain_suggestions(
-			_current_terrain_theme, world_traits,
-			deployment_condition, seed_rng.randi(), table_size_ft)
+		if _is_planetfall_mode:
+			# Planetfall's own Random Table Setup (pp.143-145), never the 5PFH
+			# Compendium 5-step: see PlanetfallBattleGuide.table_setup_contract().
+			sector_data = PlanetfallBattleGuideClass.table_setup_contract(
+				table_size_ft, deployment_condition, seed_rng.randi())
+			_current_terrain_theme = str(sector_data.get("theme", ""))
+		else:
+			sector_data = _battlefield_generator.generate_terrain_suggestions(
+				_current_terrain_theme, world_traits,
+				deployment_condition, seed_rng.randi(), table_size_ft)
 
 	# Store the generator result so the info-rail BATTLEFIELD card +
 	# TERRAIN KEY (redesign) can read real combat_notes/objective data.
@@ -7758,6 +7866,7 @@ func _populate_setup_tab(mission_data) -> void:
 	_add_setup_text(theme_display, Color("#f59e0b"), 16)
 	# Compendium theme description = line 2 of the generator summary
 	_add_terrain_summary_lines(sector_data)
+	_add_planetfall_table_setup(sector_data)
 
 	var notable_count: int = sector_data.get("notable_count", 0)
 	_add_setup_text(
@@ -7994,6 +8103,52 @@ func _add_terrain_summary_lines(sector_data: Dictionary) -> void:
 		_add_setup_text(str(lines[1]), Color("#9ca3af"))
 
 
+## Planetfall pp.143-145: the rolled ground, clusters and sub-features, plus a re-roll
+## (p.143: "a few rerolls here is fine"). Only a Planetfall contract carries
+## `planetfall_table_setup`, so every other battle skips this.
+func _add_planetfall_table_setup(sector_data: Dictionary) -> void:
+	if not sector_data.has("planetfall_table_setup"):
+		return
+	_pf_table_box = VBoxContainer.new()
+	_pf_table_box.name = "PlanetfallTableSetup"
+	setup_content.add_child(_pf_table_box)
+	_fill_planetfall_table_setup(sector_data)
+
+
+func _fill_planetfall_table_setup(sector_data: Dictionary) -> void:
+	if not is_instance_valid(_pf_table_box):
+		return
+	for child in _pf_table_box.get_children():
+		_pf_table_box.remove_child(child)
+		child.queue_free()
+	for line in sector_data.get("table_setup_lines", []):
+		var label := Label.new()
+		label.text = str(line)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.add_theme_font_size_override("font_size", _scaled_font(14))
+		label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_pf_table_box.add_child(label)
+	var reroll := Button.new()
+	reroll.name = "RerollTableSetup"
+	reroll.text = "Re-roll Table Setup"
+	reroll.tooltip_text = "Roll pp.143-145 again. A few rerolls to suit your terrain collection are fine (p.143)."
+	reroll.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	reroll.pressed.connect(_on_reroll_planetfall_table_setup)
+	_pf_table_box.add_child(reroll)
+
+
+## Deferred: the pressed button is one of the children the rebuild frees.
+func _on_reroll_planetfall_table_setup() -> void:
+	if not _battlefield_data.has("planetfall_table_setup"):
+		return
+	var setup: Dictionary = PlanetfallBattleGuideClass.roll_table_setup(
+		float(_battlefield_data.get("table_size_ft", 3.0)))
+	_battlefield_data["planetfall_table_setup"] = setup
+	_battlefield_data["table_setup_lines"] = setup.get("lines", [])
+	_fill_planetfall_table_setup.call_deferred(_battlefield_data)
+
+
 ## May this screen roll a random terrain LAYOUT?
 ##
 ## Compendium p.94 makes the generators opt-in and TERRAIN_GENERATION
@@ -8009,7 +8164,13 @@ func _add_terrain_summary_lines(sector_data: Dictionary) -> void:
 ## for demo (DLC gating planned)'), which is also why the :7290 fallback
 ## generation is left alone. Encoding that exception in each caller instead is
 ## how one rule becomes four expressions that drift.
+##
+## ⚠ Planetfall is the exception to the exception. Its book has its own Random Table
+## Setup (pp.143-145), which the Setup tab rolls and can re-roll, so the Compendium 5-step
+## behind the Regenerate controls and the per-sector re-roll is the wrong book there.
 func _layout_generation_allowed() -> bool:
+	if _is_planetfall_mode:
+		return false
 	if _is_standalone_battle():
 		return true
 	return WorldOptionsRef.is_terrain_generation_enabled()
@@ -8555,6 +8716,15 @@ func _create_setup_label(text: String, color: Color, font_size: int = 14) -> Lab
 ## else the player's p.108 setting. Shared so a later rebuild cannot drift from
 ## the value the first render used.
 func _setup_table_size_ft(bf_data: Dictionary = {}) -> float:
+	# Planetfall prints a table size on every mission (pp.115-130: Scouting, Science,
+	# Rescue and Scout Down are 2x2 feet), stamped as `table_size_ft`. The book sets it,
+	# so it wins in that mode. Read off the stored mission, not _is_planetfall_mode,
+	# which is set after the Setup tab is first built. Other modes are unchanged.
+	if _stored_mission_data is Dictionary \
+			and str(_stored_mission_data.get("battle_mode", "")) == "planetfall":
+		var mission_ft: float = float(_stored_mission_data.get("table_size_ft", 0.0))
+		if mission_ft > 0.0:
+			return mission_ft
 	var bf: Dictionary = bf_data
 	if bf.is_empty():
 		var game_state = get_node_or_null("/root/GameState")

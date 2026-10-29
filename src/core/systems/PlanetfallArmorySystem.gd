@@ -73,11 +73,15 @@ func _load_weapon_applications() -> void:
 		if theory is not Dictionary:
 			continue
 		for app in theory.get("applications", []):
-			if app is Dictionary and str(app.get("unlocks_weapon", "")) != "":
-				var app_id := str(app.get("id", ""))
+			if app is not Dictionary:
+				continue
+			var app_id := str(app.get("id", ""))
+			# Every application is named, not only the weapon ones: three Grunt upgrades
+			# have an application as their prerequisite (p.79).
+			_application_label[app_id] = "the %s application (%s)" % [
+				str(app.get("name", app_id)), str(theory.get("name", ""))]
+			if str(app.get("unlocks_weapon", "")) != "":
 				_weapon_application[str(app.unlocks_weapon)] = app_id
-				_application_label[app_id] = "the %s application (%s)" % [
-					str(app.get("name", app_id)), str(theory.get("name", ""))]
 	_load_building_names()
 
 
@@ -91,7 +95,8 @@ func _load_building_names() -> void:
 	if json.parse(file.get_as_text()) != OK or json.data is not Dictionary:
 		return
 	for b in json.data.get("buildings", []):
-		if b is Dictionary and TIER_BUILDING.values().has(str(b.get("id", ""))):
+		# Every building, not only the Tier ones: three Grunt upgrades need one (p.79).
+		if b is Dictionary:
 			_building_name[str(b.id)] = str(b.get("name", b.id))
 
 
@@ -213,14 +218,6 @@ func get_weapon_trait(trait_id: String) -> Dictionary:
 	return _weapon_traits.get(trait_id, {}).duplicate()
 
 
-func get_all_weapon_traits() -> Dictionary:
-	return _weapon_traits.duplicate(true)
-
-
-func get_grunt_upgrades() -> Array:
-	return _grunt_upgrades.duplicate(true)
-
-
 func get_available_grunt_upgrades(
 		campaign: Resource,
 		research_system: RefCounted = null) -> Array:
@@ -232,6 +229,24 @@ func get_available_grunt_upgrades(
 		if _check_upgrade_prereq(campaign, upgrade, research_system):
 			result.append(upgrade.duplicate(true))
 	return result
+
+
+## Every Grunt upgrade with `available` and, when it is not, what it still `needs`,
+## named (p.79). The Armory shows all six; a battle shows the available ones.
+func grunt_upgrade_status(campaign: Resource, research_system: RefCounted = null) -> Array:
+	var out: Array = []
+	for upgrade in _grunt_upgrades:
+		if upgrade is not Dictionary:
+			continue
+		var row: Dictionary = (upgrade as Dictionary).duplicate(true)
+		row["available"] = _check_upgrade_prereq(campaign, upgrade, research_system)
+		var b: String = str(upgrade.get("prerequisite_building", ""))
+		var a: String = str(upgrade.get("prerequisite_application", ""))
+		var needs: String = ("the %s" % str(_building_name.get(b, b))) if b != "" \
+				else str(_application_label.get(a, a))
+		row["needs"] = "" if bool(row.available) else "Needs " + needs
+		out.append(row)
+	return out
 
 
 ## ============================================================================

@@ -42,6 +42,9 @@ const ProblemSolvingRef = preload("res://src/core/battle/ProblemSolvingTests.gd"
 
 ## Core Rules Appendix VIII, pp.172-173.
 const NEUTRAL_CHARACTERS_PATH := "res://data/RulesReference/NeutralCharacters.json"
+## Planetfall pp.26-40 and pp.32-33, rendered for a Planetfall battle.
+const PF_COMBAT_PATH := "res://data/planetfall/combat_rules.json"
+const PF_AI_PATH := "res://data/planetfall/ai_enemy_variations.json"
 
 const COLOR_HEAD := "#4FC3F7"
 const COLOR_WARN := "#D97706"
@@ -564,3 +567,146 @@ Throw, immune to Morale. Linked weapons count as one with +1 Shot.
 [color=#9ca3af]Rewards guidance (pp.170-171): up to 3 extra credits without
 worrying, no more than 1 bonus XP for surviving, and 1-3 Quest
 Rumors is fine. These are the book\'s own ceilings.[/color]"""
+
+
+
+## ============================================================================
+## PLANETFALL (Five Parsecs From Home: Planetfall pp.26-40)
+## ============================================================================
+
+## A Planetfall battle is fought under Planetfall's own combat rules: "Some rules have
+## been tailored to the characters and combat environments of Planetfall" (p.28). Every
+## section renders from combat_rules.json or ai_enemy_variations.json, the files those
+## rules were extracted to, which had no reader until 2026-10-28; until then a Planetfall
+## battle's Reference drawer printed the Core Rules sheet, Luck and Seize the Initiative
+## included. Returns [{title, content}]; a section whose data is missing is left out.
+static func planetfall_sections() -> Array:
+	var combat: Dictionary = _pf_json(PF_COMBAT_PATH)
+	var diff: Dictionary = combat.get("differences_from_5pfh", {})
+	var out: Array = []
+	var add := func(title: String, content: String) -> void:
+		if content.strip_edges() != "":
+			out.append({"title": title, "content": content.strip_edges()})
+
+	var round_text := ""
+	var steps: Array = combat.get("battle_round_sequence", [])
+	for i in range(steps.size()):
+		round_text += "  %d. %s\n" % [i + 1, str(steps[i])]
+	if str(diff.get("no_seize_initiative", "")) != "":
+		round_text += "[color=%s]%s (p.27)[/color]\n" % [COLOR_WARN, str(diff.no_seize_initiative)]
+	add.call("Battle Round (Planetfall p.28)", round_text)
+
+	var act := ""
+	var labels := {"scientist_bot_civvy_grunt": "Scientist, bot, civvy, grunt",
+		"scout": "Scout", "trooper_quick_phase": "Trooper"}
+	var classes: Dictionary = diff.get("class_based_activation", {})
+	for key in classes.keys():
+		act += "  [b]%s:[/b] %s\n" % [str(labels.get(key, str(key).capitalize())),
+			str(classes[key])]
+	if str(diff.get("scientist_reaction_bonus", "")) != "":
+		act += "%sQuick Thinking (p.29): %s\n" % [_head("Scientists"),
+			str(diff.scientist_reaction_bonus)]
+	var ft: Dictionary = diff.get("fireteams", {})
+	if not ft.is_empty():
+		act += "%s  %s\n  %s\n  %s\n" % [_head("Fireteams (p.30)"),
+			str(ft.get("initiative", "")), str(ft.get("formation_bonus", "")),
+			str(ft.get("members_independent_actions", ""))]
+	if str(diff.get("hesitation_rule", "")) != "":
+		act += "%s  %s\n" % [_head("Hesitation (p.31)"), str(diff.hesitation_rule)]
+	add.call("Activation (Planetfall pp.29-31)", act)
+
+	var shooting: Dictionary = combat.get("shooting", {})
+	var hits: Dictionary = shooting.get("hit_table", {})
+	var shoot := ""
+	var hit_labels := {"within_6_open": "Target within 6\" and in the open",
+		"in_open": "Target in the open", "in_cover": "Target in Cover"}
+	for key in hits.keys():
+		shoot += "  %s: [b]%d+[/b]\n" % [str(hit_labels.get(key, key)), int(hits[key])]
+	if str(shooting.get("scatter_terrain", "")) != "":
+		shoot += "[color=%s]Scatter: %s[/color]\n" % [COLOR_MUTED, str(shooting.scatter_terrain)]
+	add.call("Shooting (Planetfall p.37)", shoot)
+
+	var dmg: Dictionary = combat.get("damage", {})
+	var damage := ""
+	if not dmg.is_empty():
+		damage += "  Roll above Toughness: [b]%s[/b]\n" % str(dmg.get("above_toughness", ""))
+		damage += "  Equal to Toughness: [b]%s[/b]\n" % str(dmg.get("equal_toughness", ""))
+		damage += "  Below Toughness: [b]%s[/b]\n" % str(dmg.get("below_toughness", ""))
+		damage += "%s  Up to %d markers. %s\n" % [_head("Stunned (p.38)"),
+			int(dmg.get("stun_max", 0)), str(dmg.get("stun_effect", ""))]
+		damage += "%s  %s\n" % [_head("Sprawling (p.38)"), str(dmg.get("sprawling_effect", ""))]
+	add.call("Damage (Planetfall pp.37-38)", damage)
+
+	var saves: Dictionary = combat.get("armor_saving_throws", {})
+	var armor := ""
+	var save_labels := {"trooper_armor": "Trooper armor", "bot": "Bot",
+		"soulless": "Soulless (p.20)"}
+	for key in ["trooper_armor", "bot", "soulless"]:
+		if saves.has(key):
+			armor += "  %s: [b]%d+[/b]\n" % [str(save_labels[key]), int(saves[key])]
+	if str(saves.get("combining_saves", "")) != "":
+		armor += "[color=%s]%s[/color]\n" % [COLOR_MUTED, str(saves.combining_saves)]
+	add.call("Saving Throws (Planetfall p.37)", armor)
+
+	var brawl: Dictionary = combat.get("brawling", {})
+	var brawling := ""
+	for key in ["each_roll", "melee_bonus", "pistol_bonus", "natural_6", "natural_1",
+			"knock_back", "exploitation_move"]:
+		if str(brawl.get(key, "")) != "":
+			brawling += "  - %s\n" % str(brawl[key])
+	add.call("Brawling (Planetfall p.39)", brawling)
+
+	var morale := ""
+	for key in ["player_chars_no_panic", "retreat"]:
+		if str(diff.get(key, "")) != "":
+			morale += "  - %s\n" % str(diff[key])
+	add.call("Morale and Retreat (Planetfall p.40)", morale)
+
+	if str(diff.get("no_luck_stat", "")) != "":
+		add.call("Imported Characters (Planetfall p.26)", "  %s" % str(diff.no_luck_stat))
+
+	add.call("AI Enemy Variations (optional rule, Planetfall pp.32-33)", _pf_ai_variations())
+	return out
+
+
+## pp.32-33: "roll 1D6 at the start of the Enemy Actions Phase". Lifeforms and Tactical
+## Enemies only, "It does not apply to the Slyn or Sleeper enemy types."
+static func _pf_ai_variations() -> String:
+	var ai: Dictionary = _pf_json(PF_AI_PATH)
+	if ai.is_empty():
+		return ""
+	var out := "[color=%s]Optional, battle by battle. Lifeforms and Tactical Enemies only, " \
+		% COLOR_MUTED + "never the Slyn or Sleepers. Roll 1D6 at the start of the Enemy " \
+		+ "Actions Phase; a ploy or action affects one random enemy figure.[/color]\n"
+	for e in (ai.get("activation_roll", {}) as Dictionary).get("entries", []):
+		if e is Dictionary:
+			out += "  [b]%s[/b]  %s\n" % [_pf_roll(e.get("roll", 0)), str(e.get("result", ""))]
+	for pair in [["tactical_enemy_ploys", "Tactical Enemy Ploys"],
+			["tactical_enemy_actions", "Tactical Enemy AI Actions"],
+			["lifeform_ploys", "Lifeform Ploys"], ["lifeform_actions", "Lifeform AI Actions"]]:
+		var table: Variant = ai.get(pair[0], {})
+		if not (table is Dictionary):
+			continue
+		out += "\n%s" % _head(str(pair[1]))
+		for e in (table as Dictionary).get("entries", []):
+			if e is Dictionary:
+				out += "  [b]%s[/b]  %s: %s\n" % [_pf_roll(e.get("roll", 0)),
+					str(e.get("name", "")), str(e.get("description", ""))]
+	return out
+
+
+static func _pf_roll(roll: Variant) -> String:
+	if roll is Array and not (roll as Array).is_empty():
+		var lo: int = int((roll as Array).front())
+		var hi: int = int((roll as Array).back())
+		return str(lo) if lo == hi else "%d-%d" % [lo, hi]
+	return str(int(roll))
+
+
+static func _pf_json(path: String) -> Dictionary:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	return parsed if parsed is Dictionary else {}

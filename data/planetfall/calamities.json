@@ -60,7 +60,7 @@
 			"description": "The lifeforms are far more aggressive than usual. Something appears to be agitating them. Your researchers speak of a Controller that must be located and destroyed.",
 			"setup": "Begins immediately upon triggering.",
 			"ongoing_effect": "Any Contact reveal that places Lifeforms will place 1 additional Lifeform in nearest terrain feature.",
-			"resolution": "Hunt mission. Each Lifeform revealed: D6 per figure, on 6 = Controller (standard type + 3 KP). Controller flees toward nearest edge by shortest route (+1 inch move rate). Killing Controller + moving to confirm body = end Calamity.",
+			"resolution": "Hunt mission. Each Lifeform revealed: D6 per figure, on 6 = Controller (standard type + 3 KP). Controller moves toward the nearest battlefield edge by the shortest route and flees on reaching it; if a character blocks its path it moves in a random direction, adding +1 inch to its movement, and brawls only if that move requires it. Killing Controller + moving to confirm body = end Calamity.",
 			"reward": "1 Augmentation Point."
 		},
 		{

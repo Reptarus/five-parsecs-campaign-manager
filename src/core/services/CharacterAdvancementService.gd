@@ -314,7 +314,8 @@ static func _campaign():
 	var gs: Node = loop.root.get_node_or_null("/root/GameState")
 	if gs == null:
 		return null
-	return gs.get_current_campaign() if gs.has_method("get_current_campaign") 		else null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") \
+		else null
 
 
 ## 2 XP off ONE ability upgrade, if the player armed the kit and this character

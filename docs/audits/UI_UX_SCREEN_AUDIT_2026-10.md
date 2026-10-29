@@ -38,6 +38,7 @@ serves, and a fix that a test pins and an isolated revert proves.
 | X11 | **One weapon, three spellings.** Lock and Load and the Research application each wrote the profile line out by hand, and the Armory printed the JSON floats ("R:6.0 S:1.0 D:+0"). | `DisplayText.weapon_profile()` (`6" · 1 shot · Dmg +0`), read by all three. | `test_weapon_profile_prints_whole_numbers_and_words`, `test_the_armory_card_reads_like_lock_and_load` | OV5, OV16 |
 | X12 | **An overlay built before it joins the tree never cleared the Settings buttons.** `_reserve_band_when_ready` waited on the HOST's `tree_entered`. Godot emits that before the host's children enter the tree, so `reserve_band(scroll)` found the scroll outside it and returned. Muster Out's title sat under the buttons (`pf_port12`). Import builds in `_ready()`, so it never took that path. | Wait on the TARGET's `tree_entered`. | `test_every_transfer_page_is_framed_on_a_phone` (now checks the band on every transfer page) | OV19 DETECTED |
 | X13 | **All three transfer pages ran off a phone once they had something on them.** 28 Labels and the select buttons did not wrap: titles, explanation headers, the "No eligible veterans" line a fresh device shows first, the veteran's name and stats, and `Select <name>` / `Commission <name>`. The Step 2 button rows were HBoxes of fixed-width buttons. Measured: Step 1 ran to x=513 and Tactics' Step 2 to x=626 on a 338 px screen. | Every Label in a VBox wraps. The select buttons wrap. The Step 2 row buttons expand and wrap, so the pair splits the row. | same | OV20, OV21, OV22 DETECTED |
+| X15 | **Neither layout sweep had ever built a Planetfall screen.** `verify_layout.gd` declared the variant modes "deliberately out of scope" because `is_a1_build()` hides them, a reason the review build retired. `test_touch_scroll_sweep.gd` stopped at Bug Hunt. | `ScreenPopulator._pre_planetfall()` founds a colony through the wizard's own `build_campaign()` (recommended p.14 roster, rolled backgrounds) and resumes turn 1 at Recovery, so nothing saves. Both sweeps list the three Planetfall screens. `verify_layout` now puts its baseline campaign back before every screen, so a variant fixture cannot leak into the 5PFH screens after it, and takes `-- only=<text>`. The touch sweep gained `SaveDirGuard` and node floors from a one-variable A/B: Dashboard 14 → 284, Turn Controller 2 → 226, Creation 165 either way. | `test_touch_scroll_sweep.gd` (33/33 built, 0 STOP under 26 Planetfall scrolls); `verify_layout -- only=planetfall` 24/24 | SW1-SW3 DETECTED |
 | X14 | **The dashboard overlays put Close in three places**: under the content (Colony Status, Armory, Enemy Tracker, and Augmentations opened from the dashboard), top right (Milestones, Calamities), and under Muster Out's whole roster. On a phone the eight Augmentation cards had to be scrolled to the end to leave the page. | Close (and Muster Out's Cancel) is the first child, top right, 120 × 48, below the band. Colony Status and Enemy Tracker had re-added the kept Close at the end of every rebuild, which also errors on a second refresh (the node already has a parent); that is gone. As a turn step, Augmentations keeps its Continue last. | `test_every_overlay_can_be_closed_without_scrolling` (phone and tablet; 12-colonist roster; three Tactical Enemies from `create_full_enemy()`) | OV23-OV27 DETECTED |
 
 ## Planetfall — per screen
@@ -49,6 +50,7 @@ fixes. The re-capture is recorded in the next section.
 
 | Step | Verdict and fix | Pinned by | Arms |
 |---|---|---|---|
+| Header | **Ran 7.2 px off a phone and 35.7 px off a 310 px small phone** (verify_layout's first Planetfall run). The title did not wrap, so it demanded its whole 306 px text width. It now wraps and expands across its line. ⚠ Wrapping alone was not enough: a wrapped Label reports a ~1 px minimum, and without `SIZE_EXPAND_FILL` the title collapsed to a narrow column (SF2). | `test_planetfall_screen_fit.gd::test_the_creation_title_wraps_inside_a_small_phone` | SF1, SF2 DETECTED |
 | 1 Expedition | Renders and rolls. Heading wraps (X6). | `test_planetfall_turn_footer.gd` heading case | WT2 |
 | 2 Roster (pp.14-20) | **Was a self-described stub**: eight "Colonist N", no sub-species, and the coordinator accepted any roster of three or more. Now it has the book's eight in the recommended mix, sub-species with the p.19 limits, Soulless only as a Trooper (p.20), an illegal sub-species disabled with its reason, an import label that fits a phone, and untitled names. | `test_planetfall_founding_roster.gd` (22) | R1-R5, R9-R11, R14, L7, L8 DETECTED |
 | 3 Backgrounds (pp.21-23) | **Was a stub**: raw `randi()`, the first four characters made experienced instead of the player choosing, and no result shown. Now the player picks exactly four experienced characters (p.21), nothing rolls before four are chosen, the inexperienced roll Motivation only, a departed character's backgrounds are dropped, each rolled character is a heading, and the bonus names its stat. | same | R6-R8, R12, R13, R15-R17, D5, D9 DETECTED |
@@ -61,7 +63,7 @@ fixes. The re-capture is recorded in the next section.
 | Area | Verdict and fix | Pinned by | Arms |
 |---|---|---|---|
 | Header and pools | **Was a self-labelled TODO.** Now it shows the colony pools and stat tiles that expand to the column, keeps a gutter, a fresh colony does not read "turn 0", and Continue names the step it resumes. | `test_planetfall_dashboard.gd` | D1, D7, D8, D10, D11, T1 DETECTED |
-| Map | Shows the campaign map; it had none. | same | D2 DETECTED |
+| Map | Shows the campaign map; it had none. **Every cell was under the touch floor in portrait**: the phone cell was 40 design px, which is 46.4 dp at the 1.16 effective scale, so all 36 cells of a 6 × 6 map failed at four sizes. It is now 42 (48.7 dp). The case reads the effective scale from the line in `SettingsManager.gd` that sets it, so it follows a re-tune. The map's own rules (p.52 D8 order, Chebyshev distance, the 6 × 6 default; p.53 site count and the adjacent re-pick; pp.156-157 emergence) are pinned by `test_planetfall_map.gd`. | same; `test_planetfall_screen_fit.gd::test_every_map_cell_is_a_touch_target`; `test_planetfall_map.gd` (10) | D2, SF3, MP1-MP9 DETECTED |
 | Enemy line | Carries the Enemy Information count and names a strongpoint. | same | D3, D4 DETECTED |
 | Roster cards | Print the full profile and name the background bonus. | same | D5, D6 DETECTED |
 | Colony Status overlay | No page behind it (X10). The stats sat in four fixed columns that ran past a phone, and now flow. The milestone bar filled a share of a fixed 400 px, so it read full at a different count on each width and overran a phone at 7/7; it now fills a share of itself. | `test_overlay_pages.gd` | OV4, OV8 |
@@ -132,7 +134,8 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | su2 (after X3, X4) | 353 | 3879 / 3878 | 0 | 0 | — |
 | su3 (final tree) | 353 | 3879 / 3879 | 0 | 0 | 8/8 exit 0; `files=573 orphans=0 test_only=0 unwired_rules=0` |
 | su4 (after X9-X14) | 354 | 3886 / 3886 | 0 | 0 | 8/8 exit 0; `files=573 orphans=0 test_only=0 unwired_rules=0` |
-| after su4: the End Game fix | 2 (overlay pages, End Game) + compile guard | 22 / 22, 1 / 1 | 0 | 0 | 8/8 exit 0. ⚠ Not yet in a full gate; the next full gate covers it. |
+| after su4: the End Game fix | 2 (overlay pages, End Game) + compile guard | 22 / 22, 1 / 1 | 0 | 0 | 8/8 exit 0. Covered by the s4p2 full gate below. |
+| s4p2 (Sprint 4 part 2, X15, SF1-SF3) | 364 | 4047 / 4047 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout`: 240/248, the 8 being CharacterDetailsScreen (see Not yet walked) |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3
@@ -146,8 +149,16 @@ Every mode in this list still needs the same pass: capture, verdict and fix.
 - **Bug Hunt**: every screen.
 - **Battle Simulator**: setup and results.
 - **5PFH and shared**: MainMenu, Settings, Help, Store, Compendium, Legal, Journal, Galaxy
-  Log, Print Sheets, and the battle screens.
+  Log, Print Sheets, and the battle screens. **Measured already (2026-10-28, full windowed
+  `verify_layout`, 240/248):** all 8 failures are `CharacterDetailsScreen`, at every size.
+  `InitialsLabel` is drawn over `PortraitIcon` (11-17 × 67 px), `__ChangePortraitBtn` and
+  `__PrintSheetBtn` are under 48 dp, and at phone portrait and small phone the page runs off
+  the right edge. No file on that screen's path changed this sprint, and it sweeps before
+  any variant screen, so the new baseline restore is a no-op for it. These are existing
+  defects, owed in this pass.
+- **Planetfall turn steps beyond Recovery**: the sweeps build the Turn Controller resumed at
+  Step 1, so the other seventeen step panels are measured only by their own suites.
 - Cross-cutting work still owed: help keys for 19 router screens, hex-to-token in the
   remaining ~14 files, `TacticalBattleUI` literal font sizes and autowrap, the
-  `get_visible_rect` audit, and Planetfall and Tactics in `test_touch_scroll_sweep` and
-  `verify_layout` POPULATE.
+  `get_visible_rect` audit, and Tactics (and Bug Hunt in `verify_layout`) in the two sweeps.
+  Planetfall is in both (X15).

@@ -302,7 +302,9 @@ func test_an_evolution_on_a_blank_entry_waits_and_applies_when_it_fills() -> voi
 		.is_equal(["enhanced_profile", "poison"])
 	assert_bool(LifeformScript.is_slot_filled(core.lifeform_table[2])) \
 		.override_failure_message("a note of waiting evolutions is not a creature").is_false()
-	var creature: Dictionary = gen.get_lifeform_for_roll(core, 40)  # 33-44 is entry 3
+	# The live roller (PlanetfallBattleGuide): D100 to a slot, and a blank slot is filled.
+	var creature: Dictionary = gen.fill_encounter_slot(core,
+			gen.get_encounter_table_slot(40))  # 33-44 is entry 3
 	assert_bool(creature.has("toughness")) \
 		.override_failure_message("the encounter generated a creature, not the note").is_true()
 	assert_array(creature.get("evolutions_applied", [])) \

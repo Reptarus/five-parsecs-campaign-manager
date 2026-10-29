@@ -74,7 +74,7 @@ func _force_explore() -> void:
 
 
 func _add_enemy(core: Resource, at: String, info: int) -> void:
-	core.add_tactical_enemy({"name": "Raiders"})
+	core.tactical_enemies.append({"name": "Raiders"})
 	MapScript.occupy(core, core.tactical_enemies.size() - 1, at)
 	if info > 0:
 		core.increment_enemy_info(core.tactical_enemies.size() - 1, info)

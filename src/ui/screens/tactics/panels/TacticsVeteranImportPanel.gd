@@ -200,7 +200,8 @@ func _show_step_2(source_char: Dictionary) -> void:
 	_add_preview_row(card, "Savvy", str(veteran.get("savvy", 0)), COLOR_TEXT)
 	# The value shown is the value stored: TacticsCampaignCore.veteran_kill_points().
 	var book_kp: int = int(veteran.get("kill_points", 0))
-	var kp: int = load("res://src/game/campaign/TacticsCampaignCore.gd") 		.veteran_kill_points(book_kp)
+	var kp: int = load("res://src/game/campaign/TacticsCampaignCore.gd") \
+		.veteran_kill_points(book_kp)
 	_add_preview_row(card, "Kill Points",
 		"%d (1 per Luck point, p.182)" % kp if kp == book_kp
 		else "%d — p.182 gives %d for %d Luck; a typical trooper has 1 KP (p.36)"

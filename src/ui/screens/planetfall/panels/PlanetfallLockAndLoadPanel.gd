@@ -21,6 +21,7 @@ const COLOR_BORDER := UIColors.COLOR_BORDER
 const COLOR_ACCENT := UIColors.COLOR_BLUE
 const COLOR_SUCCESS := UIColors.COLOR_EMERALD
 const COLOR_WARNING := UIColors.COLOR_AMBER
+const BattleGuideScript := preload("res://src/core/battle/PlanetfallBattleGuide.gd")
 const DisplayTextRef := preload("res://src/ui/components/common/DisplayText.gd")
 const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const TOUCH_TARGET_MIN := 48
@@ -504,6 +505,15 @@ func _build_grunt_section() -> void:
 	info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_grunt_section.add_child(info)
+
+	# p.79: what every fireteam carries, from the same check Step 9 uses.
+	for row in BattleGuideScript.grunt_upgrade_rows(_campaign):
+		var up := Label.new()
+		up.text = "%s. %s" % [str(row.head), str(row.detail)]
+		up.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
+		up.add_theme_color_override("font_color", COLOR_ACCENT)
+		up.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_grunt_section.add_child(up)
 
 
 func _on_grunt_fireteam_toggled(toggled: bool, ft_idx: int, count: int) -> void:

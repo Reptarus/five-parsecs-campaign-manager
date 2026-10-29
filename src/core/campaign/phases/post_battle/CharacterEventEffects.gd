@@ -476,8 +476,10 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				return "%s wanted a scrap but has no crewmates to fight" % char_name
 
 			var opp_name: String = ctx.get_char_name(opponent)
-			var a_score: int = ctx.roll_d6("Scrap: %s" % char_name) 				+ int(_member_field(character, "combat", 0))
-			var b_score: int = ctx.roll_d6("Scrap: %s" % opp_name) 				+ int(_member_field(opponent, "combat", 0))
+			var a_score: int = ctx.roll_d6("Scrap: %s" % char_name) \
+				+ int(_member_field(character, "combat", 0))
+			var b_score: int = ctx.roll_d6("Scrap: %s" % opp_name) \
+				+ int(_member_field(opponent, "combat", 0))
 
 			if a_score == b_score:
 				ctx.injure_specific_crew(character, 1)

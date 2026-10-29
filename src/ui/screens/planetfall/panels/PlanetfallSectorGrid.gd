@@ -16,7 +16,10 @@ const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 const CELL_MIN := 52
-const CELL_PHONE := 40
+## The smallest square that is still a 48 dp touch target at the shipped 1.16 effective
+## scale (42 x 1.16 = 48.7 dp). It was 40, which is 46.4 dp, so on every portrait screen
+## all 36 cells of a 6 x 6 map failed the touch floor (verify_layout, 2026-10-28).
+const CELL_PHONE := 42
 const HEADER_MIN := 24
 const FONT_SIZE_CELL := 11
 const FONT_SIZE_LEGEND := 12

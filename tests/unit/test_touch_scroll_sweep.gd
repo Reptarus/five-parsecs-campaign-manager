@@ -30,10 +30,11 @@ extends GdUnitTestSuite
 
 const OpenerCls = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const PopulatorCls = preload("res://tests/tools/screen_populator.gd")
+const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
 
 ## ⚠ PIN THE CAMPAIGN CONTEXT, do not inherit it.
 ##
-## This suite builds 27 REAL screens, most of them 5PFH-only, against whatever
+## This suite builds 33 REAL screens, most of them 5PFH-only, against whatever
 ## GameState.current_campaign holds — and GameState auto-loads `last_campaign` at
 ## boot (GameState.gd:112/:150), gating only on that key being non-empty. Any suite
 ## that saves a campaign sets it, so running the Tactics suites leaves a TACTICS
@@ -51,9 +52,14 @@ const PopulatorCls = preload("res://tests/tools/screen_populator.gd")
 ## green for a month because it measured four EMPTY panes. Dropping a legitimate
 ## 5PFH campaign would hand that false green straight back.
 var _saved_campaign: Variant = null
+## The screens built here are real, and several can save or pick up a transfer. The guard
+## removes anything that APPEARED in user://saves/ and restores settings.cfg, so a sweep
+## never leaves a fixture colony as the next process's last_campaign.
+var _user_state: Dictionary = {}
 
 
 func before_test() -> void:
+	_user_state = SaveDirGuard.snapshot()
 	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
 	if gs == null:
 		return
@@ -69,6 +75,8 @@ func after_test() -> void:
 	var gs: Node = Engine.get_main_loop().root.get_node_or_null("/root/GameState")
 	if gs:
 		gs.current_campaign = _saved_campaign
+	SaveDirGuard.restore(_user_state)
+	_user_state = {}
 
 ## The tablet design space this project's device QA targets (2560x1600 physical).
 const TABLET_DESIGN := Vector2i(2207, 1379)
@@ -111,6 +119,9 @@ const SCREENS: Array[String] = [
 	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
 	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
 	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn",
+	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn",
 ]
 
 ## Screens whose POPULATED node count has been measured against its unpopulated one.
@@ -127,6 +138,10 @@ const SCREENS: Array[String] = [
 ##   BugHuntTurnController.tscn   1 node  unpopulated ->  61 populated
 ##   BugHuntCreationUI.tscn       101 either way; it reads no autoload, so it has no
 ##                                POPULATE entry and the floor guards its own build
+## MEASURED 2026-10-28 the same way, the two Planetfall POPULATE entries the only change:
+##   PlanetfallDashboard.tscn       14 nodes unpopulated -> 284 populated
+##   PlanetfallTurnController.tscn   2 nodes unpopulated -> 226 populated (18 scrolls)
+##   PlanetfallCreationUI.tscn      165 either way; it reads no autoload
 ## Each floor sits inside its gap and nearer the low end, so a broken fixture trips it
 ## while ordinary UI churn does not. A screen with no entry here is not exempt -- it
 ## simply has no measurement yet, and inventing one would be fabricating a baseline.
@@ -134,6 +149,9 @@ const MIN_NODES := {
 	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn": 50,
 	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn": 60,
 	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn": 30,
+	"res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn": 80,
+	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn": 120,
+	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn": 100,
 }
 
 

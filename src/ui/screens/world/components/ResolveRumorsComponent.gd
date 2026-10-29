@@ -429,4 +429,5 @@ func _active_campaign():
 	var gs: Node = get_node_or_null("/root/GameState")
 	if gs == null:
 		return null
-	return gs.get_current_campaign() if gs.has_method("get_current_campaign") 		else null
+	return gs.get_current_campaign() if gs.has_method("get_current_campaign") \
+		else null

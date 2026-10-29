@@ -134,7 +134,8 @@ func build_campaign(all_data: Dictionary) -> BugHuntCampaignCore:
 
 	var reputation: int = int(squad.get("total_reputation", 0))
 	var _gsm = get_node_or_null("/root/GameStateManager")
-	if _gsm and _gsm.has_method("set_reputation") and game_state 			and game_state.current_campaign == campaign:
+	if _gsm and _gsm.has_method("set_reputation") and game_state \
+			and game_state.current_campaign == campaign:
 		_gsm.set_reputation(reputation)
 	else:
 		campaign.reputation = reputation  # lint:ignore — no live GameState to route through

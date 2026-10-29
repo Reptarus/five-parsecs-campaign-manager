@@ -176,7 +176,8 @@ func test_the_armory_card_reads_like_lock_and_load() -> void:
 	var traits: Label = null
 	for lbl in dash._overlay_frame.find_children("*", "Label", true, false):
 		texts.append((lbl as Label).text)
-		if (lbl as Label).text == "Civilian, Pistol":
+		# The Handgun's traits, each with its p.78 rule since 2026-10-28.
+		if (lbl as Label).text.begins_with("Civilian: Open to all classes except grunts."):
 			traits = lbl
 	assert_bool(texts.has("6\" · 1 shot · Dmg +0")).override_failure_message(
 		"the Handgun's profile line is missing: %s" % str(texts.slice(0, 8))).is_true()
@@ -296,7 +297,7 @@ func test_every_overlay_can_be_closed_without_scrolling() -> void:
 		var core := _core(7)
 		var generator = EnemyGenerator.new()
 		for _i in range(3):
-			core.add_tactical_enemy(generator.create_full_enemy(core))
+			generator.create_full_enemy(core)
 		var dash: Control = await _dashboard(size, core)
 		for overlay: String in OVERLAYS:
 			dash._show_overlay_panel(overlay)

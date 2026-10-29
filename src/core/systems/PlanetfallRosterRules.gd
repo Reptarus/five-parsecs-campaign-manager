@@ -11,6 +11,7 @@ extends RefCounted
 const CLASSES_PATH := "res://data/planetfall/character_classes.json"
 const BUILDINGS_PATH := "res://data/planetfall/buildings.json"
 const SUBSPECIES_PATH := "res://data/planetfall/human_subspecies.json"
+const PRESET_CREW_PATH := "res://data/planetfall/preset_crew.json"
 ## The classes p.69 lets a replacement be ("a trooper / a scientist / a scout").
 const REPLACEMENT_CLASSES := ["trooper", "scientist", "scout"]
 
@@ -117,6 +118,34 @@ static func subspecies_data() -> Dictionary:
 	return _subspecies
 
 
+## The pre-made crew pictured in the Planetfall character spread (preset_crew.json). That
+## file is names and portraits only: the book gives the crew no profiles. So a preset never
+## touches a class, a sub-species or a stat. It renames the characters built here, in slot
+## order, and gives each its picture; an imported character keeps its own name.
+## ⚠ Until 2026-10-28 the file and its seven portraits had no reader, and no Planetfall
+## screen drew a portrait at all.
+static func preset_crews() -> Array:
+	return _read(PRESET_CREW_PATH).get("presets", [])
+
+
+static func with_preset(roster: Array, preset: Dictionary) -> Array:
+	var out: Array = roster.duplicate(true)
+	var members: Array = preset.get("members", [])
+	var m: int = 0
+	for i in range(out.size()):
+		if m >= members.size():
+			break
+		if bool(out[i].get("is_imported", false)):
+			continue
+		var member: Dictionary = members[m]
+		m += 1
+		out[i]["name"] = str(member.get("character_name", out[i].get("name", "")))
+		var art: String = str(member.get("portrait_path", ""))
+		if art != "" and ResourceLoader.exists(art):
+			out[i]["portrait_path"] = art
+	return out
+
+
 ## `character` rebuilt as its class's standard character with `subspecies_id` applied
 ## ("" for none), keeping its id and name. The profile values are what the character
 ## BEGINS with, not additions: "Hulkers begin with Toughness 5" (p.19), the Soulless
@@ -125,6 +154,9 @@ static func subspecies_data() -> Dictionary:
 static func with_subspecies(character: Dictionary, subspecies_id: String) -> Dictionary:
 	var out: Dictionary = standard_character(str(character.get("class", "trooper")),
 			str(character.get("id", "")), str(character.get("name", "")))
+	# A picture is the character's, like the id and the name (with_preset below).
+	if character.has("portrait_path"):
+		out["portrait_path"] = character["portrait_path"]
 	var entry: Dictionary = subspecies_data().get(subspecies_id, {})
 	if entry.is_empty():
 		return out

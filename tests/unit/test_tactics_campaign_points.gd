@@ -110,9 +110,11 @@ func test_every_catalogue_price_matches_the_book() -> void:
 		"battle_initiative": 1,
 	}
 	for purchase_id: String in book:
-		assert_int(TacticsCore.cp_cost(purchase_id)) 			.override_failure_message(
+		assert_int(TacticsCore.cp_cost(purchase_id)) \
+			.override_failure_message(
 				"%s should cost %d CP per Tactics pp.107-108"
-				% [purchase_id, int(book[purchase_id])]) 			.is_equal(int(book[purchase_id]))
+				% [purchase_id, int(book[purchase_id])]) \
+			.is_equal(int(book[purchase_id]))
 	## ...and the catalogue carries nothing the book does not price.
 	assert_int(TacticsCore.CP_PURCHASES.size()).is_equal(book.size())
 
@@ -122,9 +124,11 @@ func test_no_purchase_is_free() -> void:
 	## so a 0 anywhere in the catalogue is a purchase the player gets for nothing.
 	for entry: Dictionary in TacticsCore.CP_PURCHASES:
 		var cost: int = int(entry.get("cost", 0))
-		assert_bool(cost >= 1 and cost <= 4) 			.override_failure_message(
+		assert_bool(cost >= 1 and cost <= 4) \
+			.override_failure_message(
 				"%s priced at %d CP - outside the book's 1-4 range"
-				% [str(entry.get("id", "?")), cost]) 			.is_true()
+				% [str(entry.get("id", "?")), cost]) \
+			.is_true()
 
 
 func test_an_unknown_purchase_id_costs_zero_and_zero_means_refuse() -> void:
@@ -140,9 +144,11 @@ func test_every_entry_carries_the_fields_the_panel_renders() -> void:
 	## a purchase with no name rather than as a bug.
 	for entry: Dictionary in TacticsCore.CP_PURCHASES:
 		for key: String in ["id", "group", "name", "cost", "desc"]:
-			assert_bool(entry.has(key)) 				.override_failure_message(
+			assert_bool(entry.has(key)) \
+				.override_failure_message(
 					"catalogue entry %s is missing '%s'"
-					% [str(entry.get("id", "?")), key]) 				.is_true()
+					% [str(entry.get("id", "?")), key]) \
+				.is_true()
 
 
 ## ---------------------------------------------------------------------------

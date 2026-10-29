@@ -1,11 +1,14 @@
 class_name PlanetfallMissionSetup
 extends RefCounted
 
-## Mission briefing resolver — loads enriched mission_types.json and provides
-## full briefing data, force limits, opposition setup, and objective resolution
-## for each of the 13 Planetfall mission types.
-## Also loads Slyn and Sleeper profiles for mission opposition setup.
+## The Planetfall mission briefings (mission_types.json) and the Slyn and Sleeper
+## profiles PlanetfallBattleGuide builds a battle's opposition from.
 ## Source: Planetfall pp.114-133, 152-155
+##
+## ⚠ 2026-10-28: twelve functions with no caller were deleted. Mission availability is
+## PlanetfallMap.mission_availability(), the mission screen's own rule; the objective
+## tables and the Sleeper's weapon die are rolled by PlanetfallBattleGuide through
+## DiceManager. The deleted copies rolled raw randi_range.
 
 var _missions: Array = []
 var _slyn_profile: Dictionary = {}
@@ -63,75 +66,6 @@ func get_mission_briefing(mission_id: String) -> Dictionary:
 	return {}
 
 
-func get_all_missions() -> Array:
-	## Returns all mission entries.
-	return _missions.duplicate(true)
-
-
-func get_available_missions(campaign: Resource) -> Array:
-	## Filter missions based on campaign state (map sectors, tactical enemies, events).
-	## Returns missions that the player can currently select.
-	var available: Array = []
-	for mission in _missions:
-		if mission is not Dictionary:
-			continue
-		var mid: String = mission.get("id", "")
-
-		# Event-triggered missions need their trigger condition
-		if mission.get("event_triggered", false):
-			continue  # Only shown when triggered by events
-
-		# Forced missions are always shown if their condition is met
-		if mission.get("forced", false):
-			continue  # Shown only when forced
-
-		# Tactical enemy requirement
-		if mission.get("requires_tactical_enemies", false):
-			if campaign and "tactical_enemies" in campaign:
-				var has_active: bool = false
-				for te in campaign.tactical_enemies:
-					if te is Dictionary and not te.get("defeated", false):
-						has_active = true
-						break
-				if not has_active:
-					continue
-
-		available.append(mission.duplicate(true))
-	return available
-
-
-func get_forced_missions(campaign: Resource) -> Array:
-	## Returns missions that are currently forced by campaign events.
-	## (e.g., Pitched Battle from enemy attack)
-	var forced: Array = []
-	# Check for enemy attacks that force Pitched Battle
-	if campaign and "tactical_enemies" in campaign:
-		for te in campaign.tactical_enemies:
-			if te is Dictionary and te.get("attacking", false):
-				for mission in _missions:
-					if mission is Dictionary and mission.get("id", "") == "pitched_battle":
-						forced.append(mission.duplicate(true))
-						break
-				break
-	return forced
-
-
-## ============================================================================
-## FORCE LIMITS
-## ============================================================================
-
-func get_force_limits(mission_id: String) -> Dictionary:
-	## Returns {max_characters: int, max_grunts: int, grunt_fireteams: int}
-	## for the given mission type.
-	var briefing: Dictionary = get_mission_briefing(mission_id)
-	var forces: Dictionary = briefing.get("player_forces", {})
-	return {
-		"max_characters": forces.get("max_characters", 6),
-		"max_grunts": forces.get("max_grunts", 0),
-		"grunt_fireteams": forces.get("grunt_fireteams", 0)
-	}
-
-
 ## ============================================================================
 ## SLYN AGGRESSION CHECK
 ## ============================================================================
@@ -147,13 +81,6 @@ func check_slyn_aggression(mission_id: String, roll_2d6: int) -> bool:
 		var range_max: int = aggression.get("slyn_range_max", 0)
 		return roll_2d6 >= range_min and roll_2d6 <= range_max
 	return false
-
-
-func is_slyn_immune(mission_id: String) -> bool:
-	## Returns true if Slyn will not interfere with this mission.
-	var briefing: Dictionary = get_mission_briefing(mission_id)
-	var opposition: Dictionary = briefing.get("opposition", {})
-	return opposition.get("slyn_immune", false)
 
 
 ## ============================================================================
@@ -180,69 +107,6 @@ func get_slyn_encounter_size(roll_d6: int) -> int:
 
 func get_sleeper_profile() -> Dictionary:
 	return _sleeper_profile.duplicate(true)
-
-
-func get_sleeper_combat_profile() -> Dictionary:
-	return _sleeper_profile.get("profile", {}).duplicate(true)
-
-
-func roll_sleeper_weapon() -> Dictionary:
-	## Roll D6 for Sleeper weapon. Returns weapon profile.
-	var roll: int = roll_d6()
-	var weapons: Dictionary = _sleeper_profile.get("weapons", {})
-	var entries: Array = weapons.get("entries", [])
-	for entry in entries:
-		if entry is Dictionary:
-			if roll >= entry.get("min", 0) and roll <= entry.get("max", 0):
-				return entry.duplicate()
-	return {"id": "beam_weapon", "name": "Beam weapon", "range": 12, "shots": 1, "damage": 1}
-
-
-## ============================================================================
-## OBJECTIVE RESOLUTION
-## ============================================================================
-
-func resolve_mission_objective(mission_id: String, roll: int) -> Dictionary:
-	## For missions with objective sub-tables (e.g., Investigation D6 table,
-	## Skirmish D6 objective table), resolve a roll.
-	var briefing: Dictionary = get_mission_briefing(mission_id)
-	var objectives: Dictionary = briefing.get("objectives", {})
-
-	# Check for investigation_table
-	var inv_table: Dictionary = objectives.get("investigation_table", {})
-	if not inv_table.is_empty():
-		return _lookup_entries(inv_table.get("entries", []), roll)
-
-	# Check for skirmish_objective_table
-	var skirmish_table: Dictionary = objectives.get("skirmish_objective_table", {})
-	if not skirmish_table.is_empty():
-		return _lookup_entries(skirmish_table.get("entries", []), roll)
-
-	return {}
-
-
-## ============================================================================
-## DICE HELPERS
-## ============================================================================
-
-func roll_d6() -> int:
-	return randi_range(1, 6)
-
-
-func roll_2d6() -> int:
-	return randi_range(1, 6) + randi_range(1, 6)
-
-
-## ============================================================================
-## PRIVATE
-## ============================================================================
-
-func _lookup_entries(entries: Array, roll: int) -> Dictionary:
-	for entry in entries:
-		if entry is Dictionary:
-			if roll >= entry.get("min", 0) and roll <= entry.get("max", 0):
-				return entry.duplicate()
-	return {}
 
 
 func is_loaded() -> bool:

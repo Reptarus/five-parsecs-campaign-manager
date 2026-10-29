@@ -143,20 +143,6 @@ func replace_condition(campaign: Resource, slot_index: int) -> Dictionary:
 	return {"slot": slot_index, "erased": old, "condition": fresh}
 
 
-func get_active_conditions(campaign: Resource) -> Array:
-	## Returns non-empty condition slots from campaign.condition_table.
-	var result: Array = []
-	if not campaign or not "condition_table" in campaign:
-		return result
-	for i in range(campaign.condition_table.size()):
-		var entry: Variant = campaign.condition_table[i]
-		if entry is Dictionary and not entry.is_empty():
-			var enriched: Dictionary = entry.duplicate()
-			enriched["slot_index"] = i
-			result.append(enriched)
-	return result
-
-
 ## p.64 Changing climate conditions: "Erase a random existing entry from your Campaign
 ## Conditions table. It is filled again when you roll that entry again." Picked as
 ## PlanetfallLifeformGenerator.erase_random_entry() picks. Returns the slot, or -1.

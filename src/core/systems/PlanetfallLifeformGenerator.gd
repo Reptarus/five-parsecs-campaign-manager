@@ -64,26 +64,6 @@ func get_encounter_table_slot(d100_roll: int) -> int:
 	return -1
 
 
-func get_lifeform_for_roll(campaign: Resource, d100_roll: int) -> Dictionary:
-	## Look up the encounter table. If slot filled, return existing lifeform.
-	## If blank, generate new and fill slot. Returns the lifeform profile.
-	var slot: int = get_encounter_table_slot(d100_roll)
-	if slot < 0:
-		return {}
-
-	if not campaign or not "lifeform_table" in campaign:
-		return generate_lifeform()
-
-	# Ensure 10 slots
-	while campaign.lifeform_table.size() < 10:
-		campaign.lifeform_table.append({})
-
-	var existing: Variant = campaign.lifeform_table[slot]
-	if is_slot_filled(existing):
-		return existing.duplicate()
-	return _materialise(campaign, slot)
-
-
 func fill_encounter_slot(campaign: Resource, slot_index: int) -> Dictionary:
 	## Explicitly generate a lifeform for a specific slot.
 	if not campaign or not "lifeform_table" in campaign:
@@ -243,6 +223,11 @@ func apply_evolution(campaign: Resource, lifeform_slot: int, evolution_roll: int
 		return {}
 	if is_slot_filled(slot_data):
 		_apply_to_profile(slot_data, evolution)
+		# p.92: "If the profile of the Lifeform ever changes for any reason, including
+		# evolution, any Bio-Analysis benefits are lost", and the new form is analyzed
+		# "by following the same process again", which starts with a fresh sample.
+		(slot_data as Dictionary).erase("bio_analysis")
+		(slot_data as Dictionary).erase("sampled")
 	else:
 		var note: Dictionary = slot_data if slot_data is Dictionary else {}
 		var pending: Array = note.get("pending_evolutions", [])

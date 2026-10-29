@@ -7,7 +7,7 @@
 | Step | Name | Description | Key Systems |
 |------|------|-------------|-------------|
 | 1 | Recovery | Heal characters in Sick Bay (-1 turn each) | `PlanetfallCampaignCore.tick_sick_bay()` |
-| 2 | Repairs | Restore Colony Integrity (repair rate + Raw Materials) | `adjust_integrity()`, `spend_raw_materials()` |
+| 2 | Repairs | Restore Colony Integrity (repair rate + Raw Materials) | `repair_colony()` (p.59: 1 point/turn + up to 3 RM), `spend_raw_materials()` once, in the phase manager |
 | 3 | Scout Reports | Scout Explore action + Scout Discovery table (D100) | Scout class ability, exploration |
 | 4 | Enemy Activity | Random Tactical Enemy action (D100: Patrol/Relocate/Occupy/Attack/Raid) | `tactical_enemies`, `enemy_info` |
 | 5 | Colony Events | Random colony event (D100, 20 entries) | Colony morale/integrity effects |

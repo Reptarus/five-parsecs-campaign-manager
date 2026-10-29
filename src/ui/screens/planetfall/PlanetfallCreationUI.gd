@@ -112,6 +112,12 @@ func _build_layout() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# The flow puts the title below Cancel on a narrow screen, but a Label that does not
+	# wrap still demands its whole text width (306 px at this size), which pushed the
+	# page 35.7 px past a 310 px phone (verify_layout, 2026-10-28). Wrapped, it takes the
+	# rest of its line and breaks between words.
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(title)
 
 	_step_label = Label.new()

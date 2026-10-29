@@ -95,6 +95,9 @@ func _xp(core: Resource, id: String) -> int:
 
 func test_colonists_find_records_an_ancient_sign() -> void:
 	var core := _core()
+	# p.61: a 1D6 at or under the Signs held locates a Site and discards them, so an
+	# unforced die failed this case one run in six. A 6 keeps the Sign.
+	_force("Planetfall Ancient Sign", [6])
 	_rolled(core, 43)
 	assert_int(core.ancient_signs.size()).is_equal(1)
 

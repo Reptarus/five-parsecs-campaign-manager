@@ -183,9 +183,11 @@ func test_a_long_message_is_still_capped_by_the_screen() -> void:
 
 ## ...and the floor is unchanged, so the buttons cannot be squeezed out the other way.
 func test_a_tiny_message_keeps_the_usable_floor() -> void:
-	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 1379.0)) 		.is_greater_equal(200)
+	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 1379.0)) \
+		.is_greater_equal(200)
 	# A tiny VIEWPORT must not drive the height below the floor either.
-	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 10.0)) 		.is_greater_equal(200)
+	assert_int(CrewTaskComponentScript.confirm_dialog_height(10.0, 10.0)) \
+		.is_greater_equal(200)
 
 
 # ── T9-41: the equipment id the transfer service can actually match ───────────

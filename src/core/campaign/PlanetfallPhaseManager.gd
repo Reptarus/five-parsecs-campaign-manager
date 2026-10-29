@@ -27,6 +27,12 @@ const MapScript := preload("res://src/core/systems/PlanetfallMap.gd")
 const MissionDataScript := preload("res://src/core/systems/PlanetfallMissionDataSystem.gd")
 const BattleNormalizerScript := preload(
 	"res://src/core/battle/PlanetfallBattleResultNormalizer.gd")
+const AugmentationScript := preload("res://src/core/systems/PlanetfallAugmentationSystem.gd")
+const RewardsScript := preload("res://src/core/systems/PlanetfallMissionRewards.gd")
+const ArmoryScript := preload("res://src/core/systems/PlanetfallArmorySystem.gd")
+const ResearchScript := preload("res://src/core/systems/PlanetfallResearchSystem.gd")
+const CalamityScript := preload("res://src/core/systems/PlanetfallCalamitySystem.gd")
+const PostMissionScript := preload("res://src/core/systems/PlanetfallPostMissionSystem.gd")
 
 enum Phase {
 	NONE = -1,
@@ -148,6 +154,11 @@ func start_new_turn() -> void:
 	turn_number += 1
 	if campaign and campaign.has_method("advance_turn"):
 		campaign.advance_turn()
+	# p.105: "you can buy only one per campaign turn". The flag was set by every purchase
+	# and cleared by nothing, so one Augmentation locked the shop for the whole campaign.
+	# Here and not in _reset_turn_state(), which also runs on a RESUMED turn and would
+	# then reopen the shop the same turn.
+	AugmentationScript.new().clear_turn_flag(campaign)
 
 	_reset_turn_state()
 	campaign_turn_started.emit(turn_number)
@@ -197,10 +208,6 @@ func complete_current_phase(result_data: Dictionary = {}) -> void:
 
 func is_phase_complete(phase: int) -> bool:
 	return _phase_complete.get(phase, false)
-
-
-func can_advance() -> bool:
-	return _phase_complete.get(current_phase, false)
 
 
 func go_to_phase(phase: int) -> void:
@@ -284,10 +291,6 @@ func stamp_mission(stamp: Dictionary) -> void:
 	_persist_phase()
 
 
-func get_mission_stamp() -> Dictionary:
-	return _mission_stamp
-
-
 ## A Story Point may be spent: the colony has one and nothing this turn blocked them.
 func can_spend_story_point() -> bool:
 	return campaign != null and int(campaign.story_points) > 0 and not _story_points_blocked
@@ -327,7 +330,8 @@ func resolve_injury_step() -> Dictionary:
 	if _step_receipts.has("injuries") or not campaign:
 		return _step_receipts.get("injuries", {})
 	var receipt: Dictionary = _crisis_resolver().resolve_injury_step({
-		"roster": _roster_snapshot(), "battle_result": _battle_result})
+		"roster": _roster_snapshot(), "battle_result": _battle_result,
+		"grunt_upgrades": grunt_upgrade_ids()})
 	(receipt.lines as Array).append_array(_apply_stability_ops(receipt.ops))
 	_step_receipts["injuries"] = receipt
 	_persist_phase()
@@ -352,6 +356,14 @@ func resolve_intel_step() -> Dictionary:
 	var factors: Dictionary = MapScript.apply_mission_factors(campaign, _battle_result)
 	lines.append_array(factors.get("lines", []))
 	ops.append_array(factors.get("ops", []))
+	# Each mission's Rewards (pp.115-133), rolled here once with the factors.
+	var rewards: Dictionary = RewardsScript.resolve(campaign, _battle_result, _roster_snapshot())
+	lines.append_array(rewards.get("lines", []))
+	ops.append_array(rewards.get("ops", []))
+	# What the mission did to each active Calamity (pp.165-168).
+	var calamity: Dictionary = CalamityScript.new().after_mission(campaign, _battle_result)
+	lines.append_array(calamity.get("lines", []))
+	ops.append_array(calamity.get("ops", []))
 	if won and fought and MapScript.is_active(campaign, idx):
 		ops.append({"op": "enemy_info", "enemy_index": idx, "amount": 1})
 		campaign.disrupt_enemy(idx)
@@ -367,6 +379,32 @@ func resolve_intel_step() -> Dictionary:
 	lines.append_array(_apply_stability_ops(ops))
 	var receipt: Dictionary = {"lines": lines}
 	_step_receipts["intel"] = receipt
+	_persist_phase()
+	return receipt
+
+
+## ============================================================================
+## STEP 18: CALAMITIES "AT THE END OF EACH CAMPAIGN TURN" (pp.165-168)
+## ============================================================================
+## Until 2026-10-28 the Super Weapon advanced at TURN START with a raw die, reported only
+## as a push_warning, and no other Calamity rolled at all.
+
+func calamity_step_owed() -> bool:
+	return campaign != null and CalamityScript.new().end_of_turn_owed(campaign)
+
+
+func get_calamity_receipt() -> Dictionary:
+	return _step_receipts.get("calamity", {})
+
+
+func resolve_calamity_step() -> Dictionary:
+	if _step_receipts.has("calamity") or not campaign:
+		return _step_receipts.get("calamity", {})
+	var rolled: Dictionary = CalamityScript.new().end_of_turn(campaign)
+	var lines: Array = rolled.get("lines", []).duplicate()
+	lines.append_array(_apply_stability_ops(rolled.get("ops", [])))
+	var receipt: Dictionary = {"lines": lines}
+	_step_receipts["calamity"] = receipt
 	_persist_phase()
 	return receipt
 
@@ -477,6 +515,37 @@ func record_step_receipt(step: String, lines: Array) -> void:
 
 func get_step_receipt(step: String) -> Dictionary:
 	return _step_receipts.get(step, {})
+
+
+## p.79: Grunt upgrades "become available when their listed prerequisites ... are met".
+func grunt_upgrade_ids() -> Array:
+	var ids: Array = []
+	if campaign == null:
+		return ids
+	for u in ArmoryScript.new().get_available_grunt_upgrades(campaign, ResearchScript.new()):
+		ids.append(str(u.get("id", "")))
+	return ids
+
+
+## p.62 Step 4, one enemy's result on the map: Patrol offers this turn's Strike,
+## Relocate and Occupy/Rapid Expansion move it, Attack forces the Pitched Battle, and
+## every Raid (a rolled one, or a move that reaches the colony) is priced at the
+## sectors it holds +1, less Colony Defenses. Returns {lines, colony_damage}; the
+## damage is REPORTED and taken once on completion (p.87). Until 2026-10-28 Step 4
+## applied the Raid alone, from its own copy of this rule, and the other five results
+## changed nothing: PlanetfallMap.apply_enemy_activity() had no caller.
+func resolve_enemy_activity(idx: int, activity: String) -> Dictionary:
+	var out: Dictionary = {"lines": [], "colony_damage": 0}
+	if campaign == null:
+		return out
+	var r: Dictionary = MapScript.apply_enemy_activity(campaign, idx, activity)
+	(out.lines as Array).append_array(r.get("lines", []))
+	for _i in range(int(r.get("raids", 0))):
+		var dmg: Dictionary = MapScript.raid_damage(campaign, idx)
+		out.lines.append("Raid Damage: %d (base %d, %d mitigated by defenses) (p.62)."
+				% [int(dmg.damage), int(dmg.base), int(dmg.mitigated)])
+		out.colony_damage = int(out.colony_damage) + int(dmg.damage)
+	return out
 
 
 func _roster_snapshot() -> Array:
@@ -680,6 +749,55 @@ func _apply_stability_ops(ops: Array) -> Array:
 				campaign.break_bot()
 			"grunt_lost":
 				campaign.lose_grunt()
+			"rp_gain":
+				var rp: int = campaign.earn_research_points(
+						campaign.crisis_adjusted_gain(int(op.get("amount", 0))))
+				notes.append("+%d Research Point(s); %d stored." % [rp,
+						int(campaign.research_data.get("current_rp", 0))])
+			"bp_gain":
+				var bp: int = campaign.earn_build_points(int(op.get("amount", 0)))
+				notes.append("+%d Build Point(s); %d stored." % [bp,
+						int(campaign.buildings_data.get("current_bp", 0))])
+			"artifact":
+				notes.append_array(campaign.acquire_artifact(op.get("artifact", {})))
+			"lifeform_sample":
+				notes.append_array(campaign.record_lifeform_sample(int(op.get("slot", -1))))
+			"lose_project_progress":
+				notes.append_array(campaign.lose_project_progress())
+			"slyn_victory":
+				campaign.record_slyn_victory(bool(op.get("departed", false)))
+			"rm_gain":
+				var rm_before: int = int(campaign.raw_materials)
+				campaign.add_raw_materials(int(op.get("amount", 0)))
+				notes.append("+%d Raw Materials; %d stored." % [
+						int(campaign.raw_materials) - rm_before, int(campaign.raw_materials)])
+			"grunt_gain":
+				campaign.gain_grunts(int(op.get("amount", 0)))
+				notes.append("+%d grunts; %d in all." % [int(op.get("amount", 0)),
+						int(campaign.grunts)])
+			"augmentation_gain":
+				campaign.augmentation_points += int(op.get("amount", 0))
+				notes.append("+%d Augmentation Point(s)." % int(op.get("amount", 0)))
+			"post_mission_find":
+				var finder := PostMissionScript.new()
+				var find: Dictionary = finder.roll_find(int(op.get("roll", 0)))
+				notes.append("Post-Mission Find, D100 %d: %s (p.134)." % [int(op.get("roll", 0)),
+						str(find.get("name", "nothing"))])
+				notes.append_array(finder.apply_find_to_campaign(campaign, find))
+			"quarantine":
+				campaign.quarantine(str(op.get("character_id", "")))
+			"release_quarantine":
+				var released: Array = campaign.release_quarantine()
+				if not released.is_empty():
+					notes.append("%d quarantined character(s) recover (p.168)." % released.size())
+			"recovery_bank":
+				campaign.recovery_reduction_bank += int(op.get("amount", 0))
+				notes.append("%d turns of injury recovery to spend in Sick Bay, now or later "
+						% int(campaign.recovery_reduction_bank) + "(p.168).")
+			"recruit_bank":
+				campaign.bonus_recruits += int(op.get("amount", 0))
+				notes.append("A trooper recruit is banked for a roster vacancy; it does not count "
+						+ "against your replacements (p.168).")
 			# p.68: mission, Site and Building Mission Data is noted, not checked.
 			"mission_data":
 				notes.append_array(MissionDataScript.new().note(campaign,
@@ -839,6 +957,28 @@ func _settle_patrol_commitment(data: Dictionary) -> void:
 			["Hostile wildlife: no Patrol Mission this turn. Colony Morale -2 (p.63)."])
 
 
+## p.168 Virus reward, spent at Step 1 before the turn's own healing. `spends` is
+## {character_id: turns}; the core caps each by the bank and by what is still owed.
+## Returns one line per spend that landed. Public so a test can drive it.
+func spend_recovery_bank(spends: Dictionary) -> Array:
+	var lines: Array = []
+	if not campaign or not campaign.has_method("spend_recovery_reduction"):
+		return lines
+	for cid in spends:
+		var spent: int = campaign.spend_recovery_reduction(str(cid), int(spends[cid]))
+		if spent <= 0:
+			continue
+		var c: Variant = campaign.get_roster_character_by_id(str(cid))
+		var who: String = str((c as Dictionary).get("name", cid)) if c is Dictionary \
+				else str(cid)
+		lines.append("%s: recovery %d turn(s) shorter, from the banked cure (p.168)."
+				% [who, spent])
+	if not lines.is_empty():
+		lines.append("%d banked turn(s) left to spend later."
+				% int(campaign.recovery_reduction_bank))
+	return lines
+
+
 ## p.69 Step 13. Dismissals first ("cannot be returned"), then each replacement the player
 ## took, as the class's standard character at Loyalty Committed, while the roster has
 ## room. Returns the ids added. Public so a test can drive it without the dialog.
@@ -850,6 +990,17 @@ func resolve_replacements(data: Dictionary) -> Array:
 		if campaign.has_method("dismiss_character"):
 			campaign.dismiss_character(str(id))
 	var capacity: int = RosterRulesScript.roster_capacity(campaign)
+	# p.168 Swarm reward: a banked recruit "does not count against your available
+	# replacements", but it still needs a vacancy, and one that finds none stays banked.
+	# Taken before the rolled replacements, which is the order the dialog counts room in.
+	for i in range(maxi(int(data.get("bonus_recruits", 0)), 0)):
+		if campaign.roster.size() >= capacity or not campaign.has_method("take_bonus_recruit") \
+				or not campaign.take_bonus_recruit():
+			break
+		var rid: String = RosterRulesScript.next_character_id(campaign)
+		campaign.add_roster_character(RosterRulesScript.standard_character(
+				"trooper", rid, "Colonist %d" % (campaign.roster.size() + 1)))
+		added.append(rid)
 	for entry in data.get("new_characters", []):
 		if campaign.roster.size() >= capacity:
 			break

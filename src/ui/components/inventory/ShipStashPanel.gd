@@ -184,7 +184,8 @@ func _refresh_display() -> void:
 		var capped: bool = limit <= UNCAPPED_THRESHOLD
 		# Only show "x / y" when y is a real rule. With a ship there is no cap, so a
 		# denominator would be inventing one.
-		stash_count_label.text = ("%d / %d items" % [count, limit]) if capped 			else ("%d items" % count)
+		stash_count_label.text = ("%d / %d items" % [count, limit]) if capped \
+			else ("%d items" % count)
 		if capacity_bar:
 			capacity_bar.visible = capped
 			capacity_bar.max_value = float(maxi(1, limit))

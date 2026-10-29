@@ -363,7 +363,8 @@ func _apply_invasion_recovery(planet: Variant) -> void:
 	if not (ids is Array) or (ids as Array).is_empty():
 		return
 	var faction_sys: Node = _faction_system()
-	if faction_sys == null 			or not faction_sys.has_method("process_invasion_recovery"):
+	if faction_sys == null \
+			or not faction_sys.has_method("process_invasion_recovery"):
 		return
 	faction_sys.process_invasion_recovery(ids)
 

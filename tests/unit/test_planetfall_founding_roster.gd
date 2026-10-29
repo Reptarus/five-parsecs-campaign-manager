@@ -412,3 +412,58 @@ func test_both_screens_fit_a_phone() -> void:
 				"%s is %.0f px wide against %.0f px of room; widest leaf %s %.0f px"
 				% [(panel as Node).get_script().resource_path.get_file(), width, room, widest,
 				widest_w]).is_less_equal(room)
+
+
+# ── The pre-made crew (preset_crew.json: names and portraits only) ───────────────────
+
+## The book's pre-made crew renames the characters built here, in slot order, and gives
+## each its picture. It changes no class, sub-species or stat, because the book gives that
+## crew no profiles; an imported character keeps its own name.
+func test_the_preset_crew_names_and_pictures_the_roster() -> void:
+	var presets: Array = RosterRules.preset_crews()
+	assert_int(presets.size()).override_failure_message("premise: a preset ships") \
+			.is_greater(0)
+	var members: Array = (presets[0] as Dictionary).get("members", [])
+	var roster := _roster()
+	roster[0]["is_imported"] = true
+	roster[0]["name"] = "Vex"
+	var before: Array = roster.duplicate(true)
+	var out: Array = RosterRules.with_preset(roster, presets[0])
+	assert_str(str(out[0].get("name", ""))).is_equal("Vex")
+	assert_bool((out[0] as Dictionary).has("portrait_path")).is_false()
+	for k in range(members.size()):
+		var c: Dictionary = out[k + 1]
+		assert_str(str(c.get("name", ""))).is_equal(str(members[k].get("character_name", "")))
+		assert_str(str(c.get("portrait_path", ""))).is_equal(
+				str(members[k].get("portrait_path", "")))
+		for key in before[k + 1]:
+			if key != "name":
+				assert_that(c[key]).override_failure_message(
+						"a preset changed %s" % key).is_equal(before[k + 1][key])
+
+
+## A class or sub-species change rebuilds the character from its class (p.19-20) and must
+## keep its picture the way it keeps its id and name.
+func test_a_class_change_keeps_the_preset_portrait() -> void:
+	var c: Dictionary = RosterRules.standard_character("scout", "pf_char_0", "Pilot")
+	c["portrait_path"] = "res://assets/portraits/planetfall/preset_pilot.png"
+	c["class"] = "trooper"
+	var out: Dictionary = RosterRules.with_subspecies(c, "hulker")
+	assert_str(str(out.get("portrait_path", ""))).is_equal(str(c.portrait_path))
+	assert_str(str(out.get("name", ""))).is_equal("Pilot")
+
+
+## The roster screen offers the preset and draws each picture on its card.
+func test_the_roster_screen_offers_the_preset_and_shows_its_pictures() -> void:
+	var panel := _roster_panel(_coord())
+	await get_tree().process_frame
+	var btn: Button = panel.find_child("PresetCrew", true, false)
+	assert_object(btn).override_failure_message("the roster step offers the pre-made crew") \
+			.is_not_null()
+	btn.pressed.emit()
+	await get_tree().process_frame
+	var pics: Array = panel.find_children("Portrait", "TextureRect", true, false).filter(
+			func(n: Node) -> bool: return _live(n, panel))
+	var members: Array = (RosterRules.preset_crews()[0] as Dictionary).get("members", [])
+	assert_int(pics.size()).is_equal(members.size())
+	assert_object((pics[0] as TextureRect).texture).is_not_null()

@@ -72,7 +72,7 @@ func test_a_built_integrity_bonus_sets_the_score_repairs_return_to() -> void:
 	var core := _core()
 	BuildingSystem.new()._apply_building_effect(core, {"colony_integrity": 3})
 	assert_int(core.max_colony_integrity).is_equal(3)
-	core.adjust_integrity(-5)
+	core.take_colony_damage(5, false)
 	assert_int(core.integrity_damage()).is_equal(5)
 	assert_int(core.repair_colony(10)).is_equal(5)
 	assert_int(core.colony_integrity).is_equal(3)
@@ -81,7 +81,7 @@ func test_a_built_integrity_bonus_sets_the_score_repairs_return_to() -> void:
 func test_the_repairs_step_restores_to_the_maximum_and_charges_raw_materials_once() -> void:
 	var core := _core()
 	core.raise_integrity(5)
-	core.adjust_integrity(-3)
+	core.take_colony_damage(3, false)
 	core.raw_materials = 5
 	core.repair_capacity = 1
 	var pm := _pm_at(core, Phase.REPAIRS)

@@ -90,13 +90,6 @@ func get_current_bp(campaign: Resource) -> int:
 	return bd.get("current_bp", 0)
 
 
-func can_build(campaign: Resource, building_id: String) -> bool:
-	if is_constructed(campaign, building_id):
-		return false
-	var building: Dictionary = get_building(building_id)
-	return not building.is_empty()
-
-
 ## ============================================================================
 ## CONSTRUCTION
 ## ============================================================================
