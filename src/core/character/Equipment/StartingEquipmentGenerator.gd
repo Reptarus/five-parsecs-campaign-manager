@@ -71,6 +71,18 @@ static func generate_crew_base_pool(dice_manager: Node) -> Array:
 
 	return pool
 
+## Core Rules p.28 Crew Equipment: how many Military and Low-tech Weapon Table rolls a
+## new crew makes, read from gear_database.json. Unlike generate_crew_base_pool() this
+## does NOT apply Compendium p.34 "Starting in the Gutter": that is a campaign option,
+## and a caller with no campaign (the Battle Simulator) must not inherit one from
+## whichever campaign GameState auto-loaded at launch.
+static func crew_weapon_roll_counts() -> Dictionary:
+	_ensure_tables_loaded()
+	return {
+		"military_weapon": int(_crew_starting_config.get("military_weapon_rolls", 3)),
+		"low_tech_weapon": int(_crew_starting_config.get("low_tech_weapon_rolls", 3)),
+	}
+
 ## Generate per-character bonus equipment from their starting_rolls
 ## starting_rolls: Array like ["low_tech_weapon", "gadget"] from character creation tables
 ## Returns: Array of {name, type, source: "bonus"}

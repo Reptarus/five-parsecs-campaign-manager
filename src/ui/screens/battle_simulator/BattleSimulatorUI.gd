@@ -20,7 +20,7 @@ var _setup_panel: Control
 var _results_panel: Control
 var _battle_ui: Node = null
 var _panel_container: Control
-var _header: HBoxContainer
+var _header: Container
 var _last_config: Dictionary = {}
 
 func _scaled_font(base: int) -> int:
@@ -68,8 +68,11 @@ func _build_layout() -> void:
 	_content_margin.add_child(vbox)
 	call_deferred("_apply_content_max_width")
 
-	# Header
-	_header = HBoxContainer.new()
+	# Header. A flow row, not an HBox: the title goes beside the Back button where both
+	# fit and drops to its own line where they do not (a phone in portrait).
+	_header = HFlowContainer.new()
+	_header.add_theme_constant_override("h_separation", 16)
+	_header.add_theme_constant_override("v_separation", 8)
 	vbox.add_child(_header)
 
 	var back_button := Button.new()
@@ -83,11 +86,11 @@ func _build_layout() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(28))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# Clip + ellipsis, not autowrap: this is an HBox header, where autowrap would make
-	# the row taller instead of narrower. Without it the 28pt title demands its full
-	# unwrapped width as a minimum and drags the screen off both edges on a phone.
-	title.clip_text = true
-	title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	# Deliberately NOT wrapped. Unwrapped in an HBox beside the Back button it dragged the
+	# phone screen off both edges; clipped, it read "BATTLE S..."; word-wrapped, a wrapped
+	# Label's minimum width is 1 px, so the HBox gave it only what the button left and it
+	# broke mid-word ("BATTLE / SIMULATO / R", measured 2026-10-29 at 393x851). In a flow
+	# row its full text width is what makes the flow move it to a line of its own.
 	_header.add_child(title)
 
 	# Panel container — fills remaining space
@@ -166,8 +169,17 @@ func _set_margins(px: int) -> void:
 	_content_margin.add_theme_constant_override("margin_bottom", px)
 
 
+## Back to the framed layout after a battle. _set_margins(0) gave the battle the whole
+## screen, which also wiped the two things _ready() had set up: the Settings band's
+## top margin (SettingsOverlay.reserve_band_on only ever RAISES it, so it must be asked
+## again) and the centred 800 px column. Restoring a flat 20 left the results and the
+## next setup stretched edge to edge on a tablet with the header under the gear icon.
 func _restore_margins() -> void:
 	_set_margins(20)
+	_apply_content_max_width()
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so and so.has_method("reserve_band_on"):
+		so.reserve_band_on(self)
 
 
 func _cleanup_battle_ui() -> void:
@@ -178,10 +190,15 @@ func _cleanup_battle_ui() -> void:
 
 # --- Signal handlers ---
 
-func _on_launch_battle(config: Dictionary) -> void:
-	_last_config = config.duplicate()
-	var setup := BattleSimulatorSetup.new()
-	var context: Dictionary = setup.generate_battle_context(config)
+## Launch the battle the setup panel is SHOWING. The panel used to send only its
+## settings, and this handler rolled a second battle from them, so the preview and the
+## fight disagreed. A settings dict (no "crew") is still accepted and rolled here.
+func _on_launch_battle(context: Dictionary) -> void:
+	if _setup_panel and _setup_panel.has_method("get_config"):
+		_last_config = _setup_panel.get_config()
+	if not context.has("crew"):
+		_last_config = context.duplicate()
+		context = BattleSimulatorSetup.new().generate_battle_context(context)
 	_show_battle(context)
 
 
@@ -194,8 +211,12 @@ func _on_battle_abandoned() -> void:
 	_show_setup()
 
 
+## A new battle with the same settings. _last_config was written on every launch and
+## read by nothing, so Play Again offered whatever the panel last showed.
 func _on_play_again() -> void:
 	_show_setup()
+	if not _last_config.is_empty() and _setup_panel.has_method("apply_config"):
+		_setup_panel.apply_config(_last_config)
 
 
 func _on_back_to_menu() -> void:
@@ -214,6 +235,10 @@ func _on_back_to_menu() -> void:
 
 func _apply_content_max_width() -> void:
 	if not _content_margin:
+		return
+	# The battle owns the whole screen. This runs on every viewport resize, so without
+	# the guard rotating a tablet mid-battle squeezed the battle into the 800 px column.
+	if is_instance_valid(_battle_ui):
 		return
 	var vp := get_viewport()
 	if not vp:

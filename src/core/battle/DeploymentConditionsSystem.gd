@@ -44,7 +44,7 @@ func _init() -> void:
 
 ## Roll for deployment condition based on mission type
 func roll_deployment_condition(mission_type: MissionType) -> DeploymentCondition:
-	var roll := randi_range(1, 100)
+	var roll := _roll_d100("Deployment Condition")
 	var type_key := _mission_type_to_key(mission_type)
 
 	for condition in condition_registry:
@@ -92,6 +92,19 @@ func get_condition_by_id(condition_id: String) -> DeploymentCondition:
 		if condition.condition_id == condition_id:
 			return condition
 	return null
+
+## The p.88 D100 through the DiceManager autoload when one is reachable, so QA can force
+## a row ("Deployment Condition" in QAScenarioDialog) in the campaign and the Battle
+## Simulator alike. This class is built with .new() and is never in the scene tree, so
+## the autoload is reached through the main loop; a bare get_node_or_null("/root/...")
+## would ERROR here, not return null. One randi_range(1, 100) draw either way.
+func _roll_d100(context: String) -> int:
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		var dm: Node = (loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+		if dm != null and dm.has_method("roll_d100"):
+			return int(dm.roll_d100(context))
+	return randi_range(1, 100)
 
 func _mission_type_to_key(mission_type: MissionType) -> String:
 	match mission_type:

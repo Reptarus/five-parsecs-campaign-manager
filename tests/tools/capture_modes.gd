@@ -40,6 +40,8 @@ func _run() -> void:
 			await _tactics()
 		"bug_hunt":
 			await _bug_hunt()
+		"simulator":
+			await _simulator()
 		_:
 			print("unknown mode: %s" % _mode)
 	var removed: int = _guard.restore(_guard_snap)
@@ -438,6 +440,55 @@ func _bug_hunt() -> void:
 	await _settle(tc)
 	await _shot("bh_turn_complete", tc)
 	await _unmount(tc)
+
+
+## ============================================================================
+## BATTLE SIMULATOR
+## ============================================================================
+
+## Setup -> battle -> results, with the results screen fed each SHAPE the four
+## tactical_battle_completed emit sites produce (played, Record Result form,
+## auto-resolve, evacuation). The battle itself is launched through the screen's own
+## launch handler, so what is captured is what a player's Launch press builds.
+func _simulator() -> void:
+	var inst: Node = await _mount("res://src/ui/screens/battle_simulator/BattleSimulatorUI.tscn")
+	if inst == null:
+		return
+	await _shot("sim_01_setup", inst)
+	var scroll: ScrollContainer = null
+	for n in inst.find_children("*", "ScrollContainer", true, false):
+		scroll = n as ScrollContainer
+		break
+	if scroll:
+		scroll.scroll_vertical = 100000
+		await _shot("sim_02_setup_bottom", inst)
+	var setup_panel: Node = inst.get("_setup_panel")
+	var cfg: Dictionary = {}
+	if setup_panel and "_current_config" in setup_panel:
+		cfg = (setup_panel.get("_current_config") as Dictionary).duplicate()
+	inst.call("_on_launch_battle", cfg)
+	await _shot("sim_03_battle", inst)
+	var shapes: Dictionary = {
+		"played": {"victory": true, "won": true, "success": true, "held_field": true,
+			"rounds_fought": 5, "crew_casualties": 1, "crew_injuries": 2,
+			"crew_casualties_data": [{"name": "A"}],
+			"crew_injuries_data": [{"name": "B"}, {"name": "C"}],
+			"enemies_defeated_count": 6, "auto_resolved": false,
+			"objective_id": "FIGHT_OFF", "objective_met": true},
+		"auto": {"victory": false, "won": false, "success": false, "held_field": false,
+			"rounds_fought": 3, "crew_casualties": 2, "crew_injuries": 0,
+			"crew_casualties_data": [{"name": "A"}, {"name": "B"}],
+			"crew_injuries_data": [], "auto_resolved": true},
+		"evac": {"victory": false, "won": false, "success": false, "held_field": false,
+			"rounds_fought": 2, "crew_casualties": 0, "crew_injuries": 1,
+			"crew_injuries_data": [{"name": "A"}]},
+	}
+	for key in shapes:
+		inst.call("_on_battle_completed", shapes[key])
+		await _shot("sim_04_results_%s" % key, inst)
+	inst.call("_on_play_again")
+	await _shot("sim_05_play_again", inst)
+	await _unmount(inst)
 
 
 func _phase_slug(pm: Node) -> String:

@@ -210,6 +210,51 @@ text ends past the screen edge.
 | Modal width | **It scrolled sideways on a phone and cut the card's rules text mid-word.** The width driver was the Core checklist's dice-roll row (360 px), which the p.184 steps do not have. The title and the step check boxes wrap. | fit battle case (prints the min-width spine on failure) | BH7, and PF7 for the check box |
 | Evac (p.201) | **No screen told the players about Evac.** `bug_hunt_missions.json:evac` had no reader (the census counted the dashboard literal as one). The Battle Card has an Evac row ("request it from Round N", the roll, arrival, loiter rounds, priority, supporting fire). The round prompts say it opens one round before it does, and while a call is outstanding they ask whether it arrived. `evac.retry` was added from p.201 ("roll again at the end of each battle round until the drop ship arrives"). | flow `test_evac_is_on_the_card_and_in_the_round_prompts` | BH18, BH19 DETECTED |
 
+## Battle Simulator — per screen
+
+Captures `sim2` / `sim3` (`capture_modes.gd -- mode=simulator`, 2026-10-29) at 2560x1600 and
+393x851: setup top and bottom, the battle launched through the screen's own launch handler,
+the results card fed the return shapes `TacticalBattleUI` emits, and Play Again. Cases are in
+`test_battle_simulator_setup.gd` and the arms are in `su_sim/arms_sim.log`. This pass absorbs
+Sprint 6's S1-S10 rows, because every one of them is on this screen.
+
+The common shape was the one this plan keeps finding: **the screen described one battle and
+fought another.** The setup panel rolled a preview, Launch sent only the SETTINGS, and the
+screen rolled a second battle from them, so the crew, the enemy count and the mission on the
+preview were not the ones on the table. Behind that, the generator invented its own rules: 5
+enemies plus a difficulty bonus, identical clones, a crew with random stats and no weapons,
+crew size 3, a 1-5 difficulty scale, and no p.88 or p.89 rolls.
+
+### Setup (`BattleSimulatorSetupPanel`, `BattleSimulatorSetup`)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Launch (S7) | **The preview and the fight disagreed.** The panel now holds one rolled battle, `_context`, re-rolls it on every change (and on Roll Again), and Launch sends that battle. A settings dict is still accepted by the screen and rolled there. | `test_launch_sends_the_battle_the_preview_shows` | SIM-7 |
+| Crew (S5) | **Random stats, no equipment, size 3 allowed.** Crew size is 4-6 (p.63), default 6. Every member is the p.15 Baseline Human (React 1, Speed 4", Combat +0, Tough 3, Savvy +0) and carries a weapon rolled on the p.28 Military and Low-tech tables through the same DiceManager contexts as campaign creation. With a crew under six the rest are spares. | `test_crew_is_the_p15_baseline_and_sized_4_to_6` | SIM-3, SIM-3b, SIM-3c |
+| Opposition (S3, S4, S6) | **5 + numbers + a difficulty bonus, identical clones.** The force is `EnemyGenerator.generate_enemies_as_dicts()`, the campaign's own: the p.63 crew-size dice, Specialists, a Lieutenant and the Unique Individual roll. A chosen category rolls its own table (`roll_core_enemy_type()`). The preview prints "N × Type (including ...)" with the profile and rules. | `test_enemy_numbers_come_from_the_crew_size_dice` (40 rolls at crew 4 must vary) | SIM-2 |
+| Mission (S8) | **No p.88 or p.89 rolls, and their consequences nowhere.** The mission rolls its objective and Notable Sight (p.89) through `MissionTableManager` and its Deployment Condition (p.88) through `DeploymentConditionsSystem`, whose D100 now goes through DiceManager ("Deployment Condition", a new QA forcing row). `BattleSetupRules.compute()` applies the result as the campaign does: Small Encounter sits a random crew member out and trims the opposition. | `test_the_battle_carries_its_p88_p89_rolls_and_their_consequences` (forces 43) | SIM-5, SIM-5b, SIM-5c |
+| Difficulty (S9) | **A 1-5 scale whose 3 and 5 were the deprecated HARD and NIGHTMARE.** The dropdown is the five p.64-65 modes, and its note reads the battle effects from the `DifficultyModifiers` accessors, not a literal. The p.112 Seize the Initiative context is built by one shared `build_battle_context()`, which the campaign's turn controller now calls too, so the two cannot drift. | `test_only_the_five_book_difficulty_modes_are_accepted`, `test_hardcore_carries_its_seize_the_initiative_penalty`, `test_one_initiative_builder_serves_the_campaign_too` | SIM-4, SIM-6, SIM-6b, SIM-6c |
+| Ownership (S2, S11) | **A Simulator force read the auto-loaded campaign.** `GameState` loads the last campaign at every launch, so its Compendium toggles, house rules, Progressive Difficulty and elite substitution reached Simulator battles. `EnemyGenerator` reads the mission's `standalone` flag (the T11-49 signal) once per generation and withholds all five. The case enables the Progressive Difficulty flag and asserts its premise first: without the flag the toggle cannot unlock, and the assertion would pass with the guard removed. | `test_a_standalone_force_reads_no_campaign_setting`; `test_compendium_difficulty_toggles.gd::test_the_generator_reads_every_toggle_through_one_chokepoint` | SIM-8, SIM-8b, SIM-8c, SIM-8d |
+| Raw dice (S10) | `BattleSimulatorSetup` rolls through `DiceManager.legacy_randi_range()` with a context per roll. | covered by the forced p.88 case | no arm of its own |
+
+### Results (`BattleSimulatorResultsPanel`)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| The card (S1) | **Blank on every path.** All four emit sites send `crew_casualties` and `crew_injuries` as counts, with the records in `*_data`, and the panel assigned the count to an `Array` variable, which aborted `show_results()` before it wrote a word. Measured on all three captured shapes. `summarize()` reads either form. | `test_the_results_card_shows_every_return_shape` | SIM-1 |
+| Objective (p.90) | The card said nothing about the p.89 objective this pass gave the battle. It prints "Objective (Fight Off): achieved" or "not achieved", because a won fight can still miss the objective. | same case | SIM-1b |
+| Phone width | A fixed 500 px card ran ~100 px off a 393 px phone, taking Main Menu with it. The card fills the column, and the buttons flow. | `verify_layout -- only=battle_simulator` 8/8 | — |
+| Evacuation | The "It's time to go!" Star is the only evacuation path, and the Simulator withholds Stars, so this card never receives that shape. Were it to, it would read DEFEAT, since leaving the table forfeits Holding the Field (p.115, as the emit site cites), and the objective line would still say whether the objective stood. | — | — |
+
+### The screen (`BattleSimulatorUI`)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| After a battle (S9 margins) | **The results and the next setup ran edge to edge, under the Settings icons.** `_set_margins(0)` gave the battle the screen and nothing put back the centred column or the Settings band. `_restore_margins()` re-applies both. | `test_returning_from_a_battle_restores_the_centred_column` (asserts the premise that the column is centred first) | SIM-9 |
+| Rotation mid-battle | `_apply_content_max_width()` runs on every resize, so rotating a tablet mid-battle squeezed the battle into the 800 px column. It returns while a battle is up. | `test_a_rotation_mid_battle_leaves_the_battle_full_screen` | SIM-9b |
+| Header | **"BATTLE / SIMULATO / R" on a phone.** A word-wrapped Label in an HBox gets only what the Back button leaves, and WORD_SMART then breaks inside a word. The header is a flow row, and the unwrapped title takes its own line where it does not fit. ⚠ The Bug Hunt pass went the other way for its own creation title (HFlow to HBox with a wrapping title), because that title ran past a 310 px phone unwrapped (it ended at x=332). Which shape is right depends on whether the title fits the narrowest screen whole. "BATTLE SIMULATOR" does at 310 px, and the case measures that rather than assuming it. | `test_the_phone_title_never_breaks_mid_word` (line count AND right edge at 310 px) | SIM-10, SIM-10b |
+| Play Again | `_last_config` was written on every launch and read by nothing, so Play Again offered whatever the panel last showed. It restores the settings and rolls a new battle with them. | capture `sim_05_play_again` | — |
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -296,6 +341,31 @@ Recorded so the next reader does not trust a green case that cannot fail.
 - **A false lead, not filed.** The February legacy save showed zero stats on Enlist. It
   nests the character under a `character` key and exists only on the dev machine.
 
+- **SIM-2, first run UNDETECTED.** `test_enemy_numbers_come_from_the_crew_size_dice` asked
+  whether 40 Simulator battles fielded more than one enemy count, and stayed green with the
+  p.63 dice reverted to a fixed five. Each battle also rolls a p.88 Deployment Condition, and
+  its `enemy_delta` (Small Encounter and the rest) changes the size of even a fixed force. The
+  case now subtracts the delta before counting, and the arm is DETECTED.
+- **The standalone toggle assertion could not fail at first.** `_campaign_toggle()` returned
+  false with the standalone guard removed too, because `strength_adjusted` unlocks only
+  through Progressive Difficulty Option 2 (p.31) and that flag is off in the test process. A
+  premise assertion (a campaign battle DOES get the toggle) went red, the case now enables
+  the flag for itself and restores it, and SIM-8b is DETECTED.
+- **A source-scan anchor caught a refactor of mine.** `test_final_partial_rows.gd` anchors on
+  the exact form `if _option_2_blocks_elite():`, and folding `_standalone or` into that line
+  failed it. The two reasons are now two guards, so the anchor still names the Option 2 gate.
+- **The first full gate (`susim`) caught the same shape again, and my own filter had hidden
+  it.** `test_compendium_difficulty_toggles.gd` anchored three cases on
+  `is_toggle_active("<id>")` inside `EnemyGenerator`, and all five reads now go through
+  `_campaign_toggle()`. The suite stopped at its first failure, so the gate read 4095 executed
+  of 4102 declared. The suite was in the 27-suite "related" batch I ran before the gate, but I
+  read that batch through `tail -20` over 27 per-suite lines, which cut the failure out. The
+  anchors now name `_campaign_toggle("<id>")`, and a new case pins the chokepoint's route
+  (it calls `CompendiumTogglesRef.is_toggle_active(toggle_id)`, returns early when standalone,
+  and no other site calls the toggle rules directly; arm SIM-8d DETECTED). The related batch
+  was re-run and read by its `Overall Summary` line: 30 suites, 486 / 486, 0 errors,
+  0 failures. Read a batch by its total, never by a tail of its parts.
+
 ## Gates
 
 | Run | Suites | Executed / declared | Errors | Failures | Lints |
@@ -308,6 +378,7 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | s4p2 (Sprint 4 part 2, X15, SF1-SF3) | 364 | 4047 / 4047 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout`: 240/248, the 8 being CharacterDetailsScreen (see Not yet walked) |
 | sut (Tactics pass, X16, X17) | 366 | 4072 / 4072 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=tactics` 24/24. Every Tactics arm DETECTED or UNDETECTED-by-design with a measurement (arms log) |
 | sub3 (Bug Hunt pass, and the Planetfall battle checklist) | 368 | 4090 / 4090 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=bug_hunt` 24/24 and `-- only=planetfall` 24/24; `test_touch_scroll_sweep` 3/3. The third full run: `sub` failed two instruments and `sub2` a pre-existing intermittent case (see Instruments) |
+| susim2 (Battle Simulator pass) | 369 | 4103 / 4103 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=battle_simulator` 8/8; `test_touch_scroll_sweep` 3/3; 22 arms DETECTED (`su_sim/arms_sim.log`). The first run, `susim`, read 4095 / 4102 with one failure: three source anchors of mine (see Instruments) |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3
@@ -317,7 +388,6 @@ re-counted the same batch on the final tree at 399 / 399, which confirms it.
 
 Every mode in this list still needs the same pass: capture, verdict and fix.
 
-- **Battle Simulator**: setup and results.
 - **5PFH and shared**: MainMenu, Settings, Help, Store, Compendium, Legal, Journal, Galaxy
   Log, Print Sheets, and the battle screens. **Measured already (2026-10-28, full windowed
   `verify_layout`, 240/248):** all 8 failures are `CharacterDetailsScreen`, at every size.
@@ -338,6 +408,16 @@ Every mode in this list still needs the same pass: capture, verdict and fix.
   The p.137 salvage-availability D6 (`compendium_salvage_jobs.gd:127`, and its fallback in
   `SalvageJobGenerator.find_salvage_job()`) is a raw `randi_range`, so no QA seam can force
   the "no job" row either.
+  **Found on the Battle Simulator pass and owed here (shared screens):** the battle
+  screen's crew cards show no weapon (`TacticalBattleUI._unit_card_dict()` carries none);
+  Fickle Scans (Compendium p.34) names the removed sight with `sight.get("name")`, but the
+  p.89 roller writes `{type, effect, roll}`, so it prints "unknown"; the companion-level
+  modal's title sits under the Settings buttons on a phone; `mission_templates.json` has no
+  `_source` and its title tables are unprovenanced; `HelpContentLoader.get_context_help()`
+  has no caller, so no screen's help button can reach `help_context_map.json` (it lands with
+  the Sprint 7 chapters); and raw `randi_range(1, 100)` D100s remain in `EnemyGenerator`
+  (four), `MissionObjectiveSystem`, `SalvageResolver` and `WeaponTableSystem`, each to be
+  checked for a live caller before it is routed.
 - **Planetfall turn steps beyond Recovery**: the sweeps build the Turn Controller resumed at
   Step 1, so the other seventeen step panels are measured only by their own suites.
 - Cross-cutting work still owed: help keys for 19 router screens, hex-to-token in the

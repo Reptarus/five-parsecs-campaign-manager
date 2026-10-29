@@ -39,9 +39,13 @@ func _build_ui() -> void:
 	bg.color = Color(COLOR_BASE, 0.92)
 	add_child(bg)
 
-	# Center container
-	var center := CenterContainer.new()
+	# The card fills the screen's content column (BattleSimulatorUI centres that column at
+	# up to 800 px) and centres vertically. It used to sit in a CenterContainer with a
+	# fixed 500 px minimum width, which ran ~100 px off the right edge of a 393 px phone
+	# and took the Main Menu button with it.
+	var center := VBoxContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(center)
 
 	var card := PanelContainer.new()
@@ -52,7 +56,8 @@ func _build_ui() -> void:
 	style.set_corner_radius_all(12)
 	style.set_content_margin_all(SPACING_LG)
 	card.add_theme_stylebox_override("panel", style)
-	card.custom_minimum_size = Vector2(500, 300)
+	card.custom_minimum_size = Vector2(0, 300)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	center.add_child(card)
 
 	var vbox := VBoxContainer.new()
@@ -63,7 +68,7 @@ func _build_ui() -> void:
 	# Title
 	_title_label = Label.new()
 	_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_title_label.add_theme_font_size_override("font_size", FONT_SIZE_TITLE)
+	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_TITLE))
 	vbox.add_child(_title_label)
 
 	# Stats
@@ -76,9 +81,10 @@ func _build_ui() -> void:
 	vbox.add_child(_stats_label)
 
 	# Buttons
-	var btn_row := HBoxContainer.new()
-	btn_row.add_theme_constant_override("separation", SPACING_MD)
-	btn_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	var btn_row := HFlowContainer.new()
+	btn_row.add_theme_constant_override("h_separation", SPACING_MD)
+	btn_row.add_theme_constant_override("v_separation", SPACING_MD)
+	btn_row.alignment = FlowContainer.ALIGNMENT_CENTER
 	vbox.add_child(btn_row)
 
 	_play_again_btn = Button.new()
@@ -103,30 +109,75 @@ func _build_ui() -> void:
 			btn.pressed.connect(func(): tweenfx.press(btn))
 
 
+## Every shape TacticalBattleUI's four tactical_battle_completed emit sites produce
+## (Record Result form, played end, in-battle auto-resolve, evacuation) reduced to what
+## this screen prints. All four send `crew_casualties` / `crew_injuries` as COUNTS with
+## the records in `*_data`; this panel typed them as Arrays, so assigning the count was
+## a runtime error that aborted show_results() on EVERY path and left a blank card with
+## only its two buttons (measured 2026-10-29 on all three shapes captured).
+##
+## Static and tolerant of either form, so a fifth producer cannot blank it again.
+static func summarize(result) -> Dictionary:
+	var r: Dictionary = result if result is Dictionary else {}
+	return {
+		"victory": bool(r.get("victory", r.get("won", false))),
+		"held_field": bool(r.get("held_field", false)),
+		"rounds": int(r.get("rounds_fought", r.get("rounds", 0))),
+		"casualties": _count(r, "crew_casualties"),
+		"injuries": _count(r, "crew_injuries"),
+		"enemies_defeated": int(r.get("enemies_defeated_count", -1)),
+		"auto_resolved": bool(r.get("auto_resolved", false)),
+		# Core Rules p.90: the objective, not the fight, decides the mission, so a won
+		# fight can still miss it. Every emit site carries both keys.
+		"objective": str(r.get("objective_id", "")),
+		"objective_met": bool(r.get("objective_met", false)),
+	}
+
+
+## A count from the `<key>_data` records when they are present, else from `<key>`
+## as either a number or a list.
+static func _count(r: Dictionary, key: String) -> int:
+	var records: Variant = r.get(key + "_data", null)
+	if records is Array:
+		return (records as Array).size()
+	var value: Variant = r.get(key, 0)
+	if value is Array:
+		return (value as Array).size()
+	return int(value) if (value is int or value is float) else 0
+
+
 ## Show results from a completed battle.
-## result: BattleResult from TacticalBattleUI (has .victory, .rounds_fought, .crew_casualties, .crew_injuries)
 func show_results(result) -> void:
-	var victory: bool = result.victory if result else false
-	var rounds: int = result.rounds_fought if result else 0
-	var casualties: Array = result.crew_casualties if result else []
-	var injuries: Array = result.crew_injuries if result else []
+	var s: Dictionary = summarize(result)
 
 	# Title
-	if victory:
+	if s["victory"]:
 		_title_label.text = "VICTORY"
 		_title_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+	elif s["held_field"]:
+		_title_label.text = "HELD THE FIELD"
+		_title_label.add_theme_color_override("font_color", COLOR_FOCUS)
 	else:
 		_title_label.text = "DEFEAT"
 		_title_label.add_theme_color_override("font_color", COLOR_DANGER)
 
 	# Stats
-	var text := ""
-	text += "[center]"
-	text += "Rounds Fought: [color=#4FC3F7]%d[/color]\n" % rounds
-	text += "Casualties: [color=#DC2626]%d[/color]\n" % casualties.size()
-	text += "Injuries: [color=#D97706]%d[/color]\n" % injuries.size()
-	text += "[/center]"
-	_stats_label.text = text
+	var lines: Array[String] = []
+	if not str(s["objective"]).is_empty():
+		lines.append("Objective (%s): %s" % [str(s["objective"]).capitalize(),
+			"[color=ui-success]achieved[/color]" if s["objective_met"]
+				else "[color=ui-danger]not achieved[/color]"])
+	lines.append_array([
+		"Rounds Fought: [color=ui-info]%d[/color]" % s["rounds"],
+		"Casualties: [color=ui-danger]%d[/color]" % s["casualties"],
+		"Injuries: [color=ui-warning]%d[/color]" % s["injuries"],
+	])
+	if int(s["enemies_defeated"]) >= 0:
+		lines.append("Enemies Defeated: [color=ui-success]%d[/color]" % s["enemies_defeated"])
+	if s["auto_resolved"]:
+		lines.append("[color=ui-secondary]Auto-resolved[/color]")
+	lines.append("[color=ui-secondary]Nothing from a Simulator battle is saved.[/color]")
+	_stats_label.text = UIColors.bbcode("[center]%s[/center]" % "\n".join(lines))
 
 	# TweenFX pop-in for the title
 	var tweenfx = Engine.get_main_loop().root.get_node_or_null("/root/TweenFX") if Engine.get_main_loop() else null

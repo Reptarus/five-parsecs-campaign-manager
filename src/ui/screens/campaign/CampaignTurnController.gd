@@ -1412,20 +1412,11 @@ func _initiate_battle_sequence() -> void:
 
 	# Build initiative context for InitiativeCalculator auto-configuration
 	# (Core Rules p.112: 2D6 + highest Savvy + modifiers >= 10)
-	var init_sys := SeizeInitiativeSystemClass.new()
-	init_sys.set_crew_data(active_crew)
 	# Difficulty modifier
 	var difficulty: int = 0
 	if game_state.current_campaign and "progress_data" in game_state.current_campaign:
 		difficulty = game_state.current_campaign.progress_data.get(
 			"difficulty_mode", 0)
-	match difficulty:
-		6: init_sys.set_difficulty_mode(
-			SeizeInitiativeSystemClass.DifficultyMode.HARDCORE)
-		8: init_sys.set_difficulty_mode(
-			SeizeInitiativeSystemClass.DifficultyMode.INSANITY)
-	# Outnumbered check
-	init_sys.set_outnumbered(enemies.size() > active_crew.size())
 	# Seize the Initiative modifiers, from BOTH places they are produced.
 	#
 	# THE BUG THIS FIXES (2026-09-04): this read `first_enemy` only. Two live
@@ -1440,52 +1431,22 @@ func _initiate_battle_sequence() -> void:
 	# independent rules that can legitimately co-occur (a Black Job against an
 	# enemy category that already carries a modifier).
 	var total_init_mod: int = _seize_modifier_total(first_enemy, mission_data)
-	if total_init_mod != 0:
-		init_sys.set_enemy_modifier(total_init_mod,
-			first_enemy.get("type", "Enemy"))
 
-	# Difficulty index in InitiativeCalculator's dropdown order
-	# (0 Normal / 1 Challenging / 2 Hardcore -2 / 3 Insanity -3), mapped from
-	# GlobalEnums.DifficultyLevel {CHALLENGING=4, HARDCORE=6, INSANITY=8}.
-	var difficulty_index: int = 0
-	match difficulty:
-		4: difficulty_index = 1
-		6: difficulty_index = 2
-		8: difficulty_index = 3
-
-	mission_data["initiative_context"] = {
-		"highest_savvy": init_sys.highest_savvy,
-		"modifiers": init_sys.get_current_modifiers(),
-		"required_roll": init_sys.calculate_required_roll(),
-		"success_probability": init_sys.get_success_probability(),
-		# RAW INPUTS, added so the in-battle InitiativeCalculator can actually
-		# apply what was computed here. Previously this dict held only the derived
-		# display values and was read by PreBattleUI alone, so the app showed a
-		# required roll before the battle and then rolled against a different,
-		# unmodified target inside it (Core Rules p.112).
-		"outnumbered": enemies.size() > active_crew.size(),
-		"difficulty_index": difficulty_index,
-		# The Hired Muscle -1 (Core Rules p.112) is stored on the ENCOUNTER
-		# CATEGORY in enemy_types.json, so it arrives here inside
-		# seize_initiative_modifier and is applied once, through enemy_modifier.
-		# Deliberately NOT also flagged as hired_muscle — the calculator has its
-		# own -1 toggle for that rule and setting both would apply it twice.
-		"hired_muscle": false,
-		# The SUM, so the in-battle calculator applies exactly what the
-		# pre-battle screen displayed (the p.112 target must not move).
-		"enemy_modifier": total_init_mod,
-		"enemy_name": first_enemy.get("type", "Enemy"),
-		# Core Rules p.91, Rival Ambush: "cannot roll to Seize the Initiative".
-		#
-		# ONE gate, two producers. `setup_bundle` carries the p.91 Ambush case;
-		# `mission_data["no_seize_initiative"]` is stamped by the Introductory
-		# Campaign (:1692) and had NO reader at all, so that scenario's ban was
-		# never enforced. Both funnel through this single field rather than a
-		# second mechanism -- a second place that can suppress the same roll is
-		# how the p.120 Rival payment rule ended up duplicated.
-		"can_seize": _can_seize_initiative(setup_bundle, mission_data),
-		"cannot_seize_reason": _cannot_seize_reason(setup_bundle, mission_data),
-	}
+	# One builder for the campaign and the Battle Simulator (the keys, and why each
+	# exists, are documented there).
+	#
+	# Core Rules p.91, Rival Ambush: "cannot roll to Seize the Initiative".
+	# ONE gate, two producers. `setup_bundle` carries the p.91 Ambush case;
+	# `mission_data["no_seize_initiative"]` is stamped by the Introductory
+	# Campaign (:1692) and had NO reader at all, so that scenario's ban was
+	# never enforced. Both funnel through this single field rather than a
+	# second mechanism -- a second place that can suppress the same roll is
+	# how the p.120 Rival payment rule ended up duplicated.
+	mission_data["initiative_context"] = SeizeInitiativeSystemClass.build_battle_context(
+		active_crew, enemies.size(), difficulty, total_init_mod,
+		first_enemy.get("type", "Enemy"),
+		_can_seize_initiative(setup_bundle, mission_data),
+		_cannot_seize_reason(setup_bundle, mission_data))
 
 	# Normalize data keys for downstream consumers
 	mission_data["deployment"] = deployment_condition

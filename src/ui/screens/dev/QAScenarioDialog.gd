@@ -57,6 +57,8 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Battlefield Find", "sides": 100, "target": 1, "note": "pp.120-121"},
 	{"key": "Loot Category", "sides": 100, "target": 1, "note": "pp.131-134"},
 	{"key": "Notable Sight", "sides": 100, "target": 1, "note": "p.88"},
+	{"key": "Deployment Condition", "sides": 100, "target": 1,
+		"note": "p.88 - campaign battles and the Battle Simulator"},
 	# --- Bug Hunt (Compendium). Every key below has a LIVE producer in src/
 	# today, and that is the standing rule for this block: a row whose key
 	# matches no roll is worse than a missing row, because the tester queues a

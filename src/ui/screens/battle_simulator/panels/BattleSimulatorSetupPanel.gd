@@ -1,10 +1,15 @@
 extends Control
 
 ## Single-screen Battle Simulator setup panel.
-## Lets the player configure crew size, enemy type, mission, and difficulty
-## before launching a standalone battle.
+##
+## Every choice regenerates ONE battle, the preview shows that battle, and Launch hands
+## over exactly that battle. Until 2026-10-29 the preview was a throwaway roll and Launch
+## sent only the settings, so the screen generated a SECOND battle: a player read "7
+## enemies" here and then fought 5.
 
-signal launch_requested(config: Dictionary)
+signal launch_requested(context: Dictionary)
+
+const DifficultyModifiersRef := preload("res://src/core/systems/DifficultyModifiers.gd")
 
 # Deep Space theme
 const COLOR_BASE := Color("#1A1A2E")
@@ -39,18 +44,22 @@ var _category_dropdown: OptionButton
 var _enemy_dropdown: OptionButton
 var _mission_dropdown: OptionButton
 var _difficulty_dropdown: OptionButton
+var _difficulty_note: RichTextLabel
 var _enemy_preview: RichTextLabel
 var _crew_preview: RichTextLabel
+var _mission_preview: RichTextLabel
 var _launch_button: Button
 
 var _categories: Array = []
 var _current_config: Dictionary = {
-	"crew_size": 4,
+	"crew_size": BattleSimulatorSetup.DEFAULT_CREW_SIZE,
 	"enemy_category": "random",
 	"enemy_type": "random",
 	"mission_type": "RANDOM",
-	"difficulty": 2,
+	"difficulty_mode": BattleSimulatorSetup.DEFAULT_DIFFICULTY_MODE,
 }
+## The battle on screen. Launch sends this, never a fresh roll.
+var _context: Dictionary = {}
 
 
 func _ready() -> void:
@@ -58,7 +67,8 @@ func _ready() -> void:
 	_categories = _setup.get_enemy_categories()
 	_build_ui()
 	_refresh_enemy_dropdown()
-	_refresh_previews()
+	_refresh_difficulty_note()
+	_regenerate()
 
 
 func _build_ui() -> void:
@@ -87,137 +97,69 @@ func _build_ui() -> void:
 	crew_label.add_theme_color_override("font_color", COLOR_TEXT)
 	crew_row.add_child(crew_label)
 
+	# Core Rules p.63: crew size is 4, 5 or 6, and it decides the enemy numbers dice.
 	_crew_size_spin = SpinBox.new()
-	_crew_size_spin.min_value = 3
-	_crew_size_spin.max_value = 6
-	_crew_size_spin.value = 4
+	_crew_size_spin.min_value = BattleSimulatorSetup.CREW_SIZES[0]
+	_crew_size_spin.max_value = BattleSimulatorSetup.CREW_SIZES[-1]
+	_crew_size_spin.value = BattleSimulatorSetup.DEFAULT_CREW_SIZE
 	_crew_size_spin.step = 1
 	_crew_size_spin.custom_minimum_size = Vector2(120, TOUCH_TARGET)
 	_crew_size_spin.value_changed.connect(_on_crew_size_changed)
 	crew_row.add_child(_crew_size_spin)
 
 	var reroll_btn := Button.new()
-	reroll_btn.text = "Reroll Names"
+	reroll_btn.text = "Roll Again"
+	reroll_btn.tooltip_text = "Roll a new crew, opposition and mission with these settings"
 	reroll_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET)
 	reroll_btn.pressed.connect(_on_reroll_pressed)
 	crew_row.add_child(reroll_btn)
 
-	_crew_preview = RichTextLabel.new()
-	_crew_preview.bbcode_enabled = true
-	_crew_preview.fit_content = true
-	_crew_preview.custom_minimum_size = Vector2(0, 80)
-	ScreenChrome.size_rich_text(_crew_preview, FONT_SIZE_SM)
-	_crew_preview.add_theme_color_override("default_color", COLOR_TEXT_SEC)
-	crew_content.add_child(_crew_preview)
+	_crew_preview = _create_preview(crew_content, 80)
 
 	# --- Enemy Section ---
 	var enemy_card := _create_card("OPPOSITION", vbox)
 	var enemy_content := enemy_card.get_meta("content") as VBoxContainer
 
-	var cat_row := HFlowContainer.new()
-	cat_row.add_theme_constant_override("h_separation", SPACING_MD)
-	cat_row.add_theme_constant_override("v_separation", SPACING_XS)
-	enemy_content.add_child(cat_row)
-
-	var cat_label := Label.new()
-	cat_label.text = "Category:"
-	cat_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	cat_label.add_theme_color_override("font_color", COLOR_TEXT)
-	cat_row.add_child(cat_label)
-
-	_category_dropdown = OptionButton.new()
-	_category_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
-	_category_dropdown.clip_text = true
-	_category_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_category_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_category_dropdown.add_item("Random", 0)
+	_category_dropdown = _create_dropdown_row("Category:", enemy_content)
+	_category_dropdown.add_item("Random (roll the encounter table)", 0)
 	for i in range(_categories.size()):
 		_category_dropdown.add_item(_categories[i].get("name", ""), i + 1)
 	_category_dropdown.item_selected.connect(_on_category_selected)
-	cat_row.add_child(_category_dropdown)
 
-	var type_row := HFlowContainer.new()
-	type_row.add_theme_constant_override("h_separation", SPACING_MD)
-	type_row.add_theme_constant_override("v_separation", SPACING_XS)
-	enemy_content.add_child(type_row)
-
-	var type_label := Label.new()
-	type_label.text = "Enemy Type:"
-	type_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	type_label.add_theme_color_override("font_color", COLOR_TEXT)
-	type_row.add_child(type_label)
-
-	_enemy_dropdown = OptionButton.new()
-	_enemy_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
-	_enemy_dropdown.clip_text = true
-	_enemy_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_enemy_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_enemy_dropdown = _create_dropdown_row("Enemy Type:", enemy_content)
 	_enemy_dropdown.item_selected.connect(_on_enemy_selected)
-	type_row.add_child(_enemy_dropdown)
 
-	_enemy_preview = RichTextLabel.new()
-	_enemy_preview.bbcode_enabled = true
-	_enemy_preview.fit_content = true
-	_enemy_preview.custom_minimum_size = Vector2(0, 60)
-	ScreenChrome.size_rich_text(_enemy_preview, FONT_SIZE_SM)
-	_enemy_preview.add_theme_color_override("default_color", COLOR_TEXT_SEC)
-	enemy_content.add_child(_enemy_preview)
+	_enemy_preview = _create_preview(enemy_content, 60)
 
 	# --- Mission Section ---
 	var mission_card := _create_card("MISSION", vbox)
 	var mission_content := mission_card.get_meta("content") as VBoxContainer
 
-	var mission_row := HFlowContainer.new()
-	mission_row.add_theme_constant_override("h_separation", SPACING_MD)
-	mission_row.add_theme_constant_override("v_separation", SPACING_XS)
-	mission_content.add_child(mission_row)
-
-	var mission_label := Label.new()
-	mission_label.text = "Type:"
-	mission_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	mission_label.add_theme_color_override("font_color", COLOR_TEXT)
-	mission_row.add_child(mission_label)
-
-	_mission_dropdown = OptionButton.new()
-	_mission_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
-	_mission_dropdown.clip_text = true
-	_mission_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_mission_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_mission_dropdown = _create_dropdown_row("Type:", mission_content)
 	_mission_dropdown.add_item("Random", 0)
 	var mission_types: Array = _setup.get_mission_types()
 	for i in range(mission_types.size()):
-		_mission_dropdown.add_item(mission_types[i].get("type", ""), i + 1)
+		_mission_dropdown.add_item(str(mission_types[i].get("name", "")), i + 1)
 	_mission_dropdown.item_selected.connect(_on_mission_selected)
-	mission_row.add_child(_mission_dropdown)
+
+	_mission_preview = _create_preview(mission_content, 60)
 
 	# --- Difficulty Section ---
 	var diff_card := _create_card("DIFFICULTY", vbox)
 	var diff_content := diff_card.get_meta("content") as VBoxContainer
 
-	var diff_row := HFlowContainer.new()
-	diff_row.add_theme_constant_override("h_separation", SPACING_MD)
-	diff_row.add_theme_constant_override("v_separation", SPACING_XS)
-	diff_content.add_child(diff_row)
-
-	var diff_label := Label.new()
-	diff_label.text = "Level:"
-	diff_label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
-	diff_label.add_theme_color_override("font_color", COLOR_TEXT)
-	diff_row.add_child(diff_label)
-
-	_difficulty_dropdown = OptionButton.new()
-	_difficulty_dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
-	_difficulty_dropdown.clip_text = true
-	_difficulty_dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_difficulty_dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_difficulty_dropdown.add_item("1 - Easy (fewer enemies)", 0)
-	_difficulty_dropdown.add_item("2 - Normal", 1)
-	_difficulty_dropdown.add_item("3 - Challenging", 2)
-	_difficulty_dropdown.add_item("4 - Hard (+1 enemy)", 3)
-	_difficulty_dropdown.add_item("5 - Brutal (+2 enemies)", 4)
-	_difficulty_dropdown.select(1) # Default: Normal
+	# Core Rules pp.64-65: the book's five modes, named by DifficultyModifiers (the one
+	# source of difficulty names). The list this replaced offered "Hard (+1 enemy)" and
+	# "Brutal (+2 enemies)", which are in neither book.
+	_difficulty_dropdown = _create_dropdown_row("Mode:", diff_content)
+	for i in range(BattleSimulatorSetup.DIFFICULTY_MODES.size()):
+		var mode: int = BattleSimulatorSetup.DIFFICULTY_MODES[i]
+		_difficulty_dropdown.add_item(DifficultyModifiersRef.get_display_name(mode), i)
+		if mode == BattleSimulatorSetup.DEFAULT_DIFFICULTY_MODE:
+			_difficulty_dropdown.select(i)
 	_difficulty_dropdown.item_selected.connect(_on_difficulty_selected)
-	diff_row.add_child(_difficulty_dropdown)
+
+	_difficulty_note = _create_preview(diff_content, 0)
 
 	# --- Launch Button ---
 	var launch_container := HFlowContainer.new()
@@ -228,7 +170,7 @@ func _build_ui() -> void:
 	vbox.add_child(launch_container)
 
 	_launch_button = Button.new()
-	_launch_button.text = "LAUNCH BATTLE"
+	_launch_button.text = "LAUNCH THIS BATTLE"
 	_launch_button.custom_minimum_size = Vector2(0, 56)
 	_launch_button.add_theme_font_size_override("font_size", FONT_SIZE_LG)
 	_launch_button.pressed.connect(_on_launch_pressed)
@@ -267,15 +209,47 @@ func _create_card(title_text: String, parent: VBoxContainer) -> PanelContainer:
 	return panel
 
 
+func _create_dropdown_row(label_text: String, parent: VBoxContainer) -> OptionButton:
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", SPACING_MD)
+	row.add_theme_constant_override("v_separation", SPACING_XS)
+	parent.add_child(row)
+
+	var label := Label.new()
+	label.text = label_text
+	label.add_theme_font_size_override("font_size", FONT_SIZE_MD)
+	label.add_theme_color_override("font_color", COLOR_TEXT)
+	row.add_child(label)
+
+	var dropdown := OptionButton.new()
+	dropdown.custom_minimum_size = Vector2(0, TOUCH_TARGET)
+	dropdown.clip_text = true
+	dropdown.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	dropdown.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(dropdown)
+	return dropdown
+
+
+func _create_preview(parent: VBoxContainer, min_height: int) -> RichTextLabel:
+	var preview := RichTextLabel.new()
+	preview.bbcode_enabled = true
+	preview.fit_content = true
+	preview.custom_minimum_size = Vector2(0, min_height)
+	ScreenChrome.size_rich_text(preview, FONT_SIZE_SM)
+	preview.add_theme_color_override("default_color", COLOR_TEXT_SEC)
+	parent.add_child(preview)
+	return preview
+
+
 # --- Signal Handlers ---
 
 func _on_crew_size_changed(value: float) -> void:
 	_current_config["crew_size"] = int(value)
-	_refresh_previews()
+	_regenerate()
 
 
 func _on_reroll_pressed() -> void:
-	_refresh_previews()
+	_regenerate()
 
 
 func _on_category_selected(index: int) -> void:
@@ -285,7 +259,7 @@ func _on_category_selected(index: int) -> void:
 		_current_config["enemy_category"] = _categories[index - 1].get("id", "")
 	_current_config["enemy_type"] = "random"
 	_refresh_enemy_dropdown()
-	_refresh_previews()
+	_regenerate()
 
 
 func _on_enemy_selected(index: int) -> void:
@@ -296,7 +270,7 @@ func _on_enemy_selected(index: int) -> void:
 		var enemies: Array = _setup.get_enemies_for_category(cat_id)
 		if index - 1 < enemies.size():
 			_current_config["enemy_type"] = enemies[index - 1].get("id", "")
-	_refresh_previews()
+	_regenerate()
 
 
 func _on_mission_selected(index: int) -> void:
@@ -306,66 +280,184 @@ func _on_mission_selected(index: int) -> void:
 		var types: Array = _setup.get_mission_types()
 		if index - 1 < types.size():
 			_current_config["mission_type"] = types[index - 1].get("type", "")
+	_regenerate()
 
 
 func _on_difficulty_selected(index: int) -> void:
-	_current_config["difficulty"] = index + 1
+	if index >= 0 and index < BattleSimulatorSetup.DIFFICULTY_MODES.size():
+		_current_config["difficulty_mode"] = BattleSimulatorSetup.DIFFICULTY_MODES[index]
+	_refresh_difficulty_note()
+	_regenerate()
 
 
 func _on_launch_pressed() -> void:
-	launch_requested.emit(_current_config.duplicate())
+	launch_requested.emit(_context)
 
 
 # --- Refresh helpers ---
 
+## Roll the battle the screen shows and Launch sends.
+func _regenerate() -> void:
+	_context = _setup.generate_battle_context(_current_config)
+	_render_context()
+
+
+## The settings that produced the battle on screen (Play Again reuses them).
+func get_config() -> Dictionary:
+	return _current_config.duplicate()
+
+
+## Restore settings from an earlier battle and roll a new one with them.
+func apply_config(config: Dictionary) -> void:
+	for key in _current_config:
+		if config.has(key):
+			_current_config[key] = config[key]
+	if _crew_size_spin:
+		_crew_size_spin.set_value_no_signal(int(_current_config["crew_size"]))
+	if _difficulty_dropdown:
+		var idx: int = BattleSimulatorSetup.DIFFICULTY_MODES.find(
+			int(_current_config["difficulty_mode"]))
+		if idx >= 0:
+			_difficulty_dropdown.select(idx)
+	_refresh_difficulty_note()
+	_regenerate()
+
+
+func get_context() -> Dictionary:
+	return _context
+
+
 func _refresh_enemy_dropdown() -> void:
 	_enemy_dropdown.clear()
-	_enemy_dropdown.add_item("Random", 0)
-
 	var cat_id: String = _current_config.get("enemy_category", "random")
 	if cat_id == "random":
+		_enemy_dropdown.add_item("Rolled with the category", 0)
 		_enemy_dropdown.disabled = true
 		return
 
+	_enemy_dropdown.add_item("Random (roll the category's table)", 0)
 	_enemy_dropdown.disabled = false
 	var enemies: Array = _setup.get_enemies_for_category(cat_id)
 	for i in range(enemies.size()):
 		_enemy_dropdown.add_item(enemies[i].get("name", ""), i + 1)
 
 
-func _refresh_previews() -> void:
-	# Generate a preview battle context to show crew/enemy stats
-	var context: Dictionary = _setup.generate_battle_context(_current_config)
+## What the selected mode changes in a battle, read off DifficultyModifiers (the
+## campaign-only effects, XP and story points, are left out). No number here is a
+## literal: each comes from the same accessor the generator applies.
+func _refresh_difficulty_note() -> void:
+	if _difficulty_note == null:
+		return
+	var mode: int = int(_current_config.get("difficulty_mode", 2))
+	var parts: Array[String] = []
+	if DifficultyModifiersRef.get_easy_enemy_reduction(5, mode) > 0:
+		parts.append("facing 5+ opponents, remove %d Basic enemy"
+			% DifficultyModifiersRef.get_easy_enemy_reduction(5, mode))
+	if DifficultyModifiersRef.should_reroll_low_enemy_dice(mode):
+		parts.append("reroll 1s and 2s on the enemy numbers dice")
+	if DifficultyModifiersRef.get_enemy_count_modifier(mode) > 0:
+		parts.append("+%d Basic enemy" % DifficultyModifiersRef.get_enemy_count_modifier(mode))
+	if DifficultyModifiersRef.get_specialist_enemy_modifier(mode) > 0:
+		parts.append("+%d Specialist enemy"
+			% DifficultyModifiersRef.get_specialist_enemy_modifier(mode))
+	if DifficultyModifiersRef.is_unique_individual_forced(mode):
+		parts.append("always a Unique Individual")
+	elif DifficultyModifiersRef.get_unique_individual_roll_modifier(mode) != 0:
+		parts.append("%+d to the Unique Individual roll"
+			% DifficultyModifiersRef.get_unique_individual_roll_modifier(mode))
+	if DifficultyModifiersRef.get_seize_initiative_modifier(mode) != 0:
+		parts.append("%+d to Seize the Initiative"
+			% DifficultyModifiersRef.get_seize_initiative_modifier(mode))
+	var body: String = "; ".join(parts) if not parts.is_empty() \
+		else "the battle rules apply as written"
+	_difficulty_note.text = "In battle: %s. [color=ui-secondary](Core Rules pp.64-65)[/color]" \
+		% body
+	_difficulty_note.text = UIColors.bbcode(_difficulty_note.text)
 
-	# Crew preview — ISSUE-051: stat badge style
+
+func _render_context() -> void:
 	if _crew_preview:
-		var crew_text := ""
-		for member in context.get("crew", []):
-			crew_text += "[color=#4FC3F7]%s[/color]  " % member.get("character_name", "?")
-			crew_text += "[color=#9ca3af]CS[/color] %d  " % member.get("combat_skill", 0)
-			crew_text += "[color=#9ca3af]React[/color] %d  " % member.get("reactions", 0)
-			crew_text += "[color=#9ca3af]Tough[/color] %d  " % member.get("toughness", 0)
-			crew_text += "[color=#9ca3af]Spd[/color] %d  " % member.get("speed", 0)
-			crew_text += "[color=#9ca3af]Savvy[/color] %d\n" % member.get("savvy", 0)
-		_crew_preview.text = crew_text.strip_edges()
-
-	# Enemy preview
+		_crew_preview.text = UIColors.bbcode(crew_preview_text(_context))
 	if _enemy_preview:
-		var enemies: Array = context.get("enemies", [])
-		var enemy_count: int = enemies.size()
-		var first_enemy: Dictionary = enemies[0] if not enemies.is_empty() else {}
-		var enemy_text := "[color=#D97706]%d enemies[/color]" % enemy_count
-		if not first_enemy.is_empty():
-			enemy_text += " — Combat: %d  Tough: %d  Spd: %d  AI: %s" % [
-				first_enemy.get("combat_skill", 0),
-				first_enemy.get("toughness", 0),
-				first_enemy.get("speed", 0),
-				first_enemy.get("ai", "?"),
-			]
-			var rules: Array = first_enemy.get("special_rules", [])
-			if not rules.is_empty():
-				enemy_text += "\n[color=#9ca3af]Rules: %s[/color]" % ", ".join(rules)
-		_enemy_preview.text = enemy_text
+		_enemy_preview.text = UIColors.bbcode(enemy_preview_text(_context))
+	if _mission_preview:
+		_mission_preview.text = UIColors.bbcode(mission_preview_text(_context))
+
+
+## Crew lines. Static so a test can read the text without building the screen.
+static func crew_preview_text(context: Dictionary) -> String:
+	var lines: Array[String] = []
+	for member in context.get("crew", []):
+		lines.append("[color=ui-info]%s[/color]  React %d · Speed %d\" · Combat %+d · Tough %d · Savvy %+d%s" % [
+			member.get("character_name", "?"), int(member.get("reactions", 0)),
+			int(member.get("speed", 0)), int(member.get("combat_skill", 0)),
+			int(member.get("toughness", 0)), int(member.get("savvy", 0)),
+			("  ·  %s" % member["weapon_name"]) if member.has("weapon_name") else ""])
+	var notes: Array[String] = [
+		"[color=ui-secondary]Baseline Human profile (Core Rules p.15); weapons rolled on the p.28 Military and Low-tech tables.[/color]"]
+	var spares: Array = context.get("spare_weapons", [])
+	if not spares.is_empty():
+		notes.append("[color=ui-secondary]Spare weapons: %s[/color]" % ", ".join(spares))
+	var sitting: Array = context.get("sitting_out", [])
+	if not sitting.is_empty():
+		notes.append("[color=ui-warning]Sitting this one out (Deployment Condition): %s[/color]"
+			% ", ".join(sitting))
+	return "\n".join(lines + notes)
+
+
+## The force as generated: count, its make-up and the type's profile.
+static func enemy_preview_text(context: Dictionary) -> String:
+	var enemies: Array = context.get("enemies", [])
+	if enemies.is_empty():
+		return "[color=ui-danger]No opposition was generated.[/color]"
+	var first: Dictionary = enemies[0]
+	var specialists: int = 0
+	var lieutenants: int = 0
+	var uniques: int = 0
+	for e in enemies:
+		if bool(e.get("is_unique_individual", false)):
+			uniques += 1
+		elif bool(e.get("is_lieutenant", false)):
+			lieutenants += 1
+		elif bool(e.get("is_specialist", false)):
+			specialists += 1
+	var makeup: Array[String] = []
+	if specialists > 0:
+		makeup.append("%d Specialist%s" % [specialists, "" if specialists == 1 else "s"])
+	if lieutenants > 0:
+		makeup.append("%d Lieutenant%s" % [lieutenants, "" if lieutenants == 1 else "s"])
+	if uniques > 0:
+		makeup.append("%d Unique Individual%s" % [uniques, "" if uniques == 1 else "s"])
+	var text := "[color=ui-warning]%d × %s[/color]" % [
+		enemies.size(), first.get("type", first.get("name", "?"))]
+	if not makeup.is_empty():
+		text += "  (including %s)" % ", ".join(makeup)
+	text += "\nCombat %+d · Tough %d · Speed %d\" · Panic %s · AI %s" % [
+		int(first.get("combat_skill", 0)), int(first.get("toughness", 0)),
+		int(first.get("speed", 0)), str(first.get("panic", "?")), str(first.get("ai", "?"))]
+	var rules: Array = first.get("special_rules", [])
+	if not rules.is_empty():
+		text += "\n[color=ui-secondary]Rules: %s[/color]" % ", ".join(rules)
+	return text
+
+
+## The p.88 / p.89 rolls the battle will open with.
+static func mission_preview_text(context: Dictionary) -> String:
+	var md: Dictionary = context.get("mission_data", {})
+	var lines: Array[String] = ["[color=ui-info]%s[/color]" % str(md.get("title", ""))]
+	var objective: Dictionary = md.get("objective_details", {})
+	if not objective.is_empty():
+		lines.append("Objective: %s (p.89)" % str(objective.get("name", "")))
+	var condition: Dictionary = md.get("deployment_condition", {})
+	var cond_title: String = str(condition.get("title", ""))
+	if not cond_title.is_empty():
+		lines.append("Deployment Condition: %s (p.88)" % cond_title)
+	# MissionTableManager.roll_notable_sight() returns {type, effect, roll}.
+	var sight: Dictionary = md.get("notable_sight", {})
+	var sight_type: String = str(sight.get("type", ""))
+	if not sight_type.is_empty() and sight_type != "NOTHING":
+		lines.append("Notable Sight: %s (p.89)" % sight_type.capitalize())
+	return "\n".join(lines)
 
 
 ## Get the current setup instance (for external use if needed)

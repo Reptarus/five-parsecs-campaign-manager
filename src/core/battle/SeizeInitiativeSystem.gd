@@ -108,6 +108,58 @@ func set_crew_data(crew: Array) -> void:
 		if species.to_lower() == "feral":
 			has_feral = true
 
+## The Seize the Initiative context a battle carries into TacticalBattleUI (Core Rules
+## p.112: 2D6 + highest Savvy + modifiers, 10+ seizes). It holds both the RAW inputs the
+## in-battle InitiativeCalculator applies and the derived target the pre-battle screen
+## displays, computed in one place so the two cannot disagree.
+##
+## The campaign (CampaignTurnController) and the Battle Simulator both need it. It was
+## assembled inline in the campaign only, so the Simulator handed the battle no context
+## at all and its Hardcore -2 / Insanity -3 / outnumbered +1 were never applied.
+##
+## `difficulty_mode` is a GlobalEnums.DifficultyLevel ordinal (CHALLENGING 4, HARDCORE 6,
+## INSANITY 8). `enemy_modifier` is the SUM of every enemy-side modifier the caller has
+## (an encounter category's own, a Black Job's +1); it is applied once, here.
+static func build_battle_context(crew: Array, enemy_count: int, difficulty_mode_level: int,
+		enemy_modifier: int = 0, enemy_name: String = "Enemy", can_seize: bool = true,
+		cannot_seize_reason: String = "") -> Dictionary:
+	var sys := FPCM_SeizeInitiativeSystem.new()
+	sys.set_crew_data(crew)
+	match difficulty_mode_level:
+		6: sys.set_difficulty_mode(DifficultyMode.HARDCORE)
+		8: sys.set_difficulty_mode(DifficultyMode.INSANITY)
+	sys.set_outnumbered(enemy_count > crew.size())
+	if enemy_modifier != 0:
+		sys.set_enemy_modifier(enemy_modifier, enemy_name)
+	# Difficulty index in InitiativeCalculator's dropdown order
+	# (0 Normal / 1 Challenging / 2 Hardcore -2 / 3 Insanity -3).
+	var difficulty_index: int = 0
+	match difficulty_mode_level:
+		4: difficulty_index = 1
+		6: difficulty_index = 2
+		8: difficulty_index = 3
+	return {
+		"highest_savvy": sys.highest_savvy,
+		"modifiers": sys.get_current_modifiers(),
+		"required_roll": sys.calculate_required_roll(),
+		"success_probability": sys.get_success_probability(),
+		# RAW INPUTS, so the in-battle InitiativeCalculator applies what was computed
+		# here. This dict once held only the derived display values and was read by
+		# PreBattleUI alone, so the app showed a required roll before the battle and
+		# then rolled against a different, unmodified target inside it (p.112).
+		"outnumbered": enemy_count > crew.size(),
+		"difficulty_index": difficulty_index,
+		# The Hired Muscle -1 (p.112) is stored on the ENCOUNTER CATEGORY in
+		# enemy_types.json, so it arrives inside enemy_modifier and is applied once.
+		# Deliberately NOT also flagged here: the calculator has its own -1 toggle for
+		# that rule, and setting both would apply it twice.
+		"hired_muscle": false,
+		"enemy_modifier": enemy_modifier,
+		"enemy_name": enemy_name,
+		"can_seize": can_seize,
+		"cannot_seize_reason": cannot_seize_reason,
+	}
+
 ## Set difficulty mode modifier
 func set_difficulty_mode(mode: DifficultyMode) -> void:
 	difficulty_mode = mode

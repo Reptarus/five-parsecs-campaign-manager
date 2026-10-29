@@ -253,10 +253,24 @@ func test_strength_adjusted_replaces_the_enemy_count_roll() -> void:
 	# p.32: "Instead of rolling for the number encountered, always assume the
 	# enemy rolled equal to the number of crew you brought to the fight."
 	var src: String = _code_only(ENEMY_GEN_SRC)
-	assert_str(src).contains('is_toggle_active("strength_adjusted")')
+	assert_str(src).contains('_campaign_toggle("strength_adjusted")')
 	assert_str(src).override_failure_message(
 		"the crew-brought count no longer replaces the p.63 dice"
 	).contains("crew_in_field if crew_in_field > 0 else crew_size")
+
+
+func test_the_generator_reads_every_toggle_through_one_chokepoint() -> void:
+	## EnemyGenerator reads its five toggles through _campaign_toggle(), which
+	## withholds them from a standalone (Battle Simulator) force and otherwise asks
+	## the toggle rules. The anchors above name that call, so this pins its route.
+	var src: String = _code_only(ENEMY_GEN_SRC)
+	var at: int = src.find("func _campaign_toggle(")
+	assert_int(at).is_greater(0)
+	var body: String = src.substr(at, src.find("\nfunc ", at + 1) - at)
+	assert_str(body).contains("CompendiumTogglesRef.is_toggle_active(toggle_id)")
+	assert_str(body).contains("if _standalone:")
+	# No rule site bypasses the chokepoint.
+	assert_str(src.replace(body, "")).not_contains("CompendiumTogglesRef.is_toggle_active(")
 
 
 func test_the_three_hit_me_harder_figure_options_reach_the_squad_loop() -> void:
@@ -264,7 +278,7 @@ func test_the_three_hit_me_harder_figure_options_reach_the_squad_loop() -> void:
 	for id in ["veteran", "actually_specialized", "armored_leaders"]:
 		assert_str(src).override_failure_message(
 			"%s is no longer read where the squad is built" % id
-		).contains('is_toggle_active("%s")' % id)
+		).contains('_campaign_toggle("%s")' % id)
 	# "Enemy specialist figures have a minimum Combat Skill of +1 and Toughness
 	# 4" — a floor, so maxi, never an assignment.
 	assert_str(src).contains("figure_tough = maxi(figure_tough, 4)")
@@ -273,7 +287,7 @@ func test_the_three_hit_me_harder_figure_options_reach_the_squad_loop() -> void:
 func test_better_leadership_drops_the_unique_threshold_to_seven() -> void:
 	# "The base roll to face a Unique Individual is 7+, not 9+."
 	var src: String = _code_only(ENEMY_GEN_SRC)
-	assert_str(src).contains('is_toggle_active("better_leadership")')
+	assert_str(src).contains('_campaign_toggle("better_leadership")')
 	assert_str(src).override_failure_message(
 		"the 7+/9+ threshold is no longer selected by the option"
 	).contains("var threshold: int = 7 if better_leadership else 9")

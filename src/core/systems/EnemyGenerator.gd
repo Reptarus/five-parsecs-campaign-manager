@@ -341,7 +341,7 @@ func _calculate_enemy_count(
 	## face 7 enemies."
 	var base_count: int = 0
 	var is_challenging := DifficultyModifiers.should_reroll_low_enemy_dice(difficulty)
-	var strength_adjusted: bool = CompendiumTogglesRef.is_toggle_active("strength_adjusted")
+	var strength_adjusted: bool = _campaign_toggle("strength_adjusted")
 
 	# Helper: roll a die with difficulty and quest reroll modifiers
 	var _roll_die := func() -> int:
@@ -604,6 +604,8 @@ func _progressive_strength_bonus(mission_data: Dictionary) -> int:
 	## Prefers values stamped on mission_data (the project's "the mission carries
 	## its own identity" rule) and falls back to the live campaign, so the option
 	## works on the battle paths that do not stamp it.
+	if _standalone:
+		return 0  # Compendium p.30 is a campaign option; a standalone battle has none
 	var options: Array = mission_data.get("progressive_difficulty_options", [])
 	var turn_number: int = int(mission_data.get("campaign_turn", -1))
 	if options.is_empty() or turn_number < 0:
@@ -626,9 +628,33 @@ func _progressive_strength_bonus(mission_data: Dictionary) -> int:
 	return bonus
 
 
+## True while generating for a battle that owns no campaign (Battle Simulator).
+## GameState auto-loads the last campaign at EVERY launch (T11-49), so without this
+## the Compendium difficulty toggles, house rules, Progressive Difficulty and elite
+## substitution of whatever campaign was played last would shape a Simulator force.
+## Set from `mission_data["standalone"]` at the top of each generation.
+var _standalone: bool = false
+
+
+## A campaign's opt-in Compendium difficulty toggle, or false for a standalone
+## battle. Every toggle read in this file goes through here.
+func _campaign_toggle(toggle_id: String) -> bool:
+	if _standalone:
+		return false
+	return CompendiumTogglesRef.is_toggle_active(toggle_id)
+
+
+## One enemy type rolled on a category's own D100 table (Core Rules pp.94-98), core
+## rulebook only. For a caller that has chosen the CATEGORY and wants the book to pick
+## the enemy; generate_enemies_as_dicts() then takes it by name as `enemy_type`.
+func roll_core_enemy_type(category_id: String) -> Dictionary:
+	return _roll_core_enemy_in_category(category_id)
+
+
 func generate_enemies_as_dicts(
 	mission_data: Dictionary, campaign_crew_size: int = 6
 ) -> Array[Dictionary]:
+	_standalone = bool(mission_data.get("standalone", false))
 	## Generate enemies as Dictionary array using JSON data.
 	## campaign_crew_size: the fixed campaign setting (4/5/6), NOT roster count.
 	##
@@ -902,7 +928,7 @@ func generate_enemies_as_dicts(
 	# rank and file. Opt-in; off by default, exactly as the book has it.
 	var second_group_weapons: Array = []
 	var varied_armaments: bool = uses_weapons \
-		and HouseRulesHelper.is_enabled("varied_armaments")
+		and not _standalone and HouseRulesHelper.is_enabled("varied_armaments")
 	if varied_armaments:
 		# Going medieval REPLACES the loadout, so the second group is the same
 		# Blade rather than a fresh roll that would hand out a Hand Gun.
@@ -982,9 +1008,9 @@ func generate_enemies_as_dicts(
 	## Veteran: "Select one basic enemy. They are a veteran fighter and will
 	## increase their Combat Skill by +1." One figure, chosen at random from the
 	## BASIC ranks only (a Lieutenant or Specialist is not a basic enemy).
-	var toggle_veteran: bool = CompendiumTogglesRef.is_toggle_active("veteran")
-	var toggle_specialized: bool = CompendiumTogglesRef.is_toggle_active("actually_specialized")
-	var toggle_armored_leaders: bool = CompendiumTogglesRef.is_toggle_active("armored_leaders")
+	var toggle_veteran: bool = _campaign_toggle("veteran")
+	var toggle_specialized: bool = _campaign_toggle("actually_specialized")
+	var toggle_armored_leaders: bool = _campaign_toggle("armored_leaders")
 	var veteran_index: int = -1
 	if toggle_veteran:
 		var basic_indices: Array[int] = []
@@ -1446,7 +1472,7 @@ func roll_unique_individuals(
 	##    Combat Skill +4, Toughness 6)."
 	## The second bullet is why this function now reports a promotion instead of
 	## just returning [] for Roving Threats and Invasions.
-	var better_leadership: bool = CompendiumTogglesRef.is_toggle_active("better_leadership")
+	var better_leadership: bool = _campaign_toggle("better_leadership")
 	var threshold: int = 7 if better_leadership else 9
 
 	## Compendium p.49 Unique Individuals: "If you outnumber the enemy, they are
@@ -1736,6 +1762,10 @@ func _roll_enemy_in_category(category_id: String) -> Dictionary:
 	## Only applied when Option 2 is actually selected — a player who simply turned
 	## Elite Enemies on keeps p.48's unconditional substitution, which is what that
 	## page says on its own.
+	# Compendium elite substitution is a campaign option; a standalone battle rolls
+	# the core tables only.
+	if _standalone:
+		return _roll_core_enemy_in_category(category_id)
 	if _option_2_blocks_elite():
 		return _roll_core_enemy_in_category(category_id)
 
