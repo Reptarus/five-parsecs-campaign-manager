@@ -24,10 +24,11 @@ const BLACK_ZONE_TEAM_SIZE := 4
 const BLACK_ZONE_INITIAL_TEAMS := 4
 
 const RED_ZONE_BASE_FIGURES := 7
+## Core Rules p.70 Raided: "Add the numbers indicated in the enemy table, +1 extra figure."
+const RAIDED_EXTRA_FIGURES := 1
 const RED_ZONE_SPECIALISTS := 3      # "3 Specialists, one of which is a Lieutenant"
 const RED_ZONE_UNIQUE_BONUS := 1     # "+1 to the roll to determine whether a Unique Individual is present"
 
-signal enemies_generated(enemies: Array[Resource])
 signal enemy_data_loaded(categories_count: int)
 
 # JSON data loaded from files
@@ -124,7 +125,6 @@ static func is_known_enemy_type(enemy_name: String) -> bool:
 # JSON data loaded from files
 var enemy_data: Dictionary = {}
 var loot_tables: Dictionary = {}
-var spawn_rules: Dictionary = {}
 ## `bestiary_ref` and `elite_enemies_ref` were DELETED (Aug 6 2026). Both were
 ## assigned in _load_enemy_data() and read by NOTHING, repo-wide — ~25KB of JSON
 ## re-parsed on every EnemyGenerator.new() (once per battle in
@@ -162,9 +162,8 @@ func _load_enemy_data() -> void:
 		_load_fallback_enemy_data()
 	else:
 		
-		# Extract loot tables and spawn rules
+		# Extract loot tables
 		loot_tables = enemy_data.get("enemy_loot_tables", {})
-		spawn_rules = enemy_data.get("enemy_spawn_rules", {})
 		
 		# Build legacy compatibility structures
 		_build_legacy_compatibility()
@@ -212,97 +211,6 @@ func _build_legacy_compatibility() -> void:
 
 		enemy_categories[category_id] = enemies
 
-func generate_enemies_for_mission(mission: Resource, crew_size: int = 4) -> Array[Resource]:
-	## Generate appropriate enemies for a mission based on Five Parsecs rules
-	var enemies: Array[Resource] = []
-
-	var mission_type = mission.get_meta("mission_type") if mission and mission.has_method("get_meta") else "Patrol"
-	var difficulty = mission.get_meta("difficulty") if mission and mission.has_method("get_meta") else 1
-
-	var enemy_category: String = _determine_enemy_category(mission_type)
-	var enemy_count: int = _calculate_enemy_count(difficulty, crew_size)
-
-	for i: int in range(enemy_count):
-		var enemy: Resource = _create_enemy(enemy_category, difficulty)
-
-		enemies.append(enemy)
-
-	enemies_generated.emit(enemies)
-	return enemies
-
-func _determine_enemy_category(mission_type: String) -> String:
-	## Determine enemy category based on mission type using JSON spawn rules
-	var mission_spawn_rules = spawn_rules.get("mission_type", {})
-	
-	# Check if we have specific spawn rules for this mission type
-	if mission_spawn_rules.has(mission_type):
-		var rules = mission_spawn_rules[mission_type]
-		var primary_categories = rules.get("primary", [])
-		var secondary_categories = rules.get("secondary", [])
-		
-		# 70% chance for primary categories, 30% for secondary
-		if randf() < 0.7 and not primary_categories.is_empty():
-			return primary_categories.pick_random()
-		elif not secondary_categories.is_empty():
-			return secondary_categories.pick_random()
-		elif not primary_categories.is_empty():
-			return primary_categories.pick_random()
-	
-	# Enhanced fallback logic using JSON category data (Core Rules p.94)
-	if not enemy_data.get("enemy_categories", []).is_empty():
-		match mission_type:
-			"Patrol", "Investigate":
-				return _select_from_categories(["criminal_elements", "hired_muscle"])
-			"Hunt", "Bounty":
-				return _select_from_categories(["criminal_elements", "interested_parties"])
-			"Guard", "Defend":
-				return _select_from_categories(["hired_muscle", "criminal_elements"])
-			"Deliver", "Trade":
-				return _select_from_categories(["criminal_elements", "hired_muscle"])
-			"Explore":
-				return _select_from_categories(["roving_threats", "interested_parties"])
-			"Salvage":
-				return _select_from_categories(["roving_threats", "interested_parties"])
-			_:
-				return _select_from_categories(["criminal_elements", "hired_muscle"])
-	
-	# Ultimate fallback using book category IDs
-	match mission_type:
-		"Patrol", "Investigate":
-			return ["criminal_elements", "hired_muscle"].pick_random()
-		"Hunt", "Bounty":
-			return ["criminal_elements", "interested_parties"].pick_random()
-		"Guard", "Defend":
-			return ["hired_muscle", "criminal_elements"].pick_random()
-		"Deliver", "Trade":
-			return ["criminal_elements", "hired_muscle"].pick_random()
-		"Explore":
-			return ["roving_threats", "interested_parties"].pick_random()
-		"Salvage":
-			return ["roving_threats", "interested_parties"].pick_random()
-		_:
-			return "criminal_elements"
-
-func _select_from_categories(preferred_categories: Array) -> String:
-	## Select enemy category from preferred list, fallback to available categories
-	var available_categories = []
-	
-	# Get available category IDs from JSON data
-	for category_data in enemy_data.get("enemy_categories", []):
-		available_categories.append(category_data.get("id", ""))
-	
-	# Try preferred categories first
-	for category in preferred_categories:
-		if category in available_categories:
-			return category
-	
-	# Fallback to any available category
-	if not available_categories.is_empty():
-		return available_categories.pick_random()
-	
-	# Ultimate fallback
-	return "criminal_elements"
-
 ## Is this force from the Interested Parties subtable (Core Rules p.99)? Their
 ## two special rules — +1 to the Unique Individual roll, and the Quest-mission
 ## reroll of 1s — are the only ones keyed on the CATEGORY rather than the
@@ -315,7 +223,7 @@ func _is_interested_parties(category: String, template: Dictionary) -> bool:
 
 func _calculate_enemy_count(
 	difficulty: int, crew_size: int, is_quest: bool = false,
-	crew_in_field: int = 0
+	crew_in_field: int = 0, raided: bool = false
 ) -> int:
 	## Calculate enemy count based on crew size and difficulty (Core Rules p.63)
 	##
@@ -368,6 +276,15 @@ func _calculate_enemy_count(
 		base_count = crew_in_field if crew_in_field > 0 else crew_size
 		rolls = []
 		roll_method = "Strength-adjusted (Compendium p.32): crew brought = %d" % base_count
+	elif raided:
+		# Core Rules p.70 Raided replaces the p.63 dice: "rolling 3D6, picking the
+		# highest die (with campaign crew size 5, roll 2D6 and pick highest; with
+		# campaign crew size 4, roll 1D6)". Rolled with _roll_die so a Challenging
+		# campaign rerolls these as it does any enemy-count die.
+		for _i in range(raided_dice_count(crew_size)):
+			rolls.append(_roll_die.call())
+		base_count = int(rolls.max())
+		roll_method = "Raided (p.70): %dD6 pick HIGHEST" % rolls.size()
 	else:
 		match crew_size:
 			6:
@@ -397,6 +314,12 @@ func _calculate_enemy_count(
 				rolls = [roll1, roll2]
 				roll_method = "2D6 pick HIGHER (default)"
 				base_count = max(roll1, roll2)
+
+	# p.70 Raided: "+1 extra figure". The enemy table's Numbers are added by the
+	# caller, as for any battle. Applied under Strength-adjusted Enemies too, which
+	# keeps "any bonuses" (Compendium p.32).
+	if raided:
+		base_count += RAIDED_EXTRA_FIGURES
 
 	var pre_modifier_count: int = base_count
 
@@ -441,153 +364,6 @@ func _calculate_enemy_count(
 
 	return final_count
 	##
-func _create_enemy(category: String, difficulty: int) -> Resource:
-	## Create a single enemy of specified category and difficulty using JSON data
-	var enemy := Resource.new()
-
-	# Try to use JSON data first
-	var enemy_template = _get_enemy_template_from_json(category, difficulty)
-	if not enemy_template.is_empty():
-		return _create_enemy_from_template(enemy_template, difficulty)
-
-	# Fallback to legacy system
-	var enemy_types: Array = enemy_categories.get(category, ["Thug"])
-	var enemy_type: String = enemy_types.pick_random()
-
-	var base_stats = enemy_stats_base.get(enemy_type, {
-		"combat_skill": 1, "toughness": 3, "speed": 4, "weapons": ["Handgun"]
-	})
-
-	# Apply difficulty modifiers
-	var modified_stats = _apply_difficulty_modifiers(base_stats, difficulty)
-
-	# Varied Armaments (p.104) is a SQUAD-level split into two groups, so it has
-	# no meaning when creating one enemy in isolation — it is applied in
-	# generate_enemies_as_dicts(), the live squad path.
-	var weapons = modified_stats.weapons
-
-	# Set enemy properties
-	enemy.set_meta("name", enemy_type)
-	enemy.set_meta("category", category)
-	enemy.set_meta("combat_skill", modified_stats.combat_skill)
-	enemy.set_meta("toughness", modified_stats.toughness)
-	enemy.set_meta("speed", modified_stats.speed)
-	enemy.set_meta("weapons", weapons)
-	enemy.set_meta("difficulty", difficulty)
-
-	return enemy
-
-func _get_enemy_template_from_json(
-	category: String, _difficulty: int
-) -> Dictionary:
-	## Get enemy template from JSON using D100 roll_range (book-accurate).
-	## difficulty parameter preserved for API compatibility but not used
-	## for selection — the Core Rules use flat D100 tables per category.
-	return _roll_enemy_in_category(category)
-
-func _calculate_enemy_threat_level(enemy_template: Dictionary) -> int:
-	## Calculate threat level of enemy template
-	## JSON uses flat properties: combat_skill, toughness (not nested stats)
-	var combat: int = enemy_template.get("combat_skill", 0)
-	var toughness: int = enemy_template.get("toughness", 3)
-
-	# Simple threat calculation: (combat + toughness) / 2
-	return max(1, (combat + toughness) / 2)
-
-func _create_enemy_from_template(
-	template: Dictionary, difficulty: int
-) -> Resource:
-	## Create enemy from JSON template with difficulty adjustments
-	var enemy := Resource.new()
-
-	# Basic information
-	enemy.set_meta("id", template.get("id", "unknown"))
-	enemy.set_meta("name", template.get("name", "Unknown Enemy"))
-
-	# Stats — JSON uses flat properties, not nested "stats" sub-dict
-	var base_stats := {
-		"combat_skill": template.get("combat_skill", 0),
-		"toughness": template.get("toughness", 3),
-		"speed": template.get("speed", 4),
-	}
-	var modified_stats = _apply_json_difficulty_modifiers(
-		base_stats, difficulty
-	)
-
-	enemy.set_meta("combat_skill", modified_stats.get("combat_skill", 0))
-	enemy.set_meta("toughness", modified_stats.get("toughness", 3))
-	enemy.set_meta("speed", modified_stats.get("speed", 4))
-
-	# Weapons — JSON stores Core Rules notation (e.g., "2 A"): the number is the
-	# basic weapon column, the letter the Specialist column (p.104).
-	var weapons: Array = apply_ai_blade_rule(
-		resolve_basic_weapon(template.get("weapons", "1 A")),
-		str(template.get("ai", "A")),
-		int(modified_stats.get("combat_skill", 0))
-	)
-	enemy.set_meta("weapons", weapons)
-
-	# AI type and special rules from JSON
-	enemy.set_meta("ai", template.get("ai", "A"))
-	enemy.set_meta("panic", template.get("panic", "1-2"))
-	enemy.set_meta("numbers", template.get("numbers", "+0"))
-	enemy.set_meta(
-		"special_rules", template.get("special_rules", [])
-	)
-
-	# Difficulty and category tracking
-	enemy.set_meta("difficulty", difficulty)
-	enemy.set_meta(
-		"threat_level", _calculate_enemy_threat_level(template)
-	)
-
-	return enemy
-
-func _apply_json_difficulty_modifiers(
-	base_stats: Dictionary, difficulty: int
-) -> Dictionary:
-	## Apply difficulty modifiers to enemy stats
-	var modified = base_stats.duplicate()
-
-	# Difficulty uses GlobalEnums.DifficultyLevel values
-	match difficulty:
-		1: # Easy
-			modified["combat_skill"] = max(
-				0, modified.get("combat_skill", 0) - 1
-			)
-		3, 4, 5: # Hard, Veteran, Elite
-			modified["combat_skill"] = (
-				modified.get("combat_skill", 0) + 1
-			)
-			modified["toughness"] = (
-				modified.get("toughness", 3) + 1
-			)
-
-	return modified
-
-# DELETED Aug 9 2026 (T9-05): _get_difficulty_name() — ZERO callers, and it encoded a
-# fabricated contiguous 1..5 scale ("VETERAN" is in NEITHER enum file and in no data
-# JSON). GlobalEnums.DifficultyLevel is EASY=1, NORMAL=2, CHALLENGING=4, HARDCORE=6,
-# INSANITY=8 with deprecated aliases interleaved at 3/5/7. If a difficulty NAME is ever
-# needed for display, call DifficultyModifiers.get_display_name() — the single source.
-
-func _apply_difficulty_modifiers(base_stats: Dictionary, difficulty: int) -> Dictionary:
-	## Apply difficulty modifiers to enemy stats
-	var modified = base_stats.duplicate()
-
-	match difficulty:
-		1: # Easy - reduce stats slightly
-			modified.combat_skill = max(0, modified.combat_skill - 1)
-			modified.toughness = max(1, modified.toughness - 1)
-		3: # Hard - increase stats
-			modified.combat_skill += 1
-			modified.toughness += 1
-			# Add better weapons for hard enemies
-			if modified.weapons.size() == 1:
-				modified.weapons.append("Armor")
-
-	return modified
-
 # _roll_varied_weapons() was DELETED (Core Rules p.104). It claimed to implement
 # the Varied Armaments optional rule but invented its own mechanic: a 70/30 per
 # weapon chance to SWAP the listed weapon for one drawn from a hardcoded pool of
@@ -681,6 +457,8 @@ func generate_enemies_as_dicts(
 	# Compendium p.21 Psi-hunters — stamped onto mission_data by
 	# CampaignTurnController._apply_rival_ambush_override.
 	var is_psi_hunter: bool = bool(mission_data.get("is_psi_hunter", false))
+	# Core Rules p.70 Raided, stamped by TravelEventResolver._resolve_raided().
+	var is_travel_raid: bool = bool(mission_data.get("travel_event_raid", false))
 
 	# Step 1: Select enemy type FIRST (Core Rules pp.91-94)
 	var category: String = ""
@@ -696,11 +474,17 @@ func generate_enemies_as_dicts(
 			# p.150: "You will always be facing an opponent from the Roving
 			# Threats Subtable."
 			category = "roving_threats"
-		elif not mission_source.is_empty():
-			category = _roll_encounter_category(mission_source)
+		elif is_travel_raid:
+			# p.70: "set up a battle ... using the Criminal Elements Encounter
+			# Table (p.94)". The raid's source is "opportunity", whose column would
+			# otherwise draw any category.
+			category = "criminal_elements"
 		else:
-			var objective: String = mission_data.get("objective", "patrol")
-			category = _determine_enemy_category(objective.capitalize())
+			# Core Rules p.94: the mission's source picks the column, and an empty
+			# source takes Opportunity, the book's default (_roll_encounter_category).
+			# An empty source used to fall back to a mission-type -> category mapping
+			# that is in neither book.
+			category = _roll_encounter_category(mission_source)
 		template = _roll_enemy_in_category(category)
 
 	# Step 2: Roll base enemy count using campaign crew size (Core Rules p.63)
@@ -726,7 +510,7 @@ func generate_enemies_as_dicts(
 		category, template)
 	var base_count: int = _calculate_enemy_count(
 		difficulty_mode, campaign_crew_size, interested_parties,
-		int(mission_data.get("crew_in_field", 0)))
+		int(mission_data.get("crew_in_field", 0)), is_travel_raid)
 
 	# Step 3: Add Numbers modifier from enemy type (Core Rules p.92)
 	var numbers_mod: int = _parse_numbers_modifier(
@@ -1623,49 +1407,6 @@ func _category_info(category_id: String) -> Dictionary:
 			}
 	return {"name": "", "rules": "", "seize": 0}
 
-func generate_random_encounter() -> Array[Resource]:
-	## Generate a random encounter for unexpected battles
-	var encounter_types = ["criminal", "wildlife", "hostile"]
-	var category = encounter_types.pick_random()
-	var count = randi_range(1, 3)
-	var difficulty = randi_range(1, 2) # Random encounters are usually easier
-
-	var enemies: Array[Resource] = []
-	for i: int in range(count):
-		var enemy: Resource = _create_enemy(category, difficulty)
-
-		enemies.append(enemy)
-
-	return enemies
-
-func get_enemy_description(enemy: Resource) -> String:
-	## Get a description of an enemy for UI display
-	var name = enemy.get_meta("name") if enemy and enemy.has_method("get_meta") else "Unknown"
-	var combat: int = enemy.get_meta("combat_skill") if enemy and enemy.has_method("get_meta") else 1
-	var toughness: int = enemy.get_meta("toughness") if enemy and enemy.has_method("get_meta") else 3
-	var weapons = enemy.get_meta("weapons") if enemy and enemy.has_method("get_meta") else []
-
-	var weapon_text = weapons[0] if weapons.size() > 0 else "Unarmed"
-
-	return "%s (Combat: %d, Toughness: %d) - Armed with %s" % [name, combat, toughness, weapon_text]
-
-func get_enemy_threat_level(enemies: Array) -> String:
-	## Calculate overall threat level of enemy group
-	var total_threat: int = 0
-
-	for enemy in enemies:
-		var combat: int = enemy.get_meta("combat_skill") if enemy and enemy.has_method("get_meta") else 1
-		var toughness: int = enemy.get_meta("toughness") if enemy and enemy.has_method("get_meta") else 3
-		total_threat += combat + (toughness / 2.0)
-
-	if total_threat <= 6:
-		return "Low"
-	elif total_threat <= 12:
-		return "Medium"
-	else:
-		return "High"
-
-
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## D100 ENCOUNTER TABLE METHODS — Core Rules pp.94-103
 ## ═══════════════════════════════════════════════════════════════════════════════
@@ -1862,33 +1603,21 @@ func calculate_enemy_count(
 ) -> int:
 	return _calculate_enemy_count(difficulty, crew_size, is_quest)
 
-## Calculate enemy count for the Raided starship travel event (Core Rules p.70).
-## Uses a DIFFERENT formula than standard battles — one step up in dice:
-## - Crew 6: Roll 3D6, pick HIGHEST
-## - Crew 5: Roll 2D6, pick HIGHEST
-## - Crew 4: Roll 1D6
-func calculate_raided_enemy_count(campaign_crew_size: int) -> int:
+## How many dice the Core Rules p.70 Raided roll uses: "rolling 3D6, picking the
+## highest die (with campaign crew size 5, roll 2D6 and pick highest; with campaign
+## crew size 4, roll 1D6)". The roll itself is made in _calculate_enemy_count(), so the
+## difficulty rerolls, the p.93 short-crew clause and QA "Enemy Count" forcing reach it.
+##
+## This replaces calculate_raided_enemy_count(), which rolled the same dice with raw
+## randi() and was called only by its own tests, while the live raid rolled inline in
+## TravelEventResolver into a key nothing read.
+static func raided_dice_count(campaign_crew_size: int) -> int:
 	match campaign_crew_size:
-		6:
-			# 3D6 pick highest
-			var rolls: Array[int] = []
-			for i in range(3):
-				rolls.append(randi() % 6 + 1)
-			return rolls.max()
 		5:
-			# 2D6 pick highest
-			var roll1: int = randi() % 6 + 1
-			var roll2: int = randi() % 6 + 1
-			return max(roll1, roll2)
+			return 2
 		4:
-			# 1D6
-			return randi() % 6 + 1
-		_:
-			# Default to crew 6 formula
-			var rolls: Array[int] = []
-			for i in range(3):
-				rolls.append(randi() % 6 + 1)
-			return rolls.max()
+			return 1
+	return 3
 
 ## ═══════════════════════════════════════════════════════════════════════════════
 ## NUMBERS MODIFIER PARSING — Core Rules p.92

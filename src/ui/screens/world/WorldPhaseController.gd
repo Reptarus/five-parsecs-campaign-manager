@@ -1960,6 +1960,25 @@ func _on_mission_prepared(data: Dictionary) -> void:
 	if automation_enabled:
 		await get_tree().create_timer(1.0).timeout
 		_on_next_button_pressed()
+		return
+	_point_at_proceed()
+
+
+## Completing Mission Prep does not launch the battle; Proceed to Battle in the
+## footer does. The prep button used to read "Ready for Battle", the two read as
+## one control, and the Aug 14 tablet sprint lost three runs waiting on the wrong
+## one. So when the step completes, focus moves to Proceed and it pops once
+## (skipped under Reduced Motion).
+func _point_at_proceed() -> void:
+	if proceed_to_battle_button == null or not proceed_to_battle_button.is_visible_in_tree():
+		return
+	proceed_to_battle_button.grab_focus()
+	var tm := get_node_or_null("/root/ThemeManager")
+	if tm != null and tm.is_reduced_animation_enabled():
+		return
+	# TweenFX never sets the pivot, and pop_in scales.
+	proceed_to_battle_button.pivot_offset = proceed_to_battle_button.size / 2
+	TweenFX.pop_in(proceed_to_battle_button)
 
 func _on_phase_transition_requested(data: Dictionary) -> void:
 	## Handle phase transition requests from components

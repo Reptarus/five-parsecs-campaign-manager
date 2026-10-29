@@ -287,8 +287,13 @@ func apply_crew_injury(crew_id: String, injury: Dictionary) -> bool:
 	# so their flags have to be forwarded explicitly or the turn-rollover
 	# countdown deletes the entry the moment recovery hits 0 and the penalty
 	# silently disappears.
+	# `treatment_pending` and `deferred_recovery_turns` are the unpaid Extensive
+	# injury (p.102). Dropping the first is what left a PAID Extensive injury
+	# benched: GameStateManager.pay_medical_treatment() clears the bench effects
+	# only for a record that says it was pending.
 	for carried in ["persistent", "treatment_cost", "lingering", "injury_source",
-			"table_name", "injury_roll"]:
+			"table_name", "injury_roll", "treatment_pending",
+			"deferred_recovery_turns"]:
 		if injury.has(carried):
 			injury_record[carried] = injury[carried]
 	if member is Dictionary:

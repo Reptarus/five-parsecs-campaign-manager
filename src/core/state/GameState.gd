@@ -150,7 +150,7 @@ func _init() -> void:
 ## then reported true, MainMenu lit up Continue, and because campaign_id was the Bug
 ## Hunt id the next autosave rewrote user://saves/<bughunt_id>.save through the 5PFH
 ## serialiser — which emits no campaign_type at all, so the campaign also vanished
-## from the Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+## from the Bug Hunt menu (MainMenu.find_saves_of_type("bug_hunt") filters on that field).
 ## Every mode reaches this: save_campaign() sets last_campaign for all four, and
 ## Bug Hunt / Planetfall / Tactics all call it.
 func load_campaign_typed(path: String) -> Resource:
@@ -671,7 +671,7 @@ func save_campaign(campaign = null, path: String = "") -> Dictionary:
 ## result is a populated 5PFH object carrying the Bug Hunt id and name with 0 crew and
 ## 0 credits; the next autosave then rewrites that save through the 5PFH serialiser,
 ## which emits no campaign_type, so the campaign is destroyed AND vanishes from the
-## Bug Hunt menu (MainMenu._find_bug_hunt_saves filters on that field).
+## Bug Hunt menu (MainMenu.find_saves_of_type("bug_hunt") filters on that field).
 ##
 ## The trigger is an interrupted write — the exact scenario SaveFileWriter was added
 ## for — so before this fix, backup recovery could destroy the campaign it recovered.

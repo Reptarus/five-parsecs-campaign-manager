@@ -421,52 +421,41 @@ func test_campaign_size_determines_formula_not_roster():
 # ============================================================================
 # Raided Starship Enemy Count (Core Rules p.70)
 # ============================================================================
+# The Raided dice replace the p.63 roll inside _calculate_enemy_count(), and the
+# rule adds "+1 extra figure", so one die-face range is 2-7. The exact dice are
+# pinned with forced rolls in test_travel_raid_delivery.gd.
+
+func _raided_counts_in_range(crew_size: int) -> bool:
+	for i in range(30):
+		var count: int = enemy_generator._calculate_enemy_count(2, crew_size, false, 0, true)
+		if count < 2 or count > 7:
+			return false
+	return true
 
 func test_raided_crew_6_uses_3d6_pick_highest():
-	"""Raided event with crew size 6 rolls 3D6 pick highest (Core Rules p.70)"""
-	var all_valid := true
-	for i in range(30):
-		var count: int = enemy_generator.calculate_raided_enemy_count(6)
-		if count < 1 or count > 6:
-			all_valid = false
-			break
-
-	assert_that(all_valid).is_true()
+	"""Raided event with crew size 6 rolls 3D6 pick highest, +1 figure (Core Rules p.70)"""
+	assert_that(_raided_counts_in_range(6)).is_true()
 
 func test_raided_crew_5_uses_2d6_pick_highest():
-	"""Raided event with crew size 5 rolls 2D6 pick highest (Core Rules p.70)"""
-	var all_valid := true
-	for i in range(30):
-		var count: int = enemy_generator.calculate_raided_enemy_count(5)
-		if count < 1 or count > 6:
-			all_valid = false
-			break
-
-	assert_that(all_valid).is_true()
+	"""Raided event with crew size 5 rolls 2D6 pick highest, +1 figure (Core Rules p.70)"""
+	assert_that(_raided_counts_in_range(5)).is_true()
 
 func test_raided_crew_4_uses_1d6():
-	"""Raided event with crew size 4 rolls 1D6 (Core Rules p.70)"""
-	var all_valid := true
-	for i in range(30):
-		var count: int = enemy_generator.calculate_raided_enemy_count(4)
-		if count < 1 or count > 6:
-			all_valid = false
-			break
-
-	assert_that(all_valid).is_true()
+	"""Raided event with crew size 4 rolls 1D6, +1 figure (Core Rules p.70)"""
+	assert_that(_raided_counts_in_range(4)).is_true()
 
 func test_raided_crew_6_trends_higher_than_standard():
-	"""Raided 3D6-pick-highest (crew 6) should average higher than
+	"""Raided 3D6-pick-highest +1 (crew 6) should average higher than
 	standard 2D6-pick-highest (crew 6)"""
 	var sum_raided := 0
 	var sum_standard := 0
 	var iterations := 300
 
 	for i in range(iterations):
-		sum_raided += enemy_generator.calculate_raided_enemy_count(6)
+		sum_raided += enemy_generator._calculate_enemy_count(2, 6, false, 0, true)
 		sum_standard += enemy_generator._calculate_enemy_count(2, 6)
 
-	# E[max(3D6)] ≈ 4.96 vs E[max(2D6)] ≈ 4.47
+	# E[max(3D6)] + 1 = 5.96 vs E[max(2D6)] = 4.47
 	var avg_raided := float(sum_raided) / float(iterations)
 	var avg_standard := float(sum_standard) / float(iterations)
 	assert_that(avg_raided).is_greater(avg_standard)

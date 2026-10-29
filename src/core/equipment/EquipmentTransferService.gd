@@ -96,6 +96,18 @@ func add_loot_to_stash(item: Dictionary) -> String:
 	_emit_transfer("loot->stash", item_id, "")
 	return item_id
 
+## Empty the ship stash and return what was in it. The items leave the game: they
+## are not moved to anyone, so nothing else can hold them afterwards. Core Rules
+## p.70 Raided: a lost battle costs "everything in your Stash".
+func surrender_stash() -> Array:
+	var stash: Array = _get_stash()
+	var taken: Array = stash.duplicate()
+	stash.clear()
+	for entry in taken:
+		var item_id: String = str(entry.get("id", "")) if entry is Dictionary else str(entry)
+		_emit_transfer("stash->lost", item_id, "")
+	return taken
+
 ## Seed a character with starting equipment during campaign creation.
 ## This is the NON-stash path — items are created directly on the character
 ## without a round-trip through the ship stash. Used by

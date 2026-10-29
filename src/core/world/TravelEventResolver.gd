@@ -343,7 +343,7 @@ static func _resolve_asteroids(campaign, crew: Array, choice: String) -> Diction
 	return out
 
 
-static func _resolve_raided(campaign, crew: Array) -> Dictionary:
+static func _resolve_raided(_campaign, crew: Array) -> Dictionary:
 	## p.70: "Intimidation might work: Select a crew member and roll 1D6+Savvy. A
 	## 6+ is required to avoid conflict. Otherwise, set up a battle in cramped
 	## territory, using the Criminal Elements Encounter Table ... Enemy numbers
@@ -360,21 +360,6 @@ static func _resolve_raided(campaign, crew: Array) -> Dictionary:
 			"%s talked the pirates down (%d, needed 6+)" % [_name_of(talker), roll])
 		return out
 
-	var crew_size: int = 6
-	if campaign != null and campaign.has_method("get_campaign_crew_size"):
-		crew_size = int(campaign.get_campaign_crew_size())
-	elif campaign != null and "campaign_crew_size" in campaign:
-		crew_size = int(campaign.campaign_crew_size)
-
-	var dice: int = 3
-	if crew_size == 5:
-		dice = 2
-	elif crew_size <= 4:
-		dice = 1
-	var best: int = 0
-	for _d in range(dice):
-		best = maxi(best, randi_range(1, 6))
-
 	out["applied"].append(
 		"Intimidation failed (%d) — boarders incoming" % roll)
 	out["forced_battle"] = {
@@ -382,10 +367,14 @@ static func _resolve_raided(campaign, crew: Array) -> Dictionary:
 		"objective_description":
 			"No objective. Drive them off and they flee back to their ship (Core Rules p.70).",
 		"mission_source": "opportunity",
-		"enemy_category": "criminal_elements",
-		"base_enemy_count": best + 1,   # "+1 extra figure"
 		"terrain": "cramped",
 		"out_of_sequence": true,        # does not consume the campaign turn's Battle stage
+		# The rest of p.70 keys off this flag. EnemyGenerator rolls the Raided dice
+		# on the Criminal Elements table, +1 figure; BattleSetupRules adds the loss
+		# penalty; PostBattlePhase counts driving them off as the win; LootProcessor
+		# adds the bonus Loot roll. This used to stamp base_enemy_count and
+		# enemy_category, which nothing read, so the battle rolled the ordinary
+		# p.63 dice on whatever table the opportunity column drew.
 		"travel_event_raid": true,
 	}
 	return out

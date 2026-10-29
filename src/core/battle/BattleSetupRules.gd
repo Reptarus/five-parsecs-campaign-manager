@@ -91,7 +91,25 @@ static func compute(
 	_apply_patron_conditions(b, mission_data)
 	_apply_expanded_quest_step(b, mission_data)
 	_apply_black_zone(b, mission_data)
+	_apply_travel_raid(b, mission_data)
 	return b
+
+
+## Core Rules p.70 Raided: "set up a battle in cramped territory ... There is no
+## objective. If you drive them off, they flee back to their ship. If you lose, you
+## lose all credits and everything in your Stash, though you can keep the ship."
+## Losing is failing to Hold the Field, as for the p.92 Rival penalties: with no
+## objective, driving them off is the only way to win.
+static func _apply_travel_raid(b: Dictionary, mission_data: Dictionary) -> void:
+	if not bool(mission_data.get("travel_event_raid", false)):
+		return
+	b["setup_notes"].append(
+		"Raided: set up in cramped territory. No objective: drive the boarders off and they flee back to their ship (p.70).")
+	b["loss_penalties"].append({
+		"type": "raid_loss",
+		"reason": "Raided — lost the battle: all credits and everything in the Stash are gone, though you keep the ship (Core Rules p.70)",
+	})
+	b["sources"].append("Raided (Core Rules p.70)")
 
 
 ## Black Job set-up, opposition and ending (Core Rules Appendix III pp.150-151).

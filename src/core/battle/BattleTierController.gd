@@ -65,7 +65,8 @@ const TIER_COMPONENTS: Dictionary = {
 	TrackingTier.FULL_ORACLE: [
 		# Includes all ASSISTED components plus:
 		&"EnemyIntentPanel",
-		&"EnemyGenerationWizard",
+		# &"EnemyGenerationWizard" until 2026-10-29: no screen ever showed it and
+		# the campaign's force comes from EnemyGenerator before the battle.
 	],
 }
 

@@ -32,11 +32,6 @@ class WeaponData extends Resource:
 # Weapon registry
 var weapon_registry: Dictionary = {}  # weapon_id -> WeaponData
 
-# Enemy weapon distribution tables (loaded from JSON)
-var _enemy_weapon_distributions: Dictionary = {}
-var _enemy_weapon_aliases: Dictionary = {}
-var _enemy_tables_loaded: bool = false
-
 func _init() -> void:
 	_load_weapons_from_json()
 	if weapon_registry.is_empty():
@@ -123,48 +118,12 @@ func get_all_weapons() -> Array[WeaponData]:
 		result.append(weapon)
 	return result
 
-## Roll random weapon from enemy type table
-func roll_enemy_weapon(enemy_type: String) -> WeaponData:
-	var table := _get_enemy_weapon_table(enemy_type)
-	if table.is_empty():
-		return get_weapon("handgun")
-
-	var roll := randi_range(1, 100)
-	var cumulative := 0
-
-	for entry in table:
-		cumulative += entry.weight
-		if roll <= cumulative:
-			return get_weapon(entry.weapon_id)
-
-	return get_weapon(table[-1].weapon_id)
-
-func _ensure_enemy_tables_loaded() -> void:
-	if _enemy_tables_loaded:
-		return
-	_enemy_tables_loaded = true
-	var file := FileAccess.open("res://data/enemy_weapon_tables.json", FileAccess.READ)
-	if not file:
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
-		file.close()
-		return
-	file.close()
-	_enemy_weapon_distributions = json.data.get("distributions", {})
-	_enemy_weapon_aliases = json.data.get("aliases", {})
-
-func _get_enemy_weapon_table(enemy_type: String) -> Array:
-	_ensure_enemy_tables_loaded()
-	var key: String = enemy_type.to_lower()
-	# Check aliases first (e.g., "thug" -> "criminal")
-	if _enemy_weapon_aliases.has(key):
-		key = _enemy_weapon_aliases[key]
-	var table: Array = _enemy_weapon_distributions.get(key, [])
-	if table.is_empty():
-		table = _enemy_weapon_distributions.get("default", [])
-	return table
-
+## roll_enemy_weapon() and data/enemy_weapon_tables.json were DELETED 2026-10-29.
+## The file weighted weapons per "criminal / military / alien" in percentiles and
+## claimed Core Rules provenance; the book arms an enemy from its weapon code
+## (EnemyGenerator.resolve_basic_weapon()). Its readers were EnemyGenerationWizard,
+## which no screen ever showed, and a display method with no caller.
+##
 ## The hardcoded weapon table that used to live here was DELETED 2026-08-02.
 ##
 ## It was a wholesale fabricated parallel table, wrong in roughly thirty
@@ -182,8 +141,8 @@ func _get_enemy_weapon_table(enemy_type: String) -> Array:
 ## data/equipment_database.json is the single source of truth and is verified
 ## byte-correct against p.50 for all 32 book weapons. A silent fallback to a
 ## fabricated table is worse than a hard failure: WeaponTableDisplay shows this
-## data to the player as a rules reference, and EnemyGenerationWizard arms
-## enemies from it, so wrong data here is wrong data at the table.
+## data to the player as a rules reference, so wrong data here is wrong data
+## at the table.
 ##
 ## Do not reintroduce a hardcoded fallback. If the JSON cannot be read, that is
 ## a packaging bug and must be loud.

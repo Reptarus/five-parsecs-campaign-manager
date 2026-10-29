@@ -15,6 +15,7 @@ const EnemyTraitRules = preload("res://src/core/systems/EnemyTraitRules.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
+const EquipmentTransferServiceRef = preload("res://src/core/equipment/EquipmentTransferService.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -75,6 +76,10 @@ func process_scenario_loss_penalties(
 			"hull":
 				amount = ctx.roll_d6() + 1
 				amount = _damage_ship(ctx, amount)
+			"raid_loss":
+				applied.append(_surrender_to_raiders(ctx, reason))
+				_log_penalty(ctx, kind, int(applied.back().get("amount", 0)), reason)
+				continue
 			_:
 				continue
 		applied.append({"type": kind, "amount": amount, "reason": reason})
@@ -111,6 +116,24 @@ func _lose_random_item_from_random_crew(
 		"reason": "Fled a Rival battle before round 4 — %s lost %s (Core Rules p.91)"
 			% [_crew_name(victim), item_name],
 	}
+
+func _surrender_to_raiders(ctx: PostBattleContextClass, reason: String) -> Dictionary:
+	## Core Rules p.70 Raided, a lost battle: "you lose all credits and everything
+	## in your Stash, though you can keep the ship." Credits go through the
+	## GameStateManager charge; the Stash through its owner, EquipmentTransferService.
+	## Gear on the crew's own sheets is not the Stash and stays with them.
+	var gsm: Variant = ctx.game_state_manager
+	if gsm == null and Engine.get_main_loop():
+		gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager")
+	var credits: int = 0
+	if gsm and gsm.has_method("get_credits"):
+		credits = maxi(0, int(gsm.get_credits()))
+	_charge_credits(ctx, credits)
+	var items: Array = []
+	if ctx.campaign != null and "equipment_data" in ctx.campaign:
+		for entry in EquipmentTransferServiceRef.new(ctx.campaign).surrender_stash():
+			items.append(_item_name(entry))
+	return {"type": "raid_loss", "amount": credits, "items": items, "reason": reason}
 
 func _equipment_of(member: Variant) -> Array:
 	## Crew are Dictionaries on a loaded save and Character Resources on a fresh
@@ -190,13 +213,17 @@ func _log_penalty(
 	match kind:
 		"credits": text = "Lost %d credits" % amount
 		"hull": text = "Ship took %d Hull Point damage" % amount
+		"raid_loss": text = "Raiders took %d credits and the Stash" % amount
 		_: text = "Lost equipment in the retreat"
+	# A Raided loss is a travel event, not a Rival penalty.
+	var tags: Array = ["travel", "defeat", "finance"] if kind == "raid_loss" \
+		else ["rival", "penalty", kind]
 	journal.create_entry({
 		"type": "battle",
 		"title": text,
 		"description": reason,
 		"turn": int(ctx.battle_result.get("turn", 0)),
-		"tags": ["rival", "penalty", kind],
+		"tags": tags,
 	})
 
 func process_payment(ctx: PostBattleContextClass) -> int:

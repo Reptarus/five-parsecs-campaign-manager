@@ -241,12 +241,14 @@ func test_raided_failure_sets_up_an_out_of_sequence_battle() -> void:
 	var r: Dictionary = Resolver.apply(c, _event("Raided"))
 	var battle: Dictionary = r.get("forced_battle", {})
 	assert_bool(battle.is_empty()).is_false()
-	assert_str(str(battle.get("enemy_category", ""))).is_equal("criminal_elements")
 	assert_bool(bool(battle.get("out_of_sequence", false))).override_failure_message(
 		"p.70: the raid 'does not count as the main Battle stage'"
 	).is_true()
-	# 3D6 pick highest, +1 extra figure -> 2..7 at crew size 6.
-	assert_int(int(battle.get("base_enemy_count", 0))).is_between(2, 7)
+	# The battle reads this flag: the Criminal Elements table, the Raided dice and
+	# +1 figure, the loss and the bonus Loot roll are asserted where they land, in
+	# test_travel_raid_delivery.gd. This case used to assert enemy_category and
+	# base_enemy_count here, two keys nothing downstream read.
+	assert_bool(bool(battle.get("travel_event_raid", false))).is_true()
 
 
 ## p.70 Drive Trouble: three 1D6+Savvy tests at 6+; each failure grounds you for

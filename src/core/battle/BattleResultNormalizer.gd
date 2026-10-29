@@ -93,6 +93,9 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			"is_story_battle", "story_event_id", "story_event_number",
 			"mercenary_captured", "captive_survived", "story_evidence_found",
 			"is_intro_battle", "is_training_battle",
+			# travel_event_raid (Core Rules p.70 Raided): the loss penalty, the win
+			# and the bonus Loot roll all read it after the battle.
+			"travel_event_raid",
 			# is_quest_finale / quest_id added 2026-08-02. FOUR consumers read
 			# is_quest_finale off battle_result — PaymentProcessor (p.120 "roll
 			# the die twice, pick the better score, and add +1"), LootProcessor

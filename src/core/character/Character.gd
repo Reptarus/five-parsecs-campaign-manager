@@ -1231,7 +1231,13 @@ func process_status_effect_turn() -> Array[Dictionary]:
 
 ## Get maximum implant capacity for this character's species (Core Rules pp.19, 23, 55)
 func get_max_implants() -> int:
-	match species_id.to_lower():
+	return max_implants_for_species(species_id)
+
+
+## The implant cap by species. One table for both shapes of a crew member (this
+## Resource and the saved Dictionary), so install_implant_on_member() cannot drift.
+static func max_implants_for_species(species: String) -> int:
+	match species.to_lower():
 		"bio_upgrade":
 			return 4  # Core Rules p.23: Bio-upgrade may have up to 4 implants
 		"de_converted":
@@ -1320,6 +1326,51 @@ func add_implant(implant: Dictionary) -> bool:
 		psionic_power_enhanced = false
 	psionics_lost_to_implant = true
 	return true
+
+## Install an implant on a crew member of either shape. A loaded campaign holds its
+## crew as Dictionaries, and the loot path accepted only this Resource, so on any
+## loaded save a looted implant was never installed. The Dictionary branch follows
+## add_implant() rule for rule: the species cap (p.55, p.19, p.23), one of each type,
+## and Compendium p.18's permanent loss of psionics. Core Rules p.55: "Bots and
+## Soulless cannot use implants." (The loot loop checked Bots only.)
+static func install_implant_on_member(member: Variant, implant: Dictionary) -> bool:
+	if not implant.has("type") or not implant.has("name"):
+		return false
+	if member is Object and member.has_method("add_implant"):
+		if bool(member.get("is_bot")) or bool(member.get("is_soulless")):
+			return false
+		return member.add_implant(implant)
+	if not (member is Dictionary):
+		return false
+	var species: String = str(member.get("species_id", member.get("origin", "")))
+	if bool(member.get("is_bot", false)) or bool(member.get("is_soulless", false)) 			or species.to_lower() in ["soulless", "bot", "assault_bot"]:
+		return false
+	var implants: Array = member.get("implants", []) if member.get("implants", []) is Array else []
+	if implants.size() >= max_implants_for_species(species):
+		return false
+	for existing: Variant in implants:
+		if existing is Dictionary and existing.get("type", "") == implant.get("type", ""):
+			return false
+	implants.append(implant)
+	member["implants"] = implants
+	# Compendium p.18: "Psionics lose their abilities permanently if they are given
+	# any type of implant, even if it is later removed."
+	member["psionic_powers"] = []
+	member["psionic_power"] = ""
+	member["psionic_power_enhanced"] = false
+	member["psionics_lost_to_implant"] = true
+	return true
+
+
+## Whether a crew member of either shape has psionic powers.
+static func member_has_psionics(member: Variant) -> bool:
+	if member is Dictionary:
+		var powers: Variant = member.get("psionic_powers", [])
+		return (powers is Array and not (powers as Array).is_empty()) \
+			or str(member.get("psionic_power", "")) != ""
+	if member is Object and "psionic_powers" in member:
+		return not (member.psionic_powers as Array).is_empty()
+	return false
 
 func remove_implant(index: int) -> void:
 	## Remove an implant by index

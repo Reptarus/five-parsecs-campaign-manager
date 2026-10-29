@@ -213,3 +213,43 @@ func test_signals_are_rolled_once_per_mission() -> void:
 		.is_equal(2)
 	# Drain the unconsumed forced roll so it cannot leak into another case.
 	dm.roll_d6("Bug Hunt Signals: drain")
+
+
+## Co-op (Compendium p.210). The card computes a Numbers line, a movement line and an Evac
+## block, and a sector's Factors overrule parts of them: Swarming adds an enemy per
+## revealed Contact, Hot zone stops the drop ship loitering, Obstructed removes its covering
+## fire, and a patrolled sector adds +1 to the Aggression die. The card printed those
+## Factors only in a separate co-op row, so it stated a numbers line, a loiter rule and
+## covering fire that the sector had overruled. The stamp is built here by the real
+## producer, BugHuntCoopCampaign.battle_modifiers().
+func test_a_coop_sectors_factors_rewrite_the_lines_they_overrule() -> void:
+	const CoopRef = preload("res://src/core/campaign/BugHuntCoopCampaign.gd")
+	var coop: Dictionary = CoopRef.normalize({"enabled": true, "players": ["Ana"],
+		"sectors": [{"id": "s1", "name": "Sector 1", "priority": 3,
+			"factors": ["swarming", "hot_zone", "obstructed"], "conditions": ["patrolled"]}]})
+	var mods: Dictionary = CoopRef.battle_modifiers(coop, "s1")
+	assert_int((mods.get("factors", []) as Array).size()).override_failure_message(
+		"premise: the sector keeps its three Factors").is_equal(3)
+	var plain := _mission("mess_me_up")
+	var md := plain.duplicate(true)
+	md["coop"] = {"sector_id": "s1", "sector_name": "Sector 1", "modifiers": mods}
+	var rows: Dictionary = {}
+	for row in Guide.briefing_rows(md):
+		rows[str(row.head)] = str(row.detail)
+	var detail_of := func(prefix: String) -> String:
+		for head: String in rows:
+			if head.begins_with(prefix):
+				return rows[head]
+		return ""
+	var reveal: String = detail_of.call("Detecting a Contact")
+	var movement: String = detail_of.call("Contact movement")
+	var evac: String = detail_of.call("Evac:")
+	assert_str(reveal).contains("the number of enemies is increased by +1")
+	assert_str(movement).contains("add +1 to the Aggression die")
+	assert_str(evac).contains("The evac ship cannot loiter")
+	assert_str(evac).contains("Evac ships cannot provide covering fire")
+	assert_str(evac).not_contains("the drop ship leaves and you must call again")
+	# Outside co-op the card is unchanged.
+	var plain_text := _mission_text(plain)
+	assert_str(plain_text).contains("the drop ship leaves and you must call again")
+	assert_str(plain_text).not_contains("cannot loiter")

@@ -4,7 +4,7 @@ extends GdUnitTestSuite
 ## THE GAP THIS PINS. WeaponTableSystem carried a hardcoded fallback table that
 ## was wrong in ~30 profiles against Core Rules p.50, and it fed two
 ## player-facing surfaces: WeaponTableDisplay (an in-app rules reference) and
-## EnemyGenerationWizard (which arms enemies). The fallback fired silently
+## EnemyGenerationWizard (deleted 2026-10-29). The fallback fired silently
 ## whenever the JSON failed to load, so wrong data would reach the table with
 ## only a push_warning.
 ##

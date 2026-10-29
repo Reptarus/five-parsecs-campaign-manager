@@ -299,6 +299,45 @@ static func difficulty_toggles() -> String:
 
 
 ## ============================================================================
+## DRAMATIC WEAPONS (Compendium pp.88-89)
+## ============================================================================
+
+## The replacement weapon table and its trait notes. The auto-resolver has applied
+## these profiles since the Dramatic Combat option landed; a battle the player PLAYS
+## showed the table nowhere, so every weapon on the table had a profile the player
+## could not see.
+static func dramatic_weapons() -> String:
+	var ref: Dictionary = CompendiumTogglesRef.get_dramatic_weapons_reference()
+	var rows: Array = ref.get("weapons", [])
+	if rows.is_empty():
+		return ""
+	var out := "[b]Dramatic Weapons (Compendium pp.88-89):[/b]\n"
+	out += "[color=%s]Use with the Adjusted Shooting hit numbers (p.87).[/color]\n" % COLOR_MUTED
+	out += "[color=%s]Weapon  Range  Shots  Damage  Traits[/color]\n" % COLOR_HEAD
+	for row in rows:
+		if not (row is Dictionary):
+			continue
+		var traits: Array = row.get("traits", [])
+		var is_melee: bool = "melee" in traits and int(row.get("range", 0)) == 0
+		var range_text: String = "Brawl" if is_melee else "%d\"" % int(row.get("range", 0))
+		var shots: int = int(row.get("shots", 0))
+		var trait_names: Array = []
+		for t in traits:
+			trait_names.append(str(t).replace("_", " ").capitalize())
+		out += "  [b]%s[/b]  %s  %s  %d  %s\n" % [
+			str(row.get("name", "")), range_text, str(shots) if shots > 0 else "-",
+			int(row.get("damage", 0)),
+			", ".join(trait_names) if not trait_names.is_empty() else "-"]
+	var notes: Array = ref.get("trait_notes", [])
+	if not notes.is_empty():
+		out += "\n" + _head("Trait notes (p.89)")
+		for note in notes:
+			if note is Dictionary:
+				out += "  [b]%s[/b]  %s\n" % [str(note.get("trait", "")), str(note.get("text", ""))]
+	return out.strip_edges()
+
+
+## ============================================================================
 ## AI VARIATIONS (Compendium pp.42-43)
 ## ============================================================================
 

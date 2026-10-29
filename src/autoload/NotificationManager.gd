@@ -58,6 +58,11 @@ var _is_processing: bool = false
 func _ready() -> void:
 	# Set layer above most UI but below TransitionManager
 	layer = 90
+	# A toast is chrome, not gameplay. SettingsOverlay pauses the tree, and every
+	# toast tween is bound to this node (TWEEN_PAUSE_BOUND), so under the inherited
+	# mode a toast froze mid-fade for as long as Settings was open: the T11-27
+	# shape, which CLAUDE.md had recorded here as a known exposure.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 
 	# Create container for notifications
 	_setup_container()

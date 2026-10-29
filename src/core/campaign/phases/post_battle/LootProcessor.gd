@@ -54,6 +54,13 @@ func process_loot_gathering(ctx: PostBattleContextClass) -> Array[Dictionary]:
 				and ctx.battle_result.get("success", false):
 			roll_count += 1
 
+		# Core Rules p.70 Raided: "If you win, you get the normal rewards for
+		# winning an Opportunity mission (see p.120), plus a bonus roll on the Loot
+		# Table (p.131)." PostBattlePhase sets success from holding the field.
+		if ctx.battle_result.get("travel_event_raid", false) \
+				and ctx.battle_result.get("success", false):
+			roll_count += 1
+
 	for _i in range(roll_count):
 		gathered_loot.append_array(_roll_loot_table())
 
@@ -189,11 +196,10 @@ func _try_install_implant_from_loot(loot_name: String) -> bool:
 	if "crew_data" in gs.current_campaign:
 		crew_members = gs.current_campaign.crew_data.get("members", [])
 
+	# Either shape: a loaded campaign's crew are Dictionaries, and this loop used
+	# to skip them, so a looted implant went to the stash on every loaded save.
 	for member in crew_members:
-		if member is CharacterRef:
-			if member.is_bot:
-				continue  # Bots cannot receive implants
-			if member.add_implant(implant):
-				return true
+		if CharacterRef.install_implant_on_member(member, implant):
+			return true
 
 	return false  # No eligible crew member found

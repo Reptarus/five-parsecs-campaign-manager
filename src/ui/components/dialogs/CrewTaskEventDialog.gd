@@ -235,7 +235,9 @@ func _build_ui() -> void:
 				_add_outcome_line("K'Erin bonus: %s" % kerin_bonus, COLOR_DEFERRED)
 			_action_taken = true
 		EventType.GAIN_RUMOR:
-			_show_outcome("Quest Rumor acquired!", COLOR_TEXT_GOLD)
+			var rumors: int = maxi(1, int(_event_data.get("rumor_count", 1)))
+			_show_outcome("Quest Rumor acquired!" if rumors == 1
+				else "%d Quest Rumors acquired!" % rumors, COLOR_TEXT_GOLD)
 			_action_taken = true
 		EventType.GAIN_PATRON:
 			_show_outcome("Patron job available!", COLOR_SUCCESS)
@@ -526,12 +528,14 @@ func _build_sell_list() -> void:
 	hbox.add_child(skip_btn)
 
 func _build_quantity_picker() -> void:
-	_buy_cost_each = _event_data.get("cost_each", 0)
-	_buy_max = _event_data.get("max_quantity", 0)
+	_buy_cost_each = int(_event_data.get("cost_each", 0))
+	_buy_max = buy_cap(int(_event_data.get("max_quantity", 0)), _buy_cost_each,
+		int(_event_data.get("available_credits", -1)))
 	_buy_quantity = 0
 
 	var desc := Label.new()
-	desc.text = "%d credits each (max %d)" % [_buy_cost_each, _buy_max]
+	desc.text = "%d credits each (you can buy up to %d)" % [_buy_cost_each, _buy_max]
+	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
 	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -568,6 +572,17 @@ func _build_quantity_picker() -> void:
 	_style_button(skip_btn, COLOR_ELEVATED)
 	skip_btn.pressed.connect(_on_buy_declined)
 	hbox.add_child(skip_btn)
+
+## How many the picker allows. printed_max 0 means the book prints no cap (p.81 Arms
+## dealer, "any number"); available_credits -1 means the caller did not say, which
+## leaves the printed cap alone. Otherwise the cap is what the crew can pay for.
+static func buy_cap(printed_max: int, cost_each: int, available_credits: int) -> int:
+	if available_credits < 0:
+		return maxi(0, printed_max)
+	var affordable: int = available_credits / cost_each if cost_each > 0 else printed_max
+	if printed_max <= 0:
+		return maxi(0, affordable)
+	return clampi(affordable, 0, printed_max)
 
 func _build_trade_buttons() -> void:
 	var trade_type: String = str(_event_data.get("trade_type", "weapon"))

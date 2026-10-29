@@ -54,7 +54,14 @@ const COLOR_CYAN := Color("#06b6d4")         # Save, world actions
 # Text Colors
 const COLOR_TEXT_PRIMARY := Color("#f3f4f6")   # Bright white text
 const COLOR_TEXT_SECONDARY := Color("#9ca3af") # Gray secondary text
-const COLOR_TEXT_MUTED := Color("#6b7280")     # Muted labels/hints
+# Muted labels/hints. It was #6b7280, which measured 3.67:1 on the card and 3.05:1
+# on the accessibility themes' elevated surface, under WCAG AA's 4.5 for normal
+# text. Most of its consumers are live text (weapon damage values, journal labels,
+# an active close button), so the inactive-component exemption did not cover them.
+# #888f9b is the darkest grey on the line toward COLOR_TEXT_SECONDARY that clears
+# 4.5 on all five backgrounds in use, so the three text steps stay distinct.
+# Pinned by tests/unit/test_ui_color_tokens.gd.
+const COLOR_TEXT_MUTED := Color("#888f9b")
 
 # ── BBCode hex strings ───────────────────────────────────────────────────────
 # RichTextLabel "[color=#...]" needs a String, not a Color, and a const
@@ -64,7 +71,7 @@ const COLOR_TEXT_MUTED := Color("#6b7280")     # Muted labels/hints
 # tests/unit/test_ui_color_tokens.gd, which fails if the two ever disagree.
 const HEX_TEXT_PRIMARY := "#f3f4f6"
 const HEX_TEXT_SECONDARY := "#9ca3af"
-const HEX_TEXT_MUTED := "#6b7280"
+const HEX_TEXT_MUTED := "#888f9b"
 
 # ── Legacy Aliases (backward compatibility) ──────────────────────────────────
 const COLOR_BASE := COLOR_PRIMARY

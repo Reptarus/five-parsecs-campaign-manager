@@ -5,6 +5,8 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 const ThisClass = preload("res://src/ui/screens/campaign/phases/TradePhasePanel.gd")
 const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
 const CompendiumWorldOptions = preload("res://src/data/compendium_world_options.gd")
+const CharacterRef = preload("res://src/core/character/Character.gd")
+const ItemChoicePopupScript = preload("res://src/ui/components/dialogs/ItemChoicePopup.gd")
 
 signal item_purchased(item_data: Dictionary)
 signal item_sold(item_data: Dictionary)
@@ -369,7 +371,7 @@ func _on_market_item_selected(index: int) -> void:
 			var uses: int = selected_market_item.get("remaining_uses", -1)
 			if uses >= 0:
 				desc += "\nUses: %d" % uses
-			# Psionic equipment note (Compendium p.29)
+			# Psionic equipment note (Compendium p.27)
 			var sel_id: String = selected_market_item.get(
 				"compendium_id", selected_market_item.get("id", ""))
 			if sel_id in ["warding_shrel", "psionic_focus",
@@ -405,9 +407,14 @@ func _on_buy_button_pressed() -> void:
 	var cost: int = selected_market_item.get("value", 0)
 	if cost > current_credits:
 		return
+	var surgery_id: String = str(selected_market_item.get(
+		"compendium_id", selected_market_item.get("id", "")))
+	if surgery_id == "nullification_surgery":
+		_offer_nullification_surgery(cost)
+		return
 	current_credits -= cost
 
-	# Psionic equipment advisory (Compendium p.29)
+	# Psionic equipment advisory (Compendium p.27)
 	var psi_ids := ["warding_shrel", "psionic_focus",
 		"nullification_surgery"]
 	var bought_id: String = selected_market_item.get(
@@ -470,6 +477,93 @@ func _on_buy_button_pressed() -> void:
 	_refresh_market_list()
 	load_inventory()
 	update_credits_display()
+
+## Compendium p.27 Nullification surgery (Implant, 3 Credits): "The character
+## permanently loses all psionic abilities. This is non-reversible." It is an
+## implant performed on a character, so it is installed at purchase on the psionic
+## the player picks, through the one implant rule (Character.add_implant, Compendium
+## p.18). It used to land in the stash as an item nothing could install, so the
+## 3 credits bought nothing.
+func _offer_nullification_surgery(cost: int) -> void:
+	var names: Array = nullification_candidates(_live_crew())
+	if names.is_empty():
+		if item_details:
+			_set_keyword_text(item_details,
+				"[color=#D97706]No psionic crew member can take an implant.[/color]")
+		return
+	var popup: Window = ItemChoicePopupScript.new()
+	popup.title = "Nullification surgery"
+	add_child(popup)
+	popup.item_chosen.connect(_on_nullification_target_chosen.bind(cost))
+	popup.show_choices("Nullification surgery", names,
+		"Who undergoes the surgery? They permanently lose all psionic abilities.")
+
+
+## Psionic crew members with room for an implant, by name.
+static func nullification_candidates(crew: Array) -> Array:
+	var out: Array = []
+	for member: Variant in crew:
+		if not CharacterRef.member_has_psionics(member):
+			continue
+		var probe: Variant = member.duplicate(true) if member is Dictionary else member
+		if member is Dictionary and not CharacterRef.install_implant_on_member(
+				probe, _nullification_implant()):
+			continue
+		if member is Object and (bool(member.get("is_bot"))
+				or member.implants.size() >= member.get_max_implants()):
+			continue
+		out.append(_member_name(member))
+	return out
+
+
+static func _nullification_implant() -> Dictionary:
+	return {"type": "NULLIFICATION_SURGERY", "name": "Nullification surgery",
+		"stat_bonus": {},
+		"description": "The character permanently loses all psionic abilities. This is non-reversible. (Compendium p.27)"}
+
+
+static func _member_name(member: Variant) -> String:
+	if member is Dictionary:
+		return str(member.get("character_name", member.get("name", "")))
+	return str(member.get("character_name"))
+
+
+func _live_crew() -> Array:
+	var campaign = _get_campaign_safe()
+	if campaign == null:
+		return []
+	if campaign.has_method("get_crew_members"):
+		return campaign.get_crew_members()
+	if "crew_data" in campaign:
+		return campaign.crew_data.get("members", [])
+	return []
+
+
+func _on_nullification_target_chosen(member_name: String, cost: int) -> void:
+	if cost > current_credits:
+		return
+	for member: Variant in _live_crew():
+		if _member_name(member) != member_name:
+			continue
+		if not CharacterRef.install_implant_on_member(member, _nullification_implant()):
+			return
+		current_credits -= cost
+		purchased_items.append(selected_market_item.duplicate())
+		item_purchased.emit(selected_market_item)
+		var idx: int = available_market_items.find(selected_market_item)
+		if idx >= 0:
+			available_market_items.remove_at(idx)
+		selected_market_item = {}
+		if buy_button:
+			buy_button.disabled = true
+		if item_details:
+			_set_keyword_text(item_details,
+				"%s has undergone Nullification surgery and permanently lost all psionic abilities." % member_name)
+		_refresh_market_list()
+		load_inventory()
+		update_credits_display()
+		return
+
 
 func _on_sell_button_pressed() -> void:
 	if selected_inventory_item.is_empty():

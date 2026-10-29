@@ -271,13 +271,6 @@ func show_weapon(weapon_id: String) -> void:
 	if weapon:
 		_on_weapon_clicked(weapon)
 
-## Roll random weapon for enemy type
-func roll_enemy_weapon(enemy_type: String) -> WeaponTableSystem.WeaponData:
-	var weapon := weapon_system.roll_enemy_weapon(enemy_type)
-	if weapon:
-		_on_weapon_clicked(weapon)
-	return weapon
-
 ## Get selected weapon
 func get_selected_weapon() -> WeaponTableSystem.WeaponData:
 	return selected_weapon

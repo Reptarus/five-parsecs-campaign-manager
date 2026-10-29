@@ -1819,4 +1819,3 @@ func _update_layout_for_mode() -> void:
 func _log_mathematical_validation() -> void:
 	## Mathematical validation (debug output removed for release)
 	pass
-

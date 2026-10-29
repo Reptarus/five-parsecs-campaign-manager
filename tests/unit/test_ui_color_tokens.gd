@@ -113,32 +113,60 @@ func test_primary_text_clears_aa_on_the_card() -> void:
 		.is_greater_equal(AA_NORMAL_TEXT)
 
 
-## ⚠ OPEN FINDING, deliberately NOT changed here — surfaced 2026-09-07 by
-## the assertion this case replaced, while fixing a different colour.
-##
-## COLOR_TEXT_MUTED (#6b7280) measures **3.67** on the card background — below
-## the 4.5 AA floor for normal text. It is a SECOND hole, independent of the
-## drift this suite was written for.
-##
-## WCAG exempts "inactive user interface components", and UIColors aliases
-## COLOR_TEXT_DISABLED to this rung, which would make the exemption apply. But
-## the 126 consumers are mostly NOT disabled states: `WeaponTableDisplay`
-## prints weapon DAMAGE values in it, `JournalEntryTypes` colours entry labels
-## with it, and `NotificationManager.gd:243` uses it for an ACTIVE close
-## button. Informational text and live controls get no exemption.
-##
-## Raising the rung is a palette decision with a 126-site visual footprint and
-## it compresses the primary/secondary/muted hierarchy — the owner's call, not
-## a silent edit inside a sprint about a different colour.
-##
-## So this case asserts the 3.0 floor (WCAG's large-text / UI-component
-## threshold). That still catches further degradation, and it does NOT lock
-## the defect in: raising the rung to clear 4.5 keeps this green.
-func test_muted_text_holds_the_3_0_floor_with_its_aa_gap_recorded() -> void:
-	var ratio := _contrast(UIColorsRef.COLOR_TEXT_MUTED, UIColorsRef.COLOR_SECONDARY)
-	assert_float(ratio).override_failure_message(
-		"muted text on the card = %.2f, under even the 3.0 floor" % ratio) \
-		.is_greater_equal(3.0)
+## COLOR_TEXT_MUTED was #6b7280 and measured 3.67 on the card. It was recorded here
+## as an open finding on 2026-09-07 because most of its consumers are live text
+## (WeaponTableDisplay damage values, JournalEntryTypes labels, an active close
+## button in NotificationManager), which the WCAG inactive-component exemption does
+## not cover. Raised in Sprint 6 (P-20). It must clear AA on every surface it is
+## drawn on, including the accessibility themes, and stay dimmer than secondary
+## text so the primary / secondary / muted steps remain distinguishable.
+func test_muted_text_clears_aa_on_every_surface() -> void:
+	var backgrounds := {
+		"COLOR_PRIMARY": UIColorsRef.COLOR_PRIMARY,
+		"COLOR_SECONDARY": UIColorsRef.COLOR_SECONDARY,
+		"COLOR_TERTIARY": UIColorsRef.COLOR_TERTIARY,
+	}
+	for theme_name: String in ["DEUTERANOPIA", "PROTANOPIA", "TRITANOPIA"]:
+		var palette: Dictionary = {
+			"DEUTERANOPIA": AccessibilityThemesRef.DEUTERANOPIA_THEME,
+			"PROTANOPIA": AccessibilityThemesRef.PROTANOPIA_THEME,
+			"TRITANOPIA": AccessibilityThemesRef.TRITANOPIA_THEME,
+		}[theme_name]
+		for bg_key: String in ["base", "elevated"]:
+			backgrounds["%s %s" % [theme_name, bg_key]] = palette[bg_key]
+	for key: String in backgrounds:
+		var ratio := _contrast(UIColorsRef.COLOR_TEXT_MUTED, backgrounds[key])
+		assert_float(ratio).override_failure_message(
+			"muted text on %s = %.2f, below AA %.1f" % [key, ratio, AA_NORMAL_TEXT]) \
+			.is_greater_equal(AA_NORMAL_TEXT)
+	var card: Color = UIColorsRef.COLOR_SECONDARY
+	assert_float(_contrast(UIColorsRef.COLOR_TEXT_MUTED, card)).override_failure_message(
+		"muted text is no dimmer than secondary text, so the hierarchy collapsed") \
+		.is_less(_contrast(UIColorsRef.COLOR_TEXT_SECONDARY, card))
+
+
+## The muted grey's old value must not come back as a literal. DebugScreen and a
+## help-text constant still wrote it by hand after the token existed.
+func test_the_old_muted_grey_is_gone_from_src() -> void:
+	var files: Array = []
+	_collect_gd_files("res://src", files)
+	assert_int(files.size()).override_failure_message(
+		"scanned %d .gd files under res://src, so the walk is broken" % files.size()
+	).is_greater(400)
+	var offenders: Array[String] = []
+	for path: String in files:
+		var text := FileAccess.get_file_as_string(path)
+		if not text.to_lower().contains("6b7280"):
+			continue
+		var lines := text.split("\n")
+		for i in range(lines.size()):
+			if not lines[i].to_lower().contains("6b7280"):
+				continue
+			if lines[i].strip_edges().begins_with("#"):
+				continue
+			offenders.append("%s:%d" % [path, i + 1])
+	assert_array(offenders).override_failure_message(
+		"the pre-Sprint-6 muted grey is back at: %s" % str(offenders)).is_empty()
 
 
 # ── The accessibility themes must honour their own docblock ─────────────────

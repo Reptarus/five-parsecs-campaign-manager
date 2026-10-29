@@ -931,6 +931,7 @@ func _build_travel_section() -> void:
 	# (Core Rules p.76).
 	_build_ship_debt_entry(vbox)
 	_build_medical_care_entry(vbox)
+	_build_injury_treatment_entry(vbox)
 
 	# Mission-required travel prompt (Core Rules p.119 — a Quest step on another
 	# world). Encourages (never forces) travel; "Quests will wait for you".
@@ -1698,6 +1699,113 @@ func _build_medical_care_entry(vbox: VBoxContainer) -> void:
 		row.add_child(btn)
 
 		vbox.add_child(row)
+
+
+func _build_injury_treatment_entry(vbox: VBoxContainer) -> void:
+	## Compendium p.102 medical treatment. Injured arm / leg / torso: "It takes 3
+	## Credits of medical treatment to remove this penalty." Extensive injury:
+	## "Roll 1D6+1 to determine the cost in Credits. Until the cost has been paid,
+	## the character cannot take crew tasks or fight."
+	##
+	## GameStateManager.pay_medical_treatment() charges and clears all four, and
+	## nothing outside its tests called it, so none could be paid: the three
+	## penalties were permanent and an Extensive injury benched the character for
+	## good. It sits beside the p.76 Medical Care step, where the player already
+	## spends credits on the injured, and before crew tasks, which an unpaid
+	## Extensive injury blocks.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	var campaign: Resource = _get_campaign_resource()
+	if gsm == null or campaign == null:
+		return
+	var crew: Array = []
+	if campaign.has_method("get_crew_members"):
+		crew = campaign.get_crew_members()
+	elif "crew_data" in campaign:
+		crew = campaign.crew_data.get("members", [])
+	var rows: Array = treatable_injuries(crew)
+	if rows.is_empty():
+		return
+
+	var credits: int = int(gsm.get_credits()) if gsm.has_method("get_credits") else 0
+	var header := Label.new()
+	header.text = "Medical Treatment — pay to end an injury (Compendium p.102)"
+	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	vbox.add_child(header)
+
+	for entry: Dictionary in rows:
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+
+		var label := Label.new()
+		label.text = "%s — %s" % [str(entry["name"]), str(entry["injury"])]
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(label)
+
+		var cost: int = int(entry["cost"])
+		var btn := Button.new()
+		btn.text = "Treat (%d cr)" % cost
+		btn.accessibility_name = "Pay %d credits to treat %s's %s" % [
+			cost, str(entry["name"]), str(entry["injury"])]
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.disabled = credits < cost
+		btn.pressed.connect(_on_pay_injury_treatment.bind(
+			str(entry["id"]), int(entry["index"])))
+		row.add_child(btn)
+
+		vbox.add_child(row)
+
+
+## Every injury on the crew that medical treatment ends (Compendium p.102), in
+## either crew shape: {id, name, index, cost, injury}. `index` is the entry's
+## place in the member's injuries list, which pay_medical_treatment() takes.
+static func treatable_injuries(crew: Array) -> Array:
+	var out: Array = []
+	for member: Variant in crew:
+		var injuries: Variant = []
+		var id: String = ""
+		var who: String = "Crew"
+		if member is Dictionary:
+			injuries = member.get("injuries", [])
+			id = str(member.get("character_id", member.get("id", "")))
+			who = str(member.get("character_name", member.get("name", "Crew")))
+		elif member is Object and "injuries" in member:
+			injuries = member.injuries
+			if "character_id" in member:
+				id = str(member.character_id)
+			if "character_name" in member:
+				who = str(member.character_name)
+		if not (injuries is Array) or id.is_empty():
+			continue
+		for i: int in range((injuries as Array).size()):
+			var inj: Variant = injuries[i]
+			if not (inj is Dictionary) or int(inj.get("treatment_cost", 0)) <= 0:
+				continue
+			out.append({
+				"id": id, "name": who, "index": i,
+				"cost": int(inj["treatment_cost"]),
+				"injury": str(inj.get("table_name",
+					str(inj.get("type", "injury")).capitalize())),
+			})
+	return out
+
+
+func _on_pay_injury_treatment(member_id: String, injury_index: int) -> void:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var res: Dictionary = gsm.pay_medical_treatment(member_id, injury_index)
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if bool(res.get("ok", false)):
+		var msg: String = "Paid %d cr — %s treated." % [
+			int(res.get("cost", 0)), str(res.get("treated", "injury"))]
+		if int(res.get("recovery_turns", 0)) > 0:
+			msg += " Sick Bay: %d turns." % int(res["recovery_turns"])
+		if notif and notif.has_method("show_success"):
+			notif.show_success(msg)
+	elif notif and notif.has_method("show_info"):
+		notif.show_info(str(res.get("reason", "Treatment was not possible.")))
+	_refresh_after_upkeep_payment()
 
 
 func _crew_in_sick_bay(campaign: Resource) -> Array:

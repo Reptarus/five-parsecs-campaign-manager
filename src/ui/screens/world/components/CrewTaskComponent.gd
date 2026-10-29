@@ -1856,6 +1856,7 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 			result.table_result = table_result # Store full result for UI
 		"explore":
 			table_result = _get_exploration_table_result(d100_roll)
+			_roll_precursor_second_rumor(table_result, crew_member)
 			result.details = "Exploration Table roll: %d - %s" % [d100_roll, table_result.name]
 			result.reward = table_result.effect
 			result.table_result = table_result # Store full result for UI
@@ -1871,6 +1872,28 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 		)
 
 	return result
+
+## Core Rules p.80, Explore 9-11 "Meet someone interesting": "Gain a Quest Rumor. A
+## Precursor character may roll 1D6, and on a 5+ receives a second Rumor." The row
+## carried that sentence as precursor_bonus text that nothing rolled. Rolled here,
+## where the crew member is known, as an Explore Follow-up so QA can force it; the
+## count rides on the result to _apply_rumor(), and the effect text says what was rolled.
+func _roll_precursor_second_rumor(table_result: Dictionary, crew_member: Dictionary) -> void:
+	if str(table_result.get("precursor_bonus", "")).is_empty():
+		return
+	# str() guard: legacy saves store "origin" as a numeric enum and carry no species_id.
+	var species: String = str(crew_member.get(
+		"species_id", crew_member.get("origin", ""))).to_lower()
+	if species != "precursor":
+		return
+	var d6: int = _roll_task_d6("Explore Follow-up: Meet someone interesting")
+	if d6 >= 5:
+		table_result["rumor_count"] = 2
+		table_result["effect"] = "%s Precursor rolled %d: a second Rumor." % [
+			str(table_result.get("effect", "")), d6]
+	else:
+		table_result["effect"] = "%s Precursor rolled %d: no second Rumor." % [
+			str(table_result.get("effect", "")), d6]
 
 ## Trait ids for the world the crew is working on (Core Rules pp.73-75). Three
 ## traits modify crew-task rolls and were flavour text: "Easy recruiting — Add
@@ -3304,7 +3327,9 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 		var buy_data: Dictionary = tr.get("buy_weapons", {})
 		var event := base.duplicate()
 		event["type"] = CrewTaskEventDialog.EventType.BUY_WEAPONS
-		event["max_quantity"] = buy_data.get("max_rolls", 3)
+		# p.81 Arms dealer: "Purchase any number of rolls". 0 = no printed cap, so
+		# the picker caps by what the crew can pay for.
+		event["max_quantity"] = int(buy_data.get("max_rolls", 0))
 		event["cost_each"] = buy_data.get("cost_each", 3)
 		events.append(event)
 		return events
@@ -3403,6 +3428,7 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 		var event := base.duplicate()
 		event["type"] = CrewTaskEventDialog.EventType.GAIN_RUMOR
 		event["precursor_bonus"] = str(tr.get("precursor_bonus", ""))
+		event["rumor_count"] = int(tr.get("rumor_count", 1))
 		events.append(event)
 		return events
 
@@ -3481,6 +3507,13 @@ func _show_next_event_dialog() -> void:
 		_present_crew_event_via_narrative(event_data)
 		return
 
+	# A purchase picker must cap by what the crew can pay, and the balance can move
+	# between queued events, so it is read as each dialog opens.
+	if ev_type == CrewTaskEventDialog.EventType.BUY_RUMORS \
+			or ev_type == CrewTaskEventDialog.EventType.BUY_WEAPONS:
+		var gsm_now: Node = get_node_or_null("/root/GameStateManager")
+		if gsm_now:
+			event_data["available_credits"] = int(gsm_now.get_credits())
 	var dialog: Window = CrewTaskEventDialogScript.new()
 	dialog.event_completed.connect(_on_event_completed.bind(event_data))
 	add_child(dialog)
@@ -3603,21 +3636,17 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 				_apply_recruit()
 
 		CrewTaskEventDialog.EventType.BUY_RUMORS:
-			var qty: int = outcome.get("quantity", 0)
-			var total_cost: int = outcome.get("total_cost", 0)
-			if total_cost > 0 and gsm:
-				gsm.remove_credits(total_cost)
-			for i in range(qty):
-				_apply_rumor(event_data, {})
+			var qty: int = int(outcome.get("quantity", 0))
+			if qty > 0 and _charge_purchase(gsm, int(outcome.get("total_cost", 0))):
+				for i in range(qty):
+					_apply_rumor(event_data, {})
 
 		CrewTaskEventDialog.EventType.BUY_WEAPONS:
-			var qty: int = outcome.get("quantity", 0)
-			var total_cost: int = outcome.get("total_cost", 0)
-			if total_cost > 0 and gsm:
-				gsm.remove_credits(total_cost)
-			for i in range(qty):
-				var weapon: String = _roll_on_military_weapons_table()
-				_add_item_to_stash(weapon)
+			var qty: int = int(outcome.get("quantity", 0))
+			if qty > 0 and _charge_purchase(gsm, int(outcome.get("total_cost", 0))):
+				for i in range(qty):
+					var weapon: String = _roll_on_military_weapons_table()
+					_add_item_to_stash(weapon)
 
 		CrewTaskEventDialog.EventType.SKILL_CHECK:
 			if not outcome.get("success", true):
@@ -4123,33 +4152,26 @@ func _apply_rival(event_data: Dictionary) -> void:
 			elif "rivals" in campaign:
 				campaign.rivals.append(rival_data)
 
-func _apply_rumor(event_data: Dictionary, outcome: Dictionary) -> void:
-	## Add a quest rumor to the campaign
-	var gs = get_node_or_null("/root/GameState")
-	if not gs or not gs.current_campaign:
+## Gain Quest Rumors (Core Rules pp.80-81: "Gain a Quest Rumor", "Gain a Rumor",
+## "Buy up to 3 Rumors"). The campaign keeps Rumors as a count, quest_rumors, and
+## GameState.add_quest_rumor() is its writer, the one the Trade/Explore service path
+## above already uses. This used to append a Dictionary to campaign.rumors, a field
+## FiveParsecsCampaignCore does not have, so every Rumor a crew task found was
+## dropped, and Information broker charged for Rumors it never gave.
+func _apply_rumor(event_data: Dictionary, _outcome: Dictionary) -> void:
+	var gs: Node = get_node_or_null("/root/GameState")
+	if gs == null:
 		return
-	var campaign = gs.current_campaign
-	var rumor_types: Array = [
-		"An extracted data file", "An extracted data file",
-		"Notebook with secret information", "Notebook with secret information",
-		"Old map showing a location", "Old map showing a location",
-		"A tip from a contact", "A tip from a contact",
-		"An intercepted transmission", "An intercepted transmission"
-	]
-	var rumor_roll: int = randi() % 10
-	var new_rumor: Dictionary = {
-		"id": "rumor_task_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-		"type": rumor_roll + 1,
-		"description": rumor_types[rumor_roll],
-		"source": "crew_task",
-		"created_turn": _get_current_turn_number()
-	}
-	if campaign is Dictionary:
-		if not campaign.has("rumors"):
-			campaign["rumors"] = []
-		campaign["rumors"].append(new_rumor)
-	elif "rumors" in campaign:
-		campaign.rumors.append(new_rumor)
+	for _i in range(maxi(1, int(event_data.get("rumor_count", 1)))):
+		gs.add_quest_rumor()
+
+
+## Charge a crew-task purchase. True only when it was paid: remove_credits() refuses
+## a total the crew cannot cover, and the caller used to grant the goods anyway.
+func _charge_purchase(gsm: Node, total_cost: int) -> bool:
+	if total_cost <= 0:
+		return true
+	return gsm != null and bool(gsm.remove_credits(total_cost))
 
 func _apply_recruit() -> void:
 	## Add one recruit to the crew (Core Rules p.78), verbatim: "Each recruit rolls

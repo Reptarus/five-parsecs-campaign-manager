@@ -167,6 +167,7 @@ var _story_track_enabled: bool = false
 var _intro_campaign_enabled: bool = false
 var selected_difficulty_toggles: Array[String] = []
 var difficulty_toggle_checkboxes: Dictionary = {}  # id -> CheckBox
+var _difficulty_toggles_body: VBoxContainer = null
 var _compendium_setup_checkboxes: Dictionary = {}  # flag_name -> CheckBox
 
 # Progressive Difficulty (Compendium pp.30-31)
@@ -316,6 +317,7 @@ func _initialize_components() -> void:
 	_build_narrative_options_section(flow)
 	_build_compendium_setup_section(flow)
 	_build_expansion_features_section(flow)
+	_build_difficulty_toggles_section(flow)
 	_build_progressive_difficulty_section(flow)
 	# Core Rules p.65 Campaign Preparation step 5 — the last thing the book asks
 	# you to decide, so it is the last card.
@@ -730,58 +732,69 @@ func _build_difficulty_section(parent: Control) -> void:
 	parent.add_child(card)
 
 
+## Compendium pp.32-34 Difficulty Toggles: the twelve options inside the pack. The
+## Expansion Features card switches the PACK on; this card picks the options, which
+## reach the campaign as progress_data["difficulty_toggles"] (finalization) and every
+## rule site through is_toggle_active(). It was written and never built, so no
+## campaign could switch on a single option: the Settings panel writes only the
+## no-campaign fallback file.
 func _build_difficulty_toggles_section(parent: Control) -> void:
-	## Build Compendium difficulty toggles (DLC-gated)
-	var toggles: Array[Dictionary] = []
-	toggles.assign(CompendiumDifficultyTogglesRef.get_difficulty_toggles())
-	difficulty_toggle_checkboxes.clear()
-
-	var content = VBoxContainer.new()
-	content.add_theme_constant_override("separation", SPACING_SM)
-
-	if toggles.is_empty():
-		# DLC not enabled — show locked indicator
-		var locked_label := Label.new()
-		locked_label.text = "Requires Compendium DLC to unlock combat toggles"
-		locked_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-		locked_label.add_theme_color_override("font_color", COLOR_TEXT_DISABLED)
-		locked_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		content.add_child(locked_label)
-	else:
-		# Group toggles by category
-		var categories: Array[String] = []
-		categories.assign(CompendiumDifficultyTogglesRef.get_categories())
-		for category in categories:
-			var cat_toggles: Array[Dictionary] = []
-			cat_toggles.assign(CompendiumDifficultyTogglesRef.get_toggles_by_category(category))
-			if cat_toggles.is_empty():
-				continue
-
-			# Category header
-			var cat_label := Label.new()
-			cat_label.text = CompendiumDifficultyTogglesRef.get_category_name(category)
-			cat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-			cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
-			content.add_child(cat_label)
-
-			# Checkboxes for each toggle in this category
-			for toggle in cat_toggles:
-				var toggle_id: String = toggle.get("id", "")
-				var cb := CheckBox.new()
-				cb.text = toggle.get("name", toggle_id)
-				cb.tooltip_text = toggle.get("description", "")
-				cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
-				cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
-				cb.toggled.connect(_on_difficulty_toggle_changed.bind(toggle_id))
-				content.add_child(cb)
-				difficulty_toggle_checkboxes[toggle_id] = cb
-
+	_difficulty_toggles_body = VBoxContainer.new()
+	_difficulty_toggles_body.add_theme_constant_override("separation", SPACING_SM)
+	_fill_difficulty_toggles()
 	var card = _create_section_card(
-		"COMPENDIUM COMBAT OPTIONS",
-		content,
-		"Optional rules from the Five Parsecs Compendium"
+		"DIFFICULTY TOGGLES",
+		_difficulty_toggles_body,
+		"Optional rules from the Five Parsecs Compendium, pp.32-34"
 	)
 	parent.add_child(card)
+
+
+## Rebuilt when the pack is switched on or off in Expansion Features, so the card
+## always reflects the live flag that get_difficulty_toggles() reads.
+func _fill_difficulty_toggles() -> void:
+	if _difficulty_toggles_body == null or not is_instance_valid(_difficulty_toggles_body):
+		return
+	for child in _difficulty_toggles_body.get_children():
+		_difficulty_toggles_body.remove_child(child)
+		child.queue_free()
+	difficulty_toggle_checkboxes.clear()
+	var toggles: Array[Dictionary] = []
+	toggles.assign(CompendiumDifficultyTogglesRef.get_difficulty_toggles())
+
+	if toggles.is_empty():
+		var locked_label := Label.new()
+		locked_label.text = "Switch on \"Difficulty Toggles\" under Expansion Features to choose these options."
+		locked_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		locked_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		locked_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_difficulty_toggles_body.add_child(locked_label)
+		return
+
+	var categories: Array[String] = []
+	categories.assign(CompendiumDifficultyTogglesRef.get_categories())
+	for category in categories:
+		var cat_toggles: Array[Dictionary] = []
+		cat_toggles.assign(CompendiumDifficultyTogglesRef.get_toggles_by_category(category))
+		if cat_toggles.is_empty():
+			continue
+		var cat_label := Label.new()
+		cat_label.text = CompendiumDifficultyTogglesRef.get_category_name(category)
+		cat_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		cat_label.add_theme_color_override("font_color", COLOR_ACCENT)
+		_difficulty_toggles_body.add_child(cat_label)
+		for toggle in cat_toggles:
+			var toggle_id: String = toggle.get("id", "")
+			var cb := CheckBox.new()
+			cb.text = toggle.get("name", toggle_id)
+			cb.tooltip_text = toggle.get("description", "")
+			cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+			cb.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
+			cb.set_pressed_no_signal(toggle_id in selected_difficulty_toggles)
+			cb.toggled.connect(_on_difficulty_toggle_changed.bind(toggle_id))
+			_difficulty_toggles_body.add_child(cb)
+			difficulty_toggle_checkboxes[toggle_id] = cb
+	TouchScrollOpenerRef.open_subtree(_difficulty_toggles_body)
 
 func _on_difficulty_toggle_changed(enabled: bool, toggle_id: String) -> void:
 	if enabled and toggle_id not in selected_difficulty_toggles:
@@ -1168,6 +1181,7 @@ func _on_progressive_difficulty_changed(_toggled: bool) -> void:
 
 func _on_expansion_flags_changed(flags: Dictionary) -> void:
 	local_campaign_config["enabled_flags"] = flags
+	_fill_difficulty_toggles()
 	campaign_config_data_changed.emit(local_campaign_config)
 
 func _on_expansion_upsell(_dlc_id: String) -> void:

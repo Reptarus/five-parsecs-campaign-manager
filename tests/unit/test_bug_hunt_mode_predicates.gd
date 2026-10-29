@@ -294,7 +294,7 @@ func test_the_save_scan_reports_the_name_and_turn_the_dialog_prints() -> void:
 func test_a_bug_hunt_save_recovered_from_its_backup_is_listed() -> void:
 	# GameState._detect_campaign_type's docblock already names this function as a victim:
 	# "the campaign is destroyed AND vanishes from the Bug Hunt menu
-	# (MainMenu._find_bug_hunt_saves filters on that field)". The loader was given
+	# (MainMenu.find_saves_of_type("bug_hunt") filters on that field)". The loader was given
 	# read_json_with_fallback; the menu was not, so the menu still drops a save the
 	# loader can open. A fix applied to one reader of a shared fact is not a fix.
 	var path := _write(BugHuntCoreScript.new(), "zz recovered bh")

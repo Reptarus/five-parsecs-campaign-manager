@@ -152,6 +152,29 @@ func test_the_salvage_tables_can_be_forced() -> void:
 		assert_bool(bool(SalvageJobGenerator.roll_authorities_check(1).get("caught"))).is_true()
 
 
+func test_the_salvage_job_generator_wrappers_never_re_roll() -> void:
+	# The four wrappers used to carry a raw re-roll "fallback" for an empty result.
+	# It never ran (each roller returns a row), and if it ever did it would replace a
+	# forced die. The wrapper must hand back exactly what the forced roller rolled.
+	_force("Salvage Hostiles", 70)
+	assert_str(str(SalvageJobGenerator.roll_hostile_type().get("id"))).is_equal("infestation")
+	_force("Salvage Point of Interest", 100)
+	assert_str(str(SalvageJobGenerator.roll_point_of_interest().get("id"))).is_equal("doomsday_protocol")
+	_force("Salvage Contact", 6)
+	assert_str(str(SalvageJobGenerator.resolve_contact().get("id"))).is_equal("movement_everywhere")
+	# And no raw random call survives in the generator's CODE (comments excluded).
+	var src := FileAccess.get_file_as_string("res://src/core/mission/SalvageJobGenerator.gd")
+	assert_int(src.length()).is_greater(500)
+	var raw_calls: Array[String] = []
+	for line: String in src.split("
+"):
+		var code := line.split("#")[0]
+		for token: String in ["randi(", "randi_range(", "randf(", "randf_range("]:
+			if token in code:
+				raw_calls.append(line.strip_edges())
+	assert_array(raw_calls).is_empty()
+
+
 func test_salvage_availability_can_be_forced() -> void:
 	# p.137: 1 no job, 6 illegal job. The table is behind the Salvage Jobs flag,
 	# set in memory only (set_dlc_owned() would write user://dlc_ownership.cfg).

@@ -336,14 +336,16 @@ static func battle_modifiers(coop: Dictionary, sector_id: String) -> Dictionary:
 	var factors: Array = []
 	for factor_id in _as_array(sector.get("factors", [])):
 		var row: Dictionary = factor_row(str(factor_id))
+		# Each entry keeps its own `battle` keys, so a battle line a key changes can be
+		# rewritten in THIS row's words (BugHuntBattleGuide).
 		factors.append({"id": str(factor_id), "name": str(row.get("name", factor_id)),
-			"effect": str(row.get("effect", ""))})
+			"effect": str(row.get("effect", "")), "battle": _as_dict(row.get("battle", {}))})
 		battle.merge(_whole_numbers(_as_dict(row.get("battle", {}))), true)
 	var conditions: Array = []
 	for condition_id in _as_array(sector.get("conditions", [])):
 		var move: Dictionary = _move_for_condition(str(condition_id))
 		conditions.append({"id": str(condition_id), "name": str(move.get("condition_name", condition_id)),
-			"effect": str(move.get("effect", ""))})
+			"effect": str(move.get("effect", "")), "battle": _as_dict(move.get("battle", {}))})
 		battle.merge(_whole_numbers(_as_dict(move.get("battle", {}))), true)
 	return {
 		"sector_id": str(sector.get("id", "")),

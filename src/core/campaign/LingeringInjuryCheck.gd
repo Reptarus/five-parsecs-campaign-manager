@@ -85,7 +85,7 @@ static func roll_for(member, roller: Callable = Callable()) -> Dictionary:
 	var injuries: Array = _injuries_of(member)
 	var recovered: Array = []
 	for entry in pending:
-		var roll: int = int(roller.call()) if roller.is_valid() else randi_range(1, 6)
+		var roll: int = int(roller.call()) if roller.is_valid() else _roll_d6()
 		(result["rolls"] as Array).append(roll)
 		result["rolled"] = true
 		if roll <= ACTING_UP:
@@ -119,6 +119,19 @@ static func roll_for_crew(crew: Array, roller: Callable = Callable()) -> Array:
 			res["character_name"] = _name_of(member)
 			out.append(res)
 	return out
+
+
+## The p.102 die, through DiceManager so the QA "Force the next roll" seam reaches
+## it ("Lingering Injury"). This was a bare randi_range, so a 1 or a 6 could not
+## be forced on a device walk. Static, so the autoload is reached through the
+## main loop; randi_range is the fallback only when the autoload is absent.
+static func _roll_d6() -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice:
+		return int(dice.roll_d6("Lingering Injury"))
+	return randi_range(1, 6)
 
 
 static func _bench_for_one_battle(member) -> void:

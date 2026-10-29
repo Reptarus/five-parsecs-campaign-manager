@@ -345,8 +345,10 @@ Three device runs were spent chasing a battle-transition hang that did not exist
 - **A pixel-diff showing "nothing changed" means the screen has SETTLED.** That is a reason
   to scroll the full page and look elsewhere, not evidence of a hang. The control that
   actually advanced the flow ("Proceed to Battle") was below the fold the whole time.
-- **A greyed control is usually correct.** "Ready for Battle" greys out precisely because it
-  succeeded — it completes the Mission Prep step.
+- **A greyed control is usually correct.** The Mission Prep button greys out precisely
+  because it succeeded — it completes the step. It read "Ready for Battle" until
+  2026-10-29 and now reads "Confirm Crew & Gear"; completing it moves focus to
+  "Proceed to Battle", which is the launcher.
 - **CPU is meaningless without a baseline.** This app idles at **32% on the main menu and 37%
   on the dashboard**, with CPU-time climbing steadily because Godot renders continuously.
   ~55% is unremarkable. Measure idle before calling a number anomalous.

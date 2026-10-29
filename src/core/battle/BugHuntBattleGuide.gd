@@ -81,9 +81,13 @@ static func briefing_rows(md: Dictionary) -> Array:
 
 	var movement: Dictionary = _rules(md, "contact_rules").get("movement", {})
 	if not movement.is_empty():
+		var move_lines: Array[String] = [str(movement.get("aggression_die", "")),
+			str(movement.get("chance_die", "")), str(movement.get("equal", ""))]
+		var patrolled: Dictionary = _coop_rule(md, "aggression_die_bonus")
+		if not patrolled.is_empty():
+			move_lines.insert(1, _coop_words(patrolled))
 		rows.append({"head": "Contact movement (Enemy Action phase)",
-			"detail": "\n".join([str(movement.get("aggression_die", "")),
-				str(movement.get("chance_die", "")), str(movement.get("equal", ""))])})
+			"detail": "\n".join(move_lines)})
 
 	var reveal: Array[String] = []
 	for row in _as_array(_rules(md, "contact_rules").get("contact_table", [])):
@@ -123,13 +127,20 @@ static func briefing_rows(md: Dictionary) -> Array:
 
 	var evac: Dictionary = evac_rules()
 	if not evac.is_empty():
+		# A co-op sector's Hot zone (no loitering) and Obstructed (no covering fire)
+		# replace the lines they overrule, rather than sitting beside them.
+		var no_loiter: Dictionary = _coop_rule(md, "evac_can_loiter")
+		var no_cover: Dictionary = _coop_rule(md, "evac_covering_fire")
 		rows.append({"head": "Evac: request it from Round %d (%s)" % [
 				int(evac.get("available_from_round", 0)), CITE_EVAC],
 			"detail": "\n".join([str(evac.get("description", "")), _evac_roll_line(evac),
 				str(evac.get("arrival", "")),
-				"If %d rounds pass, the drop ship leaves and you must call again."
-					% int(evac.get("loiter_rounds", 0)),
-				str(evac.get("priority_increase", "")), str(evac.get("supporting_fire", ""))])})
+				_coop_words(no_loiter) if not no_loiter.is_empty()
+					else "If %d rounds pass, the drop ship leaves and you must call again."
+						% int(evac.get("loiter_rounds", 0)),
+				str(evac.get("priority_increase", "")),
+				_coop_words(no_cover) if not no_cover.is_empty()
+					else str(evac.get("supporting_fire", ""))])})
 	return rows
 
 
@@ -154,8 +165,28 @@ static func numbers_line(md: Dictionary) -> String:
 	if mod != 0:
 		adj = " %s%d per marker on %s" % ["+" if mod > 0 else "−", absi(mod),
 			str(_difficulty(md).get("name", "this difficulty"))]
+	var swarming: Dictionary = _coop_rule(md, "enemies_per_contact_bonus")
+	if not swarming.is_empty():
+		adj += ". " + _coop_words(swarming).trim_suffix(".")
 	return ("CONTACT! numbers: roll the Numbers column of the Enemy table%s. Every enemy "
 		+ "in a mission is the same type (%s).") % [adj, CITE_NUMBERS]
+
+
+## Co-op (Compendium p.210): a sector's Factors and enemy conditions change rules this
+## card states, so the line they change is rewritten in the data row's own words instead
+## of leaving a separate row the players must reconcile with it. md["coop"] is
+## BugHuntMissionPanel's stamp; its `modifiers` are BugHuntCoopCampaign.battle_modifiers(),
+## whose entries carry their own `battle` keys. {} outside co-op or without that key.
+static func _coop_rule(md: Dictionary, battle_key: String) -> Dictionary:
+	var mods: Dictionary = _as_dict(_as_dict(md.get("coop", {})).get("modifiers", {}))
+	for entry in _as_array(mods.get("factors", [])) + _as_array(mods.get("conditions", [])):
+		if entry is Dictionary and _as_dict(entry.get("battle", {})).has(battle_key):
+			return entry
+	return {}
+
+
+static func _coop_words(entry: Dictionary) -> String:
+	return "%s: %s" % [str(entry.get("name", "")), str(entry.get("effect", ""))]
 
 
 ## End-of-round prompts in TacticalBattleUI's {text, roll} shape. `round_number` is the

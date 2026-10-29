@@ -507,7 +507,11 @@ func pay_medical_treatment(crew_id: String, injury_index: int) -> Dictionary:
 	var pending: bool = bool(injury.get("treatment_pending", false))
 	injuries.remove_at(injury_index)
 	if pending:
-		var turns: int = int(injury.get("recovery_turns", cost))
+		# InjuryProcessor stores the deferred time apart so no Sick Bay reader runs
+		# it early; a record written before that change carries it as
+		# recovery_turns, hence the fallback.
+		var turns: int = int(injury.get("deferred_recovery_turns",
+			injury.get("recovery_turns", cost)))
 		out["recovery_turns"] = turns
 		_begin_treated_recovery(member, turns)
 		# The two status effects that held them out of tasks and battles were

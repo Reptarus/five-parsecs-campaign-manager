@@ -113,54 +113,31 @@ static func generate_salvage_job(crew_size: int) -> Dictionary:
 	}
 
 
+## These four wrappers each kept a "fallback" that re-rolled its table with a raw
+## random call when the CompendiumSalvageJobs roller returned {}. None of those rollers
+## can return {} past the DLC gate (each falls back to row 0), so the fallbacks never
+## ran, and the day one did, a die the QA seam had forced would be silently replaced.
+## Removed 2026-10-29: the roller's result is the result.
 static func find_salvage_job() -> Dictionary:
 	if not _is_enabled():
 		return {}
 	var result := CompendiumSalvageJobs.roll_salvage_availability()
-	if not result.is_empty():
-		return result
-	# Fallback
-	var roll := randi_range(1, 6)
-	for entry in CompendiumSalvageJobs.SALVAGE_AVAILABILITY:
-		if roll >= entry.roll_min and roll <= entry.roll_max:
-			return entry.duplicate()
-	return CompendiumSalvageJobs.SALVAGE_AVAILABILITY[0].duplicate()
+	return result
 
 
 static func roll_hostile_type() -> Dictionary:
 	var result := CompendiumSalvageJobs.roll_hostiles_type()
-	if not result.is_empty():
-		return result
-	# Fallback
-	var roll := randi_range(1, 100)
-	for h in CompendiumSalvageJobs.HOSTILES_TABLE:
-		if roll >= h.roll_min and roll <= h.roll_max:
-			return h.duplicate()
-	return CompendiumSalvageJobs.HOSTILES_TABLE[0].duplicate()
+	return result
 
 
 static func roll_point_of_interest() -> Dictionary:
 	var result := CompendiumSalvageJobs.roll_poi_reveal()
-	if not result.is_empty():
-		return result
-	# Fallback
-	var roll := randi_range(1, 100)
-	for poi in CompendiumSalvageJobs.POI_REVEALS:
-		if roll >= poi.roll_min and roll <= poi.roll_max:
-			return poi.duplicate()
-	return CompendiumSalvageJobs.POI_REVEALS[0].duplicate()
+	return result
 
 
 static func resolve_contact() -> Dictionary:
 	var result := CompendiumSalvageJobs.roll_contact_result()
-	if not result.is_empty():
-		return result
-	# Fallback
-	var roll := randi_range(1, 6)
-	for c in CompendiumSalvageJobs.CONTACT_RESULTS:
-		if roll >= c.roll_min and roll <= c.roll_max:
-			return c.duplicate()
-	return CompendiumSalvageJobs.CONTACT_RESULTS[0].duplicate()
+	return result
 
 
 static func get_salvage_credits(units: int) -> int:

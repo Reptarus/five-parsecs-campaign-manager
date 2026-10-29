@@ -352,12 +352,12 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 	if not detailed_row.is_empty():
 		return _process_detailed_injury(ctx, detailed_row, crew_id)
 
-	var injury_roll := randi_range(1, 100)
+	var injury_roll: int = _roll(100, "Post-Battle Injury")
 	# Medical school (p.125): the nominated casualty "will roll twice on the
 	# Injury Table, picking the better result".
 	var reroll_note: String = ""
 	if not _medical_nominee_id.is_empty() and crew_id == _medical_nominee_id:
-		var second_roll: int = randi_range(1, 100)
+		var second_roll: int = _roll(100, "Post-Battle Injury (Medical school second roll)")
 		var kept: int = _better_roll(injury_roll, second_roll, false)
 		reroll_note = "Medical school (p.125): rolled %d and %d, kept %d." % [
 			injury_roll, second_roll, kept]
@@ -596,12 +596,21 @@ func _process_detailed_injury(ctx: PostBattleContextClass, row: Dictionary,
 			# "Roll 1D6+1 to determine the cost in Credits. Until the cost has
 			# been paid, the character cannot take crew tasks or fight. The Sick
 			# Bay recovery time begins once they have received treatment."
-			var cost: int = randi_range(1, 6) + 1
+			var cost: int = _roll(6, "Extensive Injury Cost") + 1
 			processed["treatment_cost"] = cost
 			# Sick Bay is "identical to medical cost" (the table's own wording) and
-			# does not start ticking yet, so the recovery turns are STORED but the
-			# character is held out by the two blocks below until treatment is paid.
-			processed["recovery_turns"] = cost
+			# does not start until treatment, so the time is stored as
+			# `deferred_recovery_turns` and `recovery_turns` stays 0. The record is
+			# `persistent` because payment is the only thing that ends it.
+			#
+			# It used to store `recovery_turns = cost`. Every Sick Bay reader then
+			# ran the clock early: apply_crew_injury put the character in Sick Bay
+			# at once, the turn-rollover countdown ticked the record down and
+			# DELETED it at 0, and the two bench effects below (no duration) were
+			# left with no record to pay for, so the character never fought again.
+			processed["recovery_turns"] = 0
+			processed["deferred_recovery_turns"] = cost
+			processed["persistent"] = true
 			processed["treatment_pending"] = true
 			for effect_type in ["skip_tasks", "skip_next_battle"]:
 				ctx.apply_character_status_effect(ctx.get_crew_member(crew_id), {
@@ -617,7 +626,7 @@ func _process_detailed_injury(ctx: PostBattleContextClass, row: Dictionary,
 		"item_hit":
 			# "Randomly select a carried item and roll 1D6. On a 1-4 it is
 			# damaged. On a 5-6 it is destroyed."
-			var item_roll: int = randi_range(1, 6)
+			var item_roll: int = _roll(6, "Injury Item Hit")
 			if item_roll <= 4:
 				var hit: String = ctx.damage_random_equipment_for(
 					crew_id, "Detailed Injury: Item hit")
@@ -725,15 +734,33 @@ func _apply_crippling_wound(ctx: PostBattleContextClass,
 		# already at 0 the surgery buys nothing and must not be sold.
 		processed_injury["surgery_offer_available"] = not reduced.is_empty()
 
+## An injury die, through DiceManager so the QA "Force the next roll" seam reaches
+## it. The post-battle injury tables were bare randi_range calls, so no injury row
+## could be forced on a device walk. This class is RefCounted: it reaches the
+## autoload through the main loop, because a bare /root lookup from here errors
+## and aborts the step. randi_range is the fallback only when the autoload is
+## absent (a unit test building this class outside a tree).
+static func _roll(sides: int, context: String) -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice:
+		if sides == 100:
+			return int(dice.roll_d100(context))
+		if sides == 6:
+			return int(dice.roll_d6(context))
+	return randi_range(1, sides)
+
+
 func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, crew_id: String) -> Dictionary:
 	## Process injury for Bot/Soulless character (Core Rules p.94-95)
-	var injury_roll := randi_range(1, 100)
+	var injury_roll: int = _roll(100, "Bot Injury")
 	# Bot technician (p.125): "If a Bot or Soulless character must roll for a
 	# post-battle injury, you may roll twice, picking the better result." The
 	# book sets no per-battle limit here, so every such roll benefits.
 	var reroll_note: String = ""
 	if _bot_technician_active:
-		var second_roll: int = randi_range(1, 100)
+		var second_roll: int = _roll(100, "Bot Injury (Bot technician second roll)")
 		var kept: int = _better_roll(injury_roll, second_roll, true)
 		reroll_note = "Bot technician (p.125): rolled %d and %d, kept %d." % [
 			injury_roll, second_roll, kept]

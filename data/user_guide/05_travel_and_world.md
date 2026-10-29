@@ -143,7 +143,7 @@ The final sub-step is selecting which mission to undertake:
 
 Skipping battle is sometimes wise (e.g., if your crew is badly injured), but you still pay upkeep costs and miss out on XP and loot.
 
-Once you select a mission, the app advances to the Battle Setup phase.
+Once you select a mission, press **Confirm Crew & Gear** to lock in who is going and what they carry. That completes the step; it does not start the battle. **Proceed to Battle** then appears at the bottom of the screen with the focus on it, and pressing it moves on to Battle Setup.
 
 ## World Phase Tips
 

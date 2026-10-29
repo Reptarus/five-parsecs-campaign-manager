@@ -186,32 +186,33 @@ func _refresh_log() -> void:
 
 	# Add system info header
 	_log_display.append_text(
-		"[color=#6b7280]── System Info ──[/color]\n"
+		"[color=%s]── System Info ──[/color]\n" % UIColors.HEX_TEXT_MUTED
 	)
 	_log_display.append_text(
-		"[color=#9ca3af]OS: %s[/color]\n" % OS.get_name()
+		"[color=%s]OS: %s[/color]\n" % [UIColors.HEX_TEXT_SECONDARY, OS.get_name()]
 	)
 	_log_display.append_text(
-		"[color=#9ca3af]Engine: Godot %s[/color]\n" % Engine.get_version_info().string
+		"[color=%s]Engine: Godot %s[/color]\n" % [
+			UIColors.HEX_TEXT_SECONDARY, Engine.get_version_info().string]
 	)
 	var version: String = ProjectSettings.get_setting(
 		"application/config/version", "unknown"
 	)
 	_log_display.append_text(
-		"[color=#9ca3af]App: v%s[/color]\n" % version
+		"[color=%s]App: v%s[/color]\n" % [UIColors.HEX_TEXT_SECONDARY, version]
 	)
 	_log_display.append_text(
-		"[color=#9ca3af]Display: %s[/color]\n" % str(
+		"[color=%s]Display: %s[/color]\n" % [UIColors.HEX_TEXT_SECONDARY, str(
 			DisplayServer.window_get_size()
-		)
+		)]
 	)
 	_log_display.append_text(
-		"[color=#6b7280]── Log ──[/color]\n"
+		"[color=%s]── Log ──[/color]\n" % UIColors.HEX_TEXT_MUTED
 	)
 
 	if lines.is_empty():
 		_log_display.append_text(
-			"[color=#6b7280]No log entries captured yet.[/color]\n"
+			"[color=%s]No log entries captured yet.[/color]\n" % UIColors.HEX_TEXT_MUTED
 		)
 	else:
 		for line: String in lines:

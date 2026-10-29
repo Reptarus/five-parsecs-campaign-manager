@@ -630,6 +630,9 @@ func _add_compendium_sections() -> void:
 		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.DETAILED_INJURIES):
 			_add_built_section("Detailed Injuries [Compendium p.102]",
 				CheatSheetSectionsRef.detailed_injuries())
+		if dlc_mgr.is_feature_enabled(dlc_mgr.ContentFlag.DRAMATIC_COMBAT):
+			_add_built_section("Dramatic Weapons [Compendium pp.88-89]",
+				CheatSheetSectionsRef.dramatic_weapons())
 
 	# Fixer's Guidebook sections
 	if dlc_mgr.has_dlc("fixers_guidebook"):

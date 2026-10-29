@@ -126,10 +126,10 @@ static var DRAMATIC_COMBAT_RULES: Dictionary:
 		_ensure_loaded()
 		return _data.get("dramatic_combat_rules", {})
 
-static var DRAMATIC_EFFECTS: Array:
+static var DRAMATIC_TRAIT_NOTES: Array:
 	get:
 		_ensure_loaded()
-		return _data.get("dramatic_effects", [])
+		return _data.get("dramatic_trait_notes", {}).get("notes", [])
 
 ## ============================================================================
 ## WHICH TOGGLES ARE ON — the chokepoint every pp.32-34 rule reads
@@ -568,10 +568,21 @@ static func casualty_category_for(is_mechanical: bool, is_beast: bool) -> String
 ## resolved once. Note roll_min 0 on the Death row is the book's tens-digit
 ## notation for "01-10"; matching an inclusive 1-100 roll against the span is
 ## correct for it and for the 96-00 row alike.
+## Through DiceManager so the QA "Force the next roll" seam reaches the p.102 table.
+## Reached through the main loop because this is a static data class.
+static func _roll_d100(context: String) -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice:
+		return int(dice.roll_d100(context))
+	return randi_range(1, 100)
+
+
 static func roll_detailed_injury() -> Dictionary:
 	if not _is_flag_enabled("DETAILED_INJURIES"):
 		return {}
-	var roll := randi_range(1, 100)
+	var roll: int = _roll_d100("Detailed Injury Table")
 	for entry in DETAILED_INJURY_TABLE:
 		if roll >= int(entry.get("roll_min", -1)) and roll <= int(entry.get("roll_max", -1)):
 			var out: Dictionary = entry.duplicate(true)
@@ -580,14 +591,21 @@ static func roll_detailed_injury() -> Dictionary:
 	return {}
 
 
-## Get dramatic effect text for a weapon type. Returns empty if disabled.
-static func get_dramatic_effect(weapon_type: String) -> String:
+## Compendium pp.88-89 Dramatic Weapons as the player reads them at the table: the
+## same rows apply_dramatic_weapon_profile() applies, with the printed names, and the
+## p.89 trait notes. Empty when Dramatic Combat is off. (This replaced
+## get_dramatic_effect(), which had no caller and returned a per-weapon-TYPE
+## paraphrase that is in neither book.)
+static func get_dramatic_weapons_reference() -> Dictionary:
 	if not _is_flag_enabled("DRAMATIC_COMBAT"):
-		return ""
-	for entry in DRAMATIC_EFFECTS:
-		if entry.weapon_type == weapon_type:
-			return entry.instruction
-	return ""
+		return {}
+	_ensure_loaded()
+	var rows: Array = []
+	var table: Dictionary = _data.get("dramatic_weapons_stats", {})
+	for key: String in table:
+		if not key.begins_with("_") and table[key] is Dictionary:
+			rows.append(table[key])
+	return {"weapons": rows, "trait_notes": DRAMATIC_TRAIT_NOTES}
 
 
 ## Get Adjusted Shooting hit thresholds (Compendium p.87) when Dramatic Combat

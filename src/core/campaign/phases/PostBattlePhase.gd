@@ -251,7 +251,15 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 
 	# Store battle result data
 	battle_result = battle_data.duplicate(true)
-	mission_successful = battle_data.get("success", false)
+	# Core Rules p.70 Raided: "There is no objective. If you drive them off, they
+	# flee back to their ship ... If you win, you get the normal rewards for winning
+	# an Opportunity mission (see p.120), plus a bonus roll on the Loot Table". With
+	# no objective, `success` (objective met) cannot be true, so the win is holding
+	# the field. Set on this copy, which every post-battle step reads, so the p.120
+	# pay, p.123 XP and the bonus Loot roll agree on one answer.
+	if bool(battle_result.get("travel_event_raid", false)):
+		battle_result["success"] = bool(battle_result.get("held_field", false))
+	mission_successful = battle_result.get("success", false)
 	# Tactical producers write enemies_defeated_count / defeated_enemies; the
 	# map auto-resolve writes bare enemies_defeated + the legacy defeated_enemy_list.
 	# Accept both so no path silently reads 0 / [].

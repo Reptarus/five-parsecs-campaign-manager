@@ -730,8 +730,13 @@ func _on_crew_selected(char_data: Dictionary) -> void:
 ## and would also penalise PISTOL shots, which the book exempts. So the only
 ## place it can be applied correctly is the roll itself, where the weapon is
 ## known. Returns 0 or -1.
-func _injured_arm_penalty(is_pistol_shot: bool) -> int:
+##
+## "To a minimum of -1": a character already at Combat Skill -1 or lower takes no
+## further penalty, so `combat_skill` is the base the penalty would lower.
+func _injured_arm_penalty(is_pistol_shot: bool, combat_skill: int = 0) -> int:
 	if is_pistol_shot:
+		return 0
+	if combat_skill <= -1:
 		return 0
 	var injuries: Variant = _selected_character.get("injuries", [])
 	if not (injuries is Array):
@@ -936,7 +941,7 @@ func _execute_hit_roll() -> void:
 	var snap_penalty: int = -1 if is_snap_fire else 0
 
 	# Compendium p.102 Injured arm — non-Pistol shots only.
-	var arm_penalty: int = _injured_arm_penalty(_weapon_is_pistol(weapon))
+	var arm_penalty: int = _injured_arm_penalty(_weapon_is_pistol(weapon), combat_skill)
 	var effective_roll: int = roll + combat_skill + snap_penalty + arm_penalty
 	var hit: bool = effective_roll >= threshold
 
@@ -998,7 +1003,8 @@ func _execute_brawl_roll() -> void:
 	# Compendium p.102 Injured arm applies to ALL Brawling with no Pistol
 	# exemption — the clause is "when firing a non-Pistol weapon OR WHEN
 	# BRAWLING" — so false is passed for is_pistol_shot here on purpose.
-	var brawl_arm_penalty: int = _injured_arm_penalty(false)
+	var brawl_arm_penalty: int = _injured_arm_penalty(false, _selected_character.get(
+		"combat", _selected_character.get("combat_skill", 0)))
 	var attacker := {
 		"combat_skill": _selected_character.get("combat",
 			_selected_character.get("combat_skill", 0)) + brawl_arm_penalty,
