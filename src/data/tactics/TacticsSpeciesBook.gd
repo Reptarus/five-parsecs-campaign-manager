@@ -18,6 +18,12 @@ var vehicles: Dictionary = {}  # {vehicle_id: TacticsVehicleProfile}
 # Unit profiles (all available units for this species)
 var unit_profiles: Array = []  # Array of TacticsUnitProfile
 
+# The species' Lifeforms profiles as its file prints them (pp.153-167), keyed
+# civilian / military / sergeant / major / epic. Empty for Creatures, whose file has
+# units and no profiles. The composed units cannot stand in for this: the loader sets
+# no profile_tier, so every one reads MILITARY.
+var profiles: Dictionary = {}
+
 # Species-wide rules text (for reference display)
 var rules_text: Dictionary = {}  # {"Rule Name": "Full description text"}
 

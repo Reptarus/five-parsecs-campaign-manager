@@ -1,7 +1,8 @@
 # UI/UX screen audit — Sprint U (2026-10)
 
 **Started 2026-10-28 · branch `campaign-editor-and-fixits` · uncommitted.**
-Plan: `start-doing-deep-dive-elegant-reddy.md`, Sprint U.
+Plan: start-doing-deep-dive-elegant-reddy.md (in the Claude plans directory, outside the
+repo), Sprint U.
 
 The owner's brief: *"not just inventory but the fucking scenes and ui/ux for the fucking app
 as a whole."* The rules-wiring censuses that built the plan never rendered a screen. They
@@ -15,7 +16,8 @@ serves, and a fix that a test pins and an isolated revert proves.
   `capture_screens.gd` (5PFH and shared). Phone is `393x851` (design 338x734); tablet is
   `2560x1600`. Output goes to `user://shots/<run>/`.
 - **Verdict** is what the render showed, judged against the book step.
-- **Arms** are isolated-revert proofs from `arm_runner.py`. A row is **DETECTED** when the
+- **Arms** are isolated-revert proofs from arm_runner.py (a session scratchpad script,
+  not in the repo; the logs it writes are named per section). A row is **DETECTED** when the
   control run passes and the reverted run fails. An **UNDETECTED** arm is recorded, never
   dropped. Each one led to a better test (the `b`/second-run arms below).
 - Only attested rows appear. A screen nobody has captured yet is listed under **Not yet
@@ -33,13 +35,15 @@ serves, and a fix that a test pins and an isolated revert proves.
 | X6 | **Headings clipped instead of wrapping on a phone.** 24 heading Labels across the Planetfall turn panels, the dashboard and the creation panels had autowrap off. | All 24 autowrap (`AUTOWRAP_WORD_SMART`). | `test_planetfall_turn_footer.gd::test_every_heading_wraps_on_a_phone` | WT1, WT2 DETECTED |
 | X7 | **CheckBox icons came from the default theme**, which did not match the Deep Space palette. | The theme sets the CheckBox icons. | `test_ui_color_tokens.gd` | U1 (theme) DETECTED |
 | X8 | **TweenFX `stop()` left a node scaled mid-punch**, so the creation step label grew ~15% per step. | `TweenManager` restores rest values on `stop()`/`stop_all()`, and forgets them when a tween finishes. The step label punches once per step from a left-anchored pivot. | `test_tweenfx_rest_restore.gd` | U1-U4 (tween) DETECTED |
-| X9 | **Overlays had no gutter in three modes, because the margin was set on a type that has none.** Five full-screen pages set `margin_left`/`margin_right` on a `ScrollContainer`: Bug Hunt's transfer panel, Planetfall's Import and Muster Out, and Tactics' Commission panel and Retire overlay. Measured in 4.6: `ThemeDB` lists **zero** theme constants for `ScrollContainer`, in both the default and the project theme, so all five ran edge to edge. The Planetfall Import page also left horizontal scrolling on and scrolled sideways on a phone. | `ScreenChrome.overlay_page(host)` builds the page colour, a scroll with the horizontal axis disabled, and a `MarginContainer` *inside* it. The side margins come from the host's width (never the margin's own, which would feed back), with a 16 px gutter and an 800 px column, and the top clears the Settings buttons. All five pages use it. | `test_overlay_pages.gd::test_every_transfer_page_is_framed_on_a_phone` | OV12, OV13, OV17 (see arms log). ⚠ Tactics' Retire overlay is covered through the shared helper only: no case builds that overlay itself. |
+| X9 | **Overlays had no gutter in three modes, because the margin was set on a type that has none.** Five full-screen pages set `margin_left`/`margin_right` on a `ScrollContainer`: Bug Hunt's transfer panel, Planetfall's Import and Muster Out, and Tactics' Commission panel and Retire overlay. Measured in 4.6: `ThemeDB` lists **zero** theme constants for `ScrollContainer`, in both the default and the project theme, so all five ran edge to edge. The Planetfall Import page also left horizontal scrolling on and scrolled sideways on a phone. | `ScreenChrome.overlay_page(host)` builds the page colour, a scroll with the horizontal axis disabled, and a `MarginContainer` *inside* it. The side margins come from the host's width (never the margin's own, which would feed back), with a 16 px gutter and an 800 px column, and the top clears the Settings buttons. All five pages use it. | `test_overlay_pages.gd::test_every_transfer_page_is_framed_on_a_phone` | OV12, OV13, OV17 (see arms log). Tactics' Retire overlay was covered through the shared helper only until the Tactics pass built it (TD5, below). |
 | X10 | **Four of the six Planetfall dashboard overlays had no background**: Colony Status, Armory, Enemy Tracker and Augmentations drew straight over the dashboard and could not be read (captured, `pf_port11`). All six sat flush to the left edge and under the Settings buttons. | `ScreenChrome.overlay_frame(host)`, the same page for a panel that brings its own scroll. The dashboard builds it once and mounts every overlay inside it. | `test_every_dashboard_overlay_is_framed` (phone and tablet, all six) | OV1-OV3 |
 | X11 | **One weapon, three spellings.** Lock and Load and the Research application each wrote the profile line out by hand, and the Armory printed the JSON floats ("R:6.0 S:1.0 D:+0"). | `DisplayText.weapon_profile()` (`6" · 1 shot · Dmg +0`), read by all three. | `test_weapon_profile_prints_whole_numbers_and_words`, `test_the_armory_card_reads_like_lock_and_load` | OV5, OV16 |
 | X12 | **An overlay built before it joins the tree never cleared the Settings buttons.** `_reserve_band_when_ready` waited on the HOST's `tree_entered`. Godot emits that before the host's children enter the tree, so `reserve_band(scroll)` found the scroll outside it and returned. Muster Out's title sat under the buttons (`pf_port12`). Import builds in `_ready()`, so it never took that path. | Wait on the TARGET's `tree_entered`. | `test_every_transfer_page_is_framed_on_a_phone` (now checks the band on every transfer page) | OV19 DETECTED |
 | X13 | **All three transfer pages ran off a phone once they had something on them.** 28 Labels and the select buttons did not wrap: titles, explanation headers, the "No eligible veterans" line a fresh device shows first, the veteran's name and stats, and `Select <name>` / `Commission <name>`. The Step 2 button rows were HBoxes of fixed-width buttons. Measured: Step 1 ran to x=513 and Tactics' Step 2 to x=626 on a 338 px screen. | Every Label in a VBox wraps. The select buttons wrap. The Step 2 row buttons expand and wrap, so the pair splits the row. | same | OV20, OV21, OV22 DETECTED |
 | X15 | **Neither layout sweep had ever built a Planetfall screen.** `verify_layout.gd` declared the variant modes "deliberately out of scope" because `is_a1_build()` hides them, a reason the review build retired. `test_touch_scroll_sweep.gd` stopped at Bug Hunt. | `ScreenPopulator._pre_planetfall()` founds a colony through the wizard's own `build_campaign()` (recommended p.14 roster, rolled backgrounds) and resumes turn 1 at Recovery, so nothing saves. Both sweeps list the three Planetfall screens. `verify_layout` now puts its baseline campaign back before every screen, so a variant fixture cannot leak into the 5PFH screens after it, and takes `-- only=<text>`. The touch sweep gained `SaveDirGuard` and node floors from a one-variable A/B: Dashboard 14 → 284, Turn Controller 2 → 226, Creation 165 either way. | `test_touch_scroll_sweep.gd` (33/33 built, 0 STOP under 26 Planetfall scrolls); `verify_layout -- only=planetfall` 24/24 | SW1-SW3 DETECTED |
 | X14 | **The dashboard overlays put Close in three places**: under the content (Colony Status, Armory, Enemy Tracker, and Augmentations opened from the dashboard), top right (Milestones, Calamities), and under Muster Out's whole roster. On a phone the eight Augmentation cards had to be scrolled to the end to leave the page. | Close (and Muster Out's Cancel) is the first child, top right, 120 × 48, below the band. Colony Status and Enemy Tracker had re-added the kept Close at the end of every rebuild, which also errors on a second refresh (the node already has a parent); that is gone. As a turn step, Augmentations keeps its Continue last. | `test_every_overlay_can_be_closed_without_scrolling` (phone and tablet; 12-colonist roster; three Tactical Enemies from `create_full_enemy()`) | OV23-OV27 DETECTED |
+| X16 | **Neither sweep had built a Tactics screen, and the touch sweep failed the moment it did.** With the three Tactics screens added, it found 32 STOP controls under the creation wizard's scrolls (the 15 species cards and their Select buttons, plus the review: two panels with no opener) and 3 under the turn screen's (the row each phase panel adds after its own one-shot sweep). | `ScreenPopulator._pre_tactics()` builds a campaign through the wizard's own `build_campaign()` (a five-unit Human platoon, validated) and opens the operational map, so nothing saves. `TacticsCreationUI` and `TacticsTurnController` call `TouchScrollOpener.keep_open(self)`. Node floors from a one-variable A/B: Dashboard 12 → 125, Turn Controller 1 → 61, Creation 223 either way. | `test_touch_scroll_sweep.gd` (36/36 built, 0 STOP under every Tactics scroll); `verify_layout -- only=tactics` | TW1, TW2, TW3 DETECTED |
+| X17 | **No overlay page could be dragged from a row.** `overlay_page()` builds a ScrollContainer that every caller fills with buttons and cards (STOP by construction), and most callers add the page to the window root, where no screen's sweep reaches. None of the five callers opened it: Bug Hunt's transfer panel (which opened only its own `_content` on some steps), Planetfall's Import and Muster Out, and Tactics' Commission and Retire. | `overlay_page()` calls `TouchScrollOpener.keep_open(host)`, **deferred past the host's tree entry**. A non-deferred call sweeps an empty column (callers add rows after it returns), and a keeper that becomes ready inside the same entry has already missed those rows' `node_added`. | `test_touch_scroll_sweep.gd::test_an_overlay_page_opens_every_row_it_hosts` (one row added before entry, one after; premise: a Button is STOP by default) | X17a, X17a', X17b DETECTED (X17b is the deferral) |
 
 ## Planetfall — per screen
 
@@ -97,6 +101,51 @@ fixes. The re-capture is recorded in the next section.
 | 18 Update Tracking (p.71) | **Asked for a press and saved twice**. p.71 rolls nothing at this step. It now arrives ready with the book's text, and the campaign saves when the turn ends. | `test_planetfall_colony_crisis.gd::test_step_18_arrives_ready_with_the_books_text` | S18 DETECTED |
 | End Game (pp.160-164) | **Captured stage by stage for all four paths** (`pf_port14`, 15 frames). The text matches the book at every stage: Summit, D6 per character plus one for the population (p.160); Colony Security, 1 Strongpoint or 2 for Loyalty (p.160); costs of 15/5, 5/15, 10/5 and 5/10 BP/RP (pp.161-163); Independence and Ascension offer the narrated victory; and Isolation's completion lists each Nomad Struggles roll to 3 Wisdom (p.163). **One defect:** the path buttons did not wrap. "Independence (Cost: 15 BP, 5 RP) [SECURITY NOT MET]" ran past a phone and dragged the whole stage off-centre. The Loyalty dice had the same exposure, waiting on a roll: a rolled 2 is "Staging ground for continued colonization missions", 50 characters on one button in a flow. Both now wrap, and the dice stack full width. | `test_overlay_pages.gd::test_the_end_game_fits_a_phone` | OV28, OV29 DETECTED |
 
+## Tactics — per screen
+
+Captures `tac_land` / `tac_port` (`capture_modes.gd -- mode=tactics`, 2026-10-28), every
+creation step empty and filled, the dashboard, the Commission overlay, all eight turn
+phases and the turn-end card. Every case below is in `test_tactics_screen_fit.gd` unless
+named, and the arms are in `arms_sf.log`. ⚠ The arms were logged as SF1-SF18, which
+collides with the Planetfall SF1-SF3 above, so this section writes them **TSF**.
+
+### Creation wizard (`TacticsCreationUI.tscn`, 4 steps)
+
+| Step | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Header | **The first screen said "Step 1 of 5" on a four-step wizard.** The label was only set on a step change, so the build-time literal showed until the player moved. It is now set at `_ready`. **The title ran past a 310 px phone**: it now wraps, and its 70 px right spacer (which balances the Cancel button on a wide screen) hides on a narrow one. | `test_the_first_screen_names_the_real_step_count`, `test_the_creation_title_wraps_inside_a_small_phone` | TSF1, TSF2, TSF3 DETECTED |
+| Navigation | Launch Campaign ended 3 px past a 310 px phone, in a row beside Back. The row is an `HFlowContainer`, so the pair wraps. | `test_every_creation_step_fits_a_small_phone` (all four steps, each filled by its own panel) | TSF5 DETECTED |
+| Cancel, Select | Both carried a 40 px minimum and a comment calling it 46.4 dp, under the 48 dp floor. **Measured, that was false:** the theme draws a 40 px-minimum button at 42 design px, 48.7 dp. They now use `TOUCH_TARGET_MIN` for consistency, and the comments say so. | `test_the_wizard_buttons_meet_the_touch_floor` | TSF6, TSF7 UNDETECTED by design (no defect to detect) |
+| 1 Configuration | The title ran past a phone and now wraps. The scroll's horizontal axis is disabled, so an overflow shows instead of scrolling sideways. | steps case | TSF4 DETECTED. CF1 (the armored-platoon CheckBox wrap) UNDETECTED: "Build an armored platoon" fits; the longer company-org label is not reached by the case. |
+| 2 Species (pp.153-167) | **Every card read "Major — 31 units, 40 weapons"** (the loader's own log prints those counts for every species). Units are composed from the one Army Builder (pp.133-139) and every species arms from the one p.181 table, so the numbers said nothing. Special Rules showed as names only. The species book now keeps its Lifeforms `profiles`, and each card prints its power, its **Military** profile as the file prints it, and each Special Rule's text. ⚠ The composed units could not supply the profile: the loader sets no `profile_tier`, so every unit reads MILITARY. | `test_each_species_card_shows_its_own_profile_and_rules` (every rule text present, more than five distinct Military lines, the Human line built independently from the JSON) | TC7a, TC7b, TC7c DETECTED |
+| 2 Species (Select) | With the profile and each rule's text, a card grew to five or six lines and its `SIZE_FILL` Select button grew with it, into a slab as tall as the card (`tac_land2`). It now centres at the touch height. | species case (each Select no taller than `TOUCH_TARGET_MIN`) | TC7d DETECTED (all 15 cards fail when reverted) |
+| 3 Roster | **Available Units and Your Roster were stacked on every screen**, so the roster being built sat below about two dozen "+ Add" rows (the code comment said they "would be side-by-side on wide"). They are now two columns wherever `ResponsiveManager` offers more than one, and one in portrait, where the header counts the units added. The header flows, so the count drops under the title on a phone. "1 models" now reads "1 model". | `test_the_roster_sits_beside_the_unit_list_on_a_tablet`, `test_counts_read_as_a_player_writes_them` | TSF16, TSF17, TSF18, TC6a, TC6b DETECTED |
+| 4 Review | "1 models" and "Validation: 1 issue(s)" now read as a player writes them. | counts case | TC6c DETECTED |
+
+### Dashboard (`TacticsDashboard.tscn`)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Header | **The title sat under the Settings and bug-report buttons in portrait.** `TacticsScreenBase` centred the page by moving the full-rect scroll's own offsets, so the screen had neither shape `reserve_band_on()` handles (a MarginContainer, or a vertical box) and nothing was reserved. The column is now margins *inside* the scroll, as in `PlanetfallScreenBase`, and the band is reserved on the scroll. This also gives a tablet the full-width drag area, and removes a `size_changed` lambda that kept the scroll `_rebuild()` frees. | `test_the_dashboard_clears_the_settings_band_and_cards_do_not_repeat_stats` (asserts the band is non-zero first: measured 60 px headless) | TD1 DETECTED |
+| Unit cards | **The subtitle repeated the stats grid**: "1 models — 0 battles" above "Models 1, Battles 0". It now says what the grid cannot: the p.106 condition, what CP has bought, or "Ready to deploy" (`is_deployable()`). A Devastated unit reads "2 battles until usable", not "2 more battle(s)". | same; counts case | TD2, TC6d DETECTED |
+| Turn tiles | A freshly built campaign read **TURN 0** and **OP TURN 0**, which looked like a fault. Both count turns started, so 0 now reads "—" (the Planetfall dashboard had the same reading). | `test_continue_says_what_it_will_do` (no "0" beside either tile) | TD3 DETECTED |
+| Continue | **Read "Start the next operational turn" in every state**, including halfway through a battle. It now reads the turn the core recorded (`record_turn_phase`), branch for branch as `TacticsPhaseManager.enter_campaign()` decides: "Start turn 1", "Resume turn 1: Battle", "Start turn 2" after an ended turn, and "Resume turn N: Commit Your Force" for a save older than the record. | same | TD4, TD4b DETECTED |
+| Retire overlay | Built for the first time (`_build_retire_overlay`, two veterans, one with a 48-character name, on a 310 px phone). **Each row was an HBox of the name and three buttons**, about 500 px. **Cancel sat below every veteran.** It now follows Planetfall's Muster Out (X14): Cancel first and top right, a wrapping title, and one `HFlowContainer` per veteran in which the name wraps at 180 px and each destination wraps on its own, because the three buttons alone (about 326 px) are wider than the phone. The Commission overlay was captured in both orientations and needed nothing (wrapped prose, the empty state, a full-width Cancel). | `test_the_retire_overlay_fits_a_small_phone` (nothing past the phone, Cancel above the title, no STOP button, six destinations at the touch floor) | TD5a, TD5b, TD5c, X17a' DETECTED |
+
+### The turn (`TacticsTurnController.tscn`, 8 phases)
+
+| Phase | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Turn lifecycle | **A Tactics campaign could never reach turn 2.** `start_new_turn()` ran only while `campaign_turn <= 0`, so every later entry resumed at Orders of the same turn. The phase is now recorded on the core at every change and at turn end (`record_turn_phase`). Entering after an ended turn starts the next one, a turn left midway resumes on its phase with its tallies, and a save older than the record resumes at Orders as before. The turn end shows "Turn N is complete and saved" with **Start Turn N+1**. | `test_tactics_turn_resume.gd` (8) | TR1-TR9 DETECTED (10 runs) |
+| Top bar | The Dashboard button was 40 px and, with its smaller font, rendered at 40 (46.4 dp) in landscape. It is now `TOUCH_TARGET_MIN` in both orientations. | `test_the_turn_screen_dashboard_button_meets_the_touch_floor` (drives both layout classes on the live `ResponsiveManager`) | TSF8 DETECTED |
+| Width | On a 2560 px tablet each value sat about 2,500 px from its label. The content is now an 800 px centred column. | `test_the_turn_screen_keeps_a_readable_column_on_a_wide_screen` | TSF14 DETECTED |
+| 0 Orders (p.96) | Titled "Operational Orders", which is p.98's Step 4, and it carried a "Battle Plan" card: in this book that is the p.58 AI Battle Plan System. It is now **Commit Your Force**, with an Operational Zone card quoting p.96 Step 1 ("Each player-controlled force will be assigned to a particular Operational Zone") and Step 8 ("Choose player commitments"). Both checked against `tactics_source.txt`. | `test_the_orders_step_names_the_operational_zone` | TT2, TT2b DETECTED |
+| 4 Battle | The no-VP CheckBox ran to 318 on a 310 px phone and now wraps. **"Play another battle this turn" sat below the outcome buttons**, and pressing an outcome completes the phase, so it had to be ticked before the button it qualifies. It is now above them. | `test_every_turn_phase_fits_a_small_phone`, `test_the_play_another_option_comes_before_the_outcome_buttons` | TSF9, TSF15 DETECTED. TSF10 UNDETECTED by design: the play-another label is 225 px against 278 of room; its wrap is a guard for larger UI scales. |
+| 5 Post-Battle | "<unit> — completely destroyed" ran 21 px past a phone and now wraps. | phases case | TSF11 DETECTED |
+| 6 Advancement | The refit options (p.108) are CheckBoxes that exist only while a refit is pending, so they get their own case. | `test_the_refit_options_fit_a_small_phone` | TSF12 UNDETECTED by design: the longest option is 164 px against 270 of room (measured). |
+| 7 Strategic | The adjacency CheckBoxes ran to 330 on a phone and now wrap. | phases case | TSF13 DETECTED |
+| All phases (touch) | **Three phase panels left their last row STOP.** Each panel swept itself once, then added a button row, so a drag that started on that row never reached the panel's scroll. The controller now calls `TouchScrollOpener.keep_open(self)`. | `test_touch_scroll_sweep.gd` (X16) | TW2 DETECTED |
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -122,6 +171,16 @@ Recorded so the next reader does not trust a green case that cannot fail.
 - **The Close case could not see the Enemy Tracker.** With no Tactical Enemy the tracker is
   short, so a Close at its foot is on screen anyway. The fixture now adds three enemies from
   the real generator, and OV27 is detected.
+- **Tactics: four UNDETECTED arms, each measured rather than explained away.** TSF6/TSF7:
+  the 40 px buttons were never under the floor (the theme draws them at 42 design px,
+  48.7 dp), so the "46.4 dp" comments were arithmetic on a literal and are corrected.
+  TSF10, TSF12 and CF1: each label fits its room at 310 px (225/278, 164/270, and "Build
+  an armored platoon"), so those wraps guard larger UI scales and fix nothing measured.
+  TSF12's first run used the plain phase walk, which never draws the refit options; it got
+  its own case and was still UNDETECTED, which is what sent it to be measured.
+- **A headless Settings-band case is real, not vacuous.** The band reads 60 px with no
+  window (the buttons sit at y 12-60), so `test_the_dashboard_clears_...` asserts the band
+  is non-zero before it asserts the title clears it.
 - **The link-tap case first failed in both arms.** The tap landed in the empty part of a
   60 px row, so even the closed label did not fire. It now aims at the text line and
   asserts the closed-label premise.
@@ -136,6 +195,7 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | su4 (after X9-X14) | 354 | 3886 / 3886 | 0 | 0 | 8/8 exit 0; `files=573 orphans=0 test_only=0 unwired_rules=0` |
 | after su4: the End Game fix | 2 (overlay pages, End Game) + compile guard | 22 / 22, 1 / 1 | 0 | 0 | 8/8 exit 0. Covered by the s4p2 full gate below. |
 | s4p2 (Sprint 4 part 2, X15, SF1-SF3) | 364 | 4047 / 4047 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout`: 240/248, the 8 being CharacterDetailsScreen (see Not yet walked) |
+| sut (Tactics pass, X16, X17) | 366 | 4072 / 4072 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=tactics` 24/24. Every Tactics arm DETECTED or UNDETECTED-by-design with a measurement (arms log) |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3
@@ -145,7 +205,6 @@ re-counted the same batch on the final tree at 399 / 399, which confirms it.
 
 Every mode in this list still needs the same pass: capture, verdict and fix.
 
-- **Tactics**: every screen.
 - **Bug Hunt**: every screen.
 - **Battle Simulator**: setup and results.
 - **5PFH and shared**: MainMenu, Settings, Help, Store, Compendium, Legal, Journal, Galaxy
@@ -155,10 +214,14 @@ Every mode in this list still needs the same pass: capture, verdict and fix.
   `__PrintSheetBtn` are under 48 dp, and at phone portrait and small phone the page runs off
   the right edge. No file on that screen's path changed this sprint, and it sweeps before
   any variant screen, so the new baseline restore is a no-op for it. These are existing
-  defects, owed in this pass.
+  defects, owed in this pass. Also owed here: the shared
+  `CampaignScreenBase._create_character_card()` prints its stat row as `Models:1  Battles:0`
+  (`"%s:%s"`, `:1029`), seen on the Tactics unit cards. The 5PFH crew screens use the same
+  helper, so the format is judged on that pass, not changed from a variant mode.
 - **Planetfall turn steps beyond Recovery**: the sweeps build the Turn Controller resumed at
   Step 1, so the other seventeen step panels are measured only by their own suites.
 - Cross-cutting work still owed: help keys for 19 router screens, hex-to-token in the
   remaining ~14 files, `TacticalBattleUI` literal font sizes and autowrap, the
-  `get_visible_rect` audit, and Tactics (and Bug Hunt in `verify_layout`) in the two sweeps.
-  Planetfall is in both (X15).
+  `get_visible_rect` audit, and Bug Hunt in `verify_layout`. Planetfall (X15) and Tactics
+  (X16) are in both sweeps. The help keys resolve to mode chapters that do not exist yet,
+  so they land with those chapters in Sprint 7 (UX-0b), not as keys pointing at nothing.

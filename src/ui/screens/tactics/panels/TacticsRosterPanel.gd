@@ -26,6 +26,7 @@ const SPACING_LG := _UC.SPACING_LG
 const TOUCH_TARGET_MIN := _UC.TOUCH_TARGET_MIN
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
 const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
+const DisplayText = preload("res://src/ui/components/common/DisplayText.gd")
 
 var _UnitProfile: GDScript
 ## Loaded at runtime rather than preloaded by class_name, matching _UnitProfile above —
@@ -93,9 +94,10 @@ func _build_ui() -> void:
 	outer.add_theme_constant_override("separation", SPACING_LG)
 	scroll.add_child(outer)
 
-	# Title + Points counter
-	var header = HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_MD)
+	# Title + Points counter. A flow row: on a phone the counter moves under the title
+	# instead of pushing the page past the right edge.
+	var header = HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_MD)
 	outer.add_child(header)
 
 	var title = Label.new()
@@ -106,37 +108,53 @@ func _build_ui() -> void:
 	header.add_child(title)
 
 	_points_label = Label.new()
-	_points_label.text = "0 / 500 pts"
+	_points_label.text = "0 / 500 pts · 0 units"
 	_points_label.add_theme_font_size_override("font_size", _scaled_font(20))
 	_points_label.add_theme_color_override("font_color", COLOR_SUCCESS)
 	header.add_child(_points_label)
 
-	# Main content — two sections stacked (responsive: would be side-by-side on wide)
-	_main_container = VBoxContainer.new()
-	_main_container.add_theme_constant_override("separation", SPACING_LG)
+	# Available Units and Your Roster. ⚠ They were stacked on every screen (this comment
+	# read "responsive: would be side-by-side on wide"), so the roster a player was
+	# building sat below ~24 "+ Add" rows and a tap changed nothing they could see but the
+	# points total. Side by side wherever ResponsiveManager offers more than one column;
+	# stacked in portrait, where the header's unit count is the feedback.
+	_main_container = GridContainer.new()
+	_main_container.name = "RosterColumns"
+	_main_container.add_theme_constant_override("h_separation", SPACING_LG)
+	_main_container.add_theme_constant_override("v_separation", SPACING_LG)
 	outer.add_child(_main_container)
 
-	# Available units section
+	var avail_col := VBoxContainer.new()
+	avail_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	avail_col.add_theme_constant_override("separation", SPACING_SM)
+	_main_container.add_child(avail_col)
 	var avail_header = Label.new()
 	avail_header.text = "Available Units"
 	avail_header.add_theme_font_size_override("font_size", _scaled_font(18))
 	avail_header.add_theme_color_override("font_color", COLOR_ACCENT)
-	_main_container.add_child(avail_header)
+	avail_col.add_child(avail_header)
 
 	_available_list = VBoxContainer.new()
 	_available_list.add_theme_constant_override("separation", SPACING_SM)
-	_main_container.add_child(_available_list)
+	avail_col.add_child(_available_list)
 
-	# Current roster section
+	var roster_col := VBoxContainer.new()
+	roster_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	roster_col.add_theme_constant_override("separation", SPACING_SM)
+	_main_container.add_child(roster_col)
 	var roster_header = Label.new()
 	roster_header.text = "Your Roster"
 	roster_header.add_theme_font_size_override("font_size", _scaled_font(18))
 	roster_header.add_theme_color_override("font_color", COLOR_ACCENT)
-	_main_container.add_child(roster_header)
+	roster_col.add_child(roster_header)
 
 	_roster_list = VBoxContainer.new()
 	_roster_list.add_theme_constant_override("separation", SPACING_SM)
-	_main_container.add_child(_roster_list)
+	roster_col.add_child(_roster_list)
+	_apply_columns()
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_signal("layout_class_changed"):
+		rm.layout_class_changed.connect(_on_layout_class_changed)
 
 	# Composition limits — the caps a player builds against, always visible.
 	_limits_label = Label.new()
@@ -154,6 +172,21 @@ func _build_ui() -> void:
 	# Populate the caps at construction: refresh() only reaches _update_validation()
 	# once a species book exists, and the limits do not depend on one.
 	_refresh_limits_summary()
+
+
+## Two columns where the layout class allows more than one, one in portrait.
+func _apply_columns() -> void:
+	if not (_main_container is GridContainer):
+		return
+	var one := true
+	var rm := get_node_or_null("/root/ResponsiveManager")
+	if rm and rm.has_method("should_collapse_to_single_column"):
+		one = rm.should_collapse_to_single_column()
+	(_main_container as GridContainer).columns = 1 if one else 2
+
+
+func _on_layout_class_changed(_effective_columns: int) -> void:
+	_apply_columns()
 
 
 func _rebuild_available_list() -> void:
@@ -213,8 +246,8 @@ func _create_available_unit_row(profile) -> HBoxContainer:
 		name_lbl.text = "%s (%dpts%s)" % [profile.unit_name, profile.points_cost,
 			", carries %d" % cap if cap > 0 else ""]
 	else:
-		name_lbl.text = "%s (%dpts, %d models)" % [
-			profile.unit_name, profile.points_cost, profile.base_models]
+		name_lbl.text = "%s (%dpts, %s)" % [profile.unit_name, profile.points_cost,
+			DisplayText.pluralize(profile.base_models, "model")]
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -239,9 +272,16 @@ func _add_unit_to_roster(unit_id: String) -> void:
 		return
 
 	_entry_counter += 1
-	var entry: Dictionary = {
-		"entry_id": "entry_%d" % _entry_counter,
-		"unit_id": unit_id,
+	_roster_entries.append(new_entry(profile, _entry_counter))
+	_on_roster_changed()
+
+
+## The one definition of a roster entry the wizard builds. The layout sweeps' Tactics
+## fixture builds its army through here too, so it cannot drift from what a player adds.
+static func new_entry(profile, counter: int) -> Dictionary:
+	return {
+		"entry_id": "entry_%d" % counter,
+		"unit_id": profile.unit_id,
 		"display_name": profile.unit_name,
 		"model_count": profile.base_models,
 		"platoon_index": 0,
@@ -249,8 +289,6 @@ func _add_unit_to_roster(unit_id: String) -> void:
 		"role": "",
 		"transport_vehicle_id": "",
 	}
-	_roster_entries.append(entry)
-	_on_roster_changed()
 
 
 func _remove_from_roster(entry_id: String) -> void:
@@ -332,7 +370,7 @@ func _create_roster_entry_row(entry: Dictionary) -> PanelContainer:
 	detail_lbl.name = "EntryCost"
 	detail_lbl.text = "%dpts — %s" % [_get_entry_cost(entry),
 		"vehicle" if profile and profile.is_vehicle()
-		else "%d models" % int(entry.get("model_count", 1))]
+		else DisplayText.pluralize(int(entry.get("model_count", 1)), "model")]
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(11))
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	info.add_child(detail_lbl)
@@ -499,7 +537,10 @@ func _update_points_display() -> void:
 	var limit: int = 500
 	if _coordinator and "config_data" in _coordinator:
 		limit = _coordinator.config_data.get("points_limit", 500)
-	_points_label.text = "%d / %d pts" % [total, limit]
+	# The unit count beside the points: in portrait the roster is below the list, so this
+	# is what tells a player a "+ Add" landed.
+	var n: int = _roster_entries.size()
+	_points_label.text = "%d / %d pts · %d unit%s" % [total, limit, n, "" if n == 1 else "s"]
 	if total > limit:
 		_points_label.add_theme_color_override("font_color", COLOR_DANGER)
 	elif total > limit * 0.9:

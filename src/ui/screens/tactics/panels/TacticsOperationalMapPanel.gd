@@ -252,6 +252,8 @@ func _render_zones() -> void:
 				var cb := CheckBox.new()
 				cb.text = "Your territory touches this Zone" if side == "player" \
 					else "Enemy territory touches this Zone"
+				# Wrapped like the assault box below: these set a phone page's width (330).
+				cb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				cb.button_pressed = bool(zone.get(side + "_adjacent", true))
 				cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 				cb.toggled.connect(func(on: bool) -> void: zone[side + "_adjacent"] = on)

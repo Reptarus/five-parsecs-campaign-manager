@@ -31,7 +31,7 @@ signal campaign_ended(result: String)
 
 enum Phase {
 	NONE = -1,
-	ORDERS = 0,             # Choose battle plan, assign units to zones
+	ORDERS = 0,             # Commit the force to an Operational Zone (p.96 Steps 1, 8)
 	RECON = 1,              # Observation rule reference (p.39); writes nothing
 	BATTLE_PREP = 2,        # Scenario generation, objective selection
 	DEPLOYMENT = 3,         # Unit placement per scenario rules
@@ -42,7 +42,9 @@ enum Phase {
 }
 
 const PHASE_NAMES := {
-	Phase.ORDERS: "Operational Orders",
+	# ⚠ Not "Operational Orders": that is the book's Step 4 (p.98), the 1D6 table the
+	# Strategic phase rolls. This phase is the commitment of p.96 Steps 1 and 8.
+	Phase.ORDERS: "Commit Your Force",
 	Phase.RECON: "Reconnaissance",
 	Phase.BATTLE_PREP: "Battle Preparation",
 	Phase.DEPLOYMENT: "Deployment",
@@ -53,9 +55,9 @@ const PHASE_NAMES := {
 }
 
 const PHASE_DESCRIPTIONS := {
-	Phase.ORDERS: "Plan your approach and assign units to operational zones",
+	Phase.ORDERS: "Assign your force to the Operational Zone it fights in (p.96)",
 	Phase.RECON: "Review the Observation rule (p.39) before the battle",
-	Phase.BATTLE_PREP: "Generate scenario, set objectives, roll battlefield conditions",
+	Phase.BATTLE_PREP: "Choose the scenario (pp.74-81) and any battle advantage to spend",
 	Phase.DEPLOYMENT: "Place your forces according to scenario rules",
 	Phase.BATTLE: "Fight the tabletop battle",
 	Phase.POST_BATTLE: "Process casualties, award Campaign Points, check story events",
@@ -210,11 +212,60 @@ func go_to_phase(phase: int) -> void:
 func _go_to_phase(phase: int) -> void:
 	previous_phase = current_phase
 	current_phase = phase
+	_persist_phase(current_phase)
 	phase_changed.emit(previous_phase, current_phase)
 	_update_navigation()
 
 
+## The one entry point a screen calls when it opens the turn. Three cases, decided by the
+## save: no turn yet, or the last one ENDED, starts a new turn (p.96); a turn in progress
+## resumes on the phase it was left at, with its tallies; a save older than the record
+## resumes at Operational Orders, as every save did before it existed.
+func enter_campaign() -> void:
+	if campaign == null or int(campaign.campaign_turn) <= 0:
+		start_new_turn()
+		return
+	if campaign.has_method("has_recorded_turn_phase") and campaign.has_recorded_turn_phase() \
+			and int(campaign.turn_phase) == Phase.NONE:
+		start_new_turn()
+		return
+	var phase: int = restore_from_campaign()
+	campaign_turn_started.emit(turn_number)
+	_go_to_phase(phase)
+
+
+## Restore the turn's tallies and return the phase a resume opens on. Phases before it
+## are marked complete, as they were when the turn was left.
+func restore_from_campaign() -> int:
+	if campaign == null or not campaign.has_method("has_recorded_turn_phase") \
+			or not campaign.has_recorded_turn_phase():
+		return Phase.ORDERS
+	var state: Dictionary = campaign.turn_state if campaign.turn_state is Dictionary else {}
+	battles_this_turn = int(state.get("battles", 0))
+	battle_wins_this_turn = int(state.get("wins", 0))
+	battle_losses_this_turn = int(state.get("losses", 0))
+	_pbp_at_turn_start = int(state.get("pbp_at_start", _current_battle_points()))
+	var phase: int = int(campaign.turn_phase)
+	if phase < Phase.ORDERS or phase > Phase.STRATEGIC:
+		return Phase.ORDERS
+	for i in range(phase):
+		_phase_complete[i] = true
+	return phase
+
+
+func _persist_phase(phase: int) -> void:
+	if campaign and campaign.has_method("record_turn_phase"):
+		campaign.record_turn_phase(phase, {
+			"battles": battles_this_turn,
+			"wins": battle_wins_this_turn,
+			"losses": battle_losses_this_turn,
+			"pbp_at_start": _pbp_at_turn_start,
+		})
+
+
 func _complete_turn() -> void:
+	# The turn has ENDED: the next entry starts a new one rather than replaying this one.
+	_persist_phase(Phase.NONE)
 	# Auto-save via GameState
 	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
 		if Engine.get_main_loop() else null

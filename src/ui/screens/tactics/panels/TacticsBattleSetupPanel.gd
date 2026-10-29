@@ -66,13 +66,13 @@ func show_phase(phase: int) -> void:
 		return
 
 	var phase_names = {
-		0: "Operational Orders",
+		0: "Commit Your Force",
 		1: "Reconnaissance",
 		2: "Battle Preparation",
 		3: "Deployment",
 	}
 	var phase_descs = {
-		0: "Plan your approach. Assign units to operational zones and choose your battle plan for this turn.",
+		0: "Choose the Operational Zone your force fights in this turn (Tactics p.96).",
 		1: "How your units will spot hidden and uncertain enemies once the battle begins (Tactics p.39).",
 		2: "Choose the scenario type for this battle and decide whether to spend any banked battle advantages.",
 		3: "Deploy your forces according to the scenario deployment rules. Place units in your deployment zone.",
@@ -137,9 +137,13 @@ func _rebuild_phase_content(phase: int) -> void:
 
 	match phase:
 		0:  # Orders — pick the Operational Zone this force is committed to.
-			_add_info_card("Battle Plan",
-				"Choose your operational approach for this turn. "\
-				+ "Your battle plan affects AI behavior and deployment options.")
+			# ⚠ This card used to read "Battle Plan ... Your battle plan affects AI behavior
+			# and deployment options". The book's battle plan is the AI Battle Plan System
+			# (p.58), an in-battle option for solo play; the control below picks a ZONE.
+			_add_info_card("Operational Zone",
+				"Each player force is assigned to an Operational Zone, and the battles it "\
+				+ "plays are tracked for that Zone (p.96, Step 1). It starts where Step 8 of "\
+				+ "the last turn committed it.")
 			_add_zone_picker()
 		1:  # Recon
 			_add_observation_rule()

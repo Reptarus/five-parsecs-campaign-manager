@@ -80,6 +80,9 @@ func set_coordinator(coord) -> void:
 func _build_ui() -> void:
 	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# No sideways scroll, as on the other three steps: a page that is too wide must show
+	# as too wide, not hide its right edge behind a horizontal scrollbar.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox = VBoxContainer.new()
@@ -93,6 +96,9 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# Unwrapped, this title set the step's width: every control below it ran 5 px past
+	# a 310 px phone (test_tactics_screen_fit.gd).
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(title)
 
 	var flavor = Label.new()
@@ -241,6 +247,7 @@ func _sync_org_controls() -> void:
 		cb.text = "Platoon %d is an armored platoon" % (i + 1) if company \
 			else "Build an armored platoon"
 		cb.custom_minimum_size.y = TOUCH_TARGET_COMFORT
+		cb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cb.button_pressed = kept.has(i)
 		var idx: int = i
 		cb.toggled.connect(func(on: bool): _on_armored_toggled(idx, on))

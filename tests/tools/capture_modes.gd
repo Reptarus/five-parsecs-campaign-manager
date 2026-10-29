@@ -36,6 +36,8 @@ func _run() -> void:
 	match _mode:
 		"planetfall":
 			await _planetfall()
+		"tactics":
+			await _tactics()
 		_:
 			print("unknown mode: %s" % _mode)
 	var removed: int = _guard.restore(_guard_snap)
@@ -202,6 +204,95 @@ func _planetfall() -> void:
 		await _shot("pf_endgame_%s_3_resolution" % path_id, tc)
 	eg._resolve({})  # Isolation, the last path selected
 	await _shot("pf_endgame_isolation_4_complete", tc)
+	await _unmount(tc)
+
+
+## ============================================================================
+## TACTICS
+## ============================================================================
+
+## A legal p.134 Infantry Platoon of Human Colonists: one Leader, two Troops, one Support
+## (fewer than Troops) and one Specialist (0-1 per two Troops), composed from
+## army_builder.json by the species loader the wizard uses.
+const TACTICS_PLATOON := ["human_sergeant", "human_infantry_squad", "human_infantry_squad",
+		"human_weapon_team", "human_medic"]
+
+
+func _tactics() -> void:
+	var gs: Node = root.get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = null
+
+	# --- Creation wizard: each step fed by its own panel's handlers ---
+	var ui: Node = await _mount("res://src/ui/screens/tactics/TacticsCreationUI.tscn")
+	if ui == null:
+		return
+	var coord: Node = ui.coordinator
+	await _shot("tac_create_0_launch", ui)  # before any step change: what a player first sees
+	var names := ["1_config", "2_species", "3_roster", "4_review"]
+	for step in range(names.size()):
+		coord.go_to_step(step)
+		await _settle(ui)
+		await _shot("tac_create_%s_empty" % names[step], ui)
+		var panel: Node = ui.panels[step]
+		match step:
+			0:
+				panel._name_edit.text = "Sweep fixture"
+				panel._on_name_changed("Sweep fixture")
+			1:
+				panel._on_species_selected("human_colonists")
+			2:
+				for unit_id in TACTICS_PLATOON:
+					panel._add_unit_to_roster(unit_id)
+			3:
+				panel.refresh()
+		await _settle(ui)
+		await _shot("tac_create_%s_filled" % names[step], ui)
+	print("  roster legal: %s %s" % [coord._step_complete[2], coord.get_validation_errors()])
+	var campaign: Resource = coord.build_campaign()
+	await _unmount(ui)
+	if gs:
+		gs.set_current_campaign(campaign)
+
+	# --- Dashboard ---
+	var dash: Node = await _mount("res://src/ui/screens/tactics/TacticsDashboard.tscn")
+	if dash:
+		await _shot("tac_dashboard", dash)
+		var before: int = root.get_child_count()
+		dash._on_commission_pressed()
+		await _settle(dash)
+		if root.get_child_count() > before:
+			var added: Node = root.get_child(root.get_child_count() - 1)
+			await _shot("tac_dash_commission", added)
+			added.queue_free()
+			await process_frame
+		else:
+			print("  SKIP tac_dash_commission: nothing was mounted on the root")
+		await _unmount(dash)
+
+	# --- The eight-phase turn, as the turn controller shows each phase ---
+	var tc: Node = await _mount("res://src/ui/screens/tactics/TacticsTurnController.tscn")
+	if tc == null:
+		return
+	for _i in range(10):
+		await process_frame
+	var pm: Node = tc.phase_manager
+	if pm == null:
+		print("  SKIP turn: no phase manager")
+		return
+	var ph: Dictionary = (pm.get_script() as GDScript).get_script_constant_map()["Phase"]
+	var guard := 0
+	while pm.current_phase != ph.STRATEGIC and pm.current_phase != ph.NONE and guard < 10:
+		await _shot("tac_turn_%d_%s" % [pm.current_phase, _phase_slug(pm)], tc)
+		var data: Dictionary = tc._battle_payload("victory") \
+				if pm.current_phase == ph.BATTLE else {}
+		pm.complete_current_phase(data)
+		await _settle(tc)
+		guard += 1
+	await _shot("tac_turn_%d_%s" % [pm.current_phase, _phase_slug(pm)], tc)
+	pm.complete_current_phase({})
+	await _settle(tc)
+	await _shot("tac_turn_complete", tc)
 	await _unmount(tc)
 
 

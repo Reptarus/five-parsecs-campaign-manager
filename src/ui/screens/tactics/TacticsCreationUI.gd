@@ -10,6 +10,7 @@ const RosterPanelScript := preload("res://src/ui/screens/tactics/panels/TacticsR
 const ReviewPanelScript := preload("res://src/ui/screens/tactics/panels/TacticsReviewPanel.gd")
 
 const UIColorsRef = preload("res://src/ui/components/base/UIColors.gd")
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const COLOR_BASE := UIColorsRef.COLOR_BASE
 const COLOR_TEXT := UIColorsRef.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := UIColorsRef.COLOR_TEXT_SECONDARY
@@ -33,6 +34,7 @@ var _back_button: Button
 var _finish_button: Button
 var _panel_container: Control
 var _content_margin: MarginContainer
+var _title_spacer: Control
 
 
 func _scaled_font(base: int) -> int:
@@ -48,9 +50,17 @@ func _ready() -> void:
 	_create_panels()
 	_connect_signals()
 	_show_panel(0)
+	# ⚠ The label used to be filled only on a step CHANGE, so the first screen showed
+	# its build-time literal, "Step 1 of 5", on a four-step wizard.
+	_update_step_label()
 	_update_buttons(false, false, false)
 	get_viewport().size_changed.connect(_apply_content_max_width)
 	_apply_content_max_width()
+	# This screen extends Control, so it has no base-class sweep, and the Species and
+	# Review steps had none of their own: 15 species cards and their Select buttons stayed
+	# STOP and swallowed a drag meant for the list. Kept open, as PlanetfallCreationUI is,
+	# because every step adds content as the player works.
+	TouchScrollOpenerRef.keep_open(self)
 
 
 func _build_layout() -> void:
@@ -84,7 +94,9 @@ func _build_layout() -> void:
 
 	var cancel_btn := Button.new()
 	cancel_btn.text = "Cancel"
-	cancel_btn.custom_minimum_size.y = 40
+	# The shared token. 40 was not under the floor: the theme drew it at 42 design px
+	# (48.7 dp), so this is consistency with the turn screen, not a fix.
+	cancel_btn.custom_minimum_size.y = UIColorsRef.TOUCH_TARGET_MIN
 	cancel_btn.pressed.connect(_on_cancel)
 	top_row.add_child(cancel_btn)
 
@@ -94,19 +106,27 @@ func _build_layout() -> void:
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	# ⚠ Wrapped, like PlanetfallCreationUI's title. Unwrapped it demanded its whole
+	# text width, and with Cancel and the spacer beside it the header pushed EVERY step
+	# past a phone's right edge: the species Select buttons, the roster's + Add and
+	# Launch Campaign were all off-screen (capture_modes.gd, 393x851, 2026-10-28).
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	top_row.add_child(title)
 
-	# Spacer to balance cancel button
-	var spacer := Control.new()
-	spacer.custom_minimum_size.x = 70
-	top_row.add_child(spacer)
+	# Spacer to balance cancel button, so the title centres on the page. Wide screens
+	# only: on a phone the 70 px it takes are worth more to the title
+	# (_apply_content_max_width() shows or hides it).
+	_title_spacer = Control.new()
+	_title_spacer.custom_minimum_size.x = 70
+	top_row.add_child(_title_spacer)
 
 	# Step indicator
 	_step_label = Label.new()
-	_step_label.text = "Step 1 of 5: Configuration"
+	_step_label.text = ""  # set by _update_step_label() from the coordinator
 	_step_label.add_theme_font_size_override("font_size", _scaled_font(14))
 	_step_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	_step_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_step_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.add_child(_step_label)
 
 	# Panel container (fills remaining space)
@@ -114,10 +134,12 @@ func _build_layout() -> void:
 	_panel_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_panel_container)
 
-	# Navigation buttons
-	var nav := HBoxContainer.new()
-	nav.add_theme_constant_override("separation", 12)
-	nav.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Navigation buttons. A flow row, so Back and Launch Campaign wrap onto two lines on
+	# a phone instead of pushing Launch off its right edge (3 px past 310, in a row).
+	var nav := HFlowContainer.new()
+	nav.add_theme_constant_override("h_separation", 12)
+	nav.add_theme_constant_override("v_separation", 8)
+	nav.alignment = FlowContainer.ALIGNMENT_CENTER
 	vbox.add_child(nav)
 
 	_back_button = Button.new()
@@ -269,6 +291,10 @@ func _apply_content_max_width() -> void:
 		var side: float = (vp_width - MAX_FORM_WIDTH) / 2.0
 		_content_margin.add_theme_constant_override("margin_left", int(side))
 		_content_margin.add_theme_constant_override("margin_right", int(side))
+		if _title_spacer:
+			_title_spacer.visible = true
 	else:
+		if _title_spacer:
+			_title_spacer.visible = false
 		_content_margin.add_theme_constant_override("margin_left", 16)
 		_content_margin.add_theme_constant_override("margin_right", 16)

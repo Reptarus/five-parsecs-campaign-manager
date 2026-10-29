@@ -77,6 +77,8 @@ const POPULATE: Dictionary = {
 	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn": "bug_hunt",
 	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn": "planetfall",
 	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn": "planetfall",
+	"res://src/ui/screens/tactics/TacticsDashboard.tscn": "tactics",
+	"res://src/ui/screens/tactics/TacticsTurnController.tscn": "tactics",
 }
 
 var _root: Node = null
@@ -560,4 +562,72 @@ func _pre_planetfall() -> void:
 		return
 	core.campaign_turn = 1
 	core.turn_phase = 0
+	gs.current_campaign = core
+
+
+## A legal p.134 Infantry Platoon of Human Colonists: one Leader, two Troops, one Support
+## (fewer than Troops) and one Specialist (0-1 per two Troops). The ids are composed from
+## data/tactics/army_builder.json by TacticsSpeciesBookLoader, as the wizard's are.
+const TACTICS_PLATOON := ["human_sergeant", "human_infantry_squad", "human_infantry_squad",
+		"human_weapon_team", "human_medic"]
+
+
+## Tactics (added 2026-10-28). TacticsDashboard and TacticsTurnController read
+## GameState.current_campaign and nothing else; the turn controller routes to main_menu
+## when it has no `campaign_units`, so the field is cleared FIRST, as for Bug Hunt.
+##
+## The army is raised the way the wizard raises one: the Configuration panel's own
+## defaults, the species book the coordinator loads, entries from
+## TacticsRosterPanel.new_entry() (the wizard's single entry shape), checked by the
+## coordinator's composition validator, and built by TacticsCreationCoordinator.
+## build_campaign() (never finalize(), which saves and navigates). The operational map is
+## opened by TacticsOperationalTurn.build_opening_map(), the p.94 producer the phase
+## manager calls at turn 1.
+##
+## Mid-turn, not turn zero: turn 1 recorded at phase 0 makes TacticsPhaseManager.
+## enter_campaign() resume Operational Orders in place. start_new_turn() would write a
+## journal entry, a side effect a layout sweep must not have.
+##
+## TacticsCreationUI.tscn has NO entry: it reads no autoload and builds its own content.
+func _pre_tactics() -> void:
+	var gs := _root.get_node_or_null("/root/GameState")
+	if gs == null:
+		return
+	gs.current_campaign = null
+	var coord_script = load("res://src/ui/screens/tactics/TacticsCreationCoordinator.gd")
+	var config_panel = load("res://src/ui/screens/tactics/panels/TacticsConfigPanel.gd")
+	var roster_panel = load("res://src/ui/screens/tactics/panels/TacticsRosterPanel.gd")
+	var op_turn = load("res://src/core/campaign/TacticsOperationalTurn.gd")
+	if coord_script == null or config_panel == null or roster_panel == null or op_turn == null:
+		return
+	# The coordinator loads its scripts in _ready(), so it enters the tree for the build.
+	var coord: Node = coord_script.new()
+	_root.add_child(coord)
+	var cp: Control = config_panel.new()
+	var cfg: Dictionary = (cp.get("_config_data") as Dictionary).duplicate(true)
+	cp.free()
+	cfg["campaign_name"] = "Sweep fixture"
+	coord.update_config(cfg)
+	coord.update_species({"species_id": "human_colonists"})
+	var book = coord.get_species_book()
+	var entries: Array = []
+	if book:
+		for i in range(TACTICS_PLATOON.size()):
+			var profile = book.get_unit_profile(TACTICS_PLATOON[i])
+			if profile:
+				entries.append(roster_panel.new_entry(profile, i + 1))
+	coord.update_roster(entries)
+	var errors: Array = coord.get_validation_errors()
+	if not errors.is_empty():
+		push_warning("[screen_populator] Tactics fixture army is not legal: %s" % [errors])
+	var core: Resource = coord.build_campaign()
+	_root.remove_child(coord)
+	coord.free()
+	if core == null:
+		return
+	var opened: Dictionary = op_turn.new().build_opening_map(core.operational_map)
+	core.operational_map = opened.get("map", core.operational_map)
+	core.campaign_turn = 1
+	core.operational_turn = 1
+	core.record_turn_phase(0, {})
 	gs.current_campaign = core

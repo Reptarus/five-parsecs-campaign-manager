@@ -93,6 +93,7 @@ const RETIRED_FIELDS: PackedStringArray = [
 
 ## The p.106 Unit Losses conditions a unit can carry between battles. "lost" units are
 ## kept as a record (is_destroyed) so their history survives; they never deploy again.
+const DisplayText = preload("res://src/ui/components/common/DisplayText.gd")
 const CONDITION_OK := "ok"
 const CONDITION_DEVASTATED := "devastated"
 const CONDITION_WEAKENED := "weakened"
@@ -215,8 +216,8 @@ static func condition_text(unit: Dictionary) -> String:
 		CONDITION_LOST:
 			return "LOST (p.106)"
 		CONDITION_DEVASTATED:
-			return "DEVASTATED — unusable for %d more battle(s) (p.106)" % int(
-				unit.get("unusable_battles", 0))
+			return "DEVASTATED — %s until usable (p.106)" % DisplayText.pluralize(
+				int(unit.get("unusable_battles", 0)), "battle")
 		CONDITION_WEAKENED:
 			return "WEAKENED — deploys one figure fewer until it sits a battle out (p.106)"
 	return "DESTROYED" if bool(unit.get("is_destroyed", false)) else ""

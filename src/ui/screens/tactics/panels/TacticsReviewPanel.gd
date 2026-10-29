@@ -4,6 +4,7 @@ extends Control
 ## Read-only summary of all creation data. Validation check.
 
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const DisplayText = preload("res://src/ui/components/common/DisplayText.gd")
 const COLOR_BASE := _UC.COLOR_BASE
 const COLOR_ELEVATED := _UC.COLOR_ELEVATED
 const COLOR_ACCENT := _UC.COLOR_ACCENT
@@ -126,8 +127,8 @@ func _build_roster_summary() -> String:
 		var tid: String = str(entry.get("transport_vehicle_id", ""))
 		if not tid.is_empty() and book and book.get_vehicle(tid):
 			extras.append("in " + book.get_vehicle(tid).vehicle_name)
-		lines.append("• %s (%dpts, %d models)%s" % [
-			name, cost, entry.get("model_count", 1),
+		lines.append("• %s (%dpts, %s)%s" % [
+			name, cost, DisplayText.pluralize(int(entry.get("model_count", 1)), "model"),
 			"" if extras.is_empty() else " — " + ", ".join(extras)])
 
 	var limit: int = _coordinator.config_data.get("points_limit", 500)
@@ -148,7 +149,7 @@ func _add_validation_section() -> void:
 		header.text = "Validation: PASSED"
 		header.add_theme_color_override("font_color", COLOR_SUCCESS)
 	else:
-		header.text = "Validation: %d issue(s)" % errors.size()
+		header.text = "Validation: %s" % DisplayText.pluralize(errors.size(), "issue")
 		header.add_theme_color_override("font_color", COLOR_DANGER)
 	_content.add_child(header)
 

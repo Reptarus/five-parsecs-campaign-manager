@@ -230,6 +230,8 @@ func _build_unit_losses() -> void:
 		_content.add_child(row)
 		var cb := CheckBox.new()
 		cb.text = "%s — completely destroyed" % UnitRecordRef.display_name(r)
+		# Wrapped: a unit name plus this phrase ran 21 px past a 310 px phone.
+		cb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 		cb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		cb.button_pressed = bool(_destroyed.get(uid, false))
@@ -468,6 +470,7 @@ func _build_pending_purchase() -> void:
 			var cb := CheckBox.new()
 			cb.text = str(c.get("label", ""))
 			cb.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+			cb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			cb.button_pressed = _refit_checks.has(v)
 			cb.toggled.connect(func(on: bool) -> void:
 				if on and not _refit_checks.has(v):

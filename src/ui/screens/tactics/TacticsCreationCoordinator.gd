@@ -169,8 +169,33 @@ func finalize() -> void:
 	if not _can_finish():
 		push_warning("[TacticsCreationCoordinator] Cannot finalize — validation failed")
 		return
+	var campaign = build_campaign()
 
-	# Create campaign core
+	# Register with GameState and save
+	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
+		if Engine.get_main_loop() else null
+	if gs and gs.has_method("set_current_campaign"):
+		gs.set_current_campaign(campaign)
+
+	# Save to disk
+	var save_dir = "user://saves/"
+	DirAccess.make_dir_recursive_absolute(save_dir)
+	var save_path = save_dir + campaign.get_campaign_id() + ".save"
+	campaign.save_to_file(save_path)
+
+	# Navigate to dashboard
+	var router = Engine.get_main_loop().root.get_node_or_null("/root/SceneRouter") \
+		if Engine.get_main_loop() else null
+	if router and router.has_method("navigate_to"):
+		router.navigate_to("tactics_dashboard")
+
+
+## The campaign the wizard's choices describe, built and started, and NOT registered,
+## saved or navigated to. finalize() is the only product caller; the layout sweeps and
+## the screen captures build their fixture through here so a swept Tactics screen shows a
+## real army rather than a hand-written dict (the Planetfall coordinator's
+## build_campaign() has the same split).
+func build_campaign():  # -> TacticsCampaignCore
 	var campaign = _CampaignCore.create_new_campaign(
 		config_data.get("campaign_name", "Tactics Campaign"),
 		species_id,
@@ -227,24 +252,7 @@ func finalize() -> void:
 
 	# Start campaign
 	campaign.start_campaign()
-
-	# Register with GameState and save
-	var gs = Engine.get_main_loop().root.get_node_or_null("/root/GameState") \
-		if Engine.get_main_loop() else null
-	if gs and gs.has_method("set_current_campaign"):
-		gs.set_current_campaign(campaign)
-
-	# Save to disk
-	var save_dir = "user://saves/"
-	DirAccess.make_dir_recursive_absolute(save_dir)
-	var save_path = save_dir + campaign.get_campaign_id() + ".save"
-	campaign.save_to_file(save_path)
-
-	# Navigate to dashboard
-	var router = Engine.get_main_loop().root.get_node_or_null("/root/SceneRouter") \
-		if Engine.get_main_loop() else null
-	if router and router.has_method("navigate_to"):
-		router.navigate_to("tactics_dashboard")
+	return campaign
 
 
 ## ============================================================================

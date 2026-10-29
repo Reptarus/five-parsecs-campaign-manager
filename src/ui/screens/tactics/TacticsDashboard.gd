@@ -10,6 +10,7 @@ const VeteranImportPanelClass = preload(
 	"res://src/ui/screens/tactics/panels/TacticsVeteranImportPanel.gd")
 const UnitRecordRef = preload(
 	"res://src/data/tactics/TacticsCampaignUnit.gd")
+const PhaseManagerRef = preload("res://src/core/campaign/TacticsPhaseManager.gd")
 
 var _campaign: Resource  # TacticsCampaignCore
 var _content: VBoxContainer
@@ -34,9 +35,6 @@ func _setup_screen() -> void:
 
 	var layout: Dictionary = _create_scroll_layout()
 	_content = layout.content
-	_apply_content_max_width(layout.scroll)
-	get_viewport().size_changed.connect(
-		func(): _apply_content_max_width(layout.scroll))
 
 	_build_dashboard()
 	# Surface veterans commissioned into this force (CampaignScreenBase pickup).
@@ -110,8 +108,10 @@ func _build_dashboard() -> void:
 		battles_won = _campaign.get_battles_won()
 
 	var stats := {
-		"TURN": str(turn),
-		"OP TURN": str(op_turn),
+		# Both count turns STARTED, so 0 means none yet; "TURN 0" read like a fault on a
+		# freshly built campaign (the Planetfall dashboard had the same reading).
+		"TURN": str(turn) if turn > 0 else "—",
+		"OP TURN": str(op_turn) if op_turn > 0 else "—",
 		"CP": str(cp),
 		"UNITS": str(active_units),
 		"WINS": str(battles_won),
@@ -145,8 +145,7 @@ func _build_dashboard() -> void:
 		hub_box.add_child(banner)
 	else:
 		var continue_card := HubFeatureCardClass.new()
-		continue_card.setup("", "Continue Campaign",
-			"Start the next operational turn")
+		continue_card.setup("", "Continue Campaign", continue_text(_campaign))
 		continue_card.card_pressed.connect(
 			func(): _navigate("tactics_turn_controller"))
 		hub_box.add_child(continue_card)
@@ -297,10 +296,20 @@ func _notify_transfer_write_failed() -> void:
 func _build_retire_overlay(vets: Array) -> Control:
 	var overlay := Control.new()
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var vbox := ScreenChrome.overlay_page(overlay)
+	var vbox := ScreenChrome.overlay_page(overlay, MAX_FORM_WIDTH)
+
+	# First and top right, as on the Planetfall muster-out: below a long list a phone had
+	# to scroll past every veteran to back out.
+	var cancel := Button.new()
+	cancel.text = "Cancel"
+	cancel.custom_minimum_size = Vector2(120, TOUCH_TARGET_MIN)
+	cancel.size_flags_horizontal = Control.SIZE_SHRINK_END
+	cancel.pressed.connect(func() -> void: overlay.queue_free())
+	vbox.add_child(cancel)
 
 	var title := Label.new()
 	title.text = "RETIRE VETERAN"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_XL))
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -309,28 +318,30 @@ func _build_retire_overlay(vets: Array) -> Control:
 	for v in vets:
 		if v is not Dictionary:
 			continue
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", SPACING_SM)
+		# One flow for the name and every destination. In a row they ran off a phone, and
+		# the three buttons alone are wider than a 310 px column, so each wraps on its
+		# own rather than as a block (Planetfall's muster-out has two, so a pair fits).
+		var row := HFlowContainer.new()
+		row.add_theme_constant_override("h_separation", SPACING_SM)
+		row.add_theme_constant_override("v_separation", 4)
 		var name_lbl := Label.new()
 		name_lbl.text = str(v.get("name", "Veteran"))
+		name_lbl.custom_minimum_size.x = 180
 		name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		name_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 		row.add_child(name_lbl)
 		var captured: Dictionary = (v as Dictionary).duplicate(true)
 		for dest in [["five_parsecs", "→ 5PFH"], ["bug_hunt", "→ Bug Hunt"], ["planetfall", "→ Planetfall"]]:
 			var btn := Button.new()
 			btn.text = dest[1]
+			btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 			var target: String = dest[0]
 			btn.pressed.connect(func() -> void:
 				_do_retire(captured, target, overlay))
 			row.add_child(btn)
 		vbox.add_child(row)
-
-	var cancel := Button.new()
-	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(0, 44)
-	cancel.pressed.connect(func() -> void: overlay.queue_free())
-	vbox.add_child(cancel)
 	return overlay
 
 
@@ -345,7 +356,6 @@ func _rebuild() -> void:
 	add_child(bg)
 	var layout: Dictionary = _create_scroll_layout()
 	_content = layout.content
-	_apply_content_max_width(layout.scroll)
 	_build_dashboard()
 
 
@@ -450,7 +460,9 @@ func _create_unit_card(unit: Dictionary) -> PanelContainer:
 	var battles: int = unit.get("battles_fought", 0)
 	var destroyed: bool = unit.get("is_destroyed", false)
 
-	var subtitle := "%d models — %d battles" % [models, battles]
+	# The stats grid below prints Models, Battles and Wins, so the subtitle says what the
+	# grid cannot. ⚠ It used to read "1 models — 0 battles" above "Models 1  Battles 0":
+	# the same two numbers twice, one of them ungrammatical.
 	# p.106 condition (Lost / Devastated / Weakened) and what CP has bought (p.107).
 	var notes: PackedStringArray = PackedStringArray()
 	var cond: String = UnitRecordRef.condition_text(unit)
@@ -467,8 +479,8 @@ func _create_unit_card(unit: Dictionary) -> PanelContainer:
 	for o in unit.get("selected_upgrades", []):
 		if str(o) == "Hero" or str(o) == "Leader":
 			notes.append(str(o))
-	if not notes.is_empty():
-		subtitle = " · ".join(notes) + " — " + subtitle
+	var subtitle: String = " · ".join(notes) if not notes.is_empty() else (
+		"Ready to deploy" if UnitRecordRef.is_deployable(unit) else "Cannot deploy")
 
 	# ⚠ NO PER-UNIT "CP" COLUMN. Tactics p.106 makes Campaign Points a player-level
 	# or army-level pool — its own heading "Are Points Tied to the Player or
@@ -490,6 +502,25 @@ func _create_unit_card(unit: Dictionary) -> PanelContainer:
 		card.modulate = Color(1, 1, 1, 0.5)
 
 	return card
+
+
+## What Continue will do, read from the turn the core recorded
+## (TacticsCampaignCore.record_turn_phase), branch for branch as
+## TacticsPhaseManager.enter_campaign() decides it. It read "Start the next operational
+## turn" in every state, including halfway through a battle.
+static func continue_text(campaign) -> String:
+	var turn: int = int(campaign.campaign_turn) if "campaign_turn" in campaign else 0
+	if turn <= 0:
+		return "Start turn 1"
+	var recorded: bool = campaign.has_method("has_recorded_turn_phase") \
+		and campaign.has_recorded_turn_phase()
+	if recorded and int(campaign.turn_phase) == PhaseManagerRef.Phase.NONE:
+		return "Start turn %d" % (turn + 1)
+	# A save from before the record resumes at the first phase, as the manager does.
+	var phase: int = int(campaign.turn_phase) if recorded else PhaseManagerRef.Phase.ORDERS
+	var names: Dictionary = PhaseManagerRef.PHASE_NAMES
+	return "Resume turn %d: %s" % [turn,
+		names.get(phase, names[PhaseManagerRef.Phase.ORDERS])]
 
 
 func _build_battle_history() -> void:

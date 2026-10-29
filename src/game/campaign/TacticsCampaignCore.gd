@@ -98,6 +98,26 @@ var story_events: Array = []
 ## Current battle data (populated during battle phase)
 var current_battle: Dictionary = {}
 
+## Where the operational turn (Tactics p.96) stands. -1 is the phase manager's NONE: the
+## last turn ENDED, so the next entry starts a new one. ⚠ Before 2026-10-28 nothing
+## recorded this, and the turn controller started a turn only while campaign_turn was 0,
+## so every later entry resumed the saved turn at Operational Orders: turn 2 could never
+## begin. PHASE_UNRECORDED marks a save written before the field, which resumes as it did.
+const PHASE_UNRECORDED := -2
+var turn_phase: int = PHASE_UNRECORDED
+## The per-turn tallies the p.96 caps read (battles fought, wins and losses this turn,
+## the PBP held when it began), so a resume mid-turn cannot reset a cap.
+var turn_state: Dictionary = {}
+
+
+func record_turn_phase(phase: int, state: Dictionary) -> void:
+	turn_phase = phase
+	turn_state = state.duplicate(true)
+
+
+func has_recorded_turn_phase() -> bool:
+	return turn_phase != PHASE_UNRECORDED
+
 ## DLC flags snapshot (for save integrity)
 var dlc_flags: Dictionary = {}
 
@@ -587,6 +607,8 @@ func to_dictionary() -> Dictionary:
 			"operational_turn": operational_turn,
 			"campaign_points_earned": campaign_points_earned,
 			"campaign_points_spent": campaign_points_spent,
+			"turn_phase": turn_phase,
+			"turn_state": turn_state.duplicate(true),
 		},
 		"operational_map": operational_map.duplicate(true),
 		"battle_history": battle_history.duplicate(true),
@@ -656,6 +678,9 @@ func from_dictionary(data: Dictionary) -> void:
 		operational_turn = state.get("operational_turn", 0)
 		campaign_points_earned = state.get("campaign_points_earned", 0)
 		campaign_points_spent = state.get("campaign_points_spent", 0)
+		turn_phase = int(state.get("turn_phase", PHASE_UNRECORDED))
+		var ts: Variant = state.get("turn_state", {})
+		turn_state = (ts as Dictionary).duplicate(true) if ts is Dictionary else {}
 
 	# Remaining sections
 	operational_map = data.get("operational_map", {}).duplicate(true)

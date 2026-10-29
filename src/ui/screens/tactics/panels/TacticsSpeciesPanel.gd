@@ -169,33 +169,73 @@ func _create_species_card(book) -> PanelContainer:
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	info_vbox.add_child(name_lbl)
 
-	# Power level badge
-	var power_str: String = _Species.PowerLevel.keys()[book.species.power_level].capitalize()
+	# Power level and the Military profile. ⚠ This read "Major — 12 units, 21 weapons",
+	# the same for every species: units are composed from the one Army Builder (pp.133-139)
+	# and every species arms from the one p.181 table. The profile is what differs.
 	var badge_lbl = Label.new()
-	badge_lbl.text = "%s — %d units, %d weapons" % [
-		power_str, book.unit_profiles.size(), book.weapons.size()]
+	badge_lbl.text = power_label(book)
+	var line: String = military_line(book)
+	if not line.is_empty():
+		badge_lbl.text += "\n" + line
 	badge_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 	badge_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	badge_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info_vbox.add_child(badge_lbl)
 
-	# Traits
-	if book.species.species_traits.size() > 0:
-		var traits_lbl = Label.new()
-		traits_lbl.text = book.species.get_traits_display()
-		traits_lbl.add_theme_font_size_override("font_size", _scaled_font(11))
-		traits_lbl.add_theme_color_override("font_color", COLOR_FOCUS)
-		traits_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		info_vbox.add_child(traits_lbl)
+	# Special Rules, with what each one does. The card used to list the names alone,
+	# so choosing a species meant knowing its rules already.
+	for t in book.species.species_traits:
+		if not t is TacticsSpecialRule:
+			continue
+		var rule_name := Label.new()
+		rule_name.text = t.get_display_name()
+		rule_name.add_theme_font_size_override("font_size", _scaled_font(12))
+		rule_name.add_theme_color_override("font_color", COLOR_FOCUS)
+		rule_name.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		info_vbox.add_child(rule_name)
+		if not t.description.is_empty():
+			var rule_text := Label.new()
+			rule_text.text = t.description
+			rule_text.add_theme_font_size_override("font_size", _scaled_font(11))
+			rule_text.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+			rule_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			info_vbox.add_child(rule_text)
 
 	# Right: select button
 	var select_btn = Button.new()
 	select_btn.text = "Select"
-	select_btn.custom_minimum_size = Vector2(80, 40)
+	# The shared token. A 40 px minimum was not under the floor: the theme drew it at
+	# 42 design px (48.7 dp), so this is consistency, not a fix.
+	select_btn.custom_minimum_size = Vector2(80, _UC.TOUCH_TARGET_MIN)
+	# Centred, not stretched: the card now carries the Military profile and each rule's
+	# text, and a FILL button grew into a slab as tall as the card.
+	select_btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var sid: String = book.species.species_id
 	select_btn.pressed.connect(func(): _on_species_selected(sid))
 	hbox.add_child(select_btn)
 
 	return card
+
+
+## "Major Power", "Minor Power" or "Creature", as the book groups the army lists.
+func power_label(book) -> String:
+	match book.species.power_level:
+		_Species.PowerLevel.MAJOR:
+			return "Major Power"
+		_Species.PowerLevel.MINOR:
+			return "Minor Power"
+	return "Creature"
+
+
+## The Military profile as the species file prints it (pp.153-167), the figures every
+## squad is built from. "" for Creatures, which have no profiles.
+static func military_line(book) -> String:
+	var p: Variant = book.profiles.get("military") if book.profiles is Dictionary else null
+	if not p is Dictionary:
+		return ""
+	return "Military: Speed %d\" · Reactions %d · Combat Skill %+d · Toughness %d · KP %d · Savvy %+d" % [
+		int(p.get("speed", 0)), int(p.get("reactions", 0)), int(p.get("combat_skill", 0)),
+		int(p.get("toughness", 0)), int(p.get("kp", 0)), int(p.get("savvy", 0))]
 
 
 func _on_species_selected(sid: String) -> void:

@@ -122,6 +122,9 @@ const SCREENS: Array[String] = [
 	"res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn",
 	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn",
 	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn",
+	"res://src/ui/screens/tactics/TacticsCreationUI.tscn",
+	"res://src/ui/screens/tactics/TacticsDashboard.tscn",
+	"res://src/ui/screens/tactics/TacticsTurnController.tscn",
 ]
 
 ## Screens whose POPULATED node count has been measured against its unpopulated one.
@@ -142,6 +145,10 @@ const SCREENS: Array[String] = [
 ##   PlanetfallDashboard.tscn       14 nodes unpopulated -> 284 populated
 ##   PlanetfallTurnController.tscn   2 nodes unpopulated -> 226 populated (18 scrolls)
 ##   PlanetfallCreationUI.tscn      165 either way; it reads no autoload
+## MEASURED 2026-10-28 the same way, the two Tactics POPULATE entries the only change:
+##   TacticsDashboard.tscn          12 nodes unpopulated -> 125 populated
+##   TacticsTurnController.tscn      1 node  unpopulated ->  61 populated (3 scrolls)
+##   TacticsCreationUI.tscn         223 either way; it reads no autoload
 ## Each floor sits inside its gap and nearer the low end, so a broken fixture trips it
 ## while ordinary UI churn does not. A screen with no entry here is not exempt -- it
 ## simply has no measurement yet, and inventing one would be fabricating a baseline.
@@ -152,6 +159,9 @@ const MIN_NODES := {
 	"res://src/ui/screens/planetfall/PlanetfallCreationUI.tscn": 80,
 	"res://src/ui/screens/planetfall/PlanetfallDashboard.tscn": 120,
 	"res://src/ui/screens/planetfall/PlanetfallTurnController.tscn": 100,
+	"res://src/ui/screens/tactics/TacticsCreationUI.tscn": 100,
+	"res://src/ui/screens/tactics/TacticsDashboard.tscn": 50,
+	"res://src/ui/screens/tactics/TacticsTurnController.tscn": 30,
 }
 
 
@@ -277,6 +287,34 @@ func test_the_opener_can_actually_detect_a_swallowing_control() -> void:
 		+ "zero this suite reports would be meaningless").is_equal(2)
 	# ...and it is idempotent, so a second pass over a fixed tree reports clean.
 	assert_int(OpenerCls.open_subtree(scroll)).is_equal(0)
+
+
+## ScreenChrome.overlay_page() hosts the transfer and import overlays, most of them added
+## to the window root, where no screen's sweep reaches; none of its five callers opened
+## the page (2026-10-28). A row added before the host enters the tree and one added after
+## must both end up open.
+func test_an_overlay_page_opens_every_row_it_hosts() -> void:
+	var host := Control.new()
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var column: VBoxContainer = ScreenChrome.overlay_page(host)
+	var before := Button.new()
+	before.text = "added before entry"
+	column.add_child(before)
+	add_child(host)
+	auto_free(host)
+	for _i in range(3):
+		await get_tree().process_frame
+	var after := Button.new()
+	after.text = "added after entry"
+	column.add_child(after)
+	for _i in range(3):
+		await get_tree().process_frame
+	var stops: Array[String] = []
+	_name_stops(host, host, stops)
+	assert_array(stops).override_failure_message(
+		"overlay_page left STOP controls on its page: %s" % [stops]).is_empty()
+	# The premise: a Button is STOP by default, so the zero above was earned.
+	assert_int(Button.new().mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
 
 
 func test_no_screen_swallows_a_touch_drag_over_its_scrollable_content() -> void:

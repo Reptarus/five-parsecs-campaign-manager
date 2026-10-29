@@ -144,6 +144,8 @@ func _load(path: String) -> TacticsSpeciesBook:
 	book.weapons = _weapons.duplicate()
 	book.vehicles = _vehicles.duplicate()
 	book.unit_profiles = units
+	if data.get("profiles") is Dictionary:
+		book.profiles = (data["profiles"] as Dictionary).duplicate(true)
 
 	# Rules text (for reference display)
 	if data.has("rules_text") and data["rules_text"] is Dictionary:

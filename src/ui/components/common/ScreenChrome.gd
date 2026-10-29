@@ -29,6 +29,7 @@ extends RefCounted
 
 const PortraitChromeScript := preload("res://src/ui/components/base/PortraitChrome.gd")
 const ShortScreenScrollScript := preload("res://src/ui/components/base/ShortScreenScroll.gd")
+const TouchScrollOpenerScript := preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 ## Node names, so a screen can find what was built for it without keeping a
 ## reference, and so a second call can recognise its own work.
@@ -410,6 +411,7 @@ static func overlay_page(host: Control, max_width: int = 800) -> VBoxContainer:
 	column.add_theme_constant_override("separation", 12)
 	margin.add_child(column)
 	_reserve_band_when_ready(host, scroll)
+	_keep_touch_open_when_ready(host)
 	return column
 
 
@@ -442,6 +444,22 @@ static func _reserve_band_when_ready(host: Control, target: Node) -> void:
 		reserve_band(target)
 	else:
 		target.tree_entered.connect(func() -> void: reserve_band(target), CONNECT_ONE_SHOT)
+
+
+## Every caller fills an overlay page with buttons and cards, which are
+## MOUSE_FILTER_STOP by construction, and most add the page to the window root, outside
+## any screen's own sweep, so a drag that started on a row never reached this scroll.
+## None of the five callers opened its page (2026-10-28). Deferred past entry: callers
+## add their rows after this returns, and a keeper that becomes ready inside the same
+## tree entry has already missed those rows' node_added.
+static func _keep_touch_open_when_ready(host: Control) -> void:
+	var open := func() -> void:
+		if is_instance_valid(host):
+			TouchScrollOpenerScript.keep_open(host)
+	if host.is_inside_tree():
+		open.call_deferred()
+	else:
+		host.tree_entered.connect(func() -> void: open.call_deferred(), CONNECT_ONE_SHOT)
 
 
 # ============================================================================

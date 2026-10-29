@@ -13,6 +13,7 @@ var PostBattleScript: GDScript
 var OpMapScript: GDScript
 
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 const COLOR_BASE := _UC.COLOR_BASE
 const COLOR_ELEVATED := _UC.COLOR_ELEVATED
 const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
@@ -25,6 +26,10 @@ const SPACING_SM := _UC.SPACING_SM
 const SPACING_MD := _UC.SPACING_MD
 const SPACING_LG := _UC.SPACING_LG
 const TOUCH_TARGET_COMFORT := _UC.TOUCH_TARGET_COMFORT
+## The turn screen's widest content column, as in TacticsCreationUI. Uncapped, a 2560 px
+## tablet put each Strategic value ~2,500 px from its label and the Battle phase's
+## checkboxes at the far left edge, away from the VP field they qualify.
+const MAX_CONTENT_WIDTH := 800
 
 var phase_manager: Node  # TacticsPhaseManager
 var campaign: Resource  # TacticsCampaignCore
@@ -34,6 +39,7 @@ var _battle_setup: Control
 var _post_battle: Control
 var _op_map: Control
 var _battle_indicator: Control  # Shown during BATTLE phase
+var _turn_end_box: Control  # Shown between turns (see _show_turn_end)
 ## "Play another battle this turn" (Tactics p.96). Read by _battle_payload().
 var _another_check: CheckBox
 ## Victory Points scored (p.73: "The rulebook scenarios all use victory points"); the
@@ -48,6 +54,7 @@ var _phase_label: Label
 var _dash_btn: Button
 var _panel_container: Control
 var _phase_strip: HBoxContainer
+var _content_margin: MarginContainer
 
 ## Cached full phase text (landscape baseline) for the phase label,
 ## so portrait shortening never permanently loses the original string.
@@ -83,6 +90,10 @@ func _initialize() -> void:
 	_create_phase_manager()
 	_create_panels()
 	_connect_signals()
+	# Kept open, not swept once: each phase panel rebuilds its rows as the phase opens,
+	# so a one-shot sweep (the panels' own) left the row each panel adds last STOP, and a
+	# drag that started on it never reached the panel's scroll (test_touch_scroll_sweep).
+	TouchScrollOpenerRef.keep_open(self)
 
 	# ⚠ A Tactics battle is played on the table and RECORDED here (the BATTLE phase's
 	# Victory / Draw / Defeat + Victory Points). There is no Tactics hand-off to the
@@ -91,15 +102,10 @@ func _initialize() -> void:
 	if "is_campaign_over" in campaign and campaign.is_campaign_over():
 		_show_campaign_over(str(campaign.campaign_result))
 		return
-	var turn: int = campaign.campaign_turn \
-		if "campaign_turn" in campaign else 0
-	if turn <= 0:
-		phase_manager.start_new_turn()
-	else:
-		phase_manager.turn_number = turn
-		phase_manager.campaign_turn_started.emit(turn)
-		phase_manager.go_to_phase(
-			PhaseManagerScript.Phase.ORDERS)
+	# ⚠ This used to start a turn only while campaign_turn was 0 and resume every later
+	# entry at Operational Orders, so after turn 1 ended, "Continue Campaign" replayed
+	# turn 1 and turn 2 never began. enter_campaign() reads the recorded phase instead.
+	phase_manager.enter_campaign()
 
 
 func _load_campaign() -> void:
@@ -131,6 +137,7 @@ func _build_layout() -> void:
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_bottom", 12)
 	add_child(margin)
+	_content_margin = margin
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 8)
@@ -159,7 +166,9 @@ func _build_layout() -> void:
 	# Dashboard button
 	var dash_btn := Button.new()
 	dash_btn.text = "Dashboard"
-	dash_btn.custom_minimum_size.y = 40
+	# 48 design px is 55.7 dp at the 1.16 effective scale; 40 was 46.4 dp, under the
+	# 48 dp floor, and landscape (the tablet) kept it.
+	dash_btn.custom_minimum_size.y = _UC.TOUCH_TARGET_MIN
 	dash_btn.pressed.connect(func():
 		var router := get_node_or_null("/root/SceneRouter")
 		if router and router.has_method("navigate_to"):
@@ -191,12 +200,27 @@ func _build_layout() -> void:
 		if not rm.layout_class_changed.is_connected(_on_layout_class_changed):
 			rm.layout_class_changed.connect(_on_layout_class_changed)
 	_apply_topbar_responsive()
+	get_viewport().size_changed.connect(_apply_content_max_width)
+	_apply_content_max_width()
+
+
+## Centre the content in a MAX_CONTENT_WIDTH column on a wide screen; 16 px gutters
+## otherwise. Width arithmetic only, so get_visible_rect() is the right read here.
+func _apply_content_max_width() -> void:
+	if not is_instance_valid(_content_margin) or not is_inside_tree():
+		return
+	var vp_width: float = get_viewport().get_visible_rect().size.x
+	var side: int = 16
+	if vp_width > MAX_CONTENT_WIDTH + 64:
+		side = int((vp_width - MAX_CONTENT_WIDTH) / 2.0)
+	_content_margin.add_theme_constant_override("margin_left", side)
+	_content_margin.add_theme_constant_override("margin_right", side)
 
 
 ## Portrait-phone top bar adaptation. Landscape/tablet/desktop are left
 ## visually identical to the original layout; only the narrow single-column
-## (portrait) class shortens/hides the phase label and grows the Dashboard
-## button to a comfortable touch target.
+## (portrait) class hides the phase label. The Dashboard button is a full touch
+## target in every class.
 func _apply_topbar_responsive() -> void:
 	if not is_instance_valid(_dash_btn) or not is_instance_valid(_phase_label):
 		return
@@ -209,14 +233,11 @@ func _apply_topbar_responsive() -> void:
 	if collapse:
 		# Narrow portrait: reclaim horizontal space.
 		# Hide the phase text (the 8-dot strip still shows progress),
-		# and bump the Dashboard button to >= TOUCH_TARGET_MIN.
 		_phase_label.visible = false
-		_dash_btn.custom_minimum_size.y = 48
 	else:
 		# Landscape / wider: original behavior.
 		_phase_label.visible = true
 		_phase_label.text = _phase_label_full_text
-		_dash_btn.custom_minimum_size.y = 40
 
 
 func _on_layout_class_changed(_effective_columns: int) -> void:
@@ -317,6 +338,7 @@ func _on_phase_changed(_old: int, new_phase: int) -> void:
 
 	# Route to correct panel
 	_hide_all_panels()
+	_clear_turn_end()
 
 	match new_phase:
 		0, 1, 2, 3:  # ORDERS → DEPLOYMENT
@@ -339,13 +361,64 @@ func _on_phase_changed(_old: int, new_phase: int) -> void:
 			_op_map.show_phase(new_phase)
 
 
-func _on_turn_completed(_turn: int) -> void:
+func _on_turn_completed(turn: int) -> void:
 	_phase_label.text = "Turn Complete!"
 	# Mark all dots as complete
 	for i in range(_phase_strip.get_child_count()):
 		var dot: Label = _phase_strip.get_child(i)
 		dot.text = "●"
 		dot.add_theme_color_override("font_color", COLOR_SUCCESS)
+	_show_turn_end(turn)
+
+
+## The end of an operational turn. ⚠ It used to leave the Strategic panel on screen with
+## its button disabled and "Turn Complete!" in the top bar, and nothing said what came
+## next; the next turn was reachable only through the Dashboard.
+func _show_turn_end(turn: int) -> void:
+	if campaign and campaign.has_method("is_campaign_over") and campaign.is_campaign_over():
+		return  # Step 9 ended the war; _show_campaign_over() owns the screen.
+	_hide_all_panels()
+	_clear_turn_end()
+	_turn_end_box = VBoxContainer.new()
+	_turn_end_box.name = "TurnEnd"
+	_turn_end_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_turn_end_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	_turn_end_box.add_theme_constant_override("separation", SPACING_LG)
+	_panel_container.add_child(_turn_end_box)
+	var lbl := Label.new()
+	lbl.text = "Turn %d is complete and saved." % turn
+	lbl.add_theme_font_size_override("font_size", _scaled_font(20))
+	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_turn_end_box.add_child(lbl)
+	var row := HFlowContainer.new()
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("h_separation", SPACING_MD)
+	row.add_theme_constant_override("v_separation", SPACING_MD)
+	_turn_end_box.add_child(row)
+	var next_btn := Button.new()
+	next_btn.name = "StartNextTurn"
+	next_btn.text = "Start Turn %d" % (turn + 1)
+	next_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	next_btn.pressed.connect(func() -> void:
+		_clear_turn_end()
+		phase_manager.start_new_turn())
+	row.add_child(next_btn)
+	var dash := Button.new()
+	dash.text = "Return to Dashboard"
+	dash.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	dash.pressed.connect(func() -> void:
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("navigate_to"):
+			router.navigate_to("tactics_dashboard"))
+	row.add_child(dash)
+
+
+func _clear_turn_end() -> void:
+	if is_instance_valid(_turn_end_box):
+		_turn_end_box.queue_free()
+	_turn_end_box = null
 
 
 func _hide_all_panels() -> void:
@@ -457,8 +530,11 @@ func _create_battle_indicator() -> VBoxContainer:
 	_no_vp_check.text = "This scenario did not use Victory Points"
 	_no_vp_check.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
 	_no_vp_check.toggled.connect(func(on: bool) -> void: _vp_spin.editable = not on)
+	# Wrapped: unwrapped, its text set a 310 px phone's page width (318). It fills the
+	# row rather than shrinking to centre, because a wrapping CheckBox's minimum is one
+	# word wide; the turn screen's content width keeps it near the VP field instead.
+	_no_vp_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_no_vp_check)
-	vbox.move_child(btn_box, vbox.get_child_count() - 1)
 
 	for outcome in ["victory", "draw", "defeat"]:
 		var b := Button.new()
@@ -479,11 +555,16 @@ func _create_battle_indicator() -> VBoxContainer:
 	# the phase with no battle result at all, losing the outcome the PBP award (p.96)
 	# is computed from. The player records the outcome; this only says whether another
 	# battle follows. It sits on its own row so the outcome buttons fit a phone width.
+	# ⚠ It sits ABOVE the outcome buttons: pressing one completes the phase at once, so
+	# an option placed below them (as it was until 2026-10-28) had to be ticked before
+	# the button it qualifies, against the reading order.
 	_another_check = CheckBox.new()
 	_another_check.text = "Play another battle this turn"
 	_another_check.custom_minimum_size = Vector2(0, TOUCH_TARGET_COMFORT)
+	_another_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_another_check.visible = false  # Shown when the BATTLE phase opens
 	vbox.add_child(_another_check)
+	vbox.move_child(btn_box, vbox.get_child_count() - 1)
 
 	var spacer_bot := Control.new()
 	spacer_bot.size_flags_vertical = Control.SIZE_EXPAND_FILL
