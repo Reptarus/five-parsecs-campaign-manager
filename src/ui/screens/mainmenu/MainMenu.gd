@@ -671,7 +671,7 @@ func _on_load_campaign_pressed() -> void:
 		del_btn.custom_minimum_size = Vector2(48, 48)
 		del_btn.tooltip_text = "Delete this save"
 		del_btn.add_theme_color_override("font_color", UIColors.COLOR_RED)
-		del_btn.add_theme_color_override("font_hover_color", Color("#FF4444"))
+		del_btn.add_theme_color_override("font_hover_color", UIColors.COLOR_RED.lightened(0.2))
 		del_btn.pressed.connect(
 			_on_delete_save.bind(save_path, row, info.get("name", ""), dialog))
 		row.add_child(del_btn)
@@ -895,7 +895,154 @@ func _on_import_file_selected(path: String, file_dialog: Node) -> void:
 		show_message("Import not supported.")
 
 func _on_coop_campaign_pressed() -> void:
-	show_message("Co-op Campaign feature is coming soon!")
+	_route_coop_press(ReviewBuildRef.is_active())
+
+
+## The Co-op button's two meanings (UX-3). Outside a review build this is the old
+## message, word for word -- and in the Alpha-1 menu the button never reaches here at
+## all, because _apply_a1_scope() rebinds it to _show_coming_soon("coop"). In a review
+## build the menu offers the two co-op things the books actually contain.
+## The flag is a parameter so a test can drive both arms without an export tag.
+func _route_coop_press(review_active: bool) -> void:
+	if not review_active:
+		show_message("Co-op Campaign feature is coming soon!")
+		return
+	_show_coop_chooser()
+
+
+## Two choices, in the shape of the Bug Hunt chooser beside it: the Bug Hunt Co-op
+## Campaign (Compendium pp.209-211), which is a mode the app runs, and the Expanded
+## Co-op Battles rules (Compendium pp.39-41), which are a battle variant it can only
+## show as reference text.
+func _show_coop_chooser() -> void:
+	var backdrop := ColorRect.new()
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	backdrop.color = Color(0, 0, 0, 0.5)
+	backdrop.name = "__coop_backdrop"
+	add_child(backdrop)
+
+	var dialog := AcceptDialog.new()
+	dialog.name = "CoopChooser"
+	dialog.title = "Co-op"
+	dialog.ok_button_text = "Cancel"
+	var panel_style := StyleBoxFlat.new()
+	panel_style.bg_color = UIColors.COLOR_PRIMARY
+	panel_style.border_color = UIColors.COLOR_BORDER
+	panel_style.set_border_width_all(1)
+	panel_style.set_corner_radius_all(4)
+	panel_style.content_margin_left = 16
+	panel_style.content_margin_right = 16
+	panel_style.content_margin_top = 12
+	panel_style.content_margin_bottom = 12
+	dialog.add_theme_stylebox_override("panel", panel_style)
+	dialog.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
+
+	var vbox := VBoxContainer.new()
+	vbox.add_theme_constant_override("separation", 8)
+	vbox.custom_minimum_size = Vector2(400, 0)
+
+	var campaign_btn := Button.new()
+	campaign_btn.name = "BugHuntCoopCampaign"
+	campaign_btn.text = "Bug Hunt Co-op Campaign"
+	campaign_btn.custom_minimum_size.y = 48
+	campaign_btn.pressed.connect(func():
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		get_tree().create_timer(0.05).timeout.connect(
+			func(): _open_bug_hunt_coop_creation())
+	)
+	vbox.add_child(campaign_btn)
+	var campaign_note := Label.new()
+	campaign_note.text = "Several players retake a world sector by sector on one shared " \
+		+ "map (Compendium pp.209-211)."
+	campaign_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	campaign_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(campaign_note)
+
+	var rules_btn := Button.new()
+	rules_btn.name = "ExpandedCoopRules"
+	rules_btn.text = "Expanded Co-op rules (Compendium pp.39-41)"
+	rules_btn.custom_minimum_size.y = 48
+	rules_btn.pressed.connect(func():
+		dialog.queue_free()
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+		_show_expanded_coop_rules()
+	)
+	vbox.add_child(rules_btn)
+	var rules_note := Label.new()
+	rules_note.text = "Two players share one battle. Reference text to play by at the table."
+	rules_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rules_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	vbox.add_child(rules_note)
+
+	dialog.add_child(vbox)
+	dialog.confirmed.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	dialog.canceled.connect(func():
+		if is_instance_valid(backdrop):
+			backdrop.queue_free()
+	)
+	add_child(dialog)
+	_active_dialogs.append(dialog)
+	dialog.popup_centered()
+
+
+## Open the Bug Hunt creation wizard with co-op already switched on. The context is read
+## and cleared by BugHuntCreationUI._apply_router_context(). `router` is a test seam.
+func _open_bug_hunt_coop_creation(router: Node = null) -> void:
+	if router == null:
+		router = get_node_or_null("/root/SceneRouter")
+	if router == null or not router.has_method("navigate_to"):
+		show_message("Error: SceneRouter not found")
+		return
+	router.navigate_to("bug_hunt_creation", {"coop": true})
+
+
+## The Expanded Co-op Battles chapter (Compendium pp.39-41) as the in-battle cheat sheet
+## already renders it, so the menu and the battle screen read one source
+## (CheatSheetSections.coop_battles(), from compendium_missions_expanded). The chapter is
+## Compendium content: with its flag off the text is empty, and the page says so rather
+## than showing a blank sheet. Returns the overlay so a test can read it.
+func _show_expanded_coop_rules() -> Control:
+	var host := Control.new()
+	host.name = "ExpandedCoopRules"
+	host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var column: VBoxContainer = ScreenChrome.overlay_page(host)
+	var close_btn := Button.new()
+	close_btn.text = "Close"
+	close_btn.custom_minimum_size = Vector2(96, 48)
+	close_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	close_btn.pressed.connect(func():
+		_active_dialogs.erase(host)
+		host.queue_free()
+	)
+	column.add_child(close_btn)
+	var text: String = preload("res://src/ui/components/battle/CheatSheetSections.gd").coop_battles()
+	if text.strip_edges().is_empty():
+		var off := Label.new()
+		off.text = "The Expanded Co-op Battles rules (Compendium pp.39-41) are Compendium " \
+			+ "content and are not enabled on this device."
+		off.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		off.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+		column.add_child(off)
+	else:
+		var rich := RichTextLabel.new()
+		rich.name = "RulesText"
+		rich.bbcode_enabled = true
+		rich.fit_content = true
+		rich.scroll_active = false
+		rich.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		rich.text = UIColors.bbcode(text)
+		ScreenChrome.size_rich_text(rich, ScreenChrome.font_size(UIColors.FONT_SIZE_MD))
+		rich.add_theme_color_override("default_color", UIColors.COLOR_TEXT_PRIMARY)
+		column.add_child(rich)
+	add_child(host)
+	_active_dialogs.append(host)
+	return host
 
 func _on_battle_simulator_pressed() -> void:
 	request_scene_change("battle_simulator")
@@ -1417,7 +1564,7 @@ func _build_social_footer() -> void:
 		btn.add_theme_color_override(
 			"font_color", UIColors.COLOR_CYAN)
 		btn.add_theme_color_override(
-			"font_hover_color", Color("#81D4FA"))
+			"font_hover_color", UIColors.COLOR_CYAN.lightened(0.4))
 		var url: String = link.get("url", "")
 		btn.pressed.connect(_open_url.bind(url))
 		_social_bar.add_child(btn)
@@ -1435,7 +1582,7 @@ func _build_social_footer() -> void:
 	credits_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	credits_btn.add_theme_color_override(
-		"font_hover_color", Color("#B0B0B0"))
+		"font_hover_color", UIColors.COLOR_TEXT_PRIMARY)
 	credits_btn.pressed.connect(_show_credits)
 	_social_bar.add_child(credits_btn)
 
@@ -1451,7 +1598,7 @@ func _build_social_footer() -> void:
 	privacy_btn.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY)
 	privacy_btn.add_theme_color_override(
-		"font_hover_color", Color("#B0B0B0"))
+		"font_hover_color", UIColors.COLOR_TEXT_PRIMARY)
 	privacy_btn.pressed.connect(func():
 		var router := get_node_or_null("/root/SceneRouter")
 		if router and router.has_method("navigate_to"):
@@ -1474,7 +1621,7 @@ func _build_social_footer() -> void:
 	version_label.text = "v%s" % version
 	version_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(11))
 	version_label.add_theme_color_override(
-		"font_color", Color("#606060"))
+		"font_color", UIColors.COLOR_TEXT_MUTED)
 	_social_bar.add_child(version_label)
 
 func _open_url(url: String) -> void:

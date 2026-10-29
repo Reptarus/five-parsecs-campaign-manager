@@ -56,16 +56,25 @@ Whether you're a seasoned Five Parsecs veteran or picking up the game for the fi
 - **{{chapter:12}}** [Bug Hunt Mode](12_bug_hunt.md)
   The standalone military campaign variant: squad creation, 3-stage turns, and character transfer.
 
+- **{{chapter:16}}** [Planetfall](16_planetfall.md)
+  The colony-building campaign: the creation wizard, the dashboard, the 18-step turn, the End Game, and moving characters between modes.
+
+- **{{chapter:17}}** [Tactics](17_tactics.md)
+  The points-based army campaign: building an army, the 8-phase operational turn, recording battles you play on your table, and named veterans.
+
+- **{{chapter:18}}** [Battle Simulator](18_battle_simulator.md)
+  A standalone practice battle with no campaign: setup, the battle, and the results screen.
+
 ### Extras
 
 - **{{chapter:13}}** [DLC and Expansion Content](13_dlc_store.md)
   What each DLC pack adds, how to purchase, and unlocking new species, missions, and mechanics.
 
 - **{{chapter:14}}** [Saving and Loading](14_save_load.md)
-  Auto-save, manual saves, rotating backups, importing and exporting campaign files.
+  Automatic and manual saves, the previous-version backup, importing and exporting campaign files.
 
 - **{{chapter:15}}** [Settings and Accessibility](15_settings_accessibility.md)
-  Theme options, text sizing, reduced animation, and accessibility features.
+  The Settings cards, visual themes, font size, reduced animation, and accessibility features.
 
 ---
 

@@ -9,10 +9,10 @@ const SetupPanelScript := preload("res://src/ui/screens/battle_simulator/panels/
 const ResultsPanelScript := preload("res://src/ui/screens/battle_simulator/panels/BattleSimulatorResultsPanel.gd")
 const TacticalBattleScene := preload("res://src/ui/screens/battle/TacticalBattleUI.tscn")
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_TEXT := Color("#E0E0E0")
+const COLOR_BASE := UIColors.COLOR_BASE
+const COLOR_TEXT := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := UIColors.COLOR_TEXT_SECONDARY
-const COLOR_ACCENT := Color("#2D5A7B")
+const COLOR_ACCENT := UIColors.COLOR_ACCENT
 const MAX_FORM_WIDTH := 800  # ISSUE-040: responsive centering
 
 var _content_margin: MarginContainer

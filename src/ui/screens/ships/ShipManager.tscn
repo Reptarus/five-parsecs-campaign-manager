@@ -77,11 +77,10 @@ layout_mode = 2
 layout_mode = 2
 text = "Hull Points:"
 
-[node name="CurrentHull" type="SpinBox" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
+[node name="CurrentHull" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
 unique_name_in_owner = true
 layout_mode = 2
-min_value = 0.0
-max_value = 100.0
+text = "30"
 
 [node name="MaxHull" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints"]
 unique_name_in_owner = true
@@ -95,10 +94,10 @@ layout_mode = 2
 layout_mode = 2
 text = "Debt:"
 
-[node name="DebtAmount" type="SpinBox" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
+[node name="DebtAmount" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
 unique_name_in_owner = true
 layout_mode = 2
-max_value = 9999.0
+text = "0"
 
 [node name="Credits" type="Label" parent="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt"]
 layout_mode = 2
@@ -148,21 +147,9 @@ theme_override_constants/separation = 15
 
 [node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
 layout_mode = 2
-text = "Travel Operations"
+text = "Travel"
 horizontal_alignment = 1
 theme_type_variation = &"TextLG"
-
-[node name="FuelStatus" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/FuelStatus"]
-layout_mode = 2
-text = "Fuel Status:"
-
-[node name="FuelLevel" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/FuelStatus"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Full"
 
 [node name="TravelCost" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
 layout_mode = 2
@@ -176,13 +163,10 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "1 credit"
 
-[node name="TravelButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
+[node name="TravelNote" type="Label" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
 layout_mode = 2
-text = "Initiate Travel"
-
-[node name="RefuelButton" type="Button" parent="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer"]
-layout_mode = 2
-text = "Refuel Ship"
+text = "You decide whether to travel at the start of each campaign turn. Fuel is this cost per trip; there is no tank to fill (Core Rules pp.61, 69)."
+autowrap_mode = 3
 
 [node name="Controls" type="HFlowContainer" parent="MarginContainer/VBoxContainer"]
 layout_mode = 2
@@ -190,23 +174,10 @@ theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 8
 alignment = 1
 
-[node name="RepairButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
+[node name="UpkeepNote" type="Label" parent="MarginContainer/VBoxContainer/Controls"]
 layout_mode = 2
-text = "Repair Hull"
-
-[node name="UpgradeButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Purchase Upgrades"
-
-[node name="PayDebtButton" type="Button" parent="MarginContainer/VBoxContainer/Controls"]
-layout_mode = 2
-text = "Pay Debt"
+size_flags_horizontal = 3
+text = "Hull repairs and debt payments are made during Upkeep (Core Rules p.76). One Component can be added each turn, and it works from the next turn (p.60)."
+autowrap_mode = 3
 
 [connection signal="pressed" from="MarginContainer/VBoxContainer/Header/BackButton" to="." method="_on_back_pressed"]
-[connection signal="value_changed" from="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/HullPoints/CurrentHull" to="." method="_on_hull_changed"]
-[connection signal="value_changed" from="MarginContainer/VBoxContainer/MainContent/ShipStatus/VBoxContainer/Debt/DebtAmount" to="." method="_on_debt_changed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/TravelButton" to="." method="_on_travel_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/MainContent/Travel/VBoxContainer/RefuelButton" to="." method="_on_refuel_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/RepairButton" to="." method="_on_repair_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/UpgradeButton" to="." method="_on_upgrade_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/Controls/PayDebtButton" to="." method="_on_pay_debt_pressed"]

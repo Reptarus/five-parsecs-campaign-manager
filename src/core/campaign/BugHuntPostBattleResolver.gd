@@ -26,6 +26,8 @@ const CITE_OP_PROGRESS := "Compendium p.205"
 const CITE_MILITARY_LIFE := "Compendium p.206"
 const CITE_RR := "Compendium p.206"
 const CITE_MOVIE_MAGIC := "Compendium p.181"
+## p.210, Co-op campaigns: "Note that the normal Operational Progress table is not used."
+const CITE_COOP := "Compendium p.210"
 
 ## The XP `condition` strings are DATA KEYS, not prose we author. They select
 ## which row of `experience.awards` supplies the value, so every XP number stays
@@ -73,6 +75,7 @@ func _init() -> void:
 ##   missions_in_current_operation  int
 ##   sick_bay                       Dictionary {character_id: turns_remaining}
 ##   battle_result                  Dictionary — BugHuntBattleResultNormalizer output
+##   coop_enabled                   bool — a p.209-211 co-op campaign, which skips step 6
 ##   data                           Dictionary — {post_battle, missions} test override
 ##
 ## Returns {steps, effects, choices_needed, rolls}. `effects` is the flattened,
@@ -110,6 +113,7 @@ func resolve(snapshot: Dictionary) -> Dictionary:
 		# p.181 cards still in hand. Survived and Escape act on step 1's rolls.
 		"movie_magic": _as_string_array(snapshot.get("movie_magic_available", [])),
 		"op_modifier": int(snapshot.get("operational_progress_modifier", 0)),
+		"coop": bool(snapshot.get("coop_enabled", false)),
 		"missions_in_operation": int(snapshot.get("missions_in_current_operation", 0)),
 		# Filled by step 1 and read by steps 2-5.
 		# Step 6 can trigger R&R (p.205); step 8 is the ONE place that decides and
@@ -641,6 +645,14 @@ func _award_value(awards: Array, condition: String) -> int:
 ## parade — the campaign win) are real rows that only a modified roll can reach.
 func _step_operational_progress(ctx: Dictionary) -> Dictionary:
 	var step := _new_step(6, "Roll for Operational Progress", CITE_OP_PROGRESS)
+	# p.210: a co-op campaign progresses by operational turns and Enemy Moves instead.
+	# Skipped BEFORE the roll, so neither the p.205 R&R trigger nor the above_100 Parade
+	# (which would end a co-op campaign the sector map has not won) can fire.
+	if bool(ctx.get("coop", false)):
+		step.skipped = true
+		step.lines.append("Co-op campaign: the normal Operational Progress table is not used (%s)."
+			% CITE_COOP)
+		return step
 	var entries: Array = _as_array(ctx.pb.get("operational_progress", {}).get("entries", []))
 	if entries.is_empty():
 		step.skipped = true

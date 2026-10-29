@@ -102,7 +102,6 @@ const SCREENS: Array = [
 	"res://src/ui/screens/campaign/CampaignTurnController.tscn",
 	"res://src/ui/screens/campaign/CampaignJournalScreen.tscn",
 	"res://src/ui/screens/galaxy_log/GalaxyLogScreen.tscn",
-	"res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	"res://src/ui/screens/crew/CrewManagementScreen.tscn",
 	"res://src/ui/screens/equipment/EquipmentManager.tscn",
@@ -144,6 +143,10 @@ const SCREENS: Array = [
 	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
 	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
 	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
+	# An overlay PANEL opened from the Bug Hunt dashboard, not a routed scene, so it is
+	# listed by its script and built with new() (see _instantiate). Its fixture is the
+	# co-op map from the real producer -- see _build_coop_fixture.
+	COOP_MAP_PANEL,
 ]
 
 var _frame := 0
@@ -348,8 +351,10 @@ func _sweep_screen(path: String) -> void:
 		_skip += 1
 		_findings.append("SKIP %s — scene file does not exist" % short)
 		return
-	var ps: PackedScene = load(path)
-	if ps == null:
+	var res: Resource = load(path)
+	var ps: PackedScene = res as PackedScene
+	var panel_script: GDScript = res as GDScript
+	if ps == null and panel_script == null:
 		_skip += 1
 		_findings.append("SKIP %s — scene failed to load" % short)
 		return
@@ -366,17 +371,20 @@ func _sweep_screen(path: String) -> void:
 				% [w, h, got.x, got.y] + "NOT measured")
 			continue
 		_populate_pre(path)
-		var inst: Node = ps.instantiate()
+		var inst: Node = _instantiate(ps, panel_script)
 		if inst == null:
 			_skip += 1
 			_findings.append("SKIP %s @ %s — instantiate() returned null" % [short, label])
 			continue
 		root.add_child(inst)
-		# Modal screens ship hidden and are shown by whoever opens them —
-		# SimpleCharacterCreator.gd:60 sets visible = false in _ready(). A hidden root
+		# Modal screens ship hidden and are shown by whoever opens them. A hidden root
 		# measures as zero visible Controls, which the anti-false-pass guard below was
 		# reporting as "likely needs campaign state": a misdiagnosis that quietly took
-		# six configs out of the sweep. Showing it is exactly what its caller does.
+		# six configs out of the sweep.
+		# ⚠ Showing it here measures what an OVERLAY caller shows. It cannot tell you
+		# whether any caller does: SimpleCharacterCreator hid itself in _ready() and its
+		# only caller navigated to it as a whole screen, so players got a blank page
+		# while this sweep measured it shown and green (Sprint U, 2026-10-29; deleted).
 		if inst is CanvasItem and not (inst as CanvasItem).visible:
 			(inst as CanvasItem).show()
 		_populate_post(inst, path)
@@ -401,7 +409,7 @@ func _sweep_screen(path: String) -> void:
 			inst.queue_free()
 			await process_frame
 			_populate_pre(path)
-			inst = ps.instantiate()
+			inst = _instantiate(ps, panel_script)
 			if inst == null:
 				_skip += 1
 				_findings.append("SKIP %s @ %s - the rebuild returned null" % [short, label])
@@ -878,6 +886,7 @@ func _populate_pre(path: String) -> void:
 	var p = _get_populator()
 	if p != null:
 		p.populate_pre(path)
+	_populate_coop_pre(path)
 
 
 func _user_arg(prefix: String) -> String:
@@ -891,3 +900,67 @@ func _populate_post(inst: Node, path: String) -> void:
 	var p = _get_populator()
 	if p != null:
 		p.populate_post(inst, path)
+	_populate_coop_post(inst, path)
+
+
+## A SCREENS row is a scene, or (for an overlay panel opened over a screen rather than
+## routed to) the panel's script.
+func _instantiate(ps: PackedScene, panel_script: GDScript) -> Node:
+	if ps != null:
+		return ps.instantiate()
+	return panel_script.new() if panel_script != null else null
+
+
+## The Bug Hunt Co-op Campaign Map (Compendium pp.209-211). Its fixture is NOT invented:
+## the map is rolled by BugHuntCampaignCore.start_coop_campaign(), the producer the
+## creation wizard calls, under forced dice -- three players x three sectors, so the grid
+## has rows to wrap, all seven Factors plus two repeats, four resource stashes -- and one
+## mission is recorded through the core's own writer so a cleared sector, the common pool
+## and a fought player are on the page. Nothing touches the disk: no persist() is called.
+const COOP_MAP_PANEL := "res://src/ui/screens/bug_hunt/panels/BugHuntCoopMapPanel.gd"
+var _coop_fixture: Resource = null
+
+
+func _populate_coop_pre(path: String) -> void:
+	if path != COOP_MAP_PANEL:
+		return
+	# Handed to the panel by set_campaign() in _populate_coop_post, exactly as the dashboard
+	# does. GameState is NOT touched: a Bug Hunt core left there bleeds into later sweeps.
+	_coop_fixture = _build_coop_fixture()
+
+
+func _populate_coop_post(inst: Node, path: String) -> void:
+	if path != COOP_MAP_PANEL or _coop_fixture == null:
+		return
+	if inst.has_method("set_campaign"):
+		inst.set_campaign(_coop_fixture)
+
+
+func _build_coop_fixture() -> Resource:
+	var dm := root.get_node_or_null("/root/DiceManager")
+	var core_script = load("res://src/game/campaign/BugHuntCampaignCore.gd")
+	if dm == null or core_script == null:
+		return null
+	dm.clear_forced_results()
+	for v in [3, 4, 2, 6, 1, 5, 2, 4, 3]:
+		dm.queue_forced_result("Bug Hunt Co-op Priority: die 1", v)
+	for v in [5, 4, 6, 5, 3, 6, 6, 5, 4]:
+		dm.queue_forced_result("Bug Hunt Co-op Priority: die 2", v)
+	# Ambush, Sheltered, Inaccessible, Swarming, Obstructed, Hot zone, Infiltration point,
+	# then Sheltered and Obstructed again once all seven are placed (p.210).
+	for v in [1, 31, 81, 51, 66, 95, 20, 45, 70]:
+		dm.queue_forced_result("Bug Hunt Co-op Sector Factor", v)
+	for v in [4, 2, 6, 3]:  # 95, 20, 45 and 70 end in 5 or 0
+		dm.queue_forced_result("Bug Hunt Co-op Resource Stash", v)
+	var core = core_script.new()
+	core.campaign_name = "Layout co-op fixture"
+	core.difficulty = "mess_me_up"
+	core.start_campaign()
+	var receipt: Dictionary = core.start_coop_campaign(["Ash", "Bryn", "Cole"], 3)
+	dm.clear_forced_results()
+	if not bool(receipt.get("ok", false)):
+		push_error("verify_layout: the co-op fixture map was refused: %s"
+			% str(receipt.get("error", "")))
+		return null
+	core.record_coop_battle("Bryn", "S6", {"objectives_completed": 2})
+	return core

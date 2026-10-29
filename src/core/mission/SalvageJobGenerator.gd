@@ -271,7 +271,7 @@ static func roll_authorities_check(salvage_units: int) -> Dictionary:
 	##
 	## The roll is NOT a decision and is made here; the CHOICE belongs to the
 	## player and is applied separately via apply_authorities_choice().
-	var roll: int = randi_range(1, 6)
+	var roll: int = CompendiumSalvageJobs.roll_die(6, "Salvage Authorities")
 	var caught: bool = roll >= AUTHORITIES_CAUGHT_THRESHOLD
 	return {
 		"roll": roll,

@@ -23,11 +23,11 @@
             "availability": "rival_tracked_down",
             "objective_table": null,
             "deployment_column": "rival",
-            "notes": "No Win condition objective. Use rival_attack_types table from rival_involvement.json."
+            "notes": "There is no Win condition against Rivals, but if you Hold the Field, you have an increased chance of permanently chasing them off (p.91)."
         },
         "QUEST": {
             "name": "Quest Mission",
-            "description": "Pursuing an active Quest. Quest finale always uses Fight Off with +1 enemy.",
+            "description": "Pursuing an active Quest. The finale is always a Straight-up Fight: add +1 to the number of opponents faced, and they always fight to the death (p.120).",
             "availability": "active_quest",
             "objective_table": "quest",
             "deployment_column": "quest"

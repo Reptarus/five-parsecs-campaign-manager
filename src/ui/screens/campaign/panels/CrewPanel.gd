@@ -102,7 +102,7 @@ func _update_gutter_notice() -> void:
 		notice = Label.new()
 		notice.name = "__gutter_notice"
 		notice.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		notice.add_theme_color_override("font_color", Color("#FBBF24"))
+		notice.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
 		content.add_child(notice)
 		content.move_child(notice, 1)
 	notice.text = ("Starting in the Gutter (Compendium p.34): begin with only %d"
@@ -583,7 +583,7 @@ func _apply_button_style(
 	button.custom_minimum_size.y = 48
 	var hover := style.duplicate()
 	hover.bg_color = UIColors.COLOR_ACCENT_HOVER if is_primary \
-		else Color("#2d3748")
+		else UIColors.COLOR_BORDER
 	button.add_theme_stylebox_override("hover", hover)
 	var pressed := style.duplicate()
 	pressed.bg_color = Color(
@@ -597,7 +597,7 @@ func _apply_button_style(
 		style.bg_color.b, 0.2)
 	button.add_theme_stylebox_override("disabled", disabled)
 	button.add_theme_color_override(
-		"font_disabled_color", Color("#4b5563"))
+		"font_disabled_color", UIColors.COLOR_TEXT_DISABLED)
 
 func _add_help_button() -> void:
 	var help_btn := Button.new()

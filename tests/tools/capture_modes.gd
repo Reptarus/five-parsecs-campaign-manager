@@ -42,6 +42,10 @@ func _run() -> void:
 			await _bug_hunt()
 		"simulator":
 			await _simulator()
+		"fivepfh":
+			await _fivepfh()
+		"shared":
+			await _shared()
 		_:
 			print("unknown mode: %s" % _mode)
 	var removed: int = _guard.restore(_guard_snap)
@@ -489,6 +493,205 @@ func _simulator() -> void:
 	inst.call("_on_play_again")
 	await _shot("sim_05_play_again", inst)
 	await _unmount(inst)
+
+
+## ============================================================================
+## 5PFH — the campaign wizard, every campaign screen, the World Phase steps and
+## the battle screens, on a campaign the wizard itself finalised.
+## ============================================================================
+
+var _populator: RefCounted = null
+
+
+## Mount a screen exactly as verify_layout does: the shared populator supplies the
+## data a NAVIGATOR would have handed it (temp data and scene context before
+## instantiate, setup calls after), so a screen is never captured emptier than the
+## app would show it.
+func _mount_populated(path: String) -> Node:
+	if _populator == null:
+		_populator = load("res://tests/tools/screen_populator.gd").new(root)
+	if DisplayServer.window_get_size() != _size:
+		DisplayServer.window_set_size(_size)
+		for _i in range(3):
+			await process_frame
+	_populator.populate_pre(path)
+	var ps: PackedScene = load(path)
+	var inst: Node = ps.instantiate() if ps else null
+	if inst == null:
+		print("  SKIP %s: did not instantiate" % path)
+		return null
+	root.add_child(inst)
+	if inst is CanvasItem and not (inst as CanvasItem).visible:
+		(inst as CanvasItem).show()
+	_populator.populate_post(inst, path)
+	await _settle(inst)
+	# WINDOW-HIJACK GUARD, as verify_layout and verify_rotation have it. SettingsScreen
+	# restores user://window.ini on entry and bakes its font sizes at that size, and
+	# _shot() then shrank the window back. The phone capture of Settings came out at
+	# tablet type, running off the right edge, while the sweep measured it fitting.
+	# Re-apply the size BEFORE freeing: SettingsScreen._exit_tree() writes it back.
+	var got: Vector2i = DisplayServer.window_get_size()
+	if absi(got.x - _size.x) > 2 or absi(got.y - _size.y) > 2:
+		print("  NOTE %s moved the window to %dx%d; rebuilt at %dx%d"
+				% [path.get_file(), got.x, got.y, _size.x, _size.y])
+		DisplayServer.window_set_size(_size)
+		for _i in range(3):
+			await process_frame
+		inst.queue_free()
+		await process_frame
+		inst = ps.instantiate()
+		root.add_child(inst)
+		if inst is CanvasItem and not (inst as CanvasItem).visible:
+			(inst as CanvasItem).show()
+		_populator.populate_post(inst, path)
+		await _settle(inst)
+	_apply_runtime_overlay_net(inst)
+	await _settle(inst)
+	return inst
+
+
+## Capture the top of a screen, then its foot when its main scroll has more below.
+func _shot_page(name: String, inst: Node) -> void:
+	await _shot(name, inst)
+	var best: ScrollContainer = null
+	for n in inst.find_children("*", "ScrollContainer", true, false):
+		var sc := n as ScrollContainer
+		if not sc.is_visible_in_tree():
+			continue
+		var bar := sc.get_v_scroll_bar()
+		if bar and bar.max_value - bar.page > 8.0:
+			if best == null or sc.size.y > best.size.y:
+				best = sc
+	if best:
+		best.scroll_vertical = 1000000
+		await _shot(name + "_bottom", inst)
+		best.scroll_vertical = 0
+
+
+func _fivepfh() -> void:
+	var gs: Node = root.get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = null
+
+	# --- The 7-step creation wizard, each step empty and then filled by its own panel ---
+	var ui: Node = await _mount("res://src/ui/screens/campaign/CampaignCreationUI.tscn")
+	if ui == null:
+		return
+	var coord = ui.coordinator
+	var names := ["1_config", "2_captain", "3_crew", "4_equipment", "5_ship", "6_world",
+			"7_review"]
+	for step in range(names.size()):
+		await _settle(ui)
+		await _shot("5p_create_%s_empty" % names[step], ui)
+		var panel: Node = ui.panels[step]
+		match step:
+			0:
+				panel.campaign_name_input.text = "Capture Run"
+				panel._on_campaign_name_changed("Capture Run")
+			1, 2:
+				panel._on_randomize_pressed()
+			3, 4:
+				if panel.has_method("_on_generate_pressed"):
+					panel._on_generate_pressed()
+		await _settle(ui)
+		await _shot_page("5p_create_%s_filled" % names[step], ui)
+		if step < names.size() - 1:
+			ui._on_next_pressed()
+			await _settle(ui)
+			print("    step %d -> coordinator step %d" % [step, coord.current_step])
+			if coord.current_step != step + 1:
+				print("  STOP: the wizard did not advance past step %d" % (step + 1))
+				await _unmount(ui)
+				return
+
+	# Finish, intercepting the hand-off: the UI's own handler navigates with
+	# change_scene_to_file, which would replace the screen under this capture.
+	var final_panel: Node = ui.panels[6]
+	for c in final_panel.campaign_finalization_complete.get_connections():
+		final_panel.campaign_finalization_complete.disconnect(c["callable"])
+	var box := {}
+	final_panel.campaign_finalization_complete.connect(func(d: Dictionary): box["d"] = d)
+	final_panel._on_create_campaign_pressed()
+	for _i in range(240):
+		if box.has("d"):
+			break
+		await process_frame
+	await _unmount(ui)
+	var campaign = (box.get("d", {}) as Dictionary).get("campaign")
+	if campaign == null:
+		print("  STOP: finalisation returned no campaign")
+		return
+	if gs:
+		gs.set_current_campaign(campaign)
+	print("    campaign: %s, crew %d" % [str(campaign.get("campaign_name")),
+			(campaign.crew_data.get("members", []) as Array).size()])
+
+	# --- Campaign screens, as the dashboard opens them ---
+	for entry in [
+			["5p_dashboard", "res://src/ui/screens/campaign/CampaignDashboard.tscn"],
+			["5p_crew", "res://src/ui/screens/crew/CrewManagementScreen.tscn"],
+			["5p_character", "res://src/ui/screens/character/CharacterDetailsScreen.tscn"],
+			["5p_equipment", "res://src/ui/screens/equipment/EquipmentManager.tscn"],
+			["5p_ship", "res://src/ui/screens/ships/ShipManager.tscn"],
+			["5p_patrons_rivals", "res://src/ui/screens/world/PatronRivalManager.tscn"],
+			["5p_journal", "res://src/ui/screens/campaign/CampaignJournalScreen.tscn"],
+			["5p_galaxy_log", "res://src/ui/screens/galaxy_log/GalaxyLogScreen.tscn"],
+			["5p_print", "res://src/ui/screens/print/PrintSheetScreen.tscn"],
+			["5p_editor", "res://src/ui/screens/campaign/CampaignEditorScreen.tscn"],
+			["5p_equipment_generation",
+				"res://src/ui/screens/equipment/EquipmentGenerationScene.tscn"]]:
+		var inst: Node = await _mount_populated(entry[1])
+		if inst:
+			await _shot_page(entry[0], inst)
+			await _unmount(inst)
+
+	# --- The World Phase, each of its six steps as the controller shows it ---
+	var wp: Node = await _mount_populated("res://src/ui/screens/world/WorldPhaseController.tscn")
+	if wp:
+		for step in range(6):
+			wp.current_step = step
+			wp._show_current_step()
+			await _settle(wp)
+			await _shot_page("5p_world_%d_%s" % [step + 1,
+					str(wp.step_names[step]).to_lower().replace(" ", "_")], wp)
+		await _unmount(wp)
+
+	# --- The battle screens, fed the campaign's own crew by the shared populator ---
+	for entry in [
+			["5p_prebattle", "res://src/ui/screens/battle/PreBattle.tscn"],
+			["5p_battle", "res://src/ui/screens/battle/TacticalBattleUI.tscn"],
+			["5p_postbattle", "res://src/ui/screens/postbattle/PostBattleSequence.tscn"]]:
+		var inst: Node = await _mount_populated(entry[1])
+		if inst:
+			await _shot_page(entry[0], inst)
+			await _unmount(inst)
+
+
+## The screens every mode shares and that need no campaign. A screen can mount another
+## on the root (MainMenu routes to the EULA without consent), and that one outlives the
+## screen that opened it, so it showed through under the next capture ("End User
+## License" behind the Store header). Anything a screen adds to the root goes with it.
+func _shared() -> void:
+	for entry in [
+			["sh_main_menu", "res://src/ui/screens/mainmenu/MainMenu.tscn"],
+			["sh_settings", "res://src/ui/screens/settings/SettingsScreen.tscn"],
+			["sh_help", "res://src/ui/help/HelpScreen.tscn"],
+			["sh_store", "res://src/ui/screens/store/StoreScreen.tscn"],
+			["sh_compendium", "res://src/ui/screens/compendium/CompendiumScreen.tscn"],
+			["sh_compendium_category",
+				"res://src/ui/screens/compendium/CompendiumCategoryView.tscn"],
+			["sh_legal_viewer", "res://src/ui/screens/legal/LegalTextViewer.tscn"],
+			["sh_eula", "res://src/ui/screens/legal/EULAScreen.tscn"],
+			["sh_game_over", "res://src/ui/screens/utils/GameOverScreen.tscn"]]:
+		var before: Array[Node] = root.get_children()
+		var inst: Node = await _mount_populated(entry[1])
+		if inst:
+			await _shot_page(entry[0], inst)
+			await _unmount(inst)
+		for n in root.get_children():
+			if not before.has(n):
+				n.queue_free()
+		await process_frame
 
 
 func _phase_slug(pm: Node) -> String:

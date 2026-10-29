@@ -29,6 +29,7 @@ const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 const CompendiumDeploymentVariablesRef = preload(
 	"res://src/data/compendium_deployment_variables.gd")
 const CompendiumGridMovementRef = preload(
@@ -243,7 +244,7 @@ var enemy_generation_wizard: PanelContainer = null
 var cheat_sheet_panel: PanelContainer = null
 var weapon_table_display: PanelContainer = null
 var combat_situation_panel: PanelContainer = null
-var dual_input_roll: HBoxContainer = null
+var dual_input_roll: HFlowContainer = null
 
 # Battle Parity components (Phase 34 — Core Rules combat companion)
 var character_quick_roll: PanelContainer = null
@@ -699,7 +700,7 @@ func _rebuild_crew_rail() -> void:
 	var reset_btn := Button.new()
 	reset_btn.text = "↺ Round"
 	reset_btn.tooltip_text = "Manually reset all crew activation for a new round"
-	reset_btn.add_theme_font_size_override("font_size", 11)
+	reset_btn.add_theme_font_size_override("font_size", _scaled_font(11))
 	reset_btn.pressed.connect(_on_manual_round_reset)
 	crew_rail.add_child(reset_btn)
 	for u in crew_units:
@@ -798,7 +799,7 @@ func _build_battlefield_intel(target: Node,
 		var ol := Label.new()
 		ol.text = "◆ %s (marked on map)" % obj_txt.capitalize()
 		ol.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		ol.add_theme_font_size_override("font_size", 12)
+		ol.add_theme_font_size_override("font_size", _scaled_font(12))
 		ol.add_theme_color_override("font_color", UIColors.COLOR_SUCCESS)
 		target.add_child(ol)
 
@@ -864,7 +865,7 @@ func _build_terrain_controls(target: Node) -> void:
 		var locked := Label.new()
 		locked.text = "Terrain locked for battle — tap a sector for its rules; pinch/scroll to zoom, drag to pan."
 		locked.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		locked.add_theme_font_size_override("font_size", 11)
+		locked.add_theme_font_size_override("font_size", _scaled_font(11))
 		locked.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		target.add_child(locked)
 		return
@@ -872,7 +873,7 @@ func _build_terrain_controls(target: Node) -> void:
 	# Scatter toggle — off while placing main features, on for dressing
 	var scatter_toggle := CheckButton.new()
 	scatter_toggle.text = "Show scatter terrain"
-	scatter_toggle.add_theme_font_size_override("font_size", 12)
+	scatter_toggle.add_theme_font_size_override("font_size", _scaled_font(12))
 	scatter_toggle.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
 	scatter_toggle.button_pressed = battlefield_grid_panel.show_scatter \
 		if battlefield_grid_panel and "show_scatter" in battlefield_grid_panel \
@@ -894,7 +895,7 @@ func _build_terrain_controls(target: Node) -> void:
 		regen_btn.tooltip_text = \
 			"Roll a whole new battlefield (Compendium 5-step, pp.94-95)"
 		regen_btn.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
-		regen_btn.add_theme_font_size_override("font_size", 12)
+		regen_btn.add_theme_font_size_override("font_size", _scaled_font(12))
 		regen_btn.pressed.connect(_on_regenerate_terrain_pressed)
 		target.add_child(regen_btn)
 	var hint := Label.new()
@@ -902,7 +903,7 @@ func _build_terrain_controls(target: Node) -> void:
 		if _layout_generation_allowed()
 		else "Tap any map sector for its rules.")
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_font_size_override("font_size", _scaled_font(11))
 	hint.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	target.add_child(hint)
 
@@ -910,7 +911,7 @@ func _build_terrain_controls(target: Node) -> void:
 func _rail_header(parent: Node, txt: String) -> void:
 	var l := Label.new()
 	l.text = txt
-	l.add_theme_font_size_override("font_size", 12)
+	l.add_theme_font_size_override("font_size", _scaled_font(12))
 	l.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	parent.add_child(l)
 
@@ -919,7 +920,7 @@ func _info_modifier_line(parent: Node, txt: String, col: Color) -> void:
 	var l := Label.new()
 	l.text = txt
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.add_theme_font_size_override("font_size", 11)
+	l.add_theme_font_size_override("font_size", _scaled_font(11))
 	l.add_theme_color_override("font_color", col)
 	parent.add_child(l)
 
@@ -966,7 +967,7 @@ func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
 	if slot == 1 or slot == 2:
 		var chip := Label.new()
 		chip.text = " Q " if slot == 1 else " S "
-		chip.add_theme_font_size_override("font_size", 11)
+		chip.add_theme_font_size_override("font_size", _scaled_font(11))
 		chip.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 		var cs := StyleBoxFlat.new()
 		cs.bg_color = UIColors.COLOR_ACCENT if slot == 1 else UIColors.COLOR_WARNING
@@ -976,7 +977,7 @@ func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
 	var nl := Label.new()
 	nl.text = ("☠ " if dead else ("✓ " if activated else "")) + nm
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	nl.add_theme_font_size_override("font_size", 14)
+	nl.add_theme_font_size_override("font_size", _scaled_font(14))
 	nl.add_theme_color_override("font_color",
 		UIColors.COLOR_TEXT_DISABLED if dead else UIColors.COLOR_TEXT_PRIMARY)
 	top.add_child(nl)
@@ -986,13 +987,13 @@ func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
 		var pips := Label.new()
 		pips.text = "●".repeat(stun)
 		pips.tooltip_text = "%d Stun marker(s) — Move OR Combat, not both" % stun
-		pips.add_theme_font_size_override("font_size", 11)
+		pips.add_theme_font_size_override("font_size", _scaled_font(11))
 		pips.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 		top.add_child(pips)
 	if badge != "":
 		var bl := Label.new()
 		bl.text = badge
-		bl.add_theme_font_size_override("font_size", 11)
+		bl.add_theme_font_size_override("font_size", _scaled_font(11))
 		bl.add_theme_color_override("font_color", UIColors.COLOR_ACCENT)
 		top.add_child(bl)
 	# No HP bar: Five Parsecs has no hit points (p.46 — a Hit is a casualty or a
@@ -1000,7 +1001,7 @@ func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
 	# and whether the figure is still up, all of which this card already shows.
 	var sl := Label.new()
 	sl.text = stats
-	sl.add_theme_font_size_override("font_size", 11)
+	sl.add_theme_font_size_override("font_size", _scaled_font(11))
 	sl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vb.add_child(sl)
 	return card
@@ -1776,7 +1777,7 @@ func _instance_log_only_components() -> void:
 		# BUG-104: hint so the collapsed accordion is discoverable.
 		var tools_hint := Label.new()
 		tools_hint.text = "Tap a section to expand (one open at a time)."
-		tools_hint.add_theme_font_size_override("font_size", 12)
+		tools_hint.add_theme_font_size_override("font_size", _scaled_font(12))
 		tools_hint.add_theme_color_override(
 			"font_color", Color(0.61, 0.64, 0.69))
 		tools_hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -2085,13 +2086,9 @@ func _connect_assisted_signals() -> void:
 				unified_log.log_action("Activation", "All units reset for new round")
 		)
 
-	# ObjectiveDisplay — mission objective tracking
+	# ObjectiveDisplay — mission objective tracking (read-only; the objective is
+	# announced in the log by _init_objective_tracker())
 	if objective_display and unified_log:
-		objective_display.objective_rolled.connect(
-			func(objective) -> void:
-				var obj_name: String = objective.name if objective and "name" in objective else "Mission Objective"
-				unified_log.log_event("Objective", obj_name)
-		)
 		objective_display.objective_acknowledged.connect(
 			func() -> void:
 				unified_log.log_action("Objective", "Acknowledged by player")
@@ -2324,9 +2321,21 @@ func _show_overlay(content_node: Control) -> void:
 	# Drive the overlay width responsively so portrait phones don't overflow.
 	_set_overlay_width(overlay_content)
 	_ensure_overlay_scroll()
+	overlay_center.offset_top = _overlay_top_band()
 	call_deferred("_fit_overlay_height")
 	overlay_bg.visible = true
 	overlay_center.visible = true
+
+
+## Where the floating Settings, bug-report and help buttons end. They live on
+## SettingsOverlay's layer 99, above this modal layer (93), so a modal centred on
+## the whole screen ran its title and scrollbar underneath them on a phone. The
+## modal is centred in the space below them instead.
+func _overlay_top_band() -> float:
+	var so := get_node_or_null("/root/SettingsOverlay")
+	if so == null or not so.has_method("get_reserved_bottom"):
+		return 0.0
+	return maxf(0.0, float(so.get_reserved_bottom()))
 
 
 ## Put the overlay content in a scroll so a tall modal cannot exceed the screen.
@@ -2365,7 +2374,10 @@ func _fit_overlay_height() -> void:
 	var vp := get_viewport()
 	if vp == null:
 		return
-	var available: float = maxf(160.0, vp.get_visible_rect().size.y - 32.0)
+	# Re-read on every fit: a rotation can move the buttons.
+	var band: float = _overlay_top_band()
+	overlay_center.offset_top = band
+	var available: float = maxf(160.0, vp.get_visible_rect().size.y - band - 32.0)
 	var wanted: float = overlay_content.get_combined_minimum_size().y
 	_set_overlay_width(scroll)
 	scroll.custom_minimum_size.y = minf(wanted, available)
@@ -2877,8 +2889,8 @@ func _build_battle_card() -> Control:
 
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#252542")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_ELEVATED
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(12)
@@ -2979,8 +2991,8 @@ func _build_battle_card() -> Control:
 func _build_bug_hunt_battle_card(md: Dictionary) -> Control:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#252542")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_ELEVATED
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(12)
@@ -2996,6 +3008,12 @@ func _build_bug_hunt_battle_card(md: Dictionary) -> Control:
 	for row in BugHuntBattleGuideClass.briefing_rows(md):
 		_battle_card_row(vbox, str(row.get("head", "")), str(row.get("detail", "")),
 			UIColors.COLOR_AMBER)
+	# Co-op campaign (Compendium pp.210-211): the sector, its Factors and conditions in
+	# their data rows' own words, stamped by BugHuntMissionPanel. [] outside co-op.
+	for row in preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd").battle_card_rows(
+			md.get("coop", {})):
+		_battle_card_row(vbox, str(row.get("head", "")), str(row.get("detail", "")),
+			UIColors.COLOR_CYAN)
 	_add_movie_magic_rows(vbox)
 	return card
 
@@ -3007,8 +3025,8 @@ func _build_bug_hunt_battle_card(md: Dictionary) -> Control:
 func _build_planetfall_battle_card(md: Dictionary) -> Control:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#252542")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_ELEVATED
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(12)
@@ -3383,8 +3401,8 @@ func _build_deployment_card() -> Control:
 		return null
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#252542")
-	style.border_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_ELEVATED
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(8)
 	style.set_content_margin_all(12)
@@ -4069,13 +4087,35 @@ func _check_fickle_scans(round_number: int) -> void:
 		return
 	var md: Dictionary = _stored_mission_data
 	var sight: Dictionary = md.get("notable_sight", {})
-	if sight.is_empty():
+	var sight_type: String = str(sight.get("type", ""))
+	if sight_type.is_empty() or sight_type.to_upper() == "NOTHING":
 		return
 	md["notable_sight_removed"] = true
+	# The rolled sight carries only its type (MissionTableManager.roll_notable_sight),
+	# so the name is built the way the battlefield contract builds it.
 	_log_message(
 		"Fickle Scans: the Notable Sight (%s) was not investigated by the end of Round 3 and is removed from play."
-		% str(sight.get("name", "unknown")), UIColors.COLOR_AMBER)
+		% sight_type.capitalize(), UIColors.COLOR_AMBER)
+	if battlefield_grid_panel and battlefield_grid_panel.has_method("get_objective_positions"):
+		_set_map_objectives(battlefield_grid_panel.get_objective_positions())
 	_refresh_objective_panel()
+
+
+## Hands the map its objective markers. Compendium p.34 Fickle Scans removes an
+## uninvestigated Notable Sight from play after Round 3, and the flag lives on the
+## mission dict, which a checkpoint saves, so every path that rebuilds the markers
+## drops the sight once it is set.
+func _set_map_objectives(positions: Array) -> void:
+	if battlefield_grid_panel == null \
+			or not battlefield_grid_panel.has_method("set_objective_positions"):
+		return
+	var shown: Array = positions
+	if _stored_mission_data is Dictionary \
+			and bool((_stored_mission_data as Dictionary).get("notable_sight_removed", false)):
+		shown = positions.filter(func(marker: Variant) -> bool:
+			return not (marker is Dictionary
+				and str((marker as Dictionary).get("type", "")) == "notable_sight"))
+	battlefield_grid_panel.set_objective_positions(shown)
 
 
 func _check_paying_by_the_hour(round_number: int) -> void:
@@ -4320,10 +4360,11 @@ func _init_objective_tracker() -> void:
 	if objective_display and objective_display.has_method("display_objective"):
 		var os = _objective_tracker._system  # resolved Objective lives here
 		if os and os.current_objective:
-			objective_display.display_objective(os.current_objective, 0)
+			objective_display.display_objective(os.current_objective, 0,
+				str(_battle_context.get("mission_source", "")))
 	# Announce the objective in the battle log at start. display_objective()
-	# (unlike roll_objective()) does not emit objective_rolled, so without this
-	# the player's log would never record what they were fighting for.
+	# emits nothing, so without this the player's log would never record what
+	# they were fighting for.
 	if unified_log and unified_log.has_method("log_event"):
 		var _mo: Dictionary = mission_obj
 		unified_log.log_event(
@@ -4634,7 +4675,7 @@ func _add_psionic_legality_section(vbox: VBoxContainer) -> void:
 		outlawed.text = ("OUTLAWED: using a power risks detection. A D6 is rolled after "
 			+ "the battle — caught on a 1 if you used a power once, on a 1-2 if more "
 			+ "than once. Psi-hunters become a Rival (Compendium p.21).")
-		outlawed.add_theme_font_size_override("font_size", 12)
+		outlawed.add_theme_font_size_override("font_size", _scaled_font(12))
 		outlawed.add_theme_color_override("font_color", UIColors.COLOR_DANGER)
 		vbox.add_child(outlawed)
 		return
@@ -4646,7 +4687,7 @@ func _add_psionic_legality_section(vbox: VBoxContainer) -> void:
 	attention.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	attention.text = ("DRAWS ATTENTION: if TWO OR MORE of your Projection dice "
 		+ "showed a 6, the enemy calls for reinforcements (Compendium p.22).")
-	attention.add_theme_font_size_override("font_size", 12)
+	attention.add_theme_font_size_override("font_size", _scaled_font(12))
 	attention.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 	vbox.add_child(attention)
 
@@ -4654,7 +4695,7 @@ func _add_psionic_legality_section(vbox: VBoxContainer) -> void:
 		var spent := Label.new()
 		spent.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		spent.text = "Reinforcements have already arrived this battle — they come only once."
-		spent.add_theme_font_size_override("font_size", 12)
+		spent.add_theme_font_size_override("font_size", _scaled_font(12))
 		spent.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		vbox.add_child(spent)
 		return
@@ -4711,7 +4752,7 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 	# Title
 	var title := Label.new()
 	title.text = "PSIONIC ACTION — %s" % char_name
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	title.add_theme_color_override("font_color", UIColors.COLOR_FOCUS)
 	vbox.add_child(title)
 
@@ -4772,14 +4813,14 @@ func _build_psionic_action_card(psi_char: Dictionary) -> Control:
 	var target_note := Label.new()
 	target_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	target_note.text = "TARGETING: Psionics see through friendly/hostile figures. Darkness, fog, and smoke still block targeting."
-	target_note.add_theme_font_size_override("font_size", 12)
+	target_note.add_theme_font_size_override("font_size", _scaled_font(12))
 	target_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(target_note)
 
 	# Weapon restriction note
 	var weapon_note := Label.new()
 	weapon_note.text = "WEAPONS: Psionics can only use Pistol or Melee weapons."
-	weapon_note.add_theme_font_size_override("font_size", 12)
+	weapon_note.add_theme_font_size_override("font_size", _scaled_font(12))
 	weapon_note.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	vbox.add_child(weapon_note)
 
@@ -4896,7 +4937,7 @@ func _build_enemy_action_content() -> Control:
 	rtl.fit_content = true
 	rtl.scroll_active = false
 	rtl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	ScreenChrome.size_rich_text(rtl, 14)
+	ScreenChrome.size_rich_text(rtl, _scaled_font(14))
 	rtl.add_theme_color_override(
 		"default_color", UIColors.COLOR_TEXT_PRIMARY)
 
@@ -5165,8 +5206,8 @@ func _apply_enemy_deployment_variable(seized: bool) -> void:
 	_battle_context["enemy_deployment_variable"] = deployment
 	_log_message("ENEMY DEPLOYMENT — %s. %s" % [
 		str(deployment.get("name", "Line")), str(deployment.get("reason", ""))],
-		Color("#D97706"))
-	_log_message(str(deployment.get("instruction", "")), Color("#4FC3F7"))
+		UIColors.COLOR_WARNING)
+	_log_message(str(deployment.get("instruction", "")), UIColors.COLOR_CYAN)
 	# Infiltration and Concealed put figures on the table mid-battle, so the
 	# placement clarification only matters for those two.
 	if str(deployment.get("id", "")) in ["infiltration", "concealed"]:
@@ -5185,7 +5226,7 @@ func _apply_enemy_deployment_variable(seized: bool) -> void:
 		grid_flank = CompendiumGridMovementRef.build_flanking_instruction(
 			str(deployment.get("id", "")))
 	if not grid_flank.is_empty():
-		_log_message(grid_flank, Color("#38BDF8"))
+		_log_message(grid_flank, UIColors.COLOR_CYAN)
 	if unified_log:
 		unified_log.add_entry("event", "Enemy deployment: %s"
 			% str(deployment.get("name", "Line")))
@@ -5219,7 +5260,7 @@ func _build_end_phase_checklist() -> Control:
 	# Title
 	var title := Label.new()
 	title.text = "END OF ROUND %d" % round_num
-	title.add_theme_font_size_override("font_size", 16)
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	title.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_PRIMARY)
 	vbox.add_child(title)
@@ -5342,7 +5383,7 @@ func _make_checklist_step(number: int, text: String,
 	lbl.text = "%d. %s" % [number, text]
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	lbl.add_theme_font_size_override("font_size", 14)
+	lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	lbl.add_theme_color_override(
 		"font_color", UIColors.COLOR_TEXT_SECONDARY if resolved
 			else UIColors.COLOR_TEXT_PRIMARY)
@@ -6145,7 +6186,28 @@ func _unit_card_dict(unit) -> Dictionary:
 		"actions_remaining": unit.actions_remaining,
 		"stun_markers": unit.stun_markers,
 		"is_activated": unit.is_activated,
+		# CharacterStatusCard prints "Weapon:" from this key at tier 1+, and this
+		# dict never carried it, so no figure's card ever named a weapon.
+		"weapon_name": ", ".join(_unit_weapon_names(unit)),
 	}
+
+
+## The weapons a figure carries. An enemy carries EnemyGenerator's `weapons`
+## names (natural weapons such as Fangs included). A crew member carries
+## `equipment`, of which only the names the equipment database lists as weapons
+## are kept, so armor and gear stay off the weapon line.
+func _unit_weapon_names(unit) -> PackedStringArray:
+	var out := PackedStringArray()
+	var source: Variant = unit.original_character
+	if source is Dictionary and (source as Dictionary).get("weapons", null) is Array:
+		for weapon: Variant in (source as Dictionary)["weapons"]:
+			out.append(str(weapon))
+		return out
+	if source == null:
+		return out
+	for weapon: String in BotUpgradeEffectsRef.carried_weapons(source):
+		out.append(weapon)
+	return out
 
 
 func _populate_unit_drawer(body, units: Array, is_crew: bool) -> void:
@@ -7368,7 +7430,7 @@ func _on_auto_resolve_battle() -> void:
 					outcome, int(casualty_check.get("roll", 0)),
 					str(casualty_check.get("column", "regular")),
 					str(casualty_check.get("effect", "")),
-				], Color("#DC2626") if outcome == "Goner" else Color("#D97706"))
+				], UIColors.COLOR_DANGER if outcome == "Goner" else UIColors.COLOR_WARNING)
 				if outcome != "Goner":
 					# Still on their feet. Not a casualty, no post-battle roll.
 					continue
@@ -7712,9 +7774,7 @@ func _populate_setup_tab(mission_data) -> void:
 		obj_rng.seed = hash("%d|objectives" % base_seed)
 		obj_positions = _battlefield_generator.compute_objective_positions(
 			objective_str, sector_data.get("sectors", []), obj_rng, bf_dims)
-	if battlefield_grid_panel and battlefield_grid_panel.has_method(
-			"set_objective_positions"):
-		battlefield_grid_panel.set_objective_positions(obj_positions)
+	_set_map_objectives(obj_positions)
 
 	# Enemy deployment markers by AI type (Core Rules p.110): consume
 	# stored, else compute deterministically from the battlefield seed.
@@ -7759,22 +7819,22 @@ func _populate_setup_tab(mission_data) -> void:
 		_add_setup_section_header("MISSION DETAILS")
 		if not m_location.is_empty():
 			_add_setup_text(
-				"Location: %s" % m_location, Color("#E0E0E0"))
+				"Location: %s" % m_location, UIColors.COLOR_TEXT_PRIMARY)
 		if m_pay > 0:
 			_add_setup_text(
-				"Pay: %d credits" % m_pay, Color("#10B981"))
+				"Pay: %d credits" % m_pay, UIColors.COLOR_EMERALD)
 		if m_danger > 0:
-			var danger_color := Color("#10B981")
+			var danger_color := UIColors.COLOR_EMERALD
 			if m_danger >= 3:
-				danger_color = Color("#DC2626")
+				danger_color = UIColors.COLOR_DANGER
 			elif m_danger >= 2:
-				danger_color = Color("#D97706")
+				danger_color = UIColors.COLOR_WARNING
 			_add_setup_text(
 				"Danger Level: %d" % m_danger, danger_color)
 		var m_patron: String = mission_dict.get("patron", "")
 		if not m_patron.is_empty():
 			_add_setup_text(
-				"Patron: %s" % m_patron, Color("#4FC3F7"))
+				"Patron: %s" % m_patron, UIColors.COLOR_CYAN)
 		_add_setup_separator()
 
 	# Section 0b: Enemy Forces — single type per battle (Core Rules pp.91-94)
@@ -7795,7 +7855,7 @@ func _populate_setup_tab(mission_data) -> void:
 		if not ef_category.is_empty():
 			type_display += " (%s)" % ef_category.replace(
 				"_", " ").capitalize()
-		_add_setup_text(type_display, Color("#DC2626"), 16)
+		_add_setup_text(type_display, UIColors.COLOR_DANGER, 16)
 
 		# Stat line from enemy_force dict or JSON lookup
 		var ef_stats: Dictionary = enemy_force
@@ -7835,7 +7895,7 @@ func _populate_setup_tab(mission_data) -> void:
 				breakdown = " (%s)" % ", ".join(count_parts)
 			_add_setup_text(
 				"Total: %d%s" % [enemy_unit_count, breakdown],
-				Color("#E0E0E0"))
+				UIColors.COLOR_TEXT_PRIMARY)
 
 		# Special rules
 		var rules: Array = enemy_force.get(
@@ -7844,7 +7904,7 @@ func _populate_setup_tab(mission_data) -> void:
 			var rule_str: String = str(rule)
 			if not rule_str.is_empty():
 				_add_setup_text(
-					"  %s" % rule_str, Color("#D97706"), 12)
+					"  %s" % rule_str, UIColors.COLOR_WARNING, 12)
 
 		_add_setup_separator()
 
@@ -7859,24 +7919,24 @@ func _populate_setup_tab(mission_data) -> void:
 			var b_text: String = str(benefit)
 			if not b_text.is_empty():
 				_add_setup_text(
-					"+ %s" % b_text, Color("#10B981"))
+					"+ %s" % b_text, UIColors.COLOR_EMERALD)
 		for hazard in hazards:
 			var h_text: String = str(hazard)
 			if not h_text.is_empty():
 				_add_setup_text(
-					"! %s" % h_text, Color("#D97706"))
+					"! %s" % h_text, UIColors.COLOR_WARNING)
 		for cond in conditions:
 			var c_text: String = str(cond)
 			if not c_text.is_empty():
 				_add_setup_text(
-					"? %s" % c_text, Color("#4FC3F7"))
+					"? %s" % c_text, UIColors.COLOR_CYAN)
 		_add_setup_separator()
 
 	# Section 1: Terrain Theme
 	_add_setup_section_header("TERRAIN SETUP")
 	var theme_display: String = sector_data.get(
 		"theme_name", _current_terrain_theme)
-	_add_setup_text(theme_display, Color("#f59e0b"), 16)
+	_add_setup_text(theme_display, UIColors.COLOR_AMBER, 16)
 	# Compendium theme description = line 2 of the generator summary
 	_add_terrain_summary_lines(sector_data)
 	_add_planetfall_table_setup(sector_data)
@@ -7893,7 +7953,7 @@ func _populate_setup_tab(mission_data) -> void:
 	if not combat_notes.is_empty():
 		_add_setup_section_header("WORLD TRAIT EFFECTS")
 		for note: String in combat_notes:
-			_add_setup_text(note, Color("#E879F9"))
+			_add_setup_text(note, UIColors.COLOR_PURPLE)
 		_add_setup_separator()
 
 	# Section 2: Sector-by-Sector Breakdown
@@ -7909,13 +7969,13 @@ func _populate_setup_tab(mission_data) -> void:
 	if condition_id != "NO_CONDITION" and not deployment_condition.is_empty():
 		_add_setup_section_header("DEPLOYMENT CONDITION")
 		var dep_title: String = deployment_condition.get("title", "Unknown")
-		_add_setup_text(dep_title, Color("#D97706"), 16)
+		_add_setup_text(dep_title, UIColors.COLOR_WARNING, 16)
 		var dep_desc: String = deployment_condition.get("description", "")
 		if not dep_desc.is_empty():
-			_add_setup_text(dep_desc, Color("#9ca3af"))
+			_add_setup_text(dep_desc, UIColors.COLOR_TEXT_SECONDARY)
 		var effects_summary: String = deployment_condition.get("effects_summary", "")
 		if not effects_summary.is_empty():
-			_add_setup_text("Effects: %s" % effects_summary, Color("#DC2626"))
+			_add_setup_text("Effects: %s" % effects_summary, UIColors.COLOR_DANGER)
 		_add_setup_separator()
 
 	# Section 4: Mission Objective (mission_dict declared in Section 0a).
@@ -7930,10 +7990,10 @@ func _populate_setup_tab(mission_data) -> void:
 		objective_name = str(obj_field.get("name", obj_field.get("type", "")))
 	if not objective_name.is_empty():
 		_add_setup_section_header("MISSION OBJECTIVE")
-		_add_setup_text(objective_name, Color("#10B981"), 16)
+		_add_setup_text(objective_name, UIColors.COLOR_EMERALD, 16)
 		var obj_desc: String = mission_dict.get("description", "")
 		if not obj_desc.is_empty():
-			_add_setup_text(obj_desc, Color("#9ca3af"))
+			_add_setup_text(obj_desc, UIColors.COLOR_TEXT_SECONDARY)
 		# Core Rules objective details (pp.89-91)
 		var obj_details: Dictionary = mission_dict.get(
 			"objective_details", {})
@@ -7942,13 +8002,13 @@ func _populate_setup_tab(mission_data) -> void:
 			mission_dict.get("victory_condition", ""))
 		if not victory_cond.is_empty():
 			_add_setup_text(
-				"Victory: %s" % victory_cond, Color("#f59e0b"))
+				"Victory: %s" % victory_cond, UIColors.COLOR_AMBER)
 		var placement: String = obj_details.get(
 			"placement_rules",
 			mission_dict.get("placement_rules", ""))
 		if not placement.is_empty():
 			_add_setup_text(
-				"Setup: %s" % placement, Color("#9ca3af"))
+				"Setup: %s" % placement, UIColors.COLOR_TEXT_SECONDARY)
 		_add_setup_separator()
 
 	# Section 4b: Notable Sight (Core Rules p.88)
@@ -7959,10 +8019,10 @@ func _populate_setup_tab(mission_data) -> void:
 		_add_setup_section_header("NOTABLE SIGHT")
 		_add_setup_text(
 			sight_type.replace("_", " ").capitalize(),
-			Color("#E879F9"), 16)
+			UIColors.COLOR_PURPLE, 16)
 		var sight_effect: String = notable_sight.get("effect", "")
 		if not sight_effect.is_empty():
-			_add_setup_text(sight_effect, Color("#9ca3af"))
+			_add_setup_text(sight_effect, UIColors.COLOR_TEXT_SECONDARY)
 		_add_setup_text(
 			"Placed 2D6+2\" from center in random direction.",
 			UIColors.COLOR_TEXT_SECONDARY)
@@ -7983,13 +8043,13 @@ func _populate_setup_tab(mission_data) -> void:
 			if instruction.is_empty():
 				continue
 			# Color code by instruction type
-			var color := Color("#4FC3F7") # Default cyan
+			var color := UIColors.COLOR_CYAN # Default cyan
 			if instruction.begins_with("AI:"):
-				color = Color("#D97706") # Orange for AI behavior
+				color = UIColors.COLOR_WARNING # Orange for AI behavior
 			elif instruction.begins_with("TOGGLE:"):
-				color = Color("#DC2626") # Red for difficulty toggles
+				color = UIColors.COLOR_DANGER # Red for difficulty toggles
 			elif instruction.begins_with("MILESTONE:"):
-				color = Color("#10B981") # Green for milestones
+				color = UIColors.COLOR_EMERALD # Green for milestones
 			_add_setup_text(instruction, color)
 		_add_setup_separator()
 
@@ -8005,7 +8065,7 @@ func _populate_setup_tab(mission_data) -> void:
 		_add_setup_section_header("ESCALATING BATTLES")
 		if _dlc_ai_type in ESCALATION_AI_TYPES:
 			var esc_text: String = EscalatingBattlesManagerRef.generate_setup_text(_dlc_ai_type)
-			_add_setup_text(esc_text, Color("#D97706"))
+			_add_setup_text(esc_text, UIColors.COLOR_WARNING)
 		else:
 			# The p.46 table has exactly six columns (Aggressive / Cautious /
 			# Defensive / Rampage / Tactical / Beast). Guardian has none, so the
@@ -8029,7 +8089,7 @@ func _populate_setup_tab(mission_data) -> void:
 		for effect in dramatic_effects:
 			var effect_str: String = str(effect)
 			if not effect_str.is_empty():
-				_add_setup_text(effect_str, Color("#E879F9")) # Purple for dramatic
+				_add_setup_text(effect_str, UIColors.COLOR_PURPLE) # Purple for dramatic
 		_add_setup_separator()
 
 	# Section 5c: Grid-Based Movement (Compendium pp.90-93).
@@ -8077,7 +8137,7 @@ func _populate_setup_tab(mission_data) -> void:
 	btn_style.content_margin_right = 16.0
 	btn_style.content_margin_bottom = 8.0
 	regen_button.add_theme_stylebox_override("normal", btn_style)
-	regen_button.add_theme_color_override("font_color", Color("#E0E0E0"))
+	regen_button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	regen_button.pressed.connect(_on_regenerate_terrain_pressed)
 	setup_content.add_child(regen_button)
 
@@ -8113,7 +8173,7 @@ func _add_terrain_summary_lines(sector_data: Dictionary) -> void:
 			and not lines.is_empty() and not str(lines[0]).is_empty():
 		_add_setup_text(str(lines[0]), UIColors.COLOR_AMBER)
 	if lines.size() >= 2 and not str(lines[1]).is_empty():
-		_add_setup_text(str(lines[1]), Color("#9ca3af"))
+		_add_setup_text(str(lines[1]), UIColors.COLOR_TEXT_SECONDARY)
 
 
 ## Planetfall pp.143-145: the rolled ground, clusters and sub-features, plus a re-roll
@@ -8284,9 +8344,7 @@ func _on_regenerate_terrain_pressed() -> void:
 		and regen_game_state.has_method("get_battlefield_data") else {}
 	regen_obj = FPCM_BattlefieldGenerator.append_notable_sight_marker(
 		regen_obj, regen_prev.get("notable_sight", {}), regen_dims)
-	if battlefield_grid_panel and battlefield_grid_panel.has_method(
-			"set_objective_positions"):
-		battlefield_grid_panel.set_objective_positions(regen_obj)
+	_set_map_objectives(regen_obj)
 	var regen_markers: Array = []
 	if regen_count > 0:
 		var regen_marker_rng := RandomNumberGenerator.new()
@@ -8325,13 +8383,13 @@ func _on_regenerate_terrain_pressed() -> void:
 		if features.is_empty():
 			continue
 		var sector_label: String = sector.get("label", "??")
-		var slabel := _create_setup_label("Sector %s" % sector_label, Color("#E0E0E0"), 14)
+		var slabel := _create_setup_label("Sector %s" % sector_label, UIColors.COLOR_TEXT_PRIMARY, 14)
 		setup_content.add_child(slabel)
 		setup_content.move_child(slabel, insert_idx)
 		insert_idx += 1
 		for feat: String in features:
-			var color := Color("#10B981") if feat.begins_with("NOTABLE:") else (
-				Color("#6b7280") if feat.begins_with("Scatter:") else Color("#9ca3af"))
+			var color := UIColors.COLOR_EMERALD if feat.begins_with("NOTABLE:") else (
+				UIColors.COLOR_TEXT_MUTED if feat.begins_with("Scatter:") else UIColors.COLOR_TEXT_SECONDARY)
 			var flabel := _create_setup_label("  %s" % feat, color, 13)
 			setup_content.add_child(flabel)
 			setup_content.move_child(flabel, insert_idx)
@@ -8343,7 +8401,7 @@ func _on_regenerate_terrain_pressed() -> void:
 	# Log regeneration
 	if unified_log and unified_log.has_method("add_entry"):
 		unified_log.add_entry("setup", "Terrain layout regenerated (%s)" % _current_terrain_theme)
-	_log_message("Terrain layout regenerated", Color("#f59e0b"))
+	_log_message("Terrain layout regenerated", UIColors.COLOR_AMBER)
 	_regen_in_progress = false
 
 func _build_sector_labels(sector_data: Dictionary) -> void:
@@ -8354,10 +8412,10 @@ func _build_sector_labels(sector_data: Dictionary) -> void:
 		if features.is_empty():
 			continue
 		var sector_label: String = sector.get("label", "??")
-		_add_setup_text("Sector %s" % sector_label, Color("#E0E0E0"), 14)
+		_add_setup_text("Sector %s" % sector_label, UIColors.COLOR_TEXT_PRIMARY, 14)
 		for feat: String in features:
-			var color := Color("#10B981") if feat.begins_with("NOTABLE:") else (
-				Color("#6b7280") if feat.begins_with("Scatter:") else Color("#9ca3af"))
+			var color := UIColors.COLOR_EMERALD if feat.begins_with("NOTABLE:") else (
+				UIColors.COLOR_TEXT_MUTED if feat.begins_with("Scatter:") else UIColors.COLOR_TEXT_SECONDARY)
 			_add_setup_text("  %s" % feat, color, 13)
 
 ## Map GlobalEnums.PlanetType ordinal → BattlefieldGenerator theme key.
@@ -8600,9 +8658,7 @@ func _on_sector_reroll_requested(sector_label: String) -> void:
 		str(contract.get("mission_objective", "")), sectors, obj_rng, dims)
 	obj_positions = FPCM_BattlefieldGenerator.append_notable_sight_marker(
 		obj_positions, contract.get("notable_sight", {}), dims)
-	if battlefield_grid_panel \
-			and battlefield_grid_panel.has_method("set_objective_positions"):
-		battlefield_grid_panel.set_objective_positions(obj_positions)
+	_set_map_objectives(obj_positions)
 
 	var markers: Array = _rehydrate_markers(contract.get("enemy_markers", []))
 	_persist_battlefield_contract(_battlefield_data, obj_positions, markers,
@@ -8629,7 +8685,7 @@ func _add_setup_section_header(text: String) -> void:
 	label.uppercase = true
 	setup_content.add_child(label)
 
-func _add_setup_text(text: String, color: Color = Color("#9ca3af"), font_size: int = 14) -> void:
+func _add_setup_text(text: String, color: Color = UIColors.COLOR_TEXT_SECONDARY, font_size: int = 14) -> void:
 	## Add a styled text label to the Setup tab
 	var label := Label.new()
 	label.text = text
@@ -8658,7 +8714,7 @@ func _add_enemy_stat_line(stats: Dictionary) -> void:
 	if not numbers.is_empty():
 		line += "  Numbers:%s" % numbers
 
-	_add_setup_text(line, Color("#4FC3F7"), 12)
+	_add_setup_text(line, UIColors.COLOR_CYAN, 12)
 
 var _enemy_types_cache: Dictionary = {}
 
@@ -8796,7 +8852,7 @@ func _rebuild_grid_setup_section(mission_dict: Dictionary,
 		var inst_str: String = str(grid_inst)
 		if not inst_str.is_empty():
 			_grid_setup_section.add_child(
-				_create_setup_label(inst_str, Color("#38BDF8")))
+				_create_setup_label(inst_str, UIColors.COLOR_CYAN))
 	var sep := HSeparator.new()
 	sep.modulate = Color(0.216, 0.255, 0.318, 0.5)
 	_grid_setup_section.add_child(sep)
@@ -8816,11 +8872,11 @@ func _on_movement_system_changed(use_grid: bool) -> void:
 	if use_grid:
 		_log_message(
 			"Movement: GRID-BASED for this battle (Compendium pp.90-93).",
-			Color("#38BDF8"))
+			UIColors.COLOR_CYAN)
 	else:
 		_log_message(
 			"Movement: STANDARD for this battle (core rules, inches).",
-			Color("#38BDF8"))
+			UIColors.COLOR_CYAN)
 
 ## Build the Compendium GAME OPTIONS instruction lines for the battle-setup tab.
 ##
@@ -8888,7 +8944,7 @@ func _check_escalating_battles(round_number: int) -> void:
 	if effect_id in _dlc_escalation_history:
 		var variation_text: String = EscalatingBattlesManagerRef.generate_variation_text(
 			result.get("name", ""))
-		_log_message(variation_text, Color("#D97706"))
+		_log_message(variation_text, UIColors.COLOR_WARNING)
 		_dlc_escalation_count -= 1 # Doesn't count toward the 3-roll limit
 		if unified_log:
 			unified_log.add_entry("event", variation_text)
@@ -8899,12 +8955,12 @@ func _check_escalating_battles(round_number: int) -> void:
 	# Log the escalation result
 	var esc_text: String = EscalatingBattlesManagerRef.generate_escalation_check_text(
 		round_number, _dlc_escalation_count, result)
-	_log_message(esc_text, Color("#DC2626"))
+	_log_message(esc_text, UIColors.COLOR_DANGER)
 
 	# Also log the instruction
 	var instruction: String = result.get("instruction", "")
 	if not instruction.is_empty():
-		_log_message(instruction, Color("#D97706"))
+		_log_message(instruction, UIColors.COLOR_WARNING)
 
 	if unified_log:
 		unified_log.add_entry("event", esc_text)
@@ -9526,12 +9582,12 @@ func _build_stars_battle_popup_content() -> void:
 
 	var header := Label.new()
 	header.text = "STARS OF THE STORY (Battle)"
-	header.add_theme_font_size_override("font_size", 14)
+	header.add_theme_font_size_override("font_size", _scaled_font(14))
 	vbox.add_child(header)
 
 	var help := Label.new()
 	help.text = "Each ability usable ONCE per campaign (Core Rules p.67)."
-	help.add_theme_font_size_override("font_size", 11)
+	help.add_theme_font_size_override("font_size", _scaled_font(11))
 	help.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(help)
 
@@ -9557,14 +9613,14 @@ func _build_stars_battle_row(parent: VBoxContainer, ability: int,
 
 	var name_lbl := Label.new()
 	name_lbl.text = label_text
-	name_lbl.add_theme_font_size_override("font_size", 12)
+	name_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.name = btn_node_name + "Label"
 	hbox.add_child(name_lbl)
 
 	var uses_lbl := Label.new()
 	uses_lbl.text = "1/1"
-	uses_lbl.add_theme_font_size_override("font_size", 12)
+	uses_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 	uses_lbl.name = btn_node_name + "Uses"
 	hbox.add_child(uses_lbl)
 

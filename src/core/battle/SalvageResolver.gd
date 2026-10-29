@@ -121,7 +121,7 @@ static func resolve_battle(
 
 	# Post-mission completion reward (salvage_value_rules): per POI investigated, D6.
 	for i in pois_investigated:
-		var d6: int = randi_range(1, 6)
+		var d6: int = CompendiumSalvageJobsRef.roll_die(6, "Salvage Completion")
 		if d6 == 5:
 			state["salvage_units"] = int(state["salvage_units"]) + 1
 		elif d6 == 6:
@@ -152,9 +152,6 @@ static func resolve_battle(
 		"enemies_defeated": battle_state["enemy_casualties"],
 		"held_field": outcome["held_field"],
 		"loot_opportunities": loot_rolls,
-		"battlefield_finds": randi_range(
-			BattleResolverRef.BATTLEFIELD_FINDS_MIN,
-			BattleResolverRef.BATTLEFIELD_FINDS_MAX) if outcome["held_field"] else 0,
 		"consumed_items": all_consumed_items,
 		"crew_units_final": battle_state["crew_units"],
 		"enemy_units_final": battle_state["enemy_units"],
@@ -198,26 +195,27 @@ static func _apply_poi_effect(
 
 	match str(poi.get("id", "")):
 		"hot_find":
-			var units: int = randi_range(1, 3)
+			var units: int = CompendiumSalvageJobsRef.roll_die(3, "Salvage POI: hot_find")
 			state["salvage_units"] = int(state["salvage_units"]) + units
 			state["tension"] = clampi(int(state["tension"]) + units, 0, MAX_TENSION)  # +1 per salvage
 		"cache":
-			state["salvage_units"] = int(state["salvage_units"]) + randi_range(1, 3)
+			state["salvage_units"] = int(state["salvage_units"]) + CompendiumSalvageJobsRef.roll_die(3, "Salvage POI: cache")
 		"lure":
 			# D6: 1-3 spawn that many Contacts; 4-6 receive that many Salvage units.
-			var roll: int = randi_range(1, 6)
+			var roll: int = CompendiumSalvageJobsRef.roll_die(6, "Salvage POI: lure")
 			if roll <= 3:
 				_spawn_clones(state, battle_state, template, roll)
 			else:
 				state["salvage_units"] = int(state["salvage_units"]) + roll
 		"valuable_find":
-			state["credits_found"] = int(state["credits_found"]) + randi_range(1, 3) + 1
+			state["credits_found"] = int(state["credits_found"]) \
+				+ CompendiumSalvageJobsRef.roll_die(3, "Salvage POI: valuable_find") + 1
 		"survivors":
 			# 1D3 Hardened Colonist allies; +1 Story Point if any survive/exit. In an
 			# abstract resolve the allies are assumed to make it out.
 			state["story_points"] = int(state["story_points"]) + 1
 		"secure_device":
-			if randi_range(1, 6) + best_savvy >= SAVVY_TEST_TARGET:
+			if CompendiumSalvageJobsRef.roll_die(6, "Salvage POI: secure_device") + best_savvy >= SAVVY_TEST_TARGET:
 				state["loot_opportunities"] = int(state["loot_opportunities"]) + 1  # lockbox opened
 			else:
 				state["tension"] = clampi(int(state["tension"]) + 1, 0, MAX_TENSION)
@@ -225,7 +223,7 @@ static func _apply_poi_effect(
 			state["loot_opportunities"] = int(state["loot_opportunities"]) + 1
 		"information_station":
 			# Reduce Tension by the modified Savvy die (1D6 + Savvy).
-			var reduce: int = randi_range(1, 6) + best_savvy
+			var reduce: int = CompendiumSalvageJobsRef.roll_die(6, "Salvage POI: information_station") + best_savvy
 			state["tension"] = clampi(int(state["tension"]) - reduce, 0, MAX_TENSION)
 		"incursion", "rival_trap":
 			# 6-figure force arrives (4 basic / 1 specialist / 1 lieutenant).
@@ -234,11 +232,11 @@ static func _apply_poi_effect(
 			_spawn_clones(state, battle_state, template, 1)
 		"security_bot":
 			# 1D6+Savvy: 6+ shut down (nothing). Failure: a hostile bot joins the fight.
-			if randi_range(1, 6) + best_savvy < 6:
+			if CompendiumSalvageJobsRef.roll_die(6, "Salvage POI: security_bot") + best_savvy < 6:
 				_spawn_clones(state, battle_state, template, 1)
 		"creature":
 			# 1D6+Savvy 5+ it fights for you; otherwise it's hostile.
-			if randi_range(1, 6) + best_savvy < SAVVY_TEST_TARGET:
+			if CompendiumSalvageJobsRef.roll_die(6, "Salvage POI: creature") + best_savvy < SAVVY_TEST_TARGET:
 				_spawn_clones(state, battle_state, template, 1)
 		"we_need_to_hurry":
 			# +1 Tension for each remaining POI (this one is already being investigated).
@@ -254,7 +252,7 @@ static func _apply_poi_effect(
 ## Discovery D100 (salvage_value_rules): 01-40 Loot, 41-70 +1 Salvage, 71-85 Quest
 ## Rumor, 86-100 +1D3 Credits.
 static func _apply_discovery(state: Dictionary) -> void:
-	var roll: int = randi_range(1, 100)
+	var roll: int = CompendiumSalvageJobsRef.roll_die(100, "Salvage Discovery Table")
 	if roll <= 40:
 		state["loot_opportunities"] = int(state["loot_opportunities"]) + 1
 	elif roll <= 70:
@@ -262,7 +260,7 @@ static func _apply_discovery(state: Dictionary) -> void:
 	elif roll <= 85:
 		state["quest_rumors"] = int(state["quest_rumors"]) + 1
 	else:
-		state["credits_found"] = int(state["credits_found"]) + randi_range(1, 3)
+		state["credits_found"] = int(state["credits_found"]) + CompendiumSalvageJobsRef.roll_die(3, "Salvage Discovery Credits")
 
 
 ## Spawn `count` clones of the deployed enemy template into the live enemy force.

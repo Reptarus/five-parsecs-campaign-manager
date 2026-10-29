@@ -14,8 +14,8 @@ extends PanelContainer
 signal re_roll_requested(sector_label: String)
 signal dismissed
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
-const COLOR_NOTABLE := Color("#D97706")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
+const COLOR_NOTABLE := UIColors.COLOR_WARNING
 const TOUCH_TARGET_MIN := 48
 
 var _label: RichTextLabel

@@ -249,7 +249,7 @@ func test_the_source_index_and_the_data_directory_are_both_populated() -> void:
 	assert_int(index.size()).is_greater(400)
 
 	var files := _bug_hunt_data_files()
-	assert_int(files.size()).is_equal(14)
+	assert_int(files.size()).is_equal(15)
 
 	# Comment stripping must remove comments and KEEP strings, or note (a) is not true
 	# of the code that implements it. Proven on a line that is both.

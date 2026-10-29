@@ -215,7 +215,7 @@ func _apply_cta_style(unlocked: bool) -> void:
 	s.set_content_margin_all(10)
 	_cta_button.add_theme_stylebox_override("normal", s)
 	var h := s.duplicate()
-	h.bg_color = COLOR_ACCENT_HOVER if unlocked else Color("#E69035")
+	h.bg_color = COLOR_ACCENT_HOVER if unlocked else UIColors.COLOR_WARNING
 	_cta_button.add_theme_stylebox_override("hover", h)
 	# Derive pressed/disabled/focus from the box above so this button keeps
 	# its shape when it is clicked. See DialogStyles.complete_button_states.

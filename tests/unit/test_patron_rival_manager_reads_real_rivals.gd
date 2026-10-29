@@ -168,3 +168,26 @@ func test_no_generate_buttons_remain_in_the_scene() -> void:
 			.override_failure_message(
 				"A fabricating control is still on screen: '%s'." % t
 			).is_false()
+
+
+## A patron added by a post-battle event carries no status, and the card read
+## "Status:  | Relationship: 2". Relationship is in neither book (Compendium p.111's
+## Faction Loyalty is a different rule), so it is never printed; status only when set.
+func test_a_patron_card_prints_no_invented_score_and_no_empty_status() -> void:
+	GameState.current_campaign.patrons = [
+		{"id": "p1", "name": "Vex Holdings", "type": "Corporation",
+			"status": "Active", "relationship": 2, "jobs_offered": 1},
+		{"id": "p2", "name": "Event contact", "type": "Corporation",
+			"relationship": 3, "source": "event"},
+	]
+	var screen := await _open()
+	var texts: Array[String] = []
+	_all_text(screen, texts)
+	# Premise: both patron cards rendered.
+	assert_array(texts).contains(["Vex Holdings (Corporation)",
+		"Event contact (Corporation)"])
+	assert_array(texts).contains(["Status: Active"])
+	for t: String in texts:
+		assert_str(t).override_failure_message("printed: %s" % t).not_contains("Relationship")
+		assert_bool(t.strip_edges() == "Status:").override_failure_message(
+			"an empty status line was printed").is_false()

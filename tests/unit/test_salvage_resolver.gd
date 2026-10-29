@@ -52,6 +52,7 @@ func test_resolve_returns_battleresolver_shape_tagged_salvage() -> void:
 		"crew_units_final", "enemy_units_final",
 		"combat_mode", "salvage_units", "credits_found", "quest_rumors",
 		"story_points_earned", "pois_investigated", "tension_final"])
+	assert_dict(result).not_contains_keys(["battlefield_finds"])
 	assert_str(str(result["combat_mode"])).is_equal("salvage")
 
 func test_salvage_reward_counts_are_non_negative_ints() -> void:

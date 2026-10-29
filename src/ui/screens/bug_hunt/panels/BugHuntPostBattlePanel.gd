@@ -51,6 +51,16 @@ const PostBattleResolver = preload(
 var _receipt: Dictionary = {}
 var _choice_nodes: Dictionary = {}  # choice id -> {"choice": Dictionary, "node": Control}
 
+## Co-op campaign (Compendium p.211). The mission panel stamped `coop` {player,
+## sector_id, ...} before the battle; Complete Post-Battle records the scored result on
+## the sector map through BugHuntCampaignCore.record_coop_battle() -- ONCE per mission,
+## guarded by the `coop_receipt` it leaves on the stamp -- and then offers the end of the
+## operational turn. The record is made here because the phase manager is the p.202
+## mutator and the co-op map is not part of p.202.
+const CoopRef := preload("res://src/core/campaign/BugHuntCoopCampaign.gd")
+const CoopView := preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd")
+var _coop_card: VBoxContainer = null
+
 
 func _scaled_font(base: int) -> int:
 	var rm := get_node_or_null("/root/ResponsiveManager")
@@ -111,7 +121,13 @@ func complete() -> void:
 	## answers the player gave. No decision is made here and no state is written --
 	## BugHuntPhaseManager._apply_post_battle_results turns these two into effects.
 	_results = {"receipt": _receipt, "answers": _collect_answers()}
+	## The co-op map is the exception, and it is not a p.202 effect: p.211's "clear the
+	## sector ... or the sector remains under enemy control" is recorded through the
+	## core's one co-op writer before the lock, and its receipt is rendered AFTER the
+	## lock so the End Operational Turn control it may offer stays pressable.
+	var coop_receipt: Dictionary = _record_coop_battle()
 	_lock_after_completion()
+	_render_coop_result(coop_receipt)
 	phase_completed.emit({"post_battle_result": _results})
 
 
@@ -162,6 +178,7 @@ func _populate_post_battle() -> void:
 		return
 
 	_build_debrief_card()
+	_build_coop_pending_card()
 
 	# Process button
 	var process_btn := Button.new()
@@ -193,6 +210,7 @@ func _process_post_battle() -> void:
 	_receipt = PostBattleResolver.new().resolve(_build_snapshot())
 	_choice_nodes.clear()
 	_render_receipt()
+	_build_coop_pending_card()
 
 	_complete_btn = Button.new()
 	_complete_btn.text = "Complete Post-Battle"
@@ -415,6 +433,10 @@ func _build_snapshot() -> Dictionary:
 		"movie_magic_available": (_campaign.movie_magic_available() as Array).map(
 			func(r: Variant) -> String: return str((r as Dictionary).get("id", "")))
 			if _campaign.has_method("movie_magic_available") else [],
+		# Compendium p.210: a co-op campaign does not use the Operational Progress
+		# table. Without this the resolver still rolled it and the receipt showed the
+		# result, which the phase manager's backstop then threw away.
+		"coop_enabled": bool(_campaign.is_coop()) if _campaign.has_method("is_coop") else false,
 	}
 
 
@@ -636,6 +658,99 @@ func _collect_answers() -> Dictionary:
 				if spend > 0:
 					answers[cid] = spend
 	return answers
+
+
+# ── Co-op campaign (Compendium p.211) ────────────────────────────────────────────
+
+## The stamped co-op block, or {} for a mission that is not part of a co-op campaign.
+func _stamped_coop() -> Dictionary:
+	var info: Variant = _stamped_mission().get("coop", {})
+	return info if info is Dictionary else {}
+
+
+## Before Complete: which sector this mission was fought over and what decides it, so the
+## player ticks the debrief knowing what the Objectives are worth on the map.
+func _build_coop_pending_card() -> void:
+	_coop_card = null
+	var info: Dictionary = _stamped_coop()
+	if info.is_empty():
+		return
+	_coop_card = _create_card("Co-op Campaign: %s" % str(info.get("sector_name", "")),
+		_content_container)
+	_muted_label("%s attacked %s in operational turn %d." % [str(info.get("player", "")),
+		str(info.get("sector_name", "")), int(info.get("op_turn", 1))], _coop_card, 13)
+	var rule: String = CoopView.objectives_rule_text()
+	if not rule.is_empty():
+		_muted_label(rule, _coop_card, 13)
+	var stamp: Dictionary = _stamped_mission()
+	if stamp.get("coop_receipt", null) is Dictionary:
+		_muted_label("Already recorded on the sector map.", _coop_card, 13)
+	else:
+		_muted_label("Complete Post-Battle records the result on the sector map.",
+			_coop_card, 13)
+
+
+## p.211: "If the mission is a victory (2+ Objectives completed), clear the sector from
+## the map ... If the mission failed, the sector remains under enemy control." Recorded
+## through the core's one writer, ONCE per mission: the receipt is kept on the stamp,
+## refused or not, so a re-entered panel or a reloaded save can never record twice. The
+## result read is the NORMALIZED one (_process_post_battle() ran first), whose
+## `objectives_completed` is the weighted count the debrief scored.
+func _record_coop_battle() -> Dictionary:
+	var info: Dictionary = _stamped_coop()
+	if info.is_empty() or _campaign == null or not _campaign.has_method("record_coop_battle"):
+		return {}
+	var stamp: Dictionary = _stamped_mission()
+	var prior: Variant = stamp.get("coop_receipt", null)
+	if prior is Dictionary:
+		return prior
+	var receipt: Dictionary = _campaign.record_coop_battle(str(info.get("player", "")),
+		str(info.get("sector_id", "")), _battle_results)
+	stamp["coop_receipt"] = receipt.duplicate(true)
+	_campaign.current_mission = stamp
+	if _campaign.has_method("persist"):
+		_campaign.persist()
+	return receipt
+
+
+## The map's receipt, then the end of the operational turn once every player has fought.
+## Built after _lock_after_completion(), so the End control is the one live button left.
+func _render_coop_result(receipt: Dictionary) -> void:
+	if receipt.is_empty():
+		return
+	var card := _create_card("Sector Map", _content_container)
+	card.name = "CoopResultCard"
+	ReceiptCardRef.fill(card, CoopView.receipt_step(receipt, "Sector Map", CoopRef.CITE_BATTLES),
+		Callable(), 13)
+	var coop: Dictionary = CoopView.coop_of(_campaign)
+	if coop.is_empty():
+		return
+	if CoopRef.is_campaign_won(coop):
+		return  # the receipt's own line says the campaign is won
+	var check: Dictionary = CoopView.can_end_turn(coop)
+	if not bool(check.get("ok", false)):
+		_muted_label(str(check.get("reason", "")), card, 13)
+		return
+	var end_btn := Button.new()
+	end_btn.name = "EndOperationalTurn"
+	end_btn.text = "End Operational Turn: roll Enemy Moves (%s)" % CoopRef.CITE_BATTLES
+	end_btn.custom_minimum_size = Vector2(0, 48)
+	end_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	end_btn.pressed.connect(_on_coop_end_turn.bind(end_btn, card))
+	card.add_child(end_btn)
+
+
+func _on_coop_end_turn(btn: Button, card: VBoxContainer) -> void:
+	var receipt: Dictionary = CoopView.end_turn(_campaign)
+	if is_instance_valid(btn):
+		btn.disabled = true
+	var heading := Label.new()
+	heading.text = "Enemy Moves"
+	heading.add_theme_font_size_override("font_size", _scaled_font(16))
+	heading.add_theme_color_override("font_color", COLOR_TEXT)
+	card.add_child(heading)
+	ReceiptCardRef.fill(card, CoopView.receipt_step(receipt, "Enemy Moves", CoopRef.CITE_BATTLES),
+		Callable(), 13)
 
 
 func _labelled_row(prompt: String, control: Control, parent: VBoxContainer) -> void:

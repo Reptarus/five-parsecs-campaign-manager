@@ -119,12 +119,32 @@ static var POI_REWARD_TABLE: Array:
 ## QUERY METHODS
 ## ============================================================================
 
+## One die for every Salvage Job table, through DiceManager so a debug build can
+## force a row (QAScenarioDialog "Force the next roll"). These were raw
+## randi_range() calls, so the p.137 "no job" row or a rare Point of Interest
+## could only be reached by luck. Static and RefCounted, so the autoload is
+## reached through the main loop.
+static func roll_die(sides: int, context: String) -> int:
+	var loop: MainLoop = Engine.get_main_loop()
+	var dm: Node = (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
+	if dm != null:
+		match sides:
+			3:
+				return int(dm.roll_d3(context))
+			6:
+				return int(dm.roll_d6(context))
+			100:
+				return int(dm.roll_d100(context))
+	return randi_range(1, sides)
+
+
 ## Roll salvage job availability. Returns availability dict.
 static func roll_salvage_availability() -> Dictionary:
 	if not _is_enabled():
 		return {}
 
-	var roll := randi_range(1, 6)
+	var roll := roll_die(6, "Salvage Availability")
 	for avail in SALVAGE_AVAILABILITY:
 		if roll >= avail.roll_min and roll <= avail.roll_max:
 			var result: Dictionary = avail.duplicate()
@@ -135,7 +155,7 @@ static func roll_salvage_availability() -> Dictionary:
 
 ## Roll contact result (D6 when contact revealed). Returns contact dict.
 static func roll_contact_result() -> Dictionary:
-	var roll := randi_range(1, 6)
+	var roll := roll_die(6, "Salvage Contact")
 	for contact in CONTACT_RESULTS:
 		if roll >= contact.roll_min and roll <= contact.roll_max:
 			var result: Dictionary = contact.duplicate()
@@ -146,7 +166,7 @@ static func roll_contact_result() -> Dictionary:
 
 ## Roll hostiles type (D100, first encounter only). Returns hostiles dict.
 static func roll_hostiles_type() -> Dictionary:
-	var roll := randi_range(1, 100)
+	var roll := roll_die(100, "Salvage Hostiles")
 	for hostile in HOSTILES_TABLE:
 		if roll >= hostile.roll_min and roll <= hostile.roll_max:
 			var result: Dictionary = hostile.duplicate()
@@ -166,7 +186,7 @@ static func get_enemy_forces(encounter_number: int) -> Dictionary:
 
 ## Roll Point of Interest reveal (D100). Returns POI dict.
 static func roll_poi_reveal() -> Dictionary:
-	var roll := randi_range(1, 100)
+	var roll := roll_die(100, "Salvage Point of Interest")
 	for poi in POI_REVEALS:
 		if roll >= poi.roll_min and roll <= poi.roll_max:
 			var result: Dictionary = poi.duplicate()
@@ -182,7 +202,7 @@ static func get_initial_tension(crew_size: int) -> int:
 
 ## Perform Tension roll. Returns {new_tension, contact_spawned, roll}.
 static func roll_tension(current_tension: int) -> Dictionary:
-	var roll := randi_range(1, 6)
+	var roll := roll_die(6, "Salvage Tension")
 	if roll > current_tension:
 		return {"new_tension": current_tension + 1, "contact_spawned": false, "roll": roll,
 			"instruction": "TENSION: Roll %d > Tension %d. Tension rises to %d." % [roll, current_tension, current_tension + 1]}

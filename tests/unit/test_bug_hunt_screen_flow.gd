@@ -163,8 +163,8 @@ func test_a_bug_hunt_battle_sets_up_by_its_own_steps() -> void:
 	var steps := _texts(bh, "CheckBox")
 	assert_array(Array(steps)).contains(["Step 1: Set up battle area",
 		"Step 9: Set up your troops"])
-	for core in ["Roll deployment conditions", "Check for Notable Sighting",
-			"Seize Initiative roll"]:
+	# Read from the list itself, so a relabel cannot make this check vacuous.
+	for core in _core_labels():
 		assert_bool(core in steps).override_failure_message(
 			"a Bug Hunt battle still lists the Core Rules step '%s'" % core).is_false()
 	var hints := "\n".join(_texts(bh, "Label"))
@@ -180,8 +180,19 @@ func test_a_five_parsecs_battle_keeps_the_core_rules_steps() -> void:
 	await _mount(PHONE, core)
 	core.set_tier(1)
 	var steps := _texts(core, "CheckBox")
-	assert_bool("Roll deployment conditions" in steps).is_true()
-	assert_bool("Seize Initiative roll" in steps).is_true()
+	for step in _core_labels():
+		assert_bool(step in steps).override_failure_message(
+			"a 5PFH battle lost the Core Rules step '%s'" % step).is_true()
+
+
+## The Core Rules p.88 / p.89 / p.112 step labels, read from CHECKLIST_ITEMS.
+func _core_labels() -> Array:
+	var out: Array = []
+	for item: Dictionary in ChecklistScript.CHECKLIST_ITEMS:
+		if str(item.id) in ["deployment_conditions", "notable_sighting", "seize_initiative"]:
+			out.append(str(item.label))
+	assert_int(out.size()).is_equal(3)
+	return out
 
 
 ## Called after _ready(), the swap replaces only the step rows: a reminder appended

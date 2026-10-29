@@ -6,14 +6,14 @@ extends Control
 signal play_again_pressed()
 signal main_menu_pressed()
 
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_TEXT := Color("#E0E0E0")
+const COLOR_BASE := UIColors.COLOR_BASE
+const COLOR_ELEVATED := UIColors.COLOR_ELEVATED
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_TEXT := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := UIColors.COLOR_TEXT_SECONDARY
-const COLOR_SUCCESS := Color("#10B981")
-const COLOR_DANGER := Color("#DC2626")
-const COLOR_FOCUS := Color("#4FC3F7")
+const COLOR_SUCCESS := UIColors.COLOR_SUCCESS
+const COLOR_DANGER := UIColors.COLOR_DANGER
+const COLOR_FOCUS := UIColors.COLOR_FOCUS
 
 const FONT_SIZE_MD := 16
 const FONT_SIZE_LG := 18

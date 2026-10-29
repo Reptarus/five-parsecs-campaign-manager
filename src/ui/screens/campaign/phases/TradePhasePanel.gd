@@ -44,6 +44,17 @@ var loan_status_label: RichTextLabel = null
 var take_loan_button: Button = null
 var current_loan: Dictionary = {}  # Active loan data (origin, rate, enforcement, debt)
 
+## Compendium p.26 New Bot Upgrades: "applied to a Bot character for the listed
+## cost during post-battle step 11. Purchase Items", which is this phase. Priced,
+## gated and paid by FPCM_AdvancementSystem; this card only shows and asks.
+var bot_upgrade_card: PanelContainer = null
+var bot_picker: OptionButton = null
+var bot_upgrade_list: ItemList = null
+var bot_upgrade_status: Label = null
+var buy_bot_upgrade_button: Button = null
+var _bots: Array = []
+var _bot_options: Array = []
+
 func _ready() -> void:
 	super._ready()
 	_style_phase_title(title_label)
@@ -99,6 +110,7 @@ func _ready() -> void:
 		_style_phase_button(merchant_reroll_button)
 	_setup_loan_ui()
 	_wrap_trade_content_in_cards()
+	_setup_bot_upgrade_ui()
 	update_credits_display()
 
 func _wrap_trade_content_in_cards() -> void:
@@ -165,6 +177,7 @@ func setup_phase() -> void:
 	load_inventory()
 	update_credits_display()
 	_update_sell_button_state()
+	_refresh_bot_upgrades()
 
 func _get_world_trait() -> int:
 	var campaign = _get_campaign_safe()
@@ -697,6 +710,117 @@ func _check_merchant_crew() -> bool:
 	return false
 
 ## ── Expanded Loans (Compendium DLC, pp.152-158) ──
+
+func _setup_bot_upgrade_ui() -> void:
+	var vbox: Node = get_node_or_null("VBoxContainer")
+	if vbox == null:
+		return
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	bot_picker = OptionButton.new()
+	bot_picker.custom_minimum_size = Vector2(0, UIColors.TOUCH_TARGET_MIN)
+	bot_picker.item_selected.connect(func(_i: int) -> void: _refresh_bot_upgrade_list())
+	content.add_child(bot_picker)
+	bot_upgrade_list = ItemList.new()
+	bot_upgrade_list.auto_height = true
+	_style_item_list(bot_upgrade_list)
+	bot_upgrade_list.item_selected.connect(func(_i: int) -> void: _update_bot_upgrade_state())
+	content.add_child(bot_upgrade_list)
+	bot_upgrade_status = Label.new()
+	bot_upgrade_status.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	bot_upgrade_status.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+	content.add_child(bot_upgrade_status)
+	buy_bot_upgrade_button = Button.new()
+	buy_bot_upgrade_button.text = "Install Upgrade"
+	buy_bot_upgrade_button.pressed.connect(_on_buy_bot_upgrade_pressed)
+	_style_phase_button(buy_bot_upgrade_button)
+	content.add_child(buy_bot_upgrade_button)
+	bot_upgrade_card = _create_phase_card("Bot Upgrades", content,
+		"Compendium p.26: one upgrade per campaign turn, one of each per Bot. "
+		+ "Salvage pays toward the cost (p.147).")
+	vbox.add_child(bot_upgrade_card)
+	if complete_button and complete_button.get_parent() == vbox:
+		vbox.move_child(bot_upgrade_card, complete_button.get_index())
+	bot_upgrade_card.visible = false
+
+
+## Rebuild the Bot list. The card shows only when some Bot can take a p.26 upgrade
+## and the content is on (the option list is empty otherwise).
+func _refresh_bot_upgrades() -> void:
+	if bot_picker == null:
+		return
+	var campaign: Variant = _get_campaign_safe()
+	_bots.clear()
+	bot_picker.clear()
+	var crew: Array = campaign.get_crew_members() \
+		if campaign != null and campaign.has_method("get_crew_members") else []
+	for member: Variant in crew:
+		if FPCM_AdvancementSystem.bot_upgrade_options(member, campaign).is_empty():
+			continue
+		_bots.append(member)
+		var who: Variant = member.get("character_name") if member is Object \
+			else (member as Dictionary).get("character_name", "Bot")
+		bot_picker.add_item(str(who))
+	bot_upgrade_card.visible = not _bots.is_empty()
+	_refresh_bot_upgrade_list()
+
+
+func _selected_bot() -> Variant:
+	var i: int = bot_picker.selected if bot_picker else -1
+	return _bots[i] if i >= 0 and i < _bots.size() else null
+
+
+func _refresh_bot_upgrade_list() -> void:
+	if bot_upgrade_list == null:
+		return
+	bot_upgrade_list.clear()
+	var bot: Variant = _selected_bot()
+	var campaign: Variant = _get_campaign_safe()
+	_bot_options = FPCM_AdvancementSystem.bot_upgrade_options(bot, campaign) \
+		if bot != null else []
+	var credits: int = _gsm_credits()
+	for option: Dictionary in _bot_options:
+		bot_upgrade_list.add_item("%s (%d credits)" % [option["name"], int(option["cost"])])
+		var why: String = FPCM_AdvancementSystem.bot_upgrade_blocked_reason(
+			bot, option, credits, campaign)
+		var idx: int = bot_upgrade_list.item_count - 1
+		bot_upgrade_list.set_item_tooltip(idx,
+			str(option.get("description", "")) if why.is_empty() else why)
+		if not why.is_empty():
+			bot_upgrade_list.set_item_disabled(idx, true)
+	_update_bot_upgrade_state()
+
+
+func _update_bot_upgrade_state() -> void:
+	if buy_bot_upgrade_button == null:
+		return
+	var picked: PackedInt32Array = bot_upgrade_list.get_selected_items()
+	var why: String = "Select an upgrade."
+	if not picked.is_empty() and picked[0] < _bot_options.size():
+		why = FPCM_AdvancementSystem.bot_upgrade_blocked_reason(_selected_bot(),
+			_bot_options[picked[0]], _gsm_credits(), _get_campaign_safe())
+	buy_bot_upgrade_button.disabled = not why.is_empty()
+	bot_upgrade_status.text = why
+
+
+func _on_buy_bot_upgrade_pressed() -> void:
+	var picked: PackedInt32Array = bot_upgrade_list.get_selected_items()
+	if picked.is_empty() or picked[0] >= _bot_options.size():
+		return
+	var option: Dictionary = _bot_options[picked[0]]
+	if not FPCM_AdvancementSystem.buy_bot_upgrade(_selected_bot(), option,
+		get_node_or_null("/root/GameStateManager"), _get_campaign_safe()):
+		return
+	current_credits = _gsm_credits()
+	update_credits_display()
+	_refresh_bot_upgrade_list()
+	bot_upgrade_status.text = "Installed: %s." % option["name"]
+
+
+func _gsm_credits() -> int:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	return int(gsm.get_credits()) if gsm and gsm.has_method("get_credits") else current_credits
+
 
 func _setup_loan_ui() -> void:
 	## Add loan section between credits and market (only visible when DLC enabled)

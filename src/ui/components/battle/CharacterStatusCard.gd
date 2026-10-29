@@ -175,8 +175,12 @@ func _update_display() -> void:
 
 	# Update stats display — RichTextLabel with clickable keyword links
 	# so a player can tap "Combat" / "Tough" / "Speed" for the rules tooltip.
+	# The strip follows the tier, as _apply_tier_display() does. This used to write
+	# the tier-0 strip always, so the first stun or damage tap on a tier-1 card
+	# dropped its Reactions, Savvy and weapon until the tier was set again.
 	if stats_label:
-		stats_label.text = _build_basic_stats_bbcode()
+		stats_label.text = _build_tier1_stats_bbcode() if _display_tier >= 1 \
+			else _build_basic_stats_bbcode()
 		_ensure_keyword_tooltip_attached()
 
 	# NO HIT-POINT DISPLAY. There are no hit points in Five Parsecs — a figure

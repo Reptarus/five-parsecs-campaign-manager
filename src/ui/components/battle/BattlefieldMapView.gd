@@ -334,6 +334,9 @@ func set_objective_positions(positions: Array) -> void:
 	if _overlay_control:
 		_overlay_control.queue_redraw()
 
+func get_objective_positions() -> Array:
+	return _objective_positions.duplicate(true)
+
 func add_terrain_overlay(overlay: Dictionary) -> void:
 	## Add a dynamic overlay from battle events (fog, hazard, markers)
 	_active_overlays.append(overlay)

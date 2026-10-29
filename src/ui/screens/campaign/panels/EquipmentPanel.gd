@@ -1020,8 +1020,11 @@ func _update_equipment_display() -> void:
 		card_vbox.add_theme_constant_override("separation", SPACING_XS)
 
 		# ── ROW 1: Type badge + Name + Condition + Owner/Expand ──────
-		var header_row: HBoxContainer = HBoxContainer.new()
-		header_row.add_theme_constant_override("separation", SPACING_SM)
+		# A flow: badge, name, condition and owner need ~420 px in one row, and a
+		# phone gives the card ~230. On a wide screen it is still one row.
+		var header_row: HFlowContainer = HFlowContainer.new()
+		header_row.add_theme_constant_override("h_separation", SPACING_SM)
+		header_row.add_theme_constant_override("v_separation", SPACING_XS)
 		header_row.custom_minimum_size.y = TOUCH_TARGET_MIN
 
 		var type_badge: PanelContainer = _create_equipment_type_badge(item_type)
@@ -1043,7 +1046,7 @@ func _update_equipment_display() -> void:
 		# Current owner label (clickable to expand)
 		var current_owner: String = str(item.get("owner", "Unassigned"))
 		var owner_btn: Button = Button.new()
-		owner_btn.custom_minimum_size = Vector2(130, 32)
+		owner_btn.custom_minimum_size = Vector2(130, TOUCH_TARGET_MIN)
 		owner_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		if current_owner == "Unassigned" or current_owner.is_empty():
 			owner_btn.text = "Assign..."
@@ -1058,7 +1061,7 @@ func _update_equipment_display() -> void:
 		card_vbox.add_child(header_row)
 
 		# ── ROW 2: Stats from equipment_database.json ────────────────
-		var stats_row: HBoxContainer = _build_stats_row(item_name, item_type)
+		var stats_row: Control = _build_stats_row(item_name, item_type)
 		if stats_row:
 			card_vbox.add_child(stats_row)
 
@@ -1130,14 +1133,16 @@ func _create_condition_badge(condition: String) -> PanelContainer:
 	badge.add_child(condition_label)
 	return badge
 
-func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
+func _build_stats_row(item_name: String, item_type: String) -> Control:
 	## Build weapon/armor/gear stats row from equipment_database.json
 	var db_entry: Dictionary = _lookup_equipment_stats(item_name)
 	if db_entry.is_empty():
 		return null
 
-	var stats_row: HBoxContainer = HBoxContainer.new()
-	stats_row.add_theme_constant_override("separation", SPACING_SM)
+	# A flow: three badges and a trait line wider than a phone's card wrap instead.
+	var stats_row: HFlowContainer = HFlowContainer.new()
+	stats_row.add_theme_constant_override("h_separation", SPACING_SM)
+	stats_row.add_theme_constant_override("v_separation", SPACING_XS)
 
 	var type_lower: String = item_type.to_lower()
 	if "weapon" in type_lower or db_entry.has("damage"):
@@ -1145,8 +1150,13 @@ func _build_stats_row(item_name: String, item_type: String) -> HBoxContainer:
 		var shots_val: int = db_entry.get("shots", 0)
 		var dmg_val: int = db_entry.get("damage", 0)
 
-		stats_row.add_child(_create_inline_stat("RNG", str(rng_val) + '"', COLOR_FOCUS))
-		stats_row.add_child(_create_inline_stat("SHT", str(shots_val), COLOR_TEXT_SECONDARY))
+		if rng_val <= 0 and shots_val <= 0:
+			# Core Rules p.50 prints a melee weapon's range as "Brawl"; the data
+			# stores it as 0 range and 0 shots, which printed RNG 0" and SHT 0.
+			stats_row.add_child(_create_inline_stat("RNG", "Brawl", COLOR_FOCUS))
+		else:
+			stats_row.add_child(_create_inline_stat("RNG", str(rng_val) + '"', COLOR_FOCUS))
+			stats_row.add_child(_create_inline_stat("SHT", str(shots_val), COLOR_TEXT_SECONDARY))
 		var dmg_text: String = "+%d" % dmg_val if dmg_val >= 0 else str(dmg_val)
 		stats_row.add_child(_create_inline_stat("DMG", dmg_text, COLOR_WARNING))
 
@@ -1533,16 +1543,24 @@ func _build_generation_summary() -> void:
 
 	# ── Savvy substitution row ───────────────────────────────────
 	if _savvy_subs_available > 0:
-		var savvy_row: HBoxContainer = HBoxContainer.new()
-		savvy_row.add_theme_constant_override("separation", SPACING_SM)
+		# The label over a wrapping row of buttons. One HBox holding the unwrapped label
+		# and a button per weapon needed 735 px and put step 4 232 px off both edges
+		# of a 338 px phone.
+		var savvy_section: VBoxContainer = VBoxContainer.new()
+		savvy_section.name = "SavvySubstitution"
+		savvy_section.add_theme_constant_override("separation", SPACING_SM)
+		var savvy_row: HFlowContainer = HFlowContainer.new()
+		savvy_row.add_theme_constant_override("h_separation", SPACING_SM)
+		savvy_row.add_theme_constant_override("v_separation", SPACING_SM)
 
 		var savvy_label: Label = Label.new()
 		var remaining: int = _savvy_subs_available - _savvy_subs_used
 		savvy_label.text = "Savvy Substitution: Swap Military \u2192 High-Tech (%d available)" % remaining
 		savvy_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		savvy_label.add_theme_color_override("font_color", COLOR_FOCUS)
-		savvy_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		savvy_row.add_child(savvy_label)
+		savvy_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		savvy_section.add_child(savvy_label)
+		savvy_section.add_child(savvy_row)
 
 		# Add swap buttons for each military weapon in shared pool
 		if remaining > 0:
@@ -1552,16 +1570,18 @@ func _build_generation_summary() -> void:
 				if item.get("source_table", "") == "military_weapon":
 					var swap_btn: Button = Button.new()
 					swap_btn.text = "Swap: %s" % item.get("name", "")
-					swap_btn.custom_minimum_size.y = 32
+					swap_btn.custom_minimum_size.y = TOUCH_TARGET_MIN
 					swap_btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 					swap_btn.pressed.connect(_on_savvy_swap_pressed.bind(idx))
 					savvy_row.add_child(swap_btn)
 
-		summary_node.add_child(savvy_row)
+		summary_node.add_child(savvy_section)
 
 	# ── Credits summary row ──────────────────────────────────────
-	var credits_row: HBoxContainer = HBoxContainer.new()
-	credits_row.add_theme_constant_override("separation", SPACING_SM)
+	# Stacked: the total and its 270 px explanation side by side were wider than a
+	# phone, and the explanation now wraps under the number.
+	var credits_row: VBoxContainer = VBoxContainer.new()
+	credits_row.add_theme_constant_override("separation", SPACING_XS)
 	var credits_lbl: Label = Label.new()
 	credits_lbl.text = "Starting Credits: %d" % starting_credits
 	credits_lbl.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
@@ -1572,13 +1592,15 @@ func _build_generation_summary() -> void:
 	credits_detail.text = "(%d base + bonus rolls from backgrounds/motivations/classes)" % crew_members.size()
 	credits_detail.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	credits_detail.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
-	credits_detail.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	credits_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	credits_row.add_child(credits_detail)
 	summary_node.add_child(credits_row)
 
 	# ── Action buttons row ───────────────────────────────────────
-	var actions_row: HBoxContainer = HBoxContainer.new()
-	actions_row.add_theme_constant_override("separation", SPACING_SM)
+	# A flow: the three buttons side by side need 495 px, which a phone does not have.
+	var actions_row: HFlowContainer = HFlowContainer.new()
+	actions_row.add_theme_constant_override("h_separation", SPACING_SM)
+	actions_row.add_theme_constant_override("v_separation", SPACING_SM)
 
 	var reroll_pool_btn: Button = Button.new()
 	reroll_pool_btn.text = "Reroll Shared Pool"
@@ -2039,9 +2061,12 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 	var vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", SPACING_SM)
 
-	# Header with character name and background
-	var header = HBoxContainer.new()
-	header.add_theme_constant_override("separation", SPACING_XS)
+	# Header with character name and background. A flow, as is the stat row below:
+	# "Lieutenant Sage Liang (Giant Overcrowded City)" in one row is ~300 px and four
+	# stat badges are 240, against ~230 px of card on a phone.
+	var header = HFlowContainer.new()
+	header.add_theme_constant_override("h_separation", SPACING_XS)
+	header.add_theme_constant_override("v_separation", 0)
 
 	var name_label = Label.new()
 	name_label.text = char_name
@@ -2061,8 +2086,9 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 
 	# Phase 5: Combat stats row (if member data available)
 	if member != null:
-		var stats_hbox: HBoxContainer = HBoxContainer.new()
-		stats_hbox.add_theme_constant_override("separation", SPACING_SM)
+		var stats_hbox: HFlowContainer = HFlowContainer.new()
+		stats_hbox.add_theme_constant_override("h_separation", SPACING_SM)
+		stats_hbox.add_theme_constant_override("v_separation", SPACING_XS)
 
 		var combat_val: int = _get_member_stat(member, "combat")
 		var reactions_val: int = _get_member_stat(member, "reactions")

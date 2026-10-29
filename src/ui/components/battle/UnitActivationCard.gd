@@ -148,7 +148,7 @@ func _update_team_border() -> void:
 		return
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1A1A2E")  # Dark background
+	style.bg_color = UIColors.COLOR_BASE  # Dark background
 	style.border_color = COLOR_CREW if is_crew else COLOR_ENEMY
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(8)
@@ -209,7 +209,7 @@ func _update_health_bar() -> void:
 	_health_bar.add_theme_stylebox_override("fill", fill_style)
 
 	var bg_style := StyleBoxFlat.new()
-	bg_style.bg_color = Color("#1E1E36")
+	bg_style.bg_color = UIColors.COLOR_INPUT
 	bg_style.set_corner_radius_all(4)
 	_health_bar.add_theme_stylebox_override("background", bg_style)
 
@@ -257,7 +257,7 @@ func _create_status_badge(effect: String) -> PanelContainer:
 	panel.custom_minimum_size = Vector2(24, 24)
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#3A3A5C")
+	style.bg_color = UIColors.COLOR_BORDER
 	style.set_corner_radius_all(4)
 	style.set_content_margin_all(4)
 	panel.add_theme_stylebox_override("panel", style)

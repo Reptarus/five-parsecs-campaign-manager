@@ -142,5 +142,89 @@
 	"victory_progress": {
 		"chapter": "11",
 		"section": "tracking_progress"
+	},
+	"campaign_editor": {
+		"chapter": "03",
+		"section": "save_load_and_export"
+	},
+	"equipment_generation": {
+		"chapter": "02",
+		"section": "step_4_starting_equipment"
+	},
+	"world_phase": {
+		"chapter": "05",
+		"section": "the_world_phase"
+	},
+	"patron_rival_manager": {
+		"chapter": "03",
+		"section": "contacts_and_rivals"
+	},
+	"post_battle_sequence": {
+		"chapter": "07",
+		"section": "the_14_steps"
+	},
+	"game_over": {
+		"chapter": "11",
+		"section": "winning_and_ending"
+	},
+	"campaign_journal": {
+		"chapter": "03",
+		"section": "campaign_journal"
+	},
+	"help": {
+		"chapter": "00",
+		"section": "how_to_use_this_guide"
+	},
+	"planetfall_creation": {
+		"chapter": "16",
+		"section": "creating_a_colony"
+	},
+	"planetfall_dashboard": {
+		"chapter": "16",
+		"section": "the_dashboard"
+	},
+	"planetfall_turn_controller": {
+		"chapter": "16",
+		"section": "the_18-step_turn"
+	},
+	"tactics_creation": {
+		"chapter": "17",
+		"section": "creating_an_army"
+	},
+	"tactics_dashboard": {
+		"chapter": "17",
+		"section": "the_dashboard"
+	},
+	"tactics_turn_controller": {
+		"chapter": "17",
+		"section": "the_8-phase_turn"
+	},
+	"battle_simulator": {
+		"chapter": "18",
+		"section": "the_setup_screen"
+	},
+	"print_sheet": {
+		"chapter": "03",
+		"section": "save_load_and_export"
+	},
+	"eula": {
+		"chapter": "15",
+		"section": "legal_and_privacy"
+	},
+	"legal_viewer": {
+		"chapter": "15",
+		"section": "legal_and_privacy"
+	},
+	"compendium": {
+		"chapter": "01",
+		"section": "library"
+	},
+	"compendium_category": {
+		"chapter": "01",
+		"section": "library"
+	},
+	"galaxy_log": {
+		"chapter": "03",
+		"section": "galaxy_log"
 	}
 }

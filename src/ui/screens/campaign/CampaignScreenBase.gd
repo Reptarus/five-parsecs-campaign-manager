@@ -946,17 +946,10 @@ func _create_character_card(
 	p_container.custom_minimum_size = Vector2(p_size, p_size)
 	p_container.clip_contents = true
 
-	var avatar_colors := [
-		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
-		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
-		Color("#ec4899"), Color("#14b8a6")]
-	var c_idx := identity.hash() % avatar_colors.size()
-	if c_idx < 0:
-		c_idx += avatar_colors.size()
 
 	var bg := ColorRect.new()
 	bg.custom_minimum_size = Vector2(p_size, p_size)
-	bg.color = avatar_colors[c_idx]
+	bg.color = UIColors.avatar_color(identity)
 	p_container.add_child(bg)
 
 	var has_img := false

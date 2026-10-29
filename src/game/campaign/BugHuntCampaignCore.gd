@@ -4,6 +4,9 @@ extends Resource
 ## Atomic save writer. All four cores share ONE implementation so the write path
 ## cannot drift between gamemodes again - see src/core/state/SaveFileWriter.gd.
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
+## Compendium pp.209-211 co-op campaign rules. Pure and static; the wrappers below are its
+## callers. No class_name, so it is preloaded by path.
+const CoopCampaignRef = preload("res://src/core/campaign/BugHuntCoopCampaign.gd")
 
 ## Bug Hunt Campaign Core Resource
 ## Stores complete Bug Hunt campaign data for save/load operations.
@@ -105,6 +108,12 @@ var current_mission: Dictionary = {}
 ## Progress tracking
 var total_objectives_completed: int = 0
 var total_missions_played: int = 0
+
+## Co-op campaign state (Compendium pp.209-211): the shared sector map, the common Support
+## point pool and the operational turn. EMPTY means this is not a co-op campaign -- which is
+## also what every save written before the field existed loads as. The shape is owned by
+## BugHuntCoopCampaign.normalize(); mutate it only through the coop wrappers below.
+var coop: Dictionary = {}
 
 
 func _init() -> void:
@@ -364,6 +373,66 @@ func add_reputation(amount: int) -> void:
 
 
 ## ============================================================================
+## CO-OP CAMPAIGN (Compendium pp.209-211)
+## ============================================================================
+## The rules are in BugHuntCoopCampaign (pure, static). These are the only writers of
+## `coop`: each hands the rules module this core's own Dictionary and owns what a receipt
+## means for the CAMPAIGN -- the modified time, and the won campaign. The receipts come
+## back unchanged so the screen that called can render them.
+
+func is_coop() -> bool:
+	return CoopCampaignRef.is_enabled(coop)
+
+
+## p.210: "try 3 sectors per player for a shorter campaign, up to 5 for a longer campaign."
+## Generates the sector map. A refused setup (no players, a sector count outside 3-5 per
+## player) leaves `coop` untouched.
+func start_coop_campaign(players: Array, sectors_per_player: int) -> Dictionary:
+	var receipt: Dictionary = CoopCampaignRef.new_campaign(players, sectors_per_player)
+	if bool(receipt.get("ok", false)):
+		coop = CoopCampaignRef.normalize(receipt.get("coop", {}))
+		_update_modified_time()
+	return receipt
+
+
+## p.211 The Battles: one player's mission against one sector.
+func record_coop_battle(player: String, sector_id: String, battle_result: Dictionary) -> Dictionary:
+	var receipt: Dictionary = CoopCampaignRef.apply_battle_result(
+		coop, player, sector_id, battle_result)
+	_apply_coop_receipt(receipt)
+	return receipt
+
+
+## p.211 Support Point Resources: "Simply add any desired points to the Support that would
+## normally be available." Returns how many points came out of the common pool.
+func draw_coop_support(amount: int) -> int:
+	var drawn: int = CoopCampaignRef.draw_support(coop, amount)
+	if drawn > 0:
+		_update_modified_time()
+	return drawn
+
+
+## p.210-211: the end of an operational turn -- Infiltration points, then one Enemy Moves
+## roll per player.
+func end_coop_operational_turn() -> Dictionary:
+	var receipt: Dictionary = CoopCampaignRef.end_operational_turn(coop)
+	_apply_coop_receipt(receipt)
+	return receipt
+
+
+func _apply_coop_receipt(receipt: Dictionary) -> void:
+	if not bool(receipt.get("ok", false)):
+		return
+	## p.210: "Operational turns continue until all sectors have been cleared". The won
+	## campaign lands in the existing game_phase vocabulary, exactly as the p.205 Parade row
+	## does in BugHuntPhaseManager -- the co-op campaign has no Parade, because it does not
+	## use the Operational Progress table at all.
+	if bool(receipt.get("campaign_won", false)):
+		game_phase = "completed"
+	_update_modified_time()
+
+
+## ============================================================================
 ## VALIDATION
 ## ============================================================================
 
@@ -506,6 +575,7 @@ func to_dictionary() -> Dictionary:
 		"dlc_flags": dlc_flags.duplicate(),
 		"stashed_equipment": stashed_equipment.duplicate(true),
 		"original_character_snapshots": original_character_snapshots.duplicate(true),
+		"coop": coop.duplicate(true),
 		"qol_data": _build_qol_data(),
 	}
 
@@ -566,6 +636,9 @@ func from_dictionary(data: Dictionary) -> void:
 	dlc_flags = data.get("dlc_flags", {}).duplicate()
 	stashed_equipment = data.get("stashed_equipment", {}).duplicate(true)
 	original_character_snapshots = data.get("original_character_snapshots", {}).duplicate(true)
+	# Absent in every save written before co-op existed, which normalize() reads as {} --
+	# not a co-op campaign. It also turns the JSON floats back into whole numbers.
+	coop = CoopCampaignRef.normalize(data.get("coop", {}))
 
 	# Re-initialize any missing movie magic entries
 	for ability_id in ["barricade", "double_up", "escape", "evac", "extra_support",

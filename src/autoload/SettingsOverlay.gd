@@ -11,6 +11,10 @@ extends CanvasLayer
 
 const SettingsScreenScript = preload("res://src/ui/screens/settings/SettingsScreen.gd")
 const BugReportDialogScript = preload("res://src/ui/components/common/BugReportDialog.gd")
+## Loaded at run time, not preloaded: HelpScreen extends CampaignScreenBase by its
+## class_name, and an autoload is parsed before class_names are registered.
+const HELP_SCENE_PATH := "res://src/ui/help/HelpScreen.tscn"
+const HELP_LOADER_PATH := "res://src/ui/help/HelpContentLoader.gd"
 
 ## Name of the spacer reserve_band_on() inserts into a code-built screen's root
 ## box container. Named so a repeat call resizes the existing one instead of
@@ -36,12 +40,21 @@ const GEAR_MARGIN := 12
 var _gear_button: Button
 var _bug_button: Button
 var _bug_dialog: Window
+## Context help. data/help_context_map.json maps every SceneRouter key to a guide
+## chapter and section, and nothing read it: the guide's only entry was the Store's
+## Help button, which opens chapter 1. This button opens the guide at the section
+## for the screen underneath, IN PLACE like Settings, because navigate_to("help")
+## would free a half-filled wizard or a battle in progress.
+var _help_button: Button
+var _help_panel: Control
 var _dimmer: ColorRect
 var _settings_panel: SettingsScreen
 var _hidden_scenes: Array[String] = ["MainMenu", "SettingsScreen"]
 ## The bug reporter stays available on MainMenu — a tester can hit a bug there
 ## too — so it deliberately does NOT reuse _hidden_scenes.
 var _bug_hidden_scenes: Array[String] = ["SettingsScreen"]
+## The guide itself has nothing to point at, and Settings hides all chrome.
+var _help_hidden_scenes: Array[String] = ["HelpScreen", "SettingsScreen"]
 
 
 func _ready() -> void:
@@ -84,6 +97,10 @@ func _ready() -> void:
 	_bug_button = _make_round_button("⚠", "Report a Bug")  # ⚠
 	_bug_button.pressed.connect(_on_bug_pressed)
 	add_child(_bug_button)
+
+	_help_button = _make_round_button("?", "Help for this screen")
+	_help_button.pressed.connect(_on_help_pressed)
+	add_child(_help_button)
 
 	# Position in top-right — CanvasLayer children need manual positioning
 	get_tree().root.size_changed.connect(_reposition)
@@ -138,6 +155,15 @@ func _reposition() -> void:
 			vp_size.x - (GEAR_SIZE * 2) - (GEAR_MARGIN * 2),
 			GEAR_MARGIN
 		)
+	if _help_button:
+		# Two slots to the left of the gear.
+		_help_button.position = Vector2(
+			vp_size.x - (GEAR_SIZE * 3) - (GEAR_MARGIN * 3),
+			GEAR_MARGIN
+		)
+	if _help_panel and is_instance_valid(_help_panel):
+		_help_panel.position = Vector2.ZERO
+		_help_panel.size = vp_size
 	# Keep dimmer and settings panel filling the viewport
 	if _dimmer:
 		_dimmer.position = Vector2.ZERO
@@ -167,14 +193,18 @@ func open_bug_report() -> void:
 	_on_bug_pressed()
 
 
-func _show_settings_overlay() -> void:
-	# Lazy-create the dimmer and settings panel on first use
+func _ensure_dimmer() -> void:
 	if not _dimmer:
 		_dimmer = ColorRect.new()
 		_dimmer.color = COLOR_DIMMER
 		_dimmer.mouse_filter = Control.MOUSE_FILTER_STOP  # Block clicks through
 		_dimmer.visible = false
 		add_child(_dimmer)
+
+
+func _show_settings_overlay() -> void:
+	# Lazy-create the dimmer and settings panel on first use
+	_ensure_dimmer()
 
 	if not _settings_panel:
 		_settings_panel = SettingsScreenScript.new()
@@ -200,6 +230,8 @@ func _show_settings_overlay() -> void:
 	# calls _update_visibility(), which restores it.
 	if _bug_button:
 		_bug_button.visible = false
+	if _help_button:
+		_help_button.visible = false
 	get_tree().paused = true
 
 
@@ -217,6 +249,63 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _settings_panel and _settings_panel.visible and event.is_action_pressed("ui_cancel"):
 		_hide_settings_overlay()
 		get_viewport().set_input_as_handled()
+	elif _help_open() and event.is_action_pressed("ui_cancel"):
+		_hide_help_overlay()
+		get_viewport().set_input_as_handled()
+
+
+## Where the "?" button sends the player for `screen_key` (a SceneRouter key):
+## {chapter_id, section_id}, or {} for a screen the map does not name.
+static func help_context_for(screen_key: String) -> Dictionary:
+	if screen_key.is_empty():
+		return {}
+	var loader: RefCounted = load(HELP_LOADER_PATH).new()
+	return loader.get_context_help(screen_key)
+
+
+func _on_help_pressed() -> void:
+	var router := get_node_or_null("/root/SceneRouter")
+	var key: String = str(router.current_scene) \
+		if router and "current_scene" in router else ""
+	open_help(help_context_for(key))
+
+
+## Opens the guide over the current screen at `context` ({chapter_id,
+## section_id}; {} opens chapter 1) and pauses the tree, as Settings does.
+func open_help(context: Dictionary = {}) -> void:
+	if _help_open():
+		return
+	_ensure_dimmer()
+	var vp_size: Vector2 = get_tree().root.get_visible_rect().size
+	_dimmer.position = Vector2.ZERO
+	_dimmer.size = vp_size
+	_dimmer.visible = true
+	_help_panel = (load(HELP_SCENE_PATH) as PackedScene).instantiate()
+	_help_panel.set("overlay_mode", true)
+	_help_panel.set("open_at_context", context)
+	_help_panel.connect("back_requested", _hide_help_overlay)
+	# Hide the chrome BEFORE add_child(): the screen's _ready() reserves a band
+	# for whichever of these buttons are visible, and none will be.
+	_update_visibility()
+	add_child(_help_panel)
+	_help_panel.position = Vector2.ZERO
+	_help_panel.size = vp_size
+	get_tree().paused = true
+
+
+func _hide_help_overlay() -> void:
+	if _help_open():
+		_help_panel.queue_free()
+	_help_panel = null
+	if _dimmer and not (_settings_panel and _settings_panel.visible):
+		_dimmer.visible = false
+	get_tree().paused = false
+	_update_visibility()
+
+
+func _help_open() -> bool:
+	return _help_panel != null and is_instance_valid(_help_panel) \
+		and not _help_panel.is_queued_for_deletion()
 
 
 func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
@@ -232,6 +321,8 @@ func _on_scene_changed(_new_scene: String, _previous_scene: String) -> void:
 	# lesson: a fix ordered against SOME callers is not a fix).
 	if _settings_panel and _settings_panel.visible:
 		_hide_settings_overlay()
+	if _help_open():
+		_hide_help_overlay()
 	_update_visibility()
 	# Safety net so no screen can draw under these buttons just because nobody
 	# remembered to wire it up — and the only route for a screen whose script has no
@@ -291,11 +382,13 @@ func _update_visibility() -> void:
 	var root := get_tree().root
 	if not root:
 		return
-	# Hide chrome when the settings overlay is showing
-	if _settings_panel and _settings_panel.visible:
+	# Hide chrome while the settings or help overlay is showing
+	if (_settings_panel and _settings_panel.visible) or _help_open():
 		_gear_button.visible = false
 		if _bug_button:
 			_bug_button.visible = false
+		if _help_button:
+			_help_button.visible = false
 		return
 
 	var live_scene_names: Array[String] = []
@@ -317,6 +410,14 @@ func _update_visibility() -> void:
 				break
 		_bug_button.visible = not hide_bug
 
+	if _help_button:
+		var hide_help := false
+		for n in _help_hidden_scenes:
+			if n in live_scene_names:
+				hide_help = true
+				break
+		_help_button.visible = not hide_help
+
 
 ## Screen area this overlay currently occupies, in design-space coordinates, as
 ## the union of its VISIBLE buttons (empty Rect2 when nothing is showing).
@@ -331,7 +432,7 @@ func _update_visibility() -> void:
 func get_reserved_rect() -> Rect2:
 	var out := Rect2()
 	var first := true
-	for b in [_gear_button, _bug_button]:
+	for b in [_gear_button, _bug_button, _help_button]:
 		if b == null or not is_instance_valid(b) or not b.is_visible_in_tree():
 			continue
 		var r: Rect2 = b.get_global_rect()

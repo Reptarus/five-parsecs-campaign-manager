@@ -822,16 +822,9 @@ func _build_crew_card(member) -> PanelContainer:
 	var av := Control.new()
 	av.custom_minimum_size = Vector2(av_size, av_size)
 	av.clip_contents = true
-	var av_colors := [
-		UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
-		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED,
-		Color("#ec4899"), Color("#14b8a6")]
-	var ci := char_name.hash() % av_colors.size()
-	if ci < 0:
-		ci += av_colors.size()
 	var av_bg := ColorRect.new()
 	av_bg.custom_minimum_size = Vector2(av_size, av_size)
-	av_bg.color = av_colors[ci]
+	av_bg.color = UIColors.avatar_color(char_name)
 	av.add_child(av_bg)
 
 	var has_img := false
@@ -1943,6 +1936,11 @@ func _update_phase_ui(phase) -> void:
 			# battle belongs to the turn in progress - the same number the
 			# button shows.
 			phase_label.text = "Turn %d — Battle in progress" % turn
+		elif phase == FPC.NONE:
+			# Between turns there is no phase to name, and PHASE_NAMES maps NONE to
+			# "None": the header read "Turn 1 — None". The other writer of this
+			# label already drops the placeholder (M3b, above); now both do.
+			phase_label.text = "Turn %d" % turn
 		else:
 			phase_label.text = "Turn %d — %s" % [turn, phase_name]
 	if action_button:

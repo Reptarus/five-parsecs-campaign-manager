@@ -7,6 +7,7 @@ extends Node
 
 const BugHuntStateManager := preload("res://src/core/campaign/creation/BugHuntCreationStateManager.gd")
 const BugHuntCharGen := preload("res://src/core/character/BugHuntCharacterGeneration.gd")
+const CoopView := preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd")
 
 signal navigation_updated(can_back: bool, can_forward: bool, can_finish: bool)
 signal step_changed(step: int, total_steps: int)
@@ -15,6 +16,9 @@ var state_manager: BugHuntStateManager
 var char_gen: BugHuntCharGen
 var current_step: int = 0
 var total_steps: int = 4
+## The map-generation receipt of the last co-op campaign built (Compendium p.210), kept
+## so the caller can show what the dice placed. {} for a campaign that is not co-op.
+var coop_setup_receipt: Dictionary = {}
 
 
 func _ready() -> void:
@@ -46,8 +50,18 @@ func previous_step() -> void:
 func _update_navigation() -> void:
 	var can_back := current_step > 0
 	var can_forward := current_step < total_steps - 1 and state_manager.can_advance_from(current_step)
-	var can_finish := state_manager.can_finish() and current_step == total_steps - 1
+	# The co-op setup lives on the Config step, so a half-filled one holds that step.
+	if current_step == 0 and not coop_config_ok():
+		can_forward = false
+	var can_finish := state_manager.can_finish() and current_step == total_steps - 1 \
+		and coop_config_ok()
 	navigation_updated.emit(can_back, can_forward, can_finish)
+
+
+## True unless co-op is switched on and its setup is not one the map can be built from
+## (no player named, a blank or duplicate name, sectors per player outside p.210's range).
+func coop_config_ok() -> bool:
+	return CoopView.coop_config_error(state_manager.config_data).is_empty()
 
 
 ## ============================================================================
@@ -86,7 +100,7 @@ func generate_regiment_name() -> Dictionary:
 ## ============================================================================
 
 func finalize() -> void:
-	if not state_manager.can_finish():
+	if not state_manager.can_finish() or not coop_config_ok():
 		push_warning("BugHuntCreationCoordinator: Cannot finalize - incomplete steps")
 		return
 
@@ -141,4 +155,17 @@ func build_campaign(all_data: Dictionary) -> BugHuntCampaignCore:
 		campaign.reputation = reputation  # lint:ignore — no live GameState to route through
 
 	campaign.start_campaign()
+
+	# Compendium pp.209-211: the co-op map is rolled now, once, through the core's one
+	# writer -- after start_campaign(), so it is the active campaign the map belongs to,
+	# and before finalize() saves, so the saved file carries it.
+	coop_setup_receipt = {}
+	var config: Dictionary = all_data.get("config", {})
+	if bool(config.get("coop_enabled", false)):
+		coop_setup_receipt = campaign.start_coop_campaign(
+			CoopView.clean_players(config.get("coop_players", [])),
+			int(config.get("coop_sectors_per_player", 0)))
+		if not bool(coop_setup_receipt.get("ok", false)):
+			push_error("BugHuntCreationCoordinator: the co-op map was refused: %s"
+				% str(coop_setup_receipt.get("error", "")))
 	return campaign

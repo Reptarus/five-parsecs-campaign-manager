@@ -1564,6 +1564,13 @@ func update_world_state(world_data: Dictionary) -> void:
 	## Update world state
 	unified_campaign_state["world"] = world_data
 	unified_campaign_state["world"]["is_complete"] = true
+	# Sync to the StateManager like every other step, or its world stays {} and
+	# the Final Review step warns "World data not generated yet" right after the
+	# player generated and confirmed one.
+	if state_manager:
+		state_manager.set_phase_data(
+			CampaignCreationStateManager.Phase.WORLD_GENERATION,
+			unified_campaign_state["world"].duplicate())
 	phase_completion_status[CampaignCreationStateManager.Phase.WORLD_GENERATION] = true
 	_update_navigation_state()
 	campaign_data_updated.emit(unified_campaign_state)

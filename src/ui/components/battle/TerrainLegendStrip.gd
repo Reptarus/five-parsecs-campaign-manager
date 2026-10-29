@@ -8,7 +8,7 @@ extends HFlowContainer
 ## Journey rule: this strip lives in the battlefield intel drawer — never
 ## docked on the map surface (map-primary redesign).
 
-const COLOR_TEXT_PRIMARY := Color("#E0E0E0")
+const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 
 func _init() -> void:

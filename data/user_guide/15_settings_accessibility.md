@@ -1,126 +1,102 @@
 # Chapter 15: Settings and Accessibility
 
 > **Quick Start** (for tabletop veterans)
-> - Access Settings from Main Menu > Options
-> - Theme options: dark (default Deep Space) / light
-> - Reduced animation: disables TweenFX effects for motion sensitivity
-> - Text size: adjustable for readability
-> - Touch targets: minimum 48px, comfortable mode at 56px
+> - Open Settings from the Main Menu **Settings** button
+> - Settings is one scrolling page of cards: Audio, Display, Gameplay, Touch & Haptics, Accessibility, Expansions, Legal & Privacy and About
+> - Accessibility offers six visual themes, a Reduce Animations switch and a font size choice
+> - **UI Scale** in the Display card makes the whole interface larger or smaller
 
 ## Overview
 
-The Settings screen lets you customize the app's appearance and behavior. Accessibility features ensure the app is usable by players with different needs, including those sensitive to animation, those who prefer larger text, or those using touch interfaces.
+The Settings screen lets you customize the app's appearance and behavior. The Accessibility card is for players who are sensitive to animation, who prefer larger text, or who need different colors.
+
+Each change applies as you make it, except the visual theme, which has its own **Apply Theme** button.
 
 ## Accessing Settings
 
-Open Settings from:
-- **Main Menu** > **Options** button
-- In-game via the settings icon (where available)
+Open Settings from the **Settings** button on the Main Menu.
 
-## Visual Theme
+## Audio
 
-### Deep Space Theme (Default)
+- **Master Volume**
+- **Music Volume**
+- **SFX Volume**
 
-The app uses a dark navy theme designed for comfortable extended play:
+## Display
 
-- Dark backgrounds reduce eye strain in low-light environments
-- Cyan highlights for interactive elements
-- Green/orange/red color coding for status information
+- **VSync Mode**, in builds where it applies
+- **UI Scale**, a slider with a percentage readout. The hint under it reads "Lower = more fits on screen; higher = larger text".
 
-### Theme Options
+## Gameplay
 
-- **Dark mode** (default) — Deep Space navy palette
-- **Light mode** — Lighter backgrounds for bright environments
-- **High contrast** — Enhanced color contrast for visibility
+- **Auto-Save.** Saves your campaign at the end of each turn. See {{chapter:14}}.
+- **Continue Last Campaign on Launch.** Reopens your most recent campaign when the app starts. Turn it off to start at the Main Menu.
+- **Show Tooltips.** Shows keyword explanations for game terms.
+- **Show FPS Counter.**
+- **Screen Shake.** Camera shake during combat and critical events.
+- **Narrative Events.** Full-screen story moments with art and advisor reactions. When off, events use the classic card layout.
+- **Connections: No-Roll Option** and **Connections: Prefer Variety.** Two optional Compendium rules for Connections (Compendium p.81).
+- **My Table Size.** Battle maps match your physical table (Core Rules p.108).
 
-## Text Size
+## Touch & Haptics
 
-Adjust text size across the entire app:
+Shown on phones and tablets.
 
-- **Small** (11-14px) — Compact, more information on screen
-- **Medium** (14-16px) — Default, balanced readability
-- **Large** (16-20px) — Easier to read, especially on small screens
-- **Extra Large** (20-24px) — Maximum readability
+- **Haptic Feedback.** Vibration on dice rolls, critical hits and important events.
+- **Touch Sensitivity.** A slider for touch input sensitivity.
 
-Text size affects all UI elements: buttons, labels, descriptions, battle log, and help content.
+## Accessibility
 
-## Animation Settings
+The Accessibility card holds three controls.
 
-### Reduced Animation
+### Visual Theme
 
-Toggle to disable decorative animations throughout the app:
+Choose from the list, then press **Apply Theme**. A color preview shows what the theme looks like. The choices are:
 
-When **enabled** (reduced animation ON):
-- Fade transitions between screens are shortened or removed
-- Button press animations are disabled
-- Pulsing/breathing effects on UI elements are removed
-- Battle companion animations are simplified
+- **Dark (Default)**, the Deep Space navy palette
+- **Light**
+- **High Contrast**
+- **Colorblind: Red-Green (Deuteranopia)**
+- **Colorblind: Red (Protanopia)**
+- **Colorblind: Blue-Yellow (Tritanopia)**
 
-When **disabled** (reduced animation OFF, default):
-- Full TweenFX animations play (70+ animation types)
-- Smooth transitions between screens
-- Interactive feedback animations on buttons and panels
+### Reduce Animations
 
-This setting is respected by all screens via the `UIColors.should_animate()` check.
+Minimizes motion effects throughout the app, such as screen transitions and decorative animations. Turn it on if animation makes you uncomfortable or if an older device runs better without it.
 
-### Why Reduce Animation?
+### Font Size
 
-- **Motion sensitivity** — Some people experience discomfort from screen animations
-- **Performance** — Older devices may run smoother with animations disabled
-- **Preference** — Some players simply prefer a static interface
+Adjust the text size across the app: **Small**, **Normal** or **Large**.
 
-## Touch and Input
+## Expansions
 
-### Touch Targets
+A summary reading "N of 3 expansions owned", with **Browse Expansions** to open the Store and, once you own a pack, **Manage Features**. See {{chapter:13}}.
 
-The app is designed for both mouse/keyboard and touch interfaces:
+## Difficulty Toggles
 
-- **Minimum touch target**: 48px — All interactive elements meet this minimum
-- **Comfortable touch target**: 56px — Input fields and primary buttons use this larger size
+A card of optional difficulty toggles for the expansions that provide them.
 
-### Mobile Layout
+## Legal & Privacy
 
-On smaller screens (phones and tablets), the app automatically adapts:
+Opens the app's legal documents. **Export My Data** saves a manifest of the data the app holds, and **Delete All Data** removes it after a confirmation.
 
-- Single-column layouts replace multi-column on narrow screens
-- Sidebars collapse into dropdown menus
-- Touch targets increase to comfortable size
-- Font sizes adjust for readability
+## About
 
-The responsive system uses three breakpoints:
-- **Mobile** (< 480px) — Single column, large touch targets
-- **Tablet** (480-768px) — Two columns, standard touch targets
-- **Desktop** (> 768px) — Full multi-column layout
+Shows the build and engine versions, which are useful when you report a problem. **Report a Bug** opens the bug report form.
 
-## Dice System Settings
+## Touch Targets
 
-Configure how dice rolling works:
-
-- **Auto-Roll** (default) — The app rolls dice digitally
-- **Manual Input** — The app prompts you to enter physical dice results
-- **Hybrid** — Auto-roll by default, with option to override specific rolls
-
-See the dice system details in {{chapter:06}}.
-
-## Data and Privacy
-
-- All campaign data is stored locally on your device
-- No data is sent to external servers
-- DLC purchases are handled through platform stores (Steam/Google Play/App Store)
-- Review prompts appear after 5+ turns and respect a 30-day cooldown
+Buttons and controls are sized to be easy to tap, and the layout adapts to your screen: a phone in portrait gets a single column, and a tablet in landscape gets multiple panes where a screen has them.
 
 ## Accessibility Checklist
 
-If you have specific accessibility needs:
-
 | Need | Setting |
 |------|---------|
-| Sensitive to motion | Enable **Reduced Animation** |
-| Difficulty reading small text | Increase **Text Size** to Large or Extra Large |
-| Using a touch device | App automatically applies touch-friendly sizes |
-| Color vision differences | Use **High Contrast** theme |
-| Bright environments | Switch to **Light** theme |
-| Low-light environments | Use default **Dark** theme (Deep Space) |
+| Sensitive to motion | Turn on **Reduce Animations** |
+| Difficulty reading small text | Set **Font Size** to Large, or raise **UI Scale** |
+| Color vision differences | Choose a **Colorblind** theme or **High Contrast** |
+| Bright environments | Choose the **Light** theme |
+| Low-light environments | Use the default **Dark** theme |
 
 ## What's Next?
 

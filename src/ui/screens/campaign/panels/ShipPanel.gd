@@ -230,14 +230,36 @@ func _wrap_form_in_cards() -> void:
 		controls_section.alignment = BoxContainer.ALIGNMENT_CENTER
 		_reparent(controls_section, content_node, cards_container)
 
-	# Set min widths for HFlowContainer responsive columns
 	for child in cards_container.get_children():
 		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		child.custom_minimum_size.x = 450
 
 	# Add cards container to content
 	content_node.add_child(cards_container)
 	content_node.move_child(cards_container, 0)
+	_apply_card_floor()
+
+
+## The ship cards' column width, which gives two per row once the form cap grows to
+## 1200 / 1400 px on a desktop. A flat 450 put step 5 93 px off both edges of a
+## 338 px phone, so it applies only where one card that wide fits the screen. Re-run
+## from _apply_content_max_width(), which the base calls on every resize.
+const CARD_FLOOR := 450
+
+func _apply_content_max_width() -> void:
+	super._apply_content_max_width()
+	_apply_card_floor()
+
+func _apply_card_floor() -> void:
+	var cards := get_node_or_null(
+		"ContentMargin/MainContent/FormContent/FormContainer/Content/CardsContainer")
+	var vp := get_viewport()
+	if cards == null or vp == null:
+		return
+	# Room for one card: the screen less the form's side margins and a scrollbar.
+	var fits: bool = vp.get_visible_rect().size.x >= CARD_FLOOR + SPACING_XL * 2 + 48
+	for child in cards.get_children():
+		if child is Control:
+			(child as Control).custom_minimum_size.x = CARD_FLOOR if fits else 0
 
 
 func _create_form_section_card(title: String, description: String = "") -> PanelContainer:
@@ -767,6 +789,9 @@ func _create_flavor_section() -> PanelContainer:
 		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	flavor_met_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT)
+	# The rolled result is a sentence ("Hired by a random member of the group"),
+	# so it wraps like the details line below it.
+	flavor_met_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	met_vbox.add_child(flavor_met_label)
 
 	flavor_met_details_label = Label.new()
@@ -818,6 +843,7 @@ func _create_flavor_section() -> PanelContainer:
 		"font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	flavor_char_label.add_theme_color_override(
 		"font_color", COLOR_ACCENT)
+	flavor_char_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	char_vbox.add_child(flavor_char_label)
 
 	flavor_char_details_label = Label.new()

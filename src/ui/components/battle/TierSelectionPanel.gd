@@ -169,11 +169,11 @@ func _create_tier_button(tier: int, info: Dictionary) -> Button:
 	# Accent color per tier
 	match tier:
 		BattleTierControllerClass.TrackingTier.LOG_ONLY:
-			style.border_color = Color("#6b7280")
+			style.border_color = UIColors.COLOR_TEXT_MUTED
 		BattleTierControllerClass.TrackingTier.ASSISTED:
-			style.border_color = Color("#3b82f6")
+			style.border_color = UIColors.COLOR_BLUE
 		BattleTierControllerClass.TrackingTier.FULL_ORACLE:
-			style.border_color = Color("#f59e0b")
+			style.border_color = UIColors.COLOR_AMBER
 
 	btn.add_theme_stylebox_override("normal", style)
 

@@ -160,9 +160,6 @@ static func resolve_battle(
 		"enemies_defeated": total_enemy_kills,
 		"held_field": held_field,
 		"loot_opportunities": loot_rolls,
-		"battlefield_finds": randi_range(
-			BattleResolverRef.BATTLEFIELD_FINDS_MIN,
-			BattleResolverRef.BATTLEFIELD_FINDS_MAX) if held_field else 0,
 		"consumed_items": consumed_items,
 		"crew_units_final": crew_units,
 		"enemy_units_final": enemy_units,

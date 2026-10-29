@@ -21,6 +21,26 @@ const SUPPORT_PATH := "res://data/bug_hunt/bug_hunt_support_teams.json"
 const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
 const RefText := preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
 
+## Co-op campaign (Compendium pp.209-211). The rules are BugHuntCoopCampaign's and the
+## writes are BugHuntCampaignCore's; this panel picks the player and the sector, takes
+## the mission's Priority from that sector (p.211), and stamps the sector and its
+## battle_modifiers() onto the mission BEFORE the battle -- the post-battle panel reads
+## the stamp to record the result on the map exactly once.
+const CoopRef := preload("res://src/core/campaign/BugHuntCoopCampaign.gd")
+const CoopView := preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd")
+const CalloutCardRef := preload("res://src/ui/components/common/CalloutCard.gd")
+const TapGestureRef := preload("res://src/ui/components/common/TapGesture.gd")
+const TouchScrollOpenerRef := preload("res://src/ui/components/common/TouchScrollOpener.gd")
+const ReceiptCardRef := preload("res://src/ui/components/common/ReceiptCard.gd")
+
+var _coop_container: VBoxContainer
+var _generate_button: Button
+var _coop_player: String = ""
+var _coop_sector_id: String = ""
+var _coop_pool_draw: int = 0  # committed now, drawn from the common pool once at launch
+var _coop_pool_label: Label
+var _coop_end_receipt: Dictionary = {}
+
 var _campaign: Resource
 var _phase_manager = null
 var _missions_data: Dictionary = {}
@@ -70,6 +90,11 @@ func refresh() -> void:
 	_support_requests_made = 0
 	_support_buttons.clear()
 	_clear_containers()
+	_coop_player = ""
+	_coop_sector_id = ""
+	_coop_pool_draw = 0
+	_coop_end_receipt = {}
+	_refresh_coop_section()
 
 
 func complete() -> void:
@@ -112,12 +137,18 @@ func _build_ui() -> void:
 	vbox.add_theme_constant_override("separation", 16)
 	scroll.add_child(vbox)
 
+	# Co-op campaign: who fights, and which sector (empty outside a co-op campaign)
+	_coop_container = VBoxContainer.new()
+	_coop_container.add_theme_constant_override("separation", 12)
+	vbox.add_child(_coop_container)
+
 	# Generate Mission button
 	var gen_btn := Button.new()
 	gen_btn.text = "Generate Mission"
 	gen_btn.custom_minimum_size = Vector2(0, 48)
 	gen_btn.pressed.connect(_generate_mission)
 	vbox.add_child(gen_btn)
+	_generate_button = gen_btn
 
 	# Mission briefing
 	_briefing_container = VBoxContainer.new()
@@ -155,6 +186,17 @@ func _clear_containers() -> void:
 func _generate_mission() -> void:
 	if _mission_generated:
 		return
+	# p.211: "Each player may attack one sector of their choice." In a co-op campaign the
+	# mission IS an attack on a sector, so nothing is rolled until the rules module agrees
+	# that this player may attack that one.
+	var coop: Dictionary = CoopView.coop_of(_campaign)
+	if not coop.is_empty():
+		var check: Dictionary = CoopRef.can_attack(coop, _coop_sector_id, _coop_player) \
+			if not _coop_player.is_empty() and not _coop_sector_id.is_empty() \
+			else {"ok": false, "reason": "Pick the player and the sector they attack first."}
+		if not bool(check.get("ok", false)):
+			_show_coop_refusal(str(check.get("reason", "")))
+			return
 	_mission_generated = true
 	_clear_containers()
 
@@ -247,6 +289,11 @@ func _generate_mission() -> void:
 	var extra: int = 0
 	if _campaign and "extra_contact_markers" in _campaign:
 		extra = _campaign.extra_contact_markers
+	# p.211 Enemy swarms: "Place 1 additional Contact marker at the beginning of the
+	# battle." The count is the condition's own data value, via battle_modifiers().
+	var coop_mods: Dictionary = _coop_modifiers()
+	extra += int((coop_mods.get("battle", {}) as Dictionary).get("extra_contact_markers", 0)) \
+		if coop_mods.get("battle", {}) is Dictionary else 0
 	var total_contacts: int = maxi(base_contacts + contact_mod + extra, 1)
 
 	# Build mission context.
@@ -282,9 +329,34 @@ func _generate_mission() -> void:
 		"participant_ids": [],
 		"battle_result": {}
 	}
+	# The co-op block travels on the stamp: which player attacked which sector in which
+	# operational turn, and the Factors / conditions in force (battle_modifiers()). The
+	# post-battle panel records the result on the map from THIS, never from a re-read of
+	# the map, which another player's mission may have changed in the meantime.
+	if not coop_mods.is_empty():
+		_mission_context["coop"] = {
+			"player": _coop_player,
+			"sector_id": _coop_sector_id,
+			"sector_name": str(coop_mods.get("sector_name", _coop_sector_id)),
+			"op_turn": int(CoopView.coop_of(_campaign).get("op_turn", 1)),
+			"priority": int(coop_mods.get("priority", 0)),
+			"modifiers": coop_mods.duplicate(true),
+			"support_penalty": int(coop_mods.get("support_penalty", 0)),
+			"pool_drawn": 0,
+		}
 
 	## ── Display Briefing ──────
 	var briefing_card := _create_card("Mission Briefing", _briefing_container)
+	if not coop_mods.is_empty():
+		_add_row(briefing_card, "Co-op Sector", "%s, attacked by %s -- Priority from the sector map (%s)"
+			% [str(coop_mods.get("sector_name", "")), _coop_player, CoopRef.CITE_BATTLES])
+		for line in CoopView.sector_lines(CoopView.coop_of(_campaign), _coop_sector_id):
+			var factor_lbl := Label.new()
+			factor_lbl.text = str(line)
+			factor_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			factor_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+			factor_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+			briefing_card.add_child(factor_lbl)
 
 	# Objective dice roll display
 	var obj_text := "Objective dice: [%d, %d, %d] → %d objective(s)" % [
@@ -351,6 +423,8 @@ func _generate_mission() -> void:
 	_roll_support_teams()
 
 	_launch_button.visible = true
+	# The co-op picker locks to the sector this mission was generated against.
+	_refresh_coop_section()
 
 
 func _build_loadout_selection() -> void:
@@ -466,6 +540,17 @@ func _build_loadout_selection() -> void:
 
 
 func _calculate_priority(turn: int, difficulty: String) -> int:
+	# Co-op campaign, p.211: "Set up the mission as normal, using the Priority level from
+	# the sector map." The sector's Priority replaces the p.187 roll (and the escalation
+	# sequence, which the wizard switches off for co-op). p.210: "any Vital or Critical
+	# Objectives will increase this as normal (see p.187), but only for the duration of
+	# that specific mission" -- the caller adds those to the value returned here and the
+	# sector's own Priority is never written back, so the raise lasts one mission.
+	var coop_mods: Dictionary = _coop_modifiers()
+	if not coop_mods.is_empty():
+		_escalation_step = -1
+		return int(coop_mods.get("priority", 1))
+
 	# Campaign escalation check
 	var use_escalation: bool = false
 	if _campaign and "use_campaign_escalation" in _campaign:
@@ -567,6 +652,8 @@ var _support_points_lbl: Label
 var _extra_support_check: CheckBox
 var _weapons_by_id: Dictionary = {}
 var _support_results_box: VBoxContainer
+var _coop_pool_add_btn: Button
+var _coop_pool_return_btn: Button
 
 
 func _roll_support_teams() -> void:
@@ -607,6 +694,36 @@ func _roll_support_teams() -> void:
 	_buy_support_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_buy_support_btn.pressed.connect(_on_buy_support_point)
 	support_card.add_child(_buy_support_btn)
+
+	# Co-op, p.211 Support Point Resources: "All Support point resources uncovered are
+	# added to a common pool which any player may draw on when undertaking a mission."
+	# Committed here and drawn once at launch, like Reputation, so backing out costs
+	# nothing. How the players share the pool is theirs to agree ("Players must devise an
+	# agreement on how points are allocated").
+	_coop_pool_add_btn = null
+	_coop_pool_return_btn = null
+	_coop_pool_label = null
+	if _mission_context.get("coop", {}) is Dictionary \
+			and not (_mission_context.get("coop", {}) as Dictionary).is_empty():
+		_coop_pool_label = Label.new()
+		_coop_pool_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_coop_pool_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		_coop_pool_label.add_theme_font_size_override("font_size", _scaled_font(13))
+		support_card.add_child(_coop_pool_label)
+		var pool_row := HFlowContainer.new()
+		pool_row.add_theme_constant_override("h_separation", 8)
+		pool_row.add_theme_constant_override("v_separation", 8)
+		support_card.add_child(pool_row)
+		_coop_pool_add_btn = Button.new()
+		_coop_pool_add_btn.text = "Draw 1 from the common pool"
+		_coop_pool_add_btn.custom_minimum_size.y = 48
+		_coop_pool_add_btn.pressed.connect(_on_coop_pool_draw.bind(1))
+		pool_row.add_child(_coop_pool_add_btn)
+		_coop_pool_return_btn = Button.new()
+		_coop_pool_return_btn.text = "Put 1 back"
+		_coop_pool_return_btn.custom_minimum_size.y = 48
+		_coop_pool_return_btn.pressed.connect(_on_coop_pool_draw.bind(-1))
+		pool_row.add_child(_coop_pool_return_btn)
 
 	# p.181 Movie Magic "Extra Support": "The first Support option you request does not
 	# require a die roll." Once per campaign; spent when that request is made.
@@ -656,8 +773,9 @@ func _roll_support_teams() -> void:
 		var desc_ref := desc_lbl
 		_support_buttons.append(request_btn)
 		request_btn.pressed.connect(func():
-			if _support_points_remaining() <= 0:
-				desc_ref.text = "No Support Points remaining!"
+			if _support_requests_left() <= 0:
+				desc_ref.text = "No Support Points remaining!" if _support_points_remaining() <= 0 \
+					else _coop_roll_cap_reason()
 				desc_ref.add_theme_color_override("font_color", COLOR_WARNING)
 				return
 			var free: bool = _support_requests_made == 0 and _extra_support_check != null \
@@ -769,21 +887,69 @@ func _support_points_total() -> int:
 	var rules: Dictionary = _mission_context.get("difficulty_rules", {})
 	var permanent: int = int(_campaign.extra_support_rolls) \
 		if _campaign and "extra_support_rolls" in _campaign else 0
-	return int(_mission_context.get("priority", 1)) + int(rules.get("extra_support_points", 0)) \
-		+ permanent + _rep_for_support
+	var total: int = int(_mission_context.get("priority", 1)) \
+		+ int(rules.get("extra_support_points", 0)) + permanent + _rep_for_support
+	# Co-op, p.211: points drawn from the common pool are simply added ("Simply add any
+	# desired points to the Support that would normally be available"), and an Enemy
+	# sabotage! result takes its point off every battle of the operational turn. A
+	# penalty cannot make the count negative.
+	if _mission_context.get("coop", {}) is Dictionary \
+			and not (_mission_context.get("coop", {}) as Dictionary).is_empty():
+		total = maxi(total + _coop_pool_draw - _coop_support_penalty(), 0)
+	return total
 
 
 func _support_points_remaining() -> int:
 	return _support_points_total() - _support_requests_made
 
 
+## p.210 Inaccessible: "Only a single support roll can be made." -1 when no Factor caps
+## the rolls. The cap is the Factor row's own `max_support_rolls`, via battle_modifiers().
+func _coop_max_support_rolls() -> int:
+	var info: Variant = _mission_context.get("coop", {})
+	if not (info is Dictionary) or (info as Dictionary).is_empty():
+		return -1
+	var battle: Variant = ((info as Dictionary).get("modifiers", {}) as Dictionary).get("battle", {})
+	if battle is Dictionary and (battle as Dictionary).has("max_support_rolls"):
+		return int((battle as Dictionary)["max_support_rolls"])
+	return -1
+
+
+## The Factor that capped the rolls, in its data row's own words.
+func _coop_roll_cap_reason() -> String:
+	var info: Variant = _mission_context.get("coop", {})
+	var mods: Dictionary = (info as Dictionary).get("modifiers", {}) if info is Dictionary else {}
+	for f in mods.get("factors", []):
+		if f is Dictionary and CoopRef.factor_row(str(f.get("id", ""))).get(
+				"battle", {}).has("max_support_rolls"):
+			return "%s: %s (%s)" % [str(f.get("name", "")), str(f.get("effect", "")),
+				CoopRef.CITE_MAP]
+	return "No more support rolls this mission."
+
+
+func _coop_support_penalty() -> int:
+	var info: Variant = _mission_context.get("coop", {})
+	return int((info as Dictionary).get("support_penalty", 0)) if info is Dictionary else 0
+
+
+## How many more Support requests may be made: the points left, and under Inaccessible
+## the Factor's roll cap as well. The one test every request path asks.
+func _support_requests_left() -> int:
+	var left: int = _support_points_remaining()
+	var cap: int = _coop_max_support_rolls()
+	if cap >= 0:
+		left = mini(left, cap - _support_requests_made)
+	return left
+
+
 ## One place decides what is pressable. ⚠ Every request button stayed enabled with no
 ## points left (MG-11, "12 requests enabled vs 1 point" on the tablet).
 func _refresh_support_controls() -> void:
 	var remaining: int = _support_points_remaining()
+	var requests_left: int = _support_requests_left()
 	for b in _support_buttons:
 		if is_instance_valid(b):
-			b.disabled = remaining <= 0 or bool(b.get_meta("requested", false))
+			b.disabled = requests_left <= 0 or bool(b.get_meta("requested", false))
 	var locked: bool = _support_requests_made > 0
 	if _prio_down_btn:
 		_prio_down_btn.disabled = locked or _rep_priority_shift <= -MAX_PRIORITY_REPUTATION \
@@ -802,6 +968,15 @@ func _refresh_support_controls() -> void:
 				int(_campaign.extra_support_rolls) if _campaign
 					and "extra_support_rolls" in _campaign else 0,
 				_rep_for_support]
+		if _mission_context.get("coop", {}) is Dictionary \
+				and not (_mission_context.get("coop", {}) as Dictionary).is_empty():
+			_support_points_lbl.text += "; co-op: %+d from the common pool, -%d %s" % [
+				_coop_pool_draw, _coop_support_penalty(), CoopView.sabotage_name()]
+			var cap: int = _coop_max_support_rolls()
+			if cap >= 0:
+				_support_points_lbl.text += "; %d support roll%s at most" % [
+					cap, "" if cap == 1 else "s"]
+	_refresh_coop_pool_controls()
 	_mission_context["support_reputation_spent"] = _rep_for_support
 
 
@@ -884,11 +1059,17 @@ func _launch_mission() -> void:
 	_mission_context["participant_ids"] = _participant_ids.duplicate()
 	_spend_committed_reputation()
 	_spend_military_life_flags()
+	_spend_coop_pool()
 	_persist_stamped_mission()
 
 	var battle_setup = BugHuntBattleSetupClass.new()
 	var battle_context: Dictionary = battle_setup.generate_battle_context(
 		_mission_context, _campaign)
+	# generate_battle_context() returns a FIXED key literal, so the co-op block would not
+	# reach the battle card unless it is added here (TacticalBattleUI reads md["coop"]).
+	if _mission_context.get("coop", {}) is Dictionary \
+			and not (_mission_context.get("coop", {}) as Dictionary).is_empty():
+		battle_context["coop"] = (_mission_context["coop"] as Dictionary).duplicate(true)
 
 	# TacticalBattleUI._try_auto_init_from_temp_data expects the context in
 	# {crew, enemies, mission_data} shape. generate_battle_context returns a
@@ -931,6 +1112,250 @@ func _launch_mission() -> void:
 		router.navigate_to("tactical_battle")
 	else:
 		_report_launch_failure("SceneRouter is not available.")
+
+
+# ── Co-op campaign (Compendium pp.209-211) ───────────────────────────────────────
+
+## The live map's battle_modifiers() for the chosen sector, or {} outside co-op / before
+## a sector is chosen.
+func _coop_modifiers() -> Dictionary:
+	var coop: Dictionary = CoopView.coop_of(_campaign)
+	if coop.is_empty() or _coop_sector_id.is_empty():
+		return {}
+	return CoopRef.battle_modifiers(coop, _coop_sector_id)
+
+
+## Who fights and where. Rebuilt on refresh(), on every pick, and once the mission is
+## generated (when it locks to the chosen sector). Empty and hidden outside co-op.
+func _refresh_coop_section() -> void:
+	if _coop_container == null:
+		return
+	for child in _coop_container.get_children():
+		_coop_container.remove_child(child)
+		child.queue_free()
+	if _generate_button:
+		_generate_button.disabled = false
+	var coop: Dictionary = CoopView.coop_of(_campaign)
+	_coop_container.visible = not coop.is_empty()
+	if coop.is_empty():
+		return
+
+	var card := _create_card("Co-op Campaign: Operational Turn %d" % int(coop.get("op_turn", 1)),
+		_coop_container)
+	var pool: int = int(coop.get("support_pool", 0))
+	_add_row(card, "Common Pool", "%d Support point%s (%s)" % [pool, "" if pool == 1 else "s",
+		CoopRef.CITE_BATTLES])
+	var penalty: int = int(coop.get("support_penalty", 0))
+	if penalty > 0:
+		_add_row(card, CoopView.sabotage_name(),
+			"-%d Support point for every battle this operational turn (%s)"
+			% [penalty, CoopRef.CITE_BATTLES])
+	if not _coop_end_receipt.is_empty():
+		_render_coop_receipt(card, CoopView.receipt_step(_coop_end_receipt,
+			"Enemy Moves", CoopRef.CITE_BATTLES))
+
+	if CoopRef.is_campaign_won(coop):
+		_coop_note(card, "Every sector is cleared -- the co-op campaign is won (%s)."
+			% CoopRef.CITE_MAP, COLOR_SUCCESS)
+		if _generate_button:
+			_generate_button.disabled = true
+		TouchScrollOpenerRef.open_subtree(_coop_container)
+		return
+
+	if _mission_generated and not _coop_sector_id.is_empty():
+		_add_row(card, "Attacking", "%s attacks %s" % [_coop_player,
+			CoopView.sector_name(coop, _coop_sector_id)])
+		TouchScrollOpenerRef.open_subtree(_coop_container)
+		return
+
+	var waiting: Array = CoopView.players_to_fight(coop)
+	if waiting.is_empty():
+		_coop_note(card, "Every player has fought this operational turn.", COLOR_TEXT_SEC)
+		_add_coop_end_turn(card, coop)
+		if _generate_button:
+			_generate_button.disabled = true
+		TouchScrollOpenerRef.open_subtree(_coop_container)
+		return
+
+	if _coop_player.is_empty() or not waiting.has(_coop_player):
+		_coop_player = str(waiting[0])
+		_coop_sector_id = ""
+	var picker := OptionButton.new()
+	picker.custom_minimum_size.y = 48
+	for p in waiting:
+		picker.add_item(str(p))
+	picker.select(waiting.find(_coop_player))
+	picker.item_selected.connect(func(idx: int) -> void:
+		if idx >= 0 and idx < waiting.size():
+			_select_coop_player(str(waiting[idx]))
+	)
+	_add_row(card, "Player", "Each player attacks one sector of their choice (%s)"
+		% CoopRef.CITE_BATTLES)
+	card.add_child(picker)
+
+	var sectors: Array = CoopView.sectors(coop)
+	var grid := GridContainer.new()
+	grid.columns = CoopView.card_columns(sectors.size())
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	card.add_child(grid)
+	for s: Dictionary in sectors:
+		grid.add_child(_coop_sector_card(coop, s))
+
+	var chosen: String = "Tap a sector %s may attack." % _coop_player if _coop_sector_id.is_empty() \
+		else "%s attacks %s." % [_coop_player, CoopView.sector_name(coop, _coop_sector_id)]
+	_coop_note(card, chosen, COLOR_TEXT)
+	if _generate_button:
+		_generate_button.disabled = _coop_sector_id.is_empty()
+	TouchScrollOpenerRef.open_subtree(_coop_container)
+
+
+## One sector as a callout card: offered (tap to pick) when the rules let this player
+## attack it, and showing the rules module's own reason when they do not.
+func _coop_sector_card(coop: Dictionary, s: Dictionary) -> Control:
+	var sid: String = str(s.get("id", ""))
+	var check: Dictionary = CoopRef.can_attack(coop, sid, _coop_player)
+	var allowed: bool = bool(check.get("ok", false))
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 4)
+	for line in CoopView.sector_lines(coop, sid):
+		var lbl := Label.new()
+		lbl.text = str(line)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		lbl.add_theme_color_override("font_color", COLOR_TEXT if allowed else COLOR_TEXT_SEC)
+		lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+		body.add_child(lbl)
+	if not allowed:
+		var why := Label.new()
+		why.text = str(check.get("reason", ""))
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		why.add_theme_color_override("font_color", COLOR_WARNING)
+		why.add_theme_font_size_override("font_size", _scaled_font(12))
+		body.add_child(why)
+	var card := CalloutCardRef.new()
+	var color: Color = _UC.COLOR_TEXT_MUTED
+	if sid == _coop_sector_id:
+		color = COLOR_SUCCESS
+	elif allowed:
+		color = _UC.COLOR_CYAN
+	card.setup(str(s.get("name", sid)), body, color)
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.set_meta("sector_id", sid)
+	card.set_meta("attackable", allowed)
+	if allowed:
+		TapGestureRef.connect_tap(card, _select_coop_sector.bind(sid))
+	return card
+
+
+func _select_coop_player(player: String) -> void:
+	if _mission_generated or player == _coop_player:
+		return
+	_coop_player = player
+	_coop_sector_id = ""
+	_coop_pool_draw = 0
+	_refresh_coop_section()
+
+
+func _select_coop_sector(sector_id: String) -> void:
+	if _mission_generated:
+		return
+	var coop: Dictionary = CoopView.coop_of(_campaign)
+	var check: Dictionary = CoopRef.can_attack(coop, sector_id, _coop_player)
+	if not bool(check.get("ok", false)):
+		_show_coop_refusal(str(check.get("reason", "")))
+		return
+	_coop_sector_id = sector_id
+	_refresh_coop_section()
+
+
+func _show_coop_refusal(reason: String) -> void:
+	if _coop_container == null or reason.is_empty():
+		return
+	var lbl := Label.new()
+	lbl.name = "CoopRefusal"
+	lbl.text = reason
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", COLOR_WARNING)
+	_coop_container.add_child(lbl)
+
+
+func _add_coop_end_turn(card: VBoxContainer, coop: Dictionary) -> void:
+	var check: Dictionary = CoopView.can_end_turn(coop)
+	if not bool(check.get("ok", false)):
+		_coop_note(card, str(check.get("reason", "")), COLOR_TEXT_SEC)
+		return
+	var btn := Button.new()
+	btn.name = "EndOperationalTurn"
+	btn.text = "End Operational Turn: roll Enemy Moves (%s)" % CoopRef.CITE_BATTLES
+	btn.custom_minimum_size.y = 48
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	btn.pressed.connect(_on_coop_end_turn)
+	card.add_child(btn)
+
+
+func _on_coop_end_turn() -> void:
+	_coop_end_receipt = CoopView.end_turn(_campaign)
+	_coop_player = ""
+	_coop_sector_id = ""
+	_refresh_coop_section()
+
+
+func _render_coop_receipt(card: VBoxContainer, step: Dictionary) -> void:
+	var title := Label.new()
+	title.text = ReceiptCardRef.heading(step)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.add_theme_color_override("font_color", COLOR_TEXT)
+	title.add_theme_font_size_override("font_size", _scaled_font(16))
+	card.add_child(title)
+	ReceiptCardRef.fill(card, step, Callable(), 13)
+
+
+func _coop_note(parent: VBoxContainer, text: String, color: Color) -> Label:
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_color_override("font_color", color)
+	parent.add_child(lbl)
+	return lbl
+
+
+func _on_coop_pool_draw(delta: int) -> void:
+	var pool: int = int(CoopView.coop_of(_campaign).get("support_pool", 0))
+	var next: int = _coop_pool_draw + delta
+	if next < 0 or next > pool:
+		return
+	# A point already rolled for cannot go back to the pool.
+	if delta < 0 and _support_points_remaining() <= 0:
+		return
+	_coop_pool_draw = next
+	_refresh_support_controls()
+
+
+func _refresh_coop_pool_controls() -> void:
+	if _coop_pool_label == null or not is_instance_valid(_coop_pool_label):
+		return
+	var pool: int = int(CoopView.coop_of(_campaign).get("support_pool", 0))
+	_coop_pool_label.text = "Common pool: %d Support point%s; this mission draws %d (%s)." % [
+		pool, "" if pool == 1 else "s", _coop_pool_draw, CoopRef.CITE_BATTLES]
+	if is_instance_valid(_coop_pool_add_btn):
+		_coop_pool_add_btn.disabled = _coop_pool_draw >= pool
+	if is_instance_valid(_coop_pool_return_btn):
+		_coop_pool_return_btn.disabled = _coop_pool_draw <= 0 or _support_points_remaining() <= 0
+
+
+## Draw what was committed from the common pool, ONCE: a failed launch can be retried,
+## and a second press must not draw again. The stamp records what actually came out.
+func _spend_coop_pool() -> void:
+	var info: Variant = _mission_context.get("coop", {})
+	if not (info is Dictionary) or (info as Dictionary).is_empty():
+		return
+	if bool(_mission_context.get("coop_pool_spent", false)):
+		return
+	var drawn: int = 0
+	if _coop_pool_draw > 0 and _campaign and _campaign.has_method("draw_coop_support"):
+		drawn = int(_campaign.draw_coop_support(_coop_pool_draw))
+	(info as Dictionary)["pool_drawn"] = drawn
+	_mission_context["coop_pool_spent"] = true
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:

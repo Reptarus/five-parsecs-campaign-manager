@@ -164,7 +164,9 @@ func _build_ui() -> void:
 	_header_desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_XS))
 	_header_desc.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
 	_header_desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	outer.add_child(_header_desc)
+	# Added to the scroll below, not to `outer`: as fixed chrome it pushed the page
+	# 2.2 px off a 338 px landscape phone, where it shows (the screen is not single-
+	# column) and the band, header, filters and search already fill the height.
 
 	# Filter tabs — wrapped in ScrollContainer for mobile overflow
 	_filter_scroll = ScrollContainer.new()
@@ -208,10 +210,17 @@ func _build_ui() -> void:
 	_scroll.size_flags_vertical = SIZE_EXPAND_FILL
 	outer.add_child(_scroll)
 
+	# The description scrolls with the list it describes.
+	var scroll_body := VBoxContainer.new()
+	scroll_body.size_flags_horizontal = SIZE_EXPAND_FILL
+	scroll_body.add_theme_constant_override("separation", UIColors.SPACING_SM)
+	_scroll.add_child(scroll_body)
+	scroll_body.add_child(_header_desc)
+
 	_item_list = VBoxContainer.new()
 	_item_list.size_flags_horizontal = SIZE_EXPAND_FILL
 	_item_list.add_theme_constant_override("separation", 2)
-	_scroll.add_child(_item_list)
+	scroll_body.add_child(_item_list)
 
 	# Apply responsive layout
 	_apply_responsive_visibility()

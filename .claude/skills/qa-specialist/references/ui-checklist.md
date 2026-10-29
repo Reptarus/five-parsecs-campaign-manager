@@ -38,13 +38,13 @@ Every UI check should be evaluated from BOTH perspectives:
 
 | ID | Check | How to Verify | Pri |
 |----|-------|---------------|-----|
-| BTN-01 | Primary action button uses accent color (#2D5A7B) | MCP: `run_script` to read button `self_modulate` or theme override | P1 |
+| BTN-01 | Primary action button uses accent color (COLOR_ACCENT #3b82f6) | MCP: `run_script` to read button `self_modulate` or theme override | P1 |
 | BTN-02 | Disabled buttons have amber warning label explaining why | `get_ui_elements` — find Label near disabled Button with warning text | P0 |
 | BTN-03 | Button labels match action (e.g., "Save Campaign" not just "Save") | `get_ui_elements` — read all Button text values | P1 |
 | BTN-04 | Touch targets >= 48px height | `get_ui_elements` — check `rect.height >= 48` for all Buttons | P0 |
 | BTN-05 | No overlapping buttons | Check button rects don't intersect | P1 |
-| BTN-06 | Hover state visible on desktop (COLOR_ACCENT_HOVER #3A7199) | Manual check on desktop | P2 |
-| BTN-07 | Focus ring visible for keyboard nav (COLOR_FOCUS #4FC3F7) | Tab through buttons, check for cyan outline | P2 |
+| BTN-06 | Hover state visible on desktop (COLOR_ACCENT_HOVER #60a5fa) | Manual check on desktop | P2 |
+| BTN-07 | Focus ring visible for keyboard nav (COLOR_FOCUS #60a5fa) | Tab through buttons, check for a blue outline | P2 |
 | BTN-08 | Consistent button placement (primary right, secondary left) | Visual audit via screenshots | P1 |
 
 ---
@@ -81,19 +81,22 @@ Every UI check should be evaluated from BOTH perspectives:
 
 ### Color Constants
 
+Values are `UIColors.gd`'s (corrected 2026-10-29: this table listed the legacy palette,
+so it would have failed a correct screen). If the file and this table disagree, the file wins.
+
 | ID | Element | Expected Color | How to Verify | Pri |
 |----|---------|---------------|---------------|-----|
-| DS-01 | Panel background | #1A1A2E (COLOR_BASE) | Screenshot pixel check or `run_script` | P1 |
-| DS-02 | Card background | #252542 (COLOR_ELEVATED) | PanelContainer StyleBox | P1 |
-| DS-03 | Input fields | #1E1E36 (COLOR_INPUT) | LineEdit/TextEdit background | P2 |
-| DS-04 | Card borders | #3A3A5C (COLOR_BORDER) | StyleBox border color | P2 |
-| DS-05 | Primary accent | #2D5A7B (COLOR_ACCENT) | Primary buttons, highlights | P1 |
-| DS-06 | Focus ring | #4FC3F7 (COLOR_FOCUS) | Focused element outline | P2 |
-| DS-07 | Primary text | #E0E0E0 (COLOR_TEXT_PRIMARY) | Labels, body text | P1 |
-| DS-08 | Secondary text | #808080 (COLOR_TEXT_SECONDARY) | Descriptions, helpers | P2 |
-| DS-09 | Success status | #10B981 (COLOR_SUCCESS) | Green indicators | P1 |
-| DS-10 | Warning status | #D97706 (COLOR_WARNING) | Amber/orange indicators | P1 |
-| DS-11 | Danger/error | #DC2626 (COLOR_DANGER) | Red indicators | P1 |
+| DS-01 | Panel background | #0a0d14 (COLOR_BASE) | Screenshot pixel check or `run_script` | P1 |
+| DS-02 | Card background | #111827 (COLOR_ELEVATED) | PanelContainer StyleBox | P1 |
+| DS-03 | Input fields | #1f2937 (COLOR_INPUT) | LineEdit/TextEdit background | P2 |
+| DS-04 | Card borders | #374151 (COLOR_BORDER) | StyleBox border color | P2 |
+| DS-05 | Primary accent | #3b82f6 (COLOR_ACCENT) | Primary buttons, highlights | P1 |
+| DS-06 | Focus ring | #60a5fa (COLOR_FOCUS) | Focused element outline | P2 |
+| DS-07 | Primary text | #f3f4f6 (COLOR_TEXT_PRIMARY) | Labels, body text | P1 |
+| DS-08 | Secondary text | #9ca3af (COLOR_TEXT_SECONDARY) | Descriptions, helpers | P2 |
+| DS-09 | Success status | #10b981 (COLOR_SUCCESS) | Green indicators | P1 |
+| DS-10 | Warning status | #f59e0b (COLOR_WARNING) | Amber/orange indicators | P1 |
+| DS-11 | Danger/error | #ef4444 (COLOR_DANGER) | Red indicators | P1 |
 
 ### Spacing & Layout
 
@@ -121,7 +124,7 @@ Every UI check should be evaluated from BOTH perspectives:
 | ID | Check | How to Verify | Pri |
 |----|-------|---------------|-----|
 | A11Y-01 | Reduced animation mode honored | Set `ThemeManager._reduced_animation = true`, verify `UIColors.should_animate()` returns false | P1 |
-| A11Y-02 | Text contrast ratio adequate | Primary text (#E0E0E0) on base (#1A1A2E) = 11.3:1 (passes AAA) | P2 |
+| A11Y-02 | Text contrast ratio adequate | Primary text (#f3f4f6) on base (#0a0d14) = about 17.7:1 (passes AAA) | P2 |
 | A11Y-03 | Focus visible for keyboard navigation | Tab through interactive elements | P2 |
 | A11Y-04 | No information conveyed by color alone | Check status indicators have text labels too | P2 |
 

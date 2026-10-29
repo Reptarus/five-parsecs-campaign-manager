@@ -314,6 +314,120 @@ func test_the_failing_grey_is_gone_from_scenes() -> void:
 ## Bold and italic runs take the label's size. Overriding `normal_font_size` alone left
 ## them at the theme's 16 px, so "Colony Morale will be: 5 -> [b]4[/b]" printed the 4
 ## larger than the line. Every RichTextLabel size goes through the one helper.
+func _bracket_depth(line: String) -> int:
+	return line.count("[") + line.count("{") + line.count("(") \
+		- line.count("]") - line.count("}") - line.count(")")
+
+
+## Every colour a UI script writes is a UIColors token or a named palette constant.
+## There were 137 inline Color("#...") literals in 22 files, most of them the OLD values
+## of tokens UIColors has since moved (#D97706 was COLOR_WARNING, #252542 was
+## COLOR_ELEVATED), so the battle screens drew a palette the rest of the app had left.
+## A declaration (any const, or a member var at column 0) may hold a hex: that is
+## where a categorical palette lives, defined once.
+func test_ui_scripts_write_no_inline_hex_colours() -> void:
+	var files: Array = []
+	_collect_gd_files("res://src/ui", files)
+	assert_int(files.size()).override_failure_message(
+		"premise: the walk found the UI scripts (237 on 2026-10-29)").is_greater(200)
+	var decl := RegEx.create_from_string("^(\\s*(static )?const|var) [A-Za-z_]+")
+	var inline: Array[String] = []
+	for path: String in files:
+		if path.ends_with("/UIColors.gd") or path.ends_with("/AccessibilityThemes.gd"):
+			continue
+		var depth := 0
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for i in range(lines.size()):
+			var line: String = lines[i]
+			if depth > 0:
+				depth += _bracket_depth(line)
+				continue
+			if decl.search(line) != null:
+				depth = maxi(0, _bracket_depth(line))
+				continue
+			if line.strip_edges().begins_with("#"):
+				continue
+			if line.contains("Color(\"#"):
+				inline.append("%s:%d" % [path, i + 1])
+	assert_array(inline).override_failure_message(
+		"inline hex colours (use a UIColors token):\n%s" % "\n".join(inline)).is_empty()
+
+
+## A local const named after a token must BE the token. TerrainLegendStrip bound
+## COLOR_TEXT_SECONDARY to a failing grey (recorded in CLAUDE.md), and 16 more such
+## consts survived in the battle UI, each restating a legacy value.
+func test_no_const_restates_a_token_with_a_hex() -> void:
+	var tokens: Dictionary = load("res://src/ui/components/base/UIColors.gd") \
+		.get_script_constant_map()
+	assert_bool(tokens.has("COLOR_BASE") and tokens.has("COLOR_TEXT_PRIMARY")) \
+		.override_failure_message("premise: read the UIColors constants").is_true()
+	var files: Array = []
+	_collect_gd_files("res://src", files)
+	var hex_const := RegEx.create_from_string(
+		"^\\s*const ([A-Z_]+) *(:[^=]*)?:?= *Color\\(\"#")
+	var shadows: Array[String] = []
+	for path: String in files:
+		if path.ends_with("/UIColors.gd"):
+			continue
+		var lines := FileAccess.get_file_as_string(path).split("\n")
+		for i in range(lines.size()):
+			var m := hex_const.search(lines[i])
+			if m != null and tokens.has(m.get_string(1)):
+				shadows.append("%s:%d %s" % [path, i + 1, m.get_string(1)])
+	assert_array(shadows).override_failure_message(
+		"consts restating a token with a hex:\n%s" % "\n".join(shadows)).is_empty()
+
+
+## One avatar palette. Five screens kept their own list and Bug Hunt's differed, so a
+## character moved between modes changed colour.
+func test_every_avatar_reads_the_one_palette() -> void:
+	var files: Array = []
+	_collect_gd_files("res://src", files)
+	var callers := 0
+	var copies: Array[String] = []
+	for path: String in files:
+		var src := FileAccess.get_file_as_string(path)
+		callers += src.count("UIColors.avatar_color(")
+		if not path.ends_with("/UIColors.gd") and src.contains("Color(\"#ec4899\")"):
+			copies.append(path)
+	assert_int(callers).override_failure_message(
+		"the avatar sites no longer read UIColors.avatar_color()").is_greater_equal(5)
+	assert_array(copies).override_failure_message(
+		"another avatar palette: %s" % str(copies)).is_empty()
+	assert_object(UIColors.avatar_color("Bryn Ito")).is_equal(UIColors.avatar_color("Bryn Ito"))
+	var seen := {}
+	for n in ["Ada", "Bryn", "Cass", "Dov", "Eli", "Fen", "Gil", "Hal", "Ira", "Jo"]:
+		seen[UIColors.avatar_color(n).to_html()] = true
+	assert_int(seen.size()).override_failure_message(
+		"ten names drew %d colours" % seen.size()).is_greater(3)
+
+
+## The battle screen sizes text through _scaled_font() (ResponsiveManager), 24 times.
+## 27 more sites wrote a fixed size, so on a phone and on a wide screen the crew rail,
+## the terrain controls, the psionics card and the end-of-phase checklist kept a
+## desktop size while everything beside them scaled.
+func test_the_battle_screen_scales_every_font_size() -> void:
+	var path := "res://src/ui/screens/battle/TacticalBattleUI.gd"
+	var lines := FileAccess.get_file_as_string(path).split("\n")
+	assert_int(lines.size()).override_failure_message("premise: read %s" % path) \
+		.is_greater(5000)
+	var literal := RegEx.create_from_string(
+		"_font_size_override\\(\"[a-z_]*font_size\", *\\d+\\)|size_rich_text\\([^,]+, *\\d+\\)")
+	var scaled := 0
+	var fixed: Array[String] = []
+	for i in range(lines.size()):
+		if lines[i].strip_edges().begins_with("#"):
+			continue
+		if literal.search(lines[i]) != null:
+			fixed.append("%d: %s" % [i + 1, lines[i].strip_edges()])
+		if lines[i].contains("_scaled_font("):
+			scaled += 1
+	assert_int(scaled).override_failure_message(
+		"premise: the screen routes sizes through _scaled_font()").is_greater(40)
+	assert_array(fixed).override_failure_message(
+		"fixed font sizes on the battle screen:\n%s" % "\n".join(fixed)).is_empty()
+
+
 func test_rich_text_bold_takes_the_labels_size() -> void:
 	var rtl := RichTextLabel.new()
 	auto_free(rtl)

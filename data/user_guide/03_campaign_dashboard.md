@@ -2,7 +2,7 @@
 
 > **Quick Start** (for tabletop veterans)
 > - The Dashboard is your hub between turns — shows crew, credits, turn number, and phase progress
-> - Access crew management, equipment, ship details, and save/load from here
+> - Access crew management, equipment, ship details, and save, load and export from here
 > - Victory progress is tracked with progress bars for each selected condition
 > - The Campaign Journal logs everything that happens each turn
 
@@ -97,17 +97,18 @@ Opens ship management:
 - Review ship debt and payment status
 - Manage ship upgrades and repairs
 
-### Save / Load
+### Save, Load and Export
 
-Opens the save/load screen:
+The dashboard's button row has these buttons:
 
-- **Save** your current campaign
-- **Load** a different campaign
-- **Export** campaign data to a file
-- **Import** a campaign file
-- View auto-save history
+- **Save** writes your current campaign to disk and confirms with a message.
+- **Load** lists your saved campaigns so you can switch to one, and has **Import from File...** for a campaign file from your device.
+- **Export** writes the campaign to a `.save` file you choose.
+- **Sheets** opens the printable campaign sheets.
+- **Edit** opens the Campaign Editor, where you can correct the turn, credits, Story Points and crew to match your tabletop game.
+- **Quit** closes the campaign and returns to the Main Menu.
 
-The app auto-saves at key moments (start of each turn, after battles), but manual saves let you create checkpoint saves before risky decisions. See {{chapter:14}}.
+The app also saves at several points during play, and a manual save is extra insurance before a risky decision. See {{chapter:14}}.
 
 ### Campaign Journal
 
@@ -121,10 +122,18 @@ The Campaign Journal is an automatic log of everything that happens in your camp
 
 The journal is useful for reviewing what happened in previous turns, especially if you're returning to a campaign after a break.
 
+### Contacts and Rivals
+
+The **Contacts & Rivals** button in the Campaign History block opens a screen with three panes: your Patrons, your Rivals and a Details pane. Select an entry to see its type, status, relationship and any special rules.
+
+### Galaxy Log
+
+The **Galaxy Log** button opens a map of every world your crew has visited in this campaign. The header shows the campaign name, how many worlds you have visited and the turn. **Recenter** brings the map back into view and **Show travel path** draws the route you took. Tap a world to open its details. The Galaxy Log is a history view only. It does not move your crew. Use **< Back** to return to the previous screen.
+
 ## Navigation Tips
 
-- Use the **Back** button to return to the Main Menu
-- The **?** help button opens context-sensitive help for the current screen
+- Use the **Quit** button to close the campaign and return to the Main Menu
+- The **?** button at the top of the dashboard replays the dashboard tour
 - Phase panels in the Turn Controller advance automatically when you complete each phase
 - You can access crew and equipment management during certain phases (World Phase, Trading Phase)
 

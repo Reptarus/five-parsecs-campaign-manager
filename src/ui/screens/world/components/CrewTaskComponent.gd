@@ -32,6 +32,8 @@ const DepartureObligationClass = preload("res://src/core/world/DepartureObligati
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+## Advanced Training checks (Fixer, Broker and the rest), dual-shape for
+## Dictionary and Resource crew.
 const AdvancementSystemRef = preload(
 	"res://src/core/character/advancement/AdvancementSystem.gd")
 
@@ -1047,7 +1049,8 @@ func _record_quest_work() -> String:
 
 func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, crew_member: Dictionary) -> Dictionary:
 	## Resolve dice roll tasks (Find Patron, Recruit, Track)
-	var roll: int = randi() % 6 + 1
+	var roll_context: String = "Crew Task: %s" % str(task.get("name", task_id))
+	var roll: int = _roll_task_d6(roll_context)
 	var modified_roll: int = roll
 
 	# On-board item, Mk II translator (Core Rules p.58): "When rolling to
@@ -1061,7 +1064,7 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 	if task_id == "recruit":
 		var extra_dice: int = OnboardItemServiceRef.recruit_extra_dice(_active_campaign())
 		for _d in range(extra_dice):
-			var second: int = randi() % 6 + 1
+			var second: int = _roll_task_d6(roll_context)
 			if second > roll:
 				roll = second
 			modified_roll = roll
@@ -1110,6 +1113,24 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 		if task_id in ["recruit", "find_patron"]:
 			modified_roll += 1
 			result.details += ", +1 Empath"
+
+	# Compendium p.25 Fixer: "When taking a Find a Patron, Recruit, or Track crew
+	# action, add +1 to the roll." The course is held by the member acting.
+	if task_id in ["find_patron", "recruit", "track"] \
+			and AdvancementSystemRef.member_has_training(crew_member, "fixer"):
+		modified_roll += 1
+		result.details += ", +1 Fixer"
+
+	# Core Rules p.125 Broker training: "When rolling to obtain licenses, Advanced
+	# Training applications, or searching for Patrons, add +1 to the roll." The
+	# licence and application rolls read it crew-wide; this third use was unwired.
+	if task_id == "find_patron":
+		var gsm_crew: Node = get_node_or_null("/root/GameStateManager")
+		var crew: Array = gsm_crew.get_crew_members() \
+			if gsm_crew and gsm_crew.has_method("get_crew_members") else []
+		if AdvancementSystemRef.crew_has_training(crew, "broker"):
+			modified_roll += 1
+			result.details += ", +1 Broker"
 
 	# --- Task-specific rules (Core Rules pp.77-78) ---
 
@@ -1865,7 +1886,7 @@ func _current_world_traits() -> Array:
 func _resolve_repair_task(result: Dictionary, task: Dictionary, crew_member: Dictionary) -> Dictionary:
 	## Resolve repair tasks (Core Rules p.78)
 	## Roll 1D6 + Savvy. Engineer +1. Spare parts (credits) +1 each. 6+ = repaired. Natural 1 = unfixable.
-	var roll: int = randi() % 6 + 1
+	var roll: int = _roll_task_d6("Crew Task: %s" % str(task.get("name", "Repair Your Kit")))
 	var modified_roll: int = roll
 	var detail_parts: Array = []
 
@@ -2133,6 +2154,23 @@ func _roll_task_d100(context: String) -> int:
 		return int(dm.roll_d100(context))
 	return randi() % 100 + 1
 
+
+## The same for the D6 and D3 rolls: the Find a Patron, Recruit, Track and Repair
+## dice and the follow-up dice inside Trade and Explore results were raw randi(),
+## so none of them could be forced from a debug build.
+func _roll_task_d6(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm != null and dm.has_method("roll_d6"):
+		return int(dm.roll_d6(context))
+	return randi() % 6 + 1
+
+
+func _roll_task_d3(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm != null and dm.has_method("roll_d3"):
+		return int(dm.roll_d3(context))
+	return randi() % 3 + 1
+
 func _get_trade_table_result(roll: int) -> Dictionary:
 	## Get result from Trade Table (Core Rules p.79) — loaded from JSON via DataManager
 	var dm: Node = get_node_or_null("/root/DataManager")
@@ -2234,14 +2272,14 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 
 	match entry_name:
 		"Worthless trinket", "Useless trinket":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Trade Follow-up: Worthless trinket")
 			if d6 == 6:
 				result.story_points = 1
 				result.effect += " - Rolled %d: SUCCESS!" % d6
 			else:
 				result.effect += " - Rolled %d: No luck" % d6
 		"Contraband":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Trade Follow-up: Contraband")
 			result.credits = d6
 			if d6 >= 4:
 				result.effect = "Earned %d credits, but gained a Rival!" % d6
@@ -2249,7 +2287,7 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 			else:
 				result.effect = "Earned %d credits safely" % d6
 		"Tourist garbage":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Trade Follow-up: Tourist garbage")
 			if d6 >= 5:
 				result.story_points = 1
 				result.effect += " - Rolled %d: +1 story point!" % d6
@@ -2259,7 +2297,7 @@ func _apply_runtime_rolls_trade(result: Dictionary, roll: int) -> void:
 			# D6 roll happens in the dialog (ROLL_FOR_CREDITS) — don't pre-roll
 			result.effect = "Roll D6 for credits worth of fuel to offset travel costs"
 		"Odd device":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Trade Follow-up: Odd device")
 			result.credits = -1
 			if d6 == 6:
 				result.items = ["Loot (random)"]
@@ -2277,7 +2315,8 @@ func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 	match entry_name:
 		"I know a good deal":
 			# Recursively roll on trade table
-			var trade_roll: int = randi() % 100 + 1
+			# A roll on the Trade Table itself, so the "Trade Table" key reaches it.
+			var trade_roll: int = _roll_task_d100("Trade Table (I know a good deal)")
 			var trade_result: Dictionary = _get_trade_table_result(trade_roll)
 			result.name = "Good Deal: " + trade_result.name
 			result.effect = trade_result.effect
@@ -2286,14 +2325,14 @@ func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 			result.items = trade_result.items
 			result.story_points = trade_result.story_points
 		"Had a nice chat":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Explore Follow-up: Had a nice chat")
 			if d6 >= 5:
 				result.story_points = 1
 				result.effect = "Nice chat - Rolled %d: +1 story point!" % d6
 			else:
 				result.effect = "Nice chat - Rolled %d: Pleasant but unproductive" % d6
 		"Possible bargain":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Explore Follow-up: Possible bargain")
 			if d6 == 6:
 				result.items = ["Loot (random)"]
 				result.effect = "Traded weapon - Rolled %d: Got something good!" % d6
@@ -2301,19 +2340,19 @@ func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 				result.credits = 1
 				result.effect = "Traded weapon - Rolled %d: Got 1 credit" % d6
 		"Completely lost":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Explore Follow-up: Completely lost")
 			if d6 >= 4:
 				result.effect = "Got lost - Rolled %d: Found way back in time" % d6
 			else:
 				result.effect = "Got lost - Rolled %d: Unable to participate in battle" % d6
 		"Tech fanatic":
-			var d6: int = randi() % 6 + 1
+			var d6: int = _roll_task_d6("Explore Follow-up: Tech fanatic")
 			if d6 >= 5:
 				result.effect = "Tech help - Rolled %d: Item repaired for free!" % d6
 			else:
 				result.effect = "Tech help - Rolled %d: No luck with repair" % d6
 		"Get in a bad fight":
-			var turns: int = (randi() % 3) + 1
+			var turns: int = _roll_task_d3("Explore Sick Bay Turns")
 			result.sick_bay_turns = turns
 			result.effect = "Bad fight - %d turns in Sick Bay, lose one item" % turns
 
@@ -2758,7 +2797,7 @@ func _roll_creation_table(table_name: String, fallback: String) -> Array:
 func _roll_main_loot_table(all_tables: Dictionary) -> Array:
 	## Roll on the main loot table and resolve to actual items
 	var main_table: Array = all_tables.get("main_loot", [])
-	var roll: int = randi() % 100 + 1
+	var roll: int = _roll_task_d100("Loot Category")
 	var category: String = ""
 	var count: int = 1
 
@@ -2804,7 +2843,7 @@ func _roll_on_subtable(subtable: Array) -> String:
 	## resolver. This used to pick uniformly from the subtable's flat name list,
 	## which is the same defect LootTableResolver had — one rule, three
 	## implementations, all wrong the same way. There is one now.
-	var roll: int = randi() % 100 + 1
+	var roll: int = _roll_task_d100("Loot Subtable")
 	for entry in subtable:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
@@ -2819,7 +2858,7 @@ func _roll_on_subtable(subtable: Array) -> String:
 
 func _roll_on_reward_subtable(subtable: Array) -> Dictionary:
 	## Roll on reward subtable — returns credits/rumors dict
-	var roll: int = randi() % 100 + 1
+	var roll: int = _roll_task_d100("Loot Rewards Subtable")
 	for entry in subtable:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
@@ -4391,7 +4430,7 @@ func _roll_on_military_weapons_table() -> String:
 	if table.is_empty():
 		push_warning("CrewTaskComponent: military_weapon table missing from gear_database.json")
 		return ""
-	var roll: int = randi() % 100 + 1
+	var roll: int = _roll_task_d100("Military Weapon Table")
 	for entry in table:
 		var roll_range: Array = entry.get("roll_range", [0, 0])
 		if roll >= int(roll_range[0]) and roll <= int(roll_range[1]):

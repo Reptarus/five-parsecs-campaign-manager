@@ -1,11 +1,11 @@
 # Chapter 1: Getting Started
 
 > **Quick Start** (for tabletop veterans)
-> - Launch the app and you'll see the Main Menu with 7 buttons
+> - Launch the app and you'll see the Main Menu: a column of buttons on the right and a mode information card on the left
 > - Hit **New Campaign** to start the 7-step creation wizard
-> - Hit **Continue** to resume your last campaign (appears only if a save exists)
+> - **Continue Campaign** resumes your last campaign (appears only if a campaign is loaded)
 > - Hit **Load Campaign** to browse saved campaigns or import from file
-> - The **Library** button opens this help system
+> - The **Library** button opens the in-app rules Library, not this guide. This guide opens from the **Help** button on the Store screen
 
 ## Overview
 
@@ -15,9 +15,24 @@ When you first launch the app, you'll arrive at the **Main Menu**. From here, yo
 
 ## The Main Menu
 
-The Main Menu is your home screen. It presents the following options:
+The Main Menu is your home screen. The buttons run down the right side, in this order:
 
-### Continue
+1. **Continue Campaign** (only when a campaign is loaded)
+2. **Load Campaign**
+3. **New Campaign**, with **Onboard Existing Game** directly under it
+4. **Co-op Campaign**
+5. **Battle Simulator**
+6. **Bug Hunt**
+7. **Tactics**
+8. **Planetfall**
+9. **Settings**
+10. **Library**
+
+Credits and Privacy links sit at the bottom left. On the left, an information card describes a mode when you hover over its button, with a button of its own. If a mode is locked on your install, that button opens the Store instead.
+
+Not every button opens a mode in every build. In an alpha build, **Co-op Campaign**, **Bug Hunt**, **Tactics** and **Planetfall** are dimmed and answer with a note that the mode is coming in a later release. In a review build, Bug Hunt, Tactics and Planetfall open normally. Co-op Campaign shows a "coming soon" message until that feature ships. The descriptions below say what each button does when it is live.
+
+### Continue Campaign
 
 Resumes your most recent campaign exactly where you left off. This button only appears if you have an active campaign in progress.
 
@@ -29,25 +44,40 @@ Launches the **Campaign Creation Wizard** — a 7-step guided process that walks
 
 See {{chapter:02}} for the full walkthrough.
 
+### Onboard Existing Game
+
+Starts the same creation wizard as New Campaign, but when you finish it opens the Campaign Editor instead of going straight into a turn. Use it to enter a tabletop campaign that is already under way: set the turn, credits and crew to match your game.
+
 ### Load Campaign
 
 Opens the campaign browser where you can:
-- **Load** a previously saved campaign from the list
-- **Import** a campaign file from your computer (`.save` or `.json` format)
+- **Load** a previously saved campaign from the list. Bug Hunt, Tactics and Planetfall saves are tagged **[BH]**, **[TAC]** and **[PF]**.
+- **Delete** a save with the cross button beside it
+- **Import** a campaign file from your device with **Import from File...**
 
-Each saved campaign shows its name and the date it was last played. Select one and you'll jump straight into the campaign turn controller.
+Each saved campaign shows its name and the date it was last played. Select one and you'll jump straight into the campaign.
 
-### Bug Hunt
+### Co-op Campaign
 
-Launches the **Bug Hunt** game mode — a standalone military campaign variant from the Compendium expansion. Bug Hunt uses a simplified 3-stage turn (Special Assignments, Mission, Post-Battle) with squad-based gameplay instead of the standard 9-phase campaign turn.
-
-Bug Hunt requires the Compendium DLC. See {{chapter:12}} for details.
+Reserved for shared-crew play. Until that feature is released, the button shows a "coming soon" message.
 
 ### Battle Simulator
 
-A standalone battle testing mode (coming in a future update). This will let you set up custom battles outside of a campaign for practice or experimentation.
+A standalone battle with no campaign. You choose the crew size, opposition, mission and difficulty, then fight one battle on the battle screen. See {{chapter:18}}.
 
-### Options
+### Bug Hunt
+
+Launches the **Bug Hunt** game mode — a standalone military campaign variant from the Compendium expansion. Bug Hunt uses a simplified 3-stage turn (Special Assignments, Mission, Post-Battle) with squad-based gameplay instead of the standard 9-phase campaign turn. If you already have Bug Hunt saves, a dialog first offers to continue, load or start a new one. See {{chapter:12}} for details.
+
+### Tactics
+
+The points-based army campaign from the Tactics book. It builds an army, tracks it between battles and runs an operational map. See {{chapter:17}}.
+
+### Planetfall
+
+The colony-building campaign from the Planetfall book. See {{chapter:16}}.
+
+### Settings
 
 Opens the Settings screen where you can adjust:
 - **Visual theme** (dark/light modes)
@@ -59,7 +89,11 @@ See {{chapter:15}} for all available settings.
 
 ### Library
 
-Opens the **User Guide** — the in-app version of the document you're reading now. You can browse chapters, search for topics, and access context-sensitive help from any screen in the app.
+Opens the **Library**, the in-app rules reference with a search bar and a grid of categories. It is separate from this guide.
+
+### Finding This Guide
+
+This guide opens from the **Help** button on the Store screen. The Store opens from **Browse Expansions** in Settings, from an unlock button on a locked mode's information card, or from an expansion banner shown where an expansion adds something.
 
 ## Your First Campaign
 
@@ -106,7 +140,7 @@ The app uses a screen-based navigation system. You'll move between screens as yo
 
 - **Save often.** The app auto-saves at key points, but you can also save manually from the Campaign Dashboard. See {{chapter:14}}.
 - **Read the phase instructions.** Each campaign phase shows guidance text explaining what you need to do.
-- **Use the help buttons.** Look for the **?** icon on screens — it opens context-sensitive help for that specific feature.
+- **Use the ? buttons.** The **?** on the Campaign Dashboard replays the dashboard tour. Some other screens carry a **?** that opens a short rules note for that feature.
 - **Don't worry about mistakes.** You can always load a previous save if something goes wrong.
 - **The battle system is a companion, not a simulator.** It gives you text instructions to execute on your physical tabletop. You still need miniatures, terrain, and dice for battles (though the app can roll dice for you).
 

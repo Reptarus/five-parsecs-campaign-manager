@@ -377,12 +377,6 @@ func _create_portrait(size: int) -> TextureRect:
 	portrait.add_child(clip)
 	return portrait
 
-## Deterministic avatar background colors (Deep Space palette)
-const AVATAR_COLORS: Array[Color] = [
-	UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN, UIColors.COLOR_EMERALD,
-	UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6"),
-]
-
 func _update_portrait() -> void:
 	## Set portrait: prefer custom image, fall back to colored initials
 	if not _portrait or not character_data:
@@ -414,6 +408,7 @@ func _update_portrait() -> void:
 				custom_tex = ImageTexture.create_from_image(img)
 		if custom_tex:
 			icon_node.texture = custom_tex
+			icon_node.visible = true
 			icon_node.modulate = Color.WHITE
 			icon_node.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			icon_node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -425,8 +420,11 @@ func _update_portrait() -> void:
 				initials.visible = false
 			return
 
-	# No custom portrait — show colored initials
+	# No custom portrait — show colored initials. The empty icon is hidden, not
+	# left under them: one visible node per rect, and the layout sweep no longer
+	# reports the initials as drawn on top of a portrait that is not there.
 	icon_node.texture = null
+	icon_node.visible = false
 	_show_initials_fallback()
 
 static func _portrait_file_exists(path: String) -> bool:
@@ -439,10 +437,7 @@ func _show_initials_fallback() -> void:
 		return
 	var char_name: String = character_data.character_name if character_data.character_name else "?"
 	var initial := char_name.substr(0, 1).to_upper()
-	var color_idx := char_name.hash() % AVATAR_COLORS.size()
-	if color_idx < 0:
-		color_idx += AVATAR_COLORS.size()
-	var bg_color: Color = AVATAR_COLORS[color_idx]
+	var bg_color: Color = UIColors.avatar_color(char_name)
 
 	# Find or create the initials label inside the clip container
 	var initials_label: Label = _portrait.find_child("InitialsLabel", true, false)

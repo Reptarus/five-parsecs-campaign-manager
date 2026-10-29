@@ -5,7 +5,10 @@ extends PanelContainer
 ##
 ## Interactive checklist of physical table setup steps from the Five Parsecs
 ## Core Rules. Tier-aware: shows more items at higher tracking tiers.
-## Each item can optionally include a DualInputRoll for dice.
+## An item may carry a `dice_type` for a DualInputRoll. No Core Rules item does:
+## the p.88 and p.89 tables are rolled before the battle (CampaignTurnController,
+## and the Battle Simulator's setup), and the p.112 Seize the Initiative roll has
+## its own calculator, opened once before round 1.
 ##
 ## Reference: Five Parsecs From Home Core Rules
 ## "Before the first round, set up terrain, deploy forces, and resolve pre-battle steps."
@@ -67,27 +70,32 @@ const CHECKLIST_ITEMS: Array[Dictionary] = [
 		"hint": "Place your crew within your deployment zone.",
 		"tier": 0,
 	},
-	# Tier 2 - ASSISTED (adds 5 items: rules prompts with dice)
+	# Tier 2 - ASSISTED (adds 5 items: rules prompts)
+	# These three used to carry their own dice. The p.88 and p.89 rows offered a
+	# second roll of tables the campaign had already rolled and shown on the Battle
+	# Card, and the Seize row taught an invented rule ("Roll 1d6. On a 6 ...
+	# (Core Rules p.38)"). p.112 is 2D6 plus the crew's highest Savvy, 10+.
 	{
 		"id": "deployment_conditions",
-		"label": "Roll deployment conditions",
-		"hint": "Roll d100 to determine special deployment conditions (Core Rules p.88).",
+		"label": "Apply the Deployment Condition",
+		"hint": "Rolled before the battle (Core Rules p.88). The Battle Card names it and "
+			+ "what it changes, or says this battle has none.",
 		"tier": 1,
-		"dice_type": "d100",
 	},
 	{
 		"id": "notable_sighting",
-		"label": "Check for Notable Sighting",
-		"hint": "Roll d100 to check if a notable sight is encountered (Core Rules p.89).",
+		"label": "Place the Notable Sight",
+		"hint": "Rolled before the battle (Core Rules p.89). If the Battle Card shows one, "
+			+ "place its marker where the map shows it.",
 		"tier": 1,
-		"dice_type": "d100",
 	},
 	{
 		"id": "seize_initiative",
-		"label": "Seize Initiative roll",
-		"hint": "Roll 1d6. On a 6, your crew seizes the initiative and acts first (Core Rules p.38).",
+		"label": "Seize the Initiative (before round 1)",
+		"hint": "Roll 2D6 and add the highest Savvy in your crew; on 10+ each crew member "
+			+ "may Move or fire before round 1 (Core Rules p.112). The app opens the roll "
+			+ "with this battle's modifiers when the battle starts.",
 		"tier": 1,
-		"dice_type": "d6",
 	},
 	{
 		"id": "assign_reactions",
@@ -476,7 +484,11 @@ func _create_checklist_item(item: Dictionary) -> VBoxContainer:
 	if item.has("dice_type"):
 		var roll := DualInputRollScene.new()
 		roll.dice_type = item.dice_type
-		roll.context_label = item.label
+		# The check box above already names the roll; repeating it beside the buttons
+		# doubled the text and made this row wider than a phone. It still names the
+		# DiceManager roll, so the QA seam can force it.
+		roll.context_label = ""
+		roll.roll_context = str(item.label)
 		roll.show_result = true
 		container.add_child(roll)
 

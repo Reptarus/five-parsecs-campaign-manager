@@ -59,6 +59,68 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Notable Sight", "sides": 100, "target": 1, "note": "p.88"},
 	{"key": "Deployment Condition", "sides": 100, "target": 1,
 		"note": "p.88 - campaign battles and the Battle Simulator"},
+	# --- The enemy force (EnemyGenerator). None of these is a substring of another
+	# context: "Unique Individual: die" and "Unique Individual Type" are separate keys,
+	# and nothing here contains "Enemy Count", "Encounter Enemy Type" or "Enemy Weapon".
+	# (The type key was "Enemy Type" until it turned out to be a substring of
+	# Planetfall's "Planetfall Tactical Enemy Type", so one queue fed both.)
+	{"key": "Encounter Category", "sides": 100, "target": 81,
+		"note": "p.94 - the table column by mission source; 81-00 Opportunity is Roving Threats"},
+	{"key": "Encounter Enemy Type", "sides": 100, "target": 1,
+		"note": "pp.94-102 - which enemy inside the category; 01 is its first row"},
+	{"key": "Enemy Count", "sides": 6, "target": 6,
+		"note": "pp.63, 92 - each die in order (2D6 pick higher at crew 6, lower at 4); "
+			+ "queue one value per die, rerolls included"},
+	{"key": "Unique Individual: die 1", "sides": 6, "target": 6,
+		"note": "p.93 - 2D6 for a Unique Individual; queue die 2 too, 11-12 brings two"},
+	{"key": "Unique Individual: die 2", "sides": 6, "target": 6,
+		"note": "p.93 - the other die of the pair"},
+	{"key": "Unique Individual Type", "sides": 100, "target": 1,
+		"note": "p.105 - which Unique Individual; 01-06 Enemy Bruiser"},
+	{"key": "Enemy Weapon", "sides": 6, "target": 1,
+		"note": "p.104 - one D6 per weapon table roll"},
+	{"key": "Elite Enemy Check", "sides": 6, "target": 6,
+		"note": "Compendium p.31 Progressive Difficulty Option 2 (turns 14-19): "
+			+ "a high roll fields elite-level enemies"},
+	# --- World Phase crew tasks (CrewTaskComponent). The dice tasks roll as
+	# "Crew Task: <task name>", so each key reaches one task. A follow-up is the extra
+	# die a Trade or Exploration RESULT calls for, rolled after the table roll.
+	{"key": "Crew Task: Find a Patron", "sides": 6, "target": 6,
+		"note": "p.77 - 1D6 + crew looking; 5+ finds a Patron, 6+ finds two"},
+	{"key": "Crew Task: Recruit", "sides": 6, "target": 6,
+		"note": "p.78 - rolled only at 6 crew; below 6 a recruit is automatic"},
+	{"key": "Crew Task: Track", "sides": 6, "target": 6,
+		"note": "p.78 - 1D6 + crew tracking; 6+ locates a Rival"},
+	{"key": "Crew Task: Repair", "sides": 6, "target": 1,
+		"note": "p.78 Repair Your Kit - a natural 1 always fails"},
+	{"key": "Trade Follow-up", "sides": 6, "target": 1,
+		"note": "pp.79-80 - the extra D6 a Trade result calls for"},
+	{"key": "Explore Follow-up", "sides": 6, "target": 1,
+		"note": "pp.80-82 - the extra D6 an Exploration result calls for"},
+	{"key": "Explore Sick Bay Turns", "sides": 3, "target": 3,
+		"note": "pp.80-82 Get in a bad fight - turns in Sick Bay"},
+	{"key": "Loot Subtable", "sides": 100, "target": 1,
+		"note": "p.131 - the item inside the rolled Loot category"},
+	{"key": "Loot Rewards Subtable", "sides": 100, "target": 1,
+		"note": "p.134 Rewards - 01-10 Documents (1 Rumor)"},
+	{"key": "Military Weapon Table", "sides": 100, "target": 1, "note": "p.28"},
+	{"key": "Companion Roll", "sides": 6, "target": 6,
+		"note": "the battle screen's always-visible Roll d6 (Tools tab)"},
+	# --- Salvage Jobs (Compendium pp.137-146, behind the Salvage Jobs flag).
+	{"key": "Salvage Availability", "sides": 6, "target": 1,
+		"note": "Compendium p.137 - 1 no job, 2-3 fee, 4-5 job, 6 illegal job"},
+	{"key": "Salvage Authorities", "sides": 6, "target": 5,
+		"note": "Compendium p.138 - after an illegal job, 5-6 the authorities are on your trail"},
+	{"key": "Salvage Tension", "sides": 6, "target": 1,
+		"note": "Compendium p.139 - at or under Tension spawns a Contact"},
+	{"key": "Salvage Contact", "sides": 6, "target": 6,
+		"note": "Compendium p.140 - 1 nothing, 2 bad feeling, 3-5 Hostiles, 6 movement everywhere"},
+	{"key": "Salvage Hostiles", "sides": 100, "target": 66,
+		"note": "Compendium pp.140-141 - 66-00 Infestation"},
+	{"key": "Salvage Point of Interest", "sides": 100, "target": 100,
+		"note": "Compendium pp.142-145 - 100 Doomsday protocol"},
+	{"key": "Salvage Discovery Table", "sides": 100, "target": 1,
+		"note": "Compendium p.146 - the auto-resolve's Discovery roll"},
 	# --- Bug Hunt (Compendium). Every key below has a LIVE producer in src/
 	# today, and that is the standing rule for this block: a row whose key
 	# matches no roll is worse than a missing row, because the tester queues a
@@ -145,6 +207,27 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Bug Hunt Subject Pick", "sides": 100, "target": 1,
 		"note": "pp.205-206 - WHICH character a per-character table lands on; "
 			+ "not rolled at all when only one candidate is eligible"},
+	# --- Bug Hunt co-op campaign (BugHuntCoopCampaign, Compendium pp.209-211). Every
+	# key begins "Bug Hunt Co-op", so no key above is a substring of these contexts
+	# ("Bug Hunt Priority" is not inside "Bug Hunt Co-op Priority"), and none of
+	# these is a substring of a context above.
+	{"key": "Bug Hunt Co-op Priority: die 1", "sides": 6, "target": 1,
+		"note": "p.210 - a sector's Priority is 2D6, pick the LOWER; 1 makes it 1"},
+	{"key": "Bug Hunt Co-op Priority: die 2", "sides": 6, "target": 6,
+		"note": "p.210 - the other die of the pair; queue both to pin the sector"},
+	{"key": "Bug Hunt Co-op Sector Factor", "sides": 100, "target": 15,
+		"note": "p.210 - 01-15 Ambush zone; a roll ending in 5 or 0 also places a stash"},
+	{"key": "Bug Hunt Co-op Resource Stash", "sides": 6, "target": 6,
+		"note": "p.210 - the stash's 1D6 Support points"},
+	{"key": "Bug Hunt Co-op Enemy Move", "sides": 100, "target": 1,
+		"note": "p.211 - one per player each operational turn; 01-10 Enemy assault, "
+			+ "a cleared sector falls at Priority 3"},
+	{"key": "Bug Hunt Co-op Infiltration", "sides": 100, "target": 1,
+		"note": "p.210 - WHICH adjacent sector an Infiltration point raises"},
+	{"key": "Bug Hunt Co-op Target Sector", "sides": 100, "target": 1,
+		"note": "p.211 - WHICH sector an Enemy Move lands on, when several qualify"},
+	{"key": "Bug Hunt Co-op Wastage", "sides": 3, "target": 3,
+		"note": "p.211 - 74-85 Wastage: the Support reserves lose 1D3"},
 	# --- Tactics (TacticsOperationalTurn, TacticsPostBattlePanel, TacticsCampaignCore).
 	# Every key begins "Tactics", which no 5PFH or Bug Hunt context contains, and no
 	# key here is a substring of another Tactics context. A zone or region CHOICE is

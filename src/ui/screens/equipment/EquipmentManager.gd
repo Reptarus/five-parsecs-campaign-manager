@@ -8,6 +8,9 @@ signal equipment_assigned(equipment_item: Dictionary, crew_member: Dictionary)
 ## AdaptivePanelGroup preloaded by path (responsive 3-pane → tab strip in
 ## portrait; master-detail). Path preload avoids the stale class_name cache.
 const AdaptivePanelGroupClass = preload("res://src/ui/components/base/AdaptivePanelGroup.gd")
+const DisplayTextRef = preload("res://src/ui/components/common/DisplayText.gd")
+## The canonical weapon / armor / gear stats (Core Rules pp.50-58).
+const EQUIPMENT_DB_PATH := "res://data/equipment_database.json"
 
 @onready var equipment_grid: GridContainer = %EquipmentGrid
 @onready var crew_list: VBoxContainer = %CrewList
@@ -158,24 +161,32 @@ func _setup_adaptive_panels() -> void:
 	main_content.queue_free()  # now empty; Header + Controls untouched
 	_panel_group = group
 
+## Read the catalogue from the canonical stats file. It used to be a five-item literal
+## that was in neither book's form: a "Military Rifle" at Damage 1 (Core Rules p.50
+## prints 0), a "Combat Armor" with a "Heavy" trait, a "Medkit". Creation step 4's
+## Manual Select opens this screen, so those values could reach a crew sheet.
+## Items use the creation panel's own shape ("Weapon" / "Armor" / "Gear").
 func _load_equipment_database() -> void:
-	## Load equipment from data systems (hardcoded fallback — no DataManager equipment API)
-	equipment_database = [
-		{"name": "Military Rifle", "type": "weapon", "range": 24, "shots": 1, "damage": 1, "traits": ["Military"]},
-		{"name": "Scrap Pistol", "type": "weapon", "range": 12, "shots": 1, "damage": 1, "traits": ["Pistol"]},
-		{"name": "Combat Armor", "type": "armor", "save": 5, "traits": ["Heavy"]},
-		{"name": "Analyzer", "type": "gadget", "traits": ["Tech"]},
-		{"name": "Medkit", "type": "gear", "traits": ["Medical"]},
-	]
+	equipment_database = []
+	var file := FileAccess.open(EQUIPMENT_DB_PATH, FileAccess.READ)
+	if file == null:
+		push_warning("EquipmentManager: %s missing; the catalogue is empty" % EQUIPMENT_DB_PATH)
+		return
+	var data: Variant = JSON.parse_string(file.get_as_text())
+	if not (data is Dictionary):
+		return
+	for section: String in ["weapons", "armor", "gear"]:
+		var kind: String = {"weapons": "Weapon", "armor": "Armor", "gear": "Gear"}[section]
+		for entry in data.get(section, []):
+			if entry is Dictionary:
+				var item: Dictionary = (entry as Dictionary).duplicate(true)
+				item["type"] = kind
+				equipment_database.append(item)
 
+## Empty until the creation panel hands over its crew (set_crew_data). This used to
+## seed four invented crew ("Captain Reynolds", "Dr. Chen") for any other caller.
 func _load_crew_roster() -> void:
-	## Load current crew from campaign data (hardcoded fallback — no CampaignManager autoload)
-	crew_roster = [
-		{"name": "Captain Reynolds", "class": "Soldier", "equipment": []},
-		{"name": "Dr. Chen", "class": "Scientist", "equipment": []},
-		{"name": "Sgt. Martinez", "class": "Military", "equipment": []},
-		{"name": "Tech Walker", "class": "Engineer", "equipment": []},
-	]
+	crew_roster = []
 
 func set_crew_data(crew_data: Array) -> void:
 	## Set crew data from external source (EquipmentPanel coordinator)
@@ -216,7 +227,10 @@ func _refresh_equipment_display() -> void:
 		var item_button: Button = Button.new()
 		item_button.text = DataValidator.safe_get_name(validated_equipment)
 		item_button.custom_minimum_size = Vector2(0, 60)
-		item_button.pressed.connect(_on_equipment_selected.bind(validated_equipment))
+		# Bind the item itself: validate_equipment() rebuilds from a fixed key set and
+		# drops range, shots, damage and traits, so the details pane could only ever
+		# print zeros for the copy it was handed.
+		item_button.pressed.connect(_on_equipment_selected.bind(equipment))
 		equipment_grid.add_child(item_button)
 
 func _refresh_crew_display() -> void:
@@ -285,7 +299,10 @@ func _update_equipment_details(equipment: Dictionary) -> void:
 		return
 	
 	# Clear existing details safely
+	# Detach before freeing: a queued node keeps its name until the frame ends, so
+	# the new labels collided with the old ones and were renamed @Label@N.
 	for child in details_container.get_children():
+		details_container.remove_child(child)
 		child.queue_free()
 
 	if equipment.is_empty():
@@ -306,33 +323,32 @@ func _update_equipment_details(equipment: Dictionary) -> void:
 	type_label.text = "Type: " + validated_equipment.get("type", "unknown").capitalize()
 	details_container.add_child(type_label)
 
-	# Equipment stats
-	match validated_equipment.get("type", ""):
+	# Equipment stats, read from the item itself (validate_equipment() drops them).
+	match str(equipment.get("type", "")).to_lower():
 		"weapon":
-			var range_label: Label = Label.new()
-			range_label.text = "Range: " + str(validated_equipment.get("range", 0)) + "\""
-			details_container.add_child(range_label)
-
-			var shots_label: Label = Label.new()
-			shots_label.text = "Shots: " + str(validated_equipment.get("shots", 0))
-			details_container.add_child(shots_label)
-
-			var damage_label: Label = Label.new()
-			damage_label.text = "Damage: +" + str(validated_equipment.get("damage", 0))
-			details_container.add_child(damage_label)
+			var profile_label: Label = Label.new()
+			profile_label.name = "ProfileLabel"
+			profile_label.text = DisplayTextRef.weapon_profile(equipment)
+			details_container.add_child(profile_label)
 
 		"armor":
 			var save_label: Label = Label.new()
-			save_label.text = "Saving Throw: " + str(validated_equipment.get("save", 0)) + "+"
+			save_label.text = "Saving Throw: " + str(equipment.get("saving_throw", ""))
 			details_container.add_child(save_label)
 
 	# Traits
-	if validated_equipment.has("traits"):
+	var traits = equipment.get("traits", [])
+	if traits is Array and traits.size() > 0:
 		var traits_label: Label = Label.new()
-		var traits = validated_equipment.get("traits", [])
-		if traits is Array and traits.size() > 0:
-			traits_label.text = "Traits: " + ", ".join(traits)
-			details_container.add_child(traits_label)
+		traits_label.text = "Traits: " + ", ".join(traits)
+		details_container.add_child(traits_label)
+
+	var description: String = str(equipment.get("description", ""))
+	if not description.is_empty():
+		var desc_label: Label = Label.new()
+		desc_label.text = description
+		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		details_container.add_child(desc_label)
 
 func _on_equipment_selected(equipment: Dictionary) -> void:
 	## Handle equipment selection

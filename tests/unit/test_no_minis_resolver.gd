@@ -146,9 +146,11 @@ func test_resolve_battle_returns_battleresolver_compatible_shape() -> void:
 		_make_crew(), _make_enemies(6), {}, {"condition_id": "standard"}, _d6_const(6))
 	assert_dict(result).contains_keys([
 		"success", "rounds_fought", "crew_casualties", "enemies_defeated",
-		"held_field", "loot_opportunities", "battlefield_finds", "consumed_items",
+		"held_field", "loot_opportunities", "consumed_items",
 		"crew_units_final", "enemy_units_final", "combat_mode", "enemies_bailed",
 	])
+	# No invented finds count: post-battle decides the Battlefield Finds rolls (p.120).
+	assert_dict(result).not_contains_keys(["battlefield_finds"])
 	assert_that(result["combat_mode"]).is_equal("no_minis")
 
 func test_resolve_battle_emits_post_battle_consumption_contract() -> void:

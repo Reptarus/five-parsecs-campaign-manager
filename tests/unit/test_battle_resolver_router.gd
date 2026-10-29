@@ -107,6 +107,16 @@ func test_add_only_never_overwrites_a_producer_list() -> void:
 	assert_int((out["defeated_enemies"] as Array).size()).is_equal(1)
 	assert_str(str(out["defeated_enemies"][0]["name"])).is_equal("Kept")
 
+## Core Rules p.120: Battlefield Finds is one roll when you Held the Field, and post-battle
+## (PaymentProcessor.process_battlefield_finds) decides how many. Every auto-resolver also
+## returned a random 0-2 "battlefield_finds" count, in neither book and read by nothing.
+func test_an_auto_resolved_win_carries_no_invented_finds_count() -> void:
+	var result: Dictionary = Router.resolve(
+		_crew(5), _enemies(2), {}, {}, func() -> int: return 6, null)
+	assert_bool(bool(result.get("held_field", false))).override_failure_message(
+		"premise: the forced win holds the field").is_true()
+	assert_dict(result).not_contains_keys(["battlefield_finds"])
+
 func test_rival_removal_roll_can_now_be_reached() -> void:
 	# THE JOIN: router derives the list, normalizer stamps is_rival onto it from
 	# the mission's rival_id, RivalPatronResolver's loop finally has something to

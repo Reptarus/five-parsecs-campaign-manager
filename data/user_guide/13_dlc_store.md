@@ -1,11 +1,11 @@
 # Chapter 13: DLC and Expansion Content
 
 > **Quick Start** (for tabletop veterans)
-> - 3 DLC packs: Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook
-> - 37 content flags across all packs (35 base + 2 Bug Hunt)
-> - DLC content integrates seamlessly — gated features auto-enable when purchased
-> - Purchase through the in-app Store (Steam/Android/iOS)
-> - DLC corresponds to the physical Compendium supplement
+> - 3 Compendium packs: Trailblazer's Toolkit, Freelancer's Handbook, Fixer's Guidebook
+> - Game modes are unlocked separately: Bug Hunt has its own card on the Store screen
+> - Gated features appear when you own the pack that adds them
+> - The in-app Store is titled **Expansions**
+> - The packs correspond to the physical Compendium supplement
 
 ## Overview
 
@@ -17,65 +17,67 @@ DLC content is integrated throughout the app — when you purchase a pack, its f
 
 ### Trailblazer's Toolkit
 
-New exploration and faction content:
+Unlock alien species, psionics, and advanced gear.
 
-- **Krag Species** — Heavy fighters with high Toughness and Combat caps
-- **Stealth Missions** — Infiltration-focused battle scenarios
-- **Expanded World Generation** — More world traits and environments
-- **Enhanced Faction System** — Deeper faction interactions and reputation mechanics
-- **Expanded Terrain** — New battlefield terrain types
+- **New Species**: Krag Species, Skulker Species
+- **Psionics**: Psionics System, Psionic Equipment
+- **Crew Upgrades**: Advanced Training, Bot Upgrades, New Ship Parts
 
 ### Freelancer's Handbook
 
-New mercenary and economic content:
+Master combat variants, difficulty options, and new missions.
 
-- **Skulker Species** — Stealthy operatives with high Speed and Reaction
-- **Street Fight Missions** — Urban combat scenarios
-- **Expanded Patron System** — More patron types and job varieties
-- **Loans System** — Borrow credits with interest (risky but useful)
-- **Expanded Equipment** — Additional weapons and gear
+- **Difficulty & Scaling**: Progressive Difficulty, Difficulty Toggles, Elite Enemies, Escalating Battles
+- **Combat Variants**: Dramatic Combat, No-Minis Combat, Grid-Based Movement, AI Variations, Deployment Variables, Terrain Generation
+- **Missions & Connections**: Expanded Missions, Expanded Quests, Expanded Connections
+- **Multiplayer & Casualties**: PvP Battles, Co-op Battles, Casualty Tables, Detailed Injuries
 
 ### Fixer's Guidebook
 
-New advanced mechanics and game modes:
+New mission types, factions, and world systems.
 
-- **Psionics System** — Psionic abilities for characters (legality varies by world)
-- **Salvage Missions** — Scavenging-focused battle scenarios
-- **Bug Hunt Mode** — Complete standalone military variant (see {{chapter:12}})
-- **Prison Planet Campaigns** — Specialized campaign setting
-- **No-Miniatures Combat** — Rules for playing without physical miniatures
+- **Mission Types**: Stealth Missions, Street Fights, Salvage Jobs
+- **World Systems**: Expanded Factions, Fringe World Strife, Expanded Loans, Name Generation
+- **Campaign Modes**: Introductory Campaign, Prison Planet Character
+
+The Store screen shows each pack's full feature list under **Show Details**.
 
 ## The DLC Store
 
-### Accessing the Store
+### Opening the Store
 
-Open the Store from the Main Menu or Campaign Dashboard. The Store screen shows:
+The Store screen is titled **Expansions**. You can reach it from:
 
-- Available DLC packs with descriptions
-- What each pack contains
-- Purchase buttons
-- **Restore Purchases** button (for reinstalling on a new device)
-- **Rate the App** button (optional review prompt)
+- **Browse Expansions** in Settings
+- the unlock button on a locked mode's information card on the Main Menu
+- an expansion banner shown where an expansion adds something, such as the campaign setup screen
+- the dialog that appears when you load a save that needs a pack you do not own
 
-### Purchasing DLC
+### What the Store Shows
 
-The purchase flow depends on your platform:
+From the top:
 
-**Steam**: Opens the Steam store overlay for DLC purchase. Ownership is verified via Steam DLC system.
+- A **bundle** card for the three Compendium packs together, hidden once you own all three
+- **Compendium Expansions**: one card for each pack, with its features and a buy button. Once you own a pack, its card lets you manage which of its features are switched on.
+- **Game Modes**: a card for Bug Hunt, with a buy button, or a play button once you own it
+- A footer with **Restore Purchases**, **Rate This App** and the store status
+- **Help** at the top opens this guide
 
-**Android**: Uses Google Play in-app purchase. Purchase must be acknowledged within 3 days.
+If the app has no store connection, a banner at the top says "Development Mode — No store connection".
 
-**iOS**: Uses StoreKit for in-app purchase. Products are loaded from the App Store.
+### Buying an Expansion
 
-**Offline/Editor**: DLC features can be toggled manually in developer mode.
+On Android, purchases go through Google Play. Press the buy button on a card and follow the Google Play prompts. When Google Play confirms the purchase, the pack unlocks and the app shows a short notice.
+
+**Restore Purchases** re-checks what your account owns. Use it after reinstalling the app or setting up a new device.
 
 ### After Purchase
 
-Once purchased, DLC content activates immediately:
+Once purchased, expansion content activates immediately:
 - New species appear in character creation
 - New mission types appear in mission selection
 - New mechanics are available throughout gameplay
-- No restart required — features activate in your current campaign
+- No restart required
 
 ## How DLC Content Integrates
 
@@ -89,20 +91,19 @@ DLC content is gated using the `DLCManager` system. When a feature requires DLC:
 - **Character Creation**: Krag and Skulker species only appear if their respective DLC is owned
 - **Mission Selection**: Stealth, street fight, and salvage missions require their DLC packs
 - **Battle Mechanics**: Escalating battles and psionic powers require specific DLC
-- **Bug Hunt Mode**: The entire game mode requires Fixer's Guidebook DLC
+- **Game Modes**: A mode that is sold separately, such as Bug Hunt, is locked until you own it. Its card on the Main Menu then opens the Store.
 
 ## Content Flags
 
-The DLC system uses 37 content flags to gate individual features. Each flag corresponds to a specific piece of content:
+The expansion system gates individual features with content flags. Each flag corresponds to a specific piece of content:
 
 - Character species (Krag, Skulker)
 - Mission types (stealth, street fight, salvage)
 - Battle mechanics (escalating battles, dramatic combat)
 - Equipment categories (compendium gear)
-- Game modes (Bug Hunt)
 - And more
 
-This granular system ensures that only purchased content appears in the game, keeping the experience clean for players who haven't purchased DLC.
+This keeps the experience clean for players who have not purchased an expansion.
 
 ## What's Next?
 

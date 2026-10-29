@@ -147,3 +147,20 @@ func _count_windows(root: Node) -> int:
 			n += 1
 		n += _count_windows(child)
 	return n
+
+
+## On a 338 px landscape phone the description shows (the screen is not single-
+## column) and, as fixed chrome under the band, header, filters and search, it pushed
+## the page 2.2 px off the bottom (the windowed sweep). It scrolls with the list now.
+func test_the_category_description_scrolls_with_the_list() -> void:
+	if _router == null:
+		return
+	var view: Node = await _build()
+	var desc: Label = view._header_desc
+	var scroll: ScrollContainer = view._scroll
+	assert_object(desc).is_not_null()
+	# Premise: the description carries the category's book citation.
+	assert_str(desc.text).is_not_empty()
+	assert_bool(scroll.is_ancestor_of(desc)).override_failure_message(
+		"the description is fixed chrome above the scroll").is_true()
+	assert_bool(scroll.is_ancestor_of(view._item_list)).is_true()

@@ -68,6 +68,11 @@ func _build_layout() -> void:
 	_title_label = Label.new()
 	_title_label.text = title_text.to_upper()
 	_title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(TITLE_FONT_SIZE))
+	# Wraps. Unwrapped, the UPPERCASE title reported its whole width as the card's
+	# minimum: "RECORD A MISSION PLAYED ELSEWHERE" needed 383 px and pushed the
+	# Bug Hunt co-op map 52 px off a 338 px phone. In this VBox a wrapping Label
+	# takes the card's width, so it can only lower the minimum, never raise it.
+	_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_vbox.add_child(_title_label)
 
 

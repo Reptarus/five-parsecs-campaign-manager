@@ -517,4 +517,4 @@ func _style_button(b: Button, is_primary: bool = false) -> void:
 	var disabled := s.duplicate()
 	disabled.bg_color = Color(s.bg_color.r, s.bg_color.g, s.bg_color.b, 0.2)
 	b.add_theme_stylebox_override("disabled", disabled)
-	b.add_theme_color_override("font_disabled_color", Color("#4b5563"))
+	b.add_theme_color_override("font_disabled_color", UIColors.COLOR_TEXT_DISABLED)

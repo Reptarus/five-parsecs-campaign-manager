@@ -12,16 +12,16 @@ signal launch_requested(context: Dictionary)
 const DifficultyModifiersRef := preload("res://src/core/systems/DifficultyModifiers.gd")
 
 # Deep Space theme
-const COLOR_BASE := Color("#1A1A2E")
-const COLOR_ELEVATED := Color("#252542")
-const COLOR_INPUT := Color("#1E1E36")
-const COLOR_BORDER := Color("#3A3A5C")
-const COLOR_ACCENT := Color("#2D5A7B")
-const COLOR_ACCENT_HOVER := Color("#3A7199")
-const COLOR_FOCUS := Color("#4FC3F7")
-const COLOR_TEXT := Color("#E0E0E0")
+const COLOR_BASE := UIColors.COLOR_BASE
+const COLOR_ELEVATED := UIColors.COLOR_ELEVATED
+const COLOR_INPUT := UIColors.COLOR_INPUT
+const COLOR_BORDER := UIColors.COLOR_BORDER
+const COLOR_ACCENT := UIColors.COLOR_ACCENT
+const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
+const COLOR_FOCUS := UIColors.COLOR_FOCUS
+const COLOR_TEXT := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := UIColors.COLOR_TEXT_SECONDARY
-const COLOR_SUCCESS := Color("#10B981")
+const COLOR_SUCCESS := UIColors.COLOR_SUCCESS
 
 # SPACING_XS was USED (twice) but never declared, and this panel extends Control
 # rather than a Deep Space base class that could supply it — so the script failed

@@ -206,17 +206,34 @@ func _register_all_categories() -> void:
 		"source_book": "Core Rules p.55",
 	})
 
+	# Both read the tables the campaign rolls on (MissionTableManager). This
+	# category used to render data/mission_templates.json under a "Core Rules"
+	# label: credit rewards of 100-1500, a 1-5 difficulty, Stealth and Social
+	# skills and objectives such as Infiltrate, none of which is in either book.
 	_register_category({
 		"id": "missions",
 		"title": "Mission Types",
 		"icon_path": "res://assets/icons/compendium/treasure-map.svg",
-		"description": "Mission templates and objective types",
-		"json_path": "res://data/mission_templates.json",
-		"json_key": "mission_templates",
-		"display_fields": ["type"],
-		"detail_fields": ["type", "title_templates", "objectives", "reward_range", "difficulty_range", "enemy_types"],
-		"sort_field": "type",
-		"source_book": "Core Rules",
+		"description": "Where a battle comes from: Opportunity, Patron, Rival, Quest and Invasion",
+		"json_path": "res://data/mission_tables/mission_types.json",
+		"json_key": "_dict_to_array:types",
+		"display_fields": ["name"],
+		"detail_fields": ["name", "description", "notes"],
+		"sort_field": "name",
+		"source_book": "Core Rules pp.85, 87",
+	})
+
+	_register_category({
+		"id": "mission_objectives",
+		"title": "Mission Objectives",
+		"icon_path": "res://assets/icons/compendium/treasure-map.svg",
+		"description": "What each battle objective asks of the crew, and how it is won",
+		"json_path": "res://data/mission_tables/mission_objectives.json",
+		"json_key": "_dict_to_array:objective_definitions",
+		"display_fields": ["name"],
+		"detail_fields": ["name", "description", "placement_rules", "victory_condition"],
+		"sort_field": "name",
+		"source_book": "Core Rules pp.89-91",
 	})
 
 	_register_category({

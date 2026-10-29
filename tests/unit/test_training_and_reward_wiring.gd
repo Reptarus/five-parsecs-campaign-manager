@@ -186,7 +186,10 @@ func test_the_voucher_is_consumed_after_the_affordability_check() -> void:
 	# updated - it searched for a string that no longer existed, got -1, and
 	# failed on `-1 > -1`. Matched on the stable prefix now, so a further
 	# rename of the amount cannot break it again.
-	var afford_at: int = body.find("if current_credits < ")
+	# ⚠ 2026-10-29: the guard itself moved. It read credits from the GameState
+	# autoload, which has no get_credits(), so it was always false and every
+	# Component was free; it now asks GameStateManager. The anchor is that read.
+	var afford_at: int = body.find("gsm.get_credits() < ")
 	var consume_at: int = body.find("_consume_component_discount()")
 	assert_int(afford_at).is_greater(-1)
 	assert_int(consume_at).is_greater(-1)

@@ -344,6 +344,10 @@ func search(query: String) -> Array[Dictionary]:
 ## Reads from data/help_context_map.json.
 ## Returns {chapter_id, section_id} or empty dict.
 func get_context_help(screen_id: String) -> Dictionary:
+	# _resolve_chapter_id() walks the chapter list, which is empty until the guide
+	# loads, and a short id ("01") is not a chapter id. Load first so the answer
+	# does not depend on whether a caller happened to call ensure_loaded().
+	ensure_loaded()
 	var map := _load_context_map()
 	if map.has(screen_id):
 		var entry: Dictionary = map[screen_id]

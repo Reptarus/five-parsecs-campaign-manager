@@ -13,6 +13,8 @@ const SPACING_MD := UIColors.SPACING_MD
 const FONT_SIZE_SM := UIColors.FONT_SIZE_SM
 const FONT_SIZE_MD := UIColors.FONT_SIZE_MD
 const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
+# An emerald-tinted dark panel under the emerald border.
+const TOAST_BG := Color("#1A2E1A")
 const COLOR_EMERALD := UIColors.COLOR_EMERALD
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_CYAN := UIColors.COLOR_CYAN
@@ -40,7 +42,7 @@ func _build_ui(pack_name: String) -> void:
 	_panel.offset_bottom = 80
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1A2E1A")
+	style.bg_color = TOAST_BG
 	style.border_color = COLOR_EMERALD
 	style.set_border_width_all(2)
 	style.set_corner_radius_all(4)

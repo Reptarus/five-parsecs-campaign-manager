@@ -127,7 +127,8 @@ func _update_ability_card(ability: int) -> void:
 
 func _setup_ui() -> void:
 	## Build the Stars of the Story panel UI
-	custom_minimum_size = Vector2(400, 0)
+	# No width floor: a 400 px panel put the Final Review step 84 px off both edges of
+	# a 338 px phone. The grid is one column and every label wraps.
 	
 	# Main container with padding
 	var margin = MarginContainer.new()
@@ -156,6 +157,8 @@ func _setup_ui() -> void:
 	title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))
 	title_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# At the XL size the title alone is wider than this card on a phone.
+	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_header_hbox.add_child(title_label)
 	
 	# Info label
@@ -187,7 +190,7 @@ func _setup_ui() -> void:
 func _create_ability_card(ability: int) -> void:
 	# Card container
 	var card_container = PanelContainer.new()
-	card_container.custom_minimum_size = Vector2(280, 160)
+	card_container.custom_minimum_size = Vector2(0, 160)
 	_abilities_grid.add_child(card_container)
 	
 	# Card background (will be styled)

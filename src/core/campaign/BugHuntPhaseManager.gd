@@ -233,12 +233,21 @@ func _apply_post_battle_results(result: Dictionary) -> void:
 	if campaign.has_method("tick_sick_bay"):
 		campaign.tick_sick_bay()
 
+	## Compendium p.210, Co-op campaigns: "Note that the normal Operational Progress table
+	## is not used." The resolver skips step 6 when its snapshot carries `coop_enabled`;
+	## this is the backstop where the damage would land, so a receipt resolved without that
+	## flag still cannot move the p.205 modifier, award its Reputation, or declare the
+	## Parade victory on a co-op campaign the sector map has not won.
+	var coop_campaign: bool = campaign.has_method("is_coop") and bool(campaign.is_coop())
+
 	## Receipt effects first, in the order the book resolves them, skipping any the
 	## player's choice cancelled. The Court Martial buyout is the only canceller
 	## today, and it CANCELS the removal rather than undoing it, so no write is ever
 	## made that has to be reversed.
 	for e in receipt.get("effects", []):
 		if not (e is Dictionary):
+			continue
+		if coop_campaign and str(e.get("cite", "")) == PostBattleResolver.CITE_OP_PROGRESS:
 			continue
 		# One key, or several: a Lost Marine's roll can be cancelled by Movie Magic
 		# "Escape" (every lost marine) OR "Survived" (that one character), p.181.

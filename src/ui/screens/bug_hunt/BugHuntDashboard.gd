@@ -11,6 +11,8 @@ const TransferPanelClass = preload("res://src/ui/screens/bug_hunt/panels/Charact
 const QAScenarioDialogClass = preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
 const PhaseManagerRef = preload("res://src/core/campaign/BugHuntPhaseManager.gd")
 const RefText = preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
+const CoopViewRef = preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd")
+const CoopMapPanelClass = preload("res://src/ui/screens/bug_hunt/panels/BugHuntCoopMapPanel.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
@@ -101,6 +103,16 @@ func _build_dashboard() -> void:
 	continue_card.card_pressed.connect(func(): _navigate("bug_hunt_turn_controller"))
 	hub_box.add_child(continue_card)
 	_play_btn = continue_card  # Reference for breathe animation
+
+	# Co-op campaign (Compendium pp.209-211): the shared sector map, its Support pool and
+	# the end of the operational turn. Only a campaign created as co-op has one.
+	var coop_summary: String = CoopViewRef.dashboard_summary(CoopViewRef.coop_of(_campaign))
+	if not coop_summary.is_empty():
+		var coop_card := HubFeatureCardClass.new()
+		coop_card.name = "CoopMapCard"
+		coop_card.setup("", "Co-op Campaign Map", coop_summary)
+		coop_card.card_pressed.connect(_on_coop_map_pressed)
+		hub_box.add_child(coop_card)
 
 	var save_card := HubFeatureCardClass.new()
 	save_card.setup("", "Save Campaign", "Save current progress to disk")
@@ -359,6 +371,17 @@ func _on_qa_pressed() -> void:
 	# is not a dead wire, and the dashboard stays correct on the day that guard
 	# learns about Bug Hunt fixtures.
 	dlg.scenario_applied.connect(func(_id: String, _receipt: Dictionary): _rebuild())
+
+
+## Open the co-op sector map over the dashboard (a panel, not a routed screen, like the
+## transfer panel beside it). Closing it rebuilds the dashboard, because the map can have
+## moved -- a recorded mission, an ended operational turn -- and the card's summary with it.
+func _on_coop_map_pressed() -> void:
+	var panel := CoopMapPanelClass.new()
+	panel.name = "CoopMapPanel"
+	panel.set_campaign(_campaign)
+	panel.closed.connect(func(): _rebuild.call_deferred())
+	add_child(panel)
 
 
 func _on_enlist_pressed() -> void:

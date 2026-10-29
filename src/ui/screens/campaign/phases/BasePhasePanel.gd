@@ -513,4 +513,4 @@ func _style_button_disabled(button: Button) -> void:
 	disabled_style.content_margin_top = UIColors.SPACING_SM
 	disabled_style.content_margin_bottom = UIColors.SPACING_SM
 	button.add_theme_stylebox_override("disabled", disabled_style)
-	button.add_theme_color_override("font_disabled_color", Color("#4b5563"))
+	button.add_theme_color_override("font_disabled_color", UIColors.COLOR_TEXT_DISABLED)

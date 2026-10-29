@@ -599,8 +599,8 @@ func test_a_planetfall_battle_sets_up_by_its_mission_briefing() -> void:
 			"Opposition"]:
 		assert_bool(heading in steps).override_failure_message(
 			"no '%s' step; the checklist shows %s" % [heading, str(steps)]).is_true()
-	for core_step in ["Seize Initiative roll", "Roll deployment conditions",
-			"Check for Notable Sighting"]:
+	# Read from the list itself, so a relabel cannot make this check vacuous.
+	for core_step in _core_labels():
 		assert_bool(core_step in steps).override_failure_message(
 			"a Planetfall battle still lists the Core Rules step '%s'" % core_step).is_false()
 	var hints := _labels(ui)
@@ -618,8 +618,20 @@ func test_a_planetfall_battle_sets_up_by_its_mission_briefing() -> void:
 	standard._stored_mission_data = {"battle_mode": "standard"}
 	standard._show_pre_battle_checklist(1)
 	await get_tree().process_frame
-	assert_bool("Seize Initiative roll" in _checkbox_texts(standard)).override_failure_message(
-		"a 5PFH battle lost the Core Rules checklist").is_true()
+	for core_step in _core_labels():
+		assert_bool(core_step in _checkbox_texts(standard)).override_failure_message(
+			"a 5PFH battle lost the Core Rules checklist").is_true()
+
+
+## The Core Rules p.88 / p.89 / p.112 step labels, read from CHECKLIST_ITEMS.
+func _core_labels() -> Array:
+	var out: Array = []
+	var items: Array = load("res://src/ui/components/battle/PreBattleChecklist.gd").CHECKLIST_ITEMS
+	for item: Dictionary in items:
+		if str(item.id) in ["deployment_conditions", "notable_sighting", "seize_initiative"]:
+			out.append(str(item.label))
+	assert_int(out.size()).is_equal(3)
+	return out
 
 
 func _checkbox_texts(root: Node) -> PackedStringArray:

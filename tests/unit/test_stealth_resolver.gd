@@ -51,9 +51,10 @@ func test_resolve_returns_battleresolver_shape_tagged_stealth() -> void:
 		_crew(), _enemies(4), {}, {"condition_id": "standard"}, _d6())
 	assert_dict(result).contains_keys([
 		"success", "rounds_fought", "crew_casualties", "enemies_defeated",
-		"held_field", "loot_opportunities", "battlefield_finds", "consumed_items",
+		"held_field", "loot_opportunities", "consumed_items",
 		"crew_units_final", "enemy_units_final",
 		"combat_mode", "stealth_objective", "reinforcements_arrived"])
+	assert_dict(result).not_contains_keys(["battlefield_finds"])
 	assert_str(str(result["combat_mode"])).is_equal("stealth")
 
 func test_casualty_and_reinforcement_counts_are_ints() -> void:

@@ -1,7 +1,7 @@
 {
   "metadata": {
     "version": "3.0",
-    "source": "Five Parsecs From Home Core Rules 3e pp.60-62 + Compendium p.28 — VERIFIED Apr 7, 2026",
+    "source": "Five Parsecs From Home Core Rules 3e pp.60-62 + Compendium p.27 — VERIFIED Apr 7, 2026",
     "last_updated": "2026-04-07",
     "notes": "16 ship components (14 Core Rules + 2 Compendium) + 1 component mod. Only 1 component can be installed per campaign turn. Components are functional at the start of the next turn. Scrap value: 1 credit per 5 credits cost. Cannot remove and install same turn."
   },
@@ -155,7 +155,7 @@
       "description": "Constantly updated database system with AI-assistance in correlating information. When rolling to progress an active Quest (Post-Battle Step 3) add +1 to the roll.",
       "effect": "quest_progress_bonus",
       "triggers_at": "post_battle",
-      "page": "Compendium p.28"
+      "page": "Compendium p.27"
     },
     {
       "id": "scientific_research_system",
@@ -166,7 +166,7 @@
       "description": "A robust system to gather samples from space debris, analyze them, and correlate to current interests. Whenever you undertake travel to another world, roll 1D6: 1-2 Nothing found; 3-4 Research data analyzed (worth 2 Credits); 5-6 Add 1 Quest Rumor.",
       "effect": "travel_revenue",
       "triggers_at": "travel",
-      "page": "Compendium p.28"
+      "page": "Compendium p.27"
     }
   ],
   "mods": [
@@ -179,7 +179,7 @@
       "dlc_flag": "COMPENDIUM_SHIP_PARTS",
       "description": "State-of-the-art, light-weight components to maintain fuel efficiency. The component is not counted towards increased fuel costs (core rules, p.61). Once applied to a component, this cannot be removed. Can be retrofitted to an existing component for 8 Credits.",
       "effect": "fuel_cost_exclusion",
-      "page": "Compendium p.28"
+      "page": "Compendium p.27"
     }
   ],
   "rules": {

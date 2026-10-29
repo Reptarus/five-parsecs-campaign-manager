@@ -54,9 +54,10 @@ static func _is_flag_enabled(flag_name: String) -> bool:
 
 
 ## ============================================================================
-## ADVANCED TRAINING (Compendium pp.26-28)
-## Purchased during Advancement Phase with credits (NOT XP).
-## Character spends a crew action to attend training.
+## NEW TRAINING (Compendium p.25)
+## Taken with the post-battle step 10 Advanced Training rules (Core Rules p.124):
+## application fee, 2D6 approval, then XP and credits. TrainingSelectionDialog
+## offers them beside the seven Core Rules p.125 courses.
 ## ============================================================================
 
 static var ADVANCED_TRAINING: Array:
@@ -66,7 +67,7 @@ static var ADVANCED_TRAINING: Array:
 
 
 ## ============================================================================
-## COMPENDIUM BOT UPGRADES (Compendium p.28)
+## COMPENDIUM BOT UPGRADES (Compendium p.26)
 ## Purchased during Post-Battle Step 11 (Purchase Items) with credits.
 ## Max 1 upgrade installed per campaign turn.
 ## One of each upgrade per Bot. Lost if Bot is permanently destroyed.
@@ -80,7 +81,7 @@ static var COMPENDIUM_BOT_UPGRADES: Array:
 
 
 ## ============================================================================
-## NEW SHIP PARTS (Compendium p.29)
+## NEW SHIP PARTS (Compendium p.27)
 ## Installed using normal ship component rules (Core Rules p.60).
 ## ============================================================================
 
@@ -91,7 +92,7 @@ static var NEW_SHIP_PARTS: Array:
 
 
 ## ============================================================================
-## PSIONIC EQUIPMENT (Compendium p.29)
+## PSIONIC EQUIPMENT (Compendium p.27)
 ## Purchased during Post-Battle Step 11 (Purchase Items) with credits.
 ## Requires PSIONIC_EQUIPMENT DLC flag.
 ## ============================================================================
@@ -157,21 +158,6 @@ static func get_trade_phase_items_with_lock_status() -> Array:
 		var entry: Dictionary = psi.duplicate()
 		entry["_dlc_locked"] = not psi_unlocked
 		items.append(entry)
-	return items
-
-
-## Returns ALL advancement phase compendium options.
-## Combines advanced training + compendium bot upgrades, tagged by category.
-static func get_advancement_phase_items() -> Array:
-	var items: Array = []
-	for item in get_advanced_training():
-		var tagged: Dictionary = item.duplicate()
-		tagged["compendium_category"] = "training"
-		items.append(tagged)
-	for item in get_bot_upgrades():
-		var tagged_bot: Dictionary = item.duplicate()
-		tagged_bot["compendium_category"] = "bot_upgrade"
-		items.append(tagged_bot)
 	return items
 
 

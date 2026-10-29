@@ -1,13 +1,16 @@
 class_name FPCM_DualInputRoll
-extends HBoxContainer
+extends HFlowContainer
 
 ## Dual Input Roll - Reusable dice roll component for tabletop companion
 ##
 ## Every dice roll in the battle system supports two modes:
-## 1. "Roll for me" - App generates the result using DiceSystem
+## 1. "Roll for me" - App generates the result through DiceManager
 ## 2. "I rolled [X]" - Player inputs their physical dice result
 ##
-## This component provides both modes in a compact, touch-friendly layout.
+## This component provides both modes in a compact, touch-friendly layout. It
+## flows onto a second line when its container is narrow: as an HBoxContainer its
+## minimum width was the sum of its parts, which made it the widest thing in the
+## battle modal and pushed that modal past a phone's edge.
 ## Used throughout the battle companion wherever dice are needed.
 ##
 ## Reference: Five Parsecs From Home - Companion Philosophy
@@ -22,13 +25,20 @@ signal roll_completed(result: int, was_manual: bool)
 		if is_node_ready():
 			_update_labels()
 
-@export var context_label: String = "Roll":
+## Optional text shown before the buttons. Empty by default: the button already
+## reads "Roll d6", and a default of "Roll" printed the word twice.
+@export var context_label: String = "":
 	set(value):
 		context_label = value
 		if is_node_ready():
 			_update_labels()
 
 @export var show_result: bool = true
+
+## Names the roll for DiceManager (and so for QAScenarioDialog's "Force the next
+## roll"). Falls back to context_label, then to the die. The roll context is
+## "Companion Roll: <this>".
+@export var roll_context: String = ""
 
 ## Touch target minimum from UIColors design system
 const TOUCH_TARGET_MIN := UIColors.TOUCH_TARGET_MIN
@@ -52,13 +62,14 @@ func _ready() -> void:
 	_update_labels()
 
 func _build_ui() -> void:
-	add_theme_constant_override("separation", 4)
+	add_theme_constant_override("h_separation", 4)
+	add_theme_constant_override("v_separation", 4)
 
 	# Context label (optional, shows what this roll is for)
 	_context_lbl = Label.new()
 	_context_lbl.name = "ContextLabel"
 	_context_lbl.add_theme_font_size_override("font_size", 14)
-	_context_lbl.add_theme_color_override("font_color", Color("#9ca3af"))
+	_context_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	_context_lbl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	add_child(_context_lbl)
 
@@ -67,7 +78,7 @@ func _build_ui() -> void:
 	_roll_button.name = "RollButton"
 	_roll_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_roll_button.pressed.connect(_on_roll_pressed)
-	_apply_button_style(_roll_button, Color("#3b82f6"))
+	_apply_button_style(_roll_button, UIColors.COLOR_BLUE)
 	add_child(_roll_button)
 
 	# "I rolled..." button (toggles manual input)
@@ -76,7 +87,7 @@ func _build_ui() -> void:
 	_manual_button.text = "I rolled..."
 	_manual_button.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	_manual_button.pressed.connect(_on_manual_toggle)
-	_apply_button_style(_manual_button, Color("#1f2937"))
+	_apply_button_style(_manual_button, UIColors.COLOR_TERTIARY)
 	add_child(_manual_button)
 
 	# Manual input container (hidden by default)
@@ -99,14 +110,14 @@ func _build_ui() -> void:
 	_confirm_button.text = "OK"
 	_confirm_button.custom_minimum_size = Vector2(48, TOUCH_TARGET_MIN)
 	_confirm_button.pressed.connect(_on_manual_confirm)
-	_apply_button_style(_confirm_button, Color("#10b981"))
+	_apply_button_style(_confirm_button, UIColors.COLOR_EMERALD)
 	_manual_container.add_child(_confirm_button)
 
 	# Result display
 	_result_label = Label.new()
 	_result_label.name = "ResultLabel"
 	_result_label.add_theme_font_size_override("font_size", 18)
-	_result_label.add_theme_color_override("font_color", Color("#f3f4f6"))
+	_result_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	_result_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_result_label.visible = false
 	add_child(_result_label)
@@ -126,7 +137,7 @@ func _apply_button_style(button: Button, bg_color: Color) -> void:
 	pressed_style.bg_color = bg_color.darkened(0.15)
 	button.add_theme_stylebox_override("pressed", pressed_style)
 
-	button.add_theme_color_override("font_color", Color("#f3f4f6"))
+	button.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	button.add_theme_font_size_override("font_size", 14)
 
 func _update_labels() -> void:
@@ -180,32 +191,61 @@ func _submit_result(result: int, was_manual: bool) -> void:
 
 	roll_completed.emit(result, was_manual)
 
-## Generate a roll based on dice_type
+## The DiceManager context for this roll.
+func _roll_context() -> String:
+	var name_part: String = roll_context
+	if name_part.is_empty():
+		name_part = context_label
+	if name_part.is_empty():
+		name_part = dice_type
+	return "Companion Roll: %s" % name_part
+
+## Generate a roll based on dice_type, through DiceManager so a debug build can
+## force it. These were raw randi_range() calls.
 func _generate_roll() -> int:
+	var ctx: String = _roll_context()
+	var dm: Node = get_node_or_null("/root/DiceManager") if is_inside_tree() else null
+	if dm == null:
+		return _fallback_roll()
 	match dice_type:
+		"d3":
+			return int(dm.roll_d3(ctx))
 		"d6":
-			return randi_range(1, 6)
+			return int(dm.roll_d6(ctx))
 		"2d6":
-			return randi_range(1, 6) + randi_range(1, 6)
+			return int(dm.roll_2d6(ctx))
+		"3d6":
+			return int(dm.roll_3d6(ctx))
+		"d8":
+			return int(dm.roll_d8(ctx))
 		"d10":
-			return randi_range(1, 10)
-		"d100":
-			return randi_range(1, 100)
+			return int(dm.roll_d10(ctx))
 		"d66":
-			return (randi_range(1, 6) * 10) + randi_range(1, 6)
-		_:
-			# Try to parse custom format like "3d6"
-			if "d" in dice_type:
-				var parts := dice_type.split("d")
-				if parts.size() == 2:
-					var count := int(parts[0]) if not parts[0].is_empty() else 1
-					var sides := int(parts[1])
-					if sides > 0:
-						var total := 0
-						for i in range(count):
-							total += randi_range(1, sides)
-						return total
-			return randi_range(1, 6)
+			return int(dm.roll_d66(ctx))
+		"d100":
+			return int(dm.roll_d100(ctx))
+	var parsed: Vector2i = _parse_dice()
+	return int(dm.roll_custom(parsed.x, parsed.y, 0, ctx))
+
+## "NdS" as (count, sides); anything unreadable is one D6.
+func _parse_dice() -> Vector2i:
+	var parts := dice_type.to_lower().split("d")
+	if parts.size() == 2:
+		var count := int(parts[0]) if not parts[0].is_empty() else 1
+		var sides := int(parts[1])
+		if count > 0 and sides > 0:
+			return Vector2i(count, sides)
+	return Vector2i(1, 6)
+
+## Outside the tree (no autoloads): the same dice, unforced.
+func _fallback_roll() -> int:
+	if dice_type == "d66":
+		return (randi_range(1, 6) * 10) + randi_range(1, 6)
+	var parsed: Vector2i = _parse_dice()
+	var total := 0
+	for _i in parsed.x:
+		total += randi_range(1, parsed.y)
+	return total
 
 func _get_min_for_dice() -> int:
 	match dice_type:

@@ -837,9 +837,17 @@ func _update_results_label() -> void:
 
 
 func _render_empty_detail() -> void:
-	_detail_richtext.text = (
-		"[center][color=#9ca3af][i]No entries match these filters.[/i]"
-		+ "\n\nUse Reset Filters to clear all active filters.[/color][/center]")
+	# A new campaign has no entries at all, and telling that player to reset filters
+	# they never set sent them looking for a problem that was not there.
+	if _all_entries.is_empty():
+		_detail_richtext.text = (
+			"[center][color=#9ca3af][i]No journal entries yet.[/i]"
+			+ "\n\nBattles, travel and milestones are recorded here as the "
+			+ "campaign is played.[/color][/center]")
+	else:
+		_detail_richtext.text = (
+			"[center][color=#9ca3af][i]No entries match these filters.[/i]"
+			+ "\n\nUse Reset Filters to clear all active filters.[/color][/center]")
 	if _detail_actions_row != null:
 		_detail_actions_row.visible = false
 

@@ -418,6 +418,15 @@ static func get_armor_save_threshold(armor_type: String, species: String = "") -
 ## Threshold is STATIC per armor type. Piercing trait negates armor binary,
 ## not via threshold modifier. The damage parameter is kept for API
 ## compatibility; callers may still pass it but it has no mechanical effect.
+## Worn armor combined with a built-in save (Core Rules p.46 Multiple Saving
+## Throws). `innate` is the figure's own plating, ARMOR_SAVE_NONE when it has none.
+static func armor_threshold_with_innate(armor_type: String, innate: int) -> int:
+	var worn := get_armor_save_threshold(armor_type)
+	if innate < ARMOR_SAVE_NONE and worn < ARMOR_SAVE_NONE:
+		return combine_saving_throws([innate, worn])
+	return mini(innate, worn)
+
+
 static func check_armor_save(roll: int, armor_type: String, damage: int = 1) -> bool:
 	var _unused: int = damage  # silence unused-param warning; preserve API
 	var threshold := get_armor_save_threshold(armor_type)
@@ -506,17 +515,30 @@ static func resolve_saves(
 		if has_piercing:
 			# Piercing ignores armor saves
 			result["armor_pierced"] = true
+			# Compendium p.26 Deflection module: "The Bot's built-in saving throw
+			# becomes both a Screen and Armor, allowing a save to be made as long as
+			# the attack does not negate both forms of defense." Piercing negates
+			# only the Armor form, so the built-in save still rolls.
+			var innate_screen: int = int(target.get("innate_save", ARMOR_SAVE_NONE))
+			if bool(target.get("innate_is_screen", false)) \
+					and innate_screen < ARMOR_SAVE_NONE and roll >= innate_screen:
+				result["saved"] = true
+				result["save_type_used"] = SaveType.SCREEN
 		else:
 			var armor_type: String = target.get("armor", "none")
 			# Phase 6g: Frag vest — 5+ vs Area instead of 6+ (Core Rules p.55)
 			if target_prot.get("frag_vest_area_bonus", false) and is_area:
 				armor_type = "combat"  # Upgrades from "light"(6+) to "combat"(5+)
-			if check_armor_save(roll, armor_type, damage):
+			# Built-in plating (p.46) combines with worn armor. A target with no
+			# `innate_save` (every enemy) is unchanged: NONE combines to the worn save.
+			if roll >= armor_threshold_with_innate(armor_type,
+					int(target.get("innate_save", ARMOR_SAVE_NONE))):
 				result["saved"] = true
 				result["save_type_used"] = SaveType.ARMOR
 
 	# Sprint 26.5: Debug log save resolution
-	var armor_threshold: int = get_armor_save_threshold(target.get("armor", "none"))
+	var armor_threshold: int = armor_threshold_with_innate(target.get("armor", "none"),
+		int(target.get("innate_save", ARMOR_SAVE_NONE)))
 	var screen_threshold: int = get_screen_save_threshold(target.get("screen", "none"))
 	var save_type_str: String = "None"
 	match result["save_type_used"]:

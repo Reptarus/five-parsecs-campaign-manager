@@ -16,6 +16,8 @@ const Godot4Utils = preload("res://src/utils/Godot4Utils.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 ## Compendium p.147 — Bot upgrades are one of the three things Salvage may buy.
 const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
+const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 ## Core Rules p.74 "Bot manufacturing — All Bot upgrades are 1 credit cheaper."
 const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 
@@ -472,7 +474,9 @@ func get_available_bot_upgrades(bot: Resource) -> Array[Dictionary]:
 		if stat_name in upgraded_stats:
 			continue  # Each stat can only be upgraded once
 
-		var cost: int = get_stat_cost(stat_name)
+		# The price the sheet SHOWS must be the price install_bot_upgrade() CHARGES:
+		# world trait (p.74) and Bot technician (p.125) included.
+		var cost: int = _bot_upgrade_cost(stat_name, null)
 		var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
 		var max_val: int = get_stat_max(stat_name, 6)
 
@@ -506,7 +510,11 @@ func can_install_bot_upgrade(bot: Resource, stat_name: String, campaign_credits:
 	var cost: int = _bot_upgrade_cost(stat_name, null)
 	return campaign_credits >= cost
 
-func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resource) -> bool:
+## `game_state_ref` is the CREDITS owner, GameStateManager. It was typed Resource
+## while its one caller, CharacterDetailsScreen, passed the GameState autoload (a
+## Node), so the call was rejected at the argument check and no Bot upgrade could
+## ever be installed from the character sheet.
+func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Object) -> bool:
 	## Install a bot stat upgrade by spending credits (Core Rules p.123)
 	if not bot or not game_state_ref:
 		return false
@@ -525,11 +533,75 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 		return false
 
 	var cost: int = _bot_upgrade_cost(stat_name, game_state_ref)
+	if not pay_for_bot_upgrade(game_state_ref, cost):
+		return false
 
-	# Core Rules p.125 Bot Tech training: "All Bot upgrades cost 1 credit less."
-	# Check if any crew member has bot_tech training (caller should pass this)
-	# For now, cost is the base XP cost in credits.
+	# Apply +1 to the stat
+	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
+	var max_val: int = get_stat_max(stat_name, 6)
+	var new_val: int = mini(current_val + 1, max_val)
 
+	if bot.has_method("set"):
+		bot.set(stat_name, new_val)
+
+	# Track that this stat has been upgraded (each stat only once)
+	upgraded_stats.append(stat_name)
+	if bot.has_method("set"):
+		# Declared on Character (and saved) since 2026-10-29. Before that this set()
+		# was a silent no-op, so "each ability score can be upgraded only once"
+		# (p.123) was never recorded.
+		bot.set("bot_upgraded_stats", upgraded_stats)
+
+	bot_upgrade_installed.emit(bot, stat_name, {"stat": stat_name, "cost": cost, "new_value": new_val})
+	return true
+
+
+## Core Rules p.74, verbatim: "Bot manufacturing — All Bot upgrades are 1 credit
+## cheaper."
+##
+## `WorldTraitEffects.bot_upgrade_cost()` implemented this and had ZERO callers,
+## so the trait was a paragraph of text. Applied at BOTH the affordability check
+## and the charge, or the button greys out at the undiscounted price on a world
+## the crew can actually afford — the guard-applied-to-N-1-of-N shape.
+func _bot_upgrade_cost(stat_name: String, game_state_ref: Variant) -> int:
+	var base: int = get_stat_cost(stat_name)
+	var campaign: Variant = _campaign_for_salvage(game_state_ref)
+	if campaign == null:
+		return base
+	return bot_upgrade_price(base, campaign)
+
+
+## One price rule for EVERY Bot upgrade, the p.123 stat upgrades here and the
+## Compendium p.26 upgrades in the Advancement phase: Core Rules p.74 "Bot
+## manufacturing — All Bot upgrades are 1 credit cheaper", then p.125 Bot
+## technician.
+static func bot_upgrade_price(base: int, campaign: Variant) -> int:
+	if campaign == null:
+		return base
+	return bot_technician_price(WorldTraitEffectsRef.bot_upgrade_cost(
+		base, WorldTraitEffectsRef.traits_for_current_world(campaign)), campaign)
+
+
+## Core Rules p.125, Bot technician: "All Bot upgrades cost 1 credit less."
+## Compendium p.26 applies it to the New Bot Upgrades too. Crew-wide, like Broker:
+## the course is held by a crew member, not by the Bot. `bot_tech` is the legacy
+## spelling a dictionary crew member may still carry (see Character.has_training).
+static func bot_technician_price(price: int, campaign: Variant) -> int:
+	if campaign == null or not campaign.has_method("get_crew_members"):
+		return price
+	var crew: Array = campaign.get_crew_members()
+	if crew_has_training(crew, "bot_technician") or crew_has_training(crew, "bot_tech"):
+		return maxi(0, price - 1)
+	return price
+
+
+## Charge a Bot upgrade: Salvage first (Compendium p.147), then credits from
+## `game_state_ref`, the credits owner (GameStateManager). Spends nothing and
+## returns false when the crew cannot pay. Shared by the p.123 stat upgrades here
+## and the Compendium p.26 upgrades sold in Trading, so both charge the same way.
+static func pay_for_bot_upgrade(game_state_ref: Object, cost: int) -> bool:
+	if game_state_ref == null:
+		return false
 	var current_credits: int = 0
 	if game_state_ref.has_method("get_credits"):
 		current_credits = game_state_ref.get_credits()
@@ -543,7 +615,7 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 	# Applied BEFORE the affordability check so salvage can actually make an
 	# upgrade reachable, and refunded below if the credit half then fails —
 	# salvage that bought nothing was never "cashed in".
-	var campaign_for_salvage: Variant = _campaign_for_salvage(game_state_ref)
+	var campaign_for_salvage: Variant = _salvage_campaign(game_state_ref)
 	var salvage_paid: int = 0
 	if campaign_for_salvage != null:
 		var offset: Dictionary = SalvageLedgerRef.apply_offset(
@@ -565,48 +637,109 @@ func install_bot_upgrade(bot: Resource, stat_name: String, game_state_ref: Resou
 				return false
 		elif game_state_ref.has_method("set"):
 			game_state_ref.set("credits", current_credits - credit_cost)
-
-	# Apply +1 to the stat
-	var current_val: int = Godot4Utils.safe_get_property(bot, stat_name, 0)
-	var max_val: int = get_stat_max(stat_name, 6)
-	var new_val: int = mini(current_val + 1, max_val)
-
-	if bot.has_method("set"):
-		bot.set(stat_name, new_val)
-
-	# Track that this stat has been upgraded (each stat only once)
-	upgraded_stats.append(stat_name)
-	if bot.has_method("set"):
-		bot.set("bot_upgraded_stats", upgraded_stats)
-
-	bot_upgrade_installed.emit(bot, stat_name, {"stat": stat_name, "cost": cost, "new_value": new_val})
 	return true
+
+
+## Compendium p.26 New Bot Upgrades offered to `member`, each priced by
+## bot_upgrade_price(). The Built-in weapon has one row per weapon the Bot carries,
+## priced from that weapon's profile. Empty for anyone but a Bot, and when the
+## content is off.
+static func bot_upgrade_options(member: Variant, campaign: Variant) -> Array:
+	var out: Array = []
+	if not BotUpgradeEffectsRef.is_upgradeable(member):
+		return out
+	for item: Variant in CompendiumEquipmentRef.get_bot_upgrades():
+		if not item is Dictionary:
+			continue
+		if str(item.get("id", "")) == BotUpgradeEffectsRef.BUILTIN_WEAPON:
+			for weapon: String in BotUpgradeEffectsRef.carried_weapons(member):
+				out.append(_bot_upgrade_row(item,
+					BotUpgradeEffectsRef.builtin_weapon_cost(weapon), campaign, weapon))
+			continue
+		out.append(_bot_upgrade_row(item, int(item.get("cost", 0)), campaign, ""))
+	return out
+
+
+static func _bot_upgrade_row(item: Dictionary, base_cost: int, campaign: Variant,
+		weapon: String) -> Dictionary:
+	var name: String = str(item.get("name", "Bot upgrade"))
+	return {
+		"id": str(item.get("id", "")),
+		"name": name if weapon.is_empty() else "%s: %s" % [name, weapon],
+		"cost": bot_upgrade_price(base_cost, campaign),
+		"builtin_weapon": weapon,
+		"description": str(item.get("description", "")),
+	}
+
+
+## Compendium p.26: "Only one upgrade can be installed per campaign turn." Kept on
+## the campaign and keyed by the completed-turn count, so rebuilding a screen
+## cannot reset it.
+static func bot_upgrade_installed_this_turn(campaign: Variant) -> bool:
+	if campaign == null or not ("progress_data" in campaign):
+		return false
+	var pd: Dictionary = campaign.progress_data
+	return pd.has("bot_upgrade_turn") \
+		and int(pd["bot_upgrade_turn"]) == int(pd.get("turns_played", 0))
+
+
+## Why `option` cannot be bought for `member` now, or "" when it can. Salvage
+## counts toward the price (Compendium p.147), because pay_for_bot_upgrade()
+## spends it first.
+static func bot_upgrade_blocked_reason(member: Variant, option: Dictionary,
+		credits: int, campaign: Variant) -> String:
+	if str(option.get("id", "")) in BotUpgradeEffectsRef.installed(member):
+		return "Already installed: a Bot can have one of each (Compendium p.26)."
+	if bot_upgrade_installed_this_turn(campaign):
+		return "Only one upgrade can be installed per campaign turn (Compendium p.26)."
+	var salvage: int = SalvageLedgerRef.get_units(campaign) if campaign != null else 0
+	if credits + salvage < int(option.get("cost", 0)):
+		return "Not enough credits (need %d)." % int(option.get("cost", 0))
+	return ""
+
+
+## Buy `option` for `member`: pay (Salvage, then credits through `gsm`), install
+## it, and record the turn. Spends nothing and returns false when blocked.
+static func buy_bot_upgrade(member: Variant, option: Dictionary, gsm: Object,
+		campaign: Variant) -> bool:
+	var credits: int = int(gsm.get_credits()) \
+		if gsm != null and gsm.has_method("get_credits") else 0
+	if not bot_upgrade_blocked_reason(member, option, credits, campaign).is_empty():
+		return false
+	if not pay_for_bot_upgrade(gsm, int(option.get("cost", 0))):
+		return false
+	var upgrade_id: String = str(option.get("id", ""))
+	var weapon: String = str(option.get("builtin_weapon", ""))
+	if member is Dictionary:
+		var ids: Array = member.get("bot_upgrades", [])
+		if upgrade_id not in ids:
+			ids.append(upgrade_id)
+		member["bot_upgrades"] = ids
+		if not weapon.is_empty():
+			member["builtin_weapon"] = weapon
+	elif member is Object:
+		if member.has_method("add_bot_upgrade"):
+			member.add_bot_upgrade(upgrade_id)
+		if not weapon.is_empty():
+			member.set("builtin_weapon", weapon)
+	if campaign != null and "progress_data" in campaign:
+		campaign.progress_data["bot_upgrade_turn"] = int(
+			campaign.progress_data.get("turns_played", 0))
+	return true
+
+
+func _campaign_for_salvage(game_state_ref: Variant) -> Variant:
+	return _salvage_campaign(game_state_ref)
 
 
 ## The campaign that owns the salvage ledger.
 ##
-## `game_state_ref` is typed Resource here but callers pass the GameState AUTOLOAD
-## (a Node), so `"current_campaign" in game_state_ref` is checked rather than
-## assumed, with the autoload as the fallback. This is a RefCounted, so
-## get_node_or_null() is unavailable — the tree is reached via the main loop, per
-## the Engine.has_singleton gotcha.
-## Core Rules p.74, verbatim: "Bot manufacturing — All Bot upgrades are 1 credit
-## cheaper."
-##
-## `WorldTraitEffects.bot_upgrade_cost()` implemented this and had ZERO callers,
-## so the trait was a paragraph of text. Applied at BOTH the affordability check
-## and the charge, or the button greys out at the undiscounted price on a world
-## the crew can actually afford — the guard-applied-to-N-1-of-N shape.
-func _bot_upgrade_cost(stat_name: String, game_state_ref: Variant) -> int:
-	var base: int = get_stat_cost(stat_name)
-	var campaign: Variant = _campaign_for_salvage(game_state_ref)
-	if campaign == null:
-		return base
-	return WorldTraitEffectsRef.bot_upgrade_cost(
-		base, WorldTraitEffectsRef.traits_for_current_world(campaign))
-
-
-func _campaign_for_salvage(game_state_ref: Variant) -> Variant:
+## Callers pass the credits owner, GameStateManager, which has no
+## `current_campaign`, so the campaign is normally found through the GameState
+## autoload below. An argument that does carry `current_campaign` is read first.
+## This is a RefCounted, so get_node_or_null() is unavailable: the tree is reached
+## via the main loop, per the Engine.has_singleton gotcha.
+static func _salvage_campaign(game_state_ref: Variant) -> Variant:
 	if game_state_ref != null and "current_campaign" in game_state_ref:
 		var c: Variant = game_state_ref.current_campaign
 		if c != null:

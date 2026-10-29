@@ -49,7 +49,24 @@ func _ready() -> void:
 	_update_buttons(false, false, false)  # ISSUE-047: disable Next until config validates
 	get_viewport().size_changed.connect(_apply_content_max_width)
 	_apply_content_max_width()
+	_apply_router_context()
 	_open_touch_chain()
+
+
+## The main menu's "Bug Hunt Co-op Campaign" choice arrives as SceneRouter context
+## {"coop": true} (MainMenu._open_bug_hunt_coop_creation). Read once and CLEARED: the
+## router keeps a context until someone erases it, so a later plain "New Bug Hunt" would
+## otherwise open with co-op already switched on.
+func _apply_router_context() -> void:
+	var router: Node = get_node_or_null("/root/SceneRouter")
+	if router == null or not router.has_method("get_scene_context"):
+		return
+	var ctx: Dictionary = router.get_scene_context("bug_hunt_creation")
+	if bool(ctx.get("coop", false)) and panels.size() > 0 \
+			and panels[0].has_method("preselect_coop"):
+		panels[0].preselect_coop()
+	if router.has_method("clear_scene_context"):
+		router.clear_scene_context("bug_hunt_creation")
 
 
 func _build_layout() -> void:

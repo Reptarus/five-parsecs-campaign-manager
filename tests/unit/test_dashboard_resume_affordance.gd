@@ -105,3 +105,15 @@ func test_the_header_and_the_button_agree_on_the_turn() -> void:
 	dash._update_phase_ui(0)
 	assert_str(dash.action_button.text).contains("9")
 	assert_str(dash.phase_label.text).contains("Turn 9")
+
+
+## Between turns the phase is NONE, and PHASE_NAMES maps it to "None": the header read
+## "Turn 1 — None". The dashboard's other writer of this label already dropped that
+## placeholder; this one did not.
+func test_between_turns_the_header_names_no_placeholder_phase() -> void:
+	var dash := await _dashboard(false)
+	dash._update_phase_ui(GameEnums.FiveParcsecsCampaignPhase.NONE)
+	assert_str(dash.phase_label.text).is_equal("Turn 9")
+	# A real phase is still named.
+	dash._update_phase_ui(GameEnums.FiveParcsecsCampaignPhase.UPKEEP)
+	assert_str(dash.phase_label.text).is_equal("Turn 9 — Upkeep")

@@ -14,6 +14,7 @@ const COLOR_WARNING := _UC.COLOR_WARNING
 
 const RefText := preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
 const SquadPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntSquadPanel.gd")
+const CoopView := preload("res://src/ui/screens/bug_hunt/BugHuntCoopView.gd")
 
 var _coordinator = null
 var _summary_container: VBoxContainer
@@ -87,6 +88,29 @@ func _display_summary() -> void:
 	if config.get("use_campaign_escalation", false):
 		_add_row(info_card, "Escalation", "Fixed Priority sequence")
 
+	# Co-op campaign (Compendium pp.209-211). The map is not rolled until Launch, so this
+	# card shows what will be rolled, never a preview of dice not yet thrown.
+	if bool(config.get("coop_enabled", false)):
+		var coop_card := _create_card("Co-op Campaign (Compendium pp.209-211)", _summary_container)
+		var names: Array = CoopView.clean_players(config.get("coop_players", []))
+		var per: int = int(config.get("coop_sectors_per_player", 0))
+		_add_row(coop_card, "Players", ", ".join(names) if not names.is_empty() else "Not set")
+		_add_row(coop_card, "Sector Map", "%d sectors (%d per player)" % [names.size() * per, per])
+		var map_note := Label.new()
+		map_note.text = "Launching rolls the map: each sector's Priority, its Factor and any " \
+			+ "resource stash (Compendium p.210)."
+		map_note.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		map_note.add_theme_font_size_override("font_size", _scaled_font(13))
+		map_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		coop_card.add_child(map_note)
+		var coop_err: String = CoopView.coop_config_error(config)
+		if not coop_err.is_empty():
+			var coop_err_lbl := Label.new()
+			coop_err_lbl.text = "! " + coop_err
+			coop_err_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+			coop_err_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			coop_card.add_child(coop_err_lbl)
+
 	# Squad card
 	var squad_card := _create_card("Squad (%d Main Characters)" % characters.size(), _summary_container)
 	# Name, then the profile in the Squad step's order and format (p.170). This printed
@@ -129,6 +153,9 @@ func _display_summary() -> void:
 
 	# Validation
 	var errors: Array = _get_validation_errors(config, characters)
+	var coop_error: String = CoopView.coop_config_error(config)
+	if not coop_error.is_empty():
+		errors.append(coop_error)
 	if errors.is_empty():
 		var ready_lbl := Label.new()
 		# It named a "Finish" button this wizard does not have.

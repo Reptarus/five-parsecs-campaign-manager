@@ -17,22 +17,26 @@ const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 ## Core Rules p.74 "Shipyards — The cost of all Ship Components is reduced by 2".
 const WorldTraitEffectsRef = preload("res://src/core/world/WorldTraitEffects.gd")
 
-signal ship_repaired(hull_points: int)
-signal debt_paid(amount: int)
+## Hull repairs and debt payments belong to Upkeep (Core Rules p.76), and
+## UpkeepPhaseComponent does both through the owners: repair parts, then salvage,
+## then credits, and GameStateManager.set_ship_debt(). This screen used to carry a
+## second copy of each that broke the book: Repair charged for the free point,
+## Pay Debt cleared the whole debt for nothing, the Hull and Debt SpinBoxes wrote
+## any value straight into the save, "Refuel Ship" filled a fuel tank the rules do
+## not have (p.69: travel costs 5 credits, there is no fuel state), and "Initiate
+## Travel" computed a cost and did nothing. The screen now SHOWS those numbers.
 signal upgrade_purchased(upgrade: Dictionary)
-signal travel_initiated()
 
 # The three content panels reparented into this group (set in _setup_adaptive_panels).
 var _panel_group: Control = null
 
 @onready var ship_name: Label = %ShipName
 @onready var ship_type: Label = %ShipType
-@onready var current_hull: SpinBox = %CurrentHull
+@onready var current_hull: Label = %CurrentHull
 @onready var max_hull: Label = %MaxHull
-@onready var debt_amount: SpinBox = %DebtAmount
+@onready var debt_amount: Label = %DebtAmount
 @onready var ship_traits: VBoxContainer = %ShipTraits
 @onready var upgrades_list: VBoxContainer = %UpgradesList
-@onready var fuel_level: Label = %FuelLevel
 @onready var cost_amount: Label = %CostAmount
 
 var ship_data: Dictionary = {}
@@ -137,8 +141,9 @@ func _setup_adaptive_panels() -> void:
 
 ## Let a pane's content scroll instead of forcing the whole screen taller.
 ##
-## Ship Status and Travel stack six-plus rows — two of them SpinBoxes sitting at the
-## 48px touch floor — with no scroll of their own, so their combined minimum HEIGHT
+## Ship Status and Travel stack six-plus rows (two of them were SpinBoxes at the 48px
+## touch floor until hull and debt became read-only labels) with no scroll of their
+## own, so their combined minimum HEIGHT
 ## dragged the root MarginContainer ~67px off a 338px landscape viewport. Because the
 ## root grows both ways that overflow also re-centres the screen to a negative y,
 ## which is what put the title back under the SettingsOverlay band. Upgrades already
@@ -202,7 +207,6 @@ func _load_ship_data() -> void:
 		"hull_points": 30,
 		"max_hull": 30,
 		"debt": 25,
-		"fuel": "full",
 		"traits": [],
 		"components": []
 	}
@@ -215,15 +219,17 @@ func _refresh_display() -> void:
 	ship_name.text = "Ship Name: " + ship_data.get("name", "Unknown")
 	ship_type.text = "Type: " + ship_data.get("type", "Unknown")
 
-	current_hull.max_value = ship_data.get("max_hull", 30)
-	current_hull.value = ship_data.get("hull_points", 30)
+	current_hull.text = DisplayText.number(ship_data.get("hull_points", 30))
 	# T11-33: Godot's JSON parser returns every number as a FLOAT, so a hull of
 	# 35 came back as 35.0 and str() printed "/ 35.0" on the device.
 	max_hull.text = "/ " + DisplayText.number(ship_data.get("max_hull", 30))
 
-	debt_amount.value = ship_data.get("debt", 0)
-
-	fuel_level.text = ship_data.get("fuel", "Empty")
+	# The owner is campaign.ship_debt; get_ship_debt() falls back to the nested
+	# field for legacy saves.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	var debt: int = int(gsm.get_ship_debt()) if gsm and gsm.has_method("get_ship_debt") \
+		else int(ship_data.get("debt", 0))
+	debt_amount.text = DisplayText.number(debt)
 	# T11-33: was always the singular "credit", and printed a float.
 	cost_amount.text = DisplayText.pluralize(_calculate_travel_cost(), "credit")
 
@@ -249,9 +255,11 @@ func _refresh_upgrades() -> void:
 		child.queue_free()
 
 	# Show installed components
+	var turn: int = ShipComponentQuery.current_turn()
 	for comp_id in ship_data.get("components", []):
 		var comp_name: String = _get_component_name(comp_id)
-		var panel = _create_upgrade_panel(comp_name, true)
+		var panel = _create_upgrade_panel(comp_name, true,
+			ShipComponentQuery.is_pending_on(ship_data, str(comp_id), turn))
 		upgrades_list.add_child(panel)
 
 	# Show available components for purchase
@@ -261,7 +269,8 @@ func _refresh_upgrades() -> void:
 			comp.get("name", ""), false)
 		upgrades_list.add_child(panel)
 
-func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
+func _create_upgrade_panel(upgrade_name: String, owned: bool,
+		pending: bool = false) -> PanelContainer:
 	## Create a panel for ship upgrade
 	var panel: PanelContainer = PanelContainer.new()
 	var hbox = HBoxContainer.new()
@@ -275,8 +284,9 @@ func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
 
 	if owned:
 		var owned_label: Label = Label.new()
-		owned_label.text = "INSTALLED"
-		owned_label.modulate = UIColors.COLOR_EMERALD
+		# p.60: "fully functional at the beginning of the next campaign turn".
+		owned_label.text = "WORKS NEXT TURN" if pending else "INSTALLED"
+		owned_label.modulate = UIColors.COLOR_AMBER if pending else UIColors.COLOR_EMERALD
 		hbox.add_child(owned_label)
 	else:
 		var cost_label: Label = Label.new()
@@ -286,6 +296,9 @@ func _create_upgrade_panel(upgrade_name: String, owned: bool) -> PanelContainer:
 
 		var buy_button: Button = Button.new()
 		buy_button.text = "Purchase"
+		if _install_slot_used():
+			buy_button.disabled = true
+			buy_button.tooltip_text = "Only one Component can be added each turn (Core Rules p.60)."
 		buy_button.pressed.connect(
 			_on_upgrade_purchased.bind(upgrade_name))
 		hbox.add_child(buy_button)
@@ -400,7 +413,7 @@ func _calculate_travel_cost() -> int:
 			base_cost += 1
 
 	# +1 per 3 billable components (Core Rules p.61)
-	# Miniaturized excluded (Compendium p.28)
+	# Miniaturized excluded (Compendium p.27)
 	var billable: int = ShipComponentQuery.get_billable_component_count()
 	if billable > 0:
 		@warning_ignore("integer_division")
@@ -412,69 +425,24 @@ func _calculate_travel_cost() -> int:
 
 	return maxi(0, base_cost)
 
-func _calculate_repair_cost() -> int:
-	## Calculate cost to fully repair the ship
-	var current = ship_data.get("hull_points", 0)
-	var maximum = ship_data.get("max_hull", 30)
-	var damage = maximum - current
-	return damage # 1 credit per hull point
-
-func _on_hull_changed(_value: float) -> void:
-	## Handle hull points change
-	ship_data["hull_points"] = int(_value)
-
-func _on_debt_changed(_value: float) -> void:
-	## Handle debt amount change
-	ship_data["debt"] = int(_value)
-
 func _on_back_pressed() -> void:
 	## Reachable from the Campaign Dashboard, so fall back THERE rather than the
 	## main menu when there is no history to pop. The old fallback branch was a bare
 	## `pass`, i.e. a dead end at exactly the moment the router was missing.
 	ScreenChrome.navigate_back(self, "campaign_dashboard")
 
-func _on_travel_pressed() -> void:
-	## Handle travel button press
-	var cost = _calculate_travel_cost()
-	travel_initiated.emit()
-
-func _on_refuel_pressed() -> void:
-	## Handle refuel button press
-	ship_data["fuel"] = "full"
-	_refresh_display()
-
-func _on_repair_pressed() -> void:
-	## Handle repair button press
-	var cost = _calculate_repair_cost()
-
-	# Check if player has enough credits
-	var game_state = get_node_or_null("/root/GameState")
-	if game_state and game_state.has_method("get_credits"):
-		var current_credits = game_state.get_credits()
-		if current_credits < cost:
-			return
-		game_state.remove_credits(cost)
-	else:
-		pass
-	
-	ship_data["hull_points"] = ship_data.get("max_hull", 30)
-	_refresh_display()
-	ship_repaired.emit(ship_data.get("max_hull", 30))
-
-func _on_upgrade_pressed() -> void:
-	## Handle upgrade button press
-	pass
-
-func _on_pay_debt_pressed() -> void:
-	## Handle pay debt button press
-	var debt = ship_data.get("debt", 0)
-	if debt > 0:
-		ship_data["debt"] = 0
-		_refresh_display()
-		debt_paid.emit(debt)
+## Core Rules p.60: "Only one Component can be added each turn." The limit is
+## read from the rules block of ship_components.json, which carried it unread.
+func _install_slot_used() -> bool:
+	var limit: int = int(_components_rules.get("max_install_per_turn", 1))
+	return ShipComponentQuery.installs_on_turn(
+		ship_data, ShipComponentQuery.current_turn()) >= limit
 
 func _on_upgrade_purchased(comp_name: String) -> void:
 	## Handle component purchase (Core Rules p.60)
+	# Refused BEFORE salvage is applied, so a refused purchase spends nothing.
+	if _install_slot_used():
+		return
 	var cost: int = _get_component_cost(comp_name)
 	var comp_id: String = ""
 	for comp in _components_db:
@@ -497,16 +465,21 @@ func _on_upgrade_purchased(comp_name: String) -> void:
 		salvage_paid = int(offset.get("salvage_applied", 0))
 	var credit_cost: int = maxi(0, cost - salvage_paid)
 
-	if credit_cost > 0 and game_state and game_state.has_method("get_credits"):
-		var current_credits: int = game_state.get_credits()
-		if current_credits < credit_cost:
+	# Credits are owned by the campaign and moved through GameStateManager. This
+	# asked the GameState autoload, which has neither get_credits() nor
+	# remove_credits(), so the guard was always false and every Component was free.
+	# The dead-guard lint cannot see that: it matches names, and both names exist
+	# on GameStateManager.
+	if credit_cost > 0:
+		var gsm: Node = get_node_or_null("/root/GameStateManager")
+		if gsm == null or gsm.get_credits() < credit_cost \
+				or not gsm.remove_credits(credit_cost):
 			# Hand the salvage back — the purchase did not happen, so it was never
 			# "cashed in". Silently keeping it would make a mis-click cost the
 			# player scrap for nothing.
 			if campaign_for_salvage != null and salvage_paid > 0:
 				SalvageLedgerRef.add_units(campaign_for_salvage, salvage_paid)
 			return
-		game_state.remove_credits(credit_cost)
 
 	# The p.134 voucher is spent only once the purchase actually goes through —
 	# above the affordability check it would be burned by a click the crew could
@@ -519,6 +492,11 @@ func _on_upgrade_purchased(comp_name: String) -> void:
 	if not ship_data.has("components"):
 		ship_data["components"] = []
 	ship_data["components"].append(comp_id)
+	# p.60: functional from the next campaign turn, and one per turn.
+	if not (ship_data.get(ShipComponentQuery.INSTALL_TURNS_KEY) is Dictionary):
+		ship_data[ShipComponentQuery.INSTALL_TURNS_KEY] = {}
+	ship_data[ShipComponentQuery.INSTALL_TURNS_KEY][comp_id] = \
+		ShipComponentQuery.current_turn()
 
 	# Journal entry for component installation (Core Rules p.60)
 	var journal: Node = get_node_or_null("/root/CampaignJournal")

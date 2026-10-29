@@ -8,6 +8,8 @@ const TouchScrollOpenerRef = preload(
 
 const MissionTableManagerClass = preload("res://src/core/mission/MissionTableManager.gd")
 const SeizeInitiativeSystemClass = preload("res://src/core/battle/SeizeInitiativeSystem.gd")
+## Compendium p.26 bot upgrades that change a battle number.
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 const BattleResolverRouter = preload("res://src/core/battle/BattleResolverRouter.gd")
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 const BattleCheckpointRef = preload(
@@ -1267,7 +1269,7 @@ func _initiate_battle_sequence() -> void:
 			mission_data["placement_rules"] = objective[
 				"placement_rules"]
 
-	# Roll Notable Sight (Core Rules p.88)
+	# Roll Notable Sight (Core Rules p.89)
 	# p.153 suppresses this outright on a Story Event turn: "During Story Event
 	# battles, you never roll for Deployment Conditions or Notable Sights."
 	# The Introductory Campaign withholds it for its early guided turns too.
@@ -1431,6 +1433,9 @@ func _initiate_battle_sequence() -> void:
 	# independent rules that can legitimately co-occur (a Black Job against an
 	# enemy category that already carries a modifier).
 	var total_init_mod: int = _seize_modifier_total(first_enemy, mission_data)
+	# Compendium p.26 Multi-wave scanner: "Add +1 to all rolls to Seize the
+	# Initiative." A crew-side modifier; the two above are enemy and mission side.
+	total_init_mod += BotUpgradeEffectsRef.seize_bonus(active_crew)
 
 	# One builder for the campaign and the Battle Simulator (the keys, and why each
 	# exists, are documented there).

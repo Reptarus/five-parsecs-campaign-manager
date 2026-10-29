@@ -208,7 +208,7 @@ func _ensure_warning_label() -> Label:
 	var label := Label.new()
 	label.name = "__phase_warnings"
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.add_theme_color_override("font_color", Color("#FBBF24"))
+	label.add_theme_color_override("font_color", UIColors.COLOR_AMBER)
 	header.add_child(label)
 	return label
 

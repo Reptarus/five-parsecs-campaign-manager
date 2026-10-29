@@ -255,6 +255,136 @@ crew size 3, a 1-5 difficulty scale, and no p.88 or p.89 rolls.
 | Header | **"BATTLE / SIMULATO / R" on a phone.** A word-wrapped Label in an HBox gets only what the Back button leaves, and WORD_SMART then breaks inside a word. The header is a flow row, and the unwrapped title takes its own line where it does not fit. ⚠ The Bug Hunt pass went the other way for its own creation title (HFlow to HBox with a wrapping title), because that title ran past a 310 px phone unwrapped (it ended at x=332). Which shape is right depends on whether the title fits the narrowest screen whole. "BATTLE SIMULATOR" does at 310 px, and the case measures that rather than assuming it. | `test_the_phone_title_never_breaks_mid_word` (line count AND right edge at 310 px) | SIM-10, SIM-10b |
 | Play Again | `_last_config` was written on every launch and read by nothing, so Play Again offered whatever the panel last showed. It restores the settings and rolls a new battle with them. | capture `sim_05_play_again` | — |
 
+## 5PFH and shared — per screen
+
+Walked 2026-10-29 at 2560x1600 and 393x851 (design 338x734). Arms are in
+`su_5p/arms_5p.log`: 123 arms DETECTED. Six UNDETECTED arms led to a better test and were
+then DETECTED (S4, S5, BU10, HR3, EM2, CF13; see Instruments). Two stay UNDETECTED, each for
+a measured reason (CF9, CF12).
+
+The common shape on the 5PFH side was **a screen that works on a desktop and fails on a
+phone, while the windowed sweep stayed green**. `verify_layout` builds the creation wizard
+at step 1 only, so steps 4, 5 and 7 ran off a phone, clipped at both edges, with every gate
+green. `test_creation_steps_fit_a_phone.gd` walks all seven steps in the real screen at a
+phone's design size.
+
+### Creation wizard (`CampaignCreationUI.tscn`, 7 steps)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Step warnings | **Four warnings on a correctly set-up campaign, each from a different cause.** "Crew size not set" read `config.crew_size`, which nothing writes; the config step writes `campaign_crew_size` (p.63). "Captain combat stats need setting" tested `combat < 1`, and Combat +0 is the Human baseline (p.15). Two "not generated via backend system" warnings read a `backend_generated` flag with no producer. The world step's result never reached the final check. | `test_creation_wizard_warnings.gd` (5 cases) | W1-W5 |
+| Phone fit, steps 4, 5, 7 | **The page outgrew a 338 px phone and was clipped at both edges** ("ll Everything", "/anderer", "MPAIGN CONFIGURATION"). Twenty drivers, each found by a spine walk, then the next exposed: Stars of the Story's 400 px floor (in the script AND the scene) and its 280 px card floor; the Ship cards' 450 px floor, now applied only where it fits; HBox rows of buttons, badges and stats turned into flows; the credits line stacked; prose and names wrapped. | `test_every_creation_step_fits_a_phone` | CF1a-CF8, CF10, CF11, CF14-CF20 |
+| Final Review, long names | **A 30-walk hunt ran step 7 off a phone once**, on an XL captain name ("Commander Parker Liang", 260 px). The campaign, ship and captain names and the difficulty line now wrap. The same probe found **two cards sharing one 260 px row**, Extras squeezed to 62 px beside Equipment: a flow places children by their minimum widths, and a card whose text wraps has a minimum of a few pixels (CF17 had wrapped the Extras line). A phone now gets a VBox, a real single column; the two-column flow stays for wide screens; and the swap re-runs on a layout change, so a rotation re-stacks. | `test_the_final_review_stacks_its_cards_and_wraps_long_names` (long names set, not rolled; asserts every card owns its row) | CS1-CS3 |
+| World name | The world step prints the name in XL. Rolled names are short, so the walk could not fail on it. | `test_a_long_world_name_wraps_on_a_phone` | CF13 (rerun) |
+| One create button | **The final step had two buttons for one action.** The footer's "Start Campaign" calls the panel's `_on_create_campaign_pressed()`, and the panel also drew "Create Campaign & Start Adventure" at the bottom of its scroll. The in-page button is gone. The footer still learns validity, which the panel used to announce only while its own button existed. A second tap during finalization is ignored. | `test_the_final_step_has_one_create_button` | SB1-SB3 |
+| Equipment cards | A melee weapon printed `RNG 0"` and `SHT 0`. Core Rules p.50 prints its range as "Brawl". | `test_an_equipment_card_prints_a_melee_range_as_brawl` | BR1 |
+| Manual Select | **The equipment screen's catalogue was a five-item literal in neither book**: a Military Rifle at Damage 1 (p.50 prints 0), a "Combat Armor" with a "Heavy" trait, a "Medkit", and four invented crew ("Captain Reynolds", "Dr. Chen") when none was handed over. Its details pane could only print zeros, because it read `DataValidator.validate_equipment()`'s fixed-key copy. The catalogue is `equipment_database.json`, the pane reads the item, and the crew is only what the panel hands over. | `test_equipment_manager_catalogue.gd` | EM1, EM2-EM4 (rerun through the grid button) |
+
+### Character sheet (`CharacterDetailsScreen`) and crew
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| The 8 sweep failures | **All eight windowed `verify_layout` failures** (s4p2 gate) were this screen. The coloured initials were drawn over an EMPTY portrait icon, which is now hidden while the initials show. The two hero-card buttons were under 48 dp. Overlaid on the card's corners, they covered its content and collided by 30 px on a phone, so they now sit in a flow row under the card. The CalloutCard's uppercase title never wrapped, so its width became the card's. | `test_card_layout_floor.gd`, `test_crew_pager.gd` | CC1-CC3, HB1, HB2, HR1-HR3 |
+| Advancement | The stat and training sections were HBoxes of cards, so their minimum was the sum of the cards. They flow, needing one card of width. | `test_the_advancement_sections_need_only_one_card_of_width` | AD1, AD2 |
+| Creation summary | It printed storage keys (`COMFORTABLE_MEGACITY`) where the player reads names. | `test_the_creation_summary_shows_names_not_storage_keys` | DN1 |
+| Add Member | **A blank page, and its Create button added nobody.** It navigated to `SimpleCharacterCreator` as a whole screen; that script hid itself in `_ready()`, its `character_created` had no listener, and it rolled stats with an invented `ceil(2D6/3)`. The layout sweep force-shows hidden roots, so it measured that screen visible and green. Crew Management now hosts the creator the wizard and the Campaign Editor use (`CharacterCreator.tscn`) as an overlay, and adds through `add_crew_member()`. SimpleCharacterCreator.gd is deleted. | `test_crew_add_member.gd` | CR1-CR3 |
+
+### Campaign dashboard, journal, patrons and rivals
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Header | Between turns the header read "Turn 9 — None". It reads "Turn 9". | `test_between_turns_the_header_names_no_placeholder_phase` | DH1 |
+| Journal | An empty journal said its filters hid everything. It says the journal is empty. | `test_an_empty_journal_is_not_called_over_filtered` | JE1 |
+| Patron cards | A patron card printed an invented relationship score and an empty status line. | `test_patron_rival_manager_reads_real_rivals.gd` | PR1, PR2 |
+
+### World phase and post-battle
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Crew-task dice | Find a Patron, Recruit, Track and Repair (pp.77-78), the loot subtables (pp.131, 134) and the Military Weapon Table (p.28) rolled with raw `randi()`, so the QA "Force the next roll" rows queued values nothing consumed. They roll through `DiceManager`. | `test_crew_task_and_salvage_dice_forcing.gd` (each case forces two values landing in different rows) | C1-C4 |
+| Training (p.25, p.125) | The Compendium courses were sold in Advancement for credits alone, with no application roll, and stored as traits nothing read. They are offered by the step-10 dialog. Instructor waives the fee and the roll. Fixer adds +1 to patron and recruit rolls, and a Broker adds +1 to Find a Patron. | `test_compendium_training_wiring.gd` | TR1-TR5 |
+| Ship Components (p.60) | **Every Component was free.** The screen asked the `GameState` autoload for `get_credits()`/`remove_credits()`, which it does not have, so the guard was always false. The dead-guard lint cannot see it, because both names exist on `GameStateManager`. One Component per turn, working from the next turn. The screen's second copy of Upkeep (Repair, Pay Debt) and its fuel tank are gone. | `test_ship_component_purchase.gd`; the voucher order in `test_training_and_reward_wiring.gd` | SH1-SH5 |
+| Bot upgrades (p.123, Compendium p.26) | **Every Bot read 0 credits** (the sheet read credits from `GameState`) and the install was rejected before it ran (a Node passed to a Resource parameter). "Each ability score can be upgraded only once" had no record (`bot_upgraded_stats` was declared nowhere). Improved armor casing's 5+ save, the Multi-wave scanner's Seize +1, the Deflection module and the p.46 built-in save now reach the battle and the auto-resolver. Salvage pays toward an upgrade (p.147). | `test_bot_upgrades.gd` | BU1-BU9, BU10 (rerun), BU11 |
+
+### Battle screen (`TacticalBattleUI`) and PreBattle
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Core checklist | The checklist offered a "Roll d100" beside the p.88 and p.89 steps, which were already rolled before the battle, so a player could get a second answer. Its Seize step taught an invented "Roll 1d6, on a 6" rule, where p.112 is 2D6 plus the crew's best Savvy, 10+. The dice row (`DualInputRoll`) rolled raw, and as an HBox it set the battle modal's width past a phone's edge; it wraps. | `test_dual_input_roll_and_core_checklist.gd` | K1-K4 |
+| Objective panel | A free "Reroll" drew a new objective and displayed it while the tracker scored the original. Every battle was labelled "Opportunity". | `test_objective_display_read_only.gd` | O1, O2 |
+| Fickle Scans (Compendium p.34) | It named the sight from a `name` key the roller never writes, so the log read "(unknown)", and the removal flag had no reader, so the marker stayed on the map. | `test_fickle_scans.gd` | F1-F4 |
+| Figure cards | No card ever named a weapon: `_unit_card_dict()` never carried the key. Crew read the equipment database, so a Hand Cannon is not missed by a name filter. A tap kept the card's tier strip. | `test_battle_card_weapons.gd` | WC1-WC3 |
+| Modal chrome | A tall modal ran its title and scrollbar under the floating Settings buttons on a phone. It is centred in the space below them. | `test_battle_modal_clears_chrome.gd` | MC1 |
+| Font sizes | 27 sites wrote a fixed size while the other 24 scaled through `_scaled_font()`, so the crew rail, terrain controls, psionics card and end-of-phase checklist kept a desktop size on a phone. | `test_the_battle_screen_scales_every_font_size` | FS1 |
+| Enemy dice | The p.63 count, the p.94 encounter column, the category tables, the p.104 weapon tables and the pp.105-107 Unique Individuals rolled raw, so a Unique Individual or a Roving Threat could be walked on a device only by luck. | `test_enemy_dice_forcing.gd` | D1-D6 |
+| Auto-resolve finds | Every auto-resolver returned a random 0-2 `battlefield_finds` count, in neither book and read by nothing. p.120 rolls once when you Held the Field, and `PaymentProcessor.process_battlefield_finds()` decides how many (two for Scavengers, p.94). | `test_an_auto_resolved_win_carries_no_invented_finds_count` and each resolver's shape case | FC1-FC4 |
+
+### Compendium salvage, reference and help
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Salvage dice (pp.137-146) | Every Salvage Job table and the p.137 availability roll rolled raw. They go through `DiceManager`, as one helper (`roll_die`) the resolver also uses. | `test_the_salvage_tables_can_be_forced`, `test_salvage_availability_can_be_forced` | S1-S3, S4/S5 (rerun), S6 |
+| Mission pages | "Mission Types" rendered `mission_templates.json` under a Core Rules label: credit rewards of 100-1500, a 1-5 difficulty, and objectives in neither book. The pages read `data/mission_tables/`, which `MissionTableManager` rolls from, and the objectives page lists p.89's. The Rival note quotes p.91. | `test_compendium_mission_reference.gd` | MR1-MR3 |
+| Category view | The description sat above the list and did not scroll with it. | `test_the_category_description_scrolls_with_the_list` | CV1 |
+| Context help | **`help_context_map.json` named a section for every screen, and nothing read it**: `get_context_help()` had no caller, and `HelpScreen` ignored its section argument. The "?" chrome button opens the guide at the screen's section, in place, as Settings opens (navigating to Help would free a half-filled wizard). | `test_context_help_overlay.gd` | H1-H4 |
+| Store chapter | **Chapter 13 listed the packs' contents differently from the Store.** It put Skulker and Psionics in the wrong packs and named features nothing in the app is called ("Loans System", "Prison Planet Campaigns"). The text was there before this sprint. The lists are rewritten from `DLCContentCatalog`, which builds the Store's cards. | `test_the_store_chapter_lists_each_pack_as_the_store_sells_it` | H5 |
+
+### Bug Hunt co-op (Sprint 5 UI, agent-built, verified here)
+
+Four agent arms were re-run independently in batch G, plus B1: sector Priority from the map
+(p.211), a refused sector generating nothing, a victory recorded once, the map rolled once at
+Launch, and the post-battle panel telling the resolver it is a co-op campaign. All DETECTED.
+
+### Colours, cross-cutting
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Inline hexes | **137 `Color("#...")` literals in 22 UI files**, most of them the OLD values of tokens `UIColors` has since moved (`#D97706` was `COLOR_WARNING`, `#252542` `COLOR_ELEVATED`, `#4FC3F7` `COLOR_FOCUS`). The battle screens drew a palette the rest of the app had left, and comments such as `Color("#1A1A2E")  # COLOR_BASE` named a token the code did not use. Each maps back to its token. Hover shades derive from their base token (`lightened()`), so a hover stays lighter than its button. PreBattle's selected crew toggle is `COLOR_ACCENT.darkened(0.5)`, because light text on the bare accent measures about 3.3:1. Three categorical palettes (die tints, event-art tints, the activation toast) are named consts. Rendered after the change: Simulator setup, battle and results at both sizes (`user://shots/hex_*`). | `test_ui_scripts_write_no_inline_hex_colours` | HX1 |
+| Token names | 16 consts in five files bound a token's own NAME to a legacy hex (the Simulator screens, `TerrainLegendStrip`, `SectorRulesPopover`): the `TerrainLegendStrip` trap CLAUDE.md records, still live. Each is the token now. | `test_no_const_restates_a_token_with_a_hex` | HX2 |
+| Avatars | Five screens kept their own copy of the coloured-initials list, and the Bug Hunt squad's was a different palette, so a character moved between modes changed colour. One `UIColors.AVATAR_COLORS`, read through `avatar_color()`. | `test_every_avatar_reads_the_one_palette` | HX3 |
+| The reference | `deep-space-theme.md` listed the legacy values as "Still Supported", and the QA checklist (DS-01..DS-11) and the Bug Hunt reference prescribed them, so a correct screen would have failed QA. All three now point at `UIColors.gd`. | — | — |
+| `get_visible_rect` | **Audited: 60 code reads in `src/ui`, none deciding orientation.** The eight that compare height with width are all fallbacks for a missing `ResponsiveManager`, an autoload, so dead in the app. Six compare one axis with a design-pixel threshold (a fit question). The other 46 are single-axis size reads for popups, columns and margins. | — | — |
+
+### Rendered and swept, no change
+
+Captured at both sizes, read against the step they serve, and measured by the windowed sweep
+(295/296 before CV1; the one failure was the category view, fixed above). No defect found:
+the Campaign Editor, Equipment Generation, the six World Phase steps, PreBattle, the
+Post-Battle sequence (14 steps), Galaxy Log (the long title truncates with an ellipsis),
+Print Sheets, Settings, Store, the Legal viewer, the EULA (Accept and Decline reachable on a
+phone) and Game Over. MainMenu sits behind the first-launch EULA gate in the capture profile,
+which holds no consent, and consent is not written into `user://` to get past it; its
+geometry comes from the sweep.
+
+### CONFIRMED (read, no change)
+
+- **Co-op stash:** Compendium p.210 says 1D6 Support points and p.211 says "+5". The code
+  follows p.210, the procedural page, and `bug_hunt_coop_campaign.json` records
+  `stash_size_contradiction`.
+- **Bot stat upgrades are once per ability score** (Core Rules p.123: "Each ability score can
+  be upgraded only once"), as the sheet now enforces.
+- **PreBattle remembers the representation mode.** Its only writer is `PreBattleUI:1334`, on
+  the player's own pick. By design.
+- **`reactions` vs `reaction`:** one property, with a bridge alias (`src/core/character/Character.gd:117`).
+- **The `CampaignScreenBase` stat strip** (`Models:1  Battles:0`) is the shared helper's
+  format, legible on the 5PFH crew screens; unchanged.
+
+### Filed for Sprint 6 (found here, outside this pass's screens)
+
+Each was read, not inferred, and goes to the Sprint 6 table in the plan:
+`WorldGenerator`'s danger, tech, government, population, locations and special features with
+bogus pp.80-86 cites, and `WorldInfoPanel`'s `WORLD_TEMPLATES` and `_generate_world_traits`;
+`PostBattleContext.add_patron()`'s no-argument path (`:729-755`) and
+`PatronManager.generate_patron()` / `required_skills`; the p.70 Raided count
+(`calculate_raided_enemy_count`, zero callers); `EnemyGenerationWizard` (unreachable), with
+`WeaponTableSystem`'s weighted table and `_determine_enemy_category`'s 70/30 split, the last
+raw D100s in `EnemyGenerator`; `CrewTaskComponent`'s fabricated Rival shape (`:4102-4106`);
+`generate_random_encounter()` (zero callers); the `Character.weapons` substring heuristic;
+and the background display name kept in at least five copies (`src/core/character/Character.gd:919`,
+`CharacterGeneration.gd:113`, `CharacterCreator.gd:66`, `background_table.json`,
+`character_creation_bonuses.json`) while `GlobalEnums.get_background_display_name()` only
+capitalises the key.
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -366,6 +496,53 @@ Recorded so the next reader does not trust a green case that cannot fail.
   was re-run and read by its `Overall Summary` line: 30 suites, 486 / 486, 0 errors,
   0 failures. Read a batch by its total, never by a tail of its parts.
 
+- **The capture tool reported Settings running off a phone, and it did not.**
+  `capture_modes.gd` sized the window before mounting each screen and again before each
+  shot. SettingsScreen restores `user://window.ini` (1600x2560) on entry and builds at
+  that size, so the phone shot was a tablet-type page shrunk to 393x851. `verify_layout`
+  and `verify_rotation` have carried a guard for this since T11-04, and this tool did not.
+  The tool now rebuilds a screen that moved the window, re-applying the size before
+  freeing, as the sweeps do. The re-capture prints `NOTE SettingsScreen.tscn moved the
+  window to 1600x2560; rebuilt at 393x851` and the page fits. The same run fixed a second
+  artifact: MainMenu routes to the EULA through `SceneRouter`, that screen outlived the
+  capture, and its title showed through under the Store header. Anything a shared screen
+  adds to the root is now freed with it.
+- **S4, S5, first runs UNDETECTED.** The salvage cases (Tension, Authorities) forced one
+  value on tables with only a few rows, so a raw roll could land in the forced row and pass
+  with the routing reverted. Each case now forces two values that land in different rows.
+- **BU10, first run `NO STATISTICS`.** The revert left the file unparseable, so the suite
+  loaded no cases. That reads like an undetected arm and measures nothing. The rerun used a
+  revert that parses, and it is DETECTED.
+- **HR3, first run UNDETECTED.** The case counted the hero-card action row by NAME. A row
+  rebuilt per page collides on its name, Godot renames it `@HFlowContainer@N`, and the count
+  misses it. The case counts the buttons by their text, which Godot never renames.
+- **EM2, first run UNDETECTED.** The case called the details handler with the item, which
+  skipped the grid's binding, the thing reverted. The rerun drives the grid button.
+- **CF13: a BAD CONTROL, then UNDETECTED, then a deterministic case.** The unreverted
+  control failed once: the walk rolls its names, and one roll gave the captain an XL name
+  wider than a phone. A 30-walk hunt in one process named that driver (CF13 itself was the
+  world name). Rolled world names are short, so the walk could not fail on them, and the
+  arm was UNDETECTED on rerun. Both are now set, not rolled, in their own cases, and the
+  arms are DETECTED. A fit test over random data needs a pinned worst case beside it.
+- **CF9 and CF12 stay UNDETECTED, by measurement.** The crew card's stat row measures
+  240 px as an HBox, inside the phone's column, so its flow is a guard against a longer
+  label rather than a fix for a failure. The flavor row's width depends on which result is
+  rolled.
+- **The wizard is swept at step 1 only.** `verify_layout` builds `CampaignCreationUI` and
+  measures the step it opens on, so steps 4, 5 and 7 ran off a phone with the sweep green.
+  `test_creation_steps_fit_a_phone.gd` walks all seven.
+- **The hex guard's premise was a guess.** It first asserted more than 300 UI scripts were
+  scanned. There are 237, and the premise failed before the guard ran. It reads 200 now,
+  with the measured count in its message.
+- **The first full gate (`su5p`) caught a source anchor my Ship fix moved.**
+  `test_training_and_reward_wiring.gd` checks that the p.134 voucher is spent after the
+  affordability check, and it found the check by the text `if current_credits < `. SH1
+  replaced that guard (it asked an autoload that has no `get_credits()`), so the anchor
+  matched nothing and the case failed on `-1 > -1`. The suite stopped there, and fail-fast
+  hid its five later cases: 4270 executed of 4275 declared. The order the case protects
+  still held. The anchor is now the new read, `gsm.get_credits() < `, and arm SH5 (spending
+  the voucher above the guard) is DETECTED.
+
 ## Gates
 
 | Run | Suites | Executed / declared | Errors | Failures | Lints |
@@ -379,6 +556,7 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | sut (Tactics pass, X16, X17) | 366 | 4072 / 4072 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=tactics` 24/24. Every Tactics arm DETECTED or UNDETECTED-by-design with a measurement (arms log) |
 | sub3 (Bug Hunt pass, and the Planetfall battle checklist) | 368 | 4090 / 4090 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=bug_hunt` 24/24 and `-- only=planetfall` 24/24; `test_touch_scroll_sweep` 3/3. The third full run: `sub` failed two instruments and `sub2` a pre-existing intermittent case (see Instruments) |
 | susim2 (Battle Simulator pass) | 369 | 4103 / 4103 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=battle_simulator` 8/8; `test_touch_scroll_sweep` 3/3; 22 arms DETECTED (`su_sim/arms_sim.log`). The first run, `susim`, read 4095 / 4102 with one failure: three source anchors of mine (see Instruments) |
+| su5p2 (5PFH and shared pass, Sprint 5 Co-op, guide chapters 16-18) | 392 | 4276 / 4276 | 0 | 0 | 8/8 exit 0; `files=578 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout` (full) 296/296; `test_touch_scroll_sweep` 4/4; 123 arms DETECTED, 2 UNDETECTED by measurement (`su_5p/arms_5p.log`). Declared 4275 at launch: the +1 is the chapter-13 case added during the run, and the recount on the final tree is 4276. The first run, `su5p`, read 4270 / 4275 with one failure, a source anchor my SH1 fix moved (see Instruments) |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3
@@ -388,40 +566,15 @@ re-counted the same batch on the final tree at 399 / 399, which confirms it.
 
 Every mode in this list still needs the same pass: capture, verdict and fix.
 
-- **5PFH and shared**: MainMenu, Settings, Help, Store, Compendium, Legal, Journal, Galaxy
-  Log, Print Sheets, and the battle screens. **Measured already (2026-10-28, full windowed
-  `verify_layout`, 240/248):** all 8 failures are `CharacterDetailsScreen`, at every size.
-  `InitialsLabel` is drawn over `PortraitIcon` (11-17 × 67 px), `__ChangePortraitBtn` and
-  `__PrintSheetBtn` are under 48 dp, and at phone portrait and small phone the page runs off
-  the right edge. No file on that screen's path changed this sprint, and it sweeps before
-  any variant screen, so the new baseline restore is a no-op for it. These are existing
-  defects, owed in this pass. Also owed here: the shared
-  `CampaignScreenBase._create_character_card()` prints its stat row as `Models:1  Battles:0`
-  (`"%s:%s"`, `:1029`), seen on the Tactics unit cards. The 5PFH crew screens use the same
-  helper, so the format is judged on that pass, not changed from a variant mode.
-  **Found on the Bug Hunt pass and owed here:** the Core checklist's `DualInputRoll` row
-  repeats its check box's text in a ContextLabel and is the 5PFH battle modal's width
-  driver (360 px; it is why PF6 and BH7 fail on a phone); `DualInputRoll._generate_roll()`
-  rolls raw `randi_range`, so no QA seam can force it; and the Settings and bug-report
-  buttons sit over the battle modal's top-right corner in every mode (no text is
-  hidden at the captured sizes, but they cover the scrollbar).
-  The p.137 salvage-availability D6 (`compendium_salvage_jobs.gd:127`, and its fallback in
-  `SalvageJobGenerator.find_salvage_job()`) is a raw `randi_range`, so no QA seam can force
-  the "no job" row either.
-  **Found on the Battle Simulator pass and owed here (shared screens):** the battle
-  screen's crew cards show no weapon (`TacticalBattleUI._unit_card_dict()` carries none);
-  Fickle Scans (Compendium p.34) names the removed sight with `sight.get("name")`, but the
-  p.89 roller writes `{type, effect, roll}`, so it prints "unknown"; the companion-level
-  modal's title sits under the Settings buttons on a phone; `mission_templates.json` has no
-  `_source` and its title tables are unprovenanced; `HelpContentLoader.get_context_help()`
-  has no caller, so no screen's help button can reach `help_context_map.json` (it lands with
-  the Sprint 7 chapters); and raw `randi_range(1, 100)` D100s remain in `EnemyGenerator`
-  (four), `MissionObjectiveSystem`, `SalvageResolver` and `WeaponTableSystem`, each to be
-  checked for a live caller before it is routed.
+- **5PFH and shared: walked 2026-10-29.** See "5PFH and shared — per screen". Every
+  item this list carried for it is a row there, including the Character Details
+  sweep failures and the items found on the Bug Hunt and Simulator passes.
 - **Planetfall turn steps beyond Recovery**: the sweeps build the Turn Controller resumed at
   Step 1, so the other seventeen step panels are measured only by their own suites.
-- Cross-cutting work still owed: help keys for 19 router screens, hex-to-token in the
-  remaining ~14 files, `TacticalBattleUI` literal font sizes and autowrap, the
-  and the `get_visible_rect` audit. Planetfall (X15), Tactics (X16) and Bug Hunt are in
-  both sweeps (`verify_layout -- only=bug_hunt` 24/24). The help keys resolve to mode chapters that do not exist yet,
-  so they land with those chapters in Sprint 7 (UX-0b), not as keys pointing at nothing.
+- Cross-cutting: the help keys are no longer owed. During this pass, an agent working ahead on Sprint 7 (UX-0b) wrote chapters
+  16-18 (Planetfall, Tactics, Battle Simulator) and gave every router screen a `help_context_map.json` key,
+  pinned by `test_help_guide_ships.gd`. I checked the three chapters mechanically: every label they name is in
+  the code or is a template, and no rules number is restated without its page. Still owed for Sprint 7:
+  chapter 19 (Co-op Campaign) and a read of 16-18 on the device. Done in the 5PFH pass: `TacticalBattleUI`
+  font sizes (FS1), hex to token (HX1-HX3), and the `get_visible_rect` audit. Planetfall (X15), Tactics (X16)
+  and Bug Hunt are in both sweeps.

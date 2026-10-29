@@ -9,11 +9,11 @@
 
 ## Overview
 
-Bug Hunt is a standalone military campaign variant included in the Compendium DLC. It offers a streamlined, combat-focused experience where you lead a military squad against alien threats. If the standard Five Parsecs campaign is a crew-driven space opera, Bug Hunt is a tight, tactical military thriller.
+Bug Hunt is a standalone military campaign variant from the Compendium. It offers a streamlined, combat-focused experience where you lead a military squad against alien threats. If the standard Five Parsecs campaign is a crew-driven space opera, Bug Hunt is a tight, tactical military thriller.
 
 Bug Hunt has its own campaign creation, turn structure, and progression system. It's a separate game mode — you access it from the Main Menu, not from within a standard campaign.
 
-**Requires**: Compendium DLC (Fixer's Guidebook or complete Compendium pack)
+**Unlocking**: Bug Hunt is sold separately from the three Compendium packs, with its own card under **Game Modes** on the Store screen. In an alpha build the Main Menu button shows a "coming in a later release" note instead of opening the mode. See {{chapter:01}} and {{chapter:13}}.
 
 ## Key Differences from Standard Campaign
 
@@ -95,7 +95,6 @@ Select and execute a combat mission:
 
 The battle uses the same **TacticalBattleUI** as standard campaigns, but in `bug_hunt` mode:
 - Morale tracker is hidden (Bug Hunt uses its own system)
-- Contact Marker Panel is added (tracking detected threats)
 - Standard battle features otherwise function the same
 
 ### Stage 3: Post-Battle
@@ -130,12 +129,14 @@ These powerful abilities can turn the tide of a difficult battle but can only be
 The **CharacterTransferService** allows bidirectional character transfer between standard Five Parsecs campaigns and Bug Hunt:
 
 ### Transferring to Bug Hunt
+- On the Bug Hunt dashboard, press **Enlist from 5PFH**
 - Select a character from your standard campaign
 - Character undergoes an **enlistment roll** to join the military squad
 - Stats and skills carry over
 - Equipment may change to military standard
 
 ### Transferring from Bug Hunt
+- On the Bug Hunt dashboard, press **Muster Out to 5PFH**. A transfer file is written, and the standard campaign picks it up the next time you open its dashboard
 - Select a main character from your Bug Hunt campaign
 - Character returns to civilian life
 - Military experience carries over as stat bonuses
@@ -143,7 +144,7 @@ The **CharacterTransferService** allows bidirectional character transfer between
 ### Important Notes
 - Transfer is between saved campaigns — both must exist
 - Grunts cannot be transferred (they're expendable by design)
-- Transfer creates a copy — the original remains in their campaign
+- The character is removed from the campaign they left once they have arrived in the new one, so they exist in one campaign at a time
 
 ## Tips for Bug Hunt
 

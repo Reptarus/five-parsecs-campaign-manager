@@ -3,10 +3,22 @@
 class_name CrewManagementScreen
 extends CampaignScreenBase
 
-const MAX_CREW_SIZE := 8
+## Core Rules p.63: the campaign crew size (4/5/6) is how many deploy, and 6 is
+## the default the config step offers. It is NOT a roster cap: p.85 says "You may
+## select no more than 6 crew members to bring into a battle. The rest will wait
+## behind on the ship." This file used to hold an unsourced roster cap of 8, which
+## only ever bound for Character-resource cards, because dictionary cards (every
+## saved crew) were never counted.
+const DEFAULT_DEPLOY_SIZE := 6
 const CharacterCardScene := preload("res://src/ui/components/character/CharacterCard.tscn")
 ## T11-28. No class_name on that file, so it must be preloaded.
 const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
+## Add Member opens the SAME creator the wizard and the Campaign Editor use, as an
+## overlay on this screen. It used to navigate to SimpleCharacterCreator, a scene
+## that hid itself in _ready(), that nothing listened to once it was a whole screen,
+## and that rolled stats with an invented ceil(2D6/3) formula.
+const CharacterCreatorScene := preload("res://src/ui/screens/character/CharacterCreator.tscn")
+const CharacterCreatorScript := preload("res://src/core/character/Generation/CharacterCreator.gd")
 
 # ============ NODE REFERENCES ============
 @onready var crew_grid: GridContainer = %CrewGrid
@@ -17,8 +29,12 @@ const TapGestureRef = preload("res://src/ui/components/common/TapGesture.gd")
 
 # ============ STATE ============
 var current_campaign = null
-var character_cards: Array[CharacterCard] = []
+## Every card on the grid, Character and Dictionary members alike. Dictionary cards
+## were not tracked, so _clear_crew_grid() never freed them and every reload (Add
+## Member included) stacked a second copy of the roster under the first.
+var character_cards: Array[Control] = []
 var current_columns: int = 1
+var _character_creator: Control = null
 
 func _setup_screen() -> void:
 	# Setup responsive grid
@@ -171,6 +187,7 @@ func _create_character_card_entry(character) -> void:
 		var card := _create_character_card(
 			display_name, subtitle, stats, "", name_str)
 		crew_grid.add_child(card)
+		character_cards.append(card)
 
 		# Make dict-based cards tappable → navigate to character details.
 		# T11-28: fires on RELEASE, so dragging the crew list to scroll it no
@@ -182,16 +199,11 @@ func _create_character_card_entry(character) -> void:
 func _update_crew_count() -> void:
 	if not crew_count_label:
 		return
+	# Every card is tracked now, dictionary members included. Counting the grid's
+	# children instead also counts the cards a reload has queued for freeing.
 	var crew_size := character_cards.size()
-	# Also count any dictionary-based cards added directly
-	if crew_grid:
-		crew_size = max(crew_size, crew_grid.get_child_count())
-	var max_crew := _get_max_crew_size()
-	crew_count_label.text = "Crew: %d/%d" % [crew_size, max_crew]
-	if crew_size >= max_crew:
-		crew_count_label.add_theme_color_override("font_color", COLOR_WARNING)
-	else:
-		crew_count_label.remove_theme_color_override("font_color")
+	# A roster larger than the deploy size is legal (p.85), so it is not a warning.
+	crew_count_label.text = "Crew: %d · deploy up to %d" % [crew_size, _get_max_crew_size()]
 
 ## M6: the campaign's fixed crew-size setting (Core Rules p.63 — 4/5/6) via the
 ## GameState chain, NOT the hardcoded roster ceiling. Falls back to the const.
@@ -201,7 +213,7 @@ func _get_max_crew_size() -> int:
 		var n: int = gs.get_campaign_crew_size()
 		if n > 0:
 			return n
-	return MAX_CREW_SIZE
+	return DEFAULT_DEPLOY_SIZE
 
 ## T11-31 - the species/origin name, from the file that owns it.
 ##
@@ -263,12 +275,39 @@ func _actually_remove_character(character: Character) -> void:
 # ============ BUTTON HANDLERS ============
 
 func _on_add_member_pressed() -> void:
-	if character_cards.size() >= MAX_CREW_SIZE:
-		push_warning("CrewManagementScreen: Cannot add member - crew at maximum size")
+	_ensure_character_creator()
+	$MarginContainer.hide()
+	_character_creator.start_creation(CharacterCreatorScript.CreatorMode.CHARACTER)
+
+
+func _ensure_character_creator() -> void:
+	if _character_creator:
 		return
+	_character_creator = CharacterCreatorScene.instantiate()
+	_character_creator.set_anchors_and_offsets_preset(PRESET_FULL_RECT)
+	_character_creator.hide()
+	add_child(_character_creator)
+	_character_creator.character_created.connect(_on_character_created)
+	_character_creator.creation_cancelled.connect(_hide_character_creator)
+
+
+func _on_character_created(character) -> void:
+	_hide_character_creator()
+	if current_campaign == null or character == null or not character.has_method("to_dictionary"):
+		return
+	# The crew-addition chokepoint: it appends a Dictionary, forces is_captain off
+	# and rebuilds the id index.
+	current_campaign.add_crew_member(character.to_dictionary())
 	var gsm = get_node_or_null("/root/GameStateManager")
-	if gsm and gsm.has_method("navigate_to_scene_path"):
-		gsm.navigate_to_scene_path("res://src/ui/screens/character/SimpleCharacterCreator.tscn")
+	if gsm and gsm.has_method("mark_campaign_modified"):
+		gsm.mark_campaign_modified()
+	load_crew_data()
+
+
+func _hide_character_creator() -> void:
+	if _character_creator:
+		_character_creator.hide()
+	$MarginContainer.show()
 
 func _on_save_pressed() -> void:
 	if _game_state and _game_state.has_method("save_campaign"):

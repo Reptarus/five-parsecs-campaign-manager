@@ -220,21 +220,14 @@ func _add_character_card(mc: Dictionary) -> void:
 	avatar.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	avatar.custom_minimum_size = Vector2(40, 40)
 	avatar.add_theme_font_size_override("font_size", _scaled_font(16))
-	# Deterministic color from name hash (8 colors like CharacterCard)
-	var avatar_colors := [
-		UIColors.COLOR_CYAN, Color("#81C784"), Color("#FFB74D"),
-		Color("#E57373"), Color("#BA68C8"), Color("#4DD0E1"),
-		Color("#AED581"), Color("#FF8A65"),
-	]
-	var color_idx: int = char_name.hash() % avatar_colors.size()
-	if color_idx < 0:
-		color_idx += avatar_colors.size()
+	# The same colour this character has on every other screen.
+	var avatar_color: Color = UIColors.avatar_color(char_name)
 	var avatar_bg := StyleBoxFlat.new()
-	avatar_bg.bg_color = avatar_colors[color_idx].darkened(0.4)
+	avatar_bg.bg_color = avatar_color.darkened(0.4)
 	avatar_bg.set_corner_radius_all(20)
 	avatar_bg.set_content_margin_all(4)
 	avatar.add_theme_stylebox_override("normal", avatar_bg)
-	avatar.add_theme_color_override("font_color", avatar_colors[color_idx])
+	avatar.add_theme_color_override("font_color", avatar_color)
 	hbox.add_child(avatar)
 
 	var info := VBoxContainer.new()

@@ -488,8 +488,12 @@ func _validate_config_with_warnings() -> Dictionary:
 		(result.warnings as Array).append("Difficulty level not set - will use default")
 		result.has_warnings = true
 
-	if not config.has("crew_size") or int(config.get("crew_size", 0)) == 0:
-		(result.warnings as Array).append("Crew size not set - will use default of 4")
+	# campaign_crew_size is the key the config step writes and the rules read
+	# (Core Rules p.63). This read "crew_size", which nothing writes, so the
+	# warning fired on every campaign, and its "default of 4" was not the
+	# default either: the config step defaults to 6.
+	if int(config.get("campaign_crew_size", 0)) == 0:
+		(result.warnings as Array).append("Crew size not set - will use default of 6")
 		result.has_warnings = true
 
 	return result
@@ -519,11 +523,6 @@ func _validate_crew_with_warnings() -> Dictionary:
 
 	if not bool(crew.get("has_captain", false)):
 		(result.warnings as Array).append("No captain assigned - will be set during captain creation")
-		result.has_warnings = true
-
-	# Check backend integration (warning only)
-	if not bool(crew.get("backend_generated", false)):
-		(result.warnings as Array).append("Crew not generated via backend system (using fallback)")
 		result.has_warnings = true
 
 	# AN OVER-SIZE ROSTER BLOCKS. Everything above is a warning because the step
@@ -601,7 +600,9 @@ func _validate_captain_with_warnings() -> Dictionary:
 		(result.warnings as Array).append("Captain name not set - will use default")
 		result.has_warnings = true
 
-	if not captain.has("combat") or int(captain.get("combat", 0)) < 1:
+	# Combat Skill is a signed modifier and +0 is the Human baseline (Core Rules
+	# p.15), so only an ABSENT value is unset. "< 1" warned on a legal captain.
+	if not captain.has("combat"):
 		(result.warnings as Array).append("Captain combat stats need setting")
 		result.has_warnings = true
 
@@ -676,11 +677,6 @@ func _validate_equipment_with_warnings() -> Dictionary:
 
 	if not bool(equipment.get("is_complete", false)):
 		(result.warnings as Array).append("Equipment setup marked as incomplete")
-		result.has_warnings = true
-
-	# Backend integration warning
-	if not bool(equipment.get("backend_generated", false)):
-		(result.warnings as Array).append("Equipment not generated via backend system (using fallback)")
 		result.has_warnings = true
 
 	return result

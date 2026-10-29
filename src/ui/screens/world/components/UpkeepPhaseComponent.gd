@@ -959,7 +959,7 @@ func _build_travel_section() -> void:
 			inv_lbl.autowrap_mode = (
 				TextServer.AUTOWRAP_WORD_SMART)
 			inv_lbl.add_theme_color_override(
-				"font_color", Color("#FF6B6B"))
+				"font_color", UIColors.COLOR_DANGER)
 			inv_lbl.add_theme_font_size_override(
 				"font_size", _scaled_font(15))
 			inv_banner.add_child(inv_lbl)

@@ -77,12 +77,12 @@ MainMenu → BugHuntCreationUI (4-step wizard) → BugHuntDashboard → BugHuntT
 - Simpler single-phase display
 - TweenFX animations: press, breathe, punch_in, fade_in
 
-### Colors (hardcoded Deep Space theme)
-```
-COLOR_BASE: #1A1A2E, COLOR_ELEVATED: #252542, COLOR_TEXT: #E0E0E0
-COLOR_TEXT_SEC: #808080, COLOR_BORDER: #3A3A5C
-COLOR_SUCCESS: #10B981, COLOR_WARNING: #D97706, COLOR_ACCENT: #2D5A7B
-```
+### Colors
+Use the `UIColors` tokens (`COLOR_BASE`, `COLOR_ELEVATED`, `COLOR_TEXT_PRIMARY`,
+`COLOR_TEXT_SECONDARY`, `COLOR_BORDER`, `COLOR_SUCCESS`, `COLOR_WARNING`, `COLOR_ACCENT`);
+their values live in `src/ui/components/base/UIColors.gd`. ⚠ This block used to list
+hexes (`#1A1A2E`, `#252542`, `#808080`, ...) that are the LEGACY palette; never copy a hex
+into a UI script (`test_ui_color_tokens.gd` fails on one).
 
 ## SceneRouter Keys
 ```

@@ -44,6 +44,11 @@ const COLOR_ELEVATED := UIColors.COLOR_SECONDARY
 const COLOR_ACCENT := UIColors.COLOR_BLUE
 const COLOR_ACCENT_HOVER := UIColors.COLOR_ACCENT_HOVER
 const COLOR_FOCUS := UIColors.COLOR_CYAN
+# Placeholder art backgrounds, tinted by what the event does (money, danger, dice).
+const ART_TINT_MONEY := Color("#1E2A1E")
+const ART_TINT_DANGER := Color("#2A1E1E")
+const ART_TINT_DICE := Color("#1E1E2A")
+const ART_TINT_DEFERRED := Color("#1E2A2A")
 const COLOR_TEXT_PRIMARY := UIColors.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SECONDARY := UIColors.COLOR_TEXT_SECONDARY
 const COLOR_TEXT_GOLD := Color("#FFD700")
@@ -273,13 +278,13 @@ func _build_art_area() -> Control:
 	var event_type: int = _event_data.get("type", EventType.INFO_ONLY)
 	match event_type:
 		EventType.GAIN_CREDITS, EventType.ROLL_FOR_CREDITS, EventType.SELL_WEAPONS:
-			art.color = Color("#1E2A1E") # Green tint for money
+			art.color = ART_TINT_MONEY
 		EventType.GAIN_RIVAL, EventType.DISCARD_ITEM, EventType.SICK_BAY:
-			art.color = Color("#2A1E1E") # Red tint for danger
+			art.color = ART_TINT_DANGER
 		EventType.ROLL_ON_TABLE, EventType.ROLL_FOR_BONUS:
-			art.color = Color("#1E1E2A") # Blue tint for dice
+			art.color = ART_TINT_DICE
 		EventType.DEFERRED:
-			art.color = Color("#1E2A2A") # Cyan tint for deferred
+			art.color = ART_TINT_DEFERRED
 		_:
 			art.color = COLOR_ELEVATED
 	return art

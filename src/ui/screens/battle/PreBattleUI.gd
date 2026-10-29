@@ -377,7 +377,7 @@ func _setup_portrait_chrome() -> void:
 func _apply_base_background() -> void:
 	var bg := ColorRect.new()
 	bg.name = "__phase_bg"
-	bg.color = Color("#1A1A2E")  # COLOR_BASE
+	bg.color = UIColors.COLOR_BASE
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	bg.show_behind_parent = true
@@ -422,7 +422,7 @@ func set_deployment_condition(condition: Dictionary) -> void:
 	title.text = condition.get("title", "Unknown")
 	title.add_theme_font_size_override("font_size", _scaled_font(16))
 	title.add_theme_color_override(
-		"font_color", Color("#D97706"))
+		"font_color", UIColors.COLOR_WARNING)
 	mission_info_panel.add_child(title)
 
 	# Show canonical rule text from Core Rules p.88
@@ -497,7 +497,7 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 	header.name = "__scenario_rule_header"
 	header.text = "Before You Deploy"
 	header.add_theme_font_size_override("font_size", _scaled_font(16))
-	header.add_theme_color_override("font_color", Color("#4FC3F7"))
+	header.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	mission_info_panel.add_child(header)
 
 	if win_text != "":
@@ -506,7 +506,7 @@ func _setup_scenario_rules(data: Dictionary) -> void:
 		win_lbl.text = "◆ HOW YOU WIN: %s" % win_text
 		win_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		win_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
-		win_lbl.add_theme_color_override("font_color", Color("#10B981"))
+		win_lbl.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
 		mission_info_panel.add_child(win_lbl)
 
 	for i in range(terrain_lines.size()):
@@ -630,7 +630,7 @@ func _setup_mission_info(data: Dictionary) -> void:
 		if init_ctx.has("can_seize") and not bool(init_ctx["can_seize"]):
 			init_info.text = str(init_ctx.get("cannot_seize_reason",
 				"This scenario does not allow a Seize the Initiative roll."))
-			init_info.add_theme_color_override("font_color", Color("#D97706"))
+			init_info.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 		else:
 			# success_probability from SeizeInitiativeSystem is ALREADY a percentage
 			# (success_count / 36.0 * 100.0), matching InitiativeCalculator's usage.
@@ -640,7 +640,7 @@ func _setup_mission_info(data: Dictionary) -> void:
 				init_ctx.get("required_roll", 10),
 				init_ctx.get("highest_savvy", 0),
 				prob]
-			init_info.add_theme_color_override("font_color", Color("#4FC3F7"))
+			init_info.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 		init_info.add_theme_font_size_override("font_size", _scaled_font(14))
 		init_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mission_info_panel.add_child(init_info)
@@ -658,7 +658,7 @@ func _setup_mission_info(data: Dictionary) -> void:
 	# Live glanceable summary of the current two choices (updated on each pick).
 	_summary_label = Label.new()
 	_summary_label.add_theme_font_size_override("font_size", _scaled_font(12))
-	_summary_label.add_theme_color_override("font_color", Color("#4FC3F7"))
+	_summary_label.add_theme_color_override("font_color", UIColors.COLOR_CYAN)
 	_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	mission_info_panel.add_child(_summary_label)
 	_build_representation_selector()
@@ -684,8 +684,8 @@ func _setup_enemy_info(data: Dictionary) -> void:
 	# ── Stat table (GridContainer, 8 columns) ──
 	var table_panel := PanelContainer.new()
 	var table_style := StyleBoxFlat.new()
-	table_style.bg_color = Color("#252542")  # COLOR_ELEVATED
-	table_style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	table_style.bg_color = UIColors.COLOR_ELEVATED
+	table_style.border_color = UIColors.COLOR_BORDER
 	table_style.set_border_width_all(1)
 	table_style.set_corner_radius_all(4)
 	table_style.set_content_margin_all(4)
@@ -749,7 +749,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 			weapons_rtl.text = KeywordLinker.wrap_known_keywords(raw_value)
 			ScreenChrome.size_rich_text(weapons_rtl, _scaled_font(13))
 			weapons_rtl.add_theme_color_override(
-				"default_color", Color("#4FC3F7"))
+				"default_color", UIColors.COLOR_CYAN)
 			KeywordLinker.attach(weapons_rtl, _ensure_keyword_tooltip())
 			grid.add_child(weapons_rtl)
 			continue
@@ -761,11 +761,11 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		if i == 0:
 			# Enemy name in red
 			lbl.add_theme_color_override(
-				"font_color", Color("#DC2626"))
+				"font_color", UIColors.COLOR_DANGER)
 			lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		else:
 			lbl.add_theme_color_override(
-				"font_color", Color("#4FC3F7"))
+				"font_color", UIColors.COLOR_CYAN)
 		grid.add_child(lbl)
 
 	# Horizontal-scroll wrapper (Godot 4.6 ScrollContainer): the 8-col table
@@ -806,7 +806,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 			header_text += "  (Seize Init %+d)" % seize_init_mod
 		cat_header.text = header_text
 		cat_header.add_theme_font_size_override("font_size", _scaled_font(12))
-		cat_header.add_theme_color_override("font_color", Color("#10B981"))  # COLOR_SUCCESS
+		cat_header.add_theme_color_override("font_color", UIColors.COLOR_EMERALD)
 		container.add_child(cat_header)
 
 		if not category_rules.is_empty():
@@ -834,7 +834,7 @@ func _setup_enemy_info(data: Dictionary) -> void:
 		rule_rtl.text = KeywordLinker.wrap_known_keywords(str(rule))
 		ScreenChrome.size_rich_text(rule_rtl, _scaled_font(12))
 		rule_rtl.add_theme_color_override(
-			"default_color", Color("#D97706"))
+			"default_color", UIColors.COLOR_WARNING)
 		rule_rtl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		KeywordLinker.attach(rule_rtl, _ensure_keyword_tooltip())
 		container.add_child(rule_rtl)
@@ -860,7 +860,7 @@ func _setup_battlefield_preview(data: Dictionary) -> void:
 		var placeholder := Label.new()
 		placeholder.text = "Terrain suggestions not available.\nSet up terrain on your physical table as desired."
 		placeholder.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		placeholder.add_theme_color_override("font_color", Color("#9ca3af"))
+		placeholder.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 		placeholder.set_anchors_preset(Control.PRESET_FULL_RECT)
 		battlefield_preview.add_child(placeholder)
 		return
@@ -962,7 +962,7 @@ func _build_table_size_override(current_ft: float) -> Control:
 	var lbl := Label.new()
 	lbl.text = "Table:"
 	lbl.add_theme_font_size_override("font_size", _scaled_font(12))
-	lbl.add_theme_color_override("font_color", Color("#E0E0E0"))
+	lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
 	row.add_child(lbl)
 	var opt := OptionButton.new()
 	opt.add_item("2x2 ft", 20)
@@ -1034,7 +1034,7 @@ func _setup_text_terrain_fallback(terrain_data: Dictionary, theme_name: String) 
 	terrain_log.bbcode_enabled = true
 	terrain_log.fit_content = true
 	terrain_log.set_anchors_preset(Control.PRESET_FULL_RECT)
-	terrain_log.add_theme_color_override("default_color", Color("#f3f4f6"))
+	terrain_log.add_theme_color_override("default_color", UIColors.COLOR_TEXT_PRIMARY)
 	ScreenChrome.size_rich_text(terrain_log, _scaled_font(14))
 
 	var bbcode: String = "[b]Terrain Setup Guide[/b]\n\n"
@@ -1078,7 +1078,7 @@ func setup_crew_selection(
 	_deploy_label = Label.new()
 	_deploy_label.add_theme_font_size_override("font_size", 14)
 	_deploy_label.add_theme_color_override(
-		"font_color", Color("#4FC3F7"))
+		"font_color", UIColors.COLOR_CYAN)
 	crew_list.add_child(_deploy_label)
 
 	for item in available_crew:
@@ -1098,14 +1098,14 @@ func setup_crew_selection(
 		char_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		# Style the pressed/selected state
 		var pressed_style := StyleBoxFlat.new()
-		pressed_style.bg_color = Color("#2D5A7B")
-		pressed_style.border_color = Color("#4FC3F7")
+		pressed_style.bg_color = UIColors.COLOR_ACCENT.darkened(0.5)
+		pressed_style.border_color = UIColors.COLOR_CYAN
 		pressed_style.set_border_width_all(2)
 		pressed_style.set_corner_radius_all(8)
 		char_button.add_theme_stylebox_override("pressed", pressed_style)
 		var normal_style := StyleBoxFlat.new()
-		normal_style.bg_color = Color("#1E1E36")
-		normal_style.border_color = Color("#3A3A5C")
+		normal_style.bg_color = UIColors.COLOR_INPUT
+		normal_style.border_color = UIColors.COLOR_BORDER
 		normal_style.set_border_width_all(1)
 		normal_style.set_corner_radius_all(8)
 		char_button.pressed.connect(
@@ -1145,11 +1145,11 @@ func _update_deploy_label() -> void:
 	_deploy_label.text = "Deploying %d / %d max" % [
 		selected_crew.size(), _max_deploy]
 	# Red at empty (can't confirm), amber at the cap (no room left), cyan between.
-	var col := Color("#4FC3F7")
+	var col := UIColors.COLOR_CYAN
 	if selected_crew.is_empty():
-		col = Color("#DC2626")
+		col = UIColors.COLOR_DANGER
 	elif selected_crew.size() >= _max_deploy:
-		col = Color("#D97706")
+		col = UIColors.COLOR_WARNING
 	_deploy_label.add_theme_color_override("font_color", col)
 
 ## Handle confirm button press
@@ -1173,8 +1173,8 @@ func _update_confirm_button() -> void:
 func _make_decision_card(title_text: String) -> VBoxContainer:
 	var card := PanelContainer.new()
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#1E1E36")      # COLOR_INPUT
-	style.border_color = Color("#3A3A5C")  # COLOR_BORDER
+	style.bg_color = UIColors.COLOR_INPUT
+	style.border_color = UIColors.COLOR_BORDER
 	style.set_border_width_all(1)
 	style.set_corner_radius_all(6)
 	style.set_content_margin_all(8)

@@ -11,6 +11,11 @@ extends GdUnitTestSuite
 ## also corrects WHEN the objective is shown, p.83 vs p.89), loot in LootProcessor,
 ## rival acquisition in RivalPatronResolver + FactionSystem.
 ##
+## Section 3 (stat generation) was removed 2026-10-29 with SimpleCharacterCreator:
+## both cases re-implemented its invented ceil(2D6/3) roll inline and asserted on
+## that copy, so they tested no code. Five Parsecs rolls no stats; profiles come
+## from the species and the pp.24-27 tables (CharacterCreator).
+##
 ## One case was dropped rather than repointed: test_patron_type_mapping_all_factions
 ## asserted that every GameEnums.FactionType maps to a Core Rules patron type. The
 ## live app has no such mapping — it rolls a D10 on the p.78 patron table
@@ -40,31 +45,6 @@ func test_equipment_gen_produces_zero_credits() -> void:
 	var equipment: Dictionary = StartingEquipGen.generate_starting_equipment(
 		character, null)
 	assert_int(equipment.get("credits", -1)).is_equal(0)
-
-
-# =========================================================
-# 3. STAT GENERATION (model expects 1-6, NOT raw 2D6)
-# =========================================================
-
-func test_generated_character_stats_in_range() -> void:
-	# After _generate_random_stats, all stats must be 1-6
-	var character = Character.new()
-	# Simulate what SimpleCharacterCreator does: ceil(2D6/3)
-	for i in range(100):
-		var raw: int = randi_range(1, 6) + randi_range(1, 6)
-		var stat: int = clampi(ceili(raw / 3.0), 1, 6)
-		assert_int(stat).is_greater_equal(1)
-		assert_int(stat).is_less_equal(6)
-
-func test_stat_generation_never_exceeds_six() -> void:
-	# Regression: raw 2D6 gave 2-12, overflowing stat range
-	var max_seen: int = 0
-	for i in range(500):
-		var raw: int = randi_range(1, 6) + randi_range(1, 6)
-		var stat: int = clampi(ceili(raw / 3.0), 1, 6)
-		if stat > max_seen:
-			max_seen = stat
-	assert_int(max_seen).is_less_equal(6)
 
 
 # =========================================================

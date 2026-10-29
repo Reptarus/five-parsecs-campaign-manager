@@ -305,15 +305,24 @@ func test_a_single_member_roster_gets_no_pager() -> void:
 ##
 ## DETECTION PROOF: restore the guards to `hero_card.get_node_or_null(...)`
 ##   -> test_paging_does_not_leak_hero_card_buttons FAILS (4 buttons, not 1).
+##
+## 2026-10-29: the buttons moved from that overlay to `__HeroActions`, a flow row
+## under the card (on a 310 px phone the overlaid pair collided by 30 px and both
+## covered the card's content). The guard and these cases moved with them.
 ## ---------------------------------------------------------------------------
 
-## Every Button parented into the hero overlay, whatever it ended up being called.
-## Returns -1 when the card or overlay is missing, so an absent subtree fails loudly
+## The row under the hero card that holds its buttons.
+func _hero_actions(screen: Control) -> Node:
+	if screen.hero_card == null or screen.hero_card.get_parent() == null:
+		return null
+	return screen.hero_card.get_parent().get_node_or_null("__HeroActions")
+
+
+## Every Button parented into the hero actions row, whatever it ended up being called.
+## Returns -1 when the card or row is missing, so an absent subtree fails loudly
 ## rather than reading as "zero leaked".
 func _count_overlay_buttons(screen: Control) -> int:
-	if screen.hero_card == null:
-		return -1
-	var overlay: Node = screen.hero_card.get_node_or_null("__HeroOverlay")
+	var overlay: Node = _hero_actions(screen)
 	if overlay == null:
 		return -1
 	var found: int = 0
@@ -342,26 +351,82 @@ func test_paging_does_not_leak_hero_card_buttons() -> void:
 
 	assert_int(_count_overlay_buttons(screen)).override_failure_message(
 		"Hero-card buttons leaked across page turns: populate_ui() re-created them "
-		+ "because the existence guard looked on hero_card for a child of "
-		+ "hero_card/__HeroOverlay, and a direct-child lookup for a grandchild is "
-		+ "always null."
+		+ "because the existence guard did not look in the row that holds them."
 	).is_equal(2)
 
 
 func test_the_overlay_itself_is_not_rebuilt_per_page() -> void:
-	## _get_or_create_hero_overlay() is "get or create". If it ever started returning a
-	## fresh Control the leak test above would pass vacuously - one button per new
-	## overlay - while the card accumulated overlays instead of buttons.
+	## _get_or_create_hero_actions() is "get or create". If it ever started returning a
+	## fresh row the leak test above would pass vacuously - one button per new row -
+	## while the page accumulated rows instead of buttons.
 	if _gsm == null:
 		return
 	var screen: Control = await _build_screen(4)
-	var first: Node = screen.hero_card.get_node_or_null("__HeroOverlay")
+	var first: Node = _hero_actions(screen)
 	assert_object(first).is_not_null()
 	screen._navigate_crew(1)
 	await await_idle_frame()
-	assert_object(screen.hero_card.get_node_or_null("__HeroOverlay")) \
+	assert_object(_hero_actions(screen)) \
 		.override_failure_message(
-			"The hero overlay was replaced on a page turn, so counting its children "
+			"The hero actions row was replaced on a page turn, so counting its children "
 			+ "is no longer evidence about leaked buttons.") \
 		.is_same(first)
+	## A second row would collide on the name "__HeroActions" and be RENAMED
+	## (@HFlowContainer@N), so neither the lookup above nor a name count can see it.
+	## Button TEXT is never renamed: count the Change Portrait buttons on the page.
+	var copies: int = 0
+	for b: Node in screen.hero_card.get_parent().find_children("*", "Button", true, false):
+		if (b as Button).text == "Change Portrait":
+			copies += 1
+	assert_int(copies).override_failure_message(
+		"%d Change Portrait buttons on the page after one page turn" % copies).is_equal(1)
 
+
+
+func test_the_hero_card_buttons_meet_the_touch_floor() -> void:
+	## Both sat at 32 px, which the windowed layout sweep measured as 37.1 dp against
+	## its 48 dp floor, on every screen size.
+	if _gsm == null:
+		return
+	var screen: Control = await _build_screen(2)
+	var overlay: Node = _hero_actions(screen)
+	assert_object(overlay).is_not_null()
+	for btn_name: String in ["__ChangePortraitBtn", "__PrintSheetBtn"]:
+		var btn: Control = overlay.get_node_or_null(btn_name)
+		assert_object(btn).override_failure_message("no %s" % btn_name).is_not_null()
+		assert_float(btn.size.y).override_failure_message(
+			"%s is %.1f px tall" % [btn_name, btn.size.y]).is_greater_equal(48.0)
+
+
+func test_the_hero_buttons_wrap_below_the_card_instead_of_colliding() -> void:
+	## Overlaid in the card's bottom corners, the pair collided by 30 px on a 310 px
+	## phone (the windowed sweep) and covered the card's own content. In a flow row
+	## under the card, the row needs only its widest button and the card is uncovered.
+	if _gsm == null:
+		return
+	var screen: Control = await _build_screen(2)
+	var row: Control = _hero_actions(screen)
+	assert_object(row).is_not_null()
+	var widest: float = 0.0
+	for btn_name: String in ["__ChangePortraitBtn", "__PrintSheetBtn"]:
+		var btn: Control = row.get_node_or_null(btn_name)
+		assert_object(btn).is_not_null()
+		assert_bool(screen.hero_card.is_ancestor_of(btn)).override_failure_message(
+			"%s sits on the hero card and covers it" % btn_name).is_false()
+		widest = maxf(widest, btn.get_combined_minimum_size().x)
+	assert_float(row.get_combined_minimum_size().x).override_failure_message(
+		"the row needs %.1f px, so the pair cannot wrap" % row.get_combined_minimum_size().x
+	).is_less_equal(widest + 0.5)
+
+
+func test_the_creation_summary_shows_names_not_storage_keys() -> void:
+	## The line read "HUMAN | COLONIST / SURVIVAL / BASELINE": the stored keys, not
+	## the names a player reads. It goes through the shared display helpers now.
+	if _gsm == null:
+		return
+	var screen: Control = await _build_screen(1)
+	var line: Label = screen.find_child("CreationSummary", true, false)
+	assert_object(line).override_failure_message("no creation summary").is_not_null()
+	# Premise: the character carries the default storage keys.
+	assert_str(str(screen.current_character.background)).is_equal("COLONIST")
+	assert_str(line.text).is_equal("Human | Colonist / Survival / Baseline")

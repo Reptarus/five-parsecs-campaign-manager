@@ -851,6 +851,10 @@ func _create_section_card(title: String, content: Control, description: String =
 		title_label.text = title.to_upper()
 		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		# Wraps, and fills the row so the wrap has a width to work in: at the LG size
+		# "CREW CONNECTIONS & EXTRAS" is wider than a card on a phone.
+		title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		header_hbox.add_child(title_label)
 		
 		vbox.add_child(header_hbox)
@@ -860,6 +864,7 @@ func _create_section_card(title: String, content: Control, description: String =
 		title_label.text = title.to_upper()
 		title_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 		title_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		vbox.add_child(title_label)
 
 	# Separator
@@ -1049,15 +1054,10 @@ func _create_character_card(char_name: String, subtitle: String, stats: Dictiona
 	portrait_container.custom_minimum_size = Vector2(portrait_size, portrait_size)
 	portrait_container.clip_contents = true
 
-	var avatar_colors := [UIColors.COLOR_BLUE, UIColors.COLOR_PURPLE, UIColors.COLOR_CYAN,
-		UIColors.COLOR_EMERALD, UIColors.COLOR_AMBER, UIColors.COLOR_RED, Color("#ec4899"), Color("#14b8a6")]
-	var color_idx := identity.hash() % avatar_colors.size()
-	if color_idx < 0:
-		color_idx += avatar_colors.size()
 
 	var bg := ColorRect.new()
 	bg.custom_minimum_size = Vector2(portrait_size, portrait_size)
-	bg.color = avatar_colors[color_idx]
+	bg.color = UIColors.avatar_color(identity)
 	portrait_container.add_child(bg)
 
 	var has_portrait := false

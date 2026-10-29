@@ -46,25 +46,26 @@ COLOR_TEXT_SECONDARY # Descriptions
 COLOR_TEXT_MUTED     # Disabled text
 ```
 
-### Legacy Colors (Still Supported)
-```gdscript
-COLOR_BASE := Color("#1A1A2E")         # Panel background
-COLOR_ELEVATED := Color("#252542")     # Card backgrounds
-COLOR_INPUT := Color("#1E1E36")        # Form field backgrounds
-COLOR_ACCENT := Color("#2D5A7B")       # Primary accent (Deep Space Blue)
-COLOR_ACCENT_HOVER := Color("#3A7199") # Hover state
-COLOR_FOCUS := Color("#4FC3F7")        # Focus ring (cyan)
-COLOR_TEXT_DISABLED := Color("#404040") # Inactive text
-COLOR_SUCCESS := Color("#10B981")      # Green
-COLOR_WARNING := Color("#D97706")      # Orange
-COLOR_DANGER := Color("#DC2626")       # Red
-```
+### Legacy names (aliases of the palette above)
+`UIColors` keeps the old names, and each one now points at the current palette:
+`COLOR_BASE` = `COLOR_PRIMARY`, `COLOR_ELEVATED` = `COLOR_SECONDARY`, `COLOR_INPUT` =
+`COLOR_TERTIARY`, `COLOR_ACCENT` = `COLOR_BLUE`, `COLOR_SUCCESS` = `COLOR_EMERALD`,
+`COLOR_WARNING` = `COLOR_AMBER`, `COLOR_DANGER` = `COLOR_RED`, `COLOR_TEXT_DISABLED` =
+`COLOR_TEXT_MUTED`. Read `src/ui/components/base/UIColors.gd` for the values.
+
+⚠ This block used to list the names with their OLD values (`#1A1A2E`, `#252542`,
+`#1E1E36`, `#2D5A7B`, `#4FC3F7`, `#D97706`, `#DC2626`). Code copied those hexes, and by
+2026-10-29 the battle screens drew 137 of them while the rest of the app had moved on.
+Never write a hex in a UI script: use a token, or a named `const` for a categorical
+palette. `tests/unit/test_ui_color_tokens.gd` fails on an inline hex and on a const
+that restates a token's name with a hex. The avatar colours are `UIColors.avatar_color()`.
 
 ## BBCode Colors (for RichTextLabel)
+Write a role and resolve it where the text reaches the label, so stored text follows
+the palette:
 ```gdscript
-"[color=#10B981]Success[/color]"  # Green
-"[color=#D97706]Warning[/color]"  # Orange
-"[color=#DC2626]Error[/color]"    # Red
+label.text = UIColors.bbcode("[color=ui-success]Success[/color]")
+# roles: ui-success, ui-warning, ui-danger, ui-info, ui-secondary
 ```
 
 ## Responsive Breakpoints

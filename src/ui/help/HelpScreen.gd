@@ -24,6 +24,16 @@ var _mobile_toc_popup: PopupPanel
 var _current_chapter_id: String = ""
 var _toc_buttons: Dictionary = {}  # chapter_id -> Button
 
+## Emitted by Back when SettingsOverlay hosts this screen in place (the "?" chrome
+## button). In that mode Back closes the overlay instead of navigating, so the
+## screen the player opened Help from is never freed and rebuilt.
+signal back_requested
+var overlay_mode: bool = false
+## {chapter_id, section_id} to open at. Set by the overlay before add_child(); it
+## wins over the SceneRouter "help" context, which only navigate_to("help", ...)
+## writes.
+var open_at_context: Dictionary = {}
+
 # Preload helpers
 const HelpContentLoaderScript = preload("res://src/ui/help/HelpContentLoader.gd")
 const MarkdownToRichTextScript = preload("res://src/ui/help/MarkdownToRichText.gd")
@@ -49,13 +59,15 @@ func _setup_screen() -> void:
 		_show_guide_missing()
 		return
 
-	# Check if we should open a specific chapter from SceneRouter context
-	var router := get_node_or_null("/root/SceneRouter")
-	if router and router.has_method("get_scene_context"):
-		var ctx: Dictionary = router.get_scene_context("help")
-		if ctx.has("chapter_id"):
-			_navigate_to_chapter(ctx["chapter_id"], ctx.get("section_id", ""))
-			return
+	# Open at a specific chapter: the overlay's context first, else SceneRouter's.
+	var ctx: Dictionary = open_at_context
+	if ctx.is_empty():
+		var router := get_node_or_null("/root/SceneRouter")
+		if router and router.has_method("get_scene_context"):
+			ctx = router.get_scene_context("help")
+	if ctx.has("chapter_id"):
+		_navigate_to_chapter(ctx["chapter_id"], ctx.get("section_id", ""))
+		return
 
 	# Default: show index/first chapter
 	var order: Array[String] = _content_loader.get_chapter_order()
@@ -274,18 +286,53 @@ func _navigate_to_chapter(chapter_id: String, section_id: String = "") -> void:
 	var bbcode: String = _md_converter.convert(raw)
 	_content_label.text = bbcode
 
-	# Scroll to top (or to section if specified)
+	# Scroll to the top, then to the section if one was asked for. `section_id` was
+	# accepted here and never read, so every context-help entry landed on the top of
+	# its chapter even though help_context_map.json names a section for each one.
 	_content_scroll.scroll_vertical = 0
+	var heading: String = _section_heading(chapter, section_id)
+	if not heading.is_empty():
+		_scroll_to_heading(heading)
 
 	# Update title with chapter name
 	var ch_title: String = chapter.get("title", "User Guide")
 	_title_label.text = ch_title.to_upper()
 
-	# Animate content if TweenFX available
+	# Animate content if TweenFX available. Not in overlay mode: SettingsOverlay
+	# pauses the tree, and TweenFX tweens come from SceneTree.create_tween(), which
+	# binds no node, so under TWEEN_PAUSE_BOUND they stop while paused. The label
+	# would sit at alpha 0, and the guide would open blank.
 	var tweenfx := get_node_or_null("/root/TweenFX")
-	if tweenfx and tweenfx.has_method("fade_in"):
+	if tweenfx and tweenfx.has_method("fade_in") and not overlay_mode:
 		_content_label.modulate.a = 0.0
 		tweenfx.fade_in(_content_label, 0.3)
+
+
+## The heading text of `section_id` in `chapter`, or "" when there is none.
+func _section_heading(chapter: Dictionary, section_id: String) -> String:
+	if section_id.is_empty():
+		return ""
+	for section: Variant in chapter.get("sections", []):
+		if section is Dictionary and str(section.get("id", "")) == section_id:
+			return str(section.get("heading", ""))
+	return ""
+
+
+## Scroll the content so `heading` is at the top. Waits a frame for the label to
+## lay out, since a line offset is meaningless before then. Headings render as
+## their own line (MarkdownToRichText), so the first whole-line match is the one.
+func _scroll_to_heading(heading: String) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(_content_label):
+		return
+	var text: String = _content_label.get_parsed_text()
+	var at: int = text.find("\n" + heading + "\n")
+	at = text.find(heading) if at < 0 else at + 1
+	if at < 0:
+		return
+	var line: int = _content_label.get_character_line(at)
+	_content_scroll.scroll_vertical = int(_content_label.position.y
+		+ _content_label.get_line_offset(line))
 
 
 func _on_toc_button_pressed(chapter_id: String) -> void:
@@ -295,6 +342,9 @@ func _on_toc_button_pressed(chapter_id: String) -> void:
 
 
 func _on_back_pressed() -> void:
+	if overlay_mode:
+		back_requested.emit()
+		return
 	var router := get_node_or_null("/root/SceneRouter")
 	if router:
 		if router.get_navigation_history().is_empty():

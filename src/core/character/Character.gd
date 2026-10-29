@@ -7,6 +7,8 @@ class_name Character
 ## All character generation logic now lives here instead of scattered across 15+ files.
 
 const SpeciesPortraitRegistry = preload("res://src/core/character/SpeciesPortraitRegistry.gd")
+## Compendium p.26 bot upgrade effects (the built-in save reads it).
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 
 ## Schema version for save file migration (CRITICAL for data integrity)
 @export var schema_version: int = 1
@@ -147,9 +149,17 @@ var reaction: int:
 # Types: skip_next_battle, unavailable, skip_tasks, no_xp, extra_action, ignore_next_injury, item_lost_recovery
 @export var status_effects: Array[Dictionary] = []
 
-# Bot Upgrade System (Five Parsecs Core Rules p.98)
-# Bots don't gain XP - they purchase upgrades with credits instead
+# Bot Upgrade System. Bots don't gain XP; they buy upgrades with credits instead.
+# Compendium p.26 "New Bot Upgrades" (one of each, sold in the Advancement phase):
 @export var bot_upgrades: Array[String] = []  # IDs of installed bot upgrades
+# Core Rules p.123: "Bot characters may install upgrades to any ability score by
+# paying credits equal to the XP cost. Each ability score can be upgraded only
+# once." AdvancementSystem.install_bot_upgrade() read and wrote this key for months
+# while it was declared nowhere, so set() was a silent no-op and the once-per-score
+# rule was never recorded.
+@export var bot_upgraded_stats: Array[String] = []
+# Compendium p.26 Built-in weapon: the weapon built into the chassis.
+@export var builtin_weapon: String = ""
 @export var acquired_training: Array[String] = []  # IDs of completed Compendium training courses
 
 # Reaction Economy System (Five Parsecs Core Rules)
@@ -383,9 +393,6 @@ func get_combat_modifiers() -> Dictionary:
 	# Apply implant bonuses
 	_apply_implant_bonuses(modifiers)
 
-	# Apply bot upgrade bonuses (if applicable)
-	_apply_bot_upgrade_bonuses(modifiers)
-
 	# Apply species bonuses
 	_apply_species_bonuses(modifiers)
 
@@ -409,41 +416,14 @@ func _apply_implant_bonuses(modifiers: Dictionary) -> void:
 					"value": bonus
 				})
 
-## Apply bonuses from bot upgrades (Bots only)
-func _apply_bot_upgrade_bonuses(modifiers: Dictionary) -> void:
-	if origin.to_lower() != "bot" and origin.to_lower() != "soulless":
-		return
-
-	for upgrade_id: String in bot_upgrades:
-		var bonus := _get_bot_upgrade_bonus(upgrade_id)
-		if bonus.is_empty():
-			continue
-
-		for stat_name: String in bonus.keys():
-			if modifiers.has(stat_name):
-				modifiers[stat_name] += bonus[stat_name]
-				modifiers["sources"].append({
-					"type": "bot_upgrade",
-					"name": upgrade_id,
-					"stat": stat_name,
-					"value": bonus[stat_name]
-				})
-
-## Get stat bonuses for a specific bot upgrade
-func _get_bot_upgrade_bonus(upgrade_id: String) -> Dictionary:
-	match upgrade_id.to_lower():
-		"combat_protocols":
-			return {"combat_skill": 1}
-		"enhanced_sensors":
-			return {"reactions": 1, "hit_bonus": 1}
-		"reinforced_frame":
-			return {"toughness": 1}
-		"speed_boost":
-			return {"speed": 1}
-		"tactical_module":
-			return {"savvy": 1}
-		_:
-			return {}
+## Bot upgrades add no stat bonus here. This file used to map five named upgrades
+## (combat_protocols, enhanced_sensors, reinforced_frame, speed_boost,
+## tactical_module) to stat bonuses. None of the five is in either book: the
+## Compendium p.26 list is Built-in weapon, Improved armor casing, Deflection
+## module, Jump module, Multi-wave scanner and Broad spectrum vision. The p.123 stat
+## upgrades change the stat itself (AdvancementSystem.install_bot_upgrade), and the
+## one p.26 upgrade that changes a sheet number is applied to the built-in save in
+## _apply_species_bonuses() below.
 
 ## Apply species-specific combat bonuses
 func _apply_species_bonuses(modifiers: Dictionary) -> void:
@@ -502,12 +482,13 @@ func _apply_species_bonuses(modifiers: Dictionary) -> void:
 			})
 		"bot", "soulless":
 			# Bot/Soulless: 6+ Armor Saving Throw (Core Rules p.15 / p.17;
-			# was wrongly 5 before 2026-07-02)
+			# was wrongly 5 before 2026-07-02). A Bot with Compendium p.26 Improved
+			# armor casing saves on 5+; a Soulless cannot take that upgrade.
 			modifiers["sources"].append({
 				"type": "species",
 				"name": "Bot/Soulless",
 				"stat": "natural_armor",
-				"value": 6
+				"value": BotUpgradeEffectsRef.built_in_save(self)
 			})
 		"krag":
 			# Krag (Compendium DLC): Cannot Dash, reroll natural 1 vs Rivals
@@ -1438,6 +1419,8 @@ func to_dictionary() -> Dictionary:
 		"psionics_lost_to_implant": psionics_lost_to_implant,
 		"implants": implants.duplicate(),
 		"bot_upgrades": bot_upgrades.duplicate(),
+		"bot_upgraded_stats": bot_upgraded_stats.duplicate(),
+		"builtin_weapon": builtin_weapon,
 		"acquired_training": acquired_training.duplicate(),
 		# Lifetime statistics
 		"character_upgrades": character_upgrades,
@@ -1581,7 +1564,12 @@ func from_dictionary(data: Dictionary) -> void:
 		if implant is Dictionary:
 			implants.append(implant)
 
-	# Bot upgrades (Five Parsecs p.98)
+	# Bot upgrades (Compendium p.26) and p.123 stat upgrades
+	bot_upgraded_stats.clear()
+	for s in data.get("bot_upgraded_stats", []):
+		if s is String:
+			bot_upgraded_stats.append(s)
+	builtin_weapon = str(data.get("builtin_weapon", ""))
 	var bot_upgrades_data = data.get("bot_upgrades", [])
 	bot_upgrades.clear()
 	for upgrade in bot_upgrades_data:

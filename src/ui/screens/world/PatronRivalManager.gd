@@ -185,11 +185,17 @@ func _create_patron_panel(patron: Dictionary) -> Control:
 	name_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	vbox.add_child(name_label)
 
-	# Status and relationship
-	var status_label: Label = Label.new()
-	status_label.text = "Status: %s | Relationship: %s" % [
-		str(patron.get("status", "")), str(patron.get("relationship", 0))]
-	vbox.add_child(status_label)
+	# Status, only when the record has one: a patron added by a post-battle event
+	# carries none, and the card read "Status:  | Relationship: 2". Relationship is
+	# not shown at all: neither book has a Patron relationship score (Compendium
+	# p.111's Faction Loyalty is a different rule), and its producers write 0 or
+	# randi_range(1, 3).
+	var pstatus: String = str(patron.get("status", "")).strip_edges()
+	if not pstatus.is_empty():
+		var status_label: Label = Label.new()
+		status_label.name = "StatusLabel"
+		status_label.text = "Status: " + pstatus
+		vbox.add_child(status_label)
 
 	# Jobs offered
 	var jobs_label: Label = Label.new()
@@ -358,15 +364,11 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 	# GameStateManager.add_patron() guarantees both (:983-984). No Rival
 	# producer writes either, so printing them for a Rival could only ever
 	# say "Unknown".
-	if is_patron:
+	# Relationship is not a book stat (see _create_patron_panel); status only when set.
+	if is_patron and not str(entity.get("status", "")).strip_edges().is_empty():
 		var status_label: Label = Label.new()
 		status_label.text = "Status: " + str(entity.get("status", ""))
 		details_container.add_child(status_label)
-
-		var relationship_label: Label = Label.new()
-		relationship_label.text = "Relationship: " + str(
-			entity.get("relationship", 0))
-		details_container.add_child(relationship_label)
 
 	if is_patron:
 		var jobs_label: Label = Label.new()

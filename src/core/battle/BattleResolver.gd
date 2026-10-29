@@ -19,14 +19,12 @@ const _SAFETY_MAX_ROUNDS := 100
 # present, so this is safe to call from any test/runtime context.
 const CompendiumDifficultyTogglesRef = preload(
 	"res://src/data/compendium_difficulty_toggles.gd")
+## Built-in armor saves (Core Rules p.46, Compendium p.26 Improved armor casing).
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 
 # Victory conditions (Core Rules p.119)
 const HOLD_FIELD_ENEMY_THRESHOLD := 3  # Must eliminate 3+ enemies to hold field on retreat
 const VICTORY_LOSS_RATIO_MULTIPLIER := 1.2  # Enemy loss% must meet/exceed crew loss% * this
-
-# Post-battle rewards (Core Rules p.119-120)
-const BATTLEFIELD_FINDS_MIN := 0
-const BATTLEFIELD_FINDS_MAX := 2  # Held-field bonus finds range
 
 # Default unit toughness (fallback for missing data)
 const DEFAULT_TOUGHNESS := 3
@@ -200,7 +198,10 @@ static func resolve_battle(
 
 		# Loot and rewards
 		"loot_opportunities": loot_rolls,
-		"battlefield_finds": randi_range(BATTLEFIELD_FINDS_MIN, BATTLEFIELD_FINDS_MAX) if outcome["held_field"] else 0,
+		# No Battlefield Finds count: p.120 rolls once when you Held the Field, and
+		# PaymentProcessor.process_battlefield_finds() decides how many rolls (one, or
+		# two for Scavengers p.94 and a Story Track win). A random 0-2 here was in
+		# neither book and nothing read it.
 
 		# Phase 3: Single-use items consumed during battle
 		"consumed_items": all_consumed_items,
@@ -269,6 +270,14 @@ static func initialize_battle(
 		unit["armor"] = protection["armor"]
 		unit["screen"] = protection["screen"]
 		unit["protective_effects"] = protection["protective_effects"]
+		# Core Rules p.46 built-in plating: Bot, Soulless and De-converted save on 6+,
+		# an Assault Bot on 5+, and a Bot with Compendium p.26 Improved armor casing
+		# on 5+. The unit carried only its WORN armor, so no auto-resolved battle
+		# ever gave a Bot its save. Combined with worn armor at the save
+		# (BattleCalculations.armor_threshold_with_innate, p.46 Multiple Saving Throws).
+		unit["innate_save"] = BotUpgradeEffectsRef.innate_save(unit)
+		unit["innate_is_screen"] = BotUpgradeEffectsRef.has_upgrade(
+			unit, BotUpgradeEffectsRef.DEFLECTION)
 		# Battle dress: +1 Reactions (max 4) — Core Rules p.54
 		if protection["protective_effects"].get("battle_dress_reactions", false):
 			unit["reactions"] = mini(unit.get("reactions", 1) + 1, 4)

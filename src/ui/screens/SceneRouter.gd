@@ -29,7 +29,6 @@ const SCENE_PATHS = {
 	# "victory_progress": UNUSED - no navigate_to calls exist
 
 	# Character management
-	"character_creator": "res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"character_details": "res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	# "character_progression": UNUSED - no navigate_to calls exist
 	# "crew_creation": DEPRECATED - CrewPanel handles crew creation in CampaignCreationUI wizard
@@ -135,7 +134,6 @@ var max_cache_size: int = 10
 # Campaign creation specific scenes for preloading
 const CAMPAIGN_CREATION_SCENES = [
 	"campaign_setup",
-	"character_creator",
 	"equipment_generation",
 	"campaign_dashboard"
 ]
@@ -398,7 +396,7 @@ func get_scenes_by_category(category: String) -> Array[String]:
 		"campaign":
 			scenes = ["campaign_creation", "campaign_dashboard", "campaign_setup", "campaign_turn_controller"]
 		"character":
-			scenes = ["character_creator", "character_details", "crew_management"]
+			scenes = ["character_details", "crew_management"]
 		"equipment":
 			scenes = ["equipment_manager", "ship_manager"]
 		"world":
@@ -581,9 +579,7 @@ func _preload_campaign_flow_scenes(current_scene_name: String) -> void:
 		"campaign_setup":
 			scenes_to_preload = ["campaign_creation"]
 		"campaign_creation":
-			scenes_to_preload = ["character_creator", "campaign_dashboard"]
-		"character_creator":
-			scenes_to_preload = ["campaign_creation", "campaign_dashboard"]
+			scenes_to_preload = ["campaign_dashboard"]
 		"equipment_generation":
 			scenes_to_preload = ["campaign_dashboard"]
 		"world_phase":

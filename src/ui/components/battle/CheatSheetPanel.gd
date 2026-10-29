@@ -274,7 +274,7 @@ func _insert_battle_section_at_top(title: String, content: String) -> void:
 	header_style.set_corner_radius_all(4)
 	header_style.set_content_margin_all(SPACING_SM)
 	header_style.border_width_left = 3
-	header_style.border_color = Color("#D97706")
+	header_style.border_color = UIColors.COLOR_WARNING
 	header.add_theme_stylebox_override("normal", header_style)
 	var hover_style := header_style.duplicate()
 	hover_style.bg_color = COLOR_ACCENT

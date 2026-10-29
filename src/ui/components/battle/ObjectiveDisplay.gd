@@ -3,14 +3,19 @@ extends PanelContainer
 
 ## Objective Display Panel
 ##
-## Shows current battle objective with victory conditions and setup instructions.
-## Allows rolling for objectives and tracking progress.
+## Shows the battle objective with its victory condition and setup instructions.
+##
+## Read-only. The p.89 objective is rolled once, before the battle, by
+## CampaignTurnController through MissionTableManager, and BattleObjectiveTracker
+## tracks that one. This panel used to carry a free "Reroll" button that drew a
+## new objective with a raw D100 (p.89 is a D10 per mission type) and displayed it,
+## while the tracker and the victory panel kept the original, so the screen showed
+## one objective and scored another.
 
 const MissionObjectiveSystem = preload("res://src/core/battle/MissionObjectiveSystem.gd")
 const FiveParsecsCampaignPanel = preload("res://src/ui/screens/campaign/panels/BaseCampaignPanel.gd")
 
 # Signals
-signal objective_rolled(objective: MissionObjectiveSystem.Objective)
 signal objective_acknowledged()
 
 # UI References
@@ -23,14 +28,12 @@ signal objective_acknowledged()
 @onready var placement_label: Label = $VBox/PlacementLabel
 @onready var button_container: HBoxContainer = $VBox/ButtonContainer
 
-# System
-var objective_system: MissionObjectiveSystem
 var current_objective: MissionObjectiveSystem.Objective
-var current_mission_type: String = "opportunity"
+## Empty unless the caller names it, so the label never claims a default type.
+var current_mission_type: String = ""
 var current_roll: int = 0
 
 func _ready() -> void:
-	objective_system = MissionObjectiveSystem.new()
 	_setup_panel_style()
 	_setup_buttons()
 	hide()
@@ -59,26 +62,13 @@ func _setup_buttons() -> void:
 	continue_btn.pressed.connect(_on_acknowledge_pressed)
 	button_container.add_child(continue_btn)
 
-	# Reroll button
-	var reroll_btn := Button.new()
-	reroll_btn.text = "Reroll"
-	reroll_btn.pressed.connect(_on_reroll_pressed)
-	button_container.add_child(reroll_btn)
-
-## Roll objective for mission type
-func roll_objective(mission_type: String) -> void:
-	current_mission_type = mission_type.to_lower().replace(" ", "_")
-	current_roll = randi_range(1, 100)
-	current_objective = objective_system.get_objective_for_roll(current_roll, current_mission_type)
-
-	_update_display()
-	objective_rolled.emit(current_objective)
-	show()
-
-## Display a specific objective
-func display_objective(objective: MissionObjectiveSystem.Objective, roll: int = 0) -> void:
+## Display the objective the battle is tracking. `mission_type` is the mission's
+## source (opportunity / patron / quest); leave it empty to hide the label.
+func display_objective(objective: MissionObjectiveSystem.Objective, roll: int = 0,
+		mission_type: String = "") -> void:
 	current_objective = objective
 	current_roll = roll
+	current_mission_type = mission_type.to_lower().replace(" ", "_")
 	_update_display()
 	show()
 
@@ -88,6 +78,7 @@ func _update_display() -> void:
 
 	# Mission type
 	if mission_type_label:
+		mission_type_label.visible = current_mission_type != ""
 		mission_type_label.text = "Mission Type: %s" % current_mission_type.capitalize()
 
 	# Roll display
@@ -124,6 +115,3 @@ func get_current_objective() -> MissionObjectiveSystem.Objective:
 func _on_acknowledge_pressed() -> void:
 	objective_acknowledged.emit()
 	hide()
-
-func _on_reroll_pressed() -> void:
-	roll_objective(current_mission_type)

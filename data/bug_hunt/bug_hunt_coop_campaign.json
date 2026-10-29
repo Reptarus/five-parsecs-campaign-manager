@@ -1,0 +1,182 @@
+{
+	"_source": "Five Parsecs From Home: Compendium, Appendices, 'Co-op campaigns', printed pp.209-211 (Preparatory Steps p.209; The Map, the Factor table and The Campaign Turn p.210; The Battles, Support Point Resources and the Enemy Moves table p.211). Extracted with PyPDF2 2026-10-29 from pages[210]-pages[212], whose page tails read '209Appendices', '210Appendices' and '211Appendices'; cross-checked against docs/rules/bug_hunt_compendium_extract.txt === PAGE 211-213 ===, which carries identical text. The p.187 Priority clamp and the p.201 2+ Objectives success threshold are NOT copied here: they are read from bug_hunt_missions.json (priority.min/max, objectives.scoring.success_threshold) so one rule has one value.",
+	"_book_notes": {
+		"stash_size_contradiction": "p.210 step 3: 'If the D100 roll ends in a 5 or 0 (25, 40, 85, etc.), the sector is also home to a resource stash of 1D6 Support points.' p.211: 'claim 1 Support point worth of resources (in addition to the +5 if a Resource stash was present).' The book prints two sizes for one stash. The app rolls the 1D6 at map generation (the procedural step that creates the stash) and pays out that rolled amount when the sector is cleared. The flat +5 of p.211 is NOT applied. Owner/designer question, recorded rather than silently resolved.",
+		"lairs_undefined": "p.210: 'Operational turns continue until all sectors have been cleared of enemies and all Lairs have been destroyed.' 'Lair' appears nowhere else in the Compendium (every page searched with PyPDF2 2026-10-29), so no rule places, describes or destroys one. The victory check is therefore 'every sector cleared'.",
+		"factor_reroll": "p.210 step 2: 'You must place one of each factor before you can duplicate any.' When rolling, a Factor already placed is rerolled until all seven have been placed. The step 3 stash test is made on the roll that was KEPT.",
+		"victory_threshold": "p.211 'If the mission is a victory (2+ Objectives completed)' restates the p.201 success threshold, read from bug_hunt_missions.json objectives.scoring.success_threshold.",
+		"enemy_move_targets": "p.211: 'If a sector needs to be selected, pick randomly using any appropriate die roll or it may be done by a GM if available.' 'One enemy sector' is picked from the sectors not yet cleared; 'A cleared sector' from the cleared ones. With no eligible sector the result has no effect.",
+		"enemy_move_stacking": "The book does not say whether a sector rolled for the same result twice gains it twice. Factors and conditions are states a sector either has or not, so a repeat adds nothing; two Sabotage results in one end phase are two results, so each removes 1 Support point."
+	},
+	"description": "Bug Hunt Co-op campaign (Compendium pp.209-211): a shared sector map, a common Support point pool and the Enemy Moves table, rolled once per player at the end of each operational turn.",
+	"sectors_per_player": {
+		"_quote": "As a guideline, try 3 sectors per player for a shorter campaign, up to 5 for a longer campaign. (p.210)",
+		"shorter": 3,
+		"longer": 5
+	},
+	"sector_priority": {
+		"_quote": "1. Roll 2D6 and pick the lower of the dice to establish a Priority Rating for the sector. Note that any Vital or Critical Objectives will increase this as normal (see p.187), but only for the duration of that specific mission. (p.210)",
+		"dice": "2D6",
+		"keep": "lower"
+	},
+	"unique_factors_before_duplicates": true,
+	"stash": {
+		"_quote": "3. If the D100 roll ends in a 5 or 0 (25, 40, 85, etc.), the sector is also home to a resource stash of 1D6 Support points. (p.210)",
+		"d100_ends_in": [5, 0],
+		"support_points": "1D6"
+	},
+	"victory_support_points": 1,
+	"sector_factors": {
+		"_quote": "2. Roll D100 on the table below to see which special factors may apply. Optionally, assign each sector one of these factors based on what seems to fit your map best. You must place one of each factor before you can duplicate any. (p.210)",
+		"entries": [
+			{
+				"d100_range": [1, 15],
+				"id": "ambush_zone",
+				"name": "Ambush zone",
+				"effect": "No visibility is possible beyond 8”.",
+				"battle": {"max_visibility_inches": 8}
+			},
+			{
+				"d100_range": [16, 30],
+				"id": "infiltration_point",
+				"name": "Infiltration point",
+				"effect": "At the end of each operational turn (see below), select a random adjacent sector and increase the Priority level by +1 (to a maximum of 6).",
+				"adjacent_priority_increase": 1,
+				"battle": {}
+			},
+			{
+				"d100_range": [31, 50],
+				"id": "sheltered",
+				"name": "Sheltered",
+				"effect": "The sector cannot be attacked until at least one adjacent sector has been cleared.",
+				"requires_adjacent_cleared": true,
+				"battle": {}
+			},
+			{
+				"d100_range": [51, 65],
+				"id": "swarming",
+				"name": "Swarming",
+				"effect": "When revealing any Contact marker, the number of enemies is increased by +1.",
+				"battle": {"enemies_per_contact_bonus": 1}
+			},
+			{
+				"d100_range": [66, 80],
+				"id": "obstructed",
+				"name": "Obstructed",
+				"effect": "Evac ships cannot provide covering fire.",
+				"battle": {"evac_covering_fire": false}
+			},
+			{
+				"d100_range": [81, 90],
+				"id": "inaccessible",
+				"name": "Inaccessible",
+				"effect": "Only a single support roll can be made.",
+				"battle": {"max_support_rolls": 1}
+			},
+			{
+				"d100_range": [91, 100],
+				"id": "hot_zone",
+				"name": "Hot zone",
+				"effect": "The evac ship cannot loiter. It will evac any troops in range upon arrival, and then leave immediately. The ship must be called again, if needed.",
+				"battle": {"evac_can_loiter": false}
+			}
+		]
+	},
+	"enemy_moves": {
+		"_quote": "At the end of each operational turn, the enemy will carry out their actions. Each player rolls on the table and applies the results to the map. (p.211)",
+		"entries": [
+			{
+				"d100_range": [1, 10],
+				"id": "enemy_assault",
+				"name": "Enemy assault",
+				"effect": "A cleared sector falls to the enemy. Priority level 3.",
+				"target": "cleared",
+				"set_priority": 3
+			},
+			{
+				"d100_range": [11, 21],
+				"id": "enemy_digs_in",
+				"name": "Enemy digs in",
+				"effect": "One enemy sector becomes an Ambush zone.",
+				"target": "enemy",
+				"add_factor": "ambush_zone"
+			},
+			{
+				"d100_range": [22, 30],
+				"id": "enemy_establishes_control",
+				"name": "Enemy establishes control",
+				"effect": "One enemy sector becomes Obstructed.",
+				"target": "enemy",
+				"add_factor": "obstructed"
+			},
+			{
+				"d100_range": [31, 39],
+				"id": "enemy_gathers_forces",
+				"name": "Enemy gathers forces",
+				"effect": "One enemy sector becomes an Infiltration point.",
+				"target": "enemy",
+				"add_factor": "infiltration_point"
+			},
+			{
+				"d100_range": [40, 47],
+				"id": "enemy_sabotage",
+				"name": "Enemy sabotage!",
+				"effect": "During the next operational turn, all battles are fought with -1 Support point.",
+				"target": "",
+				"next_turn_support_penalty": 1
+			},
+			{
+				"d100_range": [48, 56],
+				"id": "enemy_patrols",
+				"name": "Enemy patrols",
+				"effect": "One enemy sector is heavily patrolled: When rolling for Contact marker actions, add +1 to the Aggression die.",
+				"target": "enemy",
+				"add_condition": "patrolled",
+				"condition_name": "Heavily patrolled",
+				"battle": {"aggression_die_bonus": 1}
+			},
+			{
+				"d100_range": [57, 65],
+				"id": "enemy_swarms",
+				"name": "Enemy swarms",
+				"effect": "One enemy sector is swarmed. Place 1 additional Contact marker at the beginning of the battle.",
+				"target": "enemy",
+				"add_condition": "swarmed",
+				"condition_name": "Swarmed",
+				"battle": {"extra_contact_markers": 1}
+			},
+			{
+				"d100_range": [66, 73],
+				"id": "enemy_elites",
+				"name": "Enemy elites",
+				"effect": "One enemy sector is held by elite forces. If Combat Skill is +0, raise it to +1. If Toughness is 3, raise it to 4. Raise Speed by +1”.",
+				"target": "enemy",
+				"add_condition": "elites",
+				"condition_name": "Held by elite forces",
+				"battle": {
+					"elite_combat_skill_if": 0,
+					"elite_combat_skill_to": 1,
+					"elite_toughness_if": 3,
+					"elite_toughness_to": 4,
+					"elite_speed_bonus_inches": 1
+				}
+			},
+			{
+				"d100_range": [74, 85],
+				"id": "wastage",
+				"name": "Wastage",
+				"effect": "Reduce Support reserves by -1D3 points.",
+				"target": "",
+				"support_reserve_loss": "1D3"
+			},
+			{
+				"d100_range": [86, 100],
+				"id": "suspicious_activity",
+				"name": "Suspicious activity",
+				"effect": "One enemy sector increases Priority by +1.",
+				"target": "enemy",
+				"priority_increase": 1
+			}
+		]
+	}
+}

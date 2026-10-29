@@ -16,16 +16,8 @@ class Objective extends Resource:
 	@export var victory_condition: String = ""
 	@export var placement_rules: String = ""
 	@export var optional_rewards: Array[String] = []
-	@export var roll_ranges: Dictionary = {}  # mission_type -> [min, max]
-
-	func applies_to_roll(roll: int, mission_type: String) -> bool:
-		if not roll_ranges.has(mission_type):
-			return false
-		var range_arr: Array = roll_ranges[mission_type]
-		return roll >= range_arr[0] and roll <= range_arr[1]
 
 # Signals
-signal objective_rolled(objective: Objective)
 signal objective_completed(objective_id: String, success: bool)
 
 # Objective registry
@@ -35,38 +27,16 @@ var objective_registry: Array[Objective] = []
 var current_objective: Objective
 var objective_progress: Dictionary = {}
 
-# D10 tables per mission type (Core Rules pp.89-91)
-var _d10_tables: Dictionary = {}  # mission_type -> Array[{roll_range, type}]
 # Objective definitions keyed by type ID
 var _objective_defs: Dictionary = {}  # type_id -> {name, description, ...}
 
 func _init() -> void:
 	_initialize_objective_registry()
 
-## Roll battle objective based on mission type
-## Core Rules pp.89-91: Uses D10 per mission type (opportunity/quest/patron)
-func roll_objective(mission_type: String) -> Objective:
-	var type_key := mission_type.to_lower().replace(" ", "_")
-	# Use D10 tables if available for this mission type
-	if _d10_tables.has(type_key):
-		var roll := randi_range(1, 10)
-		return _get_objective_from_d10(roll, type_key)
-	# Fallback to D100 registry
-	var roll := randi_range(1, 100)
-	return get_objective_for_roll(roll, mission_type)
-
-## Get objective for specific roll
-func get_objective_for_roll(roll: int, mission_type: String) -> Objective:
-	var type_key := mission_type.to_lower().replace(" ", "_")
-
-	for objective in objective_registry:
-		if objective.applies_to_roll(roll, type_key):
-			current_objective = objective
-			objective_rolled.emit(objective)
-			return objective
-
-	# Default to Fight Off
-	return objective_registry[0] if objective_registry.size() > 0 else null
+## The p.89 objective ROLL is not here. It is MissionTableManager.roll_mission_objective(),
+## called once by CampaignTurnController before the battle. This file had a second,
+## unforceable copy (raw randi, and a D100 fallback over roll ranges nothing ever
+## populated) whose only caller was the battle panel's free Reroll button.
 
 ## Get all objectives
 func get_all_objectives() -> Array[Objective]:
@@ -112,36 +82,14 @@ func check_completion() -> bool:
 
 	return false
 
-## Look up objective from D10 table for a mission type
-func _get_objective_from_d10(roll: int, mission_type: String) -> Objective:
-	var table: Array = _d10_tables.get(mission_type, [])
-	for entry in table:
-		var r: Array = entry.get("roll_range", [0, 0])
-		if roll >= r[0] and roll <= r[1]:
-			var type_id: String = entry.get("type", "")
-			var obj := get_objective_by_id(type_id)
-			if obj:
-				current_objective = obj
-				objective_rolled.emit(obj)
-				return obj
-	# Fallback
-	return objective_registry[0] if objective_registry.size() > 0 else null
-
 func _initialize_objective_registry() -> void:
 	objective_registry.clear()
-	_d10_tables.clear()
 	_objective_defs.clear()
 
 	# Try JSON first
 	var dm = Engine.get_main_loop().root.get_node_or_null("/root/DataManager") if Engine.get_main_loop() else null
 	if dm and dm.has_method("load_json_file"):
 		var json_data: Dictionary = dm.load_json_file("res://data/mission_tables/mission_objectives.json")
-
-		# Load D10 tables (Core Rules pp.89-91)
-		var tables: Dictionary = json_data.get("tables", {})
-		for table_key in tables:
-			var table_data: Dictionary = tables[table_key]
-			_d10_tables[table_key] = table_data.get("entries", [])
 
 		# Load objective definitions
 		var obj_defs: Dictionary = json_data.get("objective_definitions", {})

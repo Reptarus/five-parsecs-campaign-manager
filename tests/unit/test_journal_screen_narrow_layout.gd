@@ -108,3 +108,18 @@ func _find_actions_row(node: Node) -> Control:
 		if hit != null:
 			return hit
 	return null
+
+
+## A new campaign has no entries, and the detail pane told that player to reset
+## filters they never set. The two empty cases now say different things.
+func test_an_empty_journal_is_not_called_over_filtered() -> void:
+	var inst: Node = auto_free(JournalScene.instantiate())
+	add_child(inst)
+	await await_idle_frame()
+	inst._all_entries.clear()
+	inst._render_empty_detail()
+	assert_str(inst._detail_richtext.text).contains("No journal entries yet")
+	assert_str(inst._detail_richtext.text).not_contains("Reset Filters")
+	inst._all_entries.append({"id": "e1", "title": "A battle"})
+	inst._render_empty_detail()
+	assert_str(inst._detail_richtext.text).contains("Reset Filters")

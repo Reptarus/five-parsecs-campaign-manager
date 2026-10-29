@@ -893,6 +893,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 		no_market_label.text = "No market data available for this world"
 		no_market_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
 		no_market_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+		no_market_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		opportunities_container.add_child(no_market_label)
 
 	# Show placeholder if no opportunities
@@ -900,6 +901,7 @@ func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> 
 		var empty_label = Label.new()
 		empty_label.text = "No opportunities available yet"
 		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		opportunities_container.add_child(empty_label)
 
 func _display_threats(rival_threats: Array) -> void:
@@ -930,6 +932,7 @@ func _display_threats(rival_threats: Array) -> void:
 		var empty_label = Label.new()
 		empty_label.text = "No known threats in this sector"
 		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
+		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		threats_container.add_child(empty_label)
 
 func _create_opportunity_card(opportunity_data: Dictionary, opportunity_type: String) -> Control:

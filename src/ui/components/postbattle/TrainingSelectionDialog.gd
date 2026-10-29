@@ -111,6 +111,8 @@ const APPROVAL_THRESHOLD := 4  # 2D6 roll, 4+ required for approval
 const APPROVAL_DICE := "2D6"   # Dice type for approval roll display
 
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+## Compendium p.25 New Training (offered when the NEW_TRAINING flag is on).
+const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
 
 # State
 #
@@ -134,7 +136,29 @@ var world_traits: Array = []
 
 ## "Expensive education — The fee to enroll in Advanced Training is 3 credits."
 func _enrollment_fee() -> int:
+	# Compendium p.25 Instructor: "When any figure in the crew applies for future
+	# Advanced Training, you do not have to pay the 1 Credit application fee or
+	# roll for availability."
+	if _crew_has_course("instructor"):
+		return 0
 	return WorldTraitEffectsClass.training_enrollment_fee(ENROLLMENT_FEE, world_traits)
+
+
+## The courses on offer: the seven Core Rules p.125 courses, plus the five
+## Compendium p.25 courses when that content is on. p.25: "Any of the following
+## training courses may be taken using the rules in post-battle step 10. Invest in
+## Advanced Training. They are acquired using the same rules as any other Advanced
+## Training." They used to be sold in the Advancement phase for credits alone.
+func _courses() -> Dictionary:
+	var all: Dictionary = TRAINING_TYPES.duplicate()
+	for item: Variant in CompendiumEquipmentRef.get_advanced_training():
+		if item is Dictionary:
+			all[str(item.get("id", ""))] = {
+				"name": str(item.get("name", "")),
+				"cost": int(item.get("cost", 0)),
+				"description": str(item.get("description", "")),
+			}
+	return all
 
 ## "Restricted education — You must roll 6+ to be approved for Advanced Training
 ## on this world."
@@ -288,7 +312,7 @@ func _char_class(c: Variant) -> String:
 ## training) — the latter is a payment-side rule, returned separately so the
 ## credits half of a split payment is not also halved.
 func _course_cost_for(c: Variant, training_key: String) -> int:
-	var base: int = int(TRAINING_TYPES[training_key]["cost"])
+	var base: int = int(_courses()[training_key]["cost"])
 	if training_key == "security" and _char_origin(c).contains("feral"):
 		base = maxi(0, base - 2)
 	return base
@@ -319,8 +343,9 @@ func _populate_training_list() -> void:
 		child.queue_free()
 	
 	# Create button for each training type
-	for training_key in TRAINING_TYPES.keys():
-		var training_data: Dictionary = TRAINING_TYPES[training_key]
+	var courses: Dictionary = _courses()
+	for training_key in courses.keys():
+		var training_data: Dictionary = courses[training_key]
 		var button := _create_training_button(training_key, training_data)
 		training_list.add_child(button)
 
@@ -494,6 +519,16 @@ func _on_roll_pressed() -> void:
 	current_credits = maxi(0, current_credits - _enrollment_fee())
 	attempted_this_turn = true
 
+	# Compendium p.25 Instructor: no roll for availability.
+	if _crew_has_course("instructor"):
+		_apply_training(plan)
+		result_display.text = "Instructor: no application roll needed. Paid %d XP + %d credits." % [
+			plan["xp_spent"], plan["credits_spent"]]
+		result_display.add_theme_color_override("font_color", COLOR_SUCCESS)
+		training_completed.emit(selected_character, selected_training_type, plan)
+		roll_button.disabled = true
+		return
+
 	var dice_manager = get_node_or_null("/root/DiceManager")
 	var roll_result: int = 0
 	if dice_manager and dice_manager.has_method("roll_d6"):
@@ -532,8 +567,12 @@ func _on_roll_pressed() -> void:
 ## one crew member with the same training", so one Broker is enough and a second
 ## adds nothing.
 func _crew_has_broker_training() -> bool:
+	return _crew_has_course("broker")
+
+
+func _crew_has_course(course_id: String) -> bool:
 	for c in available_crew:
-		if "broker" in _char_training(c):
+		if course_id in _char_training(c):
 			return true
 	return false
 

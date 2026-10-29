@@ -345,14 +345,14 @@ func _calculate_enemy_count(
 
 	# Helper: roll a die with difficulty and quest reroll modifiers
 	var _roll_die := func() -> int:
-		var result := randi() % 6 + 1
+		var result := _d6("Enemy Count")
 		if is_challenging:
 			# Reroll 1s and 2s once (Core Rules p.65: reroll before picking)
 			if result <= 2:
-				result = randi() % 6 + 1
+				result = _d6("Enemy Count")
 		# Quest missions: reroll any die scoring 1 once (Core Rules p.99)
 		elif is_quest and result == 1:
-			result = randi() % 6 + 1
+			result = _d6("Enemy Count")
 		return result
 
 	# Sprint 26.5: Track rolls for debug logging
@@ -1498,7 +1498,8 @@ func roll_unique_individuals(
 	if is_insanity:
 		# Always present, unmodified roll, 11-12 = two. Applies even to Roving
 		# Threats; the book calls that exception out by name.
-		count = 2 if (randi_range(1, 6) + randi_range(1, 6)) >= 11 else 1
+		count = 2 if (_d6("Unique Individual: die 1")
+				+ _d6("Unique Individual: die 2")) >= 11 else 1
 	elif bool(mission_data.get("force_unique_individual", false)):
 		# Expanded Quest Conclusion (Compendium p.80): "the enemy is always
 		# accompanied by a Unique Individual." Stated without qualification, so it
@@ -1514,7 +1515,8 @@ func roll_unique_individuals(
 		var cannot_have_unique: bool = is_invasion or category == "roving_threats"
 		if cannot_have_unique and not better_leadership:
 			return out
-		var roll: int = randi_range(1, 6) + randi_range(1, 6)
+		var roll: int = _d6("Unique Individual: die 1") \
+			+ _d6("Unique Individual: die 2")
 		if category == "interested_parties":
 			roll += 1
 		if is_hardcore:
@@ -1573,7 +1575,7 @@ func roll_unique_individuals(
 
 func _roll_unique_individual_entry(table: Array) -> Dictionary:
 	## D100 against the pp.105-107 table's roll_range bounds.
-	var roll: int = randi_range(1, 100)
+	var roll: int = _d100("Unique Individual Type")
 	for entry in table:
 		var rng: Array = entry.get("roll_range", [])
 		if rng.size() >= 2 and roll >= int(rng[0]) and roll <= int(rng[1]):
@@ -1691,6 +1693,27 @@ func select_enemy_for_mission(mission_source: String) -> Dictionary:
 			break
 	return template
 
+## Every book table in this file rolls through DiceManager, so a debug build can
+## force a row (DiceManager.queue_forced_result, QAScenarioDialog "Force the next
+## roll"). A raw randi() here could not be forced, so rare rows such as a Unique
+## Individual could only be reached by luck. This is a Resource, so the autoload is
+## reached through the main loop.
+static func _dice() -> Node:
+	var loop: MainLoop = Engine.get_main_loop()
+	return (loop as SceneTree).root.get_node_or_null("/root/DiceManager") \
+		if loop is SceneTree else null
+
+
+static func _d6(context: String) -> int:
+	var dm: Node = _dice()
+	return int(dm.roll_d6(context)) if dm != null else randi_range(1, 6)
+
+
+static func _d100(context: String) -> int:
+	var dm: Node = _dice()
+	return int(dm.roll_d100(context)) if dm != null else randi_range(1, 100)
+
+
 func _roll_encounter_category(mission_source: String) -> String:
 	## Roll D100 on enemy_encounter_categories table (Core Rules p.94).
 	## Returns category ID like "criminal_elements", "hired_muscle", etc.
@@ -1735,7 +1758,7 @@ func _roll_encounter_category(mission_source: String) -> String:
 	if source_table.is_empty():
 		return "criminal_elements"
 
-	var roll: int = randi_range(1, 100)
+	var roll: int = _d100("Encounter Category")
 	for category_id in source_table:
 		var range_arr: Array = source_table[category_id]
 		if range_arr.size() >= 2:
@@ -1773,22 +1796,8 @@ func _roll_enemy_in_category(category_id: String) -> Dictionary:
 	if not elite.is_empty():
 		return elite
 
-	for category_data in enemy_data.get("enemy_categories", []):
-		if category_data.get("id", "") == category_id:
-			var enemies: Array = category_data.get("enemies", [])
-			if enemies.is_empty():
-				return {}
-
-			var roll: int = randi_range(1, 100)
-			for enemy in enemies:
-				var r: Array = enemy.get("roll_range", [0, 0])
-				if r.size() >= 2 and roll >= r[0] and roll <= r[1]:
-					return enemy
-
-			# Fallback if roll didn't match (shouldn't happen)
-			return enemies.pick_random()
-
-	return {}
+	# The core tables. This used to be a second copy of the D100 walk below.
+	return _roll_core_enemy_in_category(category_id)
 
 ## True when Compendium p.31 Option 2 is running and THIS encounter's D6 did not
 ## reach the elite threshold for the current campaign turn.
@@ -1814,7 +1823,7 @@ func _option_2_blocks_elite() -> bool:
 		return false                      # turn 20+: "always"
 	if target >= tracker.OPTION_2_ELITE_NEVER:
 		return true                       # before turn 14: no elite enemies yet
-	return randi_range(1, 6) < target
+	return _d6("Elite Enemy Check") < target
 
 
 ## The core-rulebook encounter tables, with the p.48 elite substitution skipped.
@@ -1826,7 +1835,7 @@ func _roll_core_enemy_in_category(category_id: String) -> Dictionary:
 			var enemies: Array = category_data.get("enemies", [])
 			if enemies.is_empty():
 				return {}
-			var roll: int = randi_range(1, 100)
+			var roll: int = _d100("Encounter Enemy Type")
 			for enemy in enemies:
 				var r: Array = enemy.get("roll_range", [0, 0])
 				if r.size() >= 2 and roll >= r[0] and roll <= r[1]:
@@ -1942,7 +1951,7 @@ func _roll_on_weapon_table(table_key: String, column: String) -> Array:
 	var table: Array = enemy_data.get("weapon_tables", {}).get(table_key, [])
 	if table.is_empty():
 		return ["Hand Gun"]
-	var roll: int = randi_range(1, 6)
+	var roll: int = _d6("Enemy Weapon")
 	for row in table:
 		if int(row.get("roll", 0)) == roll:
 			return _split_combo(str(row.get(column, "Hand Gun")))

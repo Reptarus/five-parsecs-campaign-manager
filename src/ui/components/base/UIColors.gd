@@ -91,6 +91,23 @@ const TEXT_PRIMARY := COLOR_TEXT_PRIMARY
 const TEXT_SECONDARY := COLOR_TEXT_SECONDARY
 const TEXT_DISABLED := COLOR_TEXT_DISABLED
 
+## The coloured-initials avatar behind a character with no portrait. Five screens kept
+## their own copy of this list, and the Bug Hunt squad's was a different palette, so a
+## character moved between modes changed colour. Read it through avatar_color().
+const AVATAR_COLORS: Array[Color] = [
+	COLOR_BLUE, COLOR_PURPLE, COLOR_CYAN, COLOR_EMERALD,
+	COLOR_AMBER, COLOR_RED, Color("#ec4899"), Color("#14b8a6"),
+]
+
+
+## The avatar colour for a name or id. hash() can be negative, and the same name must
+## give the same colour on every screen.
+static func avatar_color(key: String) -> Color:
+	var i := key.hash() % AVATAR_COLORS.size()
+	if i < 0:
+		i += AVATAR_COLORS.size()
+	return AVATAR_COLORS[i]
+
 ## Colour ROLES for RichTextLabel text, written `[color=ui-success]...[/color]` and
 ## resolved to the palette by bbcode(). Panels hand-wrote hex tags (64 in the
 ## Planetfall panels alone, in three shades of amber and two of red), so their hues

@@ -209,7 +209,7 @@ func battle_fixture() -> Dictionary:
 	if SetupCls != null:
 		var setup = SetupCls.new()
 		var ctx: Dictionary = setup.generate_battle_context({
-			"crew_size": 6, "difficulty": 3})
+			"crew_size": 6, "difficulty": 2})  # Normal (Core Rules p.64)
 		out["enemies"] = ctx.get("enemies", [])
 		out["mission"] = ctx.get("mission_data", {})
 		out["crew"] = ctx.get("crew", [])

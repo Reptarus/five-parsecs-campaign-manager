@@ -7,6 +7,9 @@ const TouchScrollOpenerRef = preload(
 
 # ============ PRELOADS ============
 const CharacterCard = preload("res://src/ui/components/character/CharacterCard.gd")
+## Compendium p.26 names, descriptions and the Built-in weapon id.
+const CompendiumEquipmentRef = preload("res://src/data/compendium_equipment.gd")
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 const CharacterHistoryPanelClass = preload(
 	"res://src/ui/components/history/CharacterHistoryPanel.gd")
 const CharacterEventTimelineClass = preload(
@@ -386,23 +389,20 @@ func populate_ui() -> void:
 		if hero_card.has_method("set_variant"):
 			hero_card.set_variant(
 				CharacterCard.CardVariant.STANDARD)
-	# Portrait upload + Print Sheet buttons (overlay on HeroCard).
+	# Portrait upload + Print Sheet buttons (the row under the HeroCard).
 	# Item 3 / sheet export SOP — May 23 2026
 	#
-	# ⚠ THESE GUARDS MUST LOOK IN THE OVERLAY, NOT ON hero_card. Both buttons are
-	# added to `__HeroOverlay` (see _get_or_create_hero_overlay — hero_card is a
-	# Container and would override their anchors), so the old
-	# `hero_card.get_node_or_null("__ChangePortraitBtn")` was a DIRECT-CHILD lookup
-	# for a grandchild: permanently null, so the guard never fired. It cost nothing
-	# while populate_ui() ran once per screen entry — the crew pager made it
-	# re-entrant, and every page turn then leaked another button onto the card.
-	# Measured on deploy #35: a stray clipped "Change Portrait" at the card's top
-	# edge. The copies stack at one anchored position, so N buttons look like one
-	# and the count alone never gives it away.
-	var hero_overlay := _get_or_create_hero_overlay()
-	if hero_overlay and not hero_overlay.get_node_or_null("__ChangePortraitBtn"):
+	# ⚠ THESE GUARDS MUST LOOK IN THE ROW THAT HOLDS THE BUTTONS. They once lived on
+	# an overlay inside hero_card while the guard asked hero_card itself, a
+	# DIRECT-CHILD lookup for a grandchild: permanently null, so the guard never
+	# fired. It cost nothing while populate_ui() ran once per screen entry. The crew
+	# pager made it re-entrant, and every page turn then leaked another button
+	# (measured on deploy #35). Whatever parent the buttons move to, the guard asks
+	# that parent.
+	var hero_actions := _get_or_create_hero_actions()
+	if hero_actions and not hero_actions.get_node_or_null("__ChangePortraitBtn"):
 		_setup_portrait_upload()
-	if hero_overlay and not hero_overlay.get_node_or_null("__PrintSheetBtn"):
+	if hero_actions and not hero_actions.get_node_or_null("__PrintSheetBtn"):
 		_setup_print_sheet_button()
 	# Status summary bar
 	_build_status_bar()
@@ -420,7 +420,16 @@ func populate_ui() -> void:
 		var origin = current_character.origin if "origin" in current_character else "HUMAN"
 
 		var creation_summary = Label.new()
-		creation_summary.text = "%s | %s / %s / %s" % [origin, background, motivation, char_class]
+		# Through the shared display names: the raw values are storage keys, and the
+		# line read "HUMAN | TECH_GUILD / SURVIVAL / WORKING_CLASS".
+		var sid: String = str(current_character.species_id) \
+			if "species_id" in current_character else ""
+		creation_summary.text = "%s | %s / %s / %s" % [
+			SpeciesDataService.display_name(origin, sid, "Unknown"),
+			GlobalEnums.get_background_display_name(background),
+			str(motivation).capitalize(),
+			GlobalEnums.get_class_display_name(char_class)]
+		creation_summary.name = "CreationSummary"
 		creation_summary.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		creation_summary.add_theme_color_override("font_color", COLOR_FOCUS)  # Cyan highlight
 		character_info_container.add_child(creation_summary)
@@ -1146,23 +1155,25 @@ func _get_char_id() -> String:
 
 # ── Portrait Upload ─────────────────────────────────────────────
 
-## Full-rect, mouse-transparent overlay inside the HeroCard so floating buttons
-## can be positioned by anchors. HeroCard is a PanelContainer, which stretches
-## EVERY direct child to fill its rect — so buttons added directly to it overlap
-## the card content and each other, and their set_anchors_preset()/position()
-## calls are ignored (Containers override manual layout). The overlay is a plain
-## Control (not a Container), so ITS children honor anchors.
-func _get_or_create_hero_overlay() -> Control:
-	if not hero_card:
+## The row under the HeroCard that holds its two buttons. They used to float in the
+## card's bottom corners on an anchored overlay, which covered the card's own content
+## and, on a 310 px phone, put Print Sheet 30 px on top of Change Portrait: two 120 px
+## buttons cannot share a card narrower than the pair. A flow row wraps them instead.
+## Get-or-create, because populate_ui() runs again on every page turn.
+func _get_or_create_hero_actions() -> Control:
+	if not hero_card or hero_card.get_parent() == null:
 		return null
-	var overlay := hero_card.get_node_or_null("__HeroOverlay") as Control
-	if overlay:
-		return overlay
-	overlay = Control.new()
-	overlay.name = "__HeroOverlay"
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hero_card.add_child(overlay)
-	return overlay
+	var parent := hero_card.get_parent()
+	var row := parent.get_node_or_null("__HeroActions") as Control
+	if row:
+		return row
+	var flow := HFlowContainer.new()
+	flow.name = "__HeroActions"
+	flow.add_theme_constant_override("h_separation", SPACING_SM)
+	flow.add_theme_constant_override("v_separation", SPACING_SM)
+	parent.add_child(flow)
+	parent.move_child(flow, hero_card.get_index() + 1)
+	return flow
 
 func _setup_portrait_upload() -> void:
 	## Add "Change Portrait" button overlaid on the HeroCard
@@ -1171,7 +1182,8 @@ func _setup_portrait_upload() -> void:
 	var btn := Button.new()
 	btn.name = "__ChangePortraitBtn"
 	btn.text = "Change Portrait"
-	btn.custom_minimum_size = Vector2(120, 32)
+	# 48 px, the touch floor: at 32 the sweep measured 37.1 dp.
+	btn.custom_minimum_size = Vector2(120, TOUCH_TARGET_MIN)
 	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
@@ -1185,10 +1197,8 @@ func _setup_portrait_upload() -> void:
 	hover.bg_color = COLOR_ACCENT
 	btn.add_theme_stylebox_override("hover", hover)
 	btn.pressed.connect(_on_change_portrait_pressed)
-	_get_or_create_hero_overlay().add_child(btn)
-	# Position at bottom-left of hero card
-	btn.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	btn.position = Vector2(SPACING_SM, -40)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_get_or_create_hero_actions().add_child(btn)
 
 ## Add a "Print Sheet" button to the HeroCard, mirror position of the Change
 ## Portrait button. Opens the PrintSheetScreen via SceneRouter so the player
@@ -1202,7 +1212,7 @@ func _setup_print_sheet_button() -> void:
 	btn.text = "Print Sheet"
 	btn.tooltip_text = "Open printable sheets (Crew Log / Encounter Log / " \
 		+ "World Record)"
-	btn.custom_minimum_size = Vector2(120, 32)
+	btn.custom_minimum_size = Vector2(120, TOUCH_TARGET_MIN)
 	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(
@@ -1219,10 +1229,8 @@ func _setup_print_sheet_button() -> void:
 	# its shape when it is clicked. See DialogStyles.complete_button_states.
 	DialogStyles.complete_button_states(btn)
 	btn.pressed.connect(_on_print_sheet_pressed)
-	_get_or_create_hero_overlay().add_child(btn)
-	# Mirror position of Change Portrait — bottom-right of the hero card.
-	btn.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	btn.position = Vector2(-btn.custom_minimum_size.x - SPACING_SM, -40)
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_get_or_create_hero_actions().add_child(btn)
 
 
 func _on_print_sheet_pressed() -> void:
@@ -1642,9 +1650,10 @@ func _create_stat_advancement_section(character_dict: Dictionary) -> VBoxContain
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
 	
-	# Grid of stats (2 columns for mobile-friendly layout)
-	var grid := GridContainer.new()
-	grid.columns = 2
+	# A flow, not a 2-column grid: two cards held open by "Insufficient XP" need 346 px,
+	# which put the page 26.6 px off a 338 px phone. The flow fits as many per line as
+	# the width allows, so it re-fits on rotation with nothing to recompute.
+	var grid := HFlowContainer.new()
 	grid.add_theme_constant_override("h_separation", SPACING_SM)
 	grid.add_theme_constant_override("v_separation", SPACING_SM)
 	
@@ -1732,9 +1741,8 @@ func _create_training_section(character_dict: Dictionary) -> VBoxContainer:
 	var current_training: Array = character_dict.get("training", [])
 	var current_xp: int = character_dict.get("experience", 0)
 	
-	# Create grid for training (2 columns)
-	var grid := GridContainer.new()
-	grid.columns = 2
+	# A flow for the same reason as the stat cards above.
+	var grid := HFlowContainer.new()
 	grid.add_theme_constant_override("h_separation", SPACING_SM)
 	grid.add_theme_constant_override("v_separation", SPACING_SM)
 	
@@ -1959,17 +1967,10 @@ func _populate_bot_upgrade_section() -> void:
 	for child in advancement_section.get_children():
 		child.queue_free()
 	
-	# Get game state for credits
-	var game_state: Variant = GameStateManager.get_game_state()
-	if not game_state:
-		push_error("CharacterDetailsScreen: GameStateManager not available for bot upgrades")
-		return
-	
-	var campaign_credits: int = 0
-	if game_state.has_method("get_credits"):
-		campaign_credits = game_state.get_credits()
-	elif "credits" in game_state:
-		campaign_credits = game_state.credits
+	# Credits are owned by the campaign and read through GameStateManager. This
+	# asked the GameState autoload, which has neither get_credits() nor a credits
+	# property, so every Bot read 0 credits and every upgrade button was disabled.
+	var campaign_credits: int = GameStateManager.get_credits()
 	
 	# Create header
 	var header := _create_bot_upgrade_header(campaign_credits)
@@ -2108,40 +2109,49 @@ func _create_bot_upgrade_card(upgrade: Dictionary, campaign_credits: int, advanc
 	return panel
 
 func _create_installed_upgrades_section() -> VBoxContainer:
-	## Create section showing installed bot upgrades
+	## Installed bot upgrades: the Core Rules p.123 stat upgrades and the Compendium
+	## p.26 upgrades. This read a `bot_upgrades` dictionary off AdvancementSystem
+	## that does not exist, so a Bot with any p.26 upgrade aborted the sheet build
+	## here, and it never read the stat upgrades at all.
 	var section := VBoxContainer.new()
 	section.add_theme_constant_override("separation", SPACING_MD)
-	
-	# Title
+
 	var title := Label.new()
 	title.text = "INSTALLED UPGRADES"
 	title.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
 	title.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 	section.add_child(title)
-	
-	# Get installed upgrades
-	var installed_upgrades: Array = current_character.bot_upgrades if "bot_upgrades" in current_character else []
-	
-	if installed_upgrades.is_empty():
+
+	var lines: Array[String] = []
+	var stats: Variant = current_character.get("bot_upgraded_stats") \
+		if "bot_upgraded_stats" in current_character else []
+	for stat_name: Variant in (stats if stats is Array else []):
+		lines.append("+1 %s (Core Rules p.123)" % str(stat_name).capitalize())
+	var upgrades: Variant = current_character.get("bot_upgrades") \
+		if "bot_upgrades" in current_character else []
+	for upgrade_id: Variant in (upgrades if upgrades is Array else []):
+		var item: Dictionary = CompendiumEquipmentRef.get_item_by_id(str(upgrade_id))
+		var line: String = "%s: %s" % [
+			item.get("name", str(upgrade_id).capitalize()), item.get("description", "")]
+		if str(upgrade_id) == BotUpgradeEffectsRef.BUILTIN_WEAPON \
+				and str(current_character.get("builtin_weapon")) != "":
+			line = "%s (%s)" % [line, current_character.get("builtin_weapon")]
+		lines.append(line)
+
+	if lines.is_empty():
 		var no_upgrades := Label.new()
 		no_upgrades.text = "No upgrades installed yet"
 		no_upgrades.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		no_upgrades.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		section.add_child(no_upgrades)
-	else:
-		# Get upgrade definitions from advancement system
-		var advancement_system := FPCM_AdvancementSystem.new()
-		
-		for upgrade_id in installed_upgrades:
-			if advancement_system.bot_upgrades.has(upgrade_id):
-				var upgrade_data: Dictionary = advancement_system.bot_upgrades[upgrade_id]
-				
-				var upgrade_label := Label.new()
-				upgrade_label.text = "✓ %s: %s" % [upgrade_data.get("name", "Unknown"), upgrade_data.get("description", "")]
-				upgrade_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-				upgrade_label.add_theme_color_override("font_color", COLOR_SUCCESS)
-				section.add_child(upgrade_label)
-	
+	for line: String in lines:
+		var upgrade_label := Label.new()
+		upgrade_label.text = "✓ " + line
+		upgrade_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		upgrade_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
+		upgrade_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+		section.add_child(upgrade_label)
+
 	return section
 
 func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_AdvancementSystem) -> void:
@@ -2150,14 +2160,11 @@ func _on_bot_upgrade_pressed(upgrade_id: String, advancement_system: FPCM_Advanc
 		return
 	
 	
-	# Get game state
-	var game_state: Variant = GameStateManager.get_game_state()
-	if not game_state:
-		push_error("CharacterDetailsScreen: GameStateManager not available")
-		return
-	
+	# GameStateManager owns credits. Passing the GameState autoload (a Node) to a
+	# Resource-typed parameter was rejected before install_bot_upgrade() ran.
 	# Attempt installation
-	var success := advancement_system.install_bot_upgrade(current_character, upgrade_id, game_state)
+	var success := advancement_system.install_bot_upgrade(
+		current_character, upgrade_id, GameStateManager)
 	
 	if success:
 		# Mark campaign as modified

@@ -100,7 +100,6 @@ const SCREENS: Array[String] = [
 	"res://src/ui/screens/campaign/CampaignTurnController.tscn",
 	"res://src/ui/screens/campaign/CampaignJournalScreen.tscn",
 	"res://src/ui/screens/galaxy_log/GalaxyLogScreen.tscn",
-	"res://src/ui/screens/character/SimpleCharacterCreator.tscn",
 	"res://src/ui/screens/character/CharacterDetailsScreen.tscn",
 	"res://src/ui/screens/crew/CrewManagementScreen.tscn",
 	"res://src/ui/screens/equipment/EquipmentManager.tscn",
@@ -315,6 +314,47 @@ func test_an_overlay_page_opens_every_row_it_hosts() -> void:
 		"overlay_page left STOP controls on its page: %s" % [stops]).is_empty()
 	# The premise: a Button is STOP by default, so the zero above was earned.
 	assert_int(Button.new().mouse_filter).is_equal(Control.MOUSE_FILTER_STOP)
+
+
+## The Bug Hunt Co-op Campaign Map is an overlay PANEL opened from the dashboard, not a
+## routed screen, so it is not in SCREENS. Built on a map from the real producer
+## (BugHuntCampaignCore.start_coop_campaign) under forced dice, with a mission recorded
+## so the receipt card and a cleared sector are on the page too.
+func test_the_coop_map_panel_opens_every_row_it_hosts() -> void:
+	var dm: Node = get_tree().root.get_node_or_null("/root/DiceManager")
+	assert_object(dm).is_not_null()
+	dm.clear_forced_results()
+	for v in [3, 4, 2, 6, 1, 5]:
+		dm.queue_forced_result("Bug Hunt Co-op Priority: die 1", v)
+	for v in [5, 4, 6, 5, 3, 6]:
+		dm.queue_forced_result("Bug Hunt Co-op Priority: die 2", v)
+	for v in [1, 31, 81, 51, 66, 95]:
+		dm.queue_forced_result("Bug Hunt Co-op Sector Factor", v)
+	dm.queue_forced_result("Bug Hunt Co-op Resource Stash", 4)
+	var core = preload("res://src/game/campaign/BugHuntCampaignCore.gd").new()
+	core.campaign_name = "Sweep co-op"
+	var receipt: Dictionary = core.start_coop_campaign(["Ash", "Bryn"], 3)
+	var leftover: Dictionary = dm.get_forced_results()
+	dm.clear_forced_results()
+	assert_bool(bool(receipt.get("ok", false))).is_true()
+	assert_dict(leftover).is_empty()
+	var panel: Control = load("res://src/ui/screens/bug_hunt/panels/BugHuntCoopMapPanel.gd").new()
+	panel.set_campaign(core)
+	add_child(panel)
+	auto_free(panel)
+	panel.record_elsewhere("Bryn", "S6", 2, 0)  # a rebuild after entry, as a press makes
+	for _i in range(3):
+		await get_tree().process_frame
+	var stops: Array[String] = []
+	_name_stops(panel, panel, stops)
+	assert_array(stops).override_failure_message(
+		"the co-op map left STOP controls on its page: %s" % [stops]).is_empty()
+	# The premise: the page really holds the six sector cards a finger lands on.
+	var cards := 0
+	for n in panel.find_children("*", "PanelContainer", true, false):
+		if n.has_meta("sector_id"):
+			cards += 1
+	assert_int(cards).is_equal(6)
 
 
 func test_no_screen_swallows_a_touch_drag_over_its_scrollable_content() -> void:

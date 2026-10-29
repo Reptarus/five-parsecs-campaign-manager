@@ -21,11 +21,16 @@ signal campaign_finalization_complete(data: Dictionary)
 signal campaign_confirmed()  # New signal for Create Campaign button
 
 # UI References - rebuilt programmatically
-var summary_cards_container: HFlowContainer = null
+# A flow (two columns) on a wide screen, a VBox (one column) on a phone; see
+# _arrange_summary_cards().
+var summary_cards_container: Container = null
 var validation_feedback_container: Control = null  # Validation feedback panel
 var validation_panel: ValidationPanel = null
 var crew_preview_container: VBoxContainer = null
-var create_button: Button = null
+# True from the first press of "Start Campaign" until finalization fails. The wizard's
+# footer button is the only create button and calls _on_create_campaign_pressed(); a
+# second tap while finalization awaits would otherwise build and save a second campaign.
+var _finalizing := false
 
 var campaign_data: Dictionary = {}
 var campaign_state: Dictionary = {}  # Add missing campaign_state variable
@@ -166,14 +171,10 @@ func _build_final_panel_ui() -> void:
 	validation_feedback_container = validation_panel
 	content_container.add_child(validation_panel)
 
-	# 4. Create Campaign Button (at bottom of scroll content)
-	var footer := MarginContainer.new()
-	footer.add_theme_constant_override("margin_top", SPACING_MD)
-	footer.add_theme_constant_override("margin_bottom", SPACING_SM)
-	content_container.add_child(footer)
-
-	create_button = _create_create_campaign_button()
-	footer.add_child(create_button)
+	# No create button here: the wizard's pinned footer "Start Campaign" is the one
+	# create button and calls _on_create_campaign_pressed(). A second, in-page
+	# "Create Campaign & Start Adventure" did the same thing from the bottom of the
+	# scroll and, at 309 px, was wider than a phone.
 
 
 # NOTE: _create_progress_indicator() removed - CampaignCreationUI handles progress display centrally
@@ -201,41 +202,6 @@ func _create_crew_preview_section() -> VBoxContainer:
 	scroll.add_child(crew_hbox)
 	
 	return section
-
-func _create_create_campaign_button() -> Button:
-	## Create large accent 'Create Campaign' button
-	var btn := Button.new()
-	btn.text = "Create Campaign & Start Adventure"
-	btn.custom_minimum_size.y = TOUCH_TARGET_COMFORT
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	
-	# Accent button styling
-	var style_normal := StyleBoxFlat.new()
-	style_normal.bg_color = COLOR_ACCENT
-	style_normal.set_corner_radius_all(4)
-	style_normal.set_content_margin_all(SPACING_MD)
-	
-	var style_hover := StyleBoxFlat.new()
-	style_hover.bg_color = COLOR_ACCENT_HOVER
-	style_hover.set_corner_radius_all(4)
-	style_hover.set_content_margin_all(SPACING_MD)
-	
-	var style_disabled := StyleBoxFlat.new()
-	style_disabled.bg_color = COLOR_TEXT_DISABLED
-	style_disabled.set_corner_radius_all(4)
-	style_disabled.set_content_margin_all(SPACING_MD)
-	
-	btn.add_theme_stylebox_override("normal", style_normal)
-	btn.add_theme_stylebox_override("hover", style_hover)
-	btn.add_theme_stylebox_override("disabled", style_disabled)
-	# Derive pressed/disabled/focus from the box above so this button keeps
-	# its shape when it is clicked. See DialogStyles.complete_button_states.
-	DialogStyles.complete_button_states(btn)
-	btn.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))
-	
-	btn.pressed.connect(_on_create_campaign_pressed)
-	
-	return btn
 
 func _initialize_security_validator() -> void:
 	## Initialize security validator for input sanitization
@@ -331,22 +297,13 @@ func _update_display() -> void:
 		summary_cards_container.add_child(extras_card)
 
 	# Elite Bonuses card (shows Stars of the Story abilities and Elite Rank bonuses)
-	# Portrait: cards must shrink to a single full-width column instead of forcing
-	# 500/1000px and overflowing the ~321px floor (r12/r13).
-	var single_col := should_use_single_column()
 	var elite_card = _create_elite_bonuses_card()
 	if elite_card:
+		# Full-width Stars-of-the-Story grid in the two-column layout.
+		elite_card.set_meta("full_width", true)
 		summary_cards_container.add_child(elite_card)
-		# Full-width Stars-of-the-Story grid on desktop; shrink to fit in portrait.
-		elite_card.custom_minimum_size.x = 0 if single_col else 1000
 
-	# Set min widths for the responsive 2-column HFlow (single column in portrait).
-	for child in summary_cards_container.get_children():
-		child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if single_col:
-			child.custom_minimum_size.x = 0
-		elif child.custom_minimum_size.x < 500:
-			child.custom_minimum_size.x = 500
+	_arrange_summary_cards()
 
 	# Update crew preview
 	_update_crew_preview()
@@ -369,6 +326,9 @@ func _create_config_summary_card() -> PanelContainer:
 	name_label.text = config_data.get("campaign_name", "Unknown Campaign")
 	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data hierarchy
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)      # Accent color for emphasis
+	# The names are the player's, so their length is not ours to choose: an XL
+	# "Commander Parker Liang" measured 260 px and ran the step off a phone.
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(name_label)
 	
 	# Difficulty & Mode - check both key names and convert integer to name
@@ -381,6 +341,7 @@ func _create_config_summary_card() -> PanelContainer:
 	]
 	difficulty_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 	difficulty_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	difficulty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(difficulty_label)
 	
 	# Victory Conditions - Handle both dictionary and boolean formats
@@ -439,6 +400,7 @@ func _create_ship_summary_card() -> PanelContainer:
 	name_label.text = ship_name
 	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(name_label)
 	
 	# Ship Type (Secondary info)
@@ -449,8 +411,10 @@ func _create_ship_summary_card() -> PanelContainer:
 	content.add_child(type_label)
 	
 	# Ship Stats (using StatBadge components)
-	var stats_hbox := HBoxContainer.new()
-	stats_hbox.add_theme_constant_override("separation", SPACING_SM)
+	# Flows, like the crew averages below: three 80 px badges overran a phone's card.
+	var stats_hbox := HFlowContainer.new()
+	stats_hbox.add_theme_constant_override("h_separation", SPACING_SM)
+	stats_hbox.add_theme_constant_override("v_separation", SPACING_XS)
 
 	var hull_badge = StatBadge.new()
 	hull_badge.stat_name = "Hull"
@@ -497,6 +461,7 @@ func _create_ship_summary_card() -> PanelContainer:
 				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			met_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
+			met_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			flavor_vbox.add_child(met_label)
 		if not char_as.is_empty():
 			var char_label := Label.new()
@@ -505,6 +470,7 @@ func _create_ship_summary_card() -> PanelContainer:
 				"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			char_label.add_theme_color_override(
 				"font_color", COLOR_TEXT_SECONDARY)
+			char_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			flavor_vbox.add_child(char_label)
 		content.add_child(flavor_vbox)
 
@@ -582,6 +548,7 @@ func _create_captain_summary_card() -> PanelContainer:
 	name_label.text = captain_name if not captain_name.is_empty() else "No Captain Assigned"
 	name_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XL))  # XL for primary data
 	name_label.add_theme_color_override("font_color", COLOR_ACCENT)     # Accent color
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(name_label)
 	
 	# Background, Class, Motivation - extract from nested captain object
@@ -603,6 +570,7 @@ func _create_captain_summary_card() -> PanelContainer:
 		bg_label.text = "Background: %s" % background
 		bg_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		bg_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(bg_label)
 	
 	if not char_class.is_empty():
@@ -610,11 +578,13 @@ func _create_captain_summary_card() -> PanelContainer:
 		class_label.text = "Class: %s" % char_class
 		class_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		class_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		class_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(class_label)
 	
 	# Captain Stats Grid (2 rows x 3 cols - all 6 stats)
-	var stats_grid := GridContainer.new()
-	stats_grid.columns = 3
+	# A flow, not a 3-column grid: three 80 px badges and their gaps are 256 px, wider
+	# than this card on a phone. It packs as many per row as fit.
+	var stats_grid := HFlowContainer.new()
 	stats_grid.add_theme_constant_override("h_separation", SPACING_SM)
 	stats_grid.add_theme_constant_override("v_separation", SPACING_XS)
 
@@ -656,6 +626,7 @@ func _create_crew_summary_card() -> PanelContainer:
 		crew_members.size(), campaign_crew_setting]
 	count_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_LG))  # Larger!
 	count_label.add_theme_color_override("font_color", COLOR_ACCENT)  # Accent color!
+	count_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(count_label)
 
 	# Calculate and display average stats using stat badges (Sprint 26.3: Character-Everywhere)
@@ -674,8 +645,9 @@ func _create_crew_summary_card() -> PanelContainer:
 		var avg_reactions: int = total_reactions / max(crew_members.size(), 1)
 
 		# Average stats (using StatBadge components)
-		var avg_stats_hbox := HBoxContainer.new()
-		avg_stats_hbox.add_theme_constant_override("separation", SPACING_SM)
+		var avg_stats_hbox := HFlowContainer.new()
+		avg_stats_hbox.add_theme_constant_override("h_separation", SPACING_SM)
+		avg_stats_hbox.add_theme_constant_override("v_separation", SPACING_XS)
 
 		var combat_badge = StatBadge.new()
 		combat_badge.stat_name = "Avg Combat"
@@ -724,6 +696,7 @@ func _create_equipment_summary_card() -> PanelContainer:
 		credits_label.text = "Starting Credits: %d cr" % credits_value
 	credits_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_MD))
 	credits_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
+	credits_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	content.add_child(credits_label)
 	
 	# Equipment list with owners and conditions
@@ -747,6 +720,7 @@ func _create_equipment_summary_card() -> PanelContainer:
 		item_label.text = "  %s" % " — ".join(parts)
 		item_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_XS))
 		item_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(item_label)
 	
 	# Resources
@@ -802,6 +776,9 @@ func _create_extras_summary_card() -> PanelContainer:
 			patron_label.text = "  %s%s%s" % [patron_name, " (%s)" % patron_type if not patron_type.is_empty() else "", patron_source_text]
 			patron_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			patron_label.add_theme_color_override("font_color", COLOR_SUCCESS)
+			# "Name (type) — via character" is a sentence; unwrapped it set the card's
+			# width and put the Final Review step off both edges of a phone.
+			patron_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			content.add_child(patron_label)
 
 	if not rivals.is_empty():
@@ -819,6 +796,7 @@ func _create_extras_summary_card() -> PanelContainer:
 			rival_label.text = "  %s%s%s" % [rival_name, " (%s)" % rival_type if not rival_type.is_empty() else "", rival_source_text]
 			rival_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 			rival_label.add_theme_color_override("font_color", COLOR_DANGER)
+			rival_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			content.add_child(rival_label)
 
 	# Add numeric extras. These are the crew's TABLE grants — the story points here
@@ -837,6 +815,7 @@ func _create_extras_summary_card() -> PanelContainer:
 		extras_label.text = extras_text.strip_edges()
 		extras_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		extras_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+		extras_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		content.add_child(extras_label)
 
 	var sp_base_label = Label.new()
@@ -1412,15 +1391,11 @@ func _create_validation_feedback_panel(errors: Array) -> PanelContainer:
 	return panel
 
 func _update_create_button_state() -> void:
-	## Enable/disable Create Campaign button AND update validation panel
-	if not create_button:
-		return
-	
+	## Announce whether the campaign can be created, for the wizard's footer button.
 	var errors = _validate_campaign_data()
-	create_button.disabled = not errors.is_empty()
 
 	# Announce validity so the wizard's fixed-footer "Start Campaign" button can
-	# stay in sync with THIS panel's own create button. Without this, the footer
+	# reflect THIS panel's validation. Without this, the footer
 	# finish_button (gated only on can_finish_campaign_creation, which does NOT
 	# check the victory-condition requirement) stays green/enabled and silently
 	# no-ops when a blocking error exists (e.g. no victory condition), with the
@@ -1505,10 +1480,12 @@ func _get_victory_condition_display_name(condition_key: String) -> String:
 
 func _on_create_campaign_pressed() -> void:
 	## Handle create campaign button with CampaignFinalizationService
+	if _finalizing:
+		return
 	_validate_and_complete()
-	
+
 	if is_campaign_complete:
-		create_button.disabled = true  # Prevent double-clicks
+		_finalizing = true
 		
 		# Emit campaign_confirmed signal
 		campaign_confirmed.emit()
@@ -1517,7 +1494,7 @@ func _on_create_campaign_pressed() -> void:
 		var FinalizationScript = load("res://src/core/campaign/creation/CampaignFinalizationService.gd")
 		if not FinalizationScript:
 			push_error("FinalPanel: Could not load CampaignFinalizationService.gd")
-			create_button.disabled = false
+			_finalizing = false
 			return
 		var service = FinalizationScript.new()
 		var state_manager = coordinator.state_manager if coordinator and "state_manager" in coordinator else null
@@ -1551,7 +1528,7 @@ func _on_create_campaign_pressed() -> void:
 			})
 			# Note: CampaignCreationUI handles transition via _on_campaign_finalization_complete_from_panel
 		else:
-			create_button.disabled = false
+			_finalizing = false
 			validation_failed.emit([result.error])
 	else:
 		validation_failed.emit(last_validation_errors)
@@ -1791,32 +1768,55 @@ func _log_panel_initialization_debug() -> void:
 	pass
 	
 
+## A phone gets one card per row; a wide screen gets the two-column flow.
+## A flow places its children by their MINIMUM widths, and a card whose text wraps
+## has a minimum of a few pixels, so on a phone two cards shared one 260 px row
+## (Extras was squeezed to 62 px beside Equipment). A VBox is a real single column.
+## Runs after every rebuild and on every layout change, so a rotation re-stacks.
+func _arrange_summary_cards() -> void:
+	if summary_cards_container == null or not is_instance_valid(summary_cards_container):
+		return
+	var single_col := should_use_single_column()
+	if (summary_cards_container is VBoxContainer) != single_col:
+		var old: Container = summary_cards_container
+		var parent := old.get_parent()
+		var repl: Container = VBoxContainer.new() if single_col else HFlowContainer.new()
+		if single_col:
+			repl.add_theme_constant_override("separation", SPACING_MD)
+		else:
+			repl.add_theme_constant_override("h_separation", SPACING_MD)
+			repl.add_theme_constant_override("v_separation", SPACING_MD)
+		repl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		for child in old.get_children():
+			old.remove_child(child)
+			repl.add_child(child)
+		# Detach the old one before the new one takes its name: a sibling with the
+		# same name makes Godot rename the newcomer, and "SummaryCards" is looked up.
+		var index := old.get_index() if parent else -1
+		if parent:
+			parent.remove_child(old)
+		old.queue_free()
+		repl.name = "SummaryCards"
+		summary_cards_container = repl
+		if parent:
+			parent.add_child(repl)
+			parent.move_child(repl, index)
+	for child in summary_cards_container.get_children():
+		if child is Control:
+			var card := child as Control
+			card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			if single_col:
+				card.custom_minimum_size.x = 0
+			else:
+				card.custom_minimum_size.x = 1000 if card.get_meta("full_width", false) else 500
+
+
+func _update_layout_for_mode() -> void:
+	super._update_layout_for_mode()
+	_arrange_summary_cards()
+
+
 func _log_mathematical_validation() -> void:
 	## Mathematical validation (debug output removed for release)
 	pass
 
-## Responsive Layout Overrides
-
-func _apply_mobile_layout() -> void:
-	## Mobile: Single column, comfortable touch targets, compact summaries
-	super._apply_mobile_layout()
-
-	# Increase button touch target to TOUCH_TARGET_COMFORT for comfortable mobile use
-	if create_button:
-		create_button.custom_minimum_size.y = TOUCH_TARGET_COMFORT
-
-func _apply_tablet_layout() -> void:
-	## Tablet: Two columns, minimum touch targets, detailed summaries
-	super._apply_tablet_layout()
-
-	# Standard button touch target at TOUCH_TARGET_MIN for larger screens
-	if create_button:
-		create_button.custom_minimum_size.y = TOUCH_TARGET_MIN
-
-func _apply_desktop_layout() -> void:
-	## Desktop: Multi-column, minimum touch targets, full summaries
-	super._apply_desktop_layout()
-
-	# Standard button touch target at TOUCH_TARGET_MIN for mouse-first interaction
-	if create_button:
-		create_button.custom_minimum_size.y = TOUCH_TARGET_MIN

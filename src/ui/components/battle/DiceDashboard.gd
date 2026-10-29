@@ -9,6 +9,12 @@ extends MarginContainer
 # Signals
 signal dice_rolled(dice_type: String, result: int, context: String)
 
+## A tint per die type, so consecutive rolls of different dice read apart.
+const DIE_TINTS := {
+	"D3": Color("#87CEEB"), "D6": Color.WHITE, "2D6": Color("#90EE90"),
+	"D66": Color("#FFFF00"), "D100": Color("#FFA500"),
+}
+
 # UI References
 @onready var last_roll_label: Label = %LastRollLabel
 @onready var roll_history: RichTextLabel = %RollHistory
@@ -156,19 +162,8 @@ func _update_display() -> void:
 			]
 
 			# Color code based on dice type for visual interest
-			match last_roll.dice_type.to_upper():
-				"D3":
-					last_roll_label.modulate = Color("#87CEEB")  # Light Blue
-				"D6":
-					last_roll_label.modulate = Color("#FFFFFF")  # White
-				"2D6":
-					last_roll_label.modulate = Color("#90EE90")  # Light Green
-				"D66":
-					last_roll_label.modulate = Color("#FFFF00")  # Yellow
-				"D100":
-					last_roll_label.modulate = Color("#FFA500")  # Orange
-				_:
-					last_roll_label.modulate = Color("#FFFFFF")  # White
+			last_roll_label.modulate = DIE_TINTS.get(
+				last_roll.dice_type.to_upper(), Color.WHITE)
 		else:
 			last_roll_label.text = "No rolls yet"
 			last_roll_label.modulate = UIColors.COLOR_TEXT_SECONDARY

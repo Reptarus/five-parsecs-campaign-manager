@@ -27,11 +27,9 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
 layout_mode = 2
-text = "Available Equipment"
-
-[node name="Spacer" type="Control" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
-layout_mode = 2
 size_flags_horizontal = 3
+text = "Available Equipment"
+autowrap_mode = 3
 
 [node name="AutoAssignButton" type="Button" parent="ContentMargin/MainContent/FormContent/FormContainer/Content/MainSplit/EquipmentSection/EquipmentHeader"]
 unique_name_in_owner = true

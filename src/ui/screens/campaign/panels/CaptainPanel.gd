@@ -328,7 +328,7 @@ func _apply_button_style(button: Button, is_primary: bool) -> void:
 	button.custom_minimum_size.y = 48
 	var hover := style.duplicate()
 	hover.bg_color = UIColors.COLOR_ACCENT_HOVER if is_primary \
-		else Color("#2d3748")
+		else UIColors.COLOR_BORDER
 	button.add_theme_stylebox_override("hover", hover)
 	var pressed := style.duplicate()
 	pressed.bg_color = Color(
@@ -343,7 +343,7 @@ func _apply_button_style(button: Button, is_primary: bool) -> void:
 		style.bg_color.b, 0.2)
 	button.add_theme_stylebox_override("disabled", disabled)
 	button.add_theme_color_override(
-		"font_disabled_color", Color("#4b5563"))
+		"font_disabled_color", UIColors.COLOR_TEXT_DISABLED)
 
 ## Starting bonuses from gear_database.json tables
 var _gear_db: Dictionary = {}
