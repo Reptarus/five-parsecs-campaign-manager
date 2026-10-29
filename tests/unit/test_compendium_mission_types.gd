@@ -91,7 +91,15 @@ func test_each_generator_stamps_its_dispatch_type() -> void:
 
 	var stealth: Dictionary = StealthGen.generate_stealth_mission(6)
 	var street: Dictionary = StreetGen.generate_street_fight()
-	var salvage: Dictionary = SalvageGen.generate_salvage_job(6)
+	# p.137: a 1 on the availability D6 is "No job available this campaign turn", and the
+	# generator returns {} for it. That D6 is a raw randi_range (not forceable through
+	# DiceManager), so a single call failed this case about one run in six. Draw until a
+	# job is on offer; sixty 1s in a row does not happen.
+	var salvage: Dictionary = {}
+	for _i in range(60):
+		salvage = SalvageGen.generate_salvage_job(6)
+		if not salvage.is_empty():
+			break
 
 	# A generator returns {} when its pack is not owned. If the flag is on and it
 	# still returns nothing, the feature is broken upstream of the wiring.

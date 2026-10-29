@@ -3,7 +3,7 @@ extends "res://tests/tools/capture_screens.gd"
 ## visual UI/UX review on real renders (Sprint U, 2026-10-28).
 ##
 ## capture_screens.gd covers the 21 5PFH and shared screens. Nothing captured, swept or
-## laid out the Planetfall or Tactics screens, or ANY variant mode's turn-step panels,
+## laid out the Planetfall, Tactics or Bug Hunt screens, or ANY variant mode's turn-step panels,
 ## which is how Planetfall shipped with no map screen and four self-labelled stubs. This
 ## builds a campaign through the mode's REAL producers (the creation wizard's own panels
 ## and coordinator, never a hand-written dict), then renders every creation step, the
@@ -38,6 +38,8 @@ func _run() -> void:
 			await _planetfall()
 		"tactics":
 			await _tactics()
+		"bug_hunt":
+			await _bug_hunt()
 		_:
 			print("unknown mode: %s" % _mode)
 	var removed: int = _guard.restore(_guard_snap)
@@ -293,6 +295,148 @@ func _tactics() -> void:
 	pm.complete_current_phase({})
 	await _settle(tc)
 	await _shot("tac_turn_complete", tc)
+	await _unmount(tc)
+
+
+## ============================================================================
+## BUG HUNT
+## ============================================================================
+
+const BH_TURN := "res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn"
+
+
+func _bug_hunt() -> void:
+	var gs: Node = root.get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = null
+
+	# --- Creation wizard: each step fed by its own panel's handlers ---
+	var ui: Node = await _mount("res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn")
+	if ui == null:
+		return
+	var coord: Node = ui.coordinator
+	await _shot("bh_create_0_launch", ui)
+	var names := ["1_config", "2_squad", "3_equipment", "4_review"]
+	for step in range(names.size()):
+		coord.go_to_step(step)
+		await _settle(ui)
+		await _shot("bh_create_%s_empty" % names[step], ui)
+		var panel: Node = ui.panels[step]
+		match step:
+			0:
+				panel._name_edit.text = "Sweep fixture"
+				panel._on_name_changed("Sweep fixture")
+				panel._on_generate_regiment()
+			1:
+				panel._on_generate_squad()
+			3:
+				panel.refresh()
+		if step != 2:  # the equipment step is read-only standard issue
+			await _settle(ui)
+			await _shot("bh_create_%s_filled" % names[step], ui)
+	# build_campaign() registers the campaign with GameState itself.
+	coord.build_campaign(coord.state_manager.get_all_data())
+	await _unmount(ui)
+
+	# --- Dashboard and its two transfer pages ---
+	var dash: Node = await _mount("res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn")
+	if dash:
+		await _shot("bh_dashboard", dash)
+		for pair in [["_on_enlist_pressed", "bh_dash_enlist"],
+				["_on_muster_out_pressed", "bh_dash_muster"]]:
+			var before: int = dash.get_child_count()
+			dash.call(pair[0])
+			await _settle(dash)
+			if dash.get_child_count() > before:
+				var added: Node = dash.get_child(dash.get_child_count() - 1)
+				await _shot(pair[1], dash)
+				added.queue_free()
+				await process_frame
+			else:
+				print("  SKIP %s: nothing was mounted" % pair[1])
+		await _unmount(dash)
+
+	# --- Stage 1 and 2, as the turn controller shows them ---
+	var tc: Node = await _mount(BH_TURN)
+	if tc == null:
+		return
+	for _i in range(10):
+		await process_frame
+	var pm: Node = tc.phase_manager
+	if pm == null:
+		print("  SKIP turn: no phase manager")
+		return
+	await _shot("bh_turn_0_special_assignments", tc)
+	tc.panels[0]._on_roll_all()
+	await _settle(tc)
+	await _shot("bh_turn_0_special_assignments_rolled", tc)
+	tc._on_advance_pressed()  # the panel's own complete()
+	await _settle(tc)
+	await _shot("bh_turn_1_%s" % _phase_slug(pm), tc)
+	tc.panels[1]._generate_mission()  # the Generate Mission button (support rolls too)
+	await _settle(tc)
+	await _shot("bh_turn_1_%s_generated" % _phase_slug(pm), tc)
+
+	# The Launch button's own path. Without SceneRouter it stamps the mission and leaves
+	# the battle context in temp data exactly as a real launch does, then reports that it
+	# could not navigate; NotificationManager is held out too so that report is not drawn
+	# over the next capture. Both are put back straight after.
+	var held: Array = []
+	for name in ["SceneRouter", "NotificationManager"]:
+		var n: Node = root.get_node_or_null(name)
+		if n:
+			root.remove_child(n)
+			held.append(n)
+	tc.panels[1]._launch_mission()
+	for n in held:
+		root.add_child(n)
+	var gsm: Node = root.get_node_or_null("/root/GameStateManager")
+	var ctx: Variant = gsm.get_temp_data("bug_hunt_battle_context") if gsm else null
+	var campaign: Resource = tc.campaign
+	await _unmount(tc)
+
+	# --- The battle screen in Bug Hunt mode, built from that context ---
+	if ctx is Dictionary and not (ctx as Dictionary).is_empty():
+		var tb: Node = await _mount("res://src/ui/screens/battle/TacticalBattleUI.tscn")
+		if tb:
+			await _shot("bh_battle", tb)
+			tb._on_tier_selected(1)  # Assisted, from the companion-level chooser
+			await _settle(tb)
+			await _shot("bh_battle_assisted", tb)
+			await _unmount(tb)
+	else:
+		print("  SKIP bh_battle: the launch left no battle context")
+	if gsm:
+		gsm.set_temp_data("bug_hunt_battle_context", null)
+
+	# --- Stage 3: the controller is rebuilt on the return, as the router does ---
+	var first: Dictionary = {}
+	for mc in campaign.main_characters:
+		if mc is Dictionary:
+			first = mc
+			break
+	var fallen := {"id": str(first.get("id", first.get("character_id", ""))),
+			"name": str(first.get("name", ""))}
+	if gsm:
+		# TacticalBattleUI's own vocabulary (its played-battle result, :7160-7185).
+		gsm.set_temp_data("bug_hunt_battle_result", {
+			"victory": true, "won": true, "held_field": true, "rounds_fought": 5,
+			"crew_casualties": 1, "crew_casualties_data": [fallen],
+			"crew_injuries": 0, "crew_injuries_data": [],
+			"enemies_defeated_count": 4, "auto_resolved": false})
+	tc = await _mount(BH_TURN)
+	if tc == null:
+		return
+	for _i in range(10):
+		await process_frame
+	pm = tc.phase_manager
+	await _shot("bh_turn_2_%s" % _phase_slug(pm), tc)
+	tc.panels[2]._process_post_battle()
+	await _settle(tc)
+	await _shot("bh_turn_2_%s_processed" % _phase_slug(pm), tc)
+	tc._on_advance_pressed()
+	await _settle(tc)
+	await _shot("bh_turn_complete", tc)
 	await _unmount(tc)
 
 

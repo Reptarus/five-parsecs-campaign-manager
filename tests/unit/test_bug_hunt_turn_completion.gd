@@ -370,9 +370,29 @@ func test_rolling_real_assignments_advances_the_turn_to_mission() -> void:
 	roll.pressed.emit()
 	await get_tree().process_frame
 
+	# ⚠ CHANGED 2026-10-28 (Sprint U, Bug Hunt pass). This case used to assert that
+	# Roll All alone moved the turn to MISSION, which was the defect: the panel
+	# completed itself in the same frame it built the result cards, so nobody ever
+	# read a result, and the footer's Complete Phase could never be pressed. Rolling
+	# now leaves the results on screen and the footer continues the turn.
 	assert_int(ctl.phase_manager.current_phase).override_failure_message(
-		"Special Assignments did not advance through its own Roll control"
+		"Roll All moved the turn on before the results could be read"
+	).is_equal(PhaseManagerScript.Phase.SPECIAL_ASSIGNMENTS)
+	assert_bool(roll.disabled).override_failure_message(
+		"a second Roll All would re-apply every award").is_true()
+	var footer: Button = ctl._advance_button
+	assert_bool(footer.visible and not footer.disabled and footer.text == "Continue to Mission") \
+		.override_failure_message("after rolling the footer must offer Continue to Mission, "
+			+ "got '%s' visible=%s disabled=%s" % [footer.text, footer.visible, footer.disabled]) \
+		.is_true()
+	footer.pressed.emit()
+	await get_tree().process_frame
+
+	assert_int(ctl.phase_manager.current_phase).override_failure_message(
+		"Continue to Mission did not advance the turn"
 	).is_equal(PhaseManagerScript.Phase.MISSION)
+	assert_bool(footer.visible).override_failure_message(
+		"the Mission stage's action is Launch Mission; the footer must step aside").is_false()
 
 
 func test_skipping_assignments_advances_the_turn_to_mission() -> void:

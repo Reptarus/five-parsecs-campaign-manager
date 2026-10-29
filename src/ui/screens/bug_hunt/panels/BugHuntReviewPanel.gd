@@ -12,6 +12,9 @@ const COLOR_BORDER := _UC.COLOR_BORDER
 const COLOR_SUCCESS := _UC.COLOR_SUCCESS
 const COLOR_WARNING := _UC.COLOR_WARNING
 
+const RefText := preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
+const SquadPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntSquadPanel.gd")
+
 var _coordinator = null
 var _summary_container: VBoxContainer
 
@@ -41,6 +44,8 @@ func refresh() -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -53,6 +58,7 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(title)
 
 	_summary_container = VBoxContainer.new()
@@ -83,24 +89,38 @@ func _display_summary() -> void:
 
 	# Squad card
 	var squad_card := _create_card("Squad (%d Main Characters)" % characters.size(), _summary_container)
+	# Name, then the profile in the Squad step's order and format (p.170). This printed
+	# "React:2 Spd:4 CS:0" on one unwrapped line, in a different order from the Squad
+	# step's badges, and ran off a phone.
 	for mc in characters:
 		if mc is Dictionary:
-			var text := "%s — React:%d Spd:%d CS:%d Tough:%d Savvy:%d (XP:%d)" % [
-				mc.get("name", "?"), mc.get("reactions", 0), mc.get("speed", 0),
-				mc.get("combat_skill", 0), mc.get("toughness", 0), mc.get("savvy", 0),
-				mc.get("xp", 0)]
-			var lbl := Label.new()
-			lbl.text = text
-			lbl.add_theme_color_override("font_color", COLOR_TEXT)
-			lbl.add_theme_font_size_override("font_size", _scaled_font(14))
-			squad_card.add_child(lbl)
+			var name_lbl := Label.new()
+			name_lbl.text = str(mc.get("name", "?"))
+			name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+			name_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
+			name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			squad_card.add_child(name_lbl)
+			var parts := PackedStringArray()
+			for pair in SquadPanelScript.stat_pairs_for(mc):
+				parts.append("%s %s" % [pair[0], pair[1]])
+			var stats_lbl := Label.new()
+			stats_lbl.text = " · ".join(parts)
+			stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+			stats_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
+			stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			squad_card.add_child(stats_lbl)
 
 	_add_row(squad_card, "Starting Reputation", str(squad.get("total_reputation", 0)))
-	_add_row(squad_card, "Free Fire Team", "4 Grunts with Combat Rifles")
+	_add_row(squad_card, "Free Fire Team", RefText.fire_team_contents())
 
 	# Movie Magic card
 	var magic_card := _create_card("Movie Magic (10 one-time abilities)", _summary_container)
-	var magic_list := "Barricade, Double-Up, Escape, Evac, Extra Support, Lucky Find, Reinforcements, Remove Contact, Survived, You Want Some Too?"
+	var names := PackedStringArray()
+	for row in BugHuntCampaignCore.movie_magic_abilities():
+		if row is Dictionary:
+			names.append(str(row.get("name", "")))
+	# The ten p.181 names from the data; this was a literal beside it.
+	var magic_list := ", ".join(names)
 	var magic_lbl := Label.new()
 	magic_lbl.text = magic_list
 	magic_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
@@ -111,16 +131,19 @@ func _display_summary() -> void:
 	var errors: Array = _get_validation_errors(config, characters)
 	if errors.is_empty():
 		var ready_lbl := Label.new()
-		ready_lbl.text = "Ready to deploy! Click Finish to begin your campaign."
+		# It named a "Finish" button this wizard does not have.
+		ready_lbl.text = "Ready to deploy. Press Launch Campaign to begin."
 		ready_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		ready_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 		ready_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		ready_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_summary_container.add_child(ready_lbl)
 	else:
 		for err in errors:
 			var err_lbl := Label.new()
 			err_lbl.text = "! " + err
 			err_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+			err_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			_summary_container.add_child(err_lbl)
 
 
@@ -151,13 +174,18 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	return vbox
 
 
+## Label beside its value where the width allows; the value drops under the label on a
+## phone (a flow row: the value keeps 120 px rather than wrapping a word per line).
 func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> void:
-	var hbox := HBoxContainer.new()
+	var hbox := HFlowContainer.new()
+	hbox.add_theme_constant_override("h_separation", 8)
+	hbox.add_theme_constant_override("v_separation", 0)
 	parent.add_child(hbox)
 
 	var lbl := Label.new()
@@ -170,4 +198,6 @@ func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> 
 	val.text = value_text
 	val.add_theme_color_override("font_color", COLOR_TEXT)
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	val.custom_minimum_size.x = 120
+	val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hbox.add_child(val)

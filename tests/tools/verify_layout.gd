@@ -84,7 +84,7 @@ const EPS := 0.5
 ## Hunt / Planetfall / Tactics "deliberately out of scope" because MainMenu.is_a1_build()
 ## hides them. That stopped being true when the review build (ReviewBuild.is_active())
 ## made every mode reachable, so the note was a reason not to look. Planetfall and
-## Tactics are measured from 2026-10-28; Bug Hunt follows in the Sprint U screen pass. A variant
+## Tactics are measured from 2026-10-28, and Bug Hunt from its Sprint U screen pass. A variant
 ## screen needs a ScreenPopulator fixture, because it reads current_campaign and nothing
 ## else, and the populator puts that field back (see _populate_pre).
 const SCREENS: Array = [
@@ -141,6 +141,9 @@ const SCREENS: Array = [
 	"res://src/ui/screens/tactics/TacticsCreationUI.tscn",
 	"res://src/ui/screens/tactics/TacticsDashboard.tscn",
 	"res://src/ui/screens/tactics/TacticsTurnController.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntCreationUI.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntDashboard.tscn",
+	"res://src/ui/screens/bug_hunt/BugHuntTurnController.tscn",
 ]
 
 var _frame := 0

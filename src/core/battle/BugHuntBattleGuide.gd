@@ -25,6 +25,7 @@ const CITE_SPAWN := "Compendium p.199"
 const CITE_DIFFICULTY := "Compendium p.186"
 const CITE_LOADOUT := "Compendium p.187"
 const CITE_SUPPORT := "Compendium pp.188-189"
+const CITE_EVAC := "Compendium p.201"
 
 
 ## Rows for the Bug Hunt Battle Card: [{head, detail}].
@@ -119,7 +120,31 @@ static func briefing_rows(md: Dictionary) -> Array:
 	if special != "" and special != "<null>":
 		rows.append({"head": "%s (%s)" % [str(_difficulty(md).get("name", "Difficulty")),
 			CITE_DIFFICULTY], "detail": special})
+
+	var evac: Dictionary = evac_rules()
+	if not evac.is_empty():
+		rows.append({"head": "Evac: request it from Round %d (%s)" % [
+				int(evac.get("available_from_round", 0)), CITE_EVAC],
+			"detail": "\n".join([str(evac.get("description", "")), _evac_roll_line(evac),
+				str(evac.get("arrival", "")),
+				"If %d rounds pass, the drop ship leaves and you must call again."
+					% int(evac.get("loiter_rounds", 0)),
+				str(evac.get("priority_increase", "")), str(evac.get("supporting_fire", ""))])})
 	return rows
+
+
+## p.201 "We're leaving!". ⚠ Until 2026-10-28 nothing read it: the census counted the
+## dashboard's Movie Magic literal ["evac", "Evac"] as its reader, and when that list
+## moved to data the rule was left with none. No Bug Hunt screen told the players when
+## they could call the drop ship, what to roll, or what happens when it arrives.
+static func evac_rules() -> Dictionary:
+	return _as_dict(_load_json(MISSIONS_PATH).get("evac", {}))
+
+
+static func _evac_roll_line(evac: Dictionary) -> String:
+	return "Roll %s. %s. On %d+ it comes; %s" % [str(evac.get("roll", "")),
+		str(evac.get("savvy_bonus", "")), int(evac.get("success_threshold", 0)),
+		str(evac.get("retry", "")).to_lower()]
 
 
 ## The p.194 Numbers line, with the difficulty's adjustment applied in words.
@@ -169,7 +194,77 @@ static func round_end_prompts(round_number: int, md: Dictionary) -> Array:
 				priority, "Each 6 places one new Contact marker (Living Nightmare)."
 					if per_six else "If any die is a 6, place one new Contact marker."],
 			"roll": "%dD6" % priority})
+
+	# p.201: Evac opens at a set round, and a failed call is rolled again at the end of
+	# every round until the drop ship comes.
+	var evac: Dictionary = evac_rules()
+	var opens: int = int(evac.get("available_from_round", 0))
+	if opens > 0 and round_number == opens - 1:
+		prompts.append({"text": "From Round %d you can request Evac (%s): %s" % [opens,
+			CITE_EVAC, _evac_roll_line(evac)], "roll": str(evac.get("roll", ""))})
+	elif opens > 0 and round_number >= opens:
+		prompts.append({"text": "Evac called and not yet here? (%s) %s" % [CITE_EVAC,
+			_evac_roll_line(evac)], "roll": str(evac.get("roll", ""))})
 	return prompts
+
+
+const MISSIONS_PATH := "res://data/bug_hunt/bug_hunt_missions.json"
+const TACTICAL_LOCATIONS_PATH := "res://data/bug_hunt/bug_hunt_tactical_locations.json"
+
+
+## The pre-battle checklist for a Bug Hunt battle: the steps of p.184's Mission
+## Generation the players carry out at the table. Steps 3-7 (difficulty, Priority,
+## Spawn Rating, load-out, force strength) were done before launch, and the Battle Card
+## above the checklist shows what they produced, so the list keeps the book's numbering
+## and the gap says so.
+##
+## ⚠ Before 2026-10-28 a Bug Hunt battle got the Core Rules checklist: roll the p.88
+## Deployment Conditions and p.89 Notable Sight tables, Seize the Initiative, run the
+## 5PFH Enemy Generation Wizard, and deploy "within your deployment zone". Bug Hunt has
+## none of them. Its troops land within 3" of a random edge (p.190), and each round opens
+## with Reaction dice, not an initiative roll (p.198).
+static func setup_checklist(md: Dictionary) -> Array[Dictionary]:
+	var m: Dictionary = _load_json(MISSIONS_PATH)
+	var names: Array = _as_array(m.get("setup_steps", []))
+	var area: Dictionary = _as_dict(m.get("battle_area", {}))
+	var obj: Dictionary = _as_dict(m.get("objectives", {}))
+	var contacts: Dictionary = _as_dict(m.get("initial_contacts", {}))
+	var deploy: Dictionary = _as_dict(m.get("deployment", {}))
+	var locations: Dictionary = _as_dict(_load_json(TACTICAL_LOCATIONS_PATH).get(
+		"tactical_locations", {}))
+	var objectives_kept: int = _as_array(md.get("objectives", [])).size()
+	var out: Array[Dictionary] = []
+	out.append(_step("bh_battle_area", names, 1,
+		"%s (Compendium p.184)" % str(area.get("description", ""))))
+	# The 3D6 that decides which dice stay was rolled before launch: say so, rather than
+	# print the data's "Roll 3D6" sentence and have the players roll it again.
+	out.append(_step("bh_objectives", names, 2,
+		"Place six dice showing 1 to 6. %s Keep the %d the Battle Card names as Objectives "
+		% [str(obj.get("placement_rule", "")), objectives_kept]
+		+ "and remove the rest. (Compendium p.185)"))
+	out.append(_step("bh_markers", names, 8, "%s %s The Battle Card gives the counts. (Compendium p.190)"
+		% [str(locations.get("placement", "")), str(contacts.get("description", ""))]))
+	out.append(_step("bh_troops", names, 9, "%s %s (Compendium p.190)" % [
+		str(deploy.get("description", "")), str(deploy.get("objective_distance", ""))]))
+	return out
+
+
+static func _step(id: String, names: Array, number: int, hint: String) -> Dictionary:
+	var name: String = str(names[number - 1]) if names.size() >= number else ""
+	return {"id": id, "label": "Step %d: %s" % [number, name], "hint": hint, "tier": 0}
+
+
+static func _as_dict(v: Variant) -> Dictionary:
+	return v if v is Dictionary else {}
+
+
+static func _load_json(path: String) -> Dictionary:
+	var f := FileAccess.open(path, FileAccess.READ)
+	if f == null:
+		return {}
+	var parsed: Variant = JSON.parse_string(f.get_as_text())
+	f.close()
+	return parsed if parsed is Dictionary else {}
 
 
 static func _difficulty(md: Dictionary) -> Dictionary:

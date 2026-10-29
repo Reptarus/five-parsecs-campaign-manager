@@ -3,6 +3,7 @@ extends Control
 ## Bug Hunt Equipment Panel — Step 3 of 4
 ## Shows standard equipment (Service Pistol + Trooper Armor) and explains
 ## that additional weapons are selected per-mission during the Mission Phase.
+## Every profile is read from data/bug_hunt/ through BugHuntReferenceText.
 
 signal equipment_updated(data: Dictionary)
 
@@ -13,6 +14,7 @@ const COLOR_TEXT := _UC.COLOR_TEXT_PRIMARY
 const COLOR_TEXT_SEC := _UC.COLOR_TEXT_SECONDARY
 const COLOR_BORDER := _UC.COLOR_BORDER
 const COLOR_ACCENT := _UC.COLOR_ACCENT
+const RefText := preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
 
 var _coordinator = null
 
@@ -38,6 +40,8 @@ func set_coordinator(coord) -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -50,40 +54,50 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(title)
 
-	# Standard Issue card
+	# Every profile below is READ from the data the battle reads (BugHuntReferenceText). This
+	# step used to print them as literals beside the Mission step's data-driven copy.
 	var std_card := _create_card("Standard Issue (All Characters)", vbox)
+	for w in RefText.standard_weapons():
+		_add_equipment_row(std_card, str(w.get("name", "")), RefText.profile(w),
+			RefText.trait_lines(w))
+	for a in RefText.standard_armor():
+		_add_equipment_row(std_card, str(a.get("name", "")), RefText.armor_line(a))
 
-	_add_equipment_row(std_card, "Service Pistol", "Range 14\" | 1 Shot | Damage 0 | Pistol (+1 Brawl)")
-	_add_equipment_row(std_card, "Trooper Armor", "Saving throw on 5-6")
-
-	# Mission Loadout info
+	var loadout: Dictionary = RefText.loadout()
 	var loadout_card := _create_card("Mission Loadout (Selected Each Mission)", vbox)
+	_add_prose(loadout_card, str(loadout.get("description", "")), COLOR_TEXT)
+	for wid in loadout.get("mission_weapon_choices", []):
+		var w: Dictionary = RefText.weapon(str(wid))
+		if not w.is_empty():
+			_add_equipment_row(loadout_card, str(w.get("name", "")), RefText.profile(w),
+				RefText.trait_lines(w))
+	var cannon: Dictionary = RefText.weapon("hand_cannon")
+	if not cannon.is_empty():
+		_add_prose(loadout_card, str(loadout.get("hand_cannon_swap", "")), COLOR_TEXT_SEC)
+		_add_equipment_row(loadout_card, str(cannon.get("name", "")), RefText.profile(cannon),
+			RefText.trait_lines(cannon))
 
-	var info := Label.new()
-	info.text = "Before each mission, each Main Character selects one additional weapon:"
-	info.add_theme_color_override("font_color", COLOR_TEXT)
-	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loadout_card.add_child(info)
-
-	_add_equipment_row(loadout_card, "Combat Rifle", "Range 26\" | 1 Shot | Damage 0")
-	_add_equipment_row(loadout_card, "Shotgun", "Range 12\" | 2 Shots | Damage 1 | Focused")
-	_add_equipment_row(loadout_card, "Boarding Sword", "Melee | +2 Brawl")
-
-	var swap_info := Label.new()
-	swap_info.text = "\nOne Main Character may also swap their Service Pistol for a Hand Cannon (Range 8\" | 1 Shot | Damage 1 | Pistol) for the mission."
-	swap_info.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	swap_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	loadout_card.add_child(swap_info)
-
-	# Support Teams info
 	var support_card := _create_card("Mission Support", vbox)
-	var support_info := Label.new()
-	support_info.text = "Support troops are rolled for during Mission Generation based on Priority. You always receive one free Fire Team (4 grunts with Combat Rifles). Additional support (Sarge, Sniper, Recon Patrol, etc.) requires 2D6 rolls against target numbers."
-	support_info.add_theme_color_override("font_color", COLOR_TEXT)
-	support_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	support_card.add_child(support_info)
+	_add_prose(support_card, "Support is rolled for during Mission Generation, based on "
+		+ "the mission's Priority.", COLOR_TEXT)
+	var fire_team := RefText.free_fire_team_rule()
+	var contents := RefText.fire_team_contents()
+	if not contents.is_empty():
+		fire_team += " (%s)" % contents
+	_add_prose(support_card, fire_team, COLOR_TEXT)
+
+
+func _add_prose(parent: VBoxContainer, text: String, color: Color) -> void:
+	if text.strip_edges().is_empty():
+		return
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_color_override("font_color", color)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	parent.add_child(lbl)
 
 
 func _create_card(title_text: String, parent: Control) -> VBoxContainer:
@@ -105,6 +119,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text.to_upper()
 	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	var sep := HSeparator.new()
@@ -114,24 +129,39 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	return vbox
 
 
-func _add_equipment_row(parent: VBoxContainer, item_name: String, details: String) -> void:
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 12)
-	parent.add_child(hbox)
+## Name beside its profile where the width allows, the profile on its own line where it
+## does not (a flow row: the profile keeps 180 px, so on a phone it drops under the name
+## instead of wrapping one word per line beside a 160 px name column).
+func _add_equipment_row(parent: VBoxContainer, item_name: String, details: String,
+		notes: PackedStringArray = PackedStringArray()) -> void:
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 12)
+	row.add_theme_constant_override("v_separation", 2)
+	parent.add_child(row)
 
 	var name_lbl := Label.new()
 	name_lbl.text = item_name
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	name_lbl.custom_minimum_size.x = 160
-	hbox.add_child(name_lbl)
+	row.add_child(name_lbl)
 
 	var detail_lbl := Label.new()
 	detail_lbl.text = details
 	detail_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	detail_lbl.add_theme_font_size_override("font_size", _scaled_font(14))
 	detail_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hbox.add_child(detail_lbl)
+	detail_lbl.custom_minimum_size.x = 180
+	detail_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.add_child(detail_lbl)
+
+	for note in notes:
+		var note_lbl := Label.new()
+		note_lbl.text = note
+		note_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		note_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+		note_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		parent.add_child(note_lbl)
 
 
 func _emit_update() -> void:

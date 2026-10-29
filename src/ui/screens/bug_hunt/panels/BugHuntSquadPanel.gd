@@ -44,6 +44,8 @@ func set_coordinator(coord) -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -56,6 +58,7 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(title)
 
 	var desc := Label.new()
@@ -66,12 +69,15 @@ func _build_ui() -> void:
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(desc)
 
-	var size_card := _create_card("Squad Size", vbox)
+	# The count lives in the card title, so each item stays short enough for a phone: an
+	# OptionButton is as wide as its longest item, and "3 Main Characters (standard)" set
+	# the width of this whole step (test_bug_hunt_screen_fit.gd).
+	var size_card := _create_card("Main Characters in the Squad", vbox)
 	_size_option = OptionButton.new()
 	_size_option.custom_minimum_size.y = 48
-	_size_option.add_item("3 Main Characters (standard)", 3)
-	_size_option.add_item("4 Main Characters (easier)", 4)
-	_size_option.add_item("5 Main Characters (easier)", 5)
+	_size_option.add_item("3 (standard)", 3)
+	_size_option.add_item("4 (easier)", 4)
+	_size_option.add_item("5 (easier)", 5)
 	_size_option.select(0)
 	size_card.add_child(_size_option)
 
@@ -90,8 +96,9 @@ func _build_ui() -> void:
 		hbox.add_child(lbl)
 
 		var edit := LineEdit.new()
+		# Short enough to read inside the field on a phone; the long form was cut off.
 		edit.placeholder_text = "Auto-generate name" if i < 3 \
-			else "(Name for character %d, if the squad is that large)" % (i + 1)
+			else ("Only for a squad of 4 or 5" if i == 3 else "Only for a squad of 5")
 		edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		edit.custom_minimum_size.y = 40
 		hbox.add_child(edit)
@@ -101,6 +108,7 @@ func _build_ui() -> void:
 	_generate_button = Button.new()
 	_generate_button.text = "Generate Squad (D100 Tables)"
 	_generate_button.custom_minimum_size.y = 56
+	_generate_button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_generate_button.pressed.connect(_on_generate_squad)
 	vbox.add_child(_generate_button)
 
@@ -108,6 +116,7 @@ func _build_ui() -> void:
 	_status_label = Label.new()
 	_status_label.text = "No squad generated yet."
 	_status_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	_status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_status_label)
 
 	# Characters display
@@ -138,6 +147,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	return vbox
@@ -236,6 +246,7 @@ func _add_character_card(mc: Dictionary) -> void:
 	name_lbl.text = char_name
 	name_lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(name_lbl)
 
 	var bg_lbl := Label.new()
@@ -244,23 +255,21 @@ func _add_character_card(mc: Dictionary) -> void:
 		mc.get("service_history", "?")]
 	bg_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	bg_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+	bg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	info.add_child(bg_lbl)
 
-	# ISSUE-054: Stat badges in a flow container
-	var stats_row := HBoxContainer.new()
-	stats_row.add_theme_constant_override("separation", 6)
+	# ISSUE-054: Stat badges in a flow container. The comment always said "flow"; it was
+	# an HBoxContainer, so six badges set the card's width and ran off a phone. In the
+	# profile's own order (Reactions, Speed, Combat Skill, Toughness, Savvy), the order
+	# the Review step prints too.
+	var stats_row := HFlowContainer.new()
+	stats_row.add_theme_constant_override("h_separation", 6)
+	stats_row.add_theme_constant_override("v_separation", 4)
 	info.add_child(stats_row)
-	var stat_pairs := [
-		["CS", mc.get("combat_skill", 0)],
-		["React", mc.get("reactions", 0)],
-		["Tough", mc.get("toughness", 0)],
-		["Spd", mc.get("speed", 0)],
-		["Savvy", mc.get("savvy", 0)],
-		["XP", mc.get("xp", 0)],
-	]
+	var stat_pairs := stat_pairs_for(mc)
 	for pair in stat_pairs:
 		var badge := Label.new()
-		badge.text = " %s %d " % [pair[0], pair[1]]
+		badge.text = " %s %s " % [pair[0], pair[1]]
 		badge.add_theme_font_size_override("font_size", _scaled_font(12))
 		badge.add_theme_color_override("font_color", COLOR_TEXT)
 		var badge_style := StyleBoxFlat.new()
@@ -279,7 +288,26 @@ func _add_character_card(mc: Dictionary) -> void:
 			mc.get("commendation_xp", 0), mc.get("commendation_rep", 0)]
 		comm_lbl.add_theme_color_override("font_color", COLOR_SUCCESS)
 		comm_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
+		comm_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		info.add_child(comm_lbl)
+
+
+## One main character's profile, in the book's column order. The Review step reads it
+## too, so the two cannot drift apart again (they printed the same five stats in two
+## different orders).
+## Values print the way p.170 prints the profile: Speed in inches, Combat Skill and Savvy
+## as signed modifiers ("4\"", "+0").
+static func stat_pairs_for(mc: Dictionary, with_xp: bool = true) -> Array:
+	var pairs := [
+		["React", str(int(mc.get("reactions", 0)))],
+		["Spd", "%d\"" % int(mc.get("speed", 0))],
+		["CS", "%+d" % int(mc.get("combat_skill", 0))],
+		["Tough", str(int(mc.get("toughness", 0)))],
+		["Savvy", "%+d" % int(mc.get("savvy", 0))],
+	]
+	if with_xp:
+		pairs.append(["XP", str(int(mc.get("xp", 0)))])
+	return pairs
 
 
 func _emit_update() -> void:

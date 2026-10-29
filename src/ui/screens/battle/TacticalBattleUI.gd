@@ -2671,6 +2671,19 @@ func _show_pre_battle_checklist(tier: int) -> void:
 	# Create checklist and add to the scrolled column
 	var checklist: Control = _get_res("pre_battle_checklist").new()
 	checklist.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# A Bug Hunt battle sets up by its own Mission Generation (Compendium p.184), not the
+	# Core Rules list: it has no p.88 condition, p.89 sight or Seize the Initiative roll,
+	# and its troops land within 3" of a random edge (p.190). A Planetfall battle sets up by
+	# its mission briefing (pp.114-133), and "Planetfall does not have a Seize the
+	# Initiative roll" (printed p.27). Branch on the mission's own battle_mode, as
+	# _build_battle_card() does; any other battle keeps the Core Rules list.
+	var setup_md: Dictionary = (_stored_mission_data
+		if _stored_mission_data is Dictionary else {})
+	match str(setup_md.get("battle_mode", "")):
+		"bug_hunt":
+			checklist.set_setup_steps(BugHuntBattleGuideClass.setup_checklist(setup_md))
+		"planetfall":
+			checklist.set_setup_steps(PlanetfallBattleGuideClass.setup_checklist(setup_md))
 	checklist.checklist_completed.connect(_on_checklist_completed)
 	if checklist.has_signal("movement_system_changed"):
 		checklist.movement_system_changed.connect(_on_movement_system_changed)

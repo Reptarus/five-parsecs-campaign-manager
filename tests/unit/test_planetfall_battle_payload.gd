@@ -576,6 +576,59 @@ func test_a_planetfall_battle_shows_the_planetfall_card() -> void:
 	assert_str(_labels(wild)).contains("Contact Reveal, D6").contains("First Contact")
 
 
+## The battle screen's checklist for a Planetfall battle is the mission briefing's setup
+## (pp.114-133), reached through TacticalBattleUI's own modal with the payload the turn
+## controller builds. It used to be the Core Rules list, which had the player roll to
+## Seize the Initiative: "Planetfall does not have a Seize the Initiative roll" (printed
+## p.27). The last block is the Alpha-1 arm: a 5PFH battle keeps the Core Rules list.
+func test_a_planetfall_battle_sets_up_by_its_mission_briefing() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	var mission := _mission("investigation")
+	tc._mission_context = mission
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	var ui: Control = auto_free(TacticalBattleScene.instantiate())
+	add_child(ui)
+	await get_tree().process_frame
+	ui._stored_mission_data = md
+	ui._show_pre_battle_checklist(1)
+	await get_tree().process_frame
+	var steps := _checkbox_texts(ui)
+	for heading in ["Table Setup", "Objectives", "Battlefield Conditions", "Player Forces",
+			"Opposition"]:
+		assert_bool(heading in steps).override_failure_message(
+			"no '%s' step; the checklist shows %s" % [heading, str(steps)]).is_true()
+	for core_step in ["Seize Initiative roll", "Roll deployment conditions",
+			"Check for Notable Sighting"]:
+		assert_bool(core_step in steps).override_failure_message(
+			"a Planetfall battle still lists the Core Rules step '%s'" % core_step).is_false()
+	var hints := _labels(ui)
+	var rules: Dictionary = _json(MISSIONS).briefing_rules
+	assert_str(hints).contains("Use a 3x3-foot table populated with terrain.")
+	assert_str(hints).contains(str(mission.objectives.marker_placement))
+	assert_str(hints).contains(str(mission.deployment))
+	assert_str(hints).contains(str(rules.enemy_deployment))
+	assert_str(hints).override_failure_message(
+		"p.115: an Investigation has no Battlefield Conditions") \
+		.contains("There are no Battlefield Conditions.")
+	var standard: Control = auto_free(TacticalBattleScene.instantiate())
+	add_child(standard)
+	await get_tree().process_frame
+	standard._stored_mission_data = {"battle_mode": "standard"}
+	standard._show_pre_battle_checklist(1)
+	await get_tree().process_frame
+	assert_bool("Seize Initiative roll" in _checkbox_texts(standard)).override_failure_message(
+		"a 5PFH battle lost the Core Rules checklist").is_true()
+
+
+func _checkbox_texts(root: Node) -> PackedStringArray:
+	var out := PackedStringArray()
+	for n in root.find_children("*", "CheckBox", true, false):
+		out.append((n as CheckBox).text)
+	return out
+
+
 ## The reveal controls live in the Mission Rules drawer and write the colony's table.
 func test_the_contact_panel_reveals_into_the_drawer_and_the_table() -> void:
 	var core := _core()

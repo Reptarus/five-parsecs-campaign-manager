@@ -111,18 +111,13 @@ const ALLOWLIST := {
 	"bug_hunt_alien_subtypes.json::subtypes":
 		"PAYLOAD. The six-row D6 subtype table (Spitters and the rest). Zero loaders" +
 		" repo-wide -- the enemy-variant generator is listed as Not in Sprint 1.",
-	"bug_hunt_missions.json::initial_contacts":
-		"PAYLOAD. Contact-marker placement and its per-difficulty adjustment. Contact" +
-		" markers are named in the plan's Not-in-Sprint-1 list.",
-	"bug_hunt_missions.json::deployment":
-		"PAYLOAD. Table geometry -- 3\" edge buffer, objectives at least 12\" apart.",
-	"bug_hunt_weapons.json::weapon_traits":
-		"PAYLOAD. The ten in-battle trait definitions. In-battle reference surfaces are" +
-		" the largest Not-in-Sprint-1 block (the 15 CONTRADICTS rows).",
+	# (2026-10-28) `initial_contacts` and `deployment` left this list, and `setup_steps`
+	# left PROSE below: BugHuntBattleGuide.setup_checklist() reads all three into the
+	# Bug Hunt pre-battle checklist, which had been the Core Rules one.
+	# (2026-10-28) `weapon_traits` left this list: BugHuntReferenceText prints each
+	# weapon's traits on the Equipment and Mission steps from these definitions.
 
 	# --- PROSE: an instruction, with no separable value for code to read ---
-	"bug_hunt_missions.json::setup_steps":
-		"PROSE. A nine-step ordered checklist for the human running the mission.",
 	"bug_hunt_movie_magic.json::usage_rule":
 		"PROSE. 'Once per campaign' -- the enforcement lives with the spend, not here.",
 	"bug_hunt_regiment_names.json::generation_rule":

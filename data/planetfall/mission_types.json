@@ -2,6 +2,12 @@
 	"_source": "Planetfall pp.64-65, 114-133, Mission Types + Full Briefings",
 	"_description": "13 mission types for Step 6: Mission Determination. Each includes full battlefield setup, player forces, opposition, objectives, rewards, campaign factors, and special rules. Some missions forced by events, some require tactical enemies.",
 	"_notes": "Step 7 (Lock and Load) specifies deployment limits per mission. See individual mission entries for full battlefield setup rules.",
+	"briefing_rules": {
+		"_source": "Planetfall printed p.114, Mission Briefings: Enemy Deployments and Terrain Placement. Verified 2026-10-28 against docs/rules/planetfall_source.txt (=== PAGE 116 ===). Read by PlanetfallBattleGuide.setup_checklist().",
+		"terrain_placement": "Each mission will indicate if any particular features must be placed on the table. Page 138 has general guidelines for building a good wargames table, and page 143 rolls one up at random.",
+		"enemy_deployment": "You place each enemy figure. Set them up ready for combat: in or behind cover, or behind terrain that conceals them. If there is cover within 3\" of the intended point, use it. Where there is high ground, put about a third of the enemy on raised positions. If you set up the enemy after your own figures, place every enemy in cover or out of sight. Place figures in a group about 1\" apart, with specialists and leaders about 1\" behind the regular grunts.",
+		"arrivals": "Enemies arriving during the game are placed at the center of a battlefield edge, even if it lacks cover or is in sight of your characters. Several arriving at once go in a line with 1\" between figures, its midpoint on the center of the edge."
+	},
 	"missions": [
 		{
 			"id": "investigation",

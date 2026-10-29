@@ -135,6 +135,12 @@ static func pluralize(count: Variant, singular: String, plural: String = "") -> 
 ## Three Planetfall screens printed the same weapon (Lock and Load, the Research
 ## application, the Armory). Two had written this line out by hand, and the third
 ## printed the JSON floats verbatim ("R:6.0 S:1.0 D:+0"). One function keeps them equal.
+##
+## A melee weapon (no range, no shots) prints the book's own Range column, "Brawl", with
+## no shots (Bug Hunt p.179: "Boarding sword  Brawl  –  0  Melee"). It used to print
+## `0" · 0 shots`, which is what Planetfall's Carver Blade showed.
 static func weapon_profile(weapon: Dictionary) -> String:
+	if float(weapon.get("range", 0)) <= 0.0 and float(weapon.get("shots", 0)) <= 0.0:
+		return "Brawl · Dmg %+d" % int(weapon.get("damage", 0))
 	return "%s\" · %s · Dmg %+d" % [number(weapon.get("range", 0)),
 			pluralize(weapon.get("shots", 0), "shot"), int(weapon.get("damage", 0))]

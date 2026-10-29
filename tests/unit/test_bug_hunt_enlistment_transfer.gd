@@ -228,7 +228,7 @@ func _commit_via_panel(panel: Control, result: Dictionary) -> Dictionary:
 func _buttons_labelled(panel: Control, label: String) -> Array:
 	var out: Array = []
 	for node in panel.find_children("*", "Button", true, false):
-		if (node as Button).text == label:
+		if (node as Button).text == label and not node.is_queued_for_deletion():
 			out.append(node)
 	return out
 
@@ -441,7 +441,8 @@ func test_a_rebuild_during_the_reveal_does_not_fade_a_freed_card() -> void:
 func _label_text(panel: Control) -> String:
 	var parts: PackedStringArray = []
 	for node in panel.find_children("*", "Label", true, false):
-		parts.append((node as Label).text)
+		if not node.is_queued_for_deletion():  # cleared, gone by the next frame
+			parts.append((node as Label).text)
 	return "\n".join(parts)
 
 
@@ -464,6 +465,9 @@ func test_the_result_screens_dismiss_control_commits_nothing() -> void:
 		func(char_data: Dictionary, _dir: String): emits.append(char_data))
 	panel.transfer_closed.connect(func(): closes.append(true))
 
+	# As both callers do (_execute_transfer, _on_story_point_rescue): the result
+	# replaces Step 1, which the panel now draws at _ready.
+	panel._clear_steps()
 	panel._show_enlistment_result(
 		_accepted_result({"id": VET_ID, "name": "Enlisting Veteran"}))
 	var buttons := _buttons_labelled(panel, "Welcome Aboard!")
@@ -500,6 +504,7 @@ func test_a_failed_enlist_commit_is_not_announced_as_an_ineligibility() -> void:
 		"a commit the listener reported as failed must not be shown as a success"
 	).is_false()
 
+	panel._clear_steps()
 	panel._show_enlistment_result(shown)
 	var text := _label_text(panel)
 	assert_bool(text.contains("NOT SAVED")).override_failure_message(
@@ -526,6 +531,7 @@ func test_the_muster_screen_never_claims_success_before_the_commit() -> void:
 		"success": true,
 		"transferred_character": {"id": VET_ID, "name": "Mustering Marine"},
 	})
+	panel._clear_steps()
 	panel._show_muster_result(shown)
 	var text := _label_text(panel)
 	assert_bool(text.contains("MUSTERED OUT!")).override_failure_message(

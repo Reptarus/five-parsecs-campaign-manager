@@ -48,6 +48,8 @@ func _rendered_text() -> String:
 	var stack: Array = [_panel]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
+		if n.is_queued_for_deletion():  # cleared, gone by the next frame
+			continue
 		if n is Label:
 			out.append((n as Label).text)
 		if n is Button:
@@ -68,6 +70,9 @@ func test_a_refusal_prints_its_reason_instead_of_a_zero_roll() -> void:
 		"PREMISE: a refusal now carries dice, so this case no longer exercises the "
 		+ "no-roll render path.").is_false()
 
+	# As both callers do (_execute_transfer, _on_story_point_rescue): the result
+	# replaces Step 1, which the panel now draws at _ready.
+	_panel._clear_steps()
 	_panel._show_enlistment_result(refusal)
 	var screen := _rendered_text()
 
@@ -98,6 +103,7 @@ func test_a_completed_roll_prints_the_dice_it_actually_rolled() -> void:
 	var rolled: Dictionary = _svc.attempt_enlistment(_character(2))
 	assert_array(rolled.get("dice", [])).is_equal([1, 1])
 
+	_panel._clear_steps()
 	_panel._show_enlistment_result(rolled)
 	var screen := _rendered_text()
 

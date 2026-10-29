@@ -5,6 +5,9 @@ extends Control
 ## Each assignment requires a 2D6 roll against a target number.
 
 signal phase_completed(result_data: Dictionary)
+## The dice are rolled and the results are on screen. The turn controller enables its
+## "Continue to Mission" footer on this, so the player reads the results first.
+signal assignments_rolled
 
 const _UC = preload("res://src/ui/components/base/UIColors.gd")
 const COLOR_BASE := _UC.COLOR_BASE
@@ -17,6 +20,7 @@ const COLOR_WARNING := _UC.COLOR_WARNING
 const COLOR_ACCENT := _UC.COLOR_ACCENT
 
 const ASSIGNMENTS_PATH := "res://data/bug_hunt/bug_hunt_special_assignments.json"
+const SquadPanelScript := preload("res://src/ui/screens/bug_hunt/panels/BugHuntSquadPanel.gd")
 
 var _campaign: Resource
 var _phase_manager = null
@@ -25,6 +29,12 @@ var _assignment_slots: Array[Dictionary] = []  # {character_id, character_name, 
 var _results_container: VBoxContainer
 var _characters_container: VBoxContainer
 var _completed: bool = false
+## Set once Roll All has rolled. Rolling again would re-apply every award, so the
+## pickers and both buttons lock until the next turn's refresh().
+var _rolled: bool = false
+var _scroll: ScrollContainer
+var _roll_btn: Button
+var _skip_btn: Button
 
 
 func _scaled_font(base: int) -> int:
@@ -49,8 +59,17 @@ func set_phase_manager(pm) -> void:
 
 func refresh() -> void:
 	_completed = false
+	_rolled = false
 	_assignment_slots.clear()
 	_populate_characters()
+	for btn in [_roll_btn, _skip_btn]:
+		if is_instance_valid(btn):
+			btn.disabled = false
+
+
+## True once the dice are rolled; the footer offers "Continue to Mission" from then on.
+func is_ready_to_complete() -> bool:
+	return _rolled and not _completed
 
 
 func complete() -> void:
@@ -80,7 +99,10 @@ func _load_assignments_data() -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
+	_scroll = scroll
 
 	var vbox := VBoxContainer.new()
 	vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -107,18 +129,18 @@ func _build_ui() -> void:
 	vbox.add_child(_results_container)
 
 	# Roll All button
-	var roll_btn := Button.new()
-	roll_btn.text = "Roll All Assignments"
-	roll_btn.custom_minimum_size = Vector2(0, 44)
-	roll_btn.pressed.connect(_on_roll_all)
-	vbox.add_child(roll_btn)
+	_roll_btn = Button.new()
+	_roll_btn.text = "Roll All Assignments"
+	_roll_btn.custom_minimum_size = Vector2(0, 48)
+	_roll_btn.pressed.connect(_on_roll_all)
+	vbox.add_child(_roll_btn)
 
 	# Skip button
-	var skip_btn := Button.new()
-	skip_btn.text = "Skip Assignments"
-	skip_btn.custom_minimum_size = Vector2(0, 44)
-	skip_btn.pressed.connect(func(): complete())
-	vbox.add_child(skip_btn)
+	_skip_btn = Button.new()
+	_skip_btn.text = "Skip Assignments"
+	_skip_btn.custom_minimum_size = Vector2(0, 48)
+	_skip_btn.pressed.connect(func(): complete())
+	vbox.add_child(_skip_btn)
 
 
 func _populate_characters() -> void:
@@ -146,6 +168,7 @@ func _populate_characters() -> void:
 			var sick_lbl := Label.new()
 			sick_lbl.text = "Recovering — %d turn(s) remaining" % sick_bay.get(char_id, 1)
 			sick_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+			sick_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			sick_card.add_child(sick_lbl)
 			continue
 
@@ -160,10 +183,15 @@ func _populate_characters() -> void:
 
 		# Show current stats for reference
 		var stats_lbl := Label.new()
-		stats_lbl.text = "R:%d  S:%d  CS:%d  T:%d  Sv:%d  XP:%d  Missions:%d" % [
-			mc.get("reactions", 1), mc.get("speed", 4), mc.get("combat_skill", 0),
-			mc.get("toughness", 3), mc.get("savvy", 0), mc.get("xp", 0),
-			mc.get("completed_missions_count", 0)]
+		# The Squad step's profile order and format (p.170), so the three screens that
+		# print a trooper print the same line. It was "R:1  S:5  CS:1" on one unwrapped
+		# line, which set the width of the stage on a phone.
+		var parts := PackedStringArray()
+		for pair in SquadPanelScript.stat_pairs_for(mc):
+			parts.append("%s %s" % [pair[0], pair[1]])
+		parts.append("Missions %d" % int(mc.get("completed_missions_count", 0)))
+		stats_lbl.text = " · ".join(parts)
+		stats_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		stats_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 		stats_lbl.add_theme_font_size_override("font_size", _scaled_font(12))
 		card.add_child(stats_lbl)
@@ -184,14 +212,10 @@ func _populate_characters() -> void:
 func _add_assignment_slot(card: VBoxContainer, mc: Dictionary, char_id: String,
 		char_name: String, char_completed: Array, caption: String) -> void:
 	# Assignment dropdown — filter by eligibility (Compendium p.183)
-	var hbox := HBoxContainer.new()
-	hbox.add_theme_constant_override("separation", 12)
-	card.add_child(hbox)
-
 	var assign_lbl := Label.new()
 	assign_lbl.text = caption
 	assign_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
-	hbox.add_child(assign_lbl)
+	card.add_child(assign_lbl)
 
 	var option := OptionButton.new()
 	option.add_item("None (Skip)", 0)
@@ -219,13 +243,24 @@ func _add_assignment_slot(card: VBoxContainer, mc: Dictionary, char_id: String,
 			if current_val > cap.get("max_before_bonus", 99):
 				suffix = " [at cap]"
 		option.add_item("%s (2D6 >= %d)%s" % [assignment.get("name", "?"), target, suffix], i + 1)
-	option.custom_minimum_size.x = 320
-	hbox.add_child(option)
+	# The picker CLIPS rather than demanding its longest item ("Officer Training Course
+	# (2D6 >= 11)" is wider than a phone's card), and the detail line under it keeps the
+	# target and the award readable whatever the picker has room for.
+	option.clip_text = true
+	option.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	option.custom_minimum_size.y = 48
+	card.add_child(option)
+	var detail := _note("", COLOR_TEXT_SEC)
+	detail.visible = false
+	card.add_child(detail)
+	option.item_selected.connect(func(idx: int) -> void:
+		_show_assignment_detail(option, idx, detail))
 
 	if _eligible_indices.is_empty():
 		var done_lbl := Label.new()
 		done_lbl.text = "All eligible assignments completed!"
 		done_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		done_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		card.add_child(done_lbl)
 
 	# Store reference for later
@@ -276,6 +311,9 @@ func _meets_requirements(char_data: Dictionary, assignment: Dictionary) -> bool:
 
 
 func _on_roll_all() -> void:
+	# Once per turn: a second press would re-roll and re-apply every award.
+	if _rolled or _completed:
+		return
 	for child in _results_container.get_children():
 		child.queue_free()
 
@@ -341,6 +379,7 @@ func _on_roll_all() -> void:
 			else "%s — Rolled %d+%d, +%d Military Life = %d vs %d" % [
 				assignment.get("name", "?"), die1, die2, bonus, total, target]
 		roll_lbl.add_theme_color_override("font_color", COLOR_SUCCESS if success else COLOR_WARNING)
+		roll_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		result_card.add_child(roll_lbl)
 
 		if success:
@@ -381,19 +420,62 @@ func _on_roll_all() -> void:
 				train_lbl.text = training
 				train_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 				train_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+				train_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				result_card.add_child(train_lbl)
 		else:
 			var fail_lbl := Label.new()
 			fail_lbl.text = "FAILED — Not accepted this turn. May retry next campaign turn."
 			fail_lbl.add_theme_color_override("font_color", COLOR_WARNING)
+			fail_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			result_card.add_child(fail_lbl)
 
 	# Apply accumulated reputation to campaign
 	if total_rep_gain > 0 and _campaign and _campaign.has_method("add_reputation"):
 		_campaign.add_reputation(total_rep_gain)
 
-	# Auto-complete after rolling
-	complete()
+	# NOT complete(). Completing here moved the turn to the Mission stage in the same
+	# frame, so the cards above were built and hidden before anyone read them, and the
+	# footer's Complete Phase was never pressable (the phase was complete and gone by
+	# the time it could enable). The results stay; the player continues from the footer.
+	_rolled = true
+	for slot in _assignment_slots:
+		var picker: Variant = slot.get("option_button")
+		if picker is OptionButton and is_instance_valid(picker):
+			(picker as OptionButton).disabled = true
+	for btn in [_roll_btn, _skip_btn]:
+		if is_instance_valid(btn):
+			btn.disabled = true
+	if _results_container.get_child_count() == 0:
+		_results_container.add_child(_note("No assignments were attempted this turn.", COLOR_TEXT_SEC))
+	_reveal_results()
+	assignments_rolled.emit()
+
+
+## Scroll the results into view a frame later, once they have a size. On a phone they
+## land below the fold, and a press that changes nothing visible reads as broken.
+func _reveal_results() -> void:
+	var target: Control = _results_container
+	get_tree().process_frame.connect(func() -> void:
+		if is_instance_valid(_scroll) and is_instance_valid(target) and target.is_inside_tree():
+			_scroll.ensure_control_visible(target), CONNECT_ONE_SHOT)
+
+
+func _show_assignment_detail(option: OptionButton, idx: int, detail: Label) -> void:
+	var data_idx: int = option.get_item_id(idx) - 1
+	if idx <= 0 or data_idx < 0 or data_idx >= _assignments_data.size():
+		detail.visible = false
+		return
+	var a: Dictionary = _assignments_data[data_idx]
+	var parts := PackedStringArray(["Succeeds on 2D6 >= %d" % int(a.get("target_2d6", 0))])
+	var award: String = str(a.get("training_award", ""))
+	if not award.is_empty() and award != "None":
+		parts.append(award)
+	if int(a.get("bonus_xp", 0)) > 0:
+		parts.append("+%d XP" % int(a.get("bonus_xp", 0)))
+	if int(a.get("bonus_reputation", 0)) > 0:
+		parts.append("+%d Reputation" % int(a.get("bonus_reputation", 0)))
+	detail.text = " · ".join(parts)
+	detail.visible = true
 
 
 func _apply_stat_awards(char_data: Dictionary, assignment: Dictionary, awards: Array) -> void:
@@ -466,6 +548,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	return vbox

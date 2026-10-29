@@ -19,6 +19,7 @@ const COLOR_ACCENT := _UC.COLOR_ACCENT
 const MISSIONS_PATH := "res://data/bug_hunt/bug_hunt_missions.json"
 const SUPPORT_PATH := "res://data/bug_hunt/bug_hunt_support_teams.json"
 const WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
+const RefText := preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
 
 var _campaign: Resource
 var _phase_manager = null
@@ -102,6 +103,8 @@ func _load_json(path: String) -> Dictionary:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -317,6 +320,7 @@ func _generate_mission() -> void:
 	signals_check.text = "Use Signals rule this mission"
 	signals_check.tooltip_text = "Adds 1D6 Signal markers (survivors, evidence, ambushes). Reduces Tactical Locations to compensate."
 	signals_check.add_theme_color_override("font_color", COLOR_TEXT)
+	signals_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	signals_check.toggled.connect(func(pressed: bool):
 		_mission_context["use_signals"] = pressed
 		# Roll the count HERE so the stamp carries it. BugHuntBattleSetup used to
@@ -337,6 +341,7 @@ func _generate_mission() -> void:
 	signals_note.text = "If 4+ Signals: must investigate at least 2 or lose 1 Objective."
 	signals_note.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	signals_note.add_theme_font_size_override("font_size", _scaled_font(12))
+	signals_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	signals_card.add_child(signals_note)
 
 	## ── Step 6: Loadout Selection (Compendium p.187) ──────
@@ -364,6 +369,16 @@ func _build_loadout_selection() -> void:
 	var hand_cannon := {"assigned": false}
 	_participant_ids.clear()
 	_mission_context["loadout"] = {}
+	var swap_rule: String = str(_missions_data.get("loadout", {}).get("hand_cannon_swap", ""))
+	var cannon: Dictionary = _weapons_by_id.get("hand_cannon", {})
+	if not swap_rule.is_empty():
+		var swap_lbl := Label.new()
+		swap_lbl.text = swap_rule if cannon.is_empty() \
+			else "%s Hand Cannon: %s." % [swap_rule, RefText.profile(cannon)]
+		swap_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		swap_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+		swap_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		loadout_card.add_child(swap_lbl)
 
 	for mc in _campaign.main_characters:
 		if mc is not Dictionary:
@@ -390,15 +405,18 @@ func _build_loadout_selection() -> void:
 		if char_id != "" and char_id not in _participant_ids:
 			_participant_ids.append(char_id)
 
-		var hbox := HBoxContainer.new()
-		hbox.add_theme_constant_override("separation", 8)
-		loadout_card.add_child(hbox)
-
+		# Name above a flow row of picker + swap toggle, with the chosen weapon's profile
+		# under them. This was one HBox with a 140 px name and a 280 px picker whose items
+		# carried the whole profile, 900 px wide on a 310 px phone.
 		var name_lbl := Label.new()
-		name_lbl.text = char_name + ":"
+		name_lbl.text = char_name
 		name_lbl.add_theme_color_override("font_color", COLOR_TEXT)
-		name_lbl.custom_minimum_size.x = 140
-		hbox.add_child(name_lbl)
+		name_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		loadout_card.add_child(name_lbl)
+		var hbox := HFlowContainer.new()
+		hbox.add_theme_constant_override("h_separation", 12)
+		hbox.add_theme_constant_override("v_separation", 4)
+		loadout_card.add_child(hbox)
 
 		# Mission weapon choice (p.187), read from data. ⚠ These were three string
 		# literals carrying their own stats, and the choice was never stamped, so the
@@ -410,12 +428,18 @@ func _build_loadout_selection() -> void:
 		_mission_context["loadout"] = loadout
 		var weapon_opt := OptionButton.new()
 		for wid in choices:
-			weapon_opt.add_item(_weapon_label(str(wid)))
-		weapon_opt.custom_minimum_size.x = 280
+			weapon_opt.add_item(str(_weapons_by_id.get(str(wid), {}).get("name", wid)))
+		weapon_opt.custom_minimum_size = Vector2(180, 48)
 		var entry_ref: Dictionary = loadout[char_id]
+		var profile_lbl := Label.new()
+		profile_lbl.text = _weapon_label(str(choices[0])) if not choices.is_empty() else ""
+		profile_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+		profile_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+		profile_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		weapon_opt.item_selected.connect(func(idx: int) -> void:
 			if idx >= 0 and idx < choices.size():
 				entry_ref["weapon"] = str(choices[idx])
+				profile_lbl.text = _weapon_label(str(choices[idx]))
 		)
 		hbox.add_child(weapon_opt)
 
@@ -436,7 +460,9 @@ func _build_loadout_selection() -> void:
 			hc_holder["assigned"] = pressed
 			entry_ref["hand_cannon"] = pressed
 		)
+		hc_check.custom_minimum_size.y = 48
 		hbox.add_child(hc_check)
+		loadout_card.add_child(profile_lbl)
 
 
 func _calculate_priority(turn: int, difficulty: String) -> int:
@@ -577,7 +603,8 @@ func _roll_support_teams() -> void:
 	# label only, with nothing to press (MG-2).
 	_buy_support_btn = Button.new()
 	_buy_support_btn.text = "Spend 1 Reputation: +1 Support Point"
-	_buy_support_btn.custom_minimum_size.y = 44
+	_buy_support_btn.custom_minimum_size.y = 48
+	_buy_support_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_buy_support_btn.pressed.connect(_on_buy_support_point)
 	support_card.add_child(_buy_support_btn)
 
@@ -683,17 +710,19 @@ func _roll_support_teams() -> void:
 ## the Priority Rating by 1." Priority sets the Spawn Rating and the Support points,
 ## so it is locked once a Support request has been rolled.
 func _build_priority_control(parent: VBoxContainer) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
+	# A flow row: the two buttons side by side need ~420 px.
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
 	parent.add_child(row)
 	_prio_down_btn = Button.new()
 	_prio_down_btn.text = "Priority -1 (1 Reputation)"
-	_prio_down_btn.custom_minimum_size.y = 44
+	_prio_down_btn.custom_minimum_size.y = 48
 	_prio_down_btn.pressed.connect(_on_shift_priority.bind(-1))
 	row.add_child(_prio_down_btn)
 	_prio_up_btn = Button.new()
 	_prio_up_btn.text = "Priority +1 (1 Reputation)"
-	_prio_up_btn.custom_minimum_size.y = 44
+	_prio_up_btn.custom_minimum_size.y = 48
 	_prio_up_btn.pressed.connect(_on_shift_priority.bind(1))
 	row.add_child(_prio_up_btn)
 
@@ -829,13 +858,8 @@ func _weapon_label(weapon_id: String) -> String:
 	var w: Dictionary = _weapons_by_id.get(weapon_id, {})
 	if w.is_empty():
 		return weapon_id
-	if str(w.get("category", "")) == "melee":
-		return "%s (Melee: %s)" % [str(w.get("name", weapon_id)), str(w.get("description", ""))]
-	var traits: Array = w.get("traits", [])
-	return "%s (%d\" | %d Shot%s | Dmg %d%s)" % [str(w.get("name", weapon_id)),
-		int(w.get("range", 0)), int(w.get("shots", 0)),
-		"" if int(w.get("shots", 0)) == 1 else "s", int(w.get("damage", 0)),
-		"" if traits.is_empty() else " | " + ", ".join(PackedStringArray(traits)).capitalize()]
+	# The Equipment step prints the same line (BugHuntReferenceText.profile).
+	return "%s: %s" % [str(w.get("name", weapon_id)), RefText.profile(w)]
 
 
 func _fire_team_contents() -> String:
@@ -931,13 +955,18 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	return vbox
 
 
+## Label beside its value where the width allows; the value drops under the label on a
+## phone (a flow row: the value keeps 120 px rather than wrapping a word per line).
 func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> Label:
-	var hbox := HBoxContainer.new()
+	var hbox := HFlowContainer.new()
+	hbox.add_theme_constant_override("h_separation", 8)
+	hbox.add_theme_constant_override("v_separation", 0)
 	parent.add_child(hbox)
 
 	var lbl := Label.new()
@@ -950,6 +979,8 @@ func _add_row(parent: VBoxContainer, label_text: String, value_text: String) -> 
 	val.text = value_text
 	val.add_theme_color_override("font_color", COLOR_TEXT)
 	val.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	val.custom_minimum_size.x = 120
+	val.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hbox.add_child(val)
 	return val
 

@@ -9,6 +9,8 @@ const HubFeatureCardClass = preload("res://src/ui/components/common/HubFeatureCa
 const SaveFileWriterRef = preload("res://src/core/state/SaveFileWriter.gd")
 const TransferPanelClass = preload("res://src/ui/screens/bug_hunt/panels/CharacterTransferPanel.gd")
 const QAScenarioDialogClass = preload("res://src/ui/screens/dev/QAScenarioDialog.gd")
+const PhaseManagerRef = preload("res://src/core/campaign/BugHuntPhaseManager.gd")
+const RefText = preload("res://src/ui/screens/bug_hunt/BugHuntReferenceText.gd")
 
 var _campaign: Resource
 var _content: VBoxContainer
@@ -65,6 +67,7 @@ func _build_dashboard() -> void:
 		reg_lbl.add_theme_font_size_override("font_size", get_responsive_font_size(FONT_SIZE_LG))
 		reg_lbl.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		reg_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		reg_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		header_box.add_child(reg_lbl)
 
 	_content.add_child(header_box)
@@ -78,7 +81,10 @@ func _build_dashboard() -> void:
 	if _campaign.has_method("get_available_movie_magic"):
 		movie_remaining = _campaign.get_available_movie_magic().size()
 
-	var stats := {"TURN": turn, "REP": rep, "MCs": chars.size(), "GRUNTS": grunts.size(), "MAGIC": movie_remaining}
+	# Words a player reads, not abbreviations: the tiles said "MCS" and "MAGIC", and
+	# "TURN 0" before the first turn had been played (TacticsDashboard's "—").
+	var stats := {"Turn": str(turn) if turn > 0 else "—", "Reputation": rep,
+		"Squad": chars.size(), "Grunts": grunts.size(), "Movie Magic": movie_remaining}
 	# Portrait phones (~384px) can't fit five 64px stat cards in one row (352px floor,
 	# no horizontal scroll). Cap at 3 columns so they wrap to 3+2; stay 5-wide on desktop.
 	var stat_cols: int = 3 if should_use_single_column() else mini(stats.size(), 5)
@@ -91,7 +97,7 @@ func _build_dashboard() -> void:
 	_content.add_child(hub_box)
 
 	var continue_card := HubFeatureCardClass.new()
-	continue_card.setup("", "Continue Campaign", "Start the next campaign turn")
+	continue_card.setup("", "Continue Campaign", continue_text(_campaign))
 	continue_card.card_pressed.connect(func(): _navigate("bug_hunt_turn_controller"))
 	hub_box.add_child(continue_card)
 	_play_btn = continue_card  # Reference for breathe animation
@@ -186,23 +192,25 @@ func _build_dashboard() -> void:
 		grunt_content.add_child(no_lbl)
 	else:
 		grunt_content.add_child(_create_info_row("Grunts Available", str(grunts.size()), COLOR_CYAN))
-		grunt_content.add_child(_create_info_row("Profile", "R:1 S:4 CS:0 T:4", COLOR_TEXT_SECONDARY))
+		# Read from the creation data's grunt profile, in the squad's own format; this was
+		# a literal beside it.
+		grunt_content.add_child(_create_info_row("Profile", RefText.grunt_profile_line(),
+			COLOR_TEXT_SECONDARY))
 	var grunt_section := _create_section_card("Grunt Pool", grunt_content)
 	_content.add_child(grunt_section)
 
 	# ── Movie Magic ─────────────────────────────────────────────────
 	var movie_content := VBoxContainer.new()
 	movie_content.add_theme_constant_override("separation", SPACING_XS)
-	var used: Dictionary = _campaign.movie_magic_used if "movie_magic_used" in _campaign else {}
-	var all_magic := [
-		["barricade", "Barricade"], ["double_up", "Double-Up"], ["escape", "Escape"],
-		["evac", "Evac"], ["extra_support", "Extra Support"], ["lucky_find", "Lucky Find"],
-		["reinforcements", "Reinforcements"], ["remove_contact", "Remove Contact"],
-		["survived", "Survived"], ["you_want_some_too", "You Want Some Too?"]]
-	for pair in all_magic:
-		var ability_id: String = pair[0]
-		var ability_name: String = pair[1]
-		var is_used: bool = used.get(ability_id, false)
+	# The ten p.181 abilities from the data, as the core reads them; this was a literal
+	# list beside bug_hunt_movie_magic.json.
+	for row in BugHuntCampaignCore.movie_magic_abilities():
+		if not (row is Dictionary):
+			continue
+		var ability_id: String = str(row.get("id", ""))
+		var ability_name: String = str(row.get("name", ability_id))
+		var is_used: bool = not _campaign.is_movie_magic_available(ability_id) \
+			if _campaign.has_method("is_movie_magic_available") else false
 		var color: Color = COLOR_TEXT_MUTED if is_used else COLOR_SUCCESS
 		var prefix: String = "[USED]" if is_used else "[READY]"
 		movie_content.add_child(_create_info_row(ability_name, prefix, color))
@@ -227,6 +235,33 @@ func _build_dashboard() -> void:
 	## returns here, so this line runs while the children already exist, and it
 	## touches mouse_filter only -- nothing the fade animates.
 	_fix_touch_scroll_filters()
+
+
+## What Continue will do, from the turn the save records (TacticsDashboard's shape). It
+## read "Start the next campaign turn" in every state, including halfway through one.
+static func continue_text(campaign) -> String:
+	var turn: int = int(campaign.campaign_turn) if "campaign_turn" in campaign else 0
+	if turn <= 0:
+		return "Start turn 1"
+	var phase: int = int(campaign.current_turn_phase) if "current_turn_phase" in campaign \
+		else BugHuntCampaignCore.PHASE_UNRECORDED
+	if phase == PhaseManagerRef.Phase.NONE:
+		return "Start turn %d" % (turn + 1)
+	# Where BugHuntTurnController._resume_turn() will actually land: a save from before
+	# the record replays from Special Assignments, and Post-Battle with no stored battle
+	# result falls back to the Mission.
+	if not PhaseManagerRef.PHASE_NAMES.has(phase):
+		phase = PhaseManagerRef.Phase.SPECIAL_ASSIGNMENTS
+	elif phase == PhaseManagerRef.Phase.POST_BATTLE and not _has_battle_result(campaign):
+		phase = PhaseManagerRef.Phase.MISSION
+	return "Resume turn %d: %s" % [turn, PhaseManagerRef.PHASE_NAMES[phase]]
+
+
+static func _has_battle_result(campaign) -> bool:
+	if not ("current_mission" in campaign) or not (campaign.current_mission is Dictionary):
+		return false
+	var stored: Variant = (campaign.current_mission as Dictionary).get("battle_result", null)
+	return stored is Dictionary and not (stored as Dictionary).is_empty()
 
 
 func _stagger_reveal() -> void:

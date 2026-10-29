@@ -13,6 +13,10 @@
 		"Place Signals, Tactical Locations, and initial Contacts",
 		"Set up your troops"
 	],
+	"battle_area": {
+		"_source": "Five Parsecs From Home: Compendium, Bug Hunt, printed p.184 (Step 1. Set up battle area); verified 2026-10-28 against the PDF",
+		"description": "A typical (3x3 feet) battlefield should contain 10 decent-size terrain features, such as large rocks, a collection of smaller crates, a small structure, a forested area, or similar. Distribute these fairly evenly, then add 5-10 small individual features (rocks, crates, single trees, etc.) in any gaps."
+	},
 	"objectives": {
 		"description": "Place 6 dice (1-6) at significant locations. Roll 3D6 and remove non-matching dice. Remaining become Objectives.",
 		"placement_rule": "Space evenly, avoid placing within 6\" of battlefield edges.",
@@ -142,6 +146,7 @@
 		"roll": "2D6 + Objectives completed + packages held",
 		"savvy_bonus": "If requesting character has Savvy +1 or greater, add +1",
 		"success_threshold": 10,
+		"retry": "On a roll of 9 or less, you must roll again at the end of each battle round until the drop ship arrives.",
 		"arrival": "Drop ship arrives at end of next battle round after success. Place marker anywhere. Troopers within 3\" can evacuate.",
 		"loiter_rounds": 3,
 		"priority_increase": "Each time a drop ship arrives, Priority increases by +1 for the remainder.",

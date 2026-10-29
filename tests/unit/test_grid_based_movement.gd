@@ -282,7 +282,11 @@ func test_checklist_builder_is_not_self_recursive() -> void:
 	var code: String = _code_only(CHECKLIST_PATH)
 	var start: int = code.find("func _items()")
 	assert_int(start).is_greater(-1)
-	var body: String = code.substr(start, code.find("func _table_size_ft") - start)
+	# The body ends at the next top-level func. It used to end at _table_size_ft, which
+	# stopped being the next function when set_setup_steps() (a legitimate caller of
+	# _items()) landed between them, and the window then read that call as recursion.
+	var end: int = code.find("\nfunc ", start + 1)
+	var body: String = code.substr(start, (end if end > -1 else code.length()) - start)
 	assert_str(body).contains("in CHECKLIST_ITEMS:")
 	assert_str(body).not_contains("in _items():")
 

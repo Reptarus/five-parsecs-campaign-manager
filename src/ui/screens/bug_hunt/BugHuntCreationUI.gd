@@ -76,11 +76,11 @@ func _build_layout() -> void:
 	header.add_theme_constant_override("separation", 4)
 	vbox.add_child(header)
 
-	# HFlowContainer so the title wraps below the Cancel button on narrow
-	# (portrait phone) widths instead of clipping; stays single-line on desktop.
-	var header_row := HFlowContainer.new()
-	header_row.add_theme_constant_override("h_separation", 8)
-	header_row.add_theme_constant_override("v_separation", 4)
+	# A row whose title WRAPS beside Cancel. This was an HFlowContainer holding an
+	# unwrapped Label, which moved the title under Cancel but still let it demand its whole
+	# text width: on a 310 px phone it ended at x=332 (test_bug_hunt_screen_fit.gd).
+	var header_row := HBoxContainer.new()
+	header_row.add_theme_constant_override("separation", 8)
 	header.add_child(header_row)
 
 	var cancel_button := Button.new()
@@ -94,12 +94,15 @@ func _build_layout() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header_row.add_child(title)
 
 	_step_label = Label.new()
 	_step_label.text = "Step 1 of 4: Campaign Config"
 	_step_label.add_theme_font_size_override("font_size", _scaled_font(16))
 	_step_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	_step_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.add_child(_step_label)
 
 	# Panel container — fills remaining space
@@ -107,10 +110,12 @@ func _build_layout() -> void:
 	_panel_container.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	vbox.add_child(_panel_container)
 
-	# Navigation buttons
-	var nav := HBoxContainer.new()
-	nav.add_theme_constant_override("separation", 16)
-	nav.alignment = BoxContainer.ALIGNMENT_CENTER
+	# Navigation buttons. A flow row (TacticsCreationUI's shape): Back, Next and Launch
+	# Campaign side by side need more than a phone's width.
+	var nav := HFlowContainer.new()
+	nav.add_theme_constant_override("h_separation", 16)
+	nav.add_theme_constant_override("v_separation", 8)
+	nav.alignment = FlowContainer.ALIGNMENT_CENTER
 	vbox.add_child(nav)
 
 	_back_button = Button.new()

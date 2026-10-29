@@ -143,6 +143,12 @@ var _use_grid_movement: bool = false
 var _movement_selector: Control = null
 var _movement_group: ButtonGroup = null
 
+## A game mode's own setup steps, in place of the Core Rules CHECKLIST_ITEMS. Bug Hunt
+## sets its p.184 Mission Generation steps (BugHuntBattleGuide.setup_checklist());
+## empty means the Core Rules list. ⚠ Before 2026-10-28 every mode got the Core
+## Rules list, so a Bug Hunt battle was told to roll the p.88 and p.89 tables.
+var _mode_steps: Array[Dictionary] = []
+
 
 ## The steps the player actually works through, resolved at runtime.
 ##
@@ -158,6 +164,8 @@ var _movement_group: ButtonGroup = null
 ## Every loop over the checklist goes through here so a step can never appear in
 ## one pass (rendering) and vanish in another (progress counting).
 func _items() -> Array[Dictionary]:
+	if not _mode_steps.is_empty():
+		return _mode_steps.duplicate(true)
 	var table_ft: float = _table_size_ft()
 	# build_* not get_*: the FLAG decides whether the selector is offered, the
 	# per-battle CHOICE decides what the steps say (Compendium p.90). Calling the
@@ -186,6 +194,42 @@ func _items() -> Array[Dictionary]:
 		if str(row.get("id", "")) == "setup_terrain" and not grid_step.is_empty():
 			out.append(grid_step)
 	return out
+
+
+## Replace the step rows with a mode's own steps (see _mode_steps). Order-independent:
+## TacticalBattleUI calls it before add_child(), when _build_ui() simply reads them,
+## and a call after _ready() swaps only the STEP rows, never _vbox wholesale, so the
+## rows add_species_reminders() and its siblings append survive (the same reason
+## _refresh_movement_steps() is narrow).
+func set_setup_steps(steps: Array) -> void:
+	var old: Array[Dictionary] = _items()
+	_mode_steps.clear()
+	for s in steps:
+		if s is Dictionary:
+			_mode_steps.append(s)
+	if not _vbox:
+		return
+	var at: int = -1
+	for item: Dictionary in old:
+		var node: Control = _vbox.get_node_or_null("Item_%s" % item.id)
+		if node:
+			if at < 0:
+				at = node.get_index()
+			_vbox.remove_child(node)
+			node.queue_free()
+		_check_states.erase(item.id)
+		_item_nodes.erase(item.id)
+	# The movement selector rewrites Core Rules steps; a mode's own list has none.
+	if _movement_selector:
+		_movement_selector.visible = _mode_steps.is_empty()
+	for item: Dictionary in _items():
+		var node := _create_checklist_item(item)
+		_vbox.add_child(node)
+		if at >= 0:
+			_vbox.move_child(node, at)
+			at += 1
+		_check_states[item.id] = false
+	_apply_tier_filter()
 
 
 func _table_size_ft() -> float:
@@ -217,6 +261,7 @@ func _build_ui() -> void:
 	# Title
 	var title := Label.new()
 	title.text = "Pre-Battle Setup Checklist"
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title.add_theme_font_size_override("font_size", FONT_SIZE_XL)
 	title.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	_vbox.add_child(title)
@@ -254,6 +299,8 @@ func _build_ui() -> void:
 func _build_movement_selector() -> void:
 	if not CompendiumGridMovementRef.is_enabled():
 		return  # Not owned/enabled — the question does not apply.
+	if not _mode_steps.is_empty():
+		return  # it rewrites Core Rules steps, and this mode supplied its own
 
 	var box := VBoxContainer.new()
 	box.name = "MovementSystemSelector"
@@ -404,6 +451,9 @@ func _create_checklist_item(item: Dictionary) -> VBoxContainer:
 	var checkbox := CheckBox.new()
 	checkbox.name = "Check_%s" % item.id
 	checkbox.text = item.label
+	# Wraps, so a long step name does not hold the modal wider than a phone.
+	checkbox.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	checkbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	checkbox.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
 	checkbox.add_theme_font_size_override("font_size", FONT_SIZE_MD)
 	checkbox.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)

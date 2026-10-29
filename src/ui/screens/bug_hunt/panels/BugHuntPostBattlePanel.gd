@@ -26,6 +26,7 @@ var _battle_results: Dictionary = {}  # From TacticalBattleUI
 var _results: Dictionary = {}
 var _processed: bool = false
 var _completed: bool = false
+var _complete_btn: Button
 
 var _content_container: VBoxContainer
 
@@ -110,7 +111,20 @@ func complete() -> void:
 	## answers the player gave. No decision is made here and no state is written --
 	## BugHuntPhaseManager._apply_post_battle_results turns these two into effects.
 	_results = {"receipt": _receipt, "answers": _collect_answers()}
+	_lock_after_completion()
 	phase_completed.emit({"post_battle_result": _results})
+
+
+## The turn has ended and the receipt stays on screen as its record. Every answer was
+## already sent to the phase manager, so a box ticked now would change nothing: the
+## controls lock, and the button says the step is done rather than inviting a press.
+func _lock_after_completion() -> void:
+	for n in _content_container.find_children("*", "BaseButton", true, false):
+		(n as BaseButton).disabled = true
+	for n in _content_container.find_children("*", "SpinBox", true, false):
+		(n as SpinBox).editable = false
+	if is_instance_valid(_complete_btn):
+		_complete_btn.text = "Post-Battle complete"
 
 
 func _load_data() -> void:
@@ -126,6 +140,8 @@ func _load_data() -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways (test_bug_hunt_screen_fit.gd): every row below wraps instead.
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	_content_container = VBoxContainer.new()
@@ -178,11 +194,11 @@ func _process_post_battle() -> void:
 	_choice_nodes.clear()
 	_render_receipt()
 
-	var complete_btn := Button.new()
-	complete_btn.text = "Complete Post-Battle"
-	complete_btn.custom_minimum_size = Vector2(0, 48)
-	complete_btn.pressed.connect(func(): complete())
-	_content_container.add_child(complete_btn)
+	_complete_btn = Button.new()
+	_complete_btn.text = "Complete Post-Battle"
+	_complete_btn.custom_minimum_size = Vector2(0, 48)
+	_complete_btn.pressed.connect(func(): complete())
+	_content_container.add_child(_complete_btn)
 
 
 func _stamped_mission() -> Dictionary:
@@ -247,6 +263,7 @@ func _build_debrief_card() -> void:
 				rating.capitalize(), weight]
 			var check := CheckBox.new()
 			check.text = "%s%s" % [str(type_data.get("name", "Objective %d" % (i + 1))), suffix]
+			check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			check.custom_minimum_size = Vector2(0, 40)
 			card.add_child(check)
 			_debrief_objective_checks.append(check)
@@ -256,6 +273,7 @@ func _build_debrief_card() -> void:
 		var row := HBoxContainer.new()
 		var lbl := Label.new()
 		lbl.text = "Signals investigated (of %d):" % total
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(lbl)
 		_debrief_signals_spin = SpinBox.new()
@@ -282,6 +300,7 @@ func _build_debrief_card() -> void:
 		for cid in casualty_ids:
 			var check2 := CheckBox.new()
 			check2.text = _character_name(str(cid))
+			check2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			check2.custom_minimum_size = Vector2(0, 40)
 			card.add_child(check2)
 			_debrief_lost_checks[str(cid)] = check2
@@ -292,6 +311,7 @@ func _build_debrief_card() -> void:
 		var mvp_row := HBoxContainer.new()
 		var mvp_lbl := Label.new()
 		mvp_lbl.text = "MVP (+1 XP, p.204):"
+		mvp_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		mvp_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		mvp_row.add_child(mvp_lbl)
 		_debrief_mvp_option = OptionButton.new()
@@ -445,6 +465,9 @@ func _render_choice(choice: Dictionary, card: VBoxContainer) -> void:
 			var check := CheckBox.new()
 			check.text = prompt
 			check.add_theme_font_size_override("font_size", _scaled_font(13))
+			# Wrapped: the resolver's prompt is a sentence, and unwrapped it set the width
+			# of the whole receipt (895 px on a 310 px phone).
+			check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			# Re-check affordability HERE as well as in the resolver: a purchase
 			# priced against the XP the character had when the receipt was built can
 			# be made unaffordable by an advancement picked further up the page.
@@ -514,6 +537,7 @@ func _render_advancement(choice: Dictionary, card: VBoxContainer) -> void:
 	var remaining := Label.new()
 	remaining.add_theme_font_size_override("font_size", _scaled_font(11))
 	remaining.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	remaining.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 
 	var boxes: Array = []
 	for opt in choice.get("options", []):
@@ -524,6 +548,7 @@ func _render_advancement(choice: Dictionary, card: VBoxContainer) -> void:
 		var check := CheckBox.new()
 		check.text = "%s +1  (%d XP)" % [stat.capitalize().replace("_", " "), cost]
 		check.add_theme_font_size_override("font_size", _scaled_font(13))
+		check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		check.set_meta("stat", stat)
 		check.set_meta("xp_cost", cost)
 		check.disabled = cost > pool
@@ -659,6 +684,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text
 	lbl.add_theme_font_size_override("font_size", _scaled_font(18))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	return vbox

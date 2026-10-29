@@ -57,6 +57,9 @@ var _step_container: VBoxContainer
 
 
 func _scaled_font(base: int) -> int:
+	# An absolute lookup from outside the tree ERRORS and aborts the caller.
+	if not is_inside_tree():
+		return base
 	var rm := get_node_or_null("/root/ResponsiveManager")
 	if rm and rm.has_method("get_responsive_font_size"):
 		return rm.get_responsive_font_size(base)
@@ -66,6 +69,11 @@ func _scaled_font(base: int) -> int:
 func _ready() -> void:
 	_transfer_service = TransferServiceClass.new()
 	_build_ui()
+	# Render whatever the caller set before add_child(). Both dashboard callers call
+	# set_direction() first, when _step_container does not exist yet, so the page
+	# used to be drawn only if a later load_characters_*() call redrew it. Enlist with
+	# no Five Parsecs save never makes that call: a blank page with no way back.
+	_show_step_1()
 
 
 func set_direction(dir: String) -> void:
@@ -123,8 +131,23 @@ func _build_ui() -> void:
 ## ── STEP 1: Explain the process + Select character ──────────────────────
 
 func _show_step_1() -> void:
+	if _step_container == null:
+		return  # not built yet; _ready() draws it
 	call_deferred("_open_touch_chain")  # no await in this function (see below)
 	_clear_steps()
+
+	# First and top right, the Planetfall and Tactics overlay shape (X14): below a
+	# long roster a phone had to scroll past every character to back out.
+	var cancel_btn := Button.new()
+	cancel_btn.text = "Cancel"
+	cancel_btn.custom_minimum_size = Vector2(120, 48)
+	cancel_btn.size_flags_horizontal = Control.SIZE_SHRINK_END
+	cancel_btn.pressed.connect(func():
+		transfer_cancelled.emit()
+		transfer_closed.emit()
+		queue_free()
+	)
+	_step_container.add_child(cancel_btn)
 
 	# Title
 	var title := Label.new()
@@ -174,44 +197,42 @@ func _show_step_1() -> void:
 	select_header.add_theme_color_override("font_color", COLOR_TEXT_SEC)
 	_step_container.add_child(select_header)
 
-	if _source_characters.is_empty():
+	var shown: int = 0
+	for char_data in _source_characters:
+		if char_data is Dictionary and is_eligible(char_data, _direction):
+			_build_character_select_card(char_data)
+			shown += 1
+	if shown == 0:
+		# A source with nobody eligible used to end at the bare header above.
 		var empty := Label.new()
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.text = "No eligible characters found. Load a save file first."
+		empty.text = empty_text(_direction, _source_characters.is_empty())
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
+		if _direction == "enlist":
+			var load_btn := Button.new()
+			load_btn.text = "Choose a Save File"
+			load_btn.custom_minimum_size = Vector2(0, 48)
+			load_btn.pressed.connect(_on_load_save)
+			_step_container.add_child(load_btn)
 
-		var load_btn := Button.new()
-		load_btn.text = "Load Characters from Save File"
-		load_btn.custom_minimum_size = Vector2(0, 48)
-		load_btn.pressed.connect(_on_load_save)
-		_step_container.add_child(load_btn)
-	else:
-		for char_data in _source_characters:
-			if char_data is not Dictionary:
-				continue
-			var game_mode: String = char_data.get("game_mode", "standard")
-			var eligible: bool = false
-			if _direction == "enlist" and game_mode != "bug_hunt":
-				eligible = true
-			elif _direction == "muster_out" and game_mode == "bug_hunt":
-				if not char_data.get("is_grunt", false):
-					eligible = true
-			if not eligible:
-				continue
 
-			_build_character_select_card(char_data)
+## Enlist takes a character from another mode (p.212); muster-out takes a Bug Hunt
+## main character, never a grunt (p.213).
+static func is_eligible(char_data: Dictionary, direction: String) -> bool:
+	var game_mode: String = str(char_data.get("game_mode", "standard"))
+	if direction == "enlist":
+		return game_mode != "bug_hunt"
+	return game_mode == "bug_hunt" and not bool(char_data.get("is_grunt", false))
 
-	# Cancel button
-	var cancel_btn := Button.new()
-	cancel_btn.text = "Cancel — Go Back"
-	cancel_btn.custom_minimum_size = Vector2(0, 44)
-	cancel_btn.pressed.connect(func():
-		transfer_cancelled.emit()
-		transfer_closed.emit()
-		queue_free()
-	)
-	_step_container.add_child(cancel_btn)
+
+static func empty_text(direction: String, nothing_loaded: bool) -> String:
+	if direction != "enlist":
+		return "No main character in this squad can muster out."
+	if nothing_loaded:
+		return ("No Five Parsecs From Home crew was found. Enlisting brings a veteran "
+			+ "from a Five Parsecs campaign save into this squad.")
+	return "Nobody in this save can enlist: they are already Bug Hunt characters."
 
 
 func _build_character_select_card(char_data: Dictionary) -> void:
@@ -246,7 +267,7 @@ func _build_character_select_card(char_data: Dictionary) -> void:
 	var select_btn := Button.new()
 	select_btn.text = "Select %s" % char_name
 	select_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	select_btn.custom_minimum_size = Vector2(0, 44)
+	select_btn.custom_minimum_size = Vector2(0, 48)
 	var captured: Dictionary = char_data.duplicate(true)
 	select_btn.pressed.connect(func(): _show_step_2(captured))
 	card.add_child(select_btn)
@@ -628,22 +649,30 @@ func _clear_steps() -> void:
 
 
 func _on_load_save() -> void:
+	# A missing folder is the same answer as an empty one. It used to return before
+	# drawing anything, so the button that opened this page did nothing.
 	var save_dir := "user://saves/"
-	if not DirAccess.dir_exists_absolute(save_dir):
-		return
-	var dir := DirAccess.open(save_dir)
-	if not dir:
-		return
 	var saves: Array = []
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while not file_name.is_empty():
-		if file_name.ends_with(".save"):
-			saves.append(file_name)
-		file_name = dir.get_next()
-	dir.list_dir_end()
+	var dir := DirAccess.open(save_dir) if DirAccess.dir_exists_absolute(save_dir) else null
+	if dir:
+		dir.list_dir_begin()
+		var file_name := dir.get_next()
+		while not file_name.is_empty():
+			if file_name.ends_with(".save"):
+				saves.append(file_name)
+			file_name = dir.get_next()
+		dir.list_dir_end()
 
+	call_deferred("_open_touch_chain")  # no await in this function
 	_clear_steps()
+	# First and top right, as on step 1.
+	var back := Button.new()
+	back.text = "Back"
+	back.custom_minimum_size = Vector2(120, 48)
+	back.size_flags_horizontal = Control.SIZE_SHRINK_END
+	back.pressed.connect(func(): _show_step_1())
+	_step_container.add_child(back)
+
 	var header := Label.new()
 	header.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	header.text = "SELECT SAVE FILE"
@@ -655,23 +684,18 @@ func _on_load_save() -> void:
 	if saves.is_empty():
 		var empty := Label.new()
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.text = "No save files found in user://saves/"
+		empty.text = "No saved campaigns were found."
 		empty.add_theme_color_override("font_color", COLOR_WARNING)
 		_step_container.add_child(empty)
 	else:
 		for save_name in saves:
 			var btn := Button.new()
 			btn.text = save_name
-			btn.custom_minimum_size.y = 44
+			btn.custom_minimum_size.y = 48
+			btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			var path: String = save_dir + save_name
 			btn.pressed.connect(func(): load_characters_from_save(path))
 			_step_container.add_child(btn)
-
-	var cancel := Button.new()
-	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(0, 44)
-	cancel.pressed.connect(func(): _show_step_1())
-	_step_container.add_child(cancel)
 
 
 func _add_explanation(parent: VBoxContainer, header_text: String, points: Array) -> void:

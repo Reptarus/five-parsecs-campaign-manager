@@ -101,6 +101,17 @@ fixes. The re-capture is recorded in the next section.
 | 18 Update Tracking (p.71) | **Asked for a press and saved twice**. p.71 rolls nothing at this step. It now arrives ready with the book's text, and the campaign saves when the turn ends. | `test_planetfall_colony_crisis.gd::test_step_18_arrives_ready_with_the_books_text` | S18 DETECTED |
 | End Game (pp.160-164) | **Captured stage by stage for all four paths** (`pf_port14`, 15 frames). The text matches the book at every stage: Summit, D6 per character plus one for the population (p.160); Colony Security, 1 Strongpoint or 2 for Loyalty (p.160); costs of 15/5, 5/15, 10/5 and 5/10 BP/RP (pp.161-163); Independence and Ascension offer the narrated victory; and Isolation's completion lists each Nomad Struggles roll to 3 Wisdom (p.163). **One defect:** the path buttons did not wrap. "Independence (Cost: 15 BP, 5 RP) [SECURITY NOT MET]" ran past a phone and dragged the whole stage off-centre. The Loyalty dice had the same exposure, waiting on a roll: a rolled 2 is "Staging ground for continued colonization missions", 50 characters on one button in a flow. Both now wrap, and the dice stack full width. | `test_overlay_pages.gd::test_the_end_game_fits_a_phone` | OV28, OV29 DETECTED |
 
+### Reopened by the Bug Hunt pass: the battle screen in Planetfall mode
+
+Found while fixing the same defect for Bug Hunt (below), through the shared
+`PreBattleChecklist`. Neither sweep nor any fit case had built the Planetfall battle modal,
+so the Planetfall pass closed without measuring it.
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Setup checklist | **A Planetfall battle opened on the Core Rules checklist**: roll the p.88 deployment condition and the p.89 Notable Sight (Core Rules) and roll to Seize the Initiative. *"Planetfall does not have a Seize the Initiative roll"* (printed p.27). `PlanetfallBattleGuide.setup_checklist()` now gives the mission briefing's own setup, under the book's headings and in its order (pp.114-133): Table Setup (the mission's table size), Objectives (its `*_placement` key), Uncertain features (`uncertain_feature_text()`, reused), Battlefield Conditions ("There are no Battlefield Conditions" when the briefing says so), Player Forces (its `deployment`) and Opposition. The general placement rules come from a new `mission_types.json:briefing_rules` block quoting **p.114** (Enemy Deployments, Terrain Placement), so no rule number sits in a UI literal. TBUI branches on the mission's `battle_mode`; any other battle keeps the Core list. | `test_planetfall_battle_payload.gd::test_a_planetfall_battle_sets_up_by_its_mission_briefing` (payload from the turn controller's own `build_battle_payload()`, opened through TBUI's modal, with a 5PFH Alpha-1 arm) | PF1-PF5 DETECTED (`arms_pf.log`) |
+| Modal width | **It ran past a phone's edge**: the Core list's dice-roll row is wider than a 310 px phone (PF6 restores the Core list and the fit case fails). The Planetfall steps have no roll row, and the step check boxes wrap. | `test_planetfall_screen_fit.gd::test_the_planetfall_battle_modal_fits_a_small_phone` (a Skirmish: conditions, two Uncertain features, a Tactical force) | PF6, PF7 DETECTED (`arms_pf_fit.log`) |
+
 ## Tactics — per screen
 
 Captures `tac_land` / `tac_port` (`capture_modes.gd -- mode=tactics`, 2026-10-28), every
@@ -146,6 +157,59 @@ collides with the Planetfall SF1-SF3 above, so this section writes them **TSF**.
 | 7 Strategic | The adjacency CheckBoxes ran to 330 on a phone and now wrap. | phases case | TSF13 DETECTED |
 | All phases (touch) | **Three phase panels left their last row STOP.** Each panel swept itself once, then added a button row, so a drag that started on that row never reached the panel's scroll. The controller now calls `TouchScrollOpener.keep_open(self)`. | `test_touch_scroll_sweep.gd` (X16) | TW2 DETECTED |
 
+## Bug Hunt — per screen
+
+Captures `bh_land2` / `bh_port2` (`capture_modes.gd -- mode=bug_hunt`, 2026-10-28): every
+creation step empty and filled, the dashboard with Enlist and Muster Out open, all three turn
+stages before and after their action, the turn-end card and the battle modal. Cases are in
+`test_bug_hunt_screen_fit.gd` (**fit**) and `test_bug_hunt_screen_flow.gd` (**flow**) unless
+named, and the arms are in `arms_bh.log`. The common shape: every creation step, all three
+turn stages and the Battle Card **scrolled sideways on a phone**, because seven panel scrolls
+left the horizontal axis on AUTO while holding unwrapped titles, a 420 px CheckButton and
+rows of fixed text. `verify_layout` cannot see that (content inside a scroll may overflow
+it), so the fit cases assert the render truth: no scroll shows a horizontal bar, and no
+text ends past the screen edge.
+
+### Creation wizard (`BugHuntCreationUI.tscn`, 4 steps)
+
+| Step | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Header and nav | **The title ran off a 310 px phone (it ended at x=332).** An HFlowContainer moved it under Cancel but let the unwrapped Label demand its whole width. It is now an HBox with an expanding, wrapping title. Back, Next and Launch Campaign side by side need more than a phone's width, so the nav row is a flow row. | fit `test_every_creation_step_fits_a_small_phone` | BH21 is that case's arm; the header has no arm of its own |
+| 1 Config | Scrolled sideways: the axis is off and every label and the generate button wrap. | same | as above |
+| 2 Squad | The stat row was one HBox. It flows now, and prints the p.170 profile in p.170's order and format (React, Spd in inches, CS and Savvy signed, Tough), through one `stat_pairs_for()` that the Review step, the dashboard grunt line and Special Assignments also use. | same; flow dashboard case (order) | BH21, BH17 DETECTED |
+| 3 Equipment | **The weapon profiles were literals** ("Range 14, 1 shot") beside the Mission step's data-driven copy. They print `RefText.profile()` from the data. A melee weapon printed a 0" range; it prints "Brawl · Dmg +0" (p.179: "Boarding sword  Brawl  –  0  Melee"). That fix is in `DisplayText`, so Planetfall's Carver Blade and the other melee weapons get it too. | flow `test_the_equipment_step_prints_the_data_profiles`, `test_a_melee_weapon_prints_as_brawl` | BH1, BH2 DETECTED |
+| 4 Review | The Movie Magic list was a literal; it is the ten p.181 abilities from `BugHuntCampaignCore.movie_magic_abilities()`. The profile uses the p.170 order. | — (it shares the dashboard's source) | no arm of its own |
+
+### Dashboard (`BugHuntDashboard.tscn`)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Header and column | **Edge to edge, and the title sat under the Settings buttons.** The content went straight into a full-rect scroll (x=0 on a phone, 2560 px wide on a tablet), which has neither shape `reserve_band_on()` looks for. The margins are now inside the scroll (the Tactics and Planetfall shape), the band is reserved, and a tablet gets a centred `MAX_FORM_WIDTH` column. The zero-caller `_apply_content_max_width()` went with it. | fit `test_the_dashboard_clears_the_settings_band_on_a_phone` (asserts the band is non-zero first); flow `test_a_tablet_gets_a_centred_column` | BH10, BH11 DETECTED |
+| Continue card | **The subtitle was a literal**, "Start the next campaign turn", whatever the state. `continue_text()` names where the turn resumes ("Start turn 1", "Resume turn 2: Mission"). A turn saved at Post-Battle with no battle result resumes at Mission, where the battle can be played. | flow `test_continue_names_where_the_turn_resumes`, `test_the_dashboard_reads_its_lines_from_the_campaign_and_the_data` (rendered on screen, not only computed) | BH13, BH14 DETECTED |
+| Stat tiles | A fresh campaign read "Turn 0"; it reads "—". The tiles are words (SQUAD, MOVIE MAGIC, REPUTATION). | dashboard case | covered by the BH14-BH17 runs |
+| Movie Magic | **A literal list beside the core's own table.** It is the ten p.181 abilities from `movie_magic_abilities()`, each marked used from `is_movie_magic_available()`. ⚠ The literal held `["evac", "Evac"]`, which the census counted as Evac's reader (see the Evac row and Instruments). | dashboard case | BH15 DETECTED |
+| Grunt pool | The profile was a literal, "R:1 S:4 CS:0 T:4". It is `grunt_profile_line()` from `grunt_stats` (p.170 format). | dashboard case (seeds the pool through `generate_fire_team(4)`; an empty pool draws no profile) | BH16 DETECTED |
+| Enlist and Muster Out (F2) | **Enlist with no Five Parsecs save opened a blank page with no way back.** Step 1 was drawn only when a later `load_characters_*()` call redrew it, and no save means no call. Cancel was at the bottom. A source with nobody eligible ended at a bare header. A missing saves folder returned before drawing. Step 1 now draws at `_ready`, Cancel is first and top right at 48 px, and the empty states say why (`empty_text()`, `is_eligible()`: enlist takes a character from another mode, p.212; muster-out takes a main character, never a grunt, p.213). The save buttons are 48 px and wrap. | flow `test_enlisting_with_no_save_shows_a_way_back`, `test_a_squad_with_nobody_to_muster_out_says_so` | BH3, BH4, BH5 DETECTED |
+
+### The turn (`BugHuntTurnController.tscn`, 3 stages)
+
+| Stage | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Phase strip | **It hid the stage the player was in.** It shared the top row inside a horizontal scroll, so a phone showed "1. Special Assig". It has its own row and wraps. | fit `test_every_turn_stage_fits_a_small_phone` (no exemptions) | that case's arms are BH22 and BH23b |
+| Column | Full width on a tablet; it is a centred `MAX_FORM_WIDTH` column with 16 px gutters on a phone. | flow `test_a_tablet_gets_a_centred_column` | BH12 DETECTED |
+| Footer | **It read "Complete Phase" in every stage and could never be pressed.** It enabled on `can_advance()`, which is true only once the phase is complete, and `complete_current_phase()` moves on in the same call. It now names the stage's own next step, or shows nothing. | `test_bug_hunt_turn_completion.gd` | BH20 (with F1) |
+| 1 Special Assignments (F1, p.183) | **The rolled results were never seen.** Roll All called `complete()`, which moved the turn to Mission in the same frame, so the result cards were built and hidden unread. The old turn-completion case asserted that jump. The results now stay on screen with "Continue to Mission". Roll All works once per turn, because a second press re-applied every award. The trooper line was "R:1  S:5  CS:1" on one unwrapped line, which set the stage's width; it is the p.170 line. The assignment picker clips, with a detail line under it for the target and award. | `test_bug_hunt_turn_completion.gd::test_rolling_real_assignments_advances_the_turn_to_mission` (rewritten); fit | BH20 DETECTED; BH23 UNDETECTED by design, BH23b DETECTED (Instruments) |
+| 2 Mission | The per-trooper row (a 140 px name and a 280 px loadout picker in one HBox) ran off a phone. It flows. | fit | BH22 DETECTED |
+| 3 Post-Battle | **The receipt stayed live after the turn ended**: a box ticked then changed nothing, because every answer had already gone to the phase manager. The controls lock and the button says the step is done. The resolver's prompt is a sentence, and unwrapped it set the receipt's width (895 px on a 310 px phone); it wraps. | flow `test_post_battle_locks_once_completed`; fit | BH9 DETECTED |
+
+### The battle screen in Bug Hunt mode (`TacticalBattleUI`, shared)
+
+| Area | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| Setup checklist (L3, p.184) | **A Bug Hunt battle opened on the Core Rules checklist**: roll the p.88 deployment condition and the p.89 Notable Sight, roll to Seize the Initiative, run the Enemy wizard. Bug Hunt has none of those. Its troops land within 3" of a random edge (p.190), and each round opens with Reaction dice, not an initiative roll (p.198). `BugHuntBattleGuide.setup_checklist()` gives p.184's Mission Generation steps 1, 2, 8 and 9 from data: the battle area (p.184, a new `battle_area` block), the six objective dice (p.185), Tactical Locations and Contacts (p.190), and the troops (p.190). The steps rolled before launch say so, so nobody rolls them twice. `PreBattleChecklist.set_setup_steps()` is order-independent: after `_ready` it swaps only the step rows, so reminders appended later survive. TBUI branches on the mission's `battle_mode`. | flow `test_a_bug_hunt_battle_sets_up_by_its_own_steps`, `test_a_five_parsecs_battle_keeps_the_core_rules_steps` (Alpha-1 arm), `test_swapping_steps_after_ready_keeps_appended_rows`; fit `test_the_bug_hunt_battle_card_fits_a_small_phone` | BH6, BH7, BH8 DETECTED |
+| Modal width | **It scrolled sideways on a phone and cut the card's rules text mid-word.** The width driver was the Core checklist's dice-roll row (360 px), which the p.184 steps do not have. The title and the step check boxes wrap. | fit battle case (prints the min-width spine on failure) | BH7, and PF7 for the check box |
+| Evac (p.201) | **No screen told the players about Evac.** `bug_hunt_missions.json:evac` had no reader (the census counted the dashboard literal as one). The Battle Card has an Evac row ("request it from Round N", the roll, arrival, loiter rounds, priority, supporting fire). The round prompts say it opens one round before it does, and while a call is outstanding they ask whether it arrived. `evac.retry` was added from p.201 ("roll again at the end of each battle round until the drop ship arrives"). | flow `test_evac_is_on_the_card_and_in_the_round_prompts` | BH18, BH19 DETECTED |
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -184,6 +248,53 @@ Recorded so the next reader does not trust a green case that cannot fail.
 - **The link-tap case first failed in both arms.** The tap landed in the empty part of a
   60 px row, so even the closed label did not fire. It now aims at the text line and
   asserts the closed-label premise.
+- **The old turn-completion case pinned F1.** `test_rolling_real_assignments_advances_the_turn_to_mission`
+  asserted that Roll All moved the turn to Mission, which was the defect: the results were
+  hidden in the same frame. It now asserts the results stay until Continue, and BH20
+  (putting `complete()` back) fails it.
+- **The Bug Hunt census counted a dashboard literal as Evac's reader.** Its read forms include
+  `["key"` unassigned, which also matches the first element of an array literal, so the
+  Movie Magic literal `["evac", "Evac"]` satisfied it. A census proves a read form exists,
+  not that the data is read. Replacing the literal with the data surfaced the missing
+  consumer.
+- **The battle-card spine stopped at the footer.** It started at the modal, but a scroll
+  whose horizontal axis is AUTO does not pass its child's minimum up, so the walk ended at
+  "Begin Battle". It starts inside the scroll.
+- **BH23 was UNDETECTED by design.** It removed `clip_text` from the assignment picker but
+  left `text_overrun_behavior` on the next line. A probe measured the picker's minimum width
+  at 267 px with neither, and 32 px with either one alone, so the pair is belt and braces.
+  BH23b removes both and is DETECTED. ⚠ The probe's first run read 32 for every
+  configuration, including neither: the minimum-size cache had not been built in the same
+  frame. Read it after a frame.
+- **A shell detector called a LF file CRLF.** `od -c | grep -c '\\r'` reported 11 on
+  `data/planetfall/mission_types.json`, which had 464 LF and no CR. The edit script asserts the ending on the
+  bytes, so it stopped before writing.
+- **A backtick in a double-quoted `-c` blanked a word.** Bash ran it as command substitution
+  and "weapon_traits" vanished from a census comment. Edit scripts go through the Write tool.
+- **The first full gate (`sub`) failed two cases, and both were instruments.**
+  `test_checklist_builder_is_not_self_recursive` read `_items()`'s body as "up to
+  `func _table_size_ft`". `set_setup_steps()` now sits between them and calls `_items()`
+  legitimately, and the window read that call as recursion. The body now ends at the next
+  top-level `func`; IN1 (a truly recursive `_items()`) is DETECTED.
+  `test_a_refusal_prints_its_reason_instead_of_a_zero_roll` found "Story Point" on the
+  refusal screen. It was Step 1's explanation: F2 draws Step 1 at `_ready`, and the fixture
+  called `_show_enlistment_result()` directly, skipping the `_clear_steps()` that both
+  product callers run first. Until F2 the blank page made that skip free. Five render calls
+  across two suites now clear first, and the text walkers skip nodes queued for deletion.
+  ⚠ A **positive** `contains()` would have passed vacuously on the same leftover text. IN2
+  (`held >= 0`) was UNDETECTED because a fixture with no save reads **-1** held. IN2b
+  (`if true:`) offers the rescue unconditionally and is DETECTED.
+- **The second full gate (`sub2`) failed a case nothing in this pass touched:**
+  `test_compendium_mission_types.gd::test_each_generator_stamps_its_dispatch_type`. The
+  report read *"Expecting 'salvage' but was 'salvage'"*, because gdUnit4 prints a string
+  mismatch as a coloured character diff and the log strips the colour, so a deleted word
+  reads like the expected one. The actual value was `""`: Compendium p.137's availability
+  D6 returns no job on a 1, and the case called the generator once. Measured alone: 3
+  failures in 5 runs before the fix, 0 in 10 after. It now draws until a job is on offer,
+  as `test_salvage_availability.gd` already did. No arm: the defect is a die roll, so a
+  reverted run fails only some of the time.
+- **A false lead, not filed.** The February legacy save showed zero stats on Enlist. It
+  nests the character under a `character` key and exists only on the dev machine.
 
 ## Gates
 
@@ -196,6 +307,7 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | after su4: the End Game fix | 2 (overlay pages, End Game) + compile guard | 22 / 22, 1 / 1 | 0 | 0 | 8/8 exit 0. Covered by the s4p2 full gate below. |
 | s4p2 (Sprint 4 part 2, X15, SF1-SF3) | 364 | 4047 / 4047 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout`: 240/248, the 8 being CharacterDetailsScreen (see Not yet walked) |
 | sut (Tactics pass, X16, X17) | 366 | 4072 / 4072 | 0 | 0 | 8/8 exit 0; `files=575 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=tactics` 24/24. Every Tactics arm DETECTED or UNDETECTED-by-design with a measurement (arms log) |
+| sub3 (Bug Hunt pass, and the Planetfall battle checklist) | 368 | 4090 / 4090 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=bug_hunt` 24/24 and `-- only=planetfall` 24/24; `test_touch_scroll_sweep` 3/3. The third full run: `sub` failed two instruments and `sub2` a pre-existing intermittent case (see Instruments) |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3
@@ -205,7 +317,6 @@ re-counted the same batch on the final tree at 399 / 399, which confirms it.
 
 Every mode in this list still needs the same pass: capture, verdict and fix.
 
-- **Bug Hunt**: every screen.
 - **Battle Simulator**: setup and results.
 - **5PFH and shared**: MainMenu, Settings, Help, Store, Compendium, Legal, Journal, Galaxy
   Log, Print Sheets, and the battle screens. **Measured already (2026-10-28, full windowed
@@ -218,10 +329,19 @@ Every mode in this list still needs the same pass: capture, verdict and fix.
   `CampaignScreenBase._create_character_card()` prints its stat row as `Models:1  Battles:0`
   (`"%s:%s"`, `:1029`), seen on the Tactics unit cards. The 5PFH crew screens use the same
   helper, so the format is judged on that pass, not changed from a variant mode.
+  **Found on the Bug Hunt pass and owed here:** the Core checklist's `DualInputRoll` row
+  repeats its check box's text in a ContextLabel and is the 5PFH battle modal's width
+  driver (360 px; it is why PF6 and BH7 fail on a phone); `DualInputRoll._generate_roll()`
+  rolls raw `randi_range`, so no QA seam can force it; and the Settings and bug-report
+  buttons sit over the battle modal's top-right corner in every mode (no text is
+  hidden at the captured sizes, but they cover the scrollbar).
+  The p.137 salvage-availability D6 (`compendium_salvage_jobs.gd:127`, and its fallback in
+  `SalvageJobGenerator.find_salvage_job()`) is a raw `randi_range`, so no QA seam can force
+  the "no job" row either.
 - **Planetfall turn steps beyond Recovery**: the sweeps build the Turn Controller resumed at
   Step 1, so the other seventeen step panels are measured only by their own suites.
 - Cross-cutting work still owed: help keys for 19 router screens, hex-to-token in the
   remaining ~14 files, `TacticalBattleUI` literal font sizes and autowrap, the
-  `get_visible_rect` audit, and Bug Hunt in `verify_layout`. Planetfall (X15) and Tactics
-  (X16) are in both sweeps. The help keys resolve to mode chapters that do not exist yet,
+  and the `get_visible_rect` audit. Planetfall (X15), Tactics (X16) and Bug Hunt are in
+  both sweeps (`verify_layout -- only=bug_hunt` 24/24). The help keys resolve to mode chapters that do not exist yet,
   so they land with those chapters in Sprint 7 (UX-0b), not as keys pointing at nothing.

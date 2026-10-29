@@ -18,6 +18,10 @@ const SectorGrid = preload("res://src/ui/screens/planetfall/panels/PlanetfallSec
 const CoreScript = preload("res://src/game/campaign/PlanetfallCampaignCore.gd")
 const MapScript = preload("res://src/core/systems/PlanetfallMap.gd")
 const SaveDirGuard := preload("res://tests/fixtures/helpers/save_dir_guard.gd")
+const TurnScene := preload("res://src/ui/screens/planetfall/PlanetfallTurnController.tscn")
+const BATTLE_SCENE := "res://src/ui/screens/battle/TacticalBattleUI.tscn"
+const MISSIONS := "res://data/planetfall/mission_types.json"
+const ENEMIES := "res://data/planetfall/tactical_enemies_generation.json"
 
 ## The smallest phone verify_layout sweeps, in design px (360 x 640 physical).
 const SMALL_PHONE := Vector2i(310, 551)
@@ -26,13 +30,19 @@ const TOUCH_FLOOR_DP := 48.0
 const TITLE := "PLANETFALL — NEW COLONY"
 
 var _user_state: Dictionary
+var _saved_campaign: Variant = null
 
 
 func before_test() -> void:
 	_user_state = SaveDirGuard.snapshot()
+	var gs := get_tree().root.get_node_or_null("/root/GameState")
+	_saved_campaign = gs.current_campaign if gs else null
 
 
 func after_test() -> void:
+	var gs := get_tree().root.get_node_or_null("/root/GameState")
+	if gs:
+		gs.current_campaign = _saved_campaign
 	SaveDirGuard.restore(_user_state)
 
 
@@ -97,3 +107,80 @@ func test_every_map_cell_is_a_touch_target() -> void:
 	assert_int(cells.size()).is_equal(36)
 	for b in cells:
 		assert_float((b as Button).custom_minimum_size.y * eff).is_greater_equal(TOUCH_FLOOR_DP)
+
+
+## The battle screen's opening modal for a Planetfall battle: the Planetfall Battle Card and
+## the mission briefing's setup checklist (2026-10-28), with the payload the turn
+## controller builds for a Skirmish (Battlefield Conditions, two Uncertain features and a
+## Tactical Enemy force, so the card is near its longest), on a small phone.
+func test_the_planetfall_battle_modal_fits_a_small_phone() -> void:
+	var core = CoreScript.new()
+	core.colony_name = "Probe"
+	core.game_phase = "active"
+	core.roster = [{"id": "c1", "name": "Ash", "class": "trooper"}]
+	core.lifeform_table = []
+	for _i in range(10):
+		core.lifeform_table.append({})
+	core.tactical_enemies = [{"type": _enemy_type("outlaws"), "boss_located": false,
+		"defeated": false}]
+	var gs := get_tree().root.get_node("/root/GameState")
+	gs.current_campaign = core
+	var tc: Control = auto_free(TurnScene.instantiate())
+	add_child(tc)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	tc._mission_context = _mission("skirmish")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}}}
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	var sv := SubViewport.new()
+	sv.size = SMALL_PHONE
+	add_child(sv)
+	auto_free(sv)
+	var tb: Control = (load(BATTLE_SCENE) as PackedScene).instantiate()
+	sv.add_child(tb)
+	await get_tree().process_frame
+	tb._stored_mission_data = md
+	tb._show_pre_battle_checklist(1)
+	await get_tree().create_timer(0.3).timeout
+	for _i in range(3):
+		await get_tree().process_frame
+	var card_title: Label = _find_label(tb, "PLANETFALL BATTLE CARD")
+	assert_object(card_title).override_failure_message(
+		"no Planetfall Battle Card on screen").is_not_null()
+	var scroll: Node = card_title
+	while scroll != null and not (scroll is ScrollContainer):
+		scroll = scroll.get_parent()
+	var modal: Node = scroll.get_parent() if scroll else null
+	var bad := PackedStringArray()
+	for kind in ["Button", "Label"]:
+		for n in modal.find_children("*", kind, true, false):
+			var c := n as Control
+			if not c.is_visible_in_tree() or str(c.get("text")).is_empty():
+				continue
+			var r: Rect2 = c.get_global_rect()
+			if r.end.x > SMALL_PHONE.x + 0.5 or r.position.x < -0.5:
+				bad.append("'%s' x=%.0f..%.0f" % [str(c.get("text")).left(40),
+					r.position.x, r.end.x])
+	for n in modal.find_children("*", "ScrollContainer", true, false):
+		if (n as ScrollContainer).is_visible_in_tree() 				and (n as ScrollContainer).get_h_scroll_bar().visible:
+			bad.append("scrolls sideways: %s" % str(modal.get_path_to(n)))
+	assert_array(bad).override_failure_message(
+		"past a %d px phone:
+%s" % [SMALL_PHONE.x, "
+".join(bad)]).is_empty()
+
+
+func _mission(id: String) -> Dictionary:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(MISSIONS))
+	for m in (data as Dictionary).get("missions", []):
+		if m is Dictionary and str(m.get("id", "")) == id:
+			return (m as Dictionary).duplicate(true)
+	return {}
+
+
+func _enemy_type(id: String) -> Dictionary:
+	var data: Variant = JSON.parse_string(FileAccess.get_file_as_string(ENEMIES))
+	for t in (data as Dictionary).get("enemy_types", []):
+		if t is Dictionary and str(t.get("id", "")) == id:
+			return t
+	return {}

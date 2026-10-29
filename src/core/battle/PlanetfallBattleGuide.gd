@@ -47,6 +47,11 @@ const UNCERTAIN_DATA := "res://data/planetfall/uncertain_terrain.json"
 const UNCERTAIN_CONDITION := "uncertain_terrain_features"
 const DELVE_DATA := "res://data/planetfall/delve_system.json"
 const TABLE_SETUP_DATA := "res://data/planetfall/battlefield_setup.json"
+const MISSION_DATA := "res://data/planetfall/mission_types.json"
+## Where each mission's objectives go: one placement key per objective type in
+## mission_types.json (Discovery markers, colonists, the downed scout, Delve devices).
+const PLACEMENT_KEYS := ["marker_placement", "colonist_placement", "scout_placement",
+	"device_placement"]
 const GROUND_DIE := "Planetfall Ground Type"
 const CLUSTER_COUNT_DIE := "Planetfall Cluster Count"
 const CLUSTER_TYPE_DIE := "Planetfall Cluster Type"
@@ -418,6 +423,62 @@ static func briefing_rows(md: Dictionary, campaign: Resource) -> Array:
 		rows.append({"head": entry_name(lf), "detail": profile_line(lf)})
 	rows.append_array(contact_rule_rows())
 	return rows
+
+
+## The pre-battle checklist for a Planetfall battle, in the order every mission briefing
+## prints its setup: Table Setup, Player Forces, Opposition (pp.114-133). Until 2026-10-28
+## a Planetfall battle got the Core Rules checklist, which had the player roll for a
+## deployment condition and a Notable Sight (Core Rules pp.88-89) and roll to Seize the
+## Initiative, while "Planetfall does not have a Seize the Initiative roll" (printed p.27).
+## Every hint is the mission's own text (mission_types.json) or p.114's.
+static func setup_checklist(md: Dictionary) -> Array[Dictionary]:
+	var mission: Dictionary = MissionSetupScript.new().get_mission_briefing(
+		str(md.get("type", "")))
+	var rules: Variant = _json(MISSION_DATA).get("briefing_rules", {})
+	if not rules is Dictionary:
+		rules = {}
+	var cite: String = "Planetfall p.%d" % int(mission.page) if mission.has("page") \
+			else "Planetfall pp.114-133"
+	var size: String = str(mission.get("table_size", ""))
+	if size == "":
+		var ft: String = String.num(float(md.get("table_size_ft", 3.0)))
+		size = "%sx%s" % [ft, ft]
+	var out: Array[Dictionary] = []
+	out.append(_checklist_step("pf_table", "Table Setup",
+		"Use a %s-foot table populated with terrain. %s (%s; p.114)"
+		% [size, str(rules.get("terrain_placement", "")), cite]))
+	var objectives: Variant = mission.get("objectives", {})
+	if objectives is Dictionary:
+		for key in PLACEMENT_KEYS:
+			var where: String = str((objectives as Dictionary).get(key, ""))
+			if where != "":
+				out.append(_checklist_step("pf_objectives", "Objectives",
+					"%s (%s)" % [where, cite]))
+				break
+	var uncertain: String = uncertain_feature_text(md)
+	if uncertain != "":
+		out.append(_checklist_step("pf_uncertain", "Uncertain features (optional rule)",
+			"Uncertain terrain features: %s. The Battle Card says how they are revealed. "
+			% uncertain + "(pp.137-138)"))
+	var cond: Variant = md.get("active_condition", {})
+	var cond_hint: String = "There are no Battlefield Conditions. (%s)" % cite
+	if bool(md.get("battlefield_conditions", false)):
+		cond_hint = "Roll once for Battlefield Conditions. (pp.110-113)"
+		if cond is Dictionary and not (cond as Dictionary).is_empty():
+			cond_hint = "%s: the Battle Card has the rule. (pp.110-113)" \
+					% str((cond as Dictionary).get("name", ""))
+	out.append(_checklist_step("pf_conditions", "Battlefield Conditions", cond_hint))
+	var deploy: String = str(mission.get("deployment", ""))
+	if deploy != "":
+		out.append(_checklist_step("pf_player", "Player Forces", "%s (%s)" % [deploy, cite]))
+	out.append(_checklist_step("pf_opposition", "Opposition",
+		"%s The Battle Card gives where this mission's enemies start. %s (p.114)"
+		% [str(rules.get("enemy_deployment", "")), str(rules.get("arrivals", ""))]))
+	return out
+
+
+static func _checklist_step(id: String, label: String, hint: String) -> Dictionary:
+	return {"id": id, "label": label, "hint": hint, "tier": 0}
 
 
 ## pp.110-113: the Battlefield Condition rolled at Mission Determination is a rule of the

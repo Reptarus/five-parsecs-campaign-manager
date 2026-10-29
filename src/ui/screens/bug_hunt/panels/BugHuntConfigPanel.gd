@@ -62,6 +62,9 @@ func set_coordinator(coord) -> void:
 func _build_ui() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# Never sideways: a form a finger drags left and right is broken on a phone. With the
+	# axis off, every row below must wrap (test_bug_hunt_screen_fit.gd holds that).
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 
 	var vbox := VBoxContainer.new()
@@ -75,6 +78,7 @@ func _build_ui() -> void:
 	title.add_theme_font_size_override("font_size", _scaled_font(24))
 	title.add_theme_color_override("font_color", COLOR_TEXT)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(title)
 
 	# ISSUE-053: Flavor text to fill sparse layout
@@ -120,16 +124,19 @@ func _build_ui() -> void:
 	_regiment_label.text = "Not yet generated"
 	_regiment_label.add_theme_color_override("font_color", COLOR_TEXT)
 	_regiment_label.add_theme_font_size_override("font_size", _scaled_font(18))
+	_regiment_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	regiment_card.add_child(_regiment_label)
 
 	_color_label = Label.new()
 	_color_label.text = "Uniform: —"
 	_color_label.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	_color_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	regiment_card.add_child(_color_label)
 
 	var gen_btn := Button.new()
 	gen_btn.text = "Generate Regiment Name"
 	gen_btn.custom_minimum_size.y = 48
+	gen_btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	gen_btn.pressed.connect(_on_generate_regiment)
 	regiment_card.add_child(gen_btn)
 
@@ -148,6 +155,9 @@ func _build_ui() -> void:
 	_escalation_check.text = "Use Campaign Escalation (fixed Priority sequence)"
 	_escalation_check.custom_minimum_size.y = 48  # ISSUE-046: TOUCH_TARGET_MIN
 	_escalation_check.add_theme_color_override("font_color", COLOR_TEXT)
+	# Wrapped: unwrapped, this one toggle demanded 420 px and set the width of the whole
+	# step (verify_layout, 338 px phone).
+	_escalation_check.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_escalation_check.toggled.connect(_on_escalation_toggled)
 	diff_card.add_child(_escalation_check)
 
@@ -172,6 +182,7 @@ func _create_card(title_text: String, parent: Control) -> VBoxContainer:
 	lbl.text = title_text.to_upper()
 	lbl.add_theme_font_size_override("font_size", _scaled_font(16))
 	lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(lbl)
 
 	var sep := HSeparator.new()

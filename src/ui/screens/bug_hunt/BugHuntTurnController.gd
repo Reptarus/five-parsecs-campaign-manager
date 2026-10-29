@@ -37,8 +37,8 @@ var _panel_container: Control
 var _phase_indicators: Array[Label] = []
 
 # Responsive top-bar wiring (portrait-collapse support)
-var _phase_strip_scroll: ScrollContainer
-var _phase_box: HBoxContainer
+var _phase_box: HFlowContainer
+var _content_margin: MarginContainer
 
 
 func _scaled_font(base: int) -> int:
@@ -184,12 +184,15 @@ func _build_layout() -> void:
 	margin.add_theme_constant_override("margin_right", 16)
 	margin.add_theme_constant_override("margin_bottom", 12)
 	add_child(margin)
+	_content_margin = margin
 
 	var vbox := VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 12)
 	margin.add_child(vbox)
 
-	# Top bar: turn info + phase indicators + save
+	# Top bar: turn info, Reputation and Save on one row; the phase strip on its own row
+	# below. The strip used to share this row inside a horizontal ScrollContainer, so on a
+	# phone it showed "1. Special Assig" and hid the stage the player was in.
 	var top_bar := HBoxContainer.new()
 	top_bar.add_theme_constant_override("separation", 16)
 	vbox.add_child(top_bar)
@@ -198,22 +201,15 @@ func _build_layout() -> void:
 	_turn_label.text = "TURN 1"
 	_turn_label.add_theme_font_size_override("font_size", _scaled_font(22))
 	_turn_label.add_theme_color_override("font_color", COLOR_TEXT)
+	_turn_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	top_bar.add_child(_turn_label)
 
-	# Phase progress indicators — wrapped in a ScrollContainer so the strip can
-	# shrink and scroll horizontally on narrow (portrait) viewports instead of
-	# forcing the top bar wider than the screen.
-	_phase_strip_scroll = ScrollContainer.new()
-	_phase_strip_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_phase_strip_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_phase_strip_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	top_bar.add_child(_phase_strip_scroll)
-
-	var phase_box := HBoxContainer.new()
-	phase_box.add_theme_constant_override("separation", 8)
-	phase_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Phase progress: a flow row, so on a phone the three stages wrap onto a second
+	# line instead of scrolling out of sight.
+	var phase_box := HFlowContainer.new()
+	phase_box.add_theme_constant_override("h_separation", 16)
+	phase_box.add_theme_constant_override("v_separation", 2)
 	_phase_box = phase_box
-	_phase_strip_scroll.add_child(phase_box)
 
 	var phase_names := ["Special Assignments", "Mission", "Post-Battle"]
 	for i in range(3):
@@ -235,6 +231,7 @@ func _build_layout() -> void:
 	_save_button.custom_minimum_size = Vector2(80, 36)
 	_save_button.pressed.connect(_on_save_pressed)
 	top_bar.add_child(_save_button)
+	vbox.add_child(phase_box)
 
 	# Current phase label
 	_phase_label = Label.new()
@@ -242,6 +239,7 @@ func _build_layout() -> void:
 	_phase_label.add_theme_font_size_override("font_size", _scaled_font(24))
 	_phase_label.add_theme_color_override("font_color", COLOR_TEXT)
 	_phase_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_phase_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	vbox.add_child(_phase_label)
 
 	# Panel container
@@ -260,6 +258,24 @@ func _build_layout() -> void:
 	_advance_button.custom_minimum_size = Vector2(0, 48)
 	_advance_button.pressed.connect(_on_advance_pressed)
 	nav.add_child(_advance_button)
+
+	# A readable column on a tablet (TacticsTurnController's MAX_CONTENT_WIDTH shape):
+	# full-width, every stage's rows stretched across 2560 px of landscape.
+	get_viewport().size_changed.connect(_apply_column_width)
+	_apply_column_width()
+
+
+## Centre the turn in a MAX_FORM_WIDTH column on a wide screen; 16 px gutters
+## otherwise. Width arithmetic only, so get_visible_rect() is the right read here.
+func _apply_column_width() -> void:
+	if not is_instance_valid(_content_margin) or not is_inside_tree():
+		return
+	var vp_width: float = get_viewport().get_visible_rect().size.x
+	var side: int = 16
+	if vp_width > MAX_FORM_WIDTH + 64:
+		side = int((vp_width - MAX_FORM_WIDTH) / 2.0)
+	_content_margin.add_theme_constant_override("margin_left", side)
+	_content_margin.add_theme_constant_override("margin_right", side)
 
 
 ## Connect to the ResponsiveManager so the top bar collapses on portrait phones,
@@ -302,8 +318,7 @@ func _apply_topbar_responsive() -> void:
 		# floor stops the button shrinking with its container and propagates upward.
 		_save_button.custom_minimum_size = Vector2(0, 48)
 
-	# The phase strip stays visible in both modes; its ScrollContainer already
-	# allows it to shrink/scroll horizontally when the bar is too narrow.
+	# The phase strip stays visible in both modes; it wraps when the bar is narrow.
 
 
 func _create_phase_manager() -> void:
@@ -342,6 +357,8 @@ func _connect_signals() -> void:
 	for panel in panels:
 		if panel.has_signal("phase_completed"):
 			panel.phase_completed.connect(_on_panel_phase_completed)
+		if panel.has_signal("assignments_rolled"):
+			panel.assignments_rolled.connect(_refresh_footer)
 
 
 func _on_phase_changed(old_phase: int, new_phase: int) -> void:
@@ -372,10 +389,9 @@ func _on_turn_started(turn: int) -> void:
 
 
 func _on_turn_completed(_turn: int) -> void:
-	# Show "Start Next Turn" instead of "Complete Phase"
-	_advance_button.text = "Start Next Turn"
-	_advance_button.disabled = false
 	_phase_label.text = "TURN COMPLETE"
+	_refresh_footer()
+	_update_phase_indicators()
 
 
 func _on_panel_phase_completed(result_data: Dictionary) -> void:
@@ -386,7 +402,7 @@ func _on_advance_pressed() -> void:
 	if phase_manager.current_phase == BugHuntPhaseManagerScript.Phase.NONE:
 		# Between turns — start new turn
 		phase_manager.start_new_turn()
-		_advance_button.text = "Complete Phase"
+		_refresh_footer()
 		return
 
 	# Let the panel handle its own completion
@@ -426,18 +442,50 @@ func _show_panel(phase_idx: int) -> void:
 
 func _update_phase_display(phase: int) -> void:
 	_phase_label.text = phase_manager.get_phase_name(phase).to_upper()
-	_advance_button.text = "Complete Phase"
 	_update_phase_indicators()
+	_refresh_footer()
 
 
-func _on_navigation_updated(_can_back: bool, can_forward: bool) -> void:
-	_advance_button.disabled = not can_forward
+func _on_navigation_updated(_can_back: bool, _can_forward: bool) -> void:
+	_refresh_footer()
+
+
+## The footer is the stage's own next step, or nothing.
+##
+## It read "Complete Phase" in every stage and could never be pressed: it enabled on
+## can_advance(), which is true only once the phase is complete, and
+## complete_current_phase() moves to the next phase in the same call, so the phase it
+## would have completed was already gone. Each stage now says what it does:
+##   Special Assignments  "Continue to Mission", once the dice are rolled (the results
+##                        stay on screen until then; Skip Assignments is in the panel)
+##   Mission              hidden: Launch Mission is the action, the battle return completes it
+##   Post-Battle          hidden: the panel's Complete Post-Battle is the action
+##   between turns        "Start Next Turn"
+func _refresh_footer() -> void:
+	if not is_instance_valid(_advance_button) or phase_manager == null:
+		return
+	match phase_manager.current_phase:
+		BugHuntPhaseManagerScript.Phase.SPECIAL_ASSIGNMENTS:
+			_advance_button.visible = true
+			_advance_button.text = "Continue to Mission"
+			var sa: Control = panels[0] if panels.size() > 0 else null
+			_advance_button.disabled = not (sa != null and sa.has_method("is_ready_to_complete")
+				and sa.is_ready_to_complete())
+		BugHuntPhaseManagerScript.Phase.NONE:
+			_advance_button.visible = true
+			_advance_button.text = "Start Next Turn"
+			_advance_button.disabled = false
+		_:
+			_advance_button.visible = false
 
 
 func _update_phase_indicators() -> void:
+	# Between turns (Phase.NONE, -1) every stage of the turn just played is done; read
+	# as an index, -1 painted all three grey, as if none had happened.
+	var ended: bool = phase_manager.current_phase == BugHuntPhaseManagerScript.Phase.NONE
 	for i in range(_phase_indicators.size()):
 		var indicator: Label = _phase_indicators[i]
-		if i < phase_manager.current_phase:
+		if ended or i < phase_manager.current_phase:
 			indicator.add_theme_color_override("font_color", COLOR_SUCCESS)
 		elif i == phase_manager.current_phase:
 			indicator.add_theme_color_override("font_color", COLOR_TEXT)
