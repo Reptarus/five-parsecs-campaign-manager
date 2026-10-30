@@ -148,22 +148,25 @@ class PsionicCharacter:
 		if not psionic_powers.has(power):
 			psionic_powers.append(power)
 
+## The DiceManager autoload. Engine.has_singleton() never finds an autoload (they are
+## scene-tree nodes, not engine singletons), so the old lookup was always null and
+## every roll below was raw. A RefCounted reaches the tree through the main loop.
+static func _dice_manager_autoload() -> Object:
+	var tree := Engine.get_main_loop() as SceneTree
+	return tree.root.get_node_or_null("/root/DiceManager") if tree and tree.root else null
+
 func determine_starting_powers(dice_system = null) -> Array[PsionicPower]:
 	var powers: Array[PsionicPower] = []
 	
 	# Use provided dice system or DiceManager autoload
 	var dice_mgr = dice_system
 	if not dice_mgr:
-		# Access DiceManager autoload - RefCounted can't use get_node_or_null()
-		if Engine.has_singleton("DiceManager"):
-			dice_mgr = Engine.get_singleton("DiceManager")
-		else:
-			dice_mgr = null
+		dice_mgr = _dice_manager_autoload()
 	
 	for i in range(2):
 		var roll: int = 0
-		if dice_mgr and dice_mgr.has_method("roll_dice"):
-			roll = dice_mgr.roll_dice(1, 10)
+		if dice_mgr and dice_mgr.has_method("roll_d10"):
+			roll = dice_mgr.roll_d10("Psionic starting power %d" % (i + 1))
 		else:
 			roll = randi_range(1, 10)
 		
@@ -196,23 +199,19 @@ func resolve_psionic_projection(psionic_character: PsionicCharacter, power: Psio
 	# Use provided dice system or DiceManager autoload
 	var dice_mgr = dice_system
 	if not dice_mgr:
-		# Access DiceManager autoload - RefCounted can't use get_node_or_null()
-		if Engine.has_singleton("DiceManager"):
-			dice_mgr = Engine.get_singleton("DiceManager")
-		else:
-			dice_mgr = null
+		dice_mgr = _dice_manager_autoload()
 	
 	var projection_roll: int = 0
-	if dice_mgr and dice_mgr.has_method("roll_dice"):
-		projection_roll = dice_mgr.roll_dice(2, 6)
+	if dice_mgr and dice_mgr.has_method("roll_2d6"):
+		projection_roll = dice_mgr.roll_2d6("Psionic projection")
 	else:
 		projection_roll = randi_range(2, 12)
 	
 	# Enhanced power bonus: +1D6 to projection roll (Core Rules p.101)
 	if power.enhanced:
 		var enhance_roll: int = 0
-		if dice_mgr and dice_mgr.has_method("roll_dice"):
-			enhance_roll = dice_mgr.roll_dice(1, 6)
+		if dice_mgr and dice_mgr.has_method("roll_d6"):
+			enhance_roll = dice_mgr.roll_d6("Psionic enhancement")
 		else:
 			enhance_roll = randi_range(1, 6)
 		projection_roll += enhance_roll
@@ -224,8 +223,8 @@ func resolve_psionic_projection(psionic_character: PsionicCharacter, power: Psio
 	if total_range < range_needed:
 		# Attempt strain to extend range
 		var strain_roll: int = 0
-		if dice_mgr and dice_mgr.has_method("roll_dice"):
-			strain_roll = dice_mgr.roll_dice(1, 6)
+		if dice_mgr and dice_mgr.has_method("roll_d6"):
+			strain_roll = dice_mgr.roll_d6("Psionic strain")
 		else:
 			strain_roll = randi_range(1, 6)
 		
@@ -262,15 +261,11 @@ func acquire_psionic_power(psionic_character: PsionicCharacter, dice_system = nu
 	# Use provided dice system or DiceManager autoload
 	var dice_mgr = dice_system
 	if not dice_mgr:
-		# Access DiceManager autoload - RefCounted can't use get_node_or_null()
-		if Engine.has_singleton("DiceManager"):
-			dice_mgr = Engine.get_singleton("DiceManager")
-		else:
-			dice_mgr = null
+		dice_mgr = _dice_manager_autoload()
 	
 	var roll: int = 0
-	if dice_mgr and dice_mgr.has_method("roll_dice"):
-		roll = dice_mgr.roll_dice(1, 10)
+	if dice_mgr and dice_mgr.has_method("roll_d10"):
+		roll = dice_mgr.roll_d10("Psionic power acquisition")
 	else:
 		roll = randi_range(1, 10)
 	

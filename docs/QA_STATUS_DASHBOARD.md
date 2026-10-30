@@ -5,8 +5,12 @@
 ### ▶ BUG HUNT PARITY AUDIT + SPRINT 1 — the data was verified three times and the mode still did not work (2026-09-10 → in flight)
 
 **Ledger**: [audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md](audits/BUG_HUNT_PARITY_AUDIT_2026-09-10.md)
-(1,792 lines, append-only, one section per phase). **Phases 0-5 of 8 complete** — 0-3
-committed as `d1e541ccb`, **Phases 4-5 uncommitted in the working tree**. Direction from the owner: *"figuring out how to have the bug hunt codebase
+(1,792 lines, append-only, one section per phase). **Phases 0-7 are all committed (corrected 2026-10-29; this
+line used to say Phases 4-5 were uncommitted)** — Phases 0-3 as `d1e541ccb`, **Phases 4-7 as `ca6172011`**
+(`git show --stat`: 43 files, 6561 insertions, 959 deletions). Later Bug Hunt work is in `c07f19c90`
+("Sprint 3: deliver Bug Hunt mission setup, battle card and post-battle rules") of the review-build plan.
+The Phase 4 gate table below is the Phase 4 close as recorded then; the Phase 7 device walk remains owed
+(it is Sprint 8 of that plan). Direction from the owner: *"figuring out how to have the bug hunt codebase
 adhere to the foundations we setup with the core rules and compendium."*
 
 ⚠ **Not an Alpha-1 shipping defect.** `src/ui/screens/mainmenu/MainMenu.gd:20` sets

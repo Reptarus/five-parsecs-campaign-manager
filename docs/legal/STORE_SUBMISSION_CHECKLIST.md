@@ -27,8 +27,8 @@ This checklist covers all legal/compliance steps required before submitting to e
 
 ## Pre-Submission (All Platforms)
 
-- [ ] Replace `[DATE OF RELEASE]` in `data/legal/eula.md` and `data/legal/privacy_policy.md`
-- [ ] Replace `[CONTACT EMAIL]` in both documents with actual support email
+- [ ] Replace `[DATE OF RELEASE]` in `data/legal/privacy_policy.md` (line 4). `data/legal/eula.md` has no such placeholder; its version line carries a fixed "Last Updated" date
+- [ ] Replace `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` with the actual support email in `data/legal/eula.md` (line 87) and `data/legal/privacy_policy.md` (lines 8 and 120)
 - [ ] Resolve all `[PENDING MODIPHIUS REVIEW]` markers in EULA (requires Modiphius legal input)
 - [ ] Update `docs/legal/gh-pages/privacy.html` and `eula.html` to match final Markdown versions
 - [ ] Enable GitHub Pages: repo Settings > Pages > Source: Deploy from branch > `/docs/legal/gh-pages`

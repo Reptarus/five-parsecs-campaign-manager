@@ -16,7 +16,6 @@ const FactionFavorServiceRef = preload("res://src/core/systems/FactionFavorServi
 const NARRATIVE_SCREEN_PATH := "res://src/ui/screens/narrative/NarrativeScreen.gd"
 
 # Five Parsecs dependencies
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const DiceManager = preload("res://src/core/managers/DiceManager.gd")
 ## The pp.28-29 creation tables (Low-Tech Weapon / Gear / Gadget), which several
 ## Trade Table entries cite by page. One roller, shared with campaign creation.
@@ -28,10 +27,17 @@ const StartingEquipmentGeneratorClass = preload(
 const LootTableResolverClass = preload("res://src/core/equipment/LootTableResolver.gd")
 const OnboardItemServiceRef = preload("res://src/core/equipment/OnboardItemService.gd")
 const WorldTraitEffectsClass = preload("res://src/core/world/WorldTraitEffects.gd")
+const PatronContactRef = preload("res://src/core/patrons/PatronContact.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
+const RivalEncounterCheckRef = preload("res://src/core/campaign/RivalEncounterCheck.gd")
 const DepartureObligationClass = preload("res://src/core/world/DepartureObligation.gd")
 const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd")
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
+const DeferredCrewEventsRef = preload("res://src/core/campaign/DeferredCrewEvents.gd")
+## Marks a Stash item in a discard list (p.81 Gambling allows the crew Stash).
+const STASH_SUFFIX := " (Stash)"
 ## Advanced Training checks (Fixer, Broker and the rest), dual-shape for
 ## Dictionary and Resource crew.
 const AdvancementSystemRef = preload(
@@ -1222,6 +1228,12 @@ func _resolve_dice_task(result: Dictionary, task: Dictionary, task_id: String, c
 			modified_roll += patron_bonus
 			result.details += ", +%d world trait" % patron_bonus
 
+	# Held Trade/Explore results that add to these rolls (pp.79-81). Not on a Recruit
+	# roll after the group's one recruit is already in: it would change nothing.
+	if not (task.id == "recruit" and _group_recruit_resolved):
+		modified_roll = _spend_held_roll_bonuses(
+			str(task.id), modified_roll, int(task.dice_target), result)
+
 	result.modified_roll = modified_roll
 	result.success = modified_roll >= task.dice_target
 
@@ -1293,16 +1305,15 @@ func _prompt_track_rival_choice(result: Dictionary) -> void:
 	if rivals.is_empty():
 		return
 
-	var RivalCheck = load("res://src/core/campaign/RivalEncounterCheck.gd")
 	var popup := PopupMenu.new()
 	popup.name = "TrackRivalPopup"
 	add_child(popup)
 	for i in range(rivals.size()):
-		popup.add_item(RivalCheck.rival_name_of(rivals[i]), i)
+		popup.add_item(RivalEncounterCheckRef.rival_name_of(rivals[i]), i)
 	popup.id_pressed.connect(func(id: int) -> void:
 		if id >= 0 and id < rivals.size():
-			var rid: String = RivalCheck.rival_id_of(rivals[id])
-			var rname: String = RivalCheck.rival_name_of(rivals[id])
+			var rid: String = RivalEncounterCheckRef.rival_id_of(rivals[id])
+			var rname: String = RivalEncounterCheckRef.rival_name_of(rivals[id])
 			result["rival_id"] = rid
 			result["details"] = str(result.get("details", "")) + " Located %s." % rname
 			if "progress_data" in campaign:
@@ -1377,17 +1388,16 @@ func _patron_blacklisted() -> bool:
 	return str(pdm.current_planet_id) in (listed as Array)
 
 
-## "Corporate state — Patrons are always Corporations" (p.74). Stamped on the
-## patron record at creation so every later reader — the offer summary, the
-## journal, the dashboard — agrees on what kind of employer this is.
-func _apply_forced_patron_type(patron_data: Dictionary) -> Dictionary:
-	var forced: String = WorldTraitEffectsClass.forced_patron_type(
-		_current_world_traits())
-	if forced.is_empty():
-		return patron_data
-	patron_data["type"] = forced
-	patron_data["patron_type"] = forced
-	return patron_data
+## A new Patron contact from a crew task: the p.83 Patron Table through
+## PatronContact, unless the world fixes the type. "Corporate state — Patrons are
+## always Corporations" (p.74) is passed as the forced type, so the name, the
+## type and every later reader (the offer summary, the journal, the dashboard)
+## agree on what kind of employer this is. Until 2026-10-29 both sites read
+## PatronJobManager.roll_patron_contact(), which always "succeeded" with an
+## invented minor tier, an invented job and a generated person's name.
+func _new_patron_contact() -> Dictionary:
+	return PatronContactRef.make("crew_task",
+		WorldTraitEffectsClass.forced_patron_type(_current_world_traits()))
 
 
 func _add_patron_contact() -> void:
@@ -1396,18 +1406,7 @@ func _add_patron_contact() -> void:
 		return
 	if _patron_blacklisted():
 		return
-	var pjm = PatronJobManager.new()
-	var contact_result: Dictionary = pjm.roll_patron_contact()
-	var patron_data: Dictionary = contact_result.get("patron", {})
-	if patron_data.is_empty():
-		patron_data = {
-			"id": "patron_" + str(randi() % 100000),
-			"name": "Local Contact",
-			"tier": "minor",
-			"relationship": 0,
-		}
-	campaign.patrons.append(_apply_forced_patron_type(patron_data))
-	pjm.free()
+	campaign.patrons.append(_new_patron_contact())
 
 
 func _grant_patron_job_offers(count: int) -> void:
@@ -1429,21 +1428,9 @@ func _grant_patron_job_offers(count: int) -> void:
 	if existing.is_empty():
 		new_patrons_needed = count      # nothing to draw an existing offer from
 
-	if new_patrons_needed > 0:
-		var pjm = PatronJobManager.new()
+	if new_patrons_needed > 0 and "patrons" in campaign and campaign.patrons is Array:
 		for _i in range(new_patrons_needed):
-			var contact_result: Dictionary = pjm.roll_patron_contact()
-			var patron_data: Dictionary = contact_result.get("patron", {})
-			if patron_data.is_empty():
-				patron_data = {
-					"id": "patron_" + str(randi() % 100000),
-					"name": "Local Contact",
-					"tier": "minor",
-					"relationship": 0,
-				}
-			if "patrons" in campaign and campaign.patrons is Array:
-				campaign.patrons.append(_apply_forced_patron_type(patron_data))
-		pjm.free()
+			campaign.patrons.append(_new_patron_contact())
 
 	# The entitlement. Accumulated rather than assigned: several crew members may
 	# be sent to Find a Patron and each resolves through this function, and the
@@ -1861,15 +1848,16 @@ func _resolve_table_task(result: Dictionary, task: Dictionary, crew_member: Dict
 			result.reward = table_result.effect
 			result.table_result = table_result # Store full result for UI
 
-	# Cache deferred events if result has a trigger
-	if table_result.has("deferred_trigger") and table_result.deferred_trigger != "":
-		var crew_id: String = crew_key(crew_member)  # see crew_key(): T9-40
-		_cache_deferred_event(
-			table_result.deferred_trigger,
-			table_result.name,
-			crew_id,
-			table_result
-		)
+	match str(table_result.get("name", "")):
+		"Completely lost":
+			_resolve_completely_lost(table_result, crew_member)
+			var wander: Dictionary = table_result.get("wandering_result", {})
+			result.details += "; wandering the streets: %s" % str(wander.get("name", ""))
+		"Tech fanatic":
+			_resolve_tech_fanatic(table_result, crew_member)
+
+	_finish_table_row(table_result, crew_member)
+	result.reward = table_result.effect
 
 	return result
 
@@ -2246,8 +2234,11 @@ func _build_result_from_json(json_entry: Dictionary) -> Dictionary:
 	# Pass through metadata fields for event processing
 	# These drive species immunity, purchases, bonuses, and narrative effects
 	for key in ["immune_species", "recruit", "track_rival", "kerin_bonus",
+			"forces_rival_battle",
 			"precursor_bonus", "engineer_bonus", "buy_rumors", "buy_weapons",
-			"pay_or_lose"]:
+			"pay_or_lose",
+			# p.82 Offered a small job / a reward: read by the battle stamp.
+			"bounty_credits"]:
 		if json_entry.has(key):
 			result[key] = json_entry[key]
 
@@ -2337,16 +2328,20 @@ func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 
 	match entry_name:
 		"I know a good deal":
-			# Recursively roll on trade table
-			# A roll on the Trade Table itself, so the "Trade Table" key reaches it.
+			# p.80 Explore 1-3 "I know a good deal when I see one": "Roll once on the
+			# Trade Table." A roll on the Trade Table itself, so the "Trade Table" key
+			# reaches it.
+			#
+			# The WHOLE Trade row is taken, under its own name. Copying six fields and
+			# renaming it "Good Deal: <name>" dropped its deferred trigger, its roll flag
+			# and its Rival, and broke every match on the row's name, so 20 of the 100
+			# Trade results reached this way showed their text and granted nothing.
 			var trade_roll: int = _roll_task_d100("Trade Table (I know a good deal)")
 			var trade_result: Dictionary = _get_trade_table_result(trade_roll)
-			result.name = "Good Deal: " + trade_result.name
-			result.effect = trade_result.effect
-			result.credits = trade_result.credits
-			result.xp = trade_result.xp
-			result.items = trade_result.items
-			result.story_points = trade_result.story_points
+			result.clear()
+			result.merge(trade_result, true)
+			result.effect = "I know a good deal when I see one (Trade roll %d): %s" % [
+				trade_roll, str(trade_result.get("effect", ""))]
 		"Had a nice chat":
 			var d6: int = _roll_task_d6("Explore Follow-up: Had a nice chat")
 			if d6 >= 5:
@@ -2362,18 +2357,8 @@ func _apply_runtime_rolls_exploration(result: Dictionary, roll: int) -> void:
 			else:
 				result.credits = 1
 				result.effect = "Traded weapon - Rolled %d: Got 1 credit" % d6
-		"Completely lost":
-			var d6: int = _roll_task_d6("Explore Follow-up: Completely lost")
-			if d6 >= 4:
-				result.effect = "Got lost - Rolled %d: Found way back in time" % d6
-			else:
-				result.effect = "Got lost - Rolled %d: Unable to participate in battle" % d6
-		"Tech fanatic":
-			var d6: int = _roll_task_d6("Explore Follow-up: Tech fanatic")
-			if d6 >= 5:
-				result.effect = "Tech help - Rolled %d: Item repaired for free!" % d6
-			else:
-				result.effect = "Tech help - Rolled %d: No luck with repair" % d6
+		# "Completely lost" and "Tech fanatic" need the crew member's Savvy and
+		# species, so _resolve_table_task() rolls them.
 		"Get in a bad fight":
 			var turns: int = _roll_task_d3("Explore Sick Bay Turns")
 			result.sick_bay_turns = turns
@@ -2387,15 +2372,9 @@ func _get_current_turn_number() -> int:
 	return 0
 
 func _cache_deferred_event(trigger_type: String, event_name: String, crew_id: String, effect: Dictionary) -> void:
-	## Cache a deferred event that will trigger on a future condition.
-	##
-	## Trigger types from Core Rules:
-	## - NEW_PLANET: Triggers when crew arrives at new planet
-	## - NEXT_TURN: Triggers at start of next campaign turn
-	## - THIS_BATTLE: Triggers during next battle
-	## - ON_QUEST: Triggers when undertaking a quest
-	## - ON_RECRUIT: Triggers when recruiting crew
-	## - PERSISTENT: Remains until used (trade goods, spare parts)
+	## Hold a Trade or Explore result that pays off later (Core Rules pp.79-81).
+	## DeferredCrewEvents stamps the turns it is live for and names the hook that
+	## spends each one; `trigger_type` is the row's own label, shown as a badge.
 	var game_state = get_node_or_null("/root/GameState")
 	if not game_state or not game_state.current_campaign:
 		push_warning("Cannot cache deferred event - no GameState")
@@ -2413,14 +2392,12 @@ func _cache_deferred_event(trigger_type: String, event_name: String, crew_id: St
 		"event_name": event_name,
 		"crew_id": crew_id,
 		"effect": effect.duplicate(true),
-		"turn_created": _get_current_turn_number(),
-		"expires_turn": null, # null = never expires
 		"consumed": false
 	}
-
-	# Handle expiration for certain trigger types
-	if trigger_type == "NEXT_TURN":
-		event.expires_turn = event.turn_created + 1
+	var pd_now: Variant = campaign.progress_data if "progress_data" in campaign \
+		else (campaign.get("progress_data", {}) if campaign is Dictionary else {})
+	DeferredCrewEventsRef.stamp(event, int(
+		(pd_now as Dictionary).get("turns_played", 0) if pd_now is Dictionary else 0))
 
 	# Add to campaign pending events via progress_data
 	if "progress_data" in campaign:
@@ -2435,6 +2412,234 @@ func _cache_deferred_event(trigger_type: String, event_name: String, crew_id: St
 		pass # Cached deferred event (dict)
 	else:
 		push_warning("Cannot cache deferred event - no progress_data on campaign")
+
+## Core Rules p.79 Trade 27-28 "Luxury trinket": "If a Swift character finds this,
+## they will keep it for themselves, earning +2 XP." Kept, not held: the crew never
+## has it to give or sell. Also reached through Explore 1-3. True when it applied.
+func _apply_swift_trinket_rule(table_result: Dictionary, crew_member) -> bool:
+	if str(table_result.get("name", "")) != "Luxury trinket" \
+			or not _is_species(crew_member, "swift"):
+		return false
+	table_result["deferred_trigger"] = ""
+	table_result["xp"] = 2
+	table_result["effect"] = "A Swift keeps the Luxury trinket for themselves: +2 XP (p.79)."
+	return true
+
+## Held Trade/Explore results that add to a Recruit, Find a Patron or Track roll
+## (Core Rules pp.79-81): a useful contact (+1, the player's choice of roll, next
+## campaign turn), a Luxury trinket given as a gift (+2 to Recruit) and Insider
+## information (a Patron, automatically, next campaign turn). Each is spent only where
+## it changes what the roll gives; DeferredCrewEvents.plan_roll_bonus() decides.
+func _spend_held_roll_bonuses(task_id: String, modified_roll: int, target: int,
+		result: Dictionary) -> int:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign) \
+			or not (campaign.progress_data is Dictionary):
+		return modified_roll
+	var pd: Dictionary = campaign.progress_data
+	var tp: int = int(pd.get("turns_played", 0))
+	var thresholds: Array = [target]
+	if task_id == "find_patron":
+		# p.77: "If the result is a 6 or higher, you've found two."
+		thresholds.append(6)
+	var plan: Dictionary = DeferredCrewEventsRef.plan_roll_bonus(task_id, modified_roll,
+		thresholds,
+		not DeferredCrewEventsRef.live(pd, "You make a useful contact", tp).is_empty(),
+		not DeferredCrewEventsRef.live(pd, "Luxury trinket", tp).is_empty(),
+		not DeferredCrewEventsRef.live(pd, "Insider information", tp).is_empty())
+	if bool(plan.get("contact", false)):
+		DeferredCrewEventsRef.take(pd, "You make a useful contact", tp)
+		result.details += ", +1 useful contact (p.81)"
+	if bool(plan.get("trinket", false)):
+		DeferredCrewEventsRef.take(pd, "Luxury trinket", tp)
+		result.details += ", +2 Luxury trinket given as a gift (p.79)"
+	if bool(plan.get("insider", false)):
+		DeferredCrewEventsRef.take(pd, "Insider information", tp)
+		result.details += ", Insider information: a Patron found (p.80)"
+	return int(plan.get("roll", modified_roll))
+
+## Every Trade or Explore row takes these steps once rolled, wherever the roll came
+## from: the task itself, the p.81 re-roll after Completely lost, or a p.79 trinket sale.
+func _finish_table_row(table_result: Dictionary, crew_member) -> void:
+	_apply_swift_trinket_rule(table_result, crew_member)
+	var trigger: String = str(table_result.get("deferred_trigger", ""))
+	if not trigger.is_empty():
+		_cache_deferred_event(trigger, str(table_result.get("name", "")),
+			crew_key(crew_member), table_result)  # see crew_key(): T9-40
+
+## Core Rules p.81 Explore 38-40 "Completely lost": "Roll 1D6+Savvy. On a 4+ the
+## character finds their way back in time, otherwise they will be unable to
+## participate in a battle this campaign turn. Either way, roll again on this table
+## to see what they find while wandering the streets."
+##
+## The miss is the skip_next_battle effect the deployment filter already reads.
+## Applied during the World Phase with a duration of 1, it binds this turn's battle
+## and the next turn rollover clears it. The old `misses_battle` flag had no reader.
+func _resolve_completely_lost(table_result: Dictionary, crew_member, depth: int = 0) -> void:
+	var d6: int = _roll_task_d6("Explore Follow-up: Completely lost")
+	var savvy: int = _get_crew_stat(crew_member, "savvy")
+	var total: int = d6 + savvy
+	table_result["lost_roll"] = d6
+	table_result["lost_total"] = total
+	if total >= 4:
+		table_result["effect"] = ("Completely lost: rolled %d + %d Savvy = %d, back in"
+			+ " time for the battle (p.81).") % [d6, savvy, total]
+	else:
+		_add_status_effect(crew_member, {
+			"type": "skip_next_battle",
+			"name": "Completely lost",
+			"description": "Lost in the streets: cannot take part in a battle this"
+				+ " campaign turn (Core Rules p.81).",
+			"duration": 1,
+			"source_event": "Completely lost (Core Rules p.81)",
+		})
+		table_result["effect"] = ("Completely lost: rolled %d + %d Savvy = %d, and will"
+			+ " miss the battle this campaign turn (p.81).") % [d6, savvy, total]
+	var wander: Dictionary = _get_exploration_table_result(
+		_roll_task_d100("Exploration Table"))
+	if crew_member is Dictionary:
+		_roll_precursor_second_rumor(wander, crew_member)
+	match str(wander.get("name", "")):
+		"Completely lost":
+			if depth < 3:
+				_resolve_completely_lost(wander, crew_member, depth + 1)
+		"Tech fanatic":
+			_resolve_tech_fanatic(wander, crew_member)
+	_finish_table_row(wander, crew_member)
+	table_result["wandering_result"] = wander
+
+## Core Rules p.81 Explore 45-47 "A tech fanatic offers to help out": "Pick a damaged
+## item of equipment and roll 1D6. On 5-6 you have it fixed for free. An Engineer
+## instead spends the afternoon talking shop, earning +2 XP." Engineer is the p.16
+## species; the class table has no Engineer. The old code damaged a random item the
+## character carried (with a raw randi()), rolled the repair again in the dialog, and
+## applied neither result.
+func _resolve_tech_fanatic(table_result: Dictionary, crew_member) -> void:
+	if _is_species(crew_member, "engineer"):
+		table_result["tech_engineer"] = true
+		table_result["effect"] = "An Engineer spends the afternoon talking shop: +2 XP (p.81)."
+		return
+	var targets: Array = _all_damaged_targets()
+	table_result["repair_targets"] = targets
+	if targets.is_empty():
+		table_result["effect"] = ("A tech fanatic offers to help, but nothing the crew"
+			+ " owns is damaged (p.81).")
+		return
+	var d6: int = _roll_task_d6("Explore Follow-up: Tech fanatic")
+	table_result["repair_roll"] = d6
+	table_result["repair_success"] = d6 >= 5
+	table_result["effect"] = ("A tech fanatic rolled %d: a damaged item is fixed for"
+		+ " free (p.81).") % d6 if d6 >= 5 else ("A tech fanatic rolled %d: no luck, the"
+		+ " damage stays (p.81).") % d6
+
+## Every damaged item the crew owns: carried gear marked by an item_damaged status
+## effect, and Stash entries marked damaged (see _first_damaged_target()).
+func _all_damaged_targets() -> Array:
+	var out: Array = []
+	for member: Variant in crew_data:
+		for eff: Variant in _member_get(member, "status_effects", []):
+			if not (eff is Dictionary) or str(eff.get("type", "")) != "item_damaged":
+				continue
+			var item_name: String = str(eff.get("damaged_item", "")).strip_edges()
+			if item_name.is_empty():
+				continue
+			var who: String = str(_member_get(member, "character_name",
+				_member_get(member, "name", "crew")))
+			out.append({"name": item_name, "source": "character",
+				"crew_id": crew_key(member), "label": "%s (%s)" % [item_name, who]})
+	var stash: Array = _stash_items()
+	for i in range(stash.size()):
+		if not (stash[i] is Dictionary) or not EquipmentTransferService.is_item_damaged(stash[i]):
+			continue
+		var stash_name: String = str(stash[i].get("name", "")).strip_edges()
+		if not stash_name.is_empty():
+			out.append({"name": stash_name, "source": "stash", "index": i,
+				"label": stash_name + STASH_SUFFIX})
+	return out
+
+## Fix the item the player picked (or the first, in auto-resolve) when the p.81 roll
+## succeeded. A failed roll leaves the item as it was: only p.78's natural 1 destroys.
+func _apply_tech_fanatic_repair(event_data: Dictionary, choice_label: String) -> void:
+	var tr: Dictionary = event_data.get("table_result", {})
+	var targets: Array = tr.get("repair_targets", [])
+	if not bool(tr.get("repair_success", false)) or targets.is_empty():
+		return
+	var target: Dictionary = targets[0]
+	for t: Variant in targets:
+		if str((t as Dictionary).get("label", "")) == choice_label:
+			target = t
+			break
+	if str(target.get("source", "")) == "stash":
+		_resolve_damaged_stash_item(_stash_items(), target, true)
+		return
+	var holder: Variant = _get_crew_member_by_id(str(target.get("crew_id", "")))
+	if holder != null:
+		_resolve_damaged_item(holder, str(target.get("name", "")), true)
+
+## Core Rules p.79 Trade 27-28 "Luxury trinket": "Alternatively, you can sell it:
+## Roll twice on the Trade Table and select the result you prefer." Both rows are
+## offered as the next event, and the one chosen resolves like any Trade result.
+func _sell_luxury_trinket(event_data: Dictionary) -> void:
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign) \
+			or not (campaign.progress_data is Dictionary):
+		return
+	var pd: Dictionary = campaign.progress_data
+	if DeferredCrewEventsRef.take(pd, "Luxury trinket",
+			int(pd.get("turns_played", 0))).is_empty():
+		return
+	var rows: Dictionary = {}
+	var labels: Array = []
+	for _i in range(2):
+		var roll: int = _roll_task_d100("Trade Table (Luxury trinket sale)")
+		var row: Dictionary = _get_trade_table_result(roll)
+		var label: String = "Roll %d: %s" % [roll, str(row.get("name", ""))]
+		if rows.has(label):
+			label += " (again)"
+		rows[label] = row
+		labels.append(label)
+	var choice: Dictionary = event_data.duplicate()
+	choice["type"] = CrewTaskEventDialog.EventType.CHOICE_ITEM
+	choice["event_name"] = "Luxury trinket sold"
+	choice["effect_text"] = ("You sell the trinket and roll twice on the Trade Table."
+		+ " Pick the result you prefer (p.79).")
+	choice["choice_options"] = labels
+	choice["trade_rows"] = rows
+	_event_queue.push_front(choice)
+
+func _take_trinket_sale_row(event_data: Dictionary, label: String) -> void:
+	var rows: Dictionary = event_data.get("trade_rows", {})
+	var row: Dictionary = rows.get(label, {})
+	if row.is_empty() and not rows.is_empty():
+		row = rows.values()[0]
+	if row.is_empty():
+		return
+	var crew_member = event_data.get("crew_member")
+	_finish_table_row(row, crew_member)
+	var base: Dictionary = event_data.duplicate()
+	base.erase("trade_rows")
+	base.erase("choice_options")
+	base["event_name"] = row.get("name", "Event")
+	base["effect_text"] = row.get("effect", "")
+	base["table_result"] = row
+	var evs: Array[Dictionary] = _classify_result(base, row, crew_member)
+	for i in range(evs.size() - 1, -1, -1):
+		_event_queue.push_front(evs[i])
+
+func _discard_stash_item(item_name: String) -> void:
+	var stash: Array = _stash_items()
+	for i in range(stash.size()):
+		if CrewTaskEventDialog.item_display_name(stash[i]) == item_name:
+			stash.remove_at(i)
+			return
+
+static func _add_status_effect(member, effect: Dictionary) -> void:
+	if member is Dictionary:
+		if not (member.get("status_effects", null) is Array):
+			member["status_effects"] = []
+		member["status_effects"].append(effect)
+	elif member is Object and "status_effects" in member:
+		member.status_effects.append(effect)
 
 func _check_all_tasks_resolved() -> bool:
 	## Check if all assigned tasks have been resolved
@@ -3085,6 +3290,16 @@ func _journal_note(text: String) -> void:
 	})
 
 
+## Who an event's XP belongs to: the crew member who rolled it. The three table-XP
+## sites (p.81 Found a trainer, the Tech fanatic Engineer, auto-resolve) passed the
+## TABLE ROW here, which carries no id, so the XP was warned about and never landed.
+func _xp_target(event_data: Dictionary) -> Dictionary:
+	var member: Variant = event_data.get("crew_member", null)
+	if member is Dictionary and not str(member.get("id",
+			member.get("character_id", ""))).is_empty():
+		return member
+	return {"id": str(event_data.get("crew_id", ""))}
+
 func _apply_xp_to_character(crew_member: Dictionary, amount: int, source: String) -> void:
 	## Apply XP to a character and persist to GameStateManager
 	var character_id = crew_member.get("id", "")
@@ -3201,6 +3416,22 @@ func _build_event_queue() -> void:
 		var events: Array[Dictionary] = _classify_result(base, tr, crew_member)
 		_event_queue.append_array(events)
 
+		# p.81 Completely lost: "Either way, roll again on this table". The re-rolled
+		# row follows it in the queue as a result of its own.
+		var wander: Variant = tr.get("wandering_result", null)
+		while wander is Dictionary and not (wander as Dictionary).is_empty():
+			var next_base: Dictionary = base.duplicate()
+			next_base["event_name"] = wander.get("name", "Event")
+			next_base["effect_text"] = wander.get("effect", "")
+			next_base["table_result"] = wander
+			if _check_species_immunity(wander, crew_member):
+				var immune: Dictionary = next_base.duplicate()
+				immune["type"] = CrewTaskEventDialog.EventType.IMMUNE
+				_event_queue.append(immune)
+			else:
+				_event_queue.append_array(_classify_result(next_base, wander, crew_member))
+			wander = wander.get("wandering_result", null)
+
 func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Dictionary]:
 	## Classify a single table result into one or more event descriptors.
 	var events: Array[Dictionary] = []
@@ -3211,6 +3442,9 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 	if not deferred.is_empty():
 		var event := base.duplicate()
 		event["type"] = CrewTaskEventDialog.EventType.DEFERRED
+		if event_name == "Luxury trinket":
+			# p.79: "Alternatively, you can sell it". The choice is offered now.
+			event["type"] = CrewTaskEventDialog.EventType.TRINKET_SALE
 		event["deferred_trigger"] = deferred
 		events.append(event)
 		return events # Deferred events don't have immediate effects
@@ -3232,7 +3466,11 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 		"Gambling problem":
 			var event := base.duplicate()
 			event["type"] = CrewTaskEventDialog.EventType.DISCARD_ITEM
-			event["equipment"] = _get_crew_equipment(crew_member)
+			# p.81: "Discard one item from the character's equipment or crew Stash."
+			var choices: Array = _get_crew_equipment(crew_member)
+			for entry: Variant in _stash_items():
+				choices.append(CrewTaskEventDialog.item_display_name(entry) + STASH_SUFFIX)
+			event["equipment"] = choices
 			events.append(event)
 			return events
 
@@ -3280,22 +3518,24 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 
 		"Tech fanatic":
 			var event := base.duplicate()
+			if bool(tr.get("tech_engineer", false)):
+				event["type"] = CrewTaskEventDialog.EventType.GAIN_XP
+				event["xp"] = 2
+				events.append(event)
+				return events
 			event["type"] = CrewTaskEventDialog.EventType.TECH_FANATIC
-			var char_class: String = _get_crew_class(crew_member)
-			event["is_engineer"] = char_class.to_lower() == "engineer"
-			var equip: Array = _get_crew_equipment(crew_member)
-			if equip.size() > 0:
-				event["random_damaged_item"] = equip[randi() % equip.size()]
+			event["repair_success"] = bool(tr.get("repair_success", false))
+			var labels: Array = []
+			for target: Variant in tr.get("repair_targets", []):
+				labels.append(str((target as Dictionary).get("label", "")))
+			event["repair_choices"] = labels
 			events.append(event)
 			return events
 
 		"Completely lost":
+			# Rolled in _resolve_completely_lost(), where Savvy is known.
 			var event := base.duplicate()
-			event["type"] = CrewTaskEventDialog.EventType.SKILL_CHECK
-			event["stat_name"] = "Savvy"
-			event["stat_modifier"] = _get_crew_stat(crew_member, "savvy")
-			event["success_threshold"] = 4
-			event["failure_text"] = "Lost — will miss the battle this turn"
+			event["type"] = CrewTaskEventDialog.EventType.INFO_ONLY
 			events.append(event)
 			return events
 
@@ -3417,10 +3657,25 @@ func _classify_result(base: Dictionary, tr: Dictionary, crew_member) -> Array[Di
 		events.append(event)
 		return events
 
+	# p.81 Got yourself noticed: "If you have Rivals, select one at random. You will
+	# have to fight them this campaign turn." It used to carry rival=true and so
+	# CREATED a Rival. Picked now, so the dialog can name who comes after you.
+	if tr.get("forces_rival_battle", false):
+		var event := base.duplicate()
+		event["type"] = CrewTaskEventDialog.EventType.FORCED_RIVAL_BATTLE
+		var picked: Variant = _pick_random_rival()
+		if picked != null:
+			event["forced_rival_id"] = RivalEncounterCheckRef.rival_id_of(picked)
+			event["forced_rival_name"] = RivalEncounterCheckRef.rival_name_of(picked)
+		events.append(event)
+		return events
+
 	if tr.get("rival", false):
 		var event := base.duplicate()
 		event["type"] = CrewTaskEventDialog.EventType.GAIN_RIVAL
 		event["kerin_bonus"] = str(tr.get("kerin_bonus", ""))
+		event["kerin_rider"] = not str(tr.get("kerin_bonus", "")).is_empty() \
+			and _is_kerin(crew_member)
 		events.append(event)
 		return events
 
@@ -3538,11 +3793,7 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 		CrewTaskEventDialog.EventType.GAIN_XP:
 			var xp: int = event_data.get("xp", 0)
 			if xp > 0:
-				_apply_xp_to_character(
-					event_data.get("table_result", {}),
-					xp,
-					"crew_task_event"
-				)
+				_apply_xp_to_character(_xp_target(event_data), xp, "crew_task_event")
 
 		CrewTaskEventDialog.EventType.GAIN_STORY_POINT:
 			var sp: int = event_data.get("story_points", 0)
@@ -3594,7 +3845,9 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 
 		CrewTaskEventDialog.EventType.CHOICE_ITEM:
 			var item_name: String = str(outcome.get("item_name", ""))
-			if not item_name.is_empty():
+			if event_data.has("trade_rows"):
+				_take_trinket_sale_row(event_data, item_name)
+			elif not item_name.is_empty():
 				_add_item_to_stash(item_name, _is_trade_event(event_data))
 
 		CrewTaskEventDialog.EventType.GRENADE_COMBO:
@@ -3607,7 +3860,9 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 
 		CrewTaskEventDialog.EventType.DISCARD_ITEM:
 			var discarded: String = str(outcome.get("discarded_item", ""))
-			if not discarded.is_empty():
+			if discarded.ends_with(STASH_SUFFIX):
+				_discard_stash_item(discarded.trim_suffix(STASH_SUFFIX))
+			elif not discarded.is_empty():
 				_remove_from_crew_equipment(crew_member, discarded)
 
 		CrewTaskEventDialog.EventType.SELL_WEAPONS:
@@ -3625,6 +3880,9 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 		CrewTaskEventDialog.EventType.GAIN_RIVAL:
 			_apply_rival(event_data)
 
+		CrewTaskEventDialog.EventType.FORCED_RIVAL_BATTLE:
+			_apply_forced_rival(event_data)
+
 		CrewTaskEventDialog.EventType.GAIN_RUMOR:
 			_apply_rumor(event_data, outcome)
 
@@ -3633,7 +3891,11 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 
 		CrewTaskEventDialog.EventType.RECRUIT:
 			if outcome.get("recruit", false):
-				_apply_recruit()
+				# p.81 Make a new friend: "If your character is Feral, the new character
+				# is also Feral."
+				var finder = event_data.get("crew_member")
+				_apply_recruit("feral" if finder != null and _is_species(finder, "feral")
+						else "")
 
 		CrewTaskEventDialog.EventType.BUY_RUMORS:
 			var qty: int = int(outcome.get("quantity", 0))
@@ -3647,15 +3909,6 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 				for i in range(qty):
 					var weapon: String = _roll_on_military_weapons_table()
 					_add_item_to_stash(weapon)
-
-		CrewTaskEventDialog.EventType.SKILL_CHECK:
-			if not outcome.get("success", true):
-				# Failed skill check — apply penalty
-				if crew_member:
-					if crew_member is Dictionary:
-						crew_member["misses_battle"] = true
-					elif "misses_battle" in crew_member:
-						crew_member.misses_battle = true
 
 		CrewTaskEventDialog.EventType.ITEM_TRADE:
 			if outcome.get("traded", false):
@@ -3700,14 +3953,12 @@ func _on_event_completed(outcome: Dictionary, event_data: Dictionary) -> void:
 					campaign_for_p82, obligation_id, obligation_name,
 					bool(outcome.get("paid", false)))
 
+		CrewTaskEventDialog.EventType.TRINKET_SALE:
+			if bool(outcome.get("sell", false)):
+				_sell_luxury_trinket(event_data)
+
 		CrewTaskEventDialog.EventType.TECH_FANATIC:
-			if outcome.get("engineer_bonus", false):
-				_apply_xp_to_character(
-					event_data.get("table_result", {}),
-					2,
-					"tech_fanatic_engineer"
-				)
-			# Damage/repair handled by dialog outcome
+			_apply_tech_fanatic_repair(event_data, str(outcome.get("repair_choice", "")))
 
 	_update_progress_display()
 	# Defer to next frame so queue_free() clears the old exclusive dialog first
@@ -3742,6 +3993,7 @@ func _is_narrative_friendly_event(event_type: int) -> bool:
 		CrewTaskEventDialog.EventType.ROLL_ON_TABLE, \
 		CrewTaskEventDialog.EventType.SICK_BAY, \
 		CrewTaskEventDialog.EventType.GAIN_RIVAL, \
+		CrewTaskEventDialog.EventType.FORCED_RIVAL_BATTLE, \
 		CrewTaskEventDialog.EventType.GAIN_PATRON, \
 		CrewTaskEventDialog.EventType.IMMUNE, \
 		CrewTaskEventDialog.EventType.DEFERRED:
@@ -3839,7 +4091,7 @@ func _auto_resolve_event(event_data: Dictionary) -> void:
 		CrewTaskEventDialog.EventType.GAIN_XP:
 			var xp: int = event_data.get("xp", 0)
 			if xp > 0:
-				_apply_xp_to_character(event_data.get("table_result", {}), xp, "auto")
+				_apply_xp_to_character(_xp_target(event_data), xp, "auto")
 		CrewTaskEventDialog.EventType.GAIN_STORY_POINT:
 			var sp: int = event_data.get("story_points", 0)
 			if sp > 0 and gsm and gsm.has_method("add_story_points"):
@@ -3849,19 +4101,25 @@ func _auto_resolve_event(event_data: Dictionary) -> void:
 				_add_item_to_stash(str(item_str), _is_trade_event(event_data))
 		CrewTaskEventDialog.EventType.CHOICE_ITEM:
 			var opts: Array = event_data.get("choice_options", [])
-			if opts.size() > 0:
+			if event_data.has("trade_rows"):
+				_take_trinket_sale_row(event_data, str(opts[0]) if opts.size() > 0 else "")
+			elif opts.size() > 0:
 				_add_item_to_stash(str(opts[0]), _is_trade_event(event_data))
 		CrewTaskEventDialog.EventType.GRENADE_COMBO:
 			for i in range(3):
 				_add_item_to_stash("Frakk Grenade")
 		CrewTaskEventDialog.EventType.GAIN_RIVAL:
 			_apply_rival(event_data)
+		CrewTaskEventDialog.EventType.FORCED_RIVAL_BATTLE:
+			_apply_forced_rival(event_data)
 		CrewTaskEventDialog.EventType.GAIN_RUMOR:
 			_apply_rumor(event_data, {})
 		CrewTaskEventDialog.EventType.GAIN_PATRON:
 			_add_patron_contact()
 		CrewTaskEventDialog.EventType.SICK_BAY:
 			_apply_sick_bay(crew_member, event_data.get("sick_bay_turns", 1))
+		CrewTaskEventDialog.EventType.TECH_FANATIC:
+			_apply_tech_fanatic_repair(event_data, "")
 		# Skip interactive types in auto mode (no selling, no discarding, no purchases)
 
 # ── State Mutation Helpers ────────────────────────────────────────────
@@ -3873,7 +4131,10 @@ func _check_species_immunity(table_result: Dictionary, crew_member) -> bool:
 		return false
 	var species_name: String = _get_species_name(crew_member)
 	for immune_species in immune_list:
-		if str(immune_species).to_lower() == species_name.to_lower():
+		# The tables print the book's "K'Erin"; a member's origin is the enum key
+		# "KERIN". Compared raw, a K'Erin never matched and went to Sick Bay on the
+		# p.80 "Must've been something I ate" row the book says they ignore.
+		if _species_key(str(immune_species)) == _species_key(species_name):
 			return true
 	return false
 
@@ -3934,13 +4195,10 @@ func _get_crew_weapons(crew_member) -> Array:
 	return weapons
 
 func _is_weapon(item_name: String) -> bool:
-	## Check if item name is a weapon (matches Character.weapons getter heuristic)
-	var lower: String = item_name.to_lower()
-	for keyword in ["weapon", "rifle", "pistol", "blade", "gun", "sword",
-			"flamer", "cannon", "laser", "saber", "axe", "maul", "claw"]:
-		if keyword in lower:
-			return true
-	return false
+	## A weapon is a name in the equipment database's weapon list (Core Rules
+	## pp.49-51), the lookup the battle cards use. A keyword list missed Hand Laser,
+	## Hyper Blaster and both grenades, and counted gear such as Concealed Blade.
+	return not BotUpgradeEffectsRef.weapon_profile(item_name).is_empty()
 
 func _get_crew_class(crew_member) -> String:
 	## Get character class as string
@@ -4123,34 +4381,85 @@ func _apply_sick_bay(crew_member, turns: int) -> void:
 			crew_member.injuries.append(injury)
 
 func _apply_rival(event_data: Dictionary) -> void:
-	## Add a rival to the campaign via NPCTracker
-	var npc_tracker = get_node_or_null("/root/NPCTracker")
-	var rival_types: Array = ["Criminal", "Corporate", "Military", "Pirate", "Cult"]
-	var rival_data: Dictionary = {
-		"rival_id": "rival_task_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-		"name": "Rival %d" % (randi() % 100 + 1),
-		"type": rival_types[randi() % rival_types.size()],
-		"source": "crew_task",
-		"hostility": randi() % 3 + 3,
-		"resources": randi() % 3 + 1,
-	}
-	var kerin_bonus: String = str(event_data.get("kerin_bonus", ""))
-	if not kerin_bonus.is_empty():
-		rival_data["kerin_bonus"] = kerin_bonus
+	## Core Rules p.79 Contraband (4-6) and p.81 Pick a fight: "Add a Rival to your
+	## list."
+	##
+	## Built by RivalContact.make() (the p.94 Unknown Rival column) and written to
+	## campaign.rivals, the list the p.85 Rival check reads. Until 2026-10-29 this made
+	## a "Rival N" of one of five invented types with invented hostility and
+	## resources, and handed it to NPCTracker, a history tracker, so a Rival gained
+	## on a crew task never attacked and never showed on the Rivals screen.
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	var opts: Dictionary = {"planet_id": _current_planet_id(),
+		"created_turn": _get_current_turn_number()}
+	# p.81: "If a K'Erin gets this event, add the Rival as normal, but the first time
+	# you meet them in battle, they have -1 enemy, as you already knocked one out."
+	if bool(event_data.get("kerin_rider", false)):
+		opts["first_battle_enemy_modifier"] = -1
+	var rivals: Array = gsm.get_rivals()
+	rivals.append(RivalContactRef.make("crew_task", "", opts))
+	gsm.set_rivals(rivals)
 
-	if npc_tracker and npc_tracker.has_method("add_rival"):
-		npc_tracker.add_rival(rival_data)
-	else:
-		# Fallback: add directly to campaign
-		var gs = get_node_or_null("/root/GameState")
-		if gs and gs.current_campaign:
-			var campaign = gs.current_campaign
-			if campaign is Dictionary:
-				if not campaign.has("rivals"):
-					campaign["rivals"] = []
-				campaign["rivals"].append(rival_data)
-			elif "rivals" in campaign:
-				campaign.rivals.append(rival_data)
+## p.81 Got yourself noticed: "If you have Rivals, select one at random." Numbered
+## and rolled on a D10, re-rolling anything above the count, so the pick is even and
+## QA can force it as "Got Yourself Noticed". Not roll_custom(): it never consults the
+## forcing seam, so a forced value would be queued and silently ignored.
+func _pick_random_rival() -> Variant:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return null
+	var rivals: Array = gsm.get_rivals()
+	if rivals.is_empty():
+		return null
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm and rivals.size() <= 10:
+		for _attempt in 32:
+			var roll: int = int(dm.roll_d10("Got Yourself Noticed"))
+			if roll <= rivals.size():
+				return rivals[roll - 1]
+	return rivals[randi_range(0, rivals.size() - 1)]
+
+## "You will have to fight them this campaign turn" (p.81). Rides the forced-battle
+## flag the p.85 check already honours; a Story Event that forbids Rival attacks
+## still wins, and the flag then waits for the next eligible turn.
+func _apply_forced_rival(event_data: Dictionary) -> void:
+	var rid: String = str(event_data.get("forced_rival_id", ""))
+	if rid.is_empty():
+		return
+	var campaign = _active_campaign()
+	if campaign == null or not ("progress_data" in campaign):
+		return
+	campaign.progress_data["forced_rival_battle"] = rid
+	campaign.progress_data["forced_rival_cite"] = "Core Rules p.81 - Got yourself noticed"
+
+func _current_planet_id() -> String:
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not ("current_planet_id" in pdm):
+		return ""
+	return str(pdm.current_planet_id)
+
+func _is_kerin(crew_member) -> bool:
+	return _is_species(crew_member, "kerin")
+
+func _is_species(crew_member, key: String) -> bool:
+	if crew_member is Dictionary:
+		if _species_key(str(crew_member.get("species_id", ""))) == key:
+			return true
+	elif crew_member is Object and "species_id" in crew_member:
+		if _species_key(str(crew_member.species_id)) == key:
+			return true
+	return _species_key(_get_species_name(crew_member)) == key
+
+## "K'Erin", "K’Erin", "KERIN" and "kerin" are one species: the tables print the
+## book's spelling, the enum and the species ids do not.
+static func _species_key(species: String) -> String:
+	var out := ""
+	for c in species.to_lower():
+		if (c >= "a" and c <= "z") or (c >= "0" and c <= "9"):
+			out += c
+	return out
 
 ## Gain Quest Rumors (Core Rules pp.80-81: "Gain a Quest Rumor", "Gain a Rumor",
 ## "Buy up to 3 Rumors"). The campaign keeps Rumors as a count, quest_rumors, and
@@ -4173,7 +4482,7 @@ func _charge_purchase(gsm: Node, total_cost: int) -> bool:
 		return true
 	return gsm != null and bool(gsm.remove_credits(total_cost))
 
-func _apply_recruit() -> void:
+func _apply_recruit(forced_species: String = "") -> void:
 	## Add one recruit to the crew (Core Rules p.78), verbatim: "Each recruit rolls
 	## using the random method in the character creation process (see p.14).
 	## Recruits have the basic profile for their type, and come armed with a
@@ -4209,7 +4518,14 @@ func _apply_recruit() -> void:
 		_current_world_traits())
 	var candidates: Array = []
 	for _i in range(1 + maxi(0, extra)):
-		var rolled = CharGen.create_character({})
+		# p.78 "the random method ... (see p.14)": the Crew Type table. This passed
+		# no species, so every recruit was a Baseline Human.
+		var species_id: String = forced_species
+		if species_id.is_empty():
+			species_id = str(SpeciesDataService.roll_crew_type().get("species_id", ""))
+		if species_id.is_empty():
+			species_id = "human"
+		var rolled = CharGen.create_character({"species_id": species_id})
 		if rolled == null:
 			continue
 		_apply_recruit_creation_tables(rolled)
@@ -4256,8 +4572,8 @@ func _describe_recruit(new_char) -> String:
 			species = str(new_char.species_id)
 		elif "origin" in new_char:
 			species = str(new_char.origin)
-	return "%s (%s)" % [who, species.capitalize().replace("_", " ")] if species != "" \
-		else who
+	return "%s (%s)" % [who, SpeciesDataService.display_name(species, species)] \
+		if species != "" else who
 
 
 func _hire_recruit(campaign, new_char) -> void:
@@ -4306,11 +4622,22 @@ func _apply_recruit_creation_tables(new_char) -> void:
 	## table rewards (CLAUDE.md's one-grant-site-per-rule rule).
 	if new_char == null:
 		return
-	var CharGen = load("res://src/core/character/CharacterGeneration.gd")
-	if CharGen == null or not CharGen.has_method("roll_character_tables"):
+	# Bots and Assault Bots make no creation rolls (p.15, p.21), so the errata's
+	# tables do not reach them and the re-roll below must not either.
+	if new_char is Object and "species_id" in new_char \
+			and not SpeciesDataService.can_roll_creation_tables(str(new_char.species_id)):
 		return
-	var rolled: Dictionary = CharGen.roll_character_tables()
-	if CharGen.has_method("apply_table_results_to_character"):
+	# create_character() has already rolled the tables and applied them (stats,
+	# traits, background, motivation, class, XP). Rolling again here gave every
+	# recruit two sets of stat bonuses and two Background traits from two rolls.
+	var rolled: Dictionary = {}
+	if new_char is Object and new_char.has_meta("creation_table_results"):
+		rolled = new_char.get_meta("creation_table_results")
+	if rolled.is_empty():
+		var CharGen = load("res://src/core/character/CharacterGeneration.gd")
+		if CharGen == null or not CharGen.has_method("roll_character_tables"):
+			return
+		rolled = CharGen.roll_character_tables()
 		CharGen.apply_table_results_to_character(new_char, rolled)
 
 	var res: Dictionary = rolled.get("resources", {})
@@ -4331,9 +4658,8 @@ func _apply_recruit_creation_tables(new_char) -> void:
 	if "creation_bonuses" in new_char:
 		new_char.creation_bonuses = bonuses
 
-	# The tables' XP is a per-character award, so it goes on the character.
-	if int(bonuses["xp"]) > 0 and "experience" in new_char:
-		new_char.experience = int(new_char.experience) + int(bonuses["xp"])
+	# The tables' XP is already on the character: apply_table_results_to_character()
+	# grants it, so bonuses["xp"] is the record, not a second award.
 
 	_grant_recruit_equipment(new_char, bonuses["starting_rolls"])
 

@@ -79,9 +79,6 @@ static func build_into(vbox: VBoxContainer, planet: Object) -> void:
 	var type_label: String = str(planet.type_name if planet.type_name else planet.type)
 	if type_label.strip_edges() != "":
 		vbox.add_child(_info_row("Type", type_label, UIColorsClass.COLOR_CYAN))
-	var danger_color: Color = UIColorsClass.COLOR_AMBER \
-		if int(planet.danger_level) >= 3 else UIColorsClass.COLOR_TEXT_PRIMARY
-	vbox.add_child(_info_row("Danger Level", str(planet.danger_level), danger_color))
 
 	# World traits WITH rules meaning (the flavor/law core of the briefing).
 	if planet.traits is Array and not planet.traits.is_empty():
@@ -97,33 +94,9 @@ static func build_into(vbox: VBoxContainer, planet: Object) -> void:
 			else:
 				vbox.add_child(_info_row(str(t).capitalize().replace("_", " "), "", UIColorsClass.COLOR_PURPLE))
 
-	# Notable features (special_features generated at creation).
-	if planet.special_features is Array and not planet.special_features.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_section_header("NOTABLE FEATURES"))
-		for feat in planet.special_features:
-			vbox.add_child(_info_row(
-				"•", str(feat).capitalize().replace("_", " "), UIColorsClass.COLOR_PURPLE
-			))
-
-	# Locations (each may carry flavor/type).
-	if planet.locations is Array and not planet.locations.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_section_header("LOCATIONS"))
-		for loc in planet.locations:
-			var loc_name: String = str(loc.get("name", "Unknown")) if loc is Dictionary else str(loc)
-			var loc_type: String = str(loc.get("type", "")) if loc is Dictionary else ""
-			vbox.add_child(_info_row(loc_name, loc_type, UIColorsClass.COLOR_CYAN))
-
-	# Active world event (most recent) — flavor.
-	if planet.world_events is Array and not planet.world_events.is_empty():
-		var last_evt = planet.world_events[planet.world_events.size() - 1]
-		if last_evt is Dictionary:
-			var evt_desc: String = str(last_evt.get("description", last_evt.get("type", "")))
-			if evt_desc.strip_edges() != "":
-				vbox.add_child(HSeparator.new())
-				vbox.add_child(_section_header("CURRENT EVENT"))
-				vbox.add_child(_wrap_label(evt_desc, UIColorsClass.COLOR_AMBER))
+	# No Danger Level, Notable Features, Locations or Current Event: all four were
+	# invented (removed 2026-10-29, see WorldGenerator). The World Traits above are
+	# the world's rules (Core Rules p.72).
 
 
 # ============================================================================

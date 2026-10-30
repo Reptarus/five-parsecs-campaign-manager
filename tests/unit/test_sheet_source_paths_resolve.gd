@@ -111,7 +111,6 @@ func _world() -> Object:
 	var p: Object = PlanetDataManagerScript.PlanetData.new("gamma_prime")
 	p.name = "Gamma Prime"
 	p.type_name = "High Cost"
-	p.danger_level = 3
 	# traits is Array[String]; a plain `=` from an untyped literal aborts in Godot 4.6.
 	#
 	# These are trait IDS, which is what the producer stores — confirmed against the
@@ -365,7 +364,6 @@ func test_the_resolved_values_are_the_campaigns_actual_values() -> void:
 		"campaign.ship.traits_text": "Fuel Hog",
 		"campaign.stash_items_text": "Handgun",
 		"world.name": "Gamma Prime",
-		"world.danger": 3,
 		# Stored as the id `booming_economy`; the sheet must print the book's name.
 		"world.traits[1]": "Booming Economy",
 		"journal.last_battle.result": "Victory",
@@ -958,7 +956,6 @@ func test_the_current_world_resolves_whether_object_or_dictionary() -> void:
 	var from_dict: Dictionary = SheetDataContextScript.build(
 		_make_campaign(),
 		{"id": "gamma_prime", "name": "Gamma Prime", "type_name": "High Cost",
-			"danger_level": 3,
 			"traits": ["high_cost", "booming_economy", "adventurous_population"]},
 		_battle_entries())
 	assert_str(str(r._resolve_source("world.name", from_dict))).is_equal("Gamma Prime")

@@ -125,8 +125,10 @@ const UNIMPLEMENTED_FLAGS: Array[String] = [
 ## table into one of five subtables, the automatic first-game Connection, the
 ## no-roll and variety-swap variations as real settings, the * decline, and the
 ## one-turn expiry. Pinned by tests/unit/test_expanded_connections.gd.
-## (src/core/character/connections/CharacterConnections.gd is a DIFFERENT
-## system — creation-time starting contacts — and remains unreferenced.)
+## (Creation-time starting contacts are a DIFFERENT system, owned today by
+## CharacterCreator._roll_and_store_creation_bonuses() in
+## src/core/character/Generation/CharacterCreator.gd; the old
+## CharacterConnections.gd was deleted.)
 
 
 ## True if the flag is listed above — i.e. owning the pack would not change play.

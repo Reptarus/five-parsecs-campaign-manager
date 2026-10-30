@@ -6,7 +6,6 @@ class_name MissionPrepComponent
 ## Implements Core Rules p.82-85 - Equipment assignment and crew readiness
 
 # Five Parsecs dependencies
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const RedZoneSystem = preload("res://src/core/mission/RedZoneSystem.gd")
 const BlackZoneSystem = preload("res://src/core/mission/BlackZoneSystem.gd")
 const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
@@ -296,11 +295,12 @@ func _update_mission_briefing() -> void:
 	# Battle Card instead.
 	briefing += "Enemy: %s\n" % mission_data.get(
 		"enemy_type", "Unknown")
-	briefing += "Danger Level: %d\n" % mission_data.get(
-		"danger_level", 0)
 	briefing += "Location: %s\n" % mission_data.get(
 		"location", "Unknown")
-	briefing += "Pay: %d credits\n" % mission_data.get("pay", 0)
+	# p.120: a 1D6 base after the battle, plus Danger Pay on a Patron job. The
+	# "Danger Level" row that stood above this was the job generator's invention.
+	briefing += "Pay: 1D6 credits + %d Danger Pay (p.120)\n" % int(
+		mission_data.get("danger_pay", 0))
 	briefing += "\nPrepare your crew and assign equipment."
 
 	mission_briefing_label.text = briefing

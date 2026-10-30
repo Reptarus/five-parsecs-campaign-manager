@@ -36,6 +36,7 @@ static var _tables: Dictionary = {}
 static var _by_id: Dictionary = {}
 static var _thresholds: Dictionary = {}
 static var _law_enforcement: Array = []
+static var _patron_types: Array = []
 static var _loaded: bool = false
 
 
@@ -62,6 +63,7 @@ static func _ensure_loaded() -> void:
 				_by_id[str(entry["id"])] = entry
 	_thresholds = data.get("bhc_thresholds", {}).get("by_patron_type", {})
 	_law_enforcement = data.get("law_enforcement_enemy_types", {}).get("names", [])
+	_patron_types = data.get("patron_type_table", {}).get("entries", [])
 
 
 ## Entry ids are lowercase-with-underscores. Jobs saved before ids existed carry
@@ -99,6 +101,20 @@ static func entry_by_id(entry_id: String) -> Dictionary:
 	_ensure_loaded()
 	var e: Variant = _by_id.get(_normalize(entry_id), {})
 	return e if e is Dictionary else {}
+
+
+## The p.83 Patron Table: one D10 to a Patron type ("" if the roll is off the
+## table). PatronContact rolls the die; JobOfferComponent and every new-contact
+## site read the answer here, so the six types live in one place.
+static func patron_type_for_roll(roll: int) -> String:
+	_ensure_loaded()
+	for entry in _patron_types:
+		if not entry is Dictionary:
+			continue
+		var r: Array = entry.get("roll_range", [])
+		if r.size() >= 2 and roll >= int(r[0]) and roll <= int(r[1]):
+			return str(entry.get("type", ""))
+	return ""
 
 
 # ── Reading a job ───────────────────────────────────────────────────────────
@@ -232,7 +248,9 @@ static func has_law_enforcement_rival(rivals: Array) -> bool:
 	for rival in rivals:
 		var label: String = ""
 		if rival is Dictionary:
-			label = "%s %s" % [rival.get("name", ""), rival.get("enemy_type", "")]
+			# `type` is the Rival's enemy type (RivalContact); `enemy_type` is legacy.
+			label = "%s %s" % [rival.get("name", ""),
+				rival.get("type", rival.get("enemy_type", ""))]
 		else:
 			label = str(rival)
 		for wanted in names:

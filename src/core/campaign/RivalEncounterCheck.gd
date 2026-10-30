@@ -98,9 +98,12 @@ static func tracked_rival_ids_from_tasks(task_results: Array) -> Array:
 ## WITHOUT rolling. Suppression still wins over it: a Story Event that forbids
 ## Rival attacks this turn is an absolute, and the caller leaves the flag set so
 ## the forced battle lands on the next eligible turn instead of being lost.
+## `forced_cite` names the rule that forced it: p.128 by default, or p.81 "Got
+## yourself noticed", which rides the same flag.
 static func check(
 	rivals: Array, decoy_count: int = 0, rng: RandomNumberGenerator = null,
-	suppressed_reason: String = "", forced_rival_id: String = ""
+	suppressed_reason: String = "", forced_rival_id: String = "",
+	forced_cite: String = ""
 ) -> Dictionary:
 	var result: Dictionary = {
 		"has_encounter": false,
@@ -136,9 +139,9 @@ static func check(
 			result["has_encounter"] = true
 			result["forced"] = true
 			_stamp_rival(result, candidate)
-			result["reason"] = ("%s forces a battle this turn (Core Rules p.128 - "
-				% result["rival_name"]
-				+ "Got Noticed while on a Quest).")
+			result["reason"] = "%s forces a battle this turn (%s)." % [
+				result["rival_name"], forced_cite if not forced_cite.is_empty()
+					else "Core Rules p.128 - Got Noticed while on a Quest"]
 			return result
 
 	var gen: RandomNumberGenerator = rng
@@ -195,3 +198,10 @@ static func _stamp_rival(result: Dictionary, picked: Variant) -> void:
 	result["rival_enemy_count_bonus"] = int(
 		(picked as Dictionary).get("enemy_count_bonus", 0)) \
 		if picked is Dictionary else 0
+	# Core Rules p.81 Pick a fight, for a K'Erin: "the first time you meet them in
+	# battle, they have -1 enemy". Summed into the same bonus, and flagged so
+	# CampaignTurnController spends it on this battle and no other.
+	var first_meet: int = int((picked as Dictionary).get(
+		"first_battle_enemy_modifier", 0)) if picked is Dictionary else 0
+	result["rival_enemy_count_bonus"] = int(result["rival_enemy_count_bonus"]) + first_meet
+	result["rival_first_battle_rider"] = first_meet != 0

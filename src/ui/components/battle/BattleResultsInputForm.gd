@@ -38,6 +38,8 @@ var _objective_condition: String = ""
 var _objective_met_check: CheckBox
 var _objective_outcome_note: Label
 var _notable_sight_check: CheckBox
+## Core Rules p.82 Explore bounty checks, keyed by the held event's id.
+var _bounty_checks: Dictionary = {}
 
 # Core Rules p.123 per-character XP bonuses. Both are things only the player
 # witnessed, so they are asked rather than derived; both were previously read
@@ -183,6 +185,32 @@ func _build_ui() -> void:
 			obj_card.add_child(_notable_sight_check)
 
 		vbox.add_child(obj_section[0])
+
+	# Core Rules p.82 Explore 83-86 / 87-90, held from this turn's Explore tasks. The
+	# battle card names each target; only the player knows whether it fell. Its own
+	# section, because a battle with no p.90 objective builds no objective section.
+	_bounty_checks.clear()
+	var bounties: Array = _mission_data.get("explore_bounties", [])
+	if not bounties.is_empty():
+		var bounty_section := _create_section("EXPLORE BOUNTIES")
+		var bounty_card: VBoxContainer = bounty_section[1]
+		for bounty in bounties:
+			if not (bounty is Dictionary):
+				continue
+			var bounty_lbl := Label.new()
+			bounty_lbl.text = "%s: %s. %s" % [str(bounty.get("kind", "")),
+				str(bounty.get("target", "")), str(bounty.get("rule", ""))]
+			bounty_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			bounty_lbl.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
+			bounty_lbl.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
+			bounty_card.add_child(bounty_lbl)
+			var check := CheckBox.new()
+			check.text = ("Target killed" if str(bounty.get("kind", "")) == "Offered a small job"
+				else "Package retrieved")
+			check.custom_minimum_size.y = UIColors.TOUCH_TARGET_MIN
+			bounty_card.add_child(check)
+			_bounty_checks[str(bounty.get("event_id", ""))] = check
+		vbox.add_child(bounty_section[0])
 
 	# === OUTCOME SECTION ===
 	var outcome_section := _create_section("OUTCOME")
@@ -620,6 +648,15 @@ func _picked_crew_id(picker: OptionButton) -> String:
 		return str(member.character_id)
 	return ""
 
+func _claimed_bounty_ids() -> Array:
+	var ids: Array = []
+	for event_id: String in _bounty_checks:
+		var check: CheckBox = _bounty_checks[event_id]
+		if is_instance_valid(check) and check.button_pressed:
+			ids.append(event_id)
+	return ids
+
+
 func _create_section(title_text: String) -> Array:
 	## Returns [outer_container, inner_content] — add outer to parent, children to inner
 	var card_panel := PanelContainer.new()
@@ -855,6 +892,8 @@ func _on_submit() -> void:
 		"notable_sight_claimed": (_notable_sight_check != null
 			and is_instance_valid(_notable_sight_check)
 			and _notable_sight_check.button_pressed),
+		# Core Rules p.82: the held Explore bounties the crew completed, by event id.
+		"explore_bounties_claimed": _claimed_bounty_ids(),
 		# Per-character kill credit. The form has no per-kill control -- the
 		# battle screen recorded it figure by figure through the p.46 Hit
 		# sheet -- so the prefill IS the producer and passing it through is

@@ -7,6 +7,7 @@ class_name ResolveRumorsComponent
 
 const OnboardItemServiceRef = preload(
 	"res://src/core/equipment/OnboardItemService.gd")
+const QuestReceiptRef = preload("res://src/core/campaign/QuestReceipt.gd")
 
 # UI Components
 @onready var rumors_count_label: Label = %RumorsCountLabel
@@ -233,14 +234,9 @@ func _generate_quest_from_rumors() -> void:
 	var turn_received: int = 0
 	if gs_node and gs_node.current_campaign and "progress_data" in gs_node.current_campaign:
 		turn_received = int(gs_node.current_campaign.progress_data.get("turns_played", 0))
-	current_quest = {
-		"id": "quest_%d" % randi(),
-		"name": _generate_quest_name(),
-		"description": _generate_quest_description(old_rumors),
-		"turn_received": turn_received,
-		"rumors_spent": old_rumors.size(),
-		"stages_completed": 0,
-	}
+	current_quest = QuestReceiptRef.record(QuestReceiptRef.random_name(),
+			_generate_quest_description(old_rumors), turn_received, old_rumors.size(),
+			"Resolve Rumors (p.85)")
 
 	has_active_quest = true
 
@@ -283,11 +279,13 @@ func _generate_quest_from_rumors() -> void:
 	if gsm and gsm.has_method("set_quest_rumors"):
 		gsm.set_quest_rumors(0)
 
-func _generate_quest_name() -> String:
-	## Generate random quest name
-	var prefixes = ["The Lost", "Hidden", "Ancient", "Stolen", "Mysterious", "Dangerous"]
-	var subjects = ["Artifact", "Cargo", "Data", "Weapon", "Ship", "Coordinates"]
-	return "%s %s" % [prefixes[randi() % prefixes.size()], subjects[randi() % subjects.size()]]
+	# Core Rules p.79 Trade 25-26 "Local maps": "If you receive a Quest on this or the
+	# following world, you may immediately add 1 Rumor. Single-use." After the reset
+	# above, which would otherwise spend it with the rest.
+	# QuestReceipt holds the rule, so a Quest from Letter from home or a Traveler
+	# spends the maps too.
+	if QuestReceiptRef.apply_local_maps(_active_campaign()) and quest_description_label:
+		quest_description_label.text += "\nLocal maps: +1 Rumor (p.79)."
 
 func _generate_quest_description(source_rumors: Array) -> String:
 	## Generate quest description based on rumors

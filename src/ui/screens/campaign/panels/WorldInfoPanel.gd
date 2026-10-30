@@ -1,7 +1,7 @@
 @tool
 extends FiveParsecsCampaignPanel
 
-## World Information Panel - Current world status and opportunities display
+## World Information Panel - the starting world: its name and World Trait (Core Rules p.72)
 ## Integrates with enhanced data manager following Digital Dice System visual patterns
 ## Provides comprehensive world information with contextual data display
 
@@ -15,77 +15,20 @@ signal world_created(world_data: Dictionary)
 
 # Dependencies - all files exist and are required
 const UIColors = preload("res://src/ui/components/base/UIColors.gd")
-const CampaignSignals = preload("res://src/core/signals/CampaignSignals.gd")
 const FPCM_CampaignResponsiveLayout = preload("res://src/ui/components/base/CampaignResponsiveLayout.gd")
 const DataValidator = preload("res://src/core/utils/DataValidator.gd")
 
 # UI References
 @onready var world_name_label: Label = %WorldNameLabel
 @onready var world_traits_container: VBoxContainer = %WorldTraitsContainer
-@onready var government_info: Label = %GovernmentInfo
-@onready var tech_level_display: Label = %TechLevelDisplay
-@onready var market_prices_container: VBoxContainer = %MarketPricesContainer
-@onready var opportunities_container: VBoxContainer = %OpportunitiesContainer
-@onready var threats_container: VBoxContainer = %ThreatsContainer
 @onready var world_summary: Label = %WorldSummary
 
 # World generation system
 const WorldGenerator = preload("res://src/core/campaign/WorldGenerator.gd")
 var world_generator = null  # WorldGenerator instance
-var fallback_world_templates: Array = []
-
-# Template-based fallback worlds for defensive programming
-const WORLD_TEMPLATES = {
-	"starter_friendly": {
-		"name": "Haven Station",
-		"type": "trade_center",
-		"type_name": "Trade Center",
-		"danger_level": 1,
-		"traits": ["trade_center", "free_port"],
-		"tech_level": 4,
-		"government_type": "Colonial Administration",
-		"locations": [
-			{"name": "Spaceport", "type": "spaceport", "danger_mod": 0, "explored": false},
-			{"name": "Market District", "type": "market", "danger_mod": -1, "explored": false}
-		],
-		"special_features": ["safe_harbor", "established_trade_routes"]
-	},
-	"balanced": {
-		"name": "Frontier Outpost",
-		"type": "frontier_world",
-		"type_name": "Frontier World",
-		"danger_level": 2,
-		"traits": ["frontier_world", "mining_world"],
-		"tech_level": 3,
-		"government_type": "Corporate Outpost",
-		"locations": [
-			{"name": "Mining Station", "type": "industrial", "danger_mod": 1, "explored": false},
-			{"name": "Trading Post", "type": "commercial", "danger_mod": 0, "explored": false}
-		],
-		"special_features": ["mineral_deposits", "harsh_conditions"]
-	},
-	"challenging": {
-		"name": "Contested Zone",
-		"type": "pirate_haven",
-		"type_name": "Pirate Haven",
-		"danger_level": 4,
-		"traits": ["pirate_haven", "military_base"],
-		"tech_level": 2,
-		"government_type": "Military Occupation",
-		"locations": [
-			{"name": "Fortified Base", "type": "military", "danger_mod": 2, "explored": false},
-			{"name": "Black Market", "type": "underground", "danger_mod": 3, "explored": false}
-		],
-		"special_features": ["high_danger", "active_conflicts", "valuable_resources"]
-	}
-}
 
 # Data management
 var current_world_data: Dictionary = {}
-var world_opportunities: Array[Dictionary] = []
-var world_threats: Array[Dictionary] = []
-var selected_opportunity: String = ""
-var campaign_signals: CampaignSignals
 
 # State flags
 var is_world_data_updated: bool = false
@@ -102,7 +45,7 @@ var coordinator: Node = null
 
 func _ready() -> void:
 	# Set panel info before base initialization with more informative description
-	set_panel_info("World Generation", "Generate your starting world and sector. This determines available missions and encounters.")
+	set_panel_info("World Generation", "Roll your starting world. Its World Trait changes how the campaign plays there (Core Rules p.72).")
 
 	# Call parent _ready() to initialize BaseCampaignPanel structure
 	super._ready()
@@ -130,7 +73,6 @@ func _ready() -> void:
 	# Debug verification of button creation
 	call_deferred("_verify_button_creation")
 
-	_connect_campaign_signals()
 	_apply_mobile_layout()
 
 	# BUG-018/019/020/023: Auto-generate and confirm world on panel entry
@@ -164,17 +106,26 @@ func _initialize_world_generator() -> void:
 		push_error("WorldInfoPanel: WorldGenerator preload failed")
 		return
 	
+	if is_instance_valid(world_generator):
+		world_generator.free()
 	world_generator = WorldGenerator.new()
 	if not world_generator:
 		push_error("WorldInfoPanel: Failed to create WorldGenerator instance")
 		return
 
 	# NOTE: Do NOT connect world_generated signal here. WorldGenerator.generate_world()
-	# emits the signal with RAW data (no government_type, no custom name). Instead,
-	# _generate_world_with_fallback() calls _on_world_generated_from_generator() directly
-	# AFTER enriching the data with government_type, tech_level, and custom name.
+	# emits it before the world is given its Compendium name. _generate_world() calls
+	# _on_world_generated_from_generator() directly, AFTER naming it.
 	# Connecting the signal caused a double-call bug where the first display showed
 	# incomplete data (BUG-018/021).
+
+## WorldGenerator extends Node and is never added to the tree, so nothing frees it
+## with the panel: one Node leaked per visit to creation step 6. PREDELETE, not
+## _exit_tree(), so a panel the wizard detaches and re-attaches keeps its generator.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(world_generator):
+		world_generator.free()
+		world_generator = null
 
 func _setup_world_panel() -> void:
 	# Initialize world display components
@@ -182,11 +133,7 @@ func _setup_world_panel() -> void:
 		push_warning("WorldInfoPanel: World name label not found")
 		return
 	
-	# Setup opportunity tracking
-	_setup_opportunity_tracking()
 	
-	# Setup threat monitoring
-	_setup_threat_monitoring()
 
 func _setup_control_buttons() -> void:
 	## Create and setup control buttons for world generation
@@ -262,7 +209,7 @@ func _on_generate_button_pressed() -> void:
 	
 	# Generate a new world
 	var campaign_name = _get_campaign_name_safe()
-	_generate_world_with_fallback(campaign_name + " Prime")
+	_generate_world(campaign_name + " Prime")
 	
 	# Enable reroll and confirm buttons
 	if reroll_button:
@@ -287,7 +234,7 @@ func _on_reroll_button_pressed() -> void:
 	# Generate a new world with different seed
 	var campaign_name = _get_campaign_name_safe()
 	var world_suffix = ["Alpha", "Beta", "Gamma", "Delta", "Prime", "Nova", "Echo", "Zeta"].pick_random()
-	_generate_world_with_fallback(campaign_name + " " + world_suffix)
+	_generate_world(campaign_name + " " + world_suffix)
 
 	# Reset confirm state — user needs to re-confirm the new world
 	is_world_generated = true
@@ -350,17 +297,6 @@ func _update_validation_state() -> void:
 			coordinator.update_world_state(current_world_data)
 	
 
-func _connect_campaign_signals() -> void:
-	# Connect to campaign signals - Framework Bible compliant
-	campaign_signals = CampaignSignals.new()
-	
-	# Connect world-related signals
-	campaign_signals.connect_signal_safely("world_discovered", self, "_on_world_discovered")
-	campaign_signals.connect_signal_safely("location_explored", self, "_on_location_explored")
-	campaign_signals.connect_signal_safely("patron_encountered", self, "_on_patron_encountered")
-	campaign_signals.connect_signal_safely("rival_threat_identified", self, "_on_rival_threat_identified")
-	campaign_signals.connect_signal_safely("trade_opportunity_identified", self, "_on_trade_opportunity_identified")
-
 func _apply_mobile_layout() -> void:
 	## Mobile-specific layout: Single column, large touch targets, compact info
 	# Override from BaseCampaignPanel
@@ -369,7 +305,7 @@ func _apply_mobile_layout() -> void:
 		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	if world_summary:
-		world_summary.text = _generate_compact_world_summary()
+		world_summary.text = _world_summary_text()
 
 	# Update control buttons for mobile (comfortable touch targets)
 	if generate_button:
@@ -388,7 +324,7 @@ func _apply_tablet_layout() -> void:
 		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	if world_summary:
-		world_summary.text = _generate_detailed_world_summary()
+		world_summary.text = _world_summary_text()
 
 	# Standard touch targets for tablet
 	if generate_button:
@@ -407,7 +343,7 @@ func _apply_desktop_layout() -> void:
 		world_traits_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	if world_summary:
-		world_summary.text = _generate_detailed_world_summary()
+		world_summary.text = _world_summary_text()
 
 	# Minimum touch targets for desktop (mouse precision)
 	if generate_button:
@@ -424,98 +360,43 @@ func update_world_display(world_name: String) -> void:
 	
 	# Generate world if not already generated
 	if current_world_data.is_empty():
-		_generate_world_with_fallback(world_name)
+		_generate_world(world_name)
 	else:
 		_display_world_data(current_world_data)
 
-func _generate_world_with_fallback(world_name: String) -> void:
-	## Generate world using WorldGenerator with defensive fallback
+func _generate_world(world_name: String) -> void:
+	## Roll the starting world through WorldGenerator (Core Rules p.72). There is no
+	## template fallback any more: the three WORLD_TEMPLATES were invented worlds
+	## carrying invented traits ("trade_center", "pirate_haven"), so a failed roll
+	## now says so instead of handing the player a fabricated world.
+	if not world_generator:
+		_initialize_world_generator()
+	var world_data: Dictionary = {}
 	if world_generator:
-		
-		# Get campaign turn from state if available for difficulty scaling
-		var campaign_turn = _get_campaign_turn_safe()
-		var world_data = world_generator.generate_world(campaign_turn)
-		
-		# Check if world generation was successful
-		if world_data and not world_data.is_empty():
-			# Generate world name from Compendium name tables (pp.157-162)
-			var generated_name: String = _generate_canonical_world_name(
-				world_data.get("type", ""))
-			if not generated_name.is_empty():
-				world_data["name"] = generated_name
-			elif not world_name.is_empty():
-				world_data["name"] = world_name
-			else:
-				world_data["name"] = world_data.get("name", "New World")
-			
-			# Add additional UI-specific data
-			world_data["government_type"] = _determine_government_type(world_data)
-			world_data["tech_level"] = _determine_tech_level(world_data)
-			
-			_on_world_generated_from_generator(world_data)
-		else:
-			push_warning("WorldInfoPanel: WorldGenerator returned empty data - using fallback template")
-			_use_fallback_world_template(world_name)
+		world_data = world_generator.generate_world(_get_campaign_turn_safe())
+	if world_data.is_empty():
+		push_error("WorldInfoPanel: WorldGenerator returned no world")
+		return
+	# Generate world name from Compendium name tables (pp.157-162)
+	var generated_name: String = _generate_canonical_world_name(world_data.get("type", ""))
+	if not generated_name.is_empty():
+		world_data["name"] = generated_name
+	elif not world_name.is_empty():
+		world_data["name"] = world_name
 	else:
-		_use_fallback_world_template(world_name)
-
-func _use_fallback_world_template(world_name: String) -> void:
-	## Use predefined world template as fallback
-	var template_key = _select_appropriate_template()
-	
-	# Ensure template key exists before accessing
-	if not WORLD_TEMPLATES.has(template_key):
-		template_key = "balanced"  # Safe fallback
-	
-	var fallback_world = WORLD_TEMPLATES[template_key].duplicate(true)
-	
-	# Customize template with provided name - safe property access
-	var original_name = fallback_world.get("name", "Unknown World")
-	fallback_world["name"] = world_name if not world_name.is_empty() else original_name
-	fallback_world["id"] = "fallback_" + str(Time.get_unix_time_from_system())
-	
-	_on_world_generated_from_generator(fallback_world)
-
-func _select_appropriate_template() -> String:
-	## Select appropriate world template based on crew size/difficulty
-	# Try to get crew data to adjust difficulty - with defensive null checks
-	if get_parent() != null:
-		var campaign_ui = owner if owner != null else get_parent().get_parent()
-		if campaign_ui and campaign_ui.has_method("get_coordinator"):
-			var coordinator = campaign_ui.get_coordinator()
-			if coordinator and coordinator.has_method("get_unified_campaign_state"):
-				var state = coordinator.get_unified_campaign_state()
-				if state and state.has("crew"):
-					var crew_size = state["crew"].get("members", []).size()
-					
-					# Scale template based on crew size
-					if crew_size >= 6:
-						return "challenging"  # Large crew can handle danger
-					elif crew_size >= 4:
-						return "balanced"     # Medium crew gets balanced challenge
-					else:
-						return "starter_friendly"  # Small crew needs easier start
-	
-	# Default to balanced if no data available
-	return "balanced"
+		world_data["name"] = world_data.get("name", "New World")
+	_on_world_generated_from_generator(world_data)
 
 func _display_world_data(world_data: Dictionary) -> void:
-	## Display world data in UI components with DataValidator safety
+	## A world is its name and its World Trait (Core Rules p.72). Government, tech
+	## level, market prices, opportunities and threats were shown here until
+	## 2026-10-29. None is in either book, and the last three could only ever print
+	## a placeholder ("No known threats in this sector", even for a crew that rolled
+	## a Rival at creation) because nothing produced them.
 	var safe_name = DataValidator.safe_get_string(
 		world_data, "name", "Unknown World")
 	var safe_traits = DataValidator.safe_get_array(
 		world_data, "traits", [])
-	var safe_government = DataValidator.safe_get_string(
-		world_data, "government_type",
-		"Independent Colony")
-	var safe_tech_level = DataValidator.safe_get_int(
-		world_data, "tech_level", 3)
-	var safe_patrons = DataValidator.safe_get_array(
-		world_data, "known_patrons", [])
-	var safe_market_prices = DataValidator.safe_get_dict(
-		world_data, "market_prices", {})
-	var safe_threats = DataValidator.safe_get_array(
-		world_data, "rival_threats", [])
 
 	# Display world name
 	if world_name_label:
@@ -529,23 +410,13 @@ func _display_world_data(world_data: Dictionary) -> void:
 	_ensure_section_cards()
 
 	_display_world_traits(safe_traits)
-	_display_government_info(safe_government, safe_tech_level)
-	_display_opportunities(safe_patrons, safe_market_prices)
-	_display_threats(safe_threats)
 	_update_world_summary()
 
 ## Wrap each section container in a styled card, if not done.
 func _ensure_section_cards() -> void:
 	# Remove bare HSeparators (replaced by card borders)
 	_remove_separators()
-	# Group GovernmentInfo + TechLevel into a single card
-	_ensure_overview_card()
-	# Wrap market prices in card
-	_wrap_in_card(market_prices_container, "MARKET & TRADE")
-	# Wrap remaining sections
 	_wrap_in_card(world_traits_container, "WORLD TRAITS")
-	_wrap_in_card(opportunities_container, "OPPORTUNITIES")
-	_wrap_in_card(threats_container, "THREATS")
 	# Hide redundant summary label (card content replaces it)
 	if world_summary:
 		world_summary.visible = false
@@ -564,74 +435,6 @@ func _remove_separators() -> void:
 			to_remove.append(child)
 	for sep in to_remove:
 		sep.queue_free()
-
-func _ensure_overview_card() -> void:
-	## Group GovernmentInfo + TechLevel labels into a WORLD OVERVIEW card
-	if not government_info or not tech_level_display:
-		return
-	# Skip if already wrapped — walk up the parent chain looking for any
-	# __card_ ancestor (the wrap creates a 3-level hierarchy:
-	# __card_world_overview > card_inner > OverviewContent > government_info)
-	var ancestor: Node = government_info.get_parent()
-	while ancestor:
-		if ancestor.name.begins_with("__card_"):
-			return
-		ancestor = ancestor.get_parent()
-	# Create wrapper VBox to hold both labels
-	var overview_vbox := VBoxContainer.new()
-	overview_vbox.name = "OverviewContent"
-	overview_vbox.add_theme_constant_override("separation", 4)
-	# Reparent labels into wrapper
-	var orig_parent = government_info.get_parent()
-	var idx = government_info.get_index()
-	# _reparent (BaseCampaignPanel) clears `owner` first. These labels come from
-	# the .tscn, so moving them into a runtime-built card without that left the
-	# scene ownership graph inconsistent and Godot warned on each one.
-	_reparent(government_info, orig_parent, overview_vbox)
-	_reparent(tech_level_display, orig_parent, overview_vbox)
-	# Wrap in card
-	_wrap_in_card_node(overview_vbox, "WORLD OVERVIEW")
-	# Insert card at original position
-	var card = overview_vbox.get_parent().get_parent()
-	if card:
-		orig_parent.add_child(card)
-		orig_parent.move_child(card, mini(idx, orig_parent.get_child_count() - 1))
-
-func _wrap_in_card_node(
-	container: Control, title: String
-) -> void:
-	## Wrap a container in a card WITHOUT removing from parent first
-	## (for freshly created containers not yet in tree)
-	var card_inner := VBoxContainer.new()
-	card_inner.add_theme_constant_override("separation", 4)
-	var title_lbl := Label.new()
-	title_lbl.text = title
-	title_lbl.add_theme_font_size_override(
-		"font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_LG))
-	title_lbl.add_theme_color_override(
-		"font_color", UIColors.COLOR_TEXT_SECONDARY)
-	card_inner.add_child(title_lbl)
-	var sep := HSeparator.new()
-	sep.modulate = UIColors.COLOR_BORDER
-	card_inner.add_child(sep)
-	card_inner.add_child(container)
-	var panel := PanelContainer.new()
-	panel.name = "__card_%s" % title.to_lower().replace(" ", "_")
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(
-		UIColors.COLOR_SECONDARY.r,
-		UIColors.COLOR_SECONDARY.g,
-		UIColors.COLOR_SECONDARY.b, 0.8)
-	style.border_color = Color(
-		UIColors.COLOR_BORDER.r,
-		UIColors.COLOR_BORDER.g,
-		UIColors.COLOR_BORDER.b, 0.5)
-	style.set_border_width_all(1)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(UIColors.SPACING_MD)
-	panel.add_theme_stylebox_override("panel", style)
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	panel.add_child(card_inner)
 
 func _ensure_flow_layout() -> void:
 	## Reparent __card_ panels into HFlowContainer for responsive columns
@@ -817,246 +620,12 @@ func _get_category_color(category: String) -> Color:
 		_:
 			return Color(0.7, 0.7, 0.7)  # Gray default
 
-func _display_government_info(government_type: String, tech_level: int) -> void:
-	if government_info:
-		government_info.text = "Government: %s" % government_type
-		government_info.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
-
-	if tech_level_display:
-		tech_level_display.text = "Tech Level: %d" % tech_level
-
-		# Color coding based on tech level
-		if tech_level >= 5:
-			tech_level_display.add_theme_color_override("font_color", UIColors.SUCCESS_COLOR)
-		elif tech_level >= 3:
-			tech_level_display.add_theme_color_override("font_color", UIColors.INFO_COLOR)
-		else:
-			tech_level_display.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
-
-func _display_opportunities(known_patrons: Array, market_prices: Dictionary) -> void:
-	if not opportunities_container:
-		return
-
-	# Clear existing opportunities
-	var children = opportunities_container.get_children()
-	for i in range(children.size()):
-		children[i].queue_free()
-
-	# Add section header
-	var header = Label.new()
-	header.text = "📋 Available Opportunities"
-	header.add_theme_font_size_override("font_size", get_responsive_font_size(14))
-	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	opportunities_container.add_child(header)
-
-	# Track if we have any content
-	var has_content = false
-
-	# Add patron opportunities
-	if known_patrons.size() > 0:
-		var patron_header = Label.new()
-		patron_header.text = "Patrons:"
-		patron_header.add_theme_font_size_override("font_size", get_responsive_font_size(12))
-		patron_header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		opportunities_container.add_child(patron_header)
-
-		for i in range(known_patrons.size()):
-			var patron_data = known_patrons[i]
-			var patron_card = _create_opportunity_card(patron_data, "patron")
-			if patron_card:
-				opportunities_container.add_child(patron_card)
-				has_content = true
-
-	# Add trade opportunities
-	if market_prices.size() > 0:
-		var trade_header = Label.new()
-		trade_header.text = "Market Prices:"
-		trade_header.add_theme_font_size_override("font_size", get_responsive_font_size(12))
-		trade_header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
-		opportunities_container.add_child(trade_header)
-
-		var commodity_keys = market_prices.keys()
-		for i in range(commodity_keys.size()):
-			var commodity_key = commodity_keys[i]
-			var price_data = market_prices[commodity_key]
-			var trade_card = _create_opportunity_card({
-				"type": "trade",
-				"commodity": commodity_key,
-				"price": price_data.get("current", 0),
-				"trend": price_data.get("trend", "stable")
-			}, "trade")
-			if trade_card:
-				opportunities_container.add_child(trade_card)
-				has_content = true
-	else:
-		var no_market_label := Label.new()
-		no_market_label.text = "No market data available for this world"
-		no_market_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(UIColors.FONT_SIZE_SM))
-		no_market_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-		no_market_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		opportunities_container.add_child(no_market_label)
-
-	# Show placeholder if no opportunities
-	if not has_content:
-		var empty_label = Label.new()
-		empty_label.text = "No opportunities available yet"
-		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		opportunities_container.add_child(empty_label)
-
-func _display_threats(rival_threats: Array) -> void:
-	if not threats_container:
-		return
-
-	# Clear existing threats
-	var children = threats_container.get_children()
-	for i in range(children.size()):
-		children[i].queue_free()
-
-	# Add section header
-	var header = Label.new()
-	header.text = "⚠️ Known Threats"
-	header.add_theme_font_size_override("font_size", get_responsive_font_size(14))
-	header.add_theme_color_override("font_color", UIColors.COLOR_TEXT_PRIMARY)
-	threats_container.add_child(header)
-
-	# Add threat cards
-	if rival_threats.size() > 0:
-		for i in range(rival_threats.size()):
-			var threat_data = rival_threats[i]
-			var threat_card = _create_threat_card(threat_data)
-			if threat_card:
-				threats_container.add_child(threat_card)
-	else:
-		# Show placeholder if no threats
-		var empty_label = Label.new()
-		empty_label.text = "No known threats in this sector"
-		empty_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-		empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		threats_container.add_child(empty_label)
-
-func _create_opportunity_card(opportunity_data: Dictionary, opportunity_type: String) -> Control:
-	# Create opportunity card using PanelContainer
-	var opportunity_card = PanelContainer.new()
-
-	# Create VBox for multi-line content
-	var content_vbox = VBoxContainer.new()
-	opportunity_card.add_child(content_vbox)
-
-	# Create label for opportunity display
-	var opportunity_label = Label.new()
-
-	# Handle different opportunity types
-	if opportunity_type == "trade":
-		var commodity = str(opportunity_data.get("commodity", "Unknown"))
-		var price = opportunity_data.get("price", 0)
-		var trend = str(opportunity_data.get("trend", "stable"))
-		var trend_icon = "→" if trend == "stable" else ("↑" if trend == "rising" else "↓")
-		opportunity_label.text = "%s: %d credits %s" % [commodity.capitalize(), price, trend_icon]
-	else:
-		opportunity_label.text = opportunity_data.get("name", "Unknown Opportunity")
-
-	opportunity_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content_vbox.add_child(opportunity_label)
-
-	# Add description if available
-	var description = opportunity_data.get("description", "")
-	if not description.is_empty():
-		var desc_label = Label.new()
-		desc_label.text = description
-		desc_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
-		desc_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		content_vbox.add_child(desc_label)
-
-	# Apply visual styling
-	_apply_opportunity_styling(opportunity_label, opportunity_data, opportunity_type)
-
-	return opportunity_card
-
-func _apply_opportunity_styling(opportunity_card: Control, opportunity_data: Dictionary, opportunity_type: String) -> void:
-	var opportunity_level = opportunity_data.get("level", "normal")
-	var risk_level = opportunity_data.get("risk", "low")
-
-	# Color coding based on opportunity type and risk
-	match opportunity_type:
-		"patron":
-			opportunity_card.add_theme_color_override("font_color", UIColors.SUCCESS_COLOR)
-		"trade":
-			opportunity_card.add_theme_color_override("font_color", UIColors.INFO_COLOR)
-		_:
-			opportunity_card.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
-
-	# Additional styling for high-risk opportunities
-	if risk_level == "high":
-		opportunity_card.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
-
-func _create_threat_card(threat_data: Dictionary) -> Control:
-	# Create threat card using PanelContainer
-	var threat_card = PanelContainer.new()
-
-	# Create VBox for multi-line content
-	var content_vbox = VBoxContainer.new()
-	threat_card.add_child(content_vbox)
-
-	# Create label for threat display
-	var threat_label = Label.new()
-	threat_label.text = threat_data.get("name", "Unknown Threat")
-	threat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	content_vbox.add_child(threat_label)
-
-	# Add description if available
-	var description = threat_data.get("description", "")
-	if not description.is_empty():
-		var desc_label = Label.new()
-		desc_label.text = description
-		desc_label.add_theme_font_size_override("font_size", get_responsive_font_size(11))
-		desc_label.add_theme_color_override("font_color", UIColors.COLOR_TEXT_MUTED)
-		desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		content_vbox.add_child(desc_label)
-
-	# Apply visual styling
-	_apply_threat_styling(threat_label, threat_data)
-
-	return threat_card
-
-func _apply_threat_styling(threat_card: Control, threat_data: Dictionary) -> void:
-	var threat_level = threat_data.get("level", "low")
-	var threat_type = threat_data.get("type", "unknown")
-
-	# Color coding based on threat level
-	match threat_level:
-		"critical":
-			threat_card.add_theme_color_override("font_color", UIColors.DANGER_COLOR)
-		"high":
-			threat_card.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
-		"medium":
-			threat_card.add_theme_color_override("font_color", UIColors.INFO_COLOR)
-		_:
-			threat_card.add_theme_color_override("font_color", UIColors.NEUTRAL_COLOR)
-
-func _show_unexplored_world_placeholder(world_name: String) -> void:
-	if world_name_label:
-		world_name_label.text = "World: %s (Unexplored)" % world_name
-		world_name_label.add_theme_color_override("font_color", UIColors.WARNING_COLOR)
-	
-	if world_summary:
-		world_summary.text = "This world has not been explored yet. Send a mission to discover its secrets."
-
 func _update_world_summary() -> void:
-	if not world_summary:
-		return
-	
-	# Use DataValidator for safe access to world data — key is "name", not "planet_name"
-	var world_name = DataValidator.safe_get_string(current_world_data, "name", "Unknown World")
-	var tech_level = DataValidator.safe_get_int(current_world_data, "tech_level", 3)
-	var opportunities_count = world_opportunities.size()
-	var threats_count = world_threats.size()
-	
-	# Update summary with contextual information
-	world_summary.text = "World: %s | Tech Level %d | %d Opportunities, %d Threats" % [
-		world_name, tech_level, opportunities_count, threats_count
-	]
+	if world_summary:
+		world_summary.text = _world_summary_text()
+
+func _world_summary_text() -> String:
+	return "World: %s" % DataValidator.safe_get_string(current_world_data, "name", "Unknown World")
 
 func _get_campaign_turn_safe() -> int:
 	## Turn number for world generation. During CREATION this is 0: the starting
@@ -1071,9 +640,6 @@ func _get_campaign_turn_safe() -> int:
 	## STARTING world as discovered on turn 1 — including the ones whose docblocks
 	## promise 0. The Galaxy Log's starting-world anchor is min(discovered_on_turn),
 	## so it survived only by insertion order rather than by being correct.
-	##
-	## Danger level is unaffected: _calculate_danger_level uses
-	## floor(campaign_turn / 5), and floor(0/5) == floor(1/5) == 0.
 	var campaign_ui = owner if owner != null else get_parent().get_parent()
 	if campaign_ui and campaign_ui.has_method("get_coordinator"):
 		var coordinator = campaign_ui.get_coordinator()
@@ -1082,11 +648,21 @@ func _get_campaign_turn_safe() -> int:
 			return int(state.get("campaign_turn", 0))
 	return 0  # Creation time: the campaign has not played a turn yet.
 
-## Cached name table data from world_options.json
-static var _name_data: Dictionary = {}
-static var _name_data_loaded: bool = false
+## Cached name table data from world_options.json.
+##
+## Per INSTANCE, not static. As `static var`s these made the process fault at
+## EXIT (0xC0000005) whenever this scene had been loaded: the test passed,
+## gdUnit4 printed "Exit code: 0", and Godot then crashed in teardown after
+## reporting ~190 GDScripts still in use. Measured 2026-10-30 on a one-line
+## suite that only load()s WorldInfoPanel.tscn: crash at HEAD and at 6d27ea10c
+## (so it predates the suite that found it), rc=0 with these two lines made
+## instance members and nothing else changed. Loading the .gd alone, or the
+## base scene alone, did not crash; the base scene THEN this script did. One
+## panel exists per wizard visit, so re-reading the file per instance is free.
+var _name_data: Dictionary = {}
+var _name_data_loaded: bool = false
 
-static func _ensure_name_data() -> void:
+func _ensure_name_data() -> void:
 	if _name_data_loaded:
 		return
 	_name_data_loaded = true
@@ -1121,54 +697,10 @@ func _generate_canonical_world_name(world_type: String) -> String:
 	var roman := ["I", "II", "III", "IV", "V", "VI"]
 	return _pick_d100(world_names) + " " + roman[randi_range(0, 5)]
 
-func _determine_government_type(world_data: Dictionary) -> String:
-	## Determine government type based on world traits and danger level
-	var traits = world_data.get("traits", [])
-	var danger_level = world_data.get("danger_level", 2)
-	
-	if "military_base" in traits or danger_level >= 4:
-		return "Military Occupation"
-	elif "corporate_world" in traits or "industrial_hub" in traits:
-		return "Corporate Control"
-	elif "trade_center" in traits or "free_port" in traits:
-		return "Trade Federation"
-	elif "frontier_world" in traits:
-		return "Colonial Administration"
-	elif "pirate_haven" in traits:
-		return "Anarchic"
-	else:
-		return "Independent Colony"
-
-func _determine_tech_level(world_data: Dictionary) -> int:
-	## Determine tech level based on world type and traits
-	var traits = world_data.get("traits", [])
-	var world_type = world_data.get("type", "")
-	
-	var base_tech = 3  # Standard tech level
-	
-	if "research_outpost" in traits:
-		base_tech += 2
-	elif "industrial_hub" in traits:
-		base_tech += 1
-	elif "frontier_world" in traits:
-		base_tech -= 1
-	
-	# Adjust for world type
-	match world_type:
-		"urban":
-			base_tech += 1
-		"barren", "desert":
-			base_tech -= 1
-	
-	return clamp(base_tech, 1, 6)
-
 func _on_world_generated_from_generator(world_data: Dictionary) -> void:
 	## Handle world generated from WorldGenerator or fallback template
 	current_world_data = world_data
 	_display_world_data(world_data)
-
-	# Populate world_opportunities and world_threats arrays from generated data
-	_populate_opportunities_and_threats_from_world_data(world_data)
 
 	# Mark world as generated
 	is_world_generated = true
@@ -1214,129 +746,6 @@ func _send_world_data_to_coordinator(world_data: Dictionary) -> void:
 	# Emit world_updated signal for CampaignCreationUI
 	world_updated.emit(world_data)
 
-## Signal handlers
-func _on_world_discovered(world_data: Dictionary) -> void:
-	current_world_data = world_data
-	update_world_display(world_data.get("name", "Unknown World"))
-
-func _on_location_explored(location_name: String, discoveries: Array) -> void:
-	# Update world data with new discoveries
-	var discovered_locations = current_world_data.get("discovered_locations", [])
-	if location_name not in discovered_locations:
-		discovered_locations.append(location_name)
-		current_world_data["discovered_locations"] = discovered_locations
-	
-	# Update display
-	update_world_display(current_world_data.get("name", "Unknown World"))
-
-func _on_patron_encountered(patron_data: Dictionary) -> void:
-	# Add new patron to opportunities
-	world_opportunities.append(patron_data)
-	_display_opportunities(current_world_data.get("known_patrons", []), current_world_data.get("market_prices", {}))
-
-func _on_rival_threat_identified(threat_data: Dictionary) -> void:
-	# Add new threat to threats list
-	world_threats.append(threat_data)
-	_display_threats(current_world_data.get("rival_threats", []))
-
-func _on_trade_opportunity_identified(opportunity: Dictionary) -> void:
-	# Add new trade opportunity
-	world_opportunities.append(opportunity)
-	_display_opportunities(current_world_data.get("known_patrons", []), current_world_data.get("market_prices", {}))
-
-func _on_opportunity_card_selected(card_data: Dictionary) -> void:
-	selected_opportunity = card_data.get("opportunity_id", "")
-	campaign_signals.emit_safe_signal("opportunity_selected", [selected_opportunity])
-
-func _on_opportunity_action_requested(action: String, data: Variant) -> void:
-	campaign_signals.emit_safe_signal("quick_action_requested", [action, data])
-
-func _on_threat_card_selected(card_data: Dictionary) -> void:
-	var threat_id = card_data.get("threat_id", "")
-	campaign_signals.emit_safe_signal("threat_selected", [threat_id])
-
-func _on_threat_action_requested(action: String, data: Variant) -> void:
-	campaign_signals.emit_safe_signal("quick_action_requested", [action, data])
-
-## Opportunity tracking functionality
-func _setup_opportunity_tracking() -> void:
-	# Initialize opportunity tracking system
-	world_opportunities = []
-
-func get_world_opportunities() -> Array:
-	return world_opportunities
-
-func add_opportunity(opportunity_data: Dictionary) -> void:
-	world_opportunities.append(opportunity_data)
-	_display_opportunities(current_world_data.get("known_patrons", []), current_world_data.get("market_prices", {}))
-
-## Threat monitoring functionality
-func _setup_threat_monitoring() -> void:
-	# Initialize threat monitoring system
-	world_threats = []
-
-func get_world_threats() -> Array:
-	return world_threats
-
-func add_threat(threat_data: Dictionary) -> void:
-	world_threats.append(threat_data)
-	_display_threats(current_world_data.get("rival_threats", []))
-
-func _populate_opportunities_and_threats_from_world_data(world_data: Dictionary) -> void:
-	## Populate world_opportunities and world_threats arrays from generated world data.
-	## This ensures get_panel_data() returns the correct opportunities/threats for FinalPanel.
-	pass
-	## # Clear existing arrays
-	## world_opportunities.clear()
-	## world_threats.clear()
-	##
-	## # Populate opportunities from known_patrons
-	## var known_patrons = world_data.get("known_patrons", [])
-	## for patron in known_patrons:
-	## if patron is Dictionary:
-	## world_opportunities.append(patron)
-	## elif patron is String:
-	## # Legacy string format - wrap in dictionary
-	## world_opportunities.append({"name": patron, "type": "patron"})
-	##
-	## # Add market opportunities if present
-	## var market_prices = world_data.get("market_prices", {})
-	## if not market_prices.is_empty():
-	## world_opportunities.append({
-	## "name": "Local Market",
-	## "type": "trade",
-	## "description": "Trading opportunities available at local market",
-	## "market_data": market_prices
-	## })
-	##
-	## # Populate threats from rival_threats
-	## var rival_threats = world_data.get("rival_threats", [])
-	## for threat in rival_threats:
-	## if threat is Dictionary:
-	## world_threats.append(threat)
-	## elif threat is String:
-	## # Legacy string format - wrap in dictionary
-	## world_threats.append({"name": threat, "type": "rival"})
-	##
-	## print("WorldInfoPanel: Populated %d opportunities and %d threats from world data" % [world_opportunities.size(), world_threats.size()])
-	##
-	##
-
-func _generate_compact_world_summary() -> String:
-	var world_name = current_world_data.get("name", "Unknown")
-	var tech_level = current_world_data.get("tech_level", 3)
-	return "World: %s (Tech %d)" % [world_name, tech_level]
-
-func _generate_detailed_world_summary() -> String:
-	var world_name = current_world_data.get("name", "Unknown World")
-	var tech_level = current_world_data.get("tech_level", 3)
-	var government_type = current_world_data.get("government_type", "Unknown")
-	var opportunities_count = world_opportunities.size()
-	var threats_count = world_threats.size()
-	return "World Status: %s | %s Government | Tech Level %d | %d Opportunities, %d Threats" % [
-		world_name, government_type, tech_level, opportunities_count, threats_count
-	]
-
 func validate_panel() -> bool:
 	# World must be generated and confirmed to proceed
 	var is_valid: bool = is_world_generated and is_world_confirmed and not current_world_data.is_empty()
@@ -1358,29 +767,17 @@ func validate_panel() -> bool:
 
 func get_panel_data() -> Dictionary:
 	## Return complete world data for campaign
-	var panel_data = {
+	return {
 		"world": current_world_data,
-		"opportunities": world_opportunities,
-		"threats": world_threats,
-		"selected_opportunity": selected_opportunity,
-		"is_complete": is_world_confirmed
+		"is_complete": is_world_confirmed,
+		"metadata": {
+			"generated_at": Time.get_unix_time_from_system(),
+			"world_name": current_world_data.get("name", "Unknown"),
+		},
 	}
-	
-	# Add metadata
-	panel_data["metadata"] = {
-		"generated_at": Time.get_unix_time_from_system(),
-		"world_name": current_world_data.get("name", "Unknown"),
-		"danger_level": current_world_data.get("danger_level", 0),
-		"tech_level": current_world_data.get("tech_level", 0)
-	}
-	
-	return panel_data
 
 func reset_panel() -> void:
 	current_world_data = {}
-	world_opportunities = []
-	world_threats = []
-	selected_opportunity = ""
 	
 	# Clear UI elements
 	if world_name_label:
@@ -1400,14 +797,6 @@ func restore_panel_data(data: Dictionary) -> void:
 		current_world_data = data.current_world.duplicate()
 	elif data.has("world") and data.world is Dictionary:
 		current_world_data = data.world.duplicate()
-
-	# Restore opportunities
-	if data.has("opportunities") and data.opportunities is Array:
-		world_opportunities = data.opportunities.duplicate()
-
-	# Restore threats
-	if data.has("threats") and data.threats is Array:
-		world_threats = data.threats.duplicate()
 
 	# Restore state flags
 	if data.has("is_complete"):
@@ -1438,8 +827,6 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 	# provide_initial_state_to_panel() overwrite it. The display and button states
 	# are already correct from _auto_generate_if_needed().
 	if is_world_generated and not current_world_data.is_empty() and current_world_data.has("name"):
-		# Still update generation parameters from campaign data (crew size, etc.)
-		_adjust_world_generation_parameters(state_data.duplicate())
 		return
 
 	# Store campaign data for world generation
@@ -1467,373 +854,6 @@ func _on_campaign_state_updated(state_data: Dictionary) -> void:
 			_update_validation_state()
 			return
 	
-	# Always adjust world generation parameters based on campaign data
-	_adjust_world_generation_parameters(campaign_data)
-	
-	# Update danger modifier display if we have crew data
-	if campaign_data.has("crew"):
-		var crew_data = campaign_data.get("crew", {})
-		var crew_size = crew_data.get("members", []).size()
-		var captain_data = campaign_data.get("captain", {})
-		var captain_background = str(captain_data.get("background", ""))
-
-		var danger_modifier = _calculate_danger_level(crew_size, captain_background)
-
-func _generate_world_from_campaign_data(campaign_data: Dictionary) -> void:
-	## Generate world based on accumulated campaign data from previous panels
-	
-	# Get campaign details
-	var campaign_config = campaign_data.get("campaign_config", {})
-	var crew_data = campaign_data.get("crew", {})
-	var captain_data = campaign_data.get("captain", {})
-	var ship_data = campaign_data.get("ship", {})
-	
-	# Create world name from campaign
-	var campaign_name = campaign_config.get("campaign_name", "Unknown Campaign")
-	var world_name = campaign_name + " Prime"
-	
-	# Determine world characteristics based on campaign data
-	var crew_size = crew_data.get("members", []).size()
-	var captain_background = str(captain_data.get("background", ""))
-	var ship_type = str(ship_data.get("type", ""))
-
-	# Generate appropriate world type and danger level
-	var world_type = _determine_world_type_from_campaign(captain_background, ship_type)
-	var danger_level = _calculate_danger_level(crew_size, captain_background)
-	var tech_level = _determine_tech_level_from_campaign(campaign_data)
-	
-	# Trait-based world (Core Rules); world_type is an internal creation-flavor seed only.
-	var generated_traits := _generate_world_traits(world_type, danger_level)
-	var type_label := _derive_world_type_label(generated_traits)
-
-	# Create world data
-	var world_data = {
-		"name": world_name,
-		"planet_name": world_name,
-		"type": type_label.get("id", "standard"),
-		"type_name": type_label.get("name", "Standard World"),
-		"danger_level": danger_level,
-		"tech_level": tech_level,
-		"government_type": _determine_government_type_from_campaign(world_type, danger_level),
-		"traits": generated_traits,
-		"locations": _generate_starting_locations(world_type, tech_level),
-		"special_features": _generate_special_features(captain_background, crew_size),
-		"known_patrons": _generate_starting_patrons(world_type, tech_level),
-		"market_prices": _generate_market_prices(tech_level),
-		"rival_threats": _generate_starting_threats(danger_level, world_type)
-	}
-	
-	# Apply generated world
-	current_world_data = world_data
-	_display_world_data(world_data)
-
-	# Populate world_opportunities and world_threats arrays from generated data
-	# This ensures get_panel_data() returns the generated patrons/threats
-	_populate_opportunities_and_threats_from_world_data(world_data)
-
-	# Send to coordinator
-	_send_world_data_to_coordinator(world_data)
-
-
-func _adjust_world_generation_parameters(campaign_data: Dictionary) -> void:
-	## Adjust world generator parameters based on campaign data
-	if not world_generator:
-		return
-	
-	var crew_data = campaign_data.get("crew", {})
-	var captain_data = campaign_data.get("captain", {})
-	
-	# Adjust danger based on crew size
-	var crew_size = crew_data.get("members", []).size()
-	var danger_modifier = clamp(5 - crew_size, 0, 2)  # Smaller crews = higher danger
-	
-	# Adjust based on captain background
-	var captain_background = str(captain_data.get("background", ""))
-	if captain_background in ["military", "veteran"]:
-		danger_modifier = max(0, danger_modifier - 1)  # Military reduces danger
-	elif captain_background in ["academic", "diplomat"]:
-		danger_modifier += 1  # Non-combat backgrounds increase danger
-	
-	# Apply adjustments if world generator supports them
-	if world_generator.has_method("set_danger_level_modifier"):
-		world_generator.set_danger_level_modifier(danger_modifier)
-
-func _determine_world_type_from_campaign(captain_background: String, ship_type: String) -> String:
-	## Determine appropriate world type based on campaign background
-	match captain_background:
-		"military", "veteran":
-			return "industrial"  # Military prefers established worlds
-		"academic", "explorer":
-			return "frontier"  # Academics like unexplored areas
-		"trader", "merchant":
-			return "temperate"  # Traders prefer populated worlds
-		"criminal", "outlaw":
-			return "desert"  # Criminals prefer remote areas
-		_:
-			return "temperate"  # Default safe choice
-
-func _calculate_danger_level(crew_size: int, captain_background: String) -> int:
-	## Calculate appropriate danger level based on crew composition
-	var base_danger = 2  # Standard danger
-	
-	# Adjust for crew size
-	if crew_size <= 2:
-		base_danger += 1  # Small crews face more danger
-	elif crew_size >= 6:
-		base_danger -= 1  # Large crews are safer
-	
-	# Adjust for captain background
-	match captain_background:
-		"military", "veteran":
-			base_danger -= 1  # Combat experience reduces danger
-		"criminal", "outlaw":
-			base_danger += 1  # Criminal background increases danger
-	
-	return clamp(base_danger, 1, 4)
-
-func _determine_tech_level_from_campaign(campaign_data: Dictionary) -> int:
-	## Determine tech level based on campaign data
-	var base_tech = 3  # Standard tech level
-	
-	var captain_data = campaign_data.get("captain", {})
-	var captain_background = str(captain_data.get("background", ""))
-
-	match captain_background:
-		"academic", "scientist":
-			base_tech += 1  # Academics prefer high-tech worlds
-		"trader", "merchant":
-			base_tech += 0  # Traders are neutral
-		"frontier", "explorer":
-			base_tech -= 1  # Frontier types prefer low-tech worlds
-	
-	return clamp(base_tech, 1, 6)
-
-## Derive a cosmetic world-type label from the world's traits (no biome concept). Uses the
-## first trait, formatted for display: e.g. "frontier_world" -> "Frontier World". Mirrors
-## WorldGenerator._derive_world_type_label (kept inline to avoid a cross-screen dependency).
-func _derive_world_type_label(traits: Array) -> Dictionary:
-	if traits.is_empty():
-		return {"id": "standard", "name": "Standard World"}
-	var first: String = str(traits[0])
-	var parts: Array[String] = []
-	for w in first.split("_"):
-		if w.length() > 0:
-			parts.append(w.substr(0, 1).to_upper() + w.substr(1))
-	return {"id": first, "name": " ".join(parts)}
-
-func _determine_government_type_from_campaign(world_type: String, danger_level: int) -> String:
-	## Determine government type based on world characteristics
-	if danger_level >= 4:
-		return "Military Occupation"
-	elif world_type == "industrial":
-		return "Corporate Control"
-	elif world_type == "temperate":
-		return "Trade Federation"
-	elif world_type == "frontier":
-		return "Colonial Administration"
-	else:
-		return "Independent Colony"
-
-func _generate_world_traits(world_type: String, danger_level: int) -> Array[String]:
-	## Generate appropriate world traits
-	var traits: Array[String] = []
-	
-	match world_type:
-		"temperate":
-			traits.append_array(["trade_center", "established_colony"])
-		"desert":
-			traits.append_array(["harsh_conditions", "mining_world"])
-		"industrial":
-			traits.append_array(["industrial_hub", "corporate_world"])
-		"frontier":
-			traits.append_array(["frontier_world", "unexplored_regions"])
-	
-	if danger_level >= 3:
-		traits.append("high_danger")
-	
-	return traits
-
-func _generate_starting_locations(world_type: String, tech_level: int) -> Array[Dictionary]:
-	## Generate starting locations based on world characteristics
-	var locations: Array[Dictionary] = []
-	
-	# Always have a spaceport
-	locations.append({
-		"name": "Spaceport",
-		"type": "spaceport",
-		"danger_mod": 0,
-		"explored": true
-	})
-	
-	# Add locations based on world type
-	match world_type:
-		"temperate":
-			locations.append({
-				"name": "Market District",
-				"type": "commercial",
-				"danger_mod": -1,
-				"explored": false
-			})
-		"industrial":
-			locations.append({
-				"name": "Manufacturing Complex",
-				"type": "industrial",
-				"danger_mod": 1,
-				"explored": false
-			})
-		"frontier":
-			locations.append({
-				"name": "Survey Station",
-				"type": "research",
-				"danger_mod": 0,
-				"explored": false
-			})
-		"desert":
-			locations.append({
-				"name": "Mining Outpost",
-				"type": "mining",
-				"danger_mod": 2,
-				"explored": false
-			})
-	
-	return locations
-
-func _generate_special_features(captain_background: String, crew_size: int) -> Array[String]:
-	## Generate special features based on campaign characteristics
-	var features: Array[String] = []
-	
-	match captain_background:
-		"military":
-			features.append("military_contacts")
-		"trader":
-			features.append("trade_connections")
-		"academic":
-			features.append("research_opportunities")
-		"criminal":
-			features.append("underworld_contacts")
-	
-	if crew_size >= 5:
-		features.append("established_reputation")
-	
-	return features
-
-func _generate_market_prices(tech_level: int) -> Dictionary:
-	## Generate market prices based on tech level
-	var prices = {}
-
-	# Base prices modified by tech level
-	var tech_modifier = (tech_level - 3) * 0.1  # +/- 10% per tech level from 3
-
-	prices["food"] = {"current": int(10 * (1.0 + tech_modifier)), "trend": "stable"}
-	prices["equipment"] = {"current": int(25 * (1.0 - tech_modifier)), "trend": "stable"}
-	prices["fuel"] = {"current": int(15 * (1.0 + tech_modifier * 0.5)), "trend": "stable"}
-
-	return prices
-
-func _generate_starting_patrons(world_type: String, tech_level: int) -> Array[Dictionary]:
-	## Generate starting patron opportunities based on world characteristics
-	var patrons: Array[Dictionary] = []
-
-	# Corporate patron for industrial/urban worlds
-	if world_type in ["industrial", "urban", "temperate"]:
-		patrons.append({
-			"name": "Corporate Representative",
-			"type": "corporate",
-			"level": "standard",
-			"risk": "low",
-			"description": "Seeking freelancers for security and transport jobs"
-		})
-
-	# Government patron for established worlds
-	if tech_level >= 3:
-		patrons.append({
-			"name": "Colonial Administrator",
-			"type": "government",
-			"level": "standard",
-			"risk": "medium",
-			"description": "Has contracts for system defense and patrol missions"
-		})
-
-	# Trader patron for frontier/desert worlds
-	if world_type in ["frontier", "desert"]:
-		patrons.append({
-			"name": "Independent Merchant",
-			"type": "merchant",
-			"level": "standard",
-			"risk": "medium",
-			"description": "Looking for escorts and cargo haulers"
-		})
-
-	# Always at least one patron
-	if patrons.is_empty():
-		patrons.append({
-			"name": "Local Contact",
-			"type": "civilian",
-			"level": "minor",
-			"risk": "low",
-			"description": "Has odd jobs and local work available"
-		})
-
-	return patrons
-
-func _generate_starting_threats(danger_level: int, world_type: String) -> Array[Dictionary]:
-	## Generate starting threats based on danger level and world type
-	var threats: Array[Dictionary] = []
-
-	# Base threat from danger level
-	if danger_level >= 3:
-		threats.append({
-			"name": "Pirate Activity",
-			"type": "criminal",
-			"level": "high" if danger_level >= 4 else "medium",
-			"description": "Raiders operating in the sector"
-		})
-
-	# World-type specific threats
-	match world_type:
-		"desert", "volcanic":
-			threats.append({
-				"name": "Harsh Environment",
-				"type": "environmental",
-				"level": "medium",
-				"description": "Extreme conditions reduce crew recovery"
-			})
-		"frontier":
-			threats.append({
-				"name": "Unexplored Hazards",
-				"type": "environmental",
-				"level": "low",
-				"description": "Unknown dangers in uncharted regions"
-			})
-		"industrial":
-			if danger_level >= 2:
-				threats.append({
-					"name": "Corporate Rivals",
-					"type": "faction",
-					"level": "medium",
-					"description": "Competing interests may cause conflicts"
-				})
-
-	# High danger always has rival presence
-	if danger_level >= 4:
-		threats.append({
-			"name": "Rival Crew",
-			"type": "rival",
-			"level": "high",
-			"description": "An established rival operates in this area"
-		})
-
-	# Ensure at least a minor threat for flavor
-	if threats.is_empty():
-		threats.append({
-			"name": "Minor Criminal Element",
-			"type": "criminal",
-			"level": "low",
-			"description": "Petty criminals and opportunists"
-		})
-
-	return threats
-
 ## Debug Helper Methods
 
 func _log_panel_initialization_debug() -> void:
@@ -1878,7 +898,7 @@ func _sync_with_coordinator() -> void:
 			var world_state = state.get("world", {})
 			# BUG-018 FIX: Only treat as valid world data if it has a non-empty name.
 			# The coordinator initializes world with empty-string defaults (name="",
-			# government_type="", etc.) — a non-empty dict but NOT real world data.
+			# type="", etc.) — a non-empty dict but NOT real world data.
 			var world_name = world_state.get("name", "") if world_state is Dictionary else ""
 			if world_state is Dictionary and not world_state.is_empty() and world_name != "":
 				current_world_data = world_state
@@ -1922,27 +942,3 @@ func sync_with_coordinator() -> void:
 		current_world_data = world_data
 		_display_world_data(world_data)
 	
-
-func _generate_default_world() -> void:
-	## Generate a default world when no campaign data is available
-	
-	# Use the starter-friendly template
-	var default_world = WORLD_TEMPLATES["starter_friendly"].duplicate(true)
-	
-	# Add some randomization
-	var world_names = ["Haven Station", "Frontier Post", "New Horizon", "Liberty Station", "Echo Base"]
-	default_world["name"] = world_names[randi() % world_names.size()]
-	
-	# Apply the world data
-	current_world_data = default_world
-	_display_world_data(default_world)
-	
-	# Update coordinator
-	if coordinator and coordinator.has_method("update_world_state"):
-		coordinator.update_world_state(default_world)
-
-
-func _debug_button_state() -> void:
-	## Debug function to verify button creation and state (output removed for release)
-	pass
-

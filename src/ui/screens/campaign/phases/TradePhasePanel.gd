@@ -433,7 +433,7 @@ func _on_buy_button_pressed() -> void:
 
 	var item_type: String = selected_market_item.get("type", "")
 	if item_type in ["component", "component_mod"]:
-		# Ship parts → tag as component (Compendium p.29)
+		# Ship parts → tag as component (Compendium p.27, New Ship Parts)
 		item_copy["is_ship_component"] = true
 		var routed := false
 		var gsm = get_node_or_null("/root/GameStateManager")

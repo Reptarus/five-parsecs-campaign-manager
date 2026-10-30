@@ -452,6 +452,8 @@ func deserialize(data: Dictionary) -> void:
 # ── Dice Helper ─────────────────────────────────────────────────────
 
 func _roll_d6(context: String) -> int:
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		return dice_manager.roll_dice(context, "D6")
+	# The injected die is the DiceManager autoload, which has roll_d6() and no
+	# roll_dice(): probing for roll_dice() left every roll here raw and unforceable.
+	if dice_manager and dice_manager.has_method("roll_d6"):
+		return dice_manager.roll_d6(context)
 	return randi_range(1, 6)

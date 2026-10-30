@@ -232,9 +232,10 @@ func test_only_one_faction_job_check_is_made_per_turn() -> void:
 		for o in offers:
 			# "Faction jobs are treated as a Patron job, but do NOT roll for
 			# Danger Pay or Benefits."
+			# The Faction says who is asking; JobOfferComponent rolls the job on the
+			# Patron tables without those two rolls (test_faction_jobs.gd).
 			assert_str(str(o.get("mission_source", ""))).is_equal("faction")
-			assert_bool(o.get("skip_danger_pay", false)).is_true()
-			assert_bool(o.get("skip_benefits", false)).is_true()
+			assert_bool(o.has("rewards")).is_false()
 
 
 ## The fabricated default is gone: 8-16 factions across eight "categories"

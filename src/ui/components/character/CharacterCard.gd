@@ -99,6 +99,9 @@ func _ready() -> void:
 
 func _get_enum_string(value, enum_name: String) -> String:
 	## Convert a potentially-int enum value to a display string
+	if enum_name == "Background":
+		# The book's name (Core Rules p.25) from the one owner, not a capitalised key.
+		return GlobalEnums.get_background_display_name(value, "None")
 	if value is String:
 		return value.capitalize() if value else "None"
 	if value is int:

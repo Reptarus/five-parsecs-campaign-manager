@@ -182,7 +182,7 @@ func validate_job_structure(job: Dictionary) -> bool:
 	"""Validate job offer has all required fields (Core Rules p.78-80)"""
 	var required_fields = [
 		"id", "patron", "objective", "enemy_type",
-		"danger_level", "pay", "location"
+		"danger_pay", "pay", "location"
 	]
 
 	for field in required_fields:
@@ -190,11 +190,8 @@ func validate_job_structure(job: Dictionary) -> bool:
 			push_error("WorldPhaseTestHelper: Job missing required field: %s" % field)
 			return false
 
-	# Validate ranges
-	if job["danger_level"] < 1 or job["danger_level"] > 3:
-		push_error("WorldPhaseTestHelper: Invalid danger_level: %d (must be 1-3)" % job["danger_level"])
-		return false
-
+	# Validate ranges. A job has no "danger level" in either book; the field was
+	# the job generator's invention and was removed 2026-10-29.
 	if job["pay"] < 0:
 		push_error("WorldPhaseTestHelper: Invalid pay: %d (must be >= 0)" % job["pay"])
 		return false

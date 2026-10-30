@@ -446,14 +446,18 @@ func _count_stat_improvements(character: Resource) -> int:
 
 ## Roll dice for advancement
 func _roll_dice(context: String, pattern: String) -> int:
-	## Roll dice using the dice system
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		return dice_manager.roll_dice(context, pattern)
-	else:
-		match pattern:
-			"D6": return randi_range(1, 6)
-			"D10": return randi_range(1, 10)
-			_: return randi_range(1, 6)
+	## Through DiceManager. It has roll_d6()/roll_d10() and no roll_dice(), so the old
+	## probe for roll_dice() was permanently false. Nothing injects dice_manager, so
+	## fall back to the autoload (a RefCounted reaches the tree through the main loop).
+	var dm: Object = dice_manager
+	if dm == null:
+		var tree := Engine.get_main_loop() as SceneTree
+		if tree and tree.root:
+			dm = tree.root.get_node_or_null("/root/DiceManager")
+	var method: String = "roll_d10" if pattern == "D10" else "roll_d6"
+	if dm and dm.has_method(method):
+		return int(dm.call(method, context))
+	return randi_range(1, 10) if pattern == "D10" else randi_range(1, 6)
 
 ## Bot Stat Upgrade System — Core Rules p.123:
 ## "Bot characters may install upgrades to any ability score by paying credits

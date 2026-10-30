@@ -409,12 +409,6 @@ func _process_turn_rollover() -> void:
 		else:
 			campaign.story_points = sp_sys.get_current_points() # lint:ignore — no GSM fallback
 
-	# --- Planet Temporary Effects Expiry ---
-	# Decrement temporary planet effects each turn
-	var planet_mgr = get_node_or_null("/root/PlanetDataManager")
-	if planet_mgr and planet_mgr.has_method("process_turn_effects"):
-		planet_mgr.process_turn_effects(turn_number)
-
 	# --- Unity Agent: Call in a Favor (Core Rules p.20) ---
 	_process_unity_agent_favor(campaign)
 
@@ -633,6 +627,11 @@ func _process_character_event_effects(campaign: Resource) -> void:
 			var effects: Array = member.get("status_effects", [])
 			for i in range(effects.size() - 1, -1, -1):
 				var eff: Dictionary = effects[i]
+				# A Character Event's "next campaign turn" starts AFTER the rollover that
+				# opens it (see CharacterEventEffects._apply_event_effect()).
+				if bool(eff.get("skip_first_rollover", false)):
+					eff.erase("skip_first_rollover")
+					continue
 				if "duration" in eff:
 					eff["duration"] -= 1
 					if eff["duration"] <= 0:
@@ -653,7 +652,12 @@ func _on_character_event_expired(member: Variant, effect: Dictionary, campaign: 
 	match effect_type:
 		"unavailable":
 			# Business Elsewhere return: award pre-rolled XP + log loot instruction
-			var xp: int = effect.get("return_xp", randi_range(1, 6))
+			# The XP is rolled when the event fires; an effect saved without it rolls
+			# now, through DiceManager (the old default rolled a raw die every time).
+			var xp: int = int(effect.get("return_xp", 0))
+			if not effect.has("return_xp"):
+				var dm_xp = get_node_or_null("/root/DiceManager")
+				xp = int(dm_xp.roll_d6("Business Elsewhere XP")) if dm_xp else randi_range(1, 6)
 			if member is Resource and "experience" in member:
 				member.experience += xp
 			elif member is Dictionary:
@@ -751,10 +755,10 @@ func _process_unity_agent_favor(campaign: Resource) -> void:
 		if trait_lost:
 			continue
 
-		var die1: int = randi_range(1, 6)
-		var die2: int = randi_range(1, 6)
-		var roll: int = die1 + die2
 		var char_name: String = _get_member_name(member)
+		var dm_ua = get_node_or_null("/root/DiceManager")
+		var roll: int = int(dm_ua.roll_2d6("Unity Agent favor (Core Rules p.20): " + char_name)) \
+			if dm_ua else randi_range(1, 6) + randi_range(1, 6)
 
 		if roll >= 10:
 			# Success: player chooses — remove Rival, gain Quest Rumor, or gain Patron

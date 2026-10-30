@@ -344,7 +344,12 @@ func _use_rainy_day_fund(context: Dictionary) -> Dictionary:
 	if dice_system != null and dice_system.has_method("roll"):
 		roll = dice_system.roll(1, 6) + 5
 	else:
-		roll = (randi() % 6) + 1 + 5
+		# Through DiceManager so the 1D6 reaches the history and the QA forcing seam.
+		var tree := Engine.get_main_loop() as SceneTree
+		var dm: Node = tree.root.get_node_or_null("/root/DiceManager") \
+			if tree and tree.root else null
+		roll = (int(dm.roll_d6("Rainy Day Fund (Core Rules p.67)")) if dm \
+			else randi_range(1, 6)) + 5
 
 	return {
 		"success": true,

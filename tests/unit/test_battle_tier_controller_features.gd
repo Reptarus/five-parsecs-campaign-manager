@@ -3,7 +3,7 @@ extends GdUnitTestSuite
 
 ## Unit tests for BattleTierController - Components & Feature Flags
 ##
-## Tests cumulative component enablement (5/12/14 per tier),
+## Tests cumulative component enablement (5/12/13 per tier),
 ## is_component_enabled() queries, and feature flag accuracy.
 
 const BattleTierControllerClass = preload("res://src/core/battle/BattleTierController.gd")
@@ -33,11 +33,14 @@ func test_components_assisted_count_12() -> void:
 	var components := controller.get_enabled_components()
 	assert_int(components.size()).is_equal(12)
 
-func test_components_full_oracle_count_14() -> void:
-	## FULL_ORACLE tier should enable exactly 14 components
+func test_components_full_oracle_count_13() -> void:
+	## FULL_ORACLE tier enables exactly 13 components. It was 14 until 2026-10-29,
+	## when EnemyGenerationWizard was deleted: TacticalBattleUI built one for every
+	## Full Oracle battle and no screen ever showed it.
 	controller.set_tier(FPCM_BattleTierController.TrackingTier.FULL_ORACLE, true)
 	var components := controller.get_enabled_components()
-	assert_int(components.size()).is_equal(14)
+	assert_int(components.size()).is_equal(13)
+	assert_bool(&"EnemyGenerationWizard" in components).is_false()
 
 # =====================================================
 # CUMULATIVE INCLUSION TESTS

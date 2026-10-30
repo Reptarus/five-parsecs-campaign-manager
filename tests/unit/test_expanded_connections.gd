@@ -9,8 +9,10 @@ extends GdUnitTestSuite
 ## roll_connection_subtable() behind a correct EXPANDED_CONNECTIONS gate. None of
 ## the three was called from anywhere.
 ##
-## (src/core/character/connections/CharacterConnections.gd is a DIFFERENT system
-## — creation-time starting contacts. The chapter trace conflated the two.)
+## (Creation-time starting contacts are a DIFFERENT system, owned today by
+## CharacterCreator._roll_and_store_creation_bonuses() in
+## src/core/character/Generation/CharacterCreator.gd; the old
+## CharacterConnections.gd was deleted. The chapter trace conflated the two.)
 ##
 ## gdUnit4 v6.0.3 compatible.
 

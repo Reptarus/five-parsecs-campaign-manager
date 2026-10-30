@@ -245,25 +245,6 @@ var is_dead: bool:
 		elif status == "DEAD":
 			status = "ACTIVE"
 
-# Equipment compatibility: GameStateManager expects weapons/items arrays
-var weapons: Array:
-	get:
-		var result: Array = []
-		for item_name in equipment:
-			var lower = item_name.to_lower()
-			if "weapon" in lower or "rifle" in lower or "pistol" in lower or "blade" in lower or "gun" in lower:
-				result.append(item_name)
-		return result
-
-var items: Array:
-	get:
-		var result: Array = []
-		for item_name in equipment:
-			var lower = item_name.to_lower()
-			if not ("weapon" in lower or "rifle" in lower or "pistol" in lower or "blade" in lower or "gun" in lower):
-				result.append(item_name)
-		return result
-
 var current_recovery_turns: int:
 	get:
 		if injuries.is_empty():
@@ -780,200 +761,6 @@ func get_effective_speed() -> int:
 
 #endregion
 
-# Character Generation - Direct static methods replace CharacterManager
-static func generate_character(background_type: String = "") -> Character:
-	## Production-ready character generation with comprehensive validation
-	@warning_ignore("untyped_declaration")
-	var _Self = load("res://src/core/character/Character.gd")
-	var character = _Self.new()
-	
-	# Safe random generation using Framework Bible patterns
-	character.name = _generate_name()
-	character.background = background_type if not background_type.is_empty() else _generate_background()
-	character.motivation = _generate_motivation()
-	
-	# Generate stats with proper bounds checking
-	character.combat = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.reactions = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.toughness = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.savvy = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.tech = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 1)
-	character.speed = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 4)
-	character.move = character.speed  # Keep move and speed in sync (speed is canonical)
-	character.luck = SafeTypeConverter.safe_int(_roll_dice_safe(1, 6), 0)
-	
-	# Initial equipment and state
-	character.credits = SafeTypeConverter.safe_int(_roll_dice_safe(2, 6) * 10, 20)
-	@warning_ignore("unsafe_call_argument")
-	character.equipment = _generate_starting_equipment(character.background)
-	character.created_at = Time.get_datetime_string_from_system()
-	
-	pass # Character generated
-	return character
-
-static func generate_crew_members(count: int) -> Array[Character]:
-	## Generate multiple crew members for initial crew creation
-	var crew: Array[Character] = []
-	count = SafeTypeConverter.safe_int(count, 4)  # Default to 4 crew members
-	
-	for i in range(count):
-		@warning_ignore("untyped_declaration")
-		var member = generate_character()
-		crew.append(member)
-	
-	return crew
-
-static func create_captain_from_crew(crew_member: Character) -> Character:
-	## Promote crew member to captain with appropriate bonuses
-	if crew_member == null:
-		push_error("Cannot create captain from null crew member")
-		return generate_character()  # Fallback
-	
-	crew_member.is_captain = true
-	# Captain gets slight stat bonus
-	crew_member.combat = min(crew_member.combat + 1, 6)
-	crew_member.reactions = min(crew_member.reactions + 1, 6)
-	
-	return crew_member
-
-# Safe dice rolling with fallback for headless mode
-static func _roll_dice_safe(num_dice: int, sides: int) -> int:
-	## Safe dice rolling with DiceManager fallback
-	if Engine.has_singleton("DiceManager"):
-		@warning_ignore("untyped_declaration")
-		var dice_manager = Engine.get_singleton("DiceManager")
-		if dice_manager and dice_manager.has_method("roll_dice"):
-			@warning_ignore("unsafe_method_access")
-			return dice_manager.roll_dice(num_dice, sides)
-	
-	# Fallback for headless mode or missing DiceManager
-	@warning_ignore("untyped_declaration")
-	var total = 0
-	for i in range(num_dice):
-		total += randi_range(1, sides)
-	return total
-
-# Private generation methods - all logic consolidated here
-static func _generate_name(existing_names: Array = [], species: String = "human") -> String:
-	# DLC: Use compendium species-specific names for non-human origins
-	if species.to_lower() != "human" and species.to_lower() != "":
-		var CompendiumWorldOpts = preload("res://src/data/compendium_world_options.gd")
-		var comp_name: String = CompendiumWorldOpts.generate_name(species)
-		if not comp_name.is_empty() and comp_name not in existing_names:
-			return comp_name
-	# Expanded first names (30 names) - diverse, sci-fi appropriate
-	@warning_ignore("untyped_declaration")
-	var first_names = [
-		# Original 8
-		"Alex", "Morgan", "River", "Casey", "Taylor", "Jordan", "Avery", "Riley",
-		# Added 22 more diverse names
-		"Sam", "Blake", "Quinn", "Drew", "Kai", "Nova", "Zara", "Rex",
-		"Sky", "Vale", "Ash", "Sage", "Jax", "Luna", "Max", "Rae",
-		"Phoenix", "Storm", "Ember", "Finn", "Iris", "Leo", "Mira", "Orion",
-		"Piper", "Raven", "Soren", "Tara", "Vega", "Winter"
-	]
-	
-	# Expanded last names (50 names) - using Five Parsecs JSON data
-	@warning_ignore("untyped_declaration")
-	var last_names = [
-		# Original 8
-		"Smith", "Chen", "Garcia", "Okafor", "Johansson", "Singh", "Kowalski", "Martinez",
-		# From colony names (NameGenerationTables.json)
-		"Ingram", "Larsen", "Greenway", "Mustaine", "Kevill", "Duplantier", 
-		"Sattler", "Hetfield", "Friden", "Ryan", "Gossow", "Parkes", "Hegg",
-		"Dickinson", "Shelton", "Scalzi", "Lindberg", "Willet", "Halford",
-		"Baker", "Lee", "Cavalera", "Plant", "Nasic", "Bryntse",
-		# From world names (NameGenerationTables.json) 
-		"Samsonov", "Foch", "Pershing", "Cadorna", "Monash", "Mackensen",
-		"Falkenhayn", "Byng", "Lanrezac", "Allenby", "Gough", "Currie",
-		"Danilov", "Joffre", "Petain", "Brusilov", "Fuller", "Birdwood"
-	]
-	
-	# Try to generate unique name (up to 20 attempts)
-	@warning_ignore("untyped_declaration")
-	var attempts = 0
-	@warning_ignore("untyped_declaration", "shadowed_variable")
-	var name = ""
-	
-	while attempts < 20:
-		@warning_ignore("unsafe_call_argument", "untyped_declaration")
-		var first = SafeTypeConverter.safe_array_get(first_names, randi() % first_names.size(), "Unknown")
-		@warning_ignore("unsafe_call_argument", "untyped_declaration")
-		var last = SafeTypeConverter.safe_array_get(last_names, randi() % last_names.size(), "Spacer")
-		name = "%s %s" % [first, last]
-		
-		# Check if name is unique
-		if not name in existing_names:
-			return name
-		
-		attempts += 1
-	
-	# Fallback: add number suffix if still duplicate after 20 attempts
-	return name + " " + str(randi() % 100 + 1)
-
-static func _generate_background() -> String:
-	## Generate background via d100 roll (Core Rules pp.24-25)
-	var roll: int = randi() % 100 + 1
-	# D100 background table — exact ranges from book
-	var table: Array = [
-		[4, "Peaceful, High-Tech Colony"], [9, "Giant, Overcrowded City"],
-		[13, "Low-Tech Colony"], [17, "Mining Colony"],
-		[21, "Military Brat"], [25, "Space Station"],
-		[29, "Military Outpost"], [34, "Drifter"],
-		[39, "Lower Megacity Class"], [42, "Wealthy Merchant Family"],
-		[46, "Frontier Gang"], [49, "Religious Cult"],
-		[52, "War-Torn Hell-Hole"], [55, "Tech Guild"],
-		[59, "Subjugated Colony"], [64, "Long-Term Space Mission"],
-		[68, "Research Outpost"], [72, "Primitive World"],
-		[76, "Orphan Utility Program"], [80, "Isolationist Enclave"],
-		[84, "Comfortable Megacity"], [89, "Industrial World"],
-		[93, "Bureaucrat"], [97, "Wasteland Nomads"],
-		[100, "Alien Culture"],
-	]
-	for entry in table:
-		if roll <= entry[0]:
-			return entry[1]
-	return "Drifter"
-
-static func _generate_motivation() -> String:
-	## Generate motivation via d100 roll (Core Rules p.26)
-	var roll: int = randi() % 100 + 1
-	var table: Array = [
-		[8, "Wealth"], [14, "Fame"], [19, "Glory"],
-		[26, "Survival"], [32, "Escape"], [39, "Adventure"],
-		[44, "Truth"], [49, "Technology"], [56, "Discovery"],
-		[63, "Loyalty"], [69, "Revenge"], [74, "Romance"],
-		[79, "Faith"], [84, "Political"], [90, "Power"],
-		[95, "Order"], [100, "Freedom"],
-	]
-	for entry in table:
-		if roll <= entry[0]:
-			return entry[1]
-	return "Survival"
-
-@warning_ignore("shadowed_variable")
-static func _generate_starting_equipment(background: String) -> Array[String]:
-	## Generate starting equipment based on character background
-	## Starting rolls are per Core Rules pp.24-25
-	@warning_ignore("shadowed_variable")
-	var equipment: Array[String] = []
-	equipment.append("Basic Kit")
-	# Backgrounds that grant starting rolls
-	var bg_lower: String = background.to_lower()
-	if "low-tech" in bg_lower or "lower megacity" in bg_lower \
-		or "primitive" in bg_lower or "wasteland" in bg_lower:
-		equipment.append("Low-tech Weapon")
-	elif "war-torn" in bg_lower:
-		equipment.append("Military Weapon")
-	elif "tech guild" in bg_lower or "alien culture" in bg_lower:
-		equipment.append("High-tech Weapon")
-	elif "space station" in bg_lower or "drifter" in bg_lower \
-		or "industrial" in bg_lower:
-		equipment.append("Gear")
-	elif "subjugated" in bg_lower or "research" in bg_lower:
-		equipment.append("Gadget")
-	return equipment
-
 # Validation methods
 func is_valid() -> bool:
 	## Validate character data integrity
@@ -1220,6 +1007,11 @@ func process_status_effect_turn() -> Array[Dictionary]:
 	var expired: Array[Dictionary] = []
 	for i in range(status_effects.size() - 1, -1, -1):
 		var effect: Dictionary = status_effects[i]
+		# A Character Event's "next campaign turn" starts AFTER the rollover that
+		# opens it (see CharacterEventEffects._apply_event_effect()).
+		if bool(effect.get("skip_first_rollover", false)):
+			effect.erase("skip_first_rollover")
+			continue
 		if "duration" in effect:
 			effect["duration"] -= 1
 			if effect["duration"] <= 0:

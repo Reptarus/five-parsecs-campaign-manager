@@ -901,9 +901,10 @@ static func apply_transfer_rewards(
 		summary_parts.append("%d cr prepaid on debt" % prepaid)
 	var rival_name: String = str(safe_char.get("add_rival", ""))
 	if not rival_name.is_empty() and "rivals" in campaign and campaign.rivals is Array:
-		campaign.rivals.append({
-			"name": rival_name, "type": "rival", "source": "planetfall_independence_lost"
-		})
+		# Planetfall pp.165-166: the Enforcers or Bounty Hunters keep their own type. It
+		# read "rival", which no enemy table has, so p.92 could not pin the type.
+		campaign.rivals.append(load("res://src/core/campaign/RivalContact.gd").make(
+			"planetfall_independence_lost", rival_name))
 		summary_parts.append("+Rival (%s)" % rival_name)
 	if safe_char.get("gains_psionic", false):
 		summary_parts.append("+Psionic")  # rides on the character into the roster

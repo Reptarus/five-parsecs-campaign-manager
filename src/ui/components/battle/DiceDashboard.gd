@@ -82,11 +82,16 @@ func _execute_roll(dice_type: String) -> int:
 	## Execute dice roll using DiceSystem or fallback RNG
 	var result: int = 0
 
-	# Try DiceSystem first
-	if dice_system and dice_system.has_method("roll_dice"):
-		var context = context_input.text if context_input else ""
-		result = dice_system.roll_dice(context, dice_type)
-		return result
+	# Through DiceManager (TacticalBattleUI hands it in), so the roll reaches the
+	# history and the QA forcing seam. It has no roll_dice(): probing for one was
+	# permanently false, and every roll here fell through to the local RNG below.
+	var method: String = str({"D3": "roll_d3", "D6": "roll_d6", "2D6": "roll_2d6",
+		"D66": "roll_d66", "D100": "roll_d100"}.get(dice_type.to_upper(), ""))
+	if dice_system and not method.is_empty() and dice_system.has_method(method):
+		var context: String = context_input.text.strip_edges() if context_input else ""
+		if context.is_empty():
+			context = "Dice Dashboard %s" % dice_type.to_upper()
+		return int(dice_system.call(method, context))
 
 	# Fallback: Manual dice rolling
 	match dice_type.to_upper():

@@ -66,7 +66,6 @@ const DICE_TYPES = {
 
 # Table Names for Data Manager Access
 const TABLE_NAMES = {
-	"patron_contact": "patron_contact_table",
 	"exploration_results": "exploration_results_table",
 	"trade_opportunities": "trade_opportunities_table",
 	"crew_recruitment": "crew_recruitment_table",

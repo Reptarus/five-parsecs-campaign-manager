@@ -108,14 +108,7 @@ var unified_campaign_state: Dictionary = {
 		"name": "",
 		"type": "",
 		"type_name": "",
-		"danger_level": 1,
-		"tech_level": 3,
-		"government_type": "",
 		"traits": [],
-		"locations": [],
-		"special_features": [],
-		"opportunities": [],
-		"threats": [],
 		"is_complete": false
 	},
 	"is_complete": false
@@ -191,14 +184,7 @@ func _initialize_unified_state() -> void:
 		"name": "",
 		"type": "",
 		"type_name": "",
-		"danger_level": 1,
-		"tech_level": 3,
-		"government_type": "",
 		"traits": [],
-		"locations": [],
-		"special_features": [],
-		"opportunities": [],
-		"threats": [],
 		"is_complete": false
 	}
 	

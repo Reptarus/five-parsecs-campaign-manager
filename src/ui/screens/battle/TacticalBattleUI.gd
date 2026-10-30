@@ -1893,10 +1893,16 @@ func _on_quick_dice_pressed(count: int, sides: int, label: String) -> void:
 	var dice_mgr = get_node_or_null("/root/DiceManager")
 	var total: int = 0
 	var results: Array[int] = []
+	# One die at a time through DiceManager's typed rolls, so each reaches the history
+	# and the QA forcing seam. It has no roll_dice(): probing for one was permanently
+	# false, so this bar always rolled locally.
+	var method: String = str({3: "roll_d3", 6: "roll_d6", 8: "roll_d8", 10: "roll_d10",
+		100: "roll_d100"}.get(sides, ""))
 	for i: int in range(count):
 		var roll: int = 0
-		if dice_mgr and dice_mgr.has_method("roll_dice"):
-			roll = dice_mgr.roll_dice(1, sides)
+		var context: String = label if count == 1 else "%s: die %d" % [label, i + 1]
+		if dice_mgr and not method.is_empty() and dice_mgr.has_method(method):
+			roll = int(dice_mgr.call(method, context))
 		else:
 			roll = randi_range(1, sides)
 		results.append(roll)
@@ -2937,6 +2943,16 @@ func _build_battle_card() -> Control:
 			"%s %s" % [str(sight.get("effect", "")),
 				str(sight.get("rule", ""))],
 			UIColors.COLOR_AMBER)
+
+	# This turn's Explore bounties (Core Rules p.82), stamped with their targets by
+	# CampaignTurnController._stamp_explore_bounties().
+	for bounty in contract.get("explore_bounties", []):
+		if not (bounty is Dictionary):
+			continue
+		rows += 1
+		_battle_card_row(vbox, "$ %s: %s" % [str(bounty.get("kind", "")),
+			str(bounty.get("target", ""))],
+			"%s (Core Rules p.82)" % str(bounty.get("rule", "")), UIColors.COLOR_AMBER)
 
 	# Enemy summary
 	var e_count: int = int(ef.get("count", contract.get("enemy_count", 0)))
@@ -7417,11 +7433,12 @@ func _on_auto_resolve_battle() -> void:
 				# that is death — the casualty table never kills outright.
 				result.crew_injuries.append(oc)
 			else:
-				var death_roll: int = _roll_dice("Death Check", "D6")
-				if death_roll <= 2:
-					result.crew_casualties.append(oc)
-				else:
-					result.crew_injuries.append(oc)
+				# Core Rules p.121: "Any character that became a casualty in the battle
+				# must roll on the Injury Table." That roll decides death. This branch
+				# used to roll a D6 first and kill on 1-2, a check in neither book, so a
+				# third of downed crew died without the Injury Table roll (and without
+				# Medical School, p.125, which re-rolls it).
+				result.crew_injuries.append(oc)
 
 	if crew_casualties_count > 0:
 		_log_message("Crew casualties: %d" % crew_casualties_count, UIColors.COLOR_RED)
@@ -7526,16 +7543,6 @@ func _on_auto_resolve_battle() -> void:
 ## Utility functions
 
 ## Legacy _is_valid_position() removed — no grid-based positioning in companion
-
-func _roll_dice(context: String, pattern: String) -> int:
-	## Roll dice using the dice system
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		return dice_manager.roll_dice(context, pattern)
-	else:
-		match pattern:
-			"D6": return randi_range(1, 6)
-			"D10": return randi_range(1, 10)
-			_: return randi_range(1, 6)
 
 func _log_message(message: String, color: Color = Color.WHITE) -> void:
 	## Log a message to the unified battle log (live feed)
@@ -7788,28 +7795,20 @@ func _populate_setup_tab(mission_data) -> void:
 	# never had — objective/condition/enemy context lives in the setup
 	# sections below and the pre-battle Battle Card.)
 
-	# Section 0a: Mission Overview (pay, location, danger)
+	# Section 0a: Mission Overview (pay, location, patron)
 	var mission_dict: Dictionary = mission_data if mission_data is Dictionary else {}
 	var m_location: String = mission_dict.get("location", "")
 	var m_pay: int = mission_dict.get("pay",
 		mission_dict.get("danger_pay", 0))
-	var m_danger: int = mission_dict.get("danger_level", 0)
-	if not m_location.is_empty() or m_pay > 0 or m_danger > 0:
+	if not m_location.is_empty() or m_pay > 0:
 		_add_setup_section_header("MISSION DETAILS")
 		if not m_location.is_empty():
 			_add_setup_text(
 				"Location: %s" % m_location, UIColors.COLOR_TEXT_PRIMARY)
 		if m_pay > 0:
+			# m_pay is the Danger Pay; the p.120 base is 1D6 after the battle.
 			_add_setup_text(
-				"Pay: %d credits" % m_pay, UIColors.COLOR_EMERALD)
-		if m_danger > 0:
-			var danger_color := UIColors.COLOR_EMERALD
-			if m_danger >= 3:
-				danger_color = UIColors.COLOR_DANGER
-			elif m_danger >= 2:
-				danger_color = UIColors.COLOR_WARNING
-			_add_setup_text(
-				"Danger Level: %d" % m_danger, danger_color)
+				"Pay: 1D6 credits + %d Danger Pay" % m_pay, UIColors.COLOR_EMERALD)
 		var m_patron: String = mission_dict.get("patron", "")
 		if not m_patron.is_empty():
 			_add_setup_text(

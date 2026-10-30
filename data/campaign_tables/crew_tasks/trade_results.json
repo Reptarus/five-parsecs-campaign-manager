@@ -285,7 +285,7 @@
       "items": ["Starship Repair Parts"],
       "single_use": true, "requires_roll": true,
       "roll_info": "1D6 credits worth of Hull Point repairs",
-      "deferred_trigger": "PERSISTENT"
+      "deferred_trigger": ""
     }
   ]
 }

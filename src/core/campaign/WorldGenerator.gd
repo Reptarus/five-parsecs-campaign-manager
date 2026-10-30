@@ -1,28 +1,33 @@
 @tool
 extends Node
 
-## World Generator for Five Parsecs From Home
-## Implements world generation from rulebook (p.80-86)
+## World Generator for Five Parsecs From Home: a new world's name and its World
+## Trait (Core Rules p.72).
+##
+## New World Arrival (p.72) is four steps: Rivals follow on a 1D6 5+, Patrons stay
+## behind unless Persistent, the world needs a Freelancer License on a 1D6 5-6, and
+## then ONE World Trait from the p.72 D100 table. The first three change campaign
+## state and are resolved by NewWorldArrival and InterdictionRule. This file makes
+## the world itself.
+##
+## Until 2026-10-29 it also rolled a danger level, a tech level, a D10 government,
+## a population scale, two or three "locations" and a list of "special features",
+## all citing "p.80-86". Those pages are the Trade and Exploration tables, Job
+## Offers and the turn example. Neither book has any of those fields, and the
+## screens that printed them (creation step 6, the dashboard, the planet detail,
+## the world briefing, the Galaxy Log hex) printed invented numbers. Do not re-add.
 const GameDataManager = preload("res://src/core/managers/GameDataManager.gd")
 
 # Signal declarations
 signal world_generated(world_data: Dictionary)
-signal location_discovered(location_data: Dictionary)
 
 # Data files
-const LOCATION_TYPES_PATH = "res://data/location_types.json"
 const WORLD_TRAITS_PATH = "res://data/world_traits.json"
 const HouseRulesHelperRef = preload("res://src/core/systems/HouseRulesHelper.gd")
 
 # Loaded data
-var _location_types: Array = []
 var _world_traits: Array = []
-var _world_data: Dictionary = {}
-var _sector_data: Array[Dictionary] = []
 var _data_manager: Object
-
-# Generator settings
-var _danger_level_modifier: int = 0
 
 func _init() -> void:
 	_data_manager = GameDataManager.get_instance()
@@ -34,111 +39,35 @@ func _ready() -> void:
 
 ## Load all required data from JSON files
 func _load_data() -> void:
-	# Load location types
-	var location_data = _data_manager.load_json_file(LOCATION_TYPES_PATH)
-	if location_data and not location_data.is_empty():
-		_location_types = location_data.values()
-	else:
-		push_error("Failed to load location types data")
-	
-	# Load world traits
 	var trait_data = _data_manager.load_json_file(WORLD_TRAITS_PATH)
 	if trait_data and trait_data.has("world_traits"):
 		_world_traits = trait_data["world_traits"]
 	else:
 		push_error("Failed to load world traits data")
 
-## Generate a new world according to the rulebook
+## Generate a new world: a name and its World Trait (Core Rules p.72).
 func generate_world(campaign_turn: int = 1) -> Dictionary:
-	# Step 1: Generate planet type and basic info (rulebook p.80)
 	var planet_type = _generate_planet_type()
-	
-	# Step 2: Generate planet name
-	var planet_name = _generate_planet_name(planet_type)
-	
-	# Step 3: Determine danger level (rulebook p.80-81)
-	var danger_level = _calculate_danger_level(campaign_turn, planet_type)
-	
-	# Step 4: Generate planetary traits (rulebook p.81-82)
 	var traits = _generate_planetary_traits(planet_type)
-
 	# Cosmetic world-type label, derived from the trait-based world (NOT a biome).
 	var type_label = _derive_world_type_label(traits)
-
-	# Step 5: Generate locations (rulebook p.82-84)
-	var locations = _generate_locations(planet_type, danger_level)
-	
-	# Step 6: Determine special features
-	var special_features = _determine_special_features(planet_type, danger_level)
-	
-	# Core Rules parameters (p.80-86)
-	var tech_level: int = randi_range(1, 6)
-	var government_roll: int = randi_range(1, 10)
-	var population_scale: int = randi_range(1, 6)
-
-	var tech_name: String = "Standard"
-	if tech_level <= 2:
-		tech_name = "Low Tech"
-	elif tech_level >= 5:
-		tech_name = "High Tech"
-
-	var gov_name: String = _get_government_type(government_roll)
-
-	var pop_name: String = "Moderate"
-	if population_scale <= 2:
-		pop_name = "Sparse"
-	elif population_scale >= 5:
-		pop_name = "Dense"
-
-	# Create the world data dictionary
 	var world_data = {
 		"id": "world_" + str(Time.get_unix_time_from_system()),
-		"name": planet_name,
+		"name": _generate_planet_name(planet_type),
 		"type": type_label.get("id", "standard"),
 		"type_name": type_label.get("name", "Standard World"),
-		"danger_level": danger_level,
-		"tech_level": tech_level,
-		"tech_name": tech_name,
-		"government_type": government_roll,
-		"government_name": gov_name,
-		"population_scale": population_scale,
-		"population_name": pop_name,
 		"traits": traits,
-		"locations": locations,
-		"special_features": special_features,
 		"discovered_on_turn": campaign_turn,
-		"visited_locations": [],
-		"resources_extracted": 0,
-		"mission_count": 0,
-		"has_patron": false
 	}
-	
-	# Emit signal
 	world_generated.emit(world_data)
-	
 	return world_data
-
-## Government type from d10 roll (Core Rules p.82)
-func _get_government_type(roll: int) -> String:
-	match roll:
-		1: return "Anarchy"
-		2: return "Corporate"
-		3: return "Democracy"
-		4: return "Dictatorship"
-		5: return "Feudal"
-		6: return "Military Junta"
-		7: return "Oligarchy"
-		8: return "Technocracy"
-		9: return "Theocracy"
-		10: return "Unity Oversight"
-		_: return "Unknown"
 
 ## NOTE (2026-06-02 strict biome removal): returns a neutral stub. Five Parsecs world
 ## generation is TRAIT-BASED (Core Rules "World Traits Table"); there is NO biome "planet
 ## type" table in the Core Rulebook or Compendium (verified via PDF). planet_types.json was
 ## deleted. The cosmetic world-type LABEL is now derived from the generated traits in
 ## generate_world() via _derive_world_type_label(). This stub exists only so the downstream
-## name/danger/location generators keep their existing fallback behavior.
+## name generator keeps its fallback behavior.
 func _generate_planet_type() -> Dictionary:
 	return {"id": "standard", "name": "Standard World"}
 
@@ -164,19 +93,6 @@ func _generate_planet_name(planet_type: Dictionary) -> String:
 	var suffix = suffixes[randi() % suffixes.size()]
 	
 	return base_name + " " + suffix
-
-## Calculate danger level based on campaign turn and planet type (p.80-81)
-func _calculate_danger_level(campaign_turn: int, planet_type: Dictionary) -> int:
-	var base_danger = planet_type.get("base_danger", 2)
-	
-	# Adjust for campaign turn (increasing danger over time)
-	var turn_modifier = floor(campaign_turn / 5)
-	
-	# Apply global modifier
-	var danger_level = base_danger + turn_modifier + _danger_level_modifier
-	
-	# Clamp between 1 and 6 (as per rulebook)
-	return clamp(danger_level, 1, 6)
 
 ## Generate the world's trait (Core Rules p.72)
 func _generate_planetary_traits(planet_type: Dictionary) -> Array:
@@ -255,120 +171,6 @@ func _roll_world_trait(available_traits: Array) -> String:
 			best_distance = distance
 			best = str(entry.get("id", ""))
 	return best
-
-## Generate locations for the world (p.82-84)
-func _generate_locations(planet_type: Dictionary, danger_level: int) -> Array:
-	var locations = []
-	
-	# Determine number of locations (rulebook p.82)
-	var location_count = _determine_location_count(planet_type)
-	
-	# Generate each location
-	for _i in range(location_count):
-		# Filter location types by planet compatibility
-		var compatible_locations = []
-		for location in _location_types:
-			var compatible_planets = location.get("compatible_planets", [])
-			if compatible_planets.size() == 0 or planet_type.get("id", "") in compatible_planets:
-				compatible_locations.append(location)
-		
-		if compatible_locations.size() == 0:
-			continue
-		
-		# Select a random compatible location
-		var location_type = compatible_locations[randi() % compatible_locations.size()]
-		
-		# Generate location details
-		var location_data = {
-			"id": "loc_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000),
-			"type": location_type.get("type", ""),
-			"name": location_type.get("name", "Unknown Location"),
-			"description": location_type.get("description", ""),
-			"danger_mod": location_type.get("danger_mod", 0),
-			"resources": location_type.get("resource_value", 0) * danger_level,
-			"explored": false,
-			"special_features": _generate_location_features(location_type, danger_level)
-		}
-		
-		locations.append(location_data)
-	
-	return locations
-
-## Determine the number of locations to generate (p.82)
-func _determine_location_count(planet_type: Dictionary) -> int:
-	var base_count = planet_type.get("base_location_count", 2)
-	
-	# Roll for additional locations
-	var additional = 0
-	if randf() < 0.4: # 40% chance for extra location
-		additional = 1
-	
-	return base_count + additional
-
-## Generate special features for a location (p.83-84)
-func _generate_location_features(location_type: Dictionary, danger_level: int) -> Array:
-	var features = []
-	
-	# Check for mandatory features
-	var mandatory_features = location_type.get("mandatory_features", [])
-	for feature in mandatory_features:
-		features.append(feature)
-	
-	# Roll for special features
-	if randf() < 0.25 + (danger_level * 0.05): # Higher chance at higher danger
-		var possible_features = location_type.get("possible_features", [])
-		if possible_features.size() > 0:
-			features.append(possible_features[randi() % possible_features.size()])
-	
-	return features
-
-## Determine special features for the planet based on type and danger
-func _determine_special_features(planet_type: Dictionary, danger_level: int) -> Array:
-	var features = []
-	
-	# Add type-specific features
-	var type_features = planet_type.get("special_features", [])
-	for feature in type_features:
-		features.append(feature)
-	
-	# Add danger-specific features
-	if danger_level >= 4:
-		features.append("high_danger")
-	if danger_level >= 6:
-		features.append("extreme_danger")
-	
-	return features
-
-## Discover a location on the world
-func discover_location(world_data: Dictionary, location_index: int) -> Dictionary:
-	if not world_data.has("locations"):
-		return {}
-	
-	var locations = world_data.get("locations", [])
-	if location_index < 0 or location_index >= locations.size():
-		return {}
-	
-	var location = locations[location_index]
-	location.explored = true
-	
-	# Add to visited locations list
-	var visited = world_data.get("visited_locations", [])
-	if not location.get("id") in visited:
-		visited.append(location.get("id"))
-	world_data.visited_locations = visited
-	
-	# Emit signal
-	location_discovered.emit(location)
-	
-	return location
-
-## Set the danger level modifier for world generation
-func set_danger_level_modifier(modifier: int) -> void:
-	_danger_level_modifier = modifier
-
-## Get a list of all available location types
-func get_location_types() -> Array:
-	return _location_types.duplicate()
 
 ## Get a list of all available world traits
 func get_world_traits() -> Array:

@@ -66,7 +66,7 @@
     {
       "roll_min": 19, "roll_max": 21,
       "name": "Make a new friend",
-      "effect": "Add a new crew member to the group.",
+      "effect": "Roll up a new character and add them to the crew. If your character is Feral, the new character is also Feral.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
@@ -105,10 +105,11 @@
     {
       "roll_min": 32, "roll_max": 34,
       "name": "Got yourself noticed",
-      "effect": "You must fight a random Rival this campaign turn.",
+      "effect": "If you have Rivals, select one at random. You will have to fight them this campaign turn.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
-      "sick_bay_turns": 0, "rumor": false, "rival": true, "patron": false,
+      "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
+      "forces_rival_battle": true,
       "single_use": false, "requires_roll": false, "deferred_trigger": ""
     },
     {
@@ -124,18 +125,18 @@
     {
       "roll_min": 38, "roll_max": 40,
       "name": "Completely lost",
-      "effect": "Roll 1D6+Savvy. On a 4+, you find your way back. Otherwise, miss the battle this turn. Re-roll if you have no battles.",
+      "effect": "Roll 1D6+Savvy. On a 4+, you find your way back in time. Otherwise, miss the battle this campaign turn. Either way, roll again on this table.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
       "single_use": false, "requires_roll": true,
-      "roll_info": "1D6+Savvy, 4+: return, else miss battle",
+      "roll_info": "1D6+Savvy, 4+: return, else miss the battle; then roll again on this table",
       "deferred_trigger": ""
     },
     {
       "roll_min": 41, "roll_max": 44,
       "name": "Package delivered",
-      "effect": "Earn 3 credits upon arriving on a new world. Roll 1D6: On a 1-2, also gain a Rival and +1 story point.",
+      "effect": "When you travel to a new world, if this crew member is still in the crew, earn 3 credits and roll 1D6: on a 1-2, also gain a Rival and +1 story point.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
@@ -146,12 +147,12 @@
     {
       "roll_min": 45, "roll_max": 47,
       "name": "Tech fanatic",
-      "effect": "A random item you carry is damaged. Roll 1D6: On a 5-6, it is repaired for free. If the crew member is an Engineer, earn +2 XP instead.",
+      "effect": "Pick a damaged item of equipment and roll 1D6: on a 5-6 it is fixed for free. An Engineer instead earns +2 XP.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
       "single_use": false, "requires_roll": true,
-      "roll_info": "Random item damaged; 1D6: 5-6 free repair; Engineer: +2 XP",
+      "roll_info": "Pick a damaged item; 1D6: 5-6 free repair; Engineer: +2 XP instead",
       "deferred_trigger": ""
     },
     {
@@ -166,7 +167,7 @@
     {
       "roll_min": 51, "roll_max": 53,
       "name": "Gambling problem",
-      "effect": "You must discard 1 item carried by the crew member. Soulless ignore this result.",
+      "effect": "Discard one item from the character's equipment or the crew Stash. Soulless ignore this result.",
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
@@ -254,7 +255,8 @@
     {
       "roll_min": 83, "roll_max": 86,
       "name": "Offered a small job",
-      "effect": "If you kill a random enemy during a battle this turn, earn 2 credits.",
+      "effect": "When fighting this campaign turn, select a random enemy figure. If your crew kills them, earn 2 credits. No reward if they run away.",
+      "bounty_credits": 2,
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,
@@ -263,7 +265,8 @@
     {
       "roll_min": 87, "roll_max": 90,
       "name": "Offered a reward",
-      "effect": "If you reach a specific terrain feature during a battle this turn, earn 2 credits.",
+      "effect": "When fighting this campaign turn, select a random terrain feature. If a crew member moves into contact and spends a Combat Action, you can retrieve a package and earn 2 credits.",
+      "bounty_credits": 2,
       "credits": 0, "xp": 0, "story_points": 0,
       "items": [],
       "sick_bay_turns": 0, "rumor": false, "rival": false, "patron": false,

@@ -2029,14 +2029,8 @@ func _update_crew_loadout_display() -> void:
 			mname = member.character_name
 		elif "name" in member:
 			mname = member.name
-		var bg_val = member.background if "background" in member else 0
-		var background: String = ""
-		if bg_val is int:
-			var bg_keys: Array = GlobalEnums.Background.keys()
-			if bg_val >= 0 and bg_val < bg_keys.size():
-				background = bg_keys[bg_val].capitalize()
-		elif bg_val is String:
-			background = bg_val
+		var bg_val = member.background if "background" in member else ""
+		var background: String = GlobalEnums.get_background_display_name(bg_val, "")
 
 		if mname.is_empty():
 			continue
@@ -2048,7 +2042,7 @@ func _update_crew_loadout_display() -> void:
 	# Add ship stash section
 	if loadouts.get("Ship Stash", []).size() > 0:
 		var stash_panel = _create_character_loadout_panel(
-			"Ship Stash", "spare equipment",
+			"Ship Stash", "Spare Equipment",
 			loadouts["Ship Stash"], null)
 		crew_loadout_container.add_child(stash_panel)
 
@@ -2076,7 +2070,7 @@ func _create_character_loadout_panel(char_name: String, background: String, equi
 
 	if not background.is_empty():
 		var bg_label = Label.new()
-		bg_label.text = "(%s)" % background.capitalize()
+		bg_label.text = "(%s)" % background
 		bg_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		bg_label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		bg_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL

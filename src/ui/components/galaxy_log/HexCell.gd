@@ -10,7 +10,8 @@ extends Control
 ##
 ## Rendering:
 ##   - _draw() paints the 6-corner polygon using GalaxyHexLayout.hex_corners().
-##   - A Label child shows the planet name; danger level drives a corner pip.
+##   - A Label child shows the planet name. (A world "danger level" pip was
+##     removed 2026-10-29: neither book gives a world a danger level.)
 ##   - Hover, current, starting all change fill color via the setter-driven
 ##     queue_redraw() pattern documented in the Godot 4 custom-drawing docs.
 
@@ -29,11 +30,9 @@ const COLOR_FILL_HOVER := Color(0.22, 0.28, 0.45, 0.92)
 const COLOR_FILL_CURRENT := Color(0.18, 0.38, 0.58, 0.96)   # Cyan-tinted
 const COLOR_FILL_STARTING := Color(0.28, 0.18, 0.45, 0.94)  # Purple-tinted
 const COLOR_STROKE := Color(0.55, 0.65, 0.85, 0.9)
-const COLOR_STROKE_HIGH_DANGER := Color(0.85, 0.35, 0.35, 0.95)
 
 var planet_id: String = ""
 var planet_name: String = ""
-var danger_level: int = 1
 var visit_count: int = 1
 
 # Setter-driven queue_redraw — per Godot docs (tutorials/2d/custom_drawing_in_2d).
@@ -95,7 +94,6 @@ func setup(planet: Object, current: bool, starting: bool) -> void:
 		return
 	planet_id = str(planet.id) if "id" in planet else ""
 	planet_name = str(planet.name) if "name" in planet else "?"
-	danger_level = int(planet.danger_level) if "danger_level" in planet else 1
 	visit_count = int(planet.visit_count) if "visit_count" in planet else 1
 	is_current = current
 	is_starting = starting
@@ -117,10 +115,7 @@ func _draw() -> void:
 		fill = COLOR_FILL_STARTING
 	elif _hovered:
 		fill = COLOR_FILL_HOVER
-	# Stroke red-tinted at high danger; this is the only data-driven recolor.
 	var stroke: Color = COLOR_STROKE
-	if danger_level >= 4:
-		stroke = COLOR_STROKE_HIGH_DANGER
 	draw_colored_polygon(corners, fill)
 	# Outline by drawing the polygon edges as a closed polyline.
 	var outline_points: PackedVector2Array = corners.duplicate()
@@ -131,13 +126,6 @@ func _draw() -> void:
 	if visit_count > 1:
 		var badge_centre: Vector2 = centre + Vector2(HEX_RADIUS * 0.55, -HEX_RADIUS * 0.55)
 		draw_circle(badge_centre, 8.0, Color(0.95, 0.75, 0.25, 0.95))
-
-	# Danger pip: filled triangle in bottom-right corner, scaled with danger.
-	if danger_level >= 1:
-		var pip_centre: Vector2 = centre + Vector2(HEX_RADIUS * 0.45, HEX_RADIUS * 0.45)
-		var pip_r: float = 3.0 + float(danger_level)
-		var pip_color: Color = Color(0.95, 0.45, 0.35, 0.95) if danger_level >= 4 else Color(0.75, 0.75, 0.85, 0.85)
-		draw_circle(pip_centre, pip_r, pip_color)
 
 
 ## NOTE: there is deliberately NO _gui_input override here any more. The tap is

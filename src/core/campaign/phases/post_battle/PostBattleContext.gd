@@ -15,6 +15,7 @@ const WeaponModServiceRef = preload("res://src/core/equipment/WeaponModService.g
 ## names one of the 60 encounter-table enemies; select_enemy_for_mission()
 ## rolls the book's own p.94 "Unknown Rival" column when it does not.
 const EnemyGeneratorRef = preload("res://src/core/systems/EnemyGenerator.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
 
 # Autoload references (resolved by PostBattlePhase orchestrator in _ready())
 var dice_manager: Variant = null
@@ -52,8 +53,10 @@ func roll_2d6(context: String = "2D6 Roll") -> int:
 	return randi_range(1, 6) + randi_range(1, 6)
 
 func roll_d100(context: String = "D100 Roll") -> int:
-	if dice_manager and dice_manager.has_method("roll_dice"):
-		return dice_manager.roll_dice(1, 100, context)
+	# DiceManager has no roll_dice(): probing for it was permanently false, so the
+	# Quest Progression D100 (Compendium p.79) was always a raw roll nobody could force.
+	if dice_manager and dice_manager.has_method("roll_d100"):
+		return dice_manager.roll_d100(context)
 	return randi_range(1, 100)
 
 # --- Campaign Config Access ---
@@ -570,20 +573,15 @@ func add_rival(rival_name: String, opts: Dictionary = {}) -> String:
 	if gc == null:
 		return ""
 	var label: String = rival_name.strip_edges()
-	var resolved_type: String = _resolve_rival_type(label, opts)
-	var rival_id: String = "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
-	# Same shape as RivalPatronResolver._append_rival() - deliberately including
-	# threat_level, which has no consumer today: two producers emitting two shapes
-	# for one concept is the defect that made every display read "Unknown".
-	var rival := {
-		"id": rival_id,
-		"name": label,
-		"type": resolved_type,
-		"planet_id": str(battle_result.get("planet_id", "")),
-		"threat_level": 1,
-		"created_turn": int(battle_result.get("turn", 0)),
-		"origin": str(opts.get("origin", "campaign_event")),
-	}
+	# One producer, RivalContact, so every Rival has the shape the readers expect.
+	# Two producers emitting two shapes for one concept is what made every display
+	# read "Unknown". It also resolves the type: a named enemy type stays itself,
+	# anything else rolls the p.94 Unknown Rival column.
+	var rival: Dictionary = RivalContactRef.make(str(opts.get("origin", "campaign_event")),
+		label, {"type": str(opts.get("type", "")),
+			"planet_id": str(battle_result.get("planet_id", "")),
+			"created_turn": int(battle_result.get("turn", 0))})
+	var rival_id: String = str(rival["id"])
 	if opts.has("source_event"):
 		rival["source_event"] = str(opts["source_event"])
 	# p.126 Old Nemesis riders. Written only when the event grants them, so a
@@ -604,28 +602,6 @@ func add_rival(rival_name: String, opts: Dictionary = {}) -> String:
 		planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, rival_id)
 	return rival_id
 
-
-## Resolve a Rival's enemy TYPE without inventing one.
-##
-## Order: an explicit opts["type"] that is a real enemy type wins; else the label
-## itself if it already names one ("Enforcers" MUST stay Enforcers - the p.96
-## Cop-killer rule keys on it, and so do StoryTrackProcessor's "Corporate Hitmen"
-## and PaymentProcessor's roll_criminal_elements_name() result); else roll the p.94
-## Unknown Rival column.
-func _resolve_rival_type(label: String, opts: Dictionary) -> String:
-	var explicit: String = str(opts.get("type", "")).strip_edges()
-	if not explicit.is_empty() and EnemyGeneratorRef.is_known_enemy_type(explicit):
-		return explicit
-	if EnemyGeneratorRef.is_known_enemy_type(label):
-		return label
-	var generator = EnemyGeneratorRef.new()
-	var template: Dictionary = generator.select_enemy_for_mission("unknown_rival")
-	var rolled: String = str(template.get("name", ""))
-	if not rolled.is_empty():
-		return rolled
-	# The table failed to load. Blank is honest; a made-up type is not, and a
-	# non-empty bogus type would be honoured downstream as a battle PRESET.
-	return ""
 
 func remove_patron(patron_id: String) -> bool:
 	## Errata v1.06 (Core Rules p.119): "Failing a job you have accepted from a
@@ -665,6 +641,8 @@ func remove_patron(patron_id: String) -> bool:
 				gc["patrons"] = patrons
 			return true
 	return false
+
+const PatronContactRef = preload("res://src/core/patrons/PatronContact.gd")
 
 func _append_patron(patron: Dictionary) -> void:
 	## Append a KNOWN patron to the canonical list, idempotently. p.119 says you
@@ -715,7 +693,9 @@ func remove_random_patron() -> void:
 func add_patron(patron: Dictionary = {}) -> void:
 	## With no argument this GENERATES a new contact — correct for the campaign and
 	## character events that hand you one out of nowhere (CampaignEventEffects,
-	## CharacterEventEffects).
+	## CharacterEventEffects). The contact comes from PatronContact.make(): a p.83
+	## Patron Table roll. Until 2026-10-29 it was one of five invented names and
+	## five invented types, Persistent on a flat 1D6 4+.
 	##
 	## Post-battle Step 2 is NOT that case. Core Rules p.119: "If you succeeded in
 	## a Patron mission, you may add THE Patron to your list of contacts on this
@@ -726,39 +706,7 @@ func add_patron(patron: Dictionary = {}) -> void:
 	if not patron.is_empty():
 		_append_patron(patron)
 		return
-	var gc = _get_current_campaign()
-	if gc == null:
-		return
-	if gc is Dictionary:
-		var patrons: Array = gc.get("patrons", [])
-		var patron_types: Array = ["Corporate", "Government", "Criminal", "Private", "Mercenary"]
-		var patron_names: Array = ["The Broker", "Lady Silver", "Commander Vex", "Old Sal", "The Collector"]
-		var patron_id: String = "patron_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
-		patrons.append({
-			"id": patron_id,
-			"name": patron_names[randi() % patron_names.size()],
-			"type": patron_types[randi() % patron_types.size()],
-			"relationship": randi_range(1, 3),
-			"persistent": randi_range(1, 6) >= 4,
-			"source": "event"
-		})
-		gc["patrons"] = patrons
-		if planet_data_manager and planet_data_manager.current_planet_id != "":
-			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, patron_id)
-	elif "patrons" in gc and gc.patrons is Array:
-		var patron_types2: Array = ["Corporate", "Government", "Criminal", "Private", "Mercenary"]
-		var patron_names2: Array = ["The Broker", "Lady Silver", "Commander Vex", "Old Sal", "The Collector"]
-		var pid: String = "patron_%d_%d" % [Time.get_ticks_msec(), randi() % 1000]
-		gc.patrons.append({
-			"id": pid,
-			"name": patron_names2[randi() % patron_names2.size()],
-			"type": patron_types2[randi() % patron_types2.size()],
-			"relationship": randi_range(1, 3),
-			"persistent": randi_range(1, 6) >= 4,
-			"source": "event"
-		})
-		if planet_data_manager and planet_data_manager.current_planet_id != "":
-			planet_data_manager.add_contact_to_planet(planet_data_manager.current_planet_id, pid)
+	_append_patron(PatronContactRef.make("event"))
 
 # --- Character Mutation Helpers ---
 

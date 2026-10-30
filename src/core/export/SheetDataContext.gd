@@ -3,6 +3,7 @@ extends RefCounted
 
 ## T11-30. Presentation-only helpers shared with the journal and ship screens.
 const DisplayTextRef = preload("res://src/ui/components/common/DisplayText.gd")
+const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
 ## T11-24. EnemyGenerator owns data/enemy_types.json; the sheet reads through it
 ## rather than opening the file a second time.
 const EnemyGeneratorRef = preload("res://src/core/systems/EnemyGenerator.gd")
@@ -11,7 +12,7 @@ const EnemyGeneratorRef = preload("res://src/core/systems/EnemyGenerator.gd")
 ##
 ## WHY THIS EXISTS. The field manifests in `data/sheets/core/*.json` are hand-calibrated
 ## against the official Modiphius PNGs and describe a clean VIEW-MODEL:
-## `campaign.crew[2].weapons[0].damage`, `campaign.ship.hull_current`, `world.danger`.
+## `campaign.crew[2].weapons[0].damage`, `campaign.ship.hull_current`, `world.name`.
 ## Nothing ever built that view-model, so `SheetRenderer._resolve_source()` walked those
 ## paths against the raw `FiveParsecsCampaignCore` and found `crew_data` / `ship_data` /
 ## `danger_level` instead. Measured: **154 of 163 sources resolved to null**, i.e. the
@@ -379,10 +380,7 @@ static func _blank_weapon() -> Dictionary:
 ## duplicate row would be a second source of truth for one weapon. This also
 ## absorbs "Marksman's Rifle" vs "Marksmans Rifle" and similar apostrophe drift.
 static func _weapon_key(raw: String) -> String:
-	var out: String = raw.strip_edges().to_lower()
-	for ch in [" ", "-", "'", "’", "."]:
-		out = out.replace(ch, "")
-	return out
+	return BotUpgradeEffectsRef.weapon_key(raw)
 
 
 static func _lookup_weapon(item_name: String) -> Dictionary:
@@ -437,8 +435,6 @@ static func _build_world(world: Variant, campaign: Object = null) -> Dictionary:
 	return {
 		"name": str(w.get("name", "")),
 		"type": str(w.get("type_name", w.get("type", ""))),
-		# The planet stores danger_level; the sheet calls the field "danger".
-		"danger": int(w.get("danger_level", 0)) if w.has("danger_level") else "",
 		# Padded to the printed row count: a world with one trait must still resolve
 		# traits[1] and traits[2] to a blank box rather than null. The view-model is
 		# allowed to mirror the form here — if the sheet ever gains a fourth trait row,
@@ -481,7 +477,7 @@ static func _build_world(world: Variant, campaign: Object = null) -> Dictionary:
 ## The suite could not see it because its fixture passed a hand-built Dictionary:
 ## the same fabricated-fixture failure as the journal entry, in the adjacent
 ## function. `serialize()` emits exactly the keys addressed here (id, name,
-## type_name, danger_level, traits), so it IS the conversion — do not re-derive it.
+## type_name, traits), so it IS the conversion — do not re-derive it.
 static func _as_dictionary(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return value

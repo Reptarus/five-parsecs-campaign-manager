@@ -480,6 +480,9 @@ func _create_ship_summary_card() -> PanelContainer:
 
 func _enum_to_display(value, enum_name: String) -> String:
 	## Convert int or String enum value to a display-friendly string.
+	if enum_name == "Background":
+		# The book's name (Core Rules p.25) from the one owner, not a capitalised key.
+		return GlobalEnums.get_background_display_name(value, "")
 	if value is String:
 		return value.capitalize() if value else ""
 	if value is int:

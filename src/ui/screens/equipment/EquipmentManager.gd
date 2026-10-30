@@ -394,35 +394,6 @@ func _on_back_pressed() -> void:
 	## Handle back button press
 	SceneRouter.navigate_back()
 
-func _on_generate_equipment_pressed() -> void:
-	## Generate new equipment using tables
-	# Implement equipment generation tables
-	var dice_mgr = get_node_or_null("/root/DiceManager")
-	var new_equipment = _generate_random_equipment(dice_mgr)
-	equipment_database.append(new_equipment)
-	_refresh_equipment_display()
-	pass # New equipment generated
-
-func _generate_random_equipment(dice_mgr) -> Dictionary:
-	## Generate random equipment based on tables
-	var roll = 0
-	if dice_mgr and dice_mgr.has_method("roll_dice"):
-		roll = dice_mgr.roll_dice(1, 6)
-	else:
-		roll = randi_range(1, 6)
-	
-	match roll:
-		1, 2:
-			return {"name": "Basic Weapon", "type": "weapon", "range": 12, "shots": 1, "damage": 1, "traits": []}
-		3, 4:
-			return {"name": "Light Armor", "type": "armor", "save": 6, "traits": []}
-		5:
-			return {"name": "Tech Gadget", "type": "gadget", "traits": ["Tech"]}
-		6:
-			return {"name": "Survival Gear", "type": "gear", "traits": ["Utility"]}
-		_:
-			return {"name": "Mystery Item", "type": "gear", "traits": []}
-
 # ============================================================================
 # THE FABRICATED EQUIPMENT ECONOMY WAS DELETED HERE (2026-08-06, audit row 203).
 #

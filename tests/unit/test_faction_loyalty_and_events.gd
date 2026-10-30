@@ -316,14 +316,14 @@ func test_truce_stops_the_whole_activity_step() -> void:
 
 func test_tensions_rising_adds_one_danger_pay_and_is_spent_once() -> void:
 	_sys._apply_faction_event({"event": "Tensions rising"})
-	var mission := {"danger_pay": 0, "skip_danger_pay": true}
+	var mission := {"danger_pay": 0}
 	_sys._apply_tensions_rising(mission, true)
 	assert_int(int(mission["danger_pay"])).override_failure_message(
 		"p.115 15-19: 'Faction jobs next turn increase Danger Pay by +1 Credit'"
 	).is_equal(1)
-	assert_bool(bool(mission["skip_danger_pay"])).override_failure_message(
-		"the +1 must survive PaymentProcessor's non-patron Danger Pay zeroing"
-	).is_false()
+	assert_bool(bool(mission.get("tensions_rising_bonus", false))).override_failure_message(
+		"the rider JobOfferComponent._faction_job_offer() reads to carry the +1"
+	).is_true()
 
 
 func test_the_favour_event_needs_three_loyalty() -> void:

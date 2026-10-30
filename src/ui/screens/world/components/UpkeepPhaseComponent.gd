@@ -31,9 +31,12 @@ const InvasionFlightRef = preload("res://src/core/campaign/InvasionFlight.gd")
 const DepartureObligationRef = preload("res://src/core/world/DepartureObligation.gd")
 const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 const ShiplessSystemRef = preload("res://src/core/ship/ShiplessSystem.gd")
+const DeferredCrewEventsRef = preload("res://src/core/campaign/DeferredCrewEvents.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
+const CrewTaskComponentRef = preload(
+	"res://src/ui/screens/world/components/CrewTaskComponent.gd")
 
 # Five Parsecs dependencies
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 
 # UI Components
 @onready var upkeep_container: VBoxContainer = %UpkeepContainer
@@ -77,6 +80,8 @@ var _emergency_button: Button = null
 var _onboard_button: Button = null
 ## Starship fuel (p.79) spent against the most recent trip, for the status line.
 var _fuel_offset_last_trip: int = 0
+## What a held Military fuel cell (p.80) covered on the last jump; 0 when none was used.
+var _fuel_cell_covered_last_trip: int = 0
 var has_ship: bool = true
 const SHIP_TRAVEL_COST := 5
 ## ⚠ There is deliberately no COMMERCIAL_TRAVEL_COST_PER_CREW here any more.
@@ -311,6 +316,18 @@ func calculate_upkeep_costs() -> Dictionary:
 			"Colonist Ration Packs: Upkeep ignored this campaign turn (p.57)")
 		return results
 
+	# Core Rules p.79 Trade 29-30 "Basic supplies": "Skip Upkeep costs for one
+	# campaign turn. Single-use." Read here, spent in apply_upkeep_costs(), so
+	# showing the bill does not use them up.
+	if not DeferredCrewEventsRef.live(_campaign_progress_data(), "Basic supplies",
+			_current_campaign_turn()).is_empty():
+		results.current_credits = GameStateManager.get_credits()
+		results.can_afford = true
+		results["zone_waiver"] = (
+			"Basic supplies: Upkeep skipped this campaign turn (p.79)")
+		results["basic_supplies"] = true
+		return results
+
 	# Get current credits from campaign data
 	results.current_credits = GameStateManager.get_credits()
 	
@@ -441,6 +458,9 @@ func apply_upkeep_costs(upkeep_results: Dictionary) -> bool:
 	if success:
 		upkeep_completed = true
 		current_upkeep_data = upkeep_results
+		if bool(upkeep_results.get("basic_supplies", false)):
+			DeferredCrewEventsRef.take(_campaign_progress_data(), "Basic supplies",
+				_current_campaign_turn())
 
 		# Log ship component effects to CampaignJournal
 		var effects: Array = upkeep_results.get(
@@ -1140,8 +1160,16 @@ func _update_travel_button_text(
 	var fleeing: bool = _invasion_pending() or bool(
 		_campaign_progress_data().get("invasion_flight_pending", false))
 
+	# What the press will actually charge: a held Military fuel cell (p.80) makes the
+	# jump free and banked Fuel (p.79) offsets it, so the button must not refuse a
+	# trip the charge would allow.
+	var fuel_cell: bool = _holds_fuel_cell()
+	var banked_fuel: int = int(_campaign_progress_data().get("fuel_credits", 0))
 	if has_ship:
-		if credits >= SHIP_TRAVEL_COST:
+		if fuel_cell:
+			_travel_button.text = "Travel to New World (Military fuel cell)"
+			_travel_button.disabled = false
+		elif credits + banked_fuel >= SHIP_TRAVEL_COST:
 			_travel_button.text = (
 				"Travel to New World (%d cr)" % SHIP_TRAVEL_COST)
 			_travel_button.disabled = false
@@ -1154,7 +1182,10 @@ func _update_travel_button_text(
 			_travel_button.disabled = true
 	else:
 		var cost := ShiplessSystemRef.get_commercial_passage_cost(crew_size)
-		if ShiplessSystemRef.can_afford_passage(credits, crew_size):
+		if fuel_cell:
+			_travel_button.text = "Commercial Passage (Military fuel cell)"
+			_travel_button.disabled = false
+		elif ShiplessSystemRef.can_afford_passage(credits + banked_fuel, crew_size):
 			_travel_button.text = (
 				"Commercial Passage (%d cr)" % cost)
 			_travel_button.disabled = false
@@ -1326,6 +1357,7 @@ func _on_travel_pressed() -> void:
 	## Handle travel to new world (normal zone) — deduct cost and generate event
 	selected_zone = 0
 	_fuel_offset_last_trip = 0
+	_fuel_cell_covered_last_trip = 0
 
 	# Flee Invasion (Core Rules p.69) — resolved BEFORE anything is paid for or
 	# generated, because a failed roll means the crew does not leave at all.
@@ -1351,7 +1383,7 @@ func _on_travel_pressed() -> void:
 	# the player's choice to pay or to wait.
 	var _departure_traits: Array = _get_current_world_traits()
 	if WorldTraitEffectsClass.departure_check_required(_departure_traits):
-		var bureaucracy_roll: int = randi_range(1, 6) + randi_range(1, 6)
+		var bureaucracy_roll: int = _upkeep_2d6("World trait: Bureaucratic mess")
 		if WorldTraitEffectsClass.departure_is_blocked(
 				bureaucracy_roll, _departure_traits):
 			var bribe: int = bureaucracy_roll
@@ -1405,7 +1437,9 @@ func _on_travel_pressed() -> void:
 	var _traits: Array = _get_current_world_traits()
 	var _surcharge: int = 0
 	if WorldTraitEffectsClass.travel_surcharge_dice(_traits) != "":
-		_surcharge = randi_range(1, 3)
+		var dm_fuel := get_node_or_null("/root/DiceManager")
+		_surcharge = int(dm_fuel.roll_d3("World trait: travel surcharge")) if dm_fuel \
+			else randi_range(1, 3)
 	var _base_travel_cost: int = travel_cost
 	travel_cost = WorldTraitEffectsClass.travel_cost(
 		travel_cost, _traits, _surcharge)
@@ -1415,6 +1449,8 @@ func _on_travel_pressed() -> void:
 			_base_travel_cost, travel_cost,
 			(", 1D3 surcharge %d" % _surcharge) if _surcharge > 0 else ""]
 
+	# Before the Fuel offset, so banked fuel is not burned on a trip that costs nothing.
+	travel_cost = _apply_fuel_cell(travel_cost)
 	travel_cost = _apply_fuel_credits(travel_cost)
 
 	# p.69's two escape routes, which exist ONLY while fleeing an Invasion. On an
@@ -1441,6 +1477,8 @@ func _on_travel_pressed() -> void:
 	_travel_status_label.text = (
 		"✓ Traveling to new world (-%d cr)" % travel_cost
 		+ _trait_note
+		+ ("  [Military fuel cell: %d cr covered (p.80)]" % _fuel_cell_covered_last_trip
+			if _fuel_cell_covered_last_trip > 0 else "")
 		+ _flight_note
 		+ ("  [%d cr covered by fuel]" % _fuel_offset_last_trip
 			if _fuel_offset_last_trip > 0 else ""))
@@ -2369,6 +2407,16 @@ func _settle_departure_obligations(world_is_invaded: bool) -> void:
 			"font_color", UIColors.COLOR_AMBER)
 
 
+## Core Rules p.80 Trade 64-65 "Military fuel cell": "Zero travel costs when jumping to
+## a new planet. Single-use."
+func _apply_fuel_cell(travel_cost: int) -> int:
+	if travel_cost <= 0 or DeferredCrewEventsRef.take(_campaign_progress_data(),
+			"Military fuel cell", _current_campaign_turn()).is_empty():
+		return travel_cost
+	_fuel_cell_covered_last_trip = travel_cost
+	return 0
+
+
 func _apply_fuel_credits(travel_cost: int) -> int:
 	## Spend banked starship fuel against this trip (Core Rules p.79).
 	var pd: Dictionary = _campaign_progress_data()
@@ -3194,8 +3242,10 @@ func _generate_travel_event() -> void:
 	## Generate travel event using Five Parsecs D100 table (pp.70-71)
 	var dice_mgr := get_node_or_null("/root/DiceManager")
 	var roll: int = 0
-	if dice_mgr and dice_mgr.has_method("roll_dice"):
-		roll = dice_mgr.roll_dice("Travel Event", "D100")
+	# DiceManager has roll_d100() and no roll_dice(): probing for roll_dice() was
+	# permanently false, so the Travel Event was always a raw roll nobody could force.
+	if dice_mgr and dice_mgr.has_method("roll_d100"):
+		roll = dice_mgr.roll_d100("Travel Event (Core Rules pp.70-71)")
 	else:
 		roll = randi_range(1, 100)
 
@@ -3237,7 +3287,9 @@ func _resolve_travel_event(event: Dictionary) -> void:
 	_consume_travel_report(report)
 
 	if bool(report.get("reroll", false)):
-		var next_roll: int = randi_range(1, 100)
+		var dm := get_node_or_null("/root/DiceManager")
+		var next_roll: int = int(dm.roll_d100("Travel Event re-roll (Core Rules pp.70-71)")) \
+			if dm else randi_range(1, 100)
 		var next_event: Dictionary = _process_travel_event_roll(next_roll)
 		_display_travel_event(next_event, next_roll)
 		_resolve_travel_event(next_event)
@@ -3353,6 +3405,7 @@ func _arrive_at_new_world() -> Dictionary:
 
 	_roll_psionic_legality_for_world(campaign, new_world)
 	_check_personal_trinkets(campaign)
+	_settle_held_arrival_events(_current_planet_id_for_events())
 
 	# New World Arrival STEP 3 (Core Rules p.72): "Roll 1D6. On a 5-6 the world
 	# requires a Freelancer License to perform Patron jobs." Steps 1-2 were wired
@@ -3454,7 +3507,7 @@ func _check_personal_trinkets(campaign: Resource) -> void:
 	var found: int = 0
 	var remaining: int = trinkets
 	for _i in range(trinkets):
-		if randi_range(1, 6) + randi_range(1, 6) >= 9:
+		if _upkeep_2d6("Personal trinket") >= 9:
 			found += 1
 			remaining -= 1
 	if found <= 0:
@@ -3480,6 +3533,173 @@ func _check_personal_trinkets(campaign: Resource) -> void:
 				% found) + " — %d Loot Table roll(s) as payment (Core Rules p.121)." % found,
 			"tags": ["loot"],
 		})
+
+
+## Core Rules pp.79-81, the held crew-task results a world arrival settles.
+func _settle_held_arrival_events(planet_id: String) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	if pd.is_empty():
+		return
+	var tp: int = _current_campaign_turn()
+	# Local maps: "a Quest on this or the following world". An arrival ages it.
+	DeferredCrewEventsRef.on_arrival(pd)
+	DeferredCrewEventsRef.prune(pd, tp)
+	_settle_package_deliveries(pd, tp, planet_id)
+	_offer_trade_goods(0)
+
+
+func _holds_fuel_cell() -> bool:
+	return not DeferredCrewEventsRef.live(_campaign_progress_data(),
+		"Military fuel cell", _current_campaign_turn()).is_empty()
+
+
+func _current_planet_id_for_events() -> String:
+	var pdm: Node = get_node_or_null("/root/PlanetDataManager")
+	if pdm == null or not ("current_planet_id" in pdm):
+		return ""
+	return str(pdm.current_planet_id)
+
+
+## A 2D6 through DiceManager, so it reaches the roll history and the QA forcing seam.
+func _upkeep_2d6(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm != null and dm.has_method("roll_2d6"):
+		return int(dm.roll_2d6(context))
+	return randi_range(1, 6) + randi_range(1, 6)
+
+
+func _held_event_d6(context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager")
+	if dm != null and dm.has_method("roll_d6"):
+		return int(dm.roll_d6(context))
+	return randi() % 6 + 1
+
+
+## The crew member a held event names is still in the crew. An unnamed one counts as
+## present: the condition cannot be checked, and the book grants the reward.
+func _crew_member_present(crew_id: String) -> bool:
+	if crew_id.is_empty():
+		return true
+	for m: Variant in GameStateManager.get_crew_members():
+		if CrewTaskComponentRef.crew_key(m) == crew_id:
+			return true
+	return false
+
+
+## p.81 Explore 41-44 "Someone wants a package delivered", verbatim: "When you travel
+## to a new world, if this crew member is still in the crew, earn 3 credits and roll
+## 1D6. On 1-2, you've acquired a Rival and receive +1 story point." Settled on the
+## first arrival either way: a courier who has left took the package with them.
+func _settle_package_deliveries(pd: Dictionary, tp: int, planet_id: String) -> Array:
+	var lines: Array = []
+	for event: Variant in DeferredCrewEventsRef.take_all(pd, "Package delivered", tp):
+		if not (event is Dictionary):
+			continue
+		if not _crew_member_present(str(event.get("crew_id", ""))):
+			lines.append("Package delivery lapsed: the courier is no longer with the crew (p.81).")
+			continue
+		GameStateManager.add_credits(3)
+		var roll: int = _held_event_d6("Explore Follow-up: Package delivered")
+		if roll <= 2:
+			var rivals: Array = GameStateManager.get_rivals()
+			rivals.append(RivalContactRef.make("crew_task", "",
+				{"planet_id": planet_id, "created_turn": tp}))
+			GameStateManager.set_rivals(rivals)
+			GameStateManager.add_story_points(1)
+			lines.append("Package delivered: +3 credits. Rolled %d: you have a new Rival, and +1 story point (p.81)." % roll)
+		else:
+			lines.append("Package delivered: +3 credits. Rolled %d (p.81)." % roll)
+	for line: String in lines:
+		_report_held_event("Package delivered", line)
+	return lines
+
+
+func _report_held_event(title: String, line: String) -> void:
+	var notif: Node = get_node_or_null("/root/NotificationManager")
+	if notif and notif.has_method("show_info"):
+		notif.show_info(line)
+	var journal: Node = get_node_or_null("/root/CampaignJournal")
+	if journal and journal.has_method("create_entry"):
+		journal.create_entry({
+			"type": "event",
+			"auto_generated": true,
+			"title": title,
+			"description": line,
+		})
+
+
+## p.79 Trade 40-44 "Trade goods", verbatim: "Every time you arrive on a new planet, you
+## may roll 1D6 to see how many Credits the goods will sell for here. You can wait as
+## long as you like, but if you roll a 1, they have perished or become damaged, and are
+## now worthless." Offered once per lot per arrival; `index` is the lot being offered.
+func _offer_trade_goods(index: int) -> void:
+	var held: Array = DeferredCrewEventsRef.live(_campaign_progress_data(),
+		"Trade goods", _current_campaign_turn())
+	if index >= held.size() or not is_inside_tree():
+		return
+	var dlg := ConfirmationDialog.new()
+	dlg.title = "Trade goods"
+	dlg.dialog_text = ("You are carrying Trade goods (Core Rules p.79). Roll 1D6 to see"
+		+ " how many credits they sell for here? On a 1 they have perished and are"
+		+ " worthless. You can wait for another world.")
+	dlg.ok_button_text = "Roll 1D6"
+	dlg.cancel_button_text = "Wait"
+	add_child(dlg)
+	dlg.confirmed.connect(func() -> void: _roll_trade_goods_price(index))
+	dlg.canceled.connect(func() -> void: _offer_trade_goods(index + 1))
+	dlg.confirmed.connect(dlg.queue_free)
+	dlg.canceled.connect(dlg.queue_free)
+	dlg.popup_centered()
+
+
+## Roll the price for the lot at `index`. A 1 spends it; otherwise the player decides.
+## Returns the roll, or 0 when there is no such lot.
+func _roll_trade_goods_price(index: int) -> int:
+	var pd: Dictionary = _campaign_progress_data()
+	var tp: int = _current_campaign_turn()
+	var held: Array = DeferredCrewEventsRef.live(pd, "Trade goods", tp)
+	if index >= held.size():
+		return 0
+	var roll: int = _held_event_d6("Trade Follow-up: Trade goods")
+	if roll == 1:
+		_spend_trade_goods_lot(pd, held[index])
+		_report_held_event("Trade goods",
+			"Rolled 1: the Trade goods have perished and are worthless (p.79).")
+		_offer_trade_goods(index)
+		return roll
+	if not is_inside_tree():
+		return roll
+	var dlg := ConfirmationDialog.new()
+	dlg.title = "Trade goods"
+	dlg.dialog_text = "Rolled %d. Sell the Trade goods here for %d credits, or keep them for another world?" % [roll, roll]
+	dlg.ok_button_text = "Sell (+%d cr)" % roll
+	dlg.cancel_button_text = "Keep them"
+	add_child(dlg)
+	dlg.confirmed.connect(func() -> void: _sell_trade_goods(index, roll))
+	dlg.canceled.connect(func() -> void: _offer_trade_goods(index + 1))
+	dlg.confirmed.connect(dlg.queue_free)
+	dlg.canceled.connect(dlg.queue_free)
+	dlg.popup_centered()
+	return roll
+
+
+func _sell_trade_goods(index: int, price: int) -> void:
+	var pd: Dictionary = _campaign_progress_data()
+	var held: Array = DeferredCrewEventsRef.live(pd, "Trade goods", _current_campaign_turn())
+	if index >= held.size():
+		return
+	_spend_trade_goods_lot(pd, held[index])
+	GameStateManager.add_credits(price)
+	_report_held_event("Trade goods", "Sold the Trade goods for %d credits (p.79)." % price)
+	_offer_trade_goods(index)
+
+
+func _spend_trade_goods_lot(pd: Dictionary, lot: Dictionary) -> void:
+	var events: Array = pd.get(DeferredCrewEventsRef.KEY, [])
+	var at: int = events.find(lot)
+	if at >= 0:
+		events.remove_at(at)
+		pd[DeferredCrewEventsRef.KEY] = events
 
 
 func _roll_psionic_legality_for_world(campaign: Resource, world: Dictionary) -> void:
@@ -3706,6 +3926,7 @@ func reset_upkeep_phase() -> void:
 	chose_to_travel = false
 	_forced_invasion_mission = {}
 	_fuel_offset_last_trip = 0
+	_fuel_cell_covered_last_trip = 0
 	selected_zone = 0
 	current_upkeep_data.clear()
 	ship_data.clear()

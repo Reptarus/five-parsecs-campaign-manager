@@ -47,7 +47,6 @@ const ResolveRumorsComponent = preload("res://src/ui/screens/world/components/Re
 # Note: PurchaseItems, CampaignEvent, CharacterEvent components moved to PostBattleSequence
 
 # Five Parsecs dependencies
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const PsionicLegalityBadgeClass = preload("res://src/ui/components/world/PsionicLegalityBadge.gd")
 
 # UI Components (replaced monolith references)
@@ -914,9 +913,6 @@ func _setup_initial_state() -> void:
 	_update_ui_display()
 	_show_current_step()
 
-	# Check for deferred events at start of turn
-	check_deferred_events("NEXT_TURN")
-
 ## The campaign turn `world_phase_data` was last built for. -1 = never built.
 ## Used by initialize_world_phase() to re-fetch exactly once per turn; see the
 ## comment there for what a stale aggregate costs.
@@ -1082,9 +1078,6 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	for _k in world_data:
 		world_phase_data[_k] = world_data[_k]
 
-	# Generate world event for current planet
-	_generate_turn_world_event()
-
 	# DLC: Check Fringe World Strife (Compendium pp.148-151)
 	_check_compendium_world_strife()
 
@@ -1127,8 +1120,8 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	# / Protect / Isolationists / 7cr resumed to "Objective: Unknown / Pay: 0". The
 	# giveaway was the world's Current Event changing across the resume ("A supply
 	# glut drops market prices by 20%" -> "Nothing notable happens this turn"), which
-	# only _generate_turn_world_event() (:946) does — proving THIS function ran after
-	# the restore.
+	# only _generate_turn_world_event() (:946, deleted 2026-10-29 with its invented
+	# table) did — proving THIS function ran after the restore.
 	#
 	# Two earlier fixes ordered the restore against the other two callers of
 	# `initialize_job_offers()` and both still failed on device, because this third
@@ -1136,62 +1129,11 @@ func initialize_world_phase(ship: Dictionary, crew: Array, world_data: Dictionar
 	_restore_job_offers_from_checkpoint()
 	_show_current_step()
 
-## The turn a world event was last rolled for, keyed by planet. -1 = never.
-var _world_event_rolled: Dictionary = {}
-
-
-func _generate_turn_world_event() -> void:
-	## Roll a world event for the current planet — ONCE per turn, per planet.
-	##
-	## T4-02: this used to re-roll on every call, and `PlanetDataManager
-	## .generate_world_event()` is not a pure query — it rolls a D6 and calls
-	## `add_world_event()`, MUTATING the planet's persistent state. The caller then
-	## discarded the return value (`if not event.is_empty(): pass`), which is what
-	## made it look harmless.
-	##
-	## So the world's Current Event changed every time this ran: four different
-	## values were observed inside one campaign turn on device. That is not
-	## cosmetic — the rolled row carries a live modifier the rules use (Civil Unrest
-	## is -1 to ALL crew tasks, Labor Shortage is +1 to recruitment, Market Surge is
-	## a 20% price change), so the penalty a player planned their turn around could
-	## be a different one by the time they resolved it.
-	##
-	## Keyed by planet as well as turn: travelling mid-turn arrives at a DIFFERENT
-	## world, and that world is entitled to its own event on the same turn.
-	##
-	## T10-10, measured on the tablet 2026-09-04: the guard below used to be
-	## `_world_event_rolled` ALONE — a plain instance Dictionary. That holds within
-	## one process and is empty in the next, so after a restart the guard failed
-	## open and this rolled a second event for the same turn on the same world.
-	## Observed: the save on disk held "Worker shortages make recruitment easier
-	## (+1)" while the screen showed "Pirate raids increase local danger level", and
-	## `grep 'Pirate raids' <save>` found nothing. Same family as the battle
-	## checkpoint (T10-06): state that has to outlive the process, kept only in RAM.
-	##
-	## The authority is now the PERSISTED world_events array, which serializes with
-	## the campaign. `_world_event_rolled` stays as a same-frame fast path only, and
-	## must never be the only thing consulted.
-	var pdm = get_node_or_null("/root/PlanetDataManager")
-	if not pdm or not pdm.has_method("generate_world_event"):
-		return
-	var planet_id: String = ""
-	if pdm.has_method("get") and "current_planet_id" in pdm:
-		planet_id = pdm.current_planet_id
-	elif world_phase_data.has("planet_id"):
-		planet_id = world_phase_data.get("planet_id", "")
-	if planet_id.is_empty():
-		return
-
-	var turn := _current_campaign_turn()
-	if int(_world_event_rolled.get(planet_id, -1)) == turn:
-		return
-	if pdm.has_method("has_world_event_for_turn") \
-			and pdm.has_world_event_for_turn(planet_id, turn):
-		# Already rolled for this world this turn, in this session or a previous one.
-		_world_event_rolled[planet_id] = turn
-		return
-	_world_event_rolled[planet_id] = turn
-	pdm.generate_world_event(planet_id, turn)
+## No per-turn "world event" (removed 2026-10-29). It rolled a D6 on a table that is
+## in neither book (Market Surge, Labor Shortage, Pirate Activity, Trade Boom, Civil
+## Unrest, Quiet Period), and the modifier each row promised had no consumer. Two
+## fixes (T4-02, T10-10) made it persist correctly before anyone checked it against
+## the page. The world's live rules are its World Traits (WorldTraitEffects).
 
 func _check_compendium_world_strife() -> void:
 	## Compendium p.148 arrival roll: "when arriving on a new world, roll 1D6.
@@ -2300,24 +2242,6 @@ func _complete_world_phase() -> void:
 	# which resets to UPKEEP).
 	phase_completed.emit(world_phase_results)
 
-func _progress_data_of(campaign: Variant) -> Dictionary:
-	## The campaign's progress_data, for BOTH campaign shapes.
-	##
-	## Returned BY REFERENCE, deliberately: callers mutate it in place (consuming
-	## a deferred event, for instance) and expect that to reach the campaign.
-	## Returns an empty throwaway when there is no progress_data to speak of, so
-	## callers can `.get()` safely — check `.is_empty()` before writing.
-	if campaign == null:
-		return {}
-	if campaign is Dictionary:
-		var d: Dictionary = campaign
-		if not d.has("progress_data") or not (d["progress_data"] is Dictionary):
-			d["progress_data"] = {}
-		return d["progress_data"]
-	if "progress_data" in campaign and campaign.progress_data is Dictionary:
-		return campaign.progress_data
-	return {}
-
 func _refresh_upkeep() -> void:
 	## Re-pull crew on (re-)entry so an outdated crew (e.g. a recruit added in a later
 	## step) doesn't show a stale Upkeep cost. GUARDED: never re-initialize a COMPLETED
@@ -2582,241 +2506,10 @@ func _get_battle_type_for_objective(objective: String) -> int:
 		_:
 			return 1  # Default to STANDARD — most missions are combat
 
-## Deferred Event System - Check and resolve pending events
-
-# Popup for resolving deferred events
-var deferred_event_popup: AcceptDialog = null
-var pending_deferred_events: Array = []
-var current_deferred_event_index: int = 0
-
-func check_deferred_events(trigger_type: String) -> void:
-	## Check for and display pending deferred events matching trigger type.
-	##
-	## Trigger types:
-	## - NEW_PLANET: When arriving at new planet
-	## - NEXT_TURN: At start of campaign turn (called from _setup_initial_state)
-	## - THIS_BATTLE: Before battle starts
-	## - ON_QUEST: When undertaking a quest
-	## - ON_RECRUIT: When recruiting crew
-	## - PERSISTENT: Check each planet for trade goods, spare parts
-	var game_state = get_node_or_null("/root/GameState")
-	if not game_state or not game_state.current_campaign:
-		return
-
-	var campaign = game_state.current_campaign
-	if not campaign:
-		return
-
-	# Deferred events live in progress_data["pending_events"] — that is where the
-	# producer puts them (CrewTaskComponent, when a crew task defers an effect).
-	# This read looked for a top-level `pending_events` PROPERTY, which
-	# FiveParsecsCampaignCore does not declare, so `"pending_events" in campaign`
-	# was permanently false and the Dictionary branch never applied to a Resource
-	# campaign. Deferred events therefore accumulated in the save forever and no
-	# trigger ever fired one.
-	var all_pending: Array = _progress_data_of(campaign).get("pending_events", [])
-
-	if all_pending.is_empty():
-		return
-
-	# Filter events by trigger type
-	pending_deferred_events = []
-	# `campaign_turn` is likewise not a property on the core; turns_played is the
-	# SSOT (see the data-ownership table).
-	var current_turn: int = int(_progress_data_of(campaign).get("turns_played", 0))
-	for event in all_pending:
-		if event.get("trigger_type", "") == trigger_type and not event.get("consumed", false):
-			# Check expiration
-			var expires = event.get("expires_turn", null)
-			if expires == null or current_turn <= expires:
-				pending_deferred_events.append(event)
-
-	if pending_deferred_events.is_empty():
-		return
-
-	# Show first event
-	current_deferred_event_index = 0
-	_show_deferred_event_popup()
-
-func _show_deferred_event_popup() -> void:
-	## Show popup for current deferred event
-	if current_deferred_event_index >= pending_deferred_events.size():
-		# All events processed
-		pending_deferred_events = []
-		return
-
-	var event = pending_deferred_events[current_deferred_event_index]
-
-	# Create popup if needed
-	if not deferred_event_popup:
-		deferred_event_popup = AcceptDialog.new()
-		deferred_event_popup.title = "Deferred Event"
-		deferred_event_popup.confirmed.connect(_on_deferred_event_confirmed)
-		deferred_event_popup.canceled.connect(_on_deferred_event_confirmed)  # Same behavior
-		add_child(deferred_event_popup)
-
-	# Build popup content
-	var effect = event.get("effect", {})
-	var event_name = event.get("event_name", "Unknown Event")
-	var crew_id = event.get("crew_id", "Unknown")
-
-	var content = "%s\n\n" % event_name
-	content += "Crew: %s\n" % crew_id
-	content += "Trigger: %s\n\n" % event.get("trigger_type", "")
-
-	# Show effect details
-	if effect is Dictionary:
-		content += "Effect: %s\n" % effect.get("effect", "No description")
-
-		var rewards: Array = []
-		if effect.get("credits", 0) > 0:
-			rewards.append("+%d credits" % effect.credits)
-		if effect.get("xp", 0) > 0:
-			rewards.append("+%d XP" % effect.xp)
-		if effect.get("story_points", 0) > 0:
-			rewards.append("+%d story point" % effect.story_points)
-		if effect.get("items", []).size() > 0:
-			for item in effect.items:
-				rewards.append(item)
-
-		if rewards.size() > 0:
-			content += "\nRewards: %s" % ", ".join(rewards)
-
-	deferred_event_popup.dialog_text = content
-	deferred_event_popup.popup_centered()
-
-func _on_deferred_event_confirmed() -> void:
-	## Handle deferred event confirmation - apply effects and mark consumed
-	if current_deferred_event_index >= pending_deferred_events.size():
-		return
-
-	var event = pending_deferred_events[current_deferred_event_index]
-
-	# Apply effects
-	_apply_deferred_event_effects(event)
-
-	# Mark event as consumed
-	event["consumed"] = true
-
-	# Check for single_use items to remove from pending
-	var effect = event.get("effect", {})
-	if effect is Dictionary and effect.get("single_use", false):
-		_remove_consumed_event(event)
-
-	# Move to next event
-	current_deferred_event_index += 1
-	_show_deferred_event_popup()
-
-func _apply_deferred_event_effects(event: Dictionary) -> void:
-	## Apply the effects of a deferred event to campaign state
-	var effect = event.get("effect", {})
-	if not effect is Dictionary:
-		return
-
-	var game_state = get_node_or_null("/root/GameState")
-	if not game_state:
-		return
-
-	# Apply credits
-	var credits = effect.get("credits", 0)
-	if credits != 0 and GameStateManager:
-		GameStateManager.add_credits(credits)
-
-	# Apply story points
-	var story_points = effect.get("story_points", 0)
-	if story_points > 0:
-		var campaign = game_state.current_campaign
-		if campaign is Resource and "story_points" in campaign:
-			campaign.story_points += story_points
-		elif campaign is Dictionary:
-			campaign["story_points"] = campaign.get("story_points", 0) + story_points
-
-	# Apply XP to crew member
-	var xp = effect.get("xp", 0)
-	if xp > 0:
-		var crew_id = event.get("crew_id", "")
-		var campaign = game_state.current_campaign
-		if campaign:
-			var crew = campaign.get("crew", []) if campaign is Dictionary else []
-			for character in crew:
-				var char_id = character.get("id", character.get("character_id", "")) if character is Dictionary else ""
-				if char_id == crew_id:
-					if character is Dictionary:
-						character["experience"] = character.get("experience", 0) + xp
-					break
-
-	# Handle rival generation
-	if effect.get("rival", false):
-		var campaign = game_state.current_campaign
-		if campaign:
-			# Generate new rival
-			var new_rival = {
-				"id": "rival_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-				"name": "Rival %d" % (randi() % 100 + 1),
-				"type": ["Criminal", "Corporate", "Military", "Pirate", "Cult"][randi() % 5],
-				"hostility": randi() % 3 + 3,  # 3-5 hostility
-				"resources": randi() % 3 + 1,  # 1-3 resources
-				"source": "deferred_event",
-				"created_turn": campaign.get("campaign_turn", 1) if campaign is Dictionary else 1
-			}
-			var rivals = campaign.get("rivals", []) if campaign is Dictionary else []
-			rivals.append(new_rival)
-			if campaign is Dictionary:
-				campaign["rivals"] = rivals
-
-	# Handle rumor generation
-	if effect.get("rumor", false):
-		var campaign = game_state.current_campaign
-		if campaign:
-			# Generate rumor per Core Rules p.3098-3110 (D10 for flavor)
-			var rumor_types = [
-				"An extracted data file",
-				"An extracted data file",
-				"Notebook with secret information",
-				"Notebook with secret information",
-				"Old map showing a location",
-				"Old map showing a location",
-				"A tip from a contact",
-				"A tip from a contact",
-				"An intercepted transmission",
-				"An intercepted transmission"
-			]
-			var rumor_roll = randi() % 10
-			var new_rumor = {
-				"id": "rumor_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-				"type": rumor_roll + 1,
-				"description": rumor_types[rumor_roll],
-				"source": "deferred_event",
-				"created_turn": campaign.get("campaign_turn", 1) if campaign is Dictionary else 1
-			}
-			var rumors = campaign.get("rumors", []) if campaign is Dictionary else []
-			rumors.append(new_rumor)
-			if campaign is Dictionary:
-				campaign["rumors"] = rumors
-
-func _remove_consumed_event(event: Dictionary) -> void:
-	## Remove consumed single-use event from campaign pending events
-	var game_state = get_node_or_null("/root/GameState")
-	if not game_state or not game_state.current_campaign:
-		return
-
-	var campaign = game_state.current_campaign
-	if not campaign:
-		return
-
-	var event_id = event.get("id", "")
-	if event_id == "":
-		return
-
-	# Same wrong location as the reader above: the list lives in
-	# progress_data["pending_events"], so consuming an event has to remove it
-	# from THERE or the event would fire again on the next matching trigger.
-	var pd: Dictionary = _progress_data_of(campaign)
-	if pd.is_empty():
-		return
-	var remaining: Array = (pd.get("pending_events", []) as Array).filter(
-		func(e): return e.get("id", "") != event_id)
-	pd["pending_events"] = remaining
+## The Trade and Explore results that pay off later are spent at the hooks
+## DeferredCrewEvents names. A turn-start popup here used to show the NEXT_TURN
+## ones on the first turn of a session only, apply effects whose numbers were all
+## 0, and delete them.
 
 
 # The MissionSelectionUI integration was DELETED here. All of it was dead:

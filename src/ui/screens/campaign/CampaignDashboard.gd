@@ -1253,23 +1253,6 @@ func _build_world_section(campaign) -> void:
 			)
 		)
 
-	# Danger level
-	var danger: int = wd.get("danger_level", 0)
-	if danger > 0:
-		var danger_dots := ""
-		for i in range(danger):
-			danger_dots += "●"
-		for i in range(5 - danger):
-			danger_dots += "○"
-		var dcolor: Color = COLOR_EMERALD
-		if danger >= 4:
-			dcolor = COLOR_RED
-		elif danger >= 2:
-			dcolor = COLOR_AMBER
-		right_vbox.add_child(
-			_create_info_row("Danger", danger_dots, dcolor)
-		)
-
 	# ── Enriched planet data from PlanetDataManager ──
 	var pdm = get_node_or_null("/root/PlanetDataManager")
 	if pdm and pdm.has_method("get_current_planet"):
@@ -1293,42 +1276,8 @@ func _build_world_section(campaign) -> void:
 				))
 			# No exploration bar: `exploration_progress` was a fabricated statistic
 			# (see PlanetDetailBuilder). Removed Aug 2026; do not re-add.
-			# Special features
-			if not planet.special_features.is_empty():
-				right_vbox.add_child(_create_info_row(
-					"Features",
-					", ".join(planet.special_features),
-					COLOR_PURPLE
-				))
-			# Discovered locations
-			if not planet.locations.is_empty():
-				var loc_header := Label.new()
-				loc_header.text = "Locations:"
-				loc_header.add_theme_font_size_override(
-					"font_size", ScreenChrome.font_size(FONT_SIZE_SM))
-				loc_header.add_theme_color_override(
-					"font_color", COLOR_TEXT_MUTED
-				)
-				right_vbox.add_child(loc_header)
-				for loc in planet.locations:
-					var loc_name: String = loc.get(
-						"name", "Unknown"
-					) if loc is Dictionary else str(loc)
-					right_vbox.add_child(
-						_create_info_row(
-							"  •", loc_name, COLOR_CYAN
-						)
-					)
-			# Most recent world event
-			if not planet.world_events.is_empty():
-				var recent: Dictionary = planet.world_events[-1]
-				var evt_desc: String = str(recent.get(
-					"description",
-					recent.get("type", "Event")
-				))
-				right_vbox.add_child(_create_info_row(
-					"Event", evt_desc, COLOR_AMBER
-				))
+			# No Features, Locations or Event rows: all three were invented
+			# (removed 2026-10-29, see WorldGenerator).
 
 	# ── Galactic War status (Core Rules p.126 step 14) ──
 	# Was reading GalacticWarManager.active_track_ids — a fabricated "war track"
@@ -2751,12 +2700,13 @@ func _build_contacts_panel() -> PanelContainer:
 	var p_sep := HSeparator.new()
 	p_sep.modulate = COLOR_BORDER
 	vbox.add_child(p_sep)
-	var patrons: Array = npc_tracker.get_all_patrons()
-	# Fall back to campaign data if NPCTracker has no entries
-	if patrons.is_empty():
-		var campaign = _get_campaign()
-		if campaign and "patrons" in campaign:
-			patrons = campaign.patrons if campaign.patrons is Array else []
+	# The CAMPAIGN owns its Patrons and Rivals; NPCTracker only records what happened
+	# with them. These cards listed the tracker's entries and used the campaign only
+	# when the tracker was empty, so the first job offer (which logs an interaction)
+	# replaced every real Patron with a history record named after its id.
+	var contact_campaign = _get_campaign()
+	var patrons: Array = contact_entries(contact_campaign.patrons
+		if contact_campaign and "patrons" in contact_campaign else [], npc_tracker, "patron")
 	if patrons.is_empty():
 		var empty := Label.new()
 		empty.text = "No patrons yet"
@@ -2773,12 +2723,8 @@ func _build_contacts_panel() -> PanelContainer:
 	var r_sep2 := HSeparator.new()
 	r_sep2.modulate = COLOR_BORDER
 	vbox.add_child(r_sep2)
-	var rivals: Array = npc_tracker.get_all_rivals()
-	# Fall back to campaign data if NPCTracker has no entries
-	if rivals.is_empty():
-		var campaign_r = _get_campaign()
-		if campaign_r and "rivals" in campaign_r:
-			rivals = campaign_r.rivals if campaign_r.rivals is Array else []
+	var rivals: Array = contact_entries(contact_campaign.rivals
+		if contact_campaign and "rivals" in contact_campaign else [], npc_tracker, "rival")
 	if rivals.is_empty():
 		var empty := Label.new()
 		empty.text = "No rivals yet"
@@ -2806,6 +2752,46 @@ func _build_contacts_panel() -> PanelContainer:
 			vbox.add_child(_create_location_contact_card(location))
 	return panel
 
+## One card per Patron or Rival the CAMPAIGN holds, joined to NPCTracker's history
+## by id. The campaign list is mixed (creation stores a bare name), so a String
+## becomes {"name": ...}. Only history keys come from the tracker; its own `name`
+## is the id capitalised and is never shown.
+static func contact_entries(canonical: Variant, npc_tracker: Object, npc_type: String) -> Array:
+	var out: Array = []
+	if not (canonical is Array):
+		return out
+	for item in canonical:
+		var entry: Dictionary = {}
+		if item is Dictionary:
+			entry = (item as Dictionary).duplicate()
+		elif item is String and not (item as String).is_empty():
+			entry = {"name": item}
+		else:
+			continue
+		var cid: String = str(entry.get("id", entry.get("patron_id", entry.get("rival_id", ""))))
+		if not cid.is_empty() and npc_tracker != null:
+			var tracked: Dictionary = npc_tracker.get_patron_history(cid) \
+				if npc_type == "patron" else npc_tracker.get_rival_history(cid)
+			for key in ["jobs_completed", "jobs_failed", "encounters", "victories",
+					"defeats", "history"]:
+				if tracked.has(key):
+					entry[key] = tracked[key]
+		out.append(entry)
+	return out
+
+
+## The line under a contact's name. A Patron has no relationship score in the Core
+## Rules, so the tracker's "Relationship x/5" is not shown. The tracker counts a
+## Rival's results from the Rival's side (its "victories" are your losses), so they
+## are turned round to read as the crew's.
+static func contact_info_line(npc: Dictionary, npc_type: String) -> String:
+	if npc_type == "patron":
+		return "Jobs: %d completed, %d failed" % [int(npc.get("jobs_completed", 0)),
+			int(npc.get("jobs_failed", 0))]
+	return "Fought %d times: you won %d, lost %d" % [int(npc.get("encounters", 0)),
+		int(npc.get("defeats", 0)), int(npc.get("victories", 0))]
+
+
 func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContainer:
 	var card := PanelContainer.new()
 	var card_style: String = "elevated" if npc_type == "patron" else "accent_red"
@@ -2822,21 +2808,13 @@ func _create_npc_contact_card(npc: Dictionary, npc_type: String) -> PanelContain
 	vbox.add_child(name_lbl)
 	if npc_type == "patron":
 		var info := Label.new()
-		info.text = "Relationship: %d/5 | Jobs: %d completed, %d failed" % [
-			npc.get("relationship", 0),
-			npc.get("jobs_completed", 0),
-			npc.get("jobs_failed", 0)
-		]
+		info.text = contact_info_line(npc, npc_type)
 		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)
 	else:
 		var info := Label.new()
-		info.text = "Encounters: %d (W:%d L:%d)" % [
-			npc.get("encounters", 0),
-			npc.get("victories", 0),
-			npc.get("defeats", 0)
-		]
+		info.text = contact_info_line(npc, npc_type)
 		info.add_theme_font_size_override("font_size", ScreenChrome.font_size(FONT_SIZE_SM))
 		info.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		vbox.add_child(info)

@@ -385,6 +385,111 @@ and the background display name kept in at least five copies (`src/core/characte
 `character_creation_bonuses.json`) while `GlobalEnums.get_background_display_name()` only
 capitalises the key.
 
+## Sprint 6 — results (2026-10-29/30)
+
+Every row filed above, the plan's P-rows and UX-1/2/4, and the rows found while doing
+them. The first part sits in the owner's checkpoint commit `db92676b2`; the rest is the
+Sprint 6 commit. Arms: **293 DETECTED runs** across `s6/arms_*.log`, plus SJ1, CO1 and
+CO2 in `su_5p/arms_5p.log`. One arm is UNDETECTED by design (F613-13), and one BAD
+CONTROL was re-run and DETECTED (F615-7). See Instruments for both.
+
+**The shape, again, is delivery.** Most rows were a book table that existed, with its
+result written where nothing read it: crew-task Rumors on a field the campaign does not
+have, crew-task Rivals in a history tracker, held Trade and Explore results that were
+never spent, and "next turn" Character Events that expired the turn they were written.
+The other common shape was an invented stand-in for a book table: a world's tech level and
+government, a Patron's tier, a Faction job's payment.
+
+### The rows filed by the 5PFH pass
+
+| Row | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| F6-1 world (p.72) | **A new world is a name and its World Trait.** The app also gave every world a danger level, tech level, government, population, "locations" and "special features", citing pp.80-86 (the Trade and Exploration tables and Job Offers). It also rolled a per-turn "world event" D6 whose six names appear in neither book. The modifiers those events promised were applied by nothing, yet three screens printed them, and two QA rows (T4-02, T10-10) had hardened them. All of it is gone, and old saves drop the keys on load. The Patrons screen's blank home world reads `get_planet_stats()["name"]`. | `test_world_is_its_trait.gd` (8) | W1-W8 |
+| F6-1c | **A closed island of a legacy world model, deleted.** `Location`, `GameLocation`, `GamePlanet`, `GameWorldTrait`, `WorldDataMigration` and the `PlanetCache` autoload referenced only each other. `PlanetCache`'s cache was never filled, so `PlanetDataManager._sync_to_cache` always did nothing. Also deleted: `WorldPhaseResources` (preloaded by five screens, used by none), `FiveParsecsCampaignData` (allocated by `DataManager`, never read), and the location-types and help-text JSON files in data/ (no reader). So was the test helper cleanup_resources.gd, which existed to unload `WorldDataMigration`, along with tests/test.bat, a GUT-era runner whose three targets are now all gone (the GUT addon, removed Feb 2026; fix_gut.gd; and that helper). `CampaignSignals` (one private instance, nothing ever emitted on it) went with F6-1. `project.godot` loses the autoload line and the CLAUDE.md autoload table loses its `PlanetCache` row. | orphan lint (`orphans=0`), `test_every_script_compiles` | gate |
+| F6-2 Patrons (p.83) | **One producer, `PatronContact`, replaces four invented ones.** Post-battle events made up five names and types, with Persistent on a flat 1D6 4+. `GameStateManager` made up an influence and credits profile, and both crew-task sites generated a person with an invented tier. The job board then read `patron_name` and `patron_type` where contacts carry `name` and `type`, so an offer from the crew's own Patron re-rolled its type under a stranger's name. The p.85 Opportunity mission also rolled a 2D6 "contact table" in neither book that turned it into a Patron job. Gone too: the 1-3 jobs-per-Patron tier, the invented base pay of 4, and "Danger Level" on three screens. `PatronManager`, `PatronSystem`, `PatronJobManager` and `RivalSystem` are deleted, as are 30 dead `CharacterGeneration` functions, including invented traits. | `test_patron_contact.gd` (12), `test_job_offer_component.gd` | A1-A14 (17 runs) |
+| F6-3 Raided (p.70) | The travel event rolled its dice into `base_enemy_count` and `enemy_category`, which nothing read. The battle therefore rolled the ordinary p.63 dice on whatever table the opportunity column drew, and the loss penalty and bonus Loot roll applied nowhere. Now `EnemyGenerator` rolls the p.70 dice on Criminal Elements, +1 figure (replacing `calculate_raided_enemy_count()`, which only its tests called). `BattleSetupRules` states the penalty. A loss takes all credits and the Stash, driving them off counts as the win, `LootProcessor` adds the bonus roll, and the normalizer carries `travel_event_raid`. | `test_travel_raid_delivery.gd` (12) | R1-R12 (13 runs) |
+| **F6-3b** | **BLOCKED.** p.70: the raid "is an 'out of sequence' encounter, and does not count as the main Battle stage". The app has one battle slot per turn, and `WorldPhaseController` writes the raid only into an EMPTY slot (`:2184-2188`). With a job accepted, the raid is dropped silently. With none, it takes the turn's battle. The book names a won raid's rewards (p.120 Opportunity rewards plus a bonus Loot roll). It does not say whether a turn's once-per-turn post-battle steps (Campaign Event, Character Event, Rival and Patron step) run again after it, and errata v1.06 says nothing. Reason for the block: a second battle inside one turn changes the 5PFH turn flow (shared with Alpha-1), and which steps it runs needs a ruling. Raised with the owner at the sprint boundary. | `out_of_sequence` has no reader | — |
+| F6-4, F6-6 | **Deleted** (in `db92676b2`): `EnemyGenerationWizard`, built for every FULL_ORACLE battle and never shown, since `show_enemy_generation_overlay()` had no caller. Also deleted: `EnemyGenerator`'s Resource path (`generate_enemies_for_mission`, the 70/30 `_determine_enemy_category`, `_select_from_categories`, the `_create_enemy` chain), `WeaponTableSystem.roll_enemy_weapon`, its enemy weapon tables data file and `generate_random_encounter()`. | gate 913/913 on the deletion | gate |
+| F6-5 Rivals | **One producer, `RivalContact`.** The crew-task Rival (p.79 Contraband, p.81 Pick a fight) was a "Rival N" of one of five invented types, with invented hostility and resources, handed to `NPCTracker`, a history tracker. It never reached `campaign.rivals`, so it never attacked (p.85) and never showed. Creation Rivals and Patrons came from invented type lists. p.81 "Got yourself noticed" ADDED a Rival where the book forces a fight with one you have. The K'Erin "-1 enemy the first time you meet them" was shown and applied nowhere. A K'Erin went to Sick Bay on the p.80 row they ignore, because "K'Erin" never matched the key `KERIN`. | `test_rival_contact.gd` (27) | A1-A33 (39 runs) |
+| F6-7 weapons | The battle cards matched the exact lowercase name, so a recruit's "Handgun" found no profile, while the sheet found "Hand Gun". The crew-task dialogs decided what a weapon was by keyword, missing Hyper Blaster and both grenades and counting Concealed Blade. Now there is one normalised lookup in the equipment database (pp.49-51). | `test_weapon_lookup.gd` (3) | F67-A1, A2 |
+| F6-8 backgrounds (pp.25-27) | One owner, `BackgroundDataService`, with the book's names. A background showed under five spellings, most not the book's. Widened to the creation-table write path: a rolled background, motivation and class were kept only as trait strings, so the fields stayed MILITARY / SURVIVAL / SOLDIER. The five +2 XP rows granted nothing. A recruit was rolled twice, and a recruit's rolled credits landed on its career tally, which errata v1.06 forbids. | `test_creation_table_results.gd` (6) | F68-A1-A10 |
+
+### Rows found during the sprint
+
+| Row | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| F6-9 crew-task Rumors (pp.79-81) | `_apply_rumor()` appended to `campaign.rumors`, a field the core does not have; the owner is `quest_rumors`. So every crew-task Rumor was lost, and the Information broker (p.81) charged for nothing. The p.80 Precursor second-Rumor 1D6 was a string, never rolled. Bought Rumors and weapons ignored `remove_credits()`'s refusal, and the picker had no credit cap. Data: the p.81 Arms dealer reads "any number" (was "up to 3"). | `test_crew_task_rumors.gd` (8) | R1-R8 |
+| F6-10 looted implants (p.55) | `LootProcessor` installed an implant only on a `Character` resource. A loaded campaign's crew are Dictionaries, so every looted implant on a loaded save went to the Stash. Now one rule covers both shapes, `Character.install_implant_on_member()`: species cap, one per type, Bots and Soulless refused, and Compendium p.18's psionic loss. | `test_implant_install_paths.gd` (8) | I1-I7 (with P-10) |
+| F6-11 rules help | `rules_help_text.gd` held 35 topics, and only two had a caller. Nine printed a literal `pass` line as player text, the live Crew Tasks dialog among them. The 33 dead topics and `get_short_hint()` are deleted, and the two live topics are reworded from p.76 and pp.76-78. | `test_rules_help_text.gd` (3) | K4, K5 |
+| F6-12 held Trade and Explore results (pp.79-82) | Part A: twelve rows were cached in `pending_events` and nothing spent them. A turn-start popup showed some of them once a session, applied zeros and deleted them. "I know a good deal" copied six fields of its Trade row and dropped the trigger. Starship repair parts never rolled. Every XP a table row granted was handed the row as the character and lost. `DeferredCrewEvents` now spends each row at the hook its wording names. Part B: Completely lost rolled twice and wrote a `misses_battle` nothing reads. Tech fanatic damaged and repaired nothing, and its Engineer branch tested a class the Core Rules do not have. Gambling may stake the Stash, and a Luxury trinket can be sold. Part C: the p.82 bounties (83-86, 87-90) were held and never read. The battle now names the target, the result records it, and it pays 2 credits. The bounty data had paraphrased away "No reward if they run away" and "spends a Combat Action", and both are back. Also found and fixed: the Travel gate ignored banked fuel and the fuel cell. | `test_deferred_crew_events.gd` (15), `test_explore_follow_ups.gd` (6), `test_explore_bounties.gd` (4) | F612a 27 runs, F612b 14, F612c 12 |
+| F6-13 new Rivals (p.92) | "Roll twice and pick the more interesting or appropriate" was a choice no producer offered. Three hand-built Rivals (the forged-licence Enforcers twice, and law enforcement) now go through `RivalContact.make()`, and law enforcement read `type`. | `test_rival_contact.gd`, `test_patron_rival_manager_reads_real_rivals.gd` | 12 DETECTED, F613-13 UNDETECTED by design |
+| F6-14 "next turn" Character Events (pp.128-130) | The rollover runs at the START of a turn and ticked every effect, so a duration-1 effect written post-battle expired before the turn it was for. Violence is depressing never benched anyone. Argue, Melancholy and Time to burn never bound. Business elsewhere lasted one turn, not two. Feel great expired before any injury, where p.130 binds the next injury roll. | `test_character_event_durations.gd` (6) | 10 |
+| F6-15 recruits (p.14, p.78) | `_apply_recruit()` called `create_character({})`, so every recruit was a Baseline Human. A Bot rolled tables it may not (p.15), no Strange Character could join, and a Feral's new friend was Human (p.81). Now each recruit rolls the p.14 Crew Type table. | `test_recruit_species.gd` (5) | 18 DETECTED |
+| F6-16 "receive a Quest" (p.85) | Letter from home (p.128) and a Traveler's 11-12 (p.22) each added a Rumor, where the book starts a Quest. `QuestReceipt` is now the one route, shared with the p.85 Rumors roll, and spends a held Local maps (p.79) whichever rule started the Quest. | `test_receive_a_quest.gd` (4) | 7 |
+| F6-17 Faction jobs (Compendium p.111) | The job was a dict `FactionSystem` invented: a 1-5 difficulty, Influence × 500 credits and a per-type bonus. It skipped the Patron builder, so it had no Time Frame, Hazards or Conditions, and nothing added the "1 additional standard opponent". The D6 re-rolled every time the job step was shown, so leaving and returning fished for a job. | `test_faction_jobs.gd` (5) | 10 |
+| Dice that never reached `DiceManager` | **Eighteen helpers probed `DiceManager` with `has_method("roll_dice")`, a method it does not have**, so every probe was false and the roll fell to a raw `randi`. Affected: the Quest Progression D100 (Compendium p.79), the Story Clock and Evidence D6s, the Story Marker searches, the Travel Event D100 (pp.70-71), Lay Low (errata v1.06), the Rainy Day Fund (p.67), and the battle screen's dice roller and quick dice. Three Psionics sites used `Engine.has_singleton("DiceManager")`, which is always false for an autoload. Every one now calls the typed roll. A second batch routed Faction Activity, Struggle, Vengeance and Events (Compendium pp.113-115), Fringe World Strife (p.148), the crew-task dialog's eight rolls, the Unity Agent favor (p.20), the Business Elsewhere XP, Bureaucratic mess, the fuel surcharge and the Personal trinket (p.121). The Faction vengeance Rival now goes through `RivalContact`. Each roll has a QA "Force the next roll" row. | `test_dice_reach_the_manager.gd` (12), `test_qa_scenarios.gd` (the rows) | DC-1-DC-20, DD-1-DD-16 |
+| Auto-resolve death check (p.121) | The auto-resolver rolled a D6 for each casualty and killed on 1-2 before the Injury Table, which is in neither book. p.121 sends every casualty to the Injury Table. | `test_auto_resolve_sends_every_casualty_to_the_injury_table` | DC-11 |
+| Generate Equipment | The equipment screen's "Generate Equipment" button drew from a table in neither book. The button and the generator are gone; the screen stays (see Instruments). | `test_the_shop_buttons_are_gone_from_the_scene` | DC-19, DC-20 |
+| `SafeTypeConverter` | Orphaned by this sprint's removal of the `src/core/character/Character.gd` generator, and deleted. | orphan lint | gate |
+
+### The plan's P-rows and UX rows
+
+| Row | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| P-04 Difficulty Toggles (Compendium pp.32-34) | The picker had no caller, the Expansion Features card switches only the pack, and Settings writes the no-campaign file, so no campaign could switch on any of the 12 options. It is built after Expansion Features, rebuilt when flags change, and keeps its choices. Two option names now read as on p.34. | `test_difficulty_toggles_picker.gd` (4) | P1-P4 |
+| P-08, P-09 Dramatic Weapons (Compendium pp.88-89) | `get_dramatic_effect()` served a per-weapon-type paraphrase in neither book, and is deleted with its data. The 36 stat rows match the PDF (0 mismatches), gain their printed names and the 16 trait notes, and render on the battle Cheat Sheet when Dramatic Combat is on. | `test_dramatic_weapons_reference.gd` (4) | D1-D4 |
+| P-10 Nullification surgery (Compendium p.27) | The Trade panel charged 3 credits and stashed the surgery, where nothing could install it. Buying now asks which psionic crew member with room for an implant, installs it and charges then. | `test_implant_install_paths.gd` | I6, I7 |
+| P-12, P-13 | Already done on Sep 3: the Cheat Sheet renders PvP (pp.35-38), Expanded Co-op (pp.39-41) and Game Mastering (Core Rules pp.162-171). Spot-checked against pp.163-164. | — | — |
+| P-14 Compendium p.102 injuries | The plan's framing ("two new status types") was wrong: the penalties were already wired. Four real defects. (1) `pay_medical_treatment()`, p.102's "3 Credits of medical treatment", had no product caller, so the penalties were permanent; it is now an Upkeep step. (2) An Extensive injury's deferred Sick Bay began at once and its bench outlived it, so the crew member was benched forever. (3) The post-battle chokepoint dropped `treatment_pending`, so even a paid injury kept its bench. (4) Injured arm ignored "to a minimum of -1". Every injury die is forceable. | `test_injury_treatment_paths.gd` (9) | J1-J14 |
+| P-20 muted text | `COLOR_TEXT_MUTED` #6b7280 measured 3.04-4.02:1. It is #888f9b, the darkest grey toward the secondary token that clears 4.5:1 on all five surfaces (4.51-5.97), and secondary stays brighter. `DebugScreen`'s seven BBCode hexes read the tokens. | `test_ui_color_tokens.gd` | K1-K3 |
+| UX-1 | The prep button reads "Confirm Crew & Gear", and completing it moves focus to Proceed to Battle. | `test_world_phase_proceed_handoff.gd` (2) | L-group, UX1-1-UX1-3 |
+| UX-2 | `NotificationManager` runs while the tree is paused, so a toast finishes fading with Settings open. | `test_notifications_run_while_paused.gd` | L-group, UX2-1 |
+| UX-4 | The three hand-copied mode-launch dialogs are one helper. | `test_main_menu_mode_launch.gd` | L1-L10 |
+| QA force rows | 18 rows for the rolls above: Travel Event, Quest Progression, Story Clock, Evidence Search, Patron Job Type, Lay Low, Rainy Day Fund, Unity Agent favor, Business Elsewhere XP, Bureaucratic mess, travel surcharge, Personal trinket, Faction Activity and Vengeance, Fringe World Strife arrival and Criminal Elements. The table guard reads each range out of `DiceManager.gd`. | `test_qa_scenarios.gd` (18/18) | — |
+
+### Completion check of the 5PFH pass and Sprint 5
+
+- `SalvageJobGenerator`'s four raw re-roll fallbacks were unreachable, and would have
+  replaced a forced die. They are removed (arm SJ1).
+- **A Sprint 5 gap.** `BugHuntCoopCampaign.battle_modifiers()` dropped each Factor's
+  `battle` block. The battle card therefore applied none of Patrolled, Swarming,
+  Obstructed or Hot zone, and printed the standard rule beside the sector that overrules
+  it. `test_a_coop_sectors_factors_rewrite_the_lines_they_overrule` (CO1, CO2).
+
+### CONFIRMED, observed, corrected
+
+- **Direct Quests keep held Rumors**, and a Direct Quest received while a Quest is active
+  does nothing. The book is silent on both, so the code is unchanged.
+- **Auto-resolve cannot claim an Explore bounty.** It has no in-battle actions, so a
+  bounty is spent unclaimed. This matches the existing auto-resolve design, which also
+  skips discards and recruits. Not filed.
+- **Observed for the device walk:** `PostBattleSequence._on_injury_roll` (`:2806`)
+  rolls its own display D100 while `InjuryProcessor`'s roll is the one applied, the
+  T11-19 two-path shape. Forcing "Post-Battle Injury" reaches the applied roll.
+- **Observed, pre-existing:** `test_compendium_difficulty_toggles.gd` restores in
+  `after_test` through `set_dlc_owned()`, which persists (the CLAUDE.md teardown trap).
+- **Cites corrected:** `TradePhasePanel`'s Psionic equipment p.29 to p.27, and its ship
+  parts p.29 to **p.27** (Compendium "New Ship Parts", checked against the page tail).
+  The chapter trace's Method note missed a third flag spelling, a `const FLAG :=` passed
+  to the check, and so called `DEPLOYMENT_VARIABLES` and `ELITE_ENEMIES` unread. Both are
+  read; corrected in place.
+
+### Filed for Sprint 7
+
+- **UX-0c: chapters 01-15 of the user guide carry mechanics in neither book.** They were
+  found while checking the equipment screen. Starting list:
+  - ch.10 describes armor as "1 point of damage reduction", where Core Rules p.46 makes
+    armor a Saving Throw. It also describes ammunition, a code name
+    (`LOOT_TO_IMPLANT_MAP`), and an Inventory Screen with item comparison and drag that
+    does not exist. Its Marketplace has a tech level of 0-12, rotating stock and 50% / 25%
+    sell prices, where p.125 sells at a flat 1 credit, up to 3 items.
+  - ch.2:135 says "Armor — Damage reduction".
+  - ch.9:66 prints the same code name.
+  - ch.5:122 promises a "comparison".
+
+  Equipment actually moves at the World Phase's Assign Equipment step and on Character
+  Details. Sprint 7 reads chapters 01-15 against both books and the shipped app.
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -542,6 +647,47 @@ Recorded so the next reader does not trust a green case that cannot fail.
   hid its five later cases: 4270 executed of 4275 declared. The order the case protects
   still held. The anchor is now the new read, `gsm.get_credits() < `, and arm SH5 (spending
   the voucher above the guard) is DETECTED.
+
+**Sprint 6:**
+
+- **I deleted a live screen, then restored it.** `EquipmentManager` looked unreachable:
+  `open_equipment_management()`, its router function, has no caller, and my grep for the
+  path returned nothing. The grep was wrong, because a `\b` alternation pattern missed the
+  references. `EquipmentPanel._on_manual_select_pressed` loads the screen BY PATH
+  (`:867-871`), and a catalogue suite covers it. `test_help_guide_ships` caught the deletion
+  through the screen's now-orphaned help key. The four files were restored from backup
+  (byte-identical to HEAD), and only the fabricated generator was removed. **A zero-caller
+  router function does not make a screen unreachable.** Grep the `res://` path with a
+  plain fixed-string search before deleting.
+- **The Story Track suite was green over a dead die.** Its scripted die defined
+  `roll_dice()`, the method the real `DiceManager` lacks, so the suite fed values through a
+  path the product never takes. The mock now defines only `roll_d6()`, and DC-4/DC-6 prove
+  the suite fails when the product probes the wrong method.
+- **The dead-guard lint cannot see that class.** It asks whether a method exists anywhere,
+  and `roll_dice` exists on `DiceSystem` and `FallbackDiceManager`. The new guard scans
+  `src/` for the probe itself and allows one file, whose receiver is the `/root/DiceSystem`
+  test seam.
+- **A case passed on seed luck.** `test_a_blocking_condition_refuses_the_job` passed only
+  because `seed(12345)` lined up with the old defect, where an Opportunity mission carried
+  the Patron tables. The fixture now writes `conditions`, and A14 proves the case catches
+  the rule.
+- **Arms on small tables force two values.** A helper bypassed to a raw 1D3 or 2D6 can
+  land on a single forced value by chance. Each case forces two values at opposite ends of
+  the range, and asserts both.
+- **F613-13 is UNDETECTED by design.** Skipping `set_rivals()` after the pick still saves
+  it, because `get_rivals()` hands back the same dictionaries. The write is kept for the
+  day that getter copies.
+- **F615-7 was a BAD CONTROL.** `add_trait()` dedupes, so a repeated Background roll, or a
+  Hakshan rolling Truth, left one trait and failed the unreverted control. The case now
+  forces distinct rows through the new contexts, and all five F6-15 re-arms are DETECTED.
+- **My F6-17 fix broke a source anchor, and fail-fast hid two cases behind it.** Giving
+  `_generate_compendium_missions()` a `location` argument left
+  `test_compendium_mission_types.gd` searching for the old `missions())` text, so the case
+  failed and the suite's last two cases never ran (s6final delta 2). The anchor now matches
+  the call's prefix. CM1 (the generator call removed) and CM2 (the offer store written
+  after the generator, so the Compendium missions are persisted) are both DETECTED. **This is the third pass in a row where my own edit moved an anchor** (SH1 in
+  su5p, three in susim). A source assertion should anchor on the call's prefix, never on
+  its argument list.
 
 ## Gates
 

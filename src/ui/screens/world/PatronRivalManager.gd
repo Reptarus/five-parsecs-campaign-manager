@@ -2,6 +2,7 @@ class_name PatronRivalManagerUI
 extends Control
 const TouchScrollOpenerRef = preload(
 	"res://src/ui/components/common/TouchScrollOpener.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
 
 signal patron_selected(patron: Dictionary)
 signal rival_selected(rival: Dictionary)
@@ -323,6 +324,8 @@ func _rival_tags(rival: Dictionary) -> String:
 	var bonus: int = int(rival.get("enemy_count_bonus", 0))
 	if bonus != 0:
 		tags.append("%+d enemies" % bonus)
+	if not str(rival.get("type_alternative", "")).strip_edges().is_empty():
+		tags.append("Type still to pick")
 	return ", ".join(PackedStringArray(tags))
 
 
@@ -397,6 +400,23 @@ func _update_details(entity: Dictionary, is_patron: bool) -> void:
 			tag_label.text = "Rules: " + tags
 			tag_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			details_container.add_child(tag_label)
+		# p.92: "If you are not sure, or have acquired an unexpected Rival, roll
+		# twice and pick the more interesting or appropriate." The second roll is
+		# offered until the first battle against them fixes the type.
+		var alt: String = str(entity.get("type_alternative", "")).strip_edges()
+		if not alt.is_empty():
+			var pick_note: Label = Label.new()
+			pick_note.name = "TypePickNote"
+			pick_note.text = ("Also rolled: %s. Fight them as either until you "
+				+ "first meet them in battle (Core Rules p.92).") % alt
+			pick_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			details_container.add_child(pick_note)
+			var pick: Button = Button.new()
+			pick.name = "SwapTypeButton"
+			pick.text = "Fight them as %s" % alt
+			pick.custom_minimum_size = Vector2(0, 48)
+			pick.pressed.connect(_on_swap_rival_type.bind(str(entity.get("id", ""))))
+			details_container.add_child(pick)
 
 	# Special rules
 	if entity.has("special_rules"):
@@ -440,6 +460,25 @@ func _on_rival_selected(rival: Dictionary) -> void:
 	if _panel_group:
 		_panel_group.focus_pane(DETAILS_PANE_INDEX)
 	rival_selected.emit(rival)
+
+## The p.92 pick, written through GameStateManager so the campaign owns it. The
+## only write this viewer makes, and only on the player's press.
+func _on_swap_rival_type(rival_id: String) -> void:
+	if rival_id.is_empty() or not GameStateManager:
+		return
+	var all: Array = GameStateManager.get_rivals()
+	var picked: Dictionary = {}
+	for r in all:
+		if r is Dictionary and str((r as Dictionary).get("id", "")) == rival_id \
+				and RivalContactRef.swap_type(r):
+			picked = r
+	if picked.is_empty():
+		return
+	GameStateManager.set_rivals(all)
+	_load_patrons_and_rivals()
+	_refresh_rivals_list()
+	_on_rival_selected(picked)
+	_open_touch_chain()
 
 func _on_back_pressed() -> void:
 	## Reachable from the Campaign Dashboard, so fall back THERE rather than the

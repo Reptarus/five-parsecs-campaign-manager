@@ -156,5 +156,7 @@ func test_completing_a_mission_still_counts_the_mission() -> void:
 	assert_bool(src.contains("planet.missions_completed += 1")).override_failure_message(
 		"missions_completed is a real counter and must survive the exploration"
 		+ " removal").is_true()
-	assert_bool(src.contains("planet.resources_extracted += resources_gained")) \
-		.override_failure_message("resources_extracted was removed too").is_true()
+	# resources_extracted went on 2026-10-29: its producer key `resources_gained` was
+	# written by nothing, so it only ever summed zeros into a stat neither book has.
+	assert_bool(src.contains("resources_extracted")).override_failure_message(
+		"resources_extracted is back").is_false()

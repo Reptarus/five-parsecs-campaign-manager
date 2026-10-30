@@ -103,7 +103,7 @@ func _run() -> void:
 		_campaign(),
 		# `id` matters: the Invasion Status block joins on the planet id.
 		{"id": "gamma_prime", "name": "Gamma Prime", "type_name": "High Cost",
-			"danger_level": 3, "traits": ["High Cost", "Booming Trade", "Fringe"]},
+			"traits": ["High Cost", "Booming Trade", "Fringe"]},
 		_entries())
 	var sid: String = OS.get_environment("SHEET")
 	if sid.is_empty(): sid = "crew_log"

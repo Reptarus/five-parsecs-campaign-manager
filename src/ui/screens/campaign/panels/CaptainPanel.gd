@@ -144,8 +144,8 @@ func _build_captain_card() -> PanelContainer:
 		current_captain.character_class)
 	var origin := _enum_value_name(
 		GlobalEnums.Origin, current_captain.origin)
-	var bg := _enum_value_name(
-		GlobalEnums.Background, current_captain.background)
+	var bg: String = GlobalEnums.get_background_display_name(
+		current_captain.background, "None")
 	var motiv := _enum_value_name(
 		GlobalEnums.Motivation, current_captain.motivation)
 	var sub_lbl := Label.new()

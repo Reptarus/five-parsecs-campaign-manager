@@ -158,7 +158,9 @@ func test_compendium_missions_are_not_written_into_the_persisted_offer_store() -
 	# Frame they do not have.
 	var src: String = _src(JOB_OFFER_SRC)
 	var store_idx: int = src.find("_store_offers(patron_offers)")
-	var gen_idx: int = src.find("all_jobs.append_array(_generate_compendium_missions())")
+	# The call's prefix, not its full text: F6-17 gave the generator a `location`
+	# argument, and the exact form `...missions())` then matched nothing.
+	var gen_idx: int = src.find("all_jobs.append_array(_generate_compendium_missions(")
 	assert_int(store_idx).override_failure_message("_store_offers call not found").is_greater(0)
 	assert_int(gen_idx).override_failure_message(
 		"compendium missions are not appended to the display list").is_greater(0)

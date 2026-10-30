@@ -41,7 +41,7 @@ func test_add_patron_is_display_safe_and_added() -> void:
 	GameStateManager.set_patrons([])
 	var p: Dictionary = GameStateManager.add_patron()
 	# Every field PatronRivalManager reads via `.` access must be present.
-	for key in ["id", "name", "type", "status", "relationship", "jobs_offered"]:
+	for key in ["id", "name", "type", "status", "jobs_offered"]:
 		assert_bool(p.has(key)).override_failure_message("missing key: " + key).is_true()
 	assert_int(GameStateManager.get_patrons().size()).is_equal(1)
 

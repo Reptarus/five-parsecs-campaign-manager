@@ -965,28 +965,12 @@ func add_quest_rumor() -> void:
 	if c and "quest_rumors" in c:
 		set_quest_rumors(int(c.quest_rumors) + 1)
 
-## Gain a Patron. Adds a display-safe campaign patron (every field PatronRivalManager
-## reads via `.` access must be present). Reuses the game's patron generator when
-## available, else falls back to a minimal book-typed patron.
+## Gain a Patron (the Unity Agent favor, QA scenarios). The contact is a p.83 Patron
+## Table roll from PatronContact, the one producer of a new Patron; it carries
+## every field PatronRivalManager reads. This used to read the invented
+## PatronManager.generate_patron() (influence, credits, "preferences").
 func add_patron() -> Dictionary:
-	var patron: Dictionary = {}
-	var pm_script = load("res://src/core/managers/PatronManager.gd")
-	if pm_script:
-		var pm = pm_script.new(get_node_or_null("/root/GameState"))
-		if pm and pm.has_method("generate_patron"):
-			var g = pm.generate_patron()
-			if g is Dictionary:
-				patron = g.duplicate()
-	# Guarantee the complete schema campaign consumers read.
-	if not patron.has("id"):
-		patron["id"] = "patron_" + str(Time.get_unix_time_from_system()) + "_" + str(randi() % 1000)
-	if not patron.has("name"):
-		patron["name"] = "New Contact"
-	if not patron.has("type"):
-		patron["type"] = "Corporation"
-	patron["status"] = patron.get("status", "Active")
-	patron["relationship"] = patron.get("relationship", 0)
-	patron["jobs_offered"] = patron.get("jobs_offered", 0)
+	var patron: Dictionary = load("res://src/core/patrons/PatronContact.gd").make("event")
 	var patrons: Array = get_patrons()
 	patrons.append(patron)
 	set_patrons(patrons)

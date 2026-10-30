@@ -13,28 +13,23 @@ class PlanetData:
 	var name: String
 	var type: String
 	var type_name: String
-	var danger_level: int
 	var traits: Array[String] = []
-	var locations: Array[Dictionary] = []
-	var special_features: Array[String] = []
-	
+
 	# Progression tracking
 	var discovered_on_turn: int = 0
 	var last_visited_turn: int = 0
 	var visit_count: int = 0
 	var missions_completed: int = 0
-	var resources_extracted: int = 0
-	
-	# Dynamic state
-	var active_modifiers: Array[Dictionary] = []
-	var temporary_effects: Array[Dictionary] = []
-	var world_events: Array[Dictionary] = []
+
 	var contact_ids: Array[String] = []
-	
-	# Economic data
-	var market_conditions: Dictionary = {}
-	var trade_opportunities: Array[Dictionary] = []
-	var price_modifiers: Dictionary = {}
+
+	# Removed 2026-10-29: danger_level, locations, special_features,
+	# resources_extracted, active/temporary modifiers, world_events,
+	# market_conditions, trade_opportunities and price_modifiers. Core Rules p.72
+	# gives a world a trait and a licence roll, and nothing else. The per-turn
+	# "world event" D6 behind world_events was printed on three screens ("Local
+	# unrest penalizes all crew tasks by -1") while nothing applied it.
+	# deserialize() ignores the keys an older save still carries.
 
 	# Per-planet faction state (Compendium pp.110-117)
 	var faction_data: Dictionary = {}
@@ -48,22 +43,12 @@ class PlanetData:
 			"name": name,
 			"type": type,
 			"type_name": type_name,
-			"danger_level": danger_level,
 			"traits": traits,
-			"locations": locations,
-			"special_features": special_features,
 			"discovered_on_turn": discovered_on_turn,
 			"last_visited_turn": last_visited_turn,
 			"visit_count": visit_count,
 			"missions_completed": missions_completed,
-			"resources_extracted": resources_extracted,
-			"active_modifiers": active_modifiers,
-			"temporary_effects": temporary_effects,
-			"world_events": world_events,
 			"contact_ids": contact_ids,
-			"market_conditions": market_conditions,
-			"trade_opportunities": trade_opportunities,
-			"price_modifiers": price_modifiers,
 			"faction_data": faction_data.duplicate(true),
 		}
 	
@@ -72,32 +57,20 @@ class PlanetData:
 		name = data.get("name", "")
 		type = data.get("type", "")
 		type_name = data.get("type_name", "")
-		danger_level = data.get("danger_level", 1)
 		# Typed arrays use .assign(): JSON-parsed arrays are UNTYPED, so a plain `=` into
-		# these Array[String]/Array[Dictionary] props aborts load (Godot 4.6). Scalars and
-		# Dictionary fields below assign directly.
+		# these Array[String] props aborts load (Godot 4.6).
 		traits.assign(data.get("traits", []))
-		locations.assign(data.get("locations", []))
-		special_features.assign(data.get("special_features", []))
 		discovered_on_turn = data.get("discovered_on_turn", 0)
 		last_visited_turn = data.get("last_visited_turn", 0)
 		visit_count = data.get("visit_count", 0)
 		missions_completed = data.get("missions_completed", 0)
-		resources_extracted = data.get("resources_extracted", 0)
-		active_modifiers.assign(data.get("active_modifiers", []))
-		temporary_effects.assign(data.get("temporary_effects", []))
-		world_events.assign(data.get("world_events", []))
 		contact_ids.assign(data.get("contact_ids", []))
-		market_conditions = data.get("market_conditions", {})
-		trade_opportunities.assign(data.get("trade_opportunities", []))
-		price_modifiers = data.get("price_modifiers", {})
 		faction_data = data.get("faction_data", {})
 
 ## Planet Data Manager Signals
 signal planet_discovered(planet_data: PlanetData)
 signal planet_visited(planet_id: String, visit_count: int)
 signal planet_data_updated(planet_id: String, update_type: String)
-signal world_event_occurred(planet_id: String, event: Dictionary)
 
 ## Data storage
 var visited_planets: Dictionary = {} # planet_id -> PlanetData
@@ -131,26 +104,17 @@ func _generate_new_planet(campaign_turn: int, forced_id: String = "") -> PlanetD
 	planet.name = world_data.name
 	planet.type = world_data.type
 	planet.type_name = world_data.type_name
-	planet.danger_level = world_data.danger_level
-	# .assign() copies into PlanetData's TYPED Array[String]/Array[Dictionary] props.
-	# WorldGenerator.generate_world() returns a Dictionary whose traits/locations/
-	# special_features are UNTYPED arrays; a plain `=` aborts this function in Godot 4.6
+	# .assign() copies into PlanetData's TYPED Array[String]. WorldGenerator returns an
+	# UNTYPED traits array; a plain `=` aborts this function in Godot 4.6
 	# ("Invalid assignment ... value of type 'Array'").
 	planet.traits.assign(world_data.traits)
-	planet.locations.assign(world_data.locations)
-	planet.special_features.assign(world_data.special_features)
 	planet.discovered_on_turn = campaign_turn
 	planet.last_visited_turn = campaign_turn
 	planet.visit_count = 1
 	
-	# Initialize economic data
-	_initialize_planet_economy(planet)
 	
 	# Store planet
 	visited_planets[planet.id] = planet
-
-	# Sync to PlanetCache if available
-	_sync_to_cache(planet)
 
 	self.planet_discovered.emit(planet)
 
@@ -169,7 +133,6 @@ func create_colony_world(species_id: String, campaign_turn: int) -> PlanetData:
 	planet.name = "%s Colony" % species_id.capitalize()
 	planet.type = "COLONY_WORLD"
 	planet.type_name = "%s Colony World" % species_id.capitalize()
-	planet.danger_level = 2
 	planet.discovered_on_turn = campaign_turn
 	planet.last_visited_turn = campaign_turn
 	planet.visit_count = 1
@@ -188,9 +151,7 @@ func create_colony_world(species_id: String, campaign_turn: int) -> PlanetData:
 		if not rolled_trait.is_empty():
 			planet.traits.append(rolled_trait)
 
-	_initialize_planet_economy(planet)
 	visited_planets[planet.id] = planet
-	_sync_to_cache(planet)
 	planet_discovered.emit(planet)
 	return planet
 
@@ -234,102 +195,6 @@ func _roll_random_trait() -> String:
 			return str(entry.get("id", ""))
 	return ""
 
-## Initialize planet economic data
-func _initialize_planet_economy(planet: PlanetData) -> void:
-	# Generate market conditions based on planet type and traits
-	planet.market_conditions = {
-		"stability": randi_range(1, 6),
-		"demand_weapons": _calculate_demand(planet, "weapons"),
-		"demand_equipment": _calculate_demand(planet, "equipment"),
-		"demand_consumables": _calculate_demand(planet, "consumables"),
-		"supply_raw_materials": _calculate_supply(planet, "raw_materials")
-	}
-	
-	# Generate trade opportunities
-	_generate_trade_opportunities(planet)
-
-## Calculate demand for specific goods
-func _calculate_demand(planet: PlanetData, good_type: String) -> int:
-	var base_demand = 3
-	
-	# NOTE (2026-06-02): a dead `match planet.type:` (FRONTIER_WORLD/INDUSTRIAL_WORLD/TRADE_HUB)
-	# was removed here. Those keys never matched the biome ids world-gen produced, so the branch
-	# never fired. Demand is trait-driven (below). The biome "planet type" concept was removed.
-	
-	# DEAD AND FABRICATED, flagged 2026-08-02 — deliberately left rather than
-	# half-repaired. planet.traits holds lowercase ids from world_traits.json
-	# ("dangerous", "haze", ...), so these UPPER-CASE keys match nothing and this
-	# loop has never modified a single demand value. Worse, only "DANGEROUS" has
-	# a real counterpart: WEALTHY, POOR, MINING and AGRICULTURAL are not World
-	# Traits in either book. Merely lowercasing them would ACTIVATE a fabricated
-	# mechanic, which is the opposite of a fix.
-	#
-	# The whole market_conditions / trade_opportunities block this feeds is
-	# already flagged for deletion in docs/RULES_WIRING_AUDIT_2026-08.md as "a
-	# large, convincing, wrong second source of truth for prices sitting next to
-	# the correct 1cr/3cr constants" (Core Rules p.125 sells items for 1 credit
-	# each, flat). Removing it is that finding's job, not this one's.
-	for characteristic in planet.traits:
-		match characteristic:
-			"DANGEROUS":
-				if good_type == "weapons":
-					base_demand += 1
-			"WEALTHY":
-				base_demand += 1
-			"POOR":
-				base_demand -= 1
-
-	return clamp(base_demand, 1, 6)
-
-## Calculate supply for specific goods  
-func _calculate_supply(planet: PlanetData, good_type: String) -> int:
-	var base_supply = 3
-	
-	# Modify based on planet type and characteristics
-	for characteristic in planet.traits:
-		match characteristic:
-			"MINING":
-				if good_type == "raw_materials":
-					base_supply += 2
-			"AGRICULTURAL":
-				if good_type == "consumables":
-					base_supply += 2
-	
-	return clamp(base_supply, 1, 6)
-
-## Generate trade opportunities for planet
-func _generate_trade_opportunities(planet: PlanetData) -> void:
-	planet.trade_opportunities.clear()
-	
-	# Generate 1-3 trade opportunities based on planet characteristics
-	var opportunity_count = 1 + randi_range(0, 2)
-	
-	for i in range(opportunity_count):
-		var opportunity = {
-			"id": "trade_" + str(Time.get_unix_time_from_system()) + "_" + str(i),
-			"type": ["bulk_goods", "rare_items", "contracts", "information"][randi() % 4],
-			"profit_potential": randi_range(1, 5),
-			"risk_level": randi_range(1, 3),
-			"duration": randi_range(1, 3), # Campaign turns
-			"requirements": _generate_trade_requirements()
-		}
-		planet.trade_opportunities.append(opportunity)
-
-## Generate requirements for trade opportunities
-func _generate_trade_requirements() -> Dictionary:
-	var requirements = {}
-	
-	if randi_range(1, 6) >= 4: # 50% chance of credit requirement
-		requirements["credits"] = randi_range(5, 20)
-	
-	if randi_range(1, 6) >= 5: # 33% chance of reputation requirement
-		requirements["reputation"] = randi_range(1, 3)
-	
-	if randi_range(1, 6) == 6: # 16% chance of special item requirement
-		requirements["special_item"] = "trade_license"
-	
-	return requirements
-
 ## Update planet visit data
 func _update_planet_visit(planet: PlanetData, campaign_turn: int) -> void:
 	planet.last_visited_turn = campaign_turn
@@ -363,24 +228,18 @@ func upsert_current_world(world_data: Dictionary, campaign_turn: int = -1) -> St
 		pid = "world_%d" % Time.get_unix_time_from_system()
 	if not visited_planets.has(pid):
 		var planet := PlanetData.new(pid)
-		# Map fields defensively. PlanetData.traits is Array[String] and .locations
-		# is Array[Dictionary]; world_data matches (traits are ids, locations dicts),
-		# but normalize so a future world_data shape can't abort the typed .assign().
+		# Map fields defensively. PlanetData.traits is Array[String]; normalize so a
+		# future world_data shape can't abort the typed .assign().
 		planet.name = str(world_data.get("name", "Unknown World"))
 		planet.type = str(world_data.get("type", ""))
 		planet.type_name = str(world_data.get("type_name", ""))
-		planet.danger_level = int(world_data.get("danger_level", 1))
 		planet.traits.assign(_normalize_string_array(world_data.get("traits", [])))
-		planet.locations.assign(_normalize_dict_array(world_data.get("locations", [])))
-		planet.special_features.assign(_normalize_string_array(world_data.get("special_features", [])))
 		var disc: int = int(world_data.get("discovered_on_turn", 0))
 		if disc <= 0 and campaign_turn >= 0:
 			disc = campaign_turn
 		planet.discovered_on_turn = disc
 		planet.last_visited_turn = campaign_turn if campaign_turn >= 0 else disc
 		planet.visit_count = max(1, int(world_data.get("visit_count", 1)))
-		planet.resources_extracted = int(world_data.get("resources_extracted", 0))
-		_initialize_planet_economy(planet)
 		visited_planets[pid] = planet
 		# Breadcrumb entry for the Galaxy Log travel path.
 		travel_history.append({
@@ -402,11 +261,8 @@ func upsert_current_world(world_data: Dictionary, campaign_turn: int = -1) -> St
 			existing.name = new_name
 			existing.type = str(world_data.get("type", existing.type))
 			existing.type_name = str(world_data.get("type_name", existing.type_name))
-			existing.danger_level = int(world_data.get("danger_level", existing.danger_level))
 			existing.traits.assign(_normalize_string_array(
 				world_data.get("traits", existing.traits)))
-			existing.special_features.assign(_normalize_string_array(
-				world_data.get("special_features", existing.special_features)))
 			planet_data_updated.emit(pid, "world_synced")
 	set_current_planet(pid)
 	return pid
@@ -422,26 +278,6 @@ func _normalize_string_array(v) -> Array:
 				out.append(str(e))
 	return out
 
-func _normalize_dict_array(v) -> Array:
-	## Keep only Dictionary entries (PlanetData.locations is Array[Dictionary]).
-	var out: Array = []
-	if v is Array:
-		for e in v:
-			if e is Dictionary:
-				out.append(e)
-	return out
-
-## Sync PlanetData to PlanetCache (loose coupling — cache may not have all planets)
-func _sync_to_cache(planet: PlanetData) -> void:
-	var cache: Node = get_node_or_null("/root/PlanetCache")
-	if not cache:
-		return
-	if cache.has_method("get_planet_by_id"):
-		var existing: Variant = cache.get_planet_by_id(planet.id)
-		if existing and cache.has_method("update_planet"):
-			existing.visited = true
-			cache.update_planet(existing)
-
 ## Get current planet data
 func get_current_planet() -> PlanetData:
 	if current_planet_id != "" and visited_planets.has(current_planet_id):
@@ -449,7 +285,7 @@ func get_current_planet() -> PlanetData:
 	return null
 
 ## Complete mission on planet
-func complete_mission(planet_id: String, mission_data: Dictionary) -> void:
+func complete_mission(planet_id: String, _mission_data: Dictionary) -> void:
 	if not visited_planets.has(planet_id):
 		return
 	
@@ -465,145 +301,11 @@ func complete_mission(planet_id: String, mission_data: Dictionary) -> void:
 	# that does not exist. Removed Aug 2026 under the fabricated-data rule along
 	# with both of its display sites. Do not re-add.
 
-	# Award resources if applicable
-	var resources_gained = mission_data.get("resources_gained", 0)
-	planet.resources_extracted += resources_gained
+	# NO RESOURCE ACCRUAL either. It summed `mission_data["resources_gained"]`, a key
+	# no producer writes, into a "resources_extracted" stat neither book has. Removed
+	# 2026-10-29 with the rest of the invented world model (see WorldGenerator).
 
 	self.planet_data_updated.emit(planet_id, "mission_completed")
-
-## Add world event to planet.
-##
-## `campaign_turn` is stamped onto the event so the "one event per world per turn"
-## rule can be answered from PERSISTED state — see has_world_event_for_turn().
-## Pass -1 only for events that are not turn-scoped.
-func add_world_event(planet_id: String, event: Dictionary, campaign_turn: int = -1) -> void:
-	if not visited_planets.has(planet_id):
-		return
-
-	var planet = visited_planets[planet_id]
-	event["timestamp"] = Time.get_unix_time_from_system()
-	event["campaign_turn"] = campaign_turn
-	planet.world_events.append(event)
-
-	self.world_event_occurred.emit(planet_id, event)
-
-
-## Has this world already been given its event for `campaign_turn`?
-##
-## Reads `world_events`, which serializes with the campaign, so the answer
-## survives a quit. An in-memory "already rolled" flag does not — see
-## WorldPhaseController._generate_turn_world_event() for what that cost.
-func has_world_event_for_turn(planet_id: String, campaign_turn: int) -> bool:
-	if campaign_turn < 0 or not visited_planets.has(planet_id):
-		return false
-	var planet = visited_planets[planet_id]
-	if not (planet.world_events is Array):
-		return false
-	for evt in planet.world_events:
-		if evt is Dictionary and int(evt.get("campaign_turn", -1)) == campaign_turn:
-			return true
-	return false
-
-## Generate a random world event for a planet based on its type (D6 table).
-##
-## ⚠ NOT a pure query: it rolls a D6 and APPENDS to the planet's persistent
-## world_events. Every caller must gate it — see has_world_event_for_turn().
-func generate_world_event(planet_id: String, campaign_turn: int = -1) -> Dictionary:
-	if not visited_planets.has(planet_id):
-		return {}
-	var planet: PlanetData = visited_planets[planet_id]
-	var roll: int = randi() % 6 + 1
-	var event: Dictionary = _roll_world_event(roll, planet.type)
-	if not event.is_empty():
-		add_world_event(planet_id, event, campaign_turn)
-	return event
-
-func _roll_world_event(roll: int, planet_type: String) -> Dictionary:
-	# Generic event table — modified by planet type
-	var events_by_roll: Dictionary = {
-		1: {"type": "market_surge", "name": "Market Surge", "effect": "price_modifier", "modifier": 0.8, "description": "A supply glut drops market prices by 20%"},
-		2: {"type": "labor_shortage", "name": "Labor Shortage", "effect": "recruitment_bonus", "modifier": 1, "description": "Worker shortages make recruitment easier (+1)"},
-		3: {"type": "pirate_activity", "name": "Pirate Activity", "effect": "danger_increase", "modifier": 1, "description": "Pirate raids increase local danger level"},
-		4: {"type": "trade_boom", "name": "Trade Boom", "effect": "credits_bonus", "modifier": 2, "description": "Booming trade grants +2 credits on trade tasks"},
-		5: {"type": "unrest", "name": "Civil Unrest", "effect": "task_penalty", "modifier": -1, "description": "Local unrest penalizes all crew tasks by -1"},
-		6: {"type": "quiet_period", "name": "Quiet Period", "effect": "none", "modifier": 0, "description": "Nothing notable happens this turn"},
-	}
-	var event: Dictionary = events_by_roll.get(roll, {}).duplicate()
-	if event.is_empty():
-		return {}
-	# NOTE (2026-06-02): a dead `match planet_type:` (industrial/frontier/trade flavor) was removed
-	# here. Those keys never matched the biome ids world-gen produced, so the branch never fired.
-	# World events are roll-driven (events_by_roll). The biome "planet type" concept was removed.
-	event["planet_type"] = planet_type
-	event["roll"] = roll
-	return event
-
-## Apply temporary effect to planet
-func apply_temporary_effect(planet_id: String, effect: Dictionary, duration_turns: int) -> void:
-	if not visited_planets.has(planet_id):
-		return
-	
-	var planet = visited_planets[planet_id]
-	effect["duration"] = duration_turns
-	effect["applied_turn"] = planet.last_visited_turn
-	planet.temporary_effects.append(effect)
-
-## Process turn effects on all planets
-func process_turn_effects(current_turn: int) -> void:
-	for planet_id in visited_planets:
-		var planet = visited_planets[planet_id]
-		
-		# Remove expired temporary effects
-		for i in range(planet.temporary_effects.size() - 1, -1, -1):
-			var effect = planet.temporary_effects[i]
-			var effect_age = current_turn - effect.get("applied_turn", 0)
-			if effect_age >= effect.get("duration", 1):
-				planet.temporary_effects.remove_at(i)
-		
-		# Update market conditions
-		_update_market_conditions(planet)
-
-## Update market conditions for planet
-func _update_market_conditions(planet: PlanetData) -> void:
-	# Small random fluctuations in market conditions
-	for condition in planet.market_conditions:
-		var current_value = planet.market_conditions[condition]
-		var change = randi_range(-1, 1)
-		planet.market_conditions[condition] = clamp(current_value + change, 1, 6)
-
-## Get planet modifier for specific effect
-func get_planet_modifier(planet_id: String, effect_type: String) -> float:
-	if not visited_planets.has(planet_id):
-		return 1.0
-	
-	var planet = visited_planets[planet_id]
-	var modifier = 1.0
-	
-	# Apply characteristic modifiers
-	for characteristic in planet.traits:
-		match characteristic:
-			"DANGEROUS":
-				if effect_type == "danger_level":
-					modifier += 0.2
-			"WEALTHY":
-				if effect_type == "payment":
-					modifier += 0.3
-			"POOR":
-				if effect_type == "payment":
-					modifier -= 0.2
-			"HIGH_TECH":
-				if effect_type == "equipment_cost":
-					modifier -= 0.1
-			"LOW_TECH":
-				if effect_type == "equipment_cost":
-					modifier += 0.1
-	
-	# Apply temporary effects
-	for effect in planet.temporary_effects:
-		if effect.get("effect_type") == effect_type:
-			modifier += effect.get("modifier", 0.0)
-	
-	return modifier
 
 ## Get available contacts on planet
 func get_planet_contacts(planet_id: String) -> Array[String]:
@@ -642,59 +344,19 @@ func get_faction_data(planet_id: String) -> Dictionary:
 		return visited_planets[planet_id].faction_data.duplicate(true)
 	return {}
 
-## Get exploration opportunities on planet
-func get_exploration_opportunities(planet_id: String) -> Array[Dictionary]:
-	if not visited_planets.has(planet_id):
-		return []
-	
-	var planet = visited_planets[planet_id]
-	var opportunities = []
-	
-	# Generate opportunities based on unexplored locations
-	for location in planet.locations:
-		if not location.get("explored", false):
-			opportunities.append({
-				"location_id": location.get("id", ""),
-				"location_name": location.get("name", "Unknown Location"),
-				"difficulty": location.get("danger_mod", 0) + planet.danger_level,
-				"potential_rewards": _calculate_exploration_rewards(location, planet)
-			})
-	
-	return opportunities
-
-## Calculate potential exploration rewards
-func _calculate_exploration_rewards(location: Dictionary, planet: PlanetData) -> Dictionary:
-	var rewards = {
-		"credits": randi_range(1, 3) * planet.danger_level,
-		"equipment_chance": 25 + (planet.danger_level * 5),
-		"story_points": 0
-	}
-	
-	# Special location types provide bonuses
-	var location_type = location.get("type", "")
-	match location_type:
-		"RESEARCH_FACILITY":
-			rewards.story_points = 1
-		"RUINS":
-			rewards.equipment_chance += 15
-		"MINING_SITE":
-			rewards.credits *= 2
-	
-	return rewards
-
 ## Get planet statistics
 func get_planet_stats(planet_id: String) -> Dictionary:
 	if not visited_planets.has(planet_id):
 		return {}
 	
 	var planet = visited_planets[planet_id]
+	# `name` is what PatronRivalManager._planet_name() reads. It was never in this
+	# dictionary, so every Patron and Rival's home world printed blank.
 	return {
+		"name": planet.name,
 		"visit_count": planet.visit_count,
 		"missions_completed": planet.missions_completed,
-		"resources_extracted": planet.resources_extracted,
 		"contact_count": planet.contact_ids.size(),
-		"active_effects": planet.temporary_effects.size(),
-		"trade_opportunities": planet.trade_opportunities.size()
 	}
 
 ## Serialize all planet data

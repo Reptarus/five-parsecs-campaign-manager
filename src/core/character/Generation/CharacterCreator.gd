@@ -61,32 +61,35 @@ const ORIGIN_ITEMS: Array = [
 	["Bot", 8],         # GlobalEnums.Origin.BOT
 ]
 
+## Labels are the printed names (Core Rules p.25); BackgroundDataService owns them
+## and test_creation_table_results holds this list equal to it.
+const BackgroundDataServiceRef = preload("res://src/core/character/BackgroundDataService.gd")
 const BACKGROUND_ITEMS: Array = [
-	["Peaceful High Tech Colony", 12],        # PEACEFUL_HIGH_TECH_COLONY
-	["Giant Overcrowded Dystopian City", 13], # GIANT_OVERCROWDED_CITY
-	["Low Tech Colony", 14],                  # LOW_TECH_COLONY
-	["Mining Colony", 15],                    # MINING_COLONY
-	["Military Brat", 16],                    # MILITARY_BRAT
-	["Space Station", 17],                    # SPACE_STATION
-	["Military Outpost", 18],                 # MILITARY_OUTPOST
-	["Drifter", 19],                          # DRIFTER
-	["Lower Megacity Class", 20],             # LOWER_MEGACITY_CLASS
-	["Wealthy Merchant Family", 21],          # WEALTHY_MERCHANT_FAMILY
-	["Frontier Gang", 22],                    # FRONTIER_GANG
-	["Religious Cult", 23],                   # RELIGIOUS_CULT
-	["War Torn Hell Hole", 24],               # WAR_TORN_HELLHOLE
-	["Tech Guild", 25],                       # TECH_GUILD
-	["Subjugated Colony", 26],                # SUBJUGATED_COLONY
-	["Long Term Space Mission", 27],          # LONG_TERM_SPACE_MISSION
-	["Research Outpost", 28],                 # RESEARCH_OUTPOST
-	["Primitive World", 29],                  # PRIMITIVE_WORLD
-	["Orphan Utility Program", 30],           # ORPHAN_UTILITY_PROGRAM
-	["Isolationist Enclave", 31],             # ISOLATIONIST_ENCLAVE
-	["Comfortable Megacity Class", 32],       # COMFORTABLE_MEGACITY
-	["Industrial World", 33],                 # INDUSTRIAL_WORLD
-	["Bureaucrat", 34],                       # BUREAUCRAT
-	["Wasteland Nomads", 35],                 # WASTELAND_NOMADS
-	["Alien Culture", 36],                    # ALIEN_CULTURE
+	["Peaceful, High-Tech Colony", 12],           # PEACEFUL_HIGH_TECH_COLONY
+	["Giant, Overcrowded, Dystopian City", 13],   # GIANT_OVERCROWDED_CITY
+	["Low-Tech Colony", 14],                      # LOW_TECH_COLONY
+	["Mining Colony", 15],                        # MINING_COLONY
+	["Military Brat", 16],                        # MILITARY_BRAT
+	["Space Station", 17],                        # SPACE_STATION
+	["Military Outpost", 18],                     # MILITARY_OUTPOST
+	["Drifter", 19],                              # DRIFTER
+	["Lower Megacity Class", 20],                 # LOWER_MEGACITY_CLASS
+	["Wealthy Merchant Family", 21],              # WEALTHY_MERCHANT_FAMILY
+	["Frontier Gang", 22],                        # FRONTIER_GANG
+	["Religious Cult", 23],                       # RELIGIOUS_CULT
+	["War-Torn Hell-Hole", 24],                   # WAR_TORN_HELLHOLE
+	["Tech Guild", 25],                           # TECH_GUILD
+	["Subjugated Colony on Alien World", 26],     # SUBJUGATED_COLONY
+	["Long-Term Space Mission", 27],              # LONG_TERM_SPACE_MISSION
+	["Research Outpost", 28],                     # RESEARCH_OUTPOST
+	["Primitive or Regressed World", 29],         # PRIMITIVE_WORLD
+	["Orphan Utility Program", 30],               # ORPHAN_UTILITY_PROGRAM
+	["Isolationist Enclave", 31],                 # ISOLATIONIST_ENCLAVE
+	["Comfortable Megacity Class", 32],           # COMFORTABLE_MEGACITY
+	["Industrial World", 33],                     # INDUSTRIAL_WORLD
+	["Bureaucrat", 34],                           # BUREAUCRAT
+	["Wasteland Nomads", 35],                     # WASTELAND_NOMADS
+	["Alien Culture", 36],                        # ALIEN_CULTURE
 ]
 
 const CLASS_ITEMS: Array = [
@@ -628,11 +631,8 @@ func _enforce_species_constraints(species_id: String) -> void:
 	var forced_bg: String = SpeciesDataService.get_forced_background(
 		species_id)
 	if not forced_bg.is_empty():
-		# Convert snake_case JSON id to display name for matching
-		var bg_display: String = forced_bg.replace(
-			"_", " ").capitalize()
-		var bg_idx := _find_item_index_by_name(
-			BACKGROUND_ITEMS, bg_display)
+		# Matched KEY TO KEY: the species file stores a snake id ("primitive_world").
+		var bg_idx := _background_item_index(forced_bg)
 		if bg_idx >= 0:
 			# Canonical STRING, not the enum int — see _on_background_changed.
 			var forced_bg_id: int = BACKGROUND_ITEMS[bg_idx][1]
@@ -1045,6 +1045,18 @@ func _roll_2d6_table(table: Dictionary) -> String:
 		return table[key].get("name", "")
 	return ""
 
+## The BACKGROUND_ITEMS row for a background in any spelling (enum key, snake id or
+## the printed name), matched KEY TO KEY through BackgroundDataService. Text matching
+## missed every name p.25 prints with a comma, so a roll of 1-9 fell back to a flat
+## random pick.
+func _background_item_index(value: String) -> int:
+	var key: String = BackgroundDataServiceRef.enum_key(value)
+	var id: int = int(GlobalEnums.Background.get(key, -1))
+	for i in range(BACKGROUND_ITEMS.size()):
+		if int(BACKGROUND_ITEMS[i][1]) == id:
+			return i
+	return -1
+
 func _find_item_index_by_name(items: Array, entry_name: String) -> int:
 	## Find the index in a const items array whose display name best matches entry_name.
 	for i in range(items.size()):
@@ -1153,8 +1165,9 @@ func _on_randomize_pressed() -> void:
 	# Human, 20% Primary Alien, 10% Bot, 10% Strange Character — so the flat
 	# version produced roughly 69% Strange Characters against the book's 10%,
 	# and 3.8% Humans against 60%. Both live creation paths run through here
-	# (CaptainPanel:64, CrewPanel:236), as does the p.78 recruit rule, whose
-	# own text is "Each recruit rolls using the random method ... (see p.14)".
+	# (CaptainPanel:64, CrewPanel:236). The p.78 recruit rule ("Each recruit rolls
+	# using the random method ... (see p.14)") does NOT come through here: it rolls
+	# the same table in CrewTaskComponent._apply_recruit().
 	var species_id: String = ""
 	if not forced_species_id.is_empty():
 		# Core Rules p.13: the crew-creation METHOD constrains which species may appear,
@@ -1215,17 +1228,13 @@ func _on_randomize_pressed() -> void:
 		var forced_bg: String = SpeciesDataService.get_forced_background(
 			species_id)
 		if not forced_bg.is_empty():
-			var bg_display: String = forced_bg.replace(
-				"_", " ").capitalize()
-			var fb_idx := _find_item_index_by_name(
-				BACKGROUND_ITEMS, bg_display)
+			var fb_idx := _background_item_index(forced_bg)
 			if fb_idx >= 0:
 				bg_entry = BACKGROUND_ITEMS[fb_idx]
 		elif not _background_d100.is_empty():
 			var bg_name: String = _roll_d100_table(_background_d100)
 			if not bg_name.is_empty():
-				var idx: int = _find_item_index_by_name(
-					BACKGROUND_ITEMS, bg_name)
+				var idx: int = _background_item_index(bg_name)
 				if idx >= 0:
 					bg_entry = BACKGROUND_ITEMS[idx]
 	if can_roll:

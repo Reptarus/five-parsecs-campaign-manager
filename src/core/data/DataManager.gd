@@ -7,7 +7,6 @@ extends Node
 # Core data resources - Framework Bible: simple over complex
 const FiveParsecsCharacterData = preload("res://src/data/resources/FiveParsecsCharacterData.gd")
 const FiveParsecsCombatDataResource = preload("res://src/data/resources/FiveParsecsCombatData.gd")  
-const FiveParsecsCampaignDataResource = preload("res://src/data/resources/FiveParsecsCampaignData.gd")
 
 # Utility imports
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
@@ -28,7 +27,6 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const GEAR_DATA_PATH: String = "res://data/gear_database.json"
 const WORLD_TRAITS_PATH: String = "res://data/world_traits.json"
 const INJURY_TABLES_PATH: String = "res://data/injury_table.json"
-const LOCATION_TYPES_PATH: String = "res://data/location_types.json"
 const MISSION_TEMPLATES_PATH: String = "res://data/mission_templates.json"
 const LOOT_TABLES_PATH: String = "res://data/loot_tables.json"
 const STATUS_EFFECTS_PATH: String = "res://data/status_effects.json"
@@ -44,7 +42,6 @@ signal initialization_complete()
 # Simple data holders - Framework Bible compliant Resource system
 var character_data: FiveParsecsCharacterData
 var combat_data: FiveParsecsCombatDataResource  
-var campaign_data: FiveParsecsCampaignDataResource
 var is_data_loaded: bool = false
 
 # Resource databases removed - unused database schemas deleted in Phase 2B
@@ -59,7 +56,6 @@ var _injury_tables: Dictionary = {}
 var _psionic_powers_database: Dictionary = {}
 var _elite_enemy_types: Dictionary = {}
 var _enemy_types: Dictionary = {}
-var _location_types: Dictionary = {}
 var _mission_templates: Dictionary = {}
 var _loot_tables: Dictionary = {}
 var _character_creation_data: Dictionary = {}
@@ -110,7 +106,6 @@ func _exit_tree() -> void:
 	_psionic_powers_database.clear()
 	_elite_enemy_types.clear()
 	_enemy_types.clear()
-	_location_types.clear()
 	_mission_templates.clear()
 	_loot_tables.clear()
 	_character_creation_data.clear()
@@ -161,9 +156,6 @@ func _load_resource_data() -> void:
 	
 	if not combat_data:
 		combat_data = FiveParsecsCombatDataResource.new()
-	
-	if not campaign_data:
-		campaign_data = FiveParsecsCampaignDataResource.new()
 	
 	# Load JSON-based game data (existing system)
 	_load_json_databases()
@@ -245,7 +237,6 @@ func load_all_data() -> void:
 	_world_traits_database = {}
 	_injury_tables = {}
 	_enemy_types = {}
-	_location_types = {}
 	_mission_templates = {}
 	_loot_tables = {}
 	_character_creation_data = {}

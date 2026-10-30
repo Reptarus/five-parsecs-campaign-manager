@@ -47,9 +47,6 @@ static func build_into(vbox: VBoxContainer, planet: Object, owner: Node = null) 
 			UIColorsClass.COLOR_PURPLE
 		))
 	vbox.add_child(_create_info_row(
-		"Danger Level", str(planet.danger_level)
-	))
-	vbox.add_child(_create_info_row(
 		"Discovered", "Turn %d" % int(planet.discovered_on_turn)
 	))
 	vbox.add_child(_create_info_row(
@@ -70,42 +67,9 @@ static func build_into(vbox: VBoxContainer, planet: Object, owner: Node = null) 
 	# after ten missions and implied a completion mechanic that does not exist.
 	# Removed Aug 2026 under the fabricated-data rule. Do not re-add.
 
-	# Special features
-	if planet.special_features is Array and not planet.special_features.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("SPECIAL FEATURES"))
-		for feat in planet.special_features:
-			vbox.add_child(_create_info_row(
-				"•", str(feat), UIColorsClass.COLOR_PURPLE
-			))
-
-	# Locations
-	if planet.locations is Array and not planet.locations.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("LOCATIONS"))
-		for loc in planet.locations:
-			var loc_name: String = (
-				str(loc.get("name", "Unknown")) if loc is Dictionary else str(loc)
-			)
-			var loc_type: String = (
-				str(loc.get("type", "")) if loc is Dictionary else ""
-			)
-			vbox.add_child(_create_info_row(
-				loc_name, loc_type, UIColorsClass.COLOR_CYAN
-			))
-
-	# World events
-	if planet.world_events is Array and not planet.world_events.is_empty():
-		vbox.add_child(HSeparator.new())
-		vbox.add_child(_create_section_header("WORLD EVENTS"))
-		for evt in planet.world_events:
-			var evt_turn: int = int(evt.get("turn", 0))
-			var evt_desc: String = str(
-				evt.get("description", evt.get("type", "Event"))
-			)
-			vbox.add_child(_create_info_row(
-				"Turn %d" % evt_turn, evt_desc, UIColorsClass.COLOR_AMBER
-			))
+	# No Danger Level, Special Features, Locations or World Events sections: all
+	# four were invented (removed 2026-10-29, see WorldGenerator). Core Rules p.72
+	# gives a world its traits, shown above.
 
 	# Journal entries tagged with this planet's name
 	# (Audit B1 fix means battle + travel + milestone entries all join correctly.)

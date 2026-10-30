@@ -6,6 +6,7 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const QuestReceiptRef = preload("res://src/core/campaign/QuestReceipt.gd")
 ## Core Rules p.131 Loot Table — the "Gift" event (72-75) rolls on it directly.
 const LootTableResolver = preload("res://src/core/equipment/LootTableResolver.gd")
 const EquipmentTransferServiceClass = preload("res://src/core/equipment/EquipmentTransferService.gd")
@@ -215,6 +216,22 @@ func _roll_event_d100(context: String) -> int:
 	return randi_range(1, 100)
 
 
+## A row's own die (1D6 / 1D3), through DiceManager so QA can force it. The contexts
+## avoid the phrase "Character Event": DiceManager matches a forced key as a
+## substring, so a value queued for the D100 table roll would otherwise be eaten
+## by the first row die, and discarded as out of range.
+func _roll_event_die(sides: int, context: String) -> int:
+	var dice: Node = null
+	if Engine.get_main_loop():
+		dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+	if dice:
+		if sides == 3 and dice.has_method("roll_d3"):
+			return int(dice.roll_d3(context))
+		if sides == 6 and dice.has_method("roll_d6"):
+			return int(dice.roll_d6(context))
+	return randi_range(1, sides)
+
+
 func _get_character_event(roll: int) -> Dictionary:
 	## Get character event based on D100 roll from JSON data file (Core Rules p.128-130)
 	var json_path: String = "res://data/campaign_tables/character_events.json"
@@ -329,7 +346,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 		"Violence is Depressing":
 			if gsm and gsm.has_method("add_story_points"):
 				gsm.add_story_points(1)
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "skip_next_battle",
 				"name": "Violence is Depressing",
 				"description": "Refuses battle next turn (except Invasion)",
@@ -340,7 +357,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s refuses battle next turn (except Invasion). +1 Story Point" % char_name
 
 		"Business Elsewhere":
-			var xp_gain: int = randi_range(1, 6)
+			var xp_gain: int = _roll_event_die(6, "Business Elsewhere XP")
 			if origin_lower == "swift":
 				# Swift characters never return — mark as departed (Core Rules p.128)
 				# Set status to DEPARTED so dashboard/upkeep/battle all exclude them
@@ -349,7 +366,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 					return ("%s (Swift) had business elsewhere, but is the Leader"
 						% char_name + " and stays with the crew (p.24)")
 				_mark_departed(character)
-				ctx.apply_character_status_effect(character, {
+				_apply_event_effect(ctx, character, {
 					"type": "departed",
 					"name": "Business Elsewhere (Swift)",
 					"description": "Swift character departed permanently. Replace with new Swift character.",
@@ -376,7 +393,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 						"mood": "somber",
 					})
 				return "%s (Swift) has business elsewhere: Never returns. Replaced with new Swift character." % char_name
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "unavailable",
 				"name": "Business Elsewhere",
 				"description": "Unavailable for 2 turns. No Upkeep. Returns with %d XP + Loot roll." % xp_gain,
@@ -422,14 +439,21 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 
 		"Letter from Home":
 			ctx.add_character_xp(character, 1)
-			var quest_roll: int = randi_range(1, 6)
+			var quest_roll: int = _roll_event_die(6, "Letter from Home Quest")
 			if quest_roll >= 5:
-				ctx.add_quest_rumor()
-				return "%s got letter from home: +1 XP, +1 Quest" % char_name
+				# p.128: "On a 5-6 you immediately receive a Quest." This added a
+				# Quest Rumor, so the Quest never started.
+				var got: Dictionary = QuestReceiptRef.receive("Letter from home (p.128)",
+						"A letter from home points to something worth chasing.")
+				if bool(got.get("received", false)):
+					return "%s got a letter from home: +1 XP and a Quest, %s" % [
+						char_name, str(got.quest.get("name", ""))]
+				return ("%s got a letter from home: +1 XP. It points to a Quest, but the"
+						+ " crew is already on one") % char_name
 			return "%s got letter from home: +1 XP" % char_name
 
 		"Argue with Crew":
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "skip_tasks",
 				"name": "Argue with Crew",
 				"description": "Refuses tasks next turn (battles OK)",
@@ -560,7 +584,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s: the scars tell the story — +2 XP" % char_name
 
 		"Time to Reflect":
-			var xp_roll: int = randi_range(1, 3)
+			var xp_roll: int = _roll_event_die(3, "Time to Reflect XP")
 			ctx.add_character_xp(character, xp_roll)
 			return "%s reflected on adventures: +%d XP" % [char_name, xp_roll]
 
@@ -618,11 +642,14 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				char_name, ", ".join(names)]
 
 		"Feel Great":
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "ignore_next_injury",
 				"name": "Feel Great",
 				"description": "Next Injury Table roll is ignored",
-				"duration": 1,
+				# p.129: "Next time this character would be forced to roll on the
+				# Injury Table". No turn limit, so no duration: InjuryProcessor removes it
+				# when it is used. A duration of 1 expired at the next rollover, before
+				# any injury roll could reach it.
 				"source_event": "Feel Great"
 			})
 			return "%s feels great: Next Injury Table roll is ignored" % char_name
@@ -652,7 +679,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 				# saved crew member, and assigning it to a String aborts this whole
 				# handler. See _equipment_entry_name().
 				var damaged_item: String = _equipment_entry_name(equip_list[dmg_idx])
-				ctx.apply_character_status_effect(character, {
+				_apply_event_effect(ctx, character, {
 					"type": "item_damaged",
 					"name": "Don't Make Them Like They Used To",
 					"description": "%s is damaged. Must be Repaired before use." % damaged_item,
@@ -683,7 +710,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 					var eq: Array = character.get("equipment", [])
 					if loss_idx < eq.size():
 						eq.remove_at(loss_idx)
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "item_lost_recovery",
 				"name": "Where Did It Go",
 				"description": "'%s' lost. Next turn: D6+Savvy, 5+ = returns." % lost_item_name,
@@ -695,7 +722,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s lost '%s'. Next turn: D6+Savvy, 5+ = item returns" % [char_name, lost_item_name]
 
 		"Melancholy":
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "no_xp",
 				"name": "Melancholy",
 				"description": "No XP next campaign turn",
@@ -705,7 +732,7 @@ func apply_effect(event_title: String, character: Variant, ctx: PostBattleContex
 			return "%s: Melancholy. No XP next campaign turn" % char_name
 
 		"Time to Burn":
-			ctx.apply_character_status_effect(character, {
+			_apply_event_effect(ctx, character, {
 				"type": "extra_action",
 				"name": "Time to Burn",
 				"description": "Extra action next turn (even in Sick Bay)",
@@ -807,6 +834,23 @@ func _member_field(character: Variant, key: String, default_value: Variant) -> V
 ## departure route added later cannot miss it.
 func _is_leader(character: Variant) -> bool:
 	return bool(_member_field(character, "is_captain", false))
+
+
+## Core Rules pp.128-130 count "the next campaign turn" from the turn AFTER the
+## battle. The rollover runs at the START of every turn, before its World Phase and
+## battle, so an effect with a duration of 1 was ticked to 0 and removed by the very
+## rollover that opened the turn it was for: Violence is depressing never kept anyone
+## out of a battle, Argue with the crew never blocked a task, Melancholy never
+## withheld XP, Time to burn never granted its action, and Business elsewhere lasted
+## one turn instead of two. The flag skips that first rollover.
+##
+## Here and not in PostBattleContext.apply_character_status_effect(), because the
+## Sick Bay injury effects pass through that chokepoint with their own countdown.
+func _apply_event_effect(ctx: PostBattleContextClass, character: Variant,
+		effect: Dictionary) -> void:
+	if int(effect.get("duration", 0)) > 0:
+		effect["skip_first_rollover"] = true
+	ctx.apply_character_status_effect(character, effect)
 
 
 func _mark_departed(character: Variant) -> void:

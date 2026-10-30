@@ -16,6 +16,7 @@ const FringeWorldStrifeRef = preload("res://src/core/world/FringeWorldStrife.gd"
 const CompendiumTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const SalvageLedgerRef = preload("res://src/core/campaign/SalvageLedger.gd")
 const EquipmentTransferServiceRef = preload("res://src/core/equipment/EquipmentTransferService.gd")
+const DeferredCrewEventsRef = preload("res://src/core/campaign/DeferredCrewEvents.gd")
 
 ## Core Rules p.121, Battlefield Finds 36-45: "Starship part — Redeemable as
 ## equivalent to 2 credits only when installing a Starship Component."
@@ -807,6 +808,47 @@ func _grant_find_credits(ctx: PostBattleContextClass, amount: int) -> void:
 		ctx.game_state.add_credits(amount)
 	elif ctx.game_state_manager and ctx.game_state_manager.has_method("add_credits"):
 		ctx.game_state_manager.add_credits(amount)
+
+## Core Rules p.81 Explore 72-75 "Promising lead", verbatim: "Earn +3 credits if you
+## do an Opportunity mission this campaign turn." Beside the Black Zone rewards and not
+## inside process_payment(), which returns early for battles that are not paid. Returns
+## the credits granted.
+func process_promising_lead(ctx: PostBattleContextClass) -> int:
+	var br: Dictionary = ctx.battle_result
+	if str(br.get("mission_source", "")) != "opportunity":
+		return 0
+	for not_opportunity: String in ["is_invasion", "is_rival_mission", "is_story_battle",
+			"is_black_zone", "is_quest_finale"]:
+		if bool(br.get(not_opportunity, false)):
+			return 0
+	# A Quest battle that named no source normalizes to "opportunity"; its quest_id
+	# is what says it is a Quest.
+	if not str(br.get("quest_id", "")).is_empty():
+		return 0
+	var campaign: Variant = ctx.campaign
+	if campaign == null and ctx.game_state:
+		campaign = ctx.game_state.current_campaign
+	if campaign == null or not ("progress_data" in campaign) \
+			or not (campaign.progress_data is Dictionary):
+		return 0
+	var pd: Dictionary = campaign.progress_data
+	var leads: Array = DeferredCrewEventsRef.take_all(pd, "Promising lead",
+		int(pd.get("turns_played", 0)))
+	if leads.is_empty():
+		return 0
+	var amount: int = 3 * leads.size()
+	_grant_find_credits(ctx, amount)
+	if ctx.campaign_journal and ctx.campaign_journal.has_method("create_entry"):
+		ctx.campaign_journal.create_entry({
+			"type": "payment",
+			"auto_generated": true,
+			"title": "Promising lead: +%d credits" % amount,
+			"description": "An Opportunity mission this campaign turn paid off the lead (Core Rules p.81).",
+			"mood": "neutral",
+			"tags": ["payment", "finance"],
+		})
+	return amount
+
 
 func process_black_zone_rewards(
 		ctx: PostBattleContextClass) -> Dictionary:

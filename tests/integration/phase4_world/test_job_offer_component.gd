@@ -76,30 +76,36 @@ func test_generated_job_has_required_fields():
 	assert_that(is_valid).is_true()
 
 func test_job_pay_calculation():
-	"""Job pay should be 1d6 + 2 credits (Core Rules p.79)"""
+	"""A Patron job's offer quotes its Danger Pay (Core Rules p.83: 1-4 +1, 5-8 +2,
+	9-10 +3). The p.120 base is 1D6 after the battle, so the offer quotes no base.
+	This case used to assert "1d6 + 2 = 3-8 (Core Rules p.79)", which p.79 does not say."""
 	var patron_data = {"patron_name": "Merchant Guild"}
 	component.initialize_job_phase(patron_data, "Test Location")
 
 	var jobs = component.get("available_jobs")
-	assert_that(jobs.size()).is_greater(0)
+	assert_that(jobs.size()).is_equal(1)
 
 	var job = jobs[0]
-	var pay = job.get("pay", 0)
+	assert_that(job.get("mission_source", "")).is_equal("patron")
+	assert_that(job.get("pay", -1)).is_equal(job.get("danger_pay", -2))
+	assert_that(job.get("danger_pay", 0)).is_greater_equal(1)
+	assert_that(job.get("danger_pay", 0)).is_less_equal(3)
 
-	# Core Rules p.79: Pay = 1d6 + 2 = range 3-8 credits
-	assert_that(pay).is_greater_equal(3)
-	assert_that(pay).is_less_equal(8)
-
-func test_job_danger_level_range():
-	"""Danger level should be 1-3"""
-	var patron_data = {}
-	component.initialize_job_phase(patron_data, "Test Location")
+func test_an_opportunity_offer_has_no_patron():
+	"""p.85 Opportunity mission: one mission, no Patron, so none of the p.83 Patron
+	tables (Danger Pay, Benefits, Hazards, Conditions). This case used to assert a
+	1-3 "danger level", a field in neither book."""
+	component.initialize_job_phase({}, "Test Location")
 
 	var jobs = component.get("available_jobs")
-	for job in jobs:
-		var danger = job.get("danger_level", 0)
-		assert_that(danger).is_greater_equal(1)
-		assert_that(danger).is_less_equal(3)
+	assert_that(jobs.size()).is_equal(1)
+	var job: Dictionary = jobs[0]
+	assert_that(job.get("mission_source", "")).is_equal("opportunity")
+	assert_that(job.get("patron_name", "")).is_equal("Open Market")
+	assert_that(job.get("danger_pay", -1)).is_equal(0)
+	assert_that(job.has("danger_level")).is_false()
+	for cat in ["benefits", "hazards", "conditions"]:
+		assert_that((job.get(cat, []) as Array).size()).is_equal(0)
 
 func test_job_enemy_type_assignment():
 	"""Generated jobs should have valid enemy type"""
@@ -327,7 +333,13 @@ func test_a_blocking_condition_refuses_the_job():
 	component.set("selected_job_index", 0)
 
 	var jobs = component.get("available_jobs")
-	jobs[0]["effects"] = ["reputation_required"]
+	# The condition goes where the gate reads it: PatronJobEffects.entries_on() reads
+	# benefits / hazards / conditions only. This line used to write an `effects` key
+	# nothing reads, and the case passed because seed(12345) happened to roll this
+	# Condition onto the job, which was an Opportunity job carrying a Patron table
+	# (fixed 2026-10-29). Once one job is generated per offer the seeded rolls land
+	# elsewhere, and the case went red.
+	jobs[0]["conditions"] = ["reputation_required"]
 
 	# Guard the precondition so a future regression names itself instead of
 	# looking like the gate broke.

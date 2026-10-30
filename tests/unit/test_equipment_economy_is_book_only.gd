@@ -99,8 +99,11 @@ func test_the_shop_buttons_are_gone_from_the_scene() -> void:
 	for banned in ["TradeButton", "RepairButton", "_on_trade_pressed", "_on_repair_pressed"]:
 		assert_bool(scene.contains(banned)) \
 			.override_failure_message("EquipmentManager.tscn still has %s" % banned).is_false()
+	# "Generate Equipment" rolled a D6 on an invented table (Basic Weapon, Tech Gadget,
+	# Mystery Item); it is in neither book and went with the shop on 2026-10-29.
+	assert_bool(scene.contains("GenerateEquipmentButton")).is_false()
+	assert_bool(_code_only(EQUIP_SCREEN_SRC).contains("_generate_random_equipment")).is_false()
 	# The assignment half — this screen's real job — must survive.
-	assert_bool(scene.contains("GenerateEquipmentButton")).is_true()
 	assert_bool(_code_only(EQUIP_SCREEN_SRC).contains("func _assign_equipment_to_crew")).is_true()
 	assert_bool(_code_only(EQUIP_SCREEN_SRC).contains("func set_crew_data")).is_true()
 

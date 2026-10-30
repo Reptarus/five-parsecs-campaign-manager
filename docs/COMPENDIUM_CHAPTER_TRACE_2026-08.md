@@ -535,3 +535,19 @@ An earlier pass searched only the enum form and concluded 19 of 33 flags were de
 A later pass searched `ContentFlag.get("` as a literal and found 2 sites, missing
 the string form entirely, because the lookup is by variable. Both numbers were
 wrong in opposite directions.
+
+⚠ **CORRECTED 2026-10-29: there is a THIRD spelling, and the opening claim above is
+stale.** Three resolvers hold the flag name in a constant and pass the constant:
+
+```
+const FLAG := "DEPLOYMENT_VARIABLES"                # compendium_deployment_variables.gd:17
+if not _is_flag_enabled(FLAG):                      # :113
+const FLAG := "ELITE_ENEMIES"                       # compendium_elite_enemies.gd:19
+var flag_value: int = dlc_mgr.ContentFlag.get(FLAG, -1)   # :85
+```
+
+So `DEPLOYMENT_VARIABLES` and `ELITE_ENEMIES` ARE read, and neither literal form above
+finds them: the enum search misses a string, and a search for `"DEPLOYMENT_VARIABLES"`
+finds the constant's declaration but not the check. Grep `const FLAG :=` (3 files in
+`src/data/`) beside the two forms above. Whether each of those resolvers is reached from
+play is the separate P-05 question, which the review-build plan's Sprint 7 doc pass owns.

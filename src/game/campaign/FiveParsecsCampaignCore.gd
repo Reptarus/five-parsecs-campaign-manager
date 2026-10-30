@@ -853,6 +853,13 @@ func apply_pending_qol_data() -> void:
 	var npc_tracker = root.get_node_or_null("/root/NPCTracker")
 	if npc_tracker and npc_tracker.has_method("deserialize"):
 		npc_tracker.deserialize(qol.get("npc_tracker", {}))
+		# A Rival a crew task gave out before 2026-10-29 went to NPCTracker only, so it
+		# never reached this list and never attacked (p.85). Bring each one home once;
+		# the id is kept so the tracker's history still joins it.
+		if "rivals" in npc_tracker and npc_tracker.rivals is Dictionary:
+			var rival_contact: Script = load("res://src/core/campaign/RivalContact.gd")
+			for legacy in rival_contact.legacy_crew_task_rivals(npc_tracker.rivals, rivals):
+				rivals.append(legacy)
 	var checklist = root.get_node_or_null("/root/TurnPhaseChecklist")
 	if checklist and checklist.has_method("load_from_save"):
 		checklist.load_from_save(_pending_qol_data)

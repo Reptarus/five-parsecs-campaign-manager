@@ -30,7 +30,7 @@ The Main Menu is your home screen. The buttons run down the right side, in this 
 
 Credits and Privacy links sit at the bottom left. On the left, an information card describes a mode when you hover over its button, with a button of its own. If a mode is locked on your install, that button opens the Store instead.
 
-Not every button opens a mode in every build. In an alpha build, **Co-op Campaign**, **Bug Hunt**, **Tactics** and **Planetfall** are dimmed and answer with a note that the mode is coming in a later release. In a review build, Bug Hunt, Tactics and Planetfall open normally. Co-op Campaign shows a "coming soon" message until that feature ships. The descriptions below say what each button does when it is live.
+Not every button opens a mode in every build. In an alpha build, **Co-op Campaign**, **Bug Hunt**, **Tactics** and **Planetfall** are dimmed and answer with a note that the mode is coming in a later release. In a review build, Bug Hunt, Tactics and Planetfall open normally. Co-op Campaign opens the Co-op dialog described in {{chapter:19}}. The descriptions below say what each button does when it is live.
 
 ### Continue Campaign
 
@@ -59,7 +59,7 @@ Each saved campaign shows its name and the date it was last played. Select one a
 
 ### Co-op Campaign
 
-Reserved for shared-crew play. Until that feature is released, the button shows a "coming soon" message.
+In a review build the button opens a **Co-op** dialog with two choices: **Bug Hunt Co-op Campaign**, which opens the Bug Hunt creation wizard with co-op switched on, and **Expanded Co-op rules (Compendium pp.39-41)**, which is reference text. See {{chapter:19}}. In any other build the button shows a "coming soon" message.
 
 ### Battle Simulator
 

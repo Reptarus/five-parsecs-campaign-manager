@@ -79,42 +79,53 @@ static func roll_on_table(table_data: Dictionary, dice_result: int) -> Dictionar
 
 ## Helper: Roll d6 using DiceSystem
 ## Falls back to randi_range if DiceSystem not available
-static func roll_d6() -> int:
+static func roll_d6(context: String = "GameDataLoader D6") -> int:
 	var dice_system = _get_dice_system()
 	if dice_system and dice_system.has_method("roll_dice"):
-		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, "GameDataLoader")
+		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D6, context)
 		return roll_result.total
-	else:
-		return randi_range(1, 6)
+	var managed: int = _dice_manager_roll("roll_d6", context)
+	return managed if managed > 0 else randi_range(1, 6)
 
 ## Helper: Roll 2d6 using DiceSystem
-static func roll_2d6() -> int:
+static func roll_2d6(context: String = "GameDataLoader 2D6") -> int:
 	var dice_system = _get_dice_system()
 	if dice_system and dice_system.has_method("roll_custom"):
-		var roll_result = dice_system.roll_custom(2, 6, 0, "GameDataLoader")
+		var roll_result = dice_system.roll_custom(2, 6, 0, context)
 		return roll_result.total
-	else:
-		return randi_range(1, 6) + randi_range(1, 6)
+	var managed: int = _dice_manager_roll("roll_2d6", context)
+	return managed if managed > 0 else randi_range(1, 6) + randi_range(1, 6)
 
 ## Helper: Roll d10 using DiceSystem
-static func roll_d10() -> int:
+static func roll_d10(context: String = "GameDataLoader D10") -> int:
 	var dice_system = _get_dice_system()
 	if dice_system and dice_system.has_method("roll_dice"):
-		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D10, "GameDataLoader")
+		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D10, context)
 		return roll_result.total
-	else:
-		return randi_range(1, 10)
+	var managed: int = _dice_manager_roll("roll_d10", context)
+	return managed if managed > 0 else randi_range(1, 10)
 
 ## Helper: Roll d100 using DiceSystem
-static func roll_d100() -> int:
+static func roll_d100(context: String = "GameDataLoader D100") -> int:
 	var dice_system = _get_dice_system()
 	if dice_system and dice_system.has_method("roll_dice"):
-		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D100, "GameDataLoader")
+		var roll_result = dice_system.roll_dice(FPCM_DiceSystem.DicePattern.D100, context)
 		return roll_result.total
-	else:
-		return randi_range(1, 100)
+	var managed: int = _dice_manager_roll("roll_d100", context)
+	return managed if managed > 0 else randi_range(1, 100)
 
 ## Get DiceSystem autoload (cached lookup)
+## /root/DiceSystem above is a test seam and is not an autoload, so in a real run
+## every roll here used to fall to a raw randi. DiceManager is the autoload every
+## other roll uses; routing through it reaches the history and the QA forcing seam.
+## Returns -1 when there is no DiceManager (a bare script run).
+static func _dice_manager_roll(method: String, context: String) -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var dm: Node = tree.root.get_node_or_null("/root/DiceManager") if tree and tree.root else null
+	if dm and dm.has_method(method):
+		return int(dm.call(method, context))
+	return -1
+
 static func _get_dice_system() -> Node:
 	# Try to get from SceneTree
 	if Engine.get_main_loop() and Engine.get_main_loop() is SceneTree:

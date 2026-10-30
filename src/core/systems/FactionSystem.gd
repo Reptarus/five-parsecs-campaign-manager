@@ -17,6 +17,7 @@ extends Node
 
 # Use preload pattern for dependencies
 const GameState = preload("res://src/core/state/GameState.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
 
 # Rival Management Signals
 #
@@ -61,6 +62,13 @@ var faction_data: Dictionary = {} # Loaded from JSON
 ##   Tensions rising (15-19) — "Faction jobs next turn increase Danger Pay by +1 Credit."
 var _truce_this_turn: bool = false
 var _tensions_rising: bool = false
+## p.111: ONE Faction job check per campaign turn. The offer list is rebuilt every
+## time the job step is shown (initialize_job_offers() has three callers and runs
+## again on back-navigation), so until 2026-10-29 the D6 re-rolled on each visit and
+## a player could fish for a job by leaving the step and coming back. Keyed by
+## campaign and turn, and saved with the rest of this system's state.
+var _job_check_key: String = ""
+var _job_check_offers: Array[Dictionary] = []
 
 ## p.114 Fringe World Strife cross-references. A Crackdown blocks activities for
 ## the turn it fires on; a Civil War holds them down "until the war is over", so
@@ -165,7 +173,8 @@ func get_data() -> Dictionary:
 		"active_factions": active_factions.duplicate(),
 		"faction_relations": faction_relations.duplicate(),
 		"faction_categories": faction_categories.duplicate(),
-		"last_update": _last_update
+		"last_update": _last_update,
+		"job_check": {"key": _job_check_key, "offers": _job_check_offers.duplicate(true)},
 	}
 
 func update_data(data: Dictionary) -> bool:
@@ -207,6 +216,16 @@ func update_data(data: Dictionary) -> bool:
 		var categories_data: Dictionary = data["faction_categories"] as Dictionary
 		faction_categories = categories_data.duplicate()
 
+	# Always assigned, so a save without the key (or another campaign's) cannot
+	# inherit the previous campaign's verdict.
+	var check: Variant = data.get("job_check", {})
+	_job_check_key = str((check as Dictionary).get("key", "")) if check is Dictionary else ""
+	_job_check_offers.clear()
+	if check is Dictionary:
+		for offer in (check as Dictionary).get("offers", []):
+			if offer is Dictionary:
+				_job_check_offers.append(offer)
+
 	_last_update = Time.get_unix_time_from_system()
 	_initialized = true  # Mark as initialized after loading data
 	return true
@@ -221,6 +240,8 @@ func cleanup() -> void:
 	faction_relations.clear()
 	faction_categories.clear()
 	faction_data.clear()
+	_job_check_key = ""
+	_job_check_offers.clear()
 	_errors.clear()
 	_initialized = false
 
@@ -483,18 +504,17 @@ func generate_faction_mission(faction_id: String) -> Dictionary:
 	if not faction:
 		return {}
 
-	var mission = {
-		"id": "faction_mission_" + str(Time.get_unix_time_from_system()),
+	# WHO is asking, and nothing else. Compendium p.111: "Faction jobs are treated as
+	# a Patron job", so JobOfferComponent._faction_job_offer() rolls the job itself
+	# on the Patron tables. Until 2026-10-29 this invented a name, a description, a
+	# 1-5 difficulty, Influence x 500 credits and a per-type "bonus"
+	# (trade_discount 0.1, security_clearance...), none of it in either book; the
+	# difficulty reached the battle-transition screen as "Difficulty: N".
+	return {
 		"faction_id": faction_id,
-		"type": _get_faction_mission_type(faction),
-		"name": _generate_faction_mission_name(faction),
-		"description": _generate_faction_mission_description(faction),
-		"difficulty": _calculate_faction_mission_difficulty(faction),
-		"rewards": _generate_faction_mission_rewards(faction),
-		"faction_bonus": _generate_faction_mission_bonus(faction)
+		"faction_name": str(faction.get("name", "")),
+		"mission_source": "faction",
 	}
-
-	return mission
 
 # =====================================================
 # PRIVATE HELPER METHODS
@@ -578,7 +598,7 @@ func generate_world_factions(force: bool = false,
 	if faction_data.is_empty():
 		_load_faction_data()
 
-	var count: int = randi_range(1, 3) + 1
+	var count: int = _die(3, "Faction count") + 1
 	for _i in count:
 		# create_faction() re-rolls the type from the p.110 D100 table, so the
 		# argument only seeds the fallback when the table is unavailable.
@@ -648,8 +668,8 @@ func _generate_faction_data(faction_type: String) -> Dictionary:
 				break
 
 	# Compendium: 1D3+1 for each stat + type modifier
-	var base_infl: int = randi_range(1, 3) + 1 + infl_mod
-	var base_power: int = randi_range(1, 3) + 1 + power_mod
+	var base_infl: int = _die(3, "Faction Influence") + 1 + infl_mod
+	var base_power: int = _die(3, "Faction Power") + 1 + power_mod
 
 	return {
 		"name": _generate_faction_name(faction_type_name),
@@ -767,7 +787,7 @@ func _check_rival_reputation_thresholds(rival: Dictionary) -> void:
 
 func _perform_faction_activity(faction: Dictionary) -> void:
 	## Perform random faction activity
-	var activity_roll = randi_range(1, 100)
+	var activity_roll: int = _die(100, "Faction Activity (Compendium p.113)")
 
 	match activity_roll:
 		1, 2, 3, 4, 5, 6, 7, 8, 9, 10:
@@ -795,7 +815,7 @@ func _perform_faction_activity(faction: Dictionary) -> void:
 
 func _consolidate_power(faction: Dictionary) -> void:
 	## Faction consolidates power
-	if randi_range(1, 6) > faction.get("power", 3):
+	if _die(6, "Faction Activity: Consolidate power base") > faction.get("power", 3):
 		faction.power = min(MAX_FACTION_POWER, faction.power + 1)
 
 func _undermine_faction(faction: Dictionary) -> void:
@@ -808,7 +828,7 @@ func _undermine_faction(faction: Dictionary) -> void:
 	var target = targets.pick_random()
 	if target.get("temporary_defense", false):
 		return
-	if randi_range(1, 6) >= 5:
+	if _die(6, "Faction Activity: Undermine Faction") >= 5:
 		_decrease_highest_stat(target)
 
 func _hostile_takeover(faction: Dictionary) -> void:
@@ -819,13 +839,13 @@ func _hostile_takeover(faction: Dictionary) -> void:
 			return
 
 		var target = targets.pick_random()
-		if randi_range(1, 6) > target.get("influence", 0):
+		if _die(6, "Faction Activity: Hostile take-over") > target.get("influence", 0):
 			target.influence = max(MIN_FACTION_INFLUENCE, target.influence - 1)
 			faction.influence = min(MAX_FACTION_INFLUENCE, faction.influence + 1)
 
 func _public_relations_campaign(faction: Dictionary) -> void:
 	## Faction runs PR campaign
-	if randi_range(1, 6) > faction.get("influence", 0):
+	if _die(6, "Faction Activity: Public relations campaign") > faction.get("influence", 0):
 		faction.influence = min(MAX_FACTION_INFLUENCE, faction.influence + 1)
 
 func _capitalize_on_events(faction: Dictionary) -> void:
@@ -865,8 +885,8 @@ func _faction_struggle(faction: Dictionary, force: bool = false) -> String:
 		# this campaign turn". Negated, so nothing was struck.
 		target["temporary_defense"] = false
 		return ""
-	var att_roll: int = randi_range(1, 6) + faction.get("power", 0)
-	var def_roll: int = randi_range(1, 6) + target.get("power", 0)
+	var att_roll: int = _die(6, "Faction Struggle: attacker") + faction.get("power", 0)
+	var def_roll: int = _die(6, "Faction Struggle: defender") + target.get("power", 0)
 	if faction.get("successful_job_this_turn", false):
 		att_roll += 1
 	if target.get("successful_job_this_turn", false):
@@ -994,19 +1014,28 @@ func _add_vengeance_rival(destroyed: Dictionary) -> void:
 	var enemy_name: String = _roll_hired_muscle()
 	if enemy_name.is_empty():
 		return
-	var rivals: Array = gsm.get_rivals()
-	rivals.append({
-		"id": "rival_vengeance_%d_%d" % [_current_turn(), randi() % 100000],
-		"name": enemy_name,
+	var rival: Dictionary = RivalContactRef.make("faction_destroyed", "", {
 		"type": enemy_name,
-		"enemy_type": enemy_name,
-		"enemy_category": "hired_muscle",
-		"source": "faction_destroyed",
-		"origin_faction": str(destroyed.get("name", "")),
-	})
+		"id": "rival_vengeance_%d_%d" % [_current_turn(), randi() % 100000],
+		"created_turn": _current_turn()})
+	rival["enemy_category"] = "hired_muscle"
+	rival["origin_faction"] = str(destroyed.get("name", ""))
+	var rivals: Array = gsm.get_rivals()
+	rivals.append(rival)
 	gsm.set_rivals(rivals)
 
 ## D100 on the Hired Muscle category in enemy_types.json.
+## Every Faction die goes through DiceManager, so it reaches the roll history and a
+## QA tester can force it by its context. A local roll only with no DiceManager.
+func _die(sides: int, context: String) -> int:
+	var dice = get_node_or_null("/root/DiceManager")
+	if dice:
+		match sides:
+			3: return int(dice.roll_d3(context))
+			6: return int(dice.roll_d6(context))
+			100: return int(dice.roll_d100(context))
+	return randi_range(1, sides)
+
 func _roll_hired_muscle() -> String:
 	var f := FileAccess.open("res://data/enemy_types.json", FileAccess.READ)
 	if f == null:
@@ -1019,7 +1048,7 @@ func _roll_hired_muscle() -> String:
 	for cat: Variant in (json.data as Dictionary).get("enemy_categories", []):
 		if not (cat is Dictionary) or str((cat as Dictionary).get("id", "")) != "hired_muscle":
 			continue
-		var roll: int = randi() % 100 + 1
+		var roll: int = _die(100, "Faction Vengeance: Hired Muscle (Compendium p.115)")
 		for row: Variant in (cat as Dictionary).get("enemies", []):
 			var r: Array = (row as Dictionary).get("roll_range", [])
 			if r.size() == 2 and roll >= int(r[0]) and roll <= int(r[1]):
@@ -1034,14 +1063,12 @@ func _add_enforcer_rival(faction_id: String) -> void:
 		return
 	var faction_name: String = str(active_factions.get(faction_id, {}).get("name", "A Faction"))
 	var rivals: Array = gsm.get_rivals()
-	rivals.append({
-		"id": "rival_enforcer_%s_%d" % [faction_id, _current_turn()],
-		"name": "%s Enforcers" % faction_name,
-		"type": "Enforcers",
-		"enemy_type": "Enforcers",
-		"source": "faction_event",
-		"faction_id": faction_id,
-	})
+	var rival: Dictionary = RivalContactRef.make("faction_event",
+		"%s Enforcers" % faction_name, {"type": "Enforcers",
+			"id": "rival_enforcer_%s_%d" % [faction_id, _current_turn()],
+			"created_turn": _current_turn()})
+	rival["faction_id"] = faction_id
+	rivals.append(rival)
 	gsm.set_rivals(rivals)
 
 ## p.115 Dark secrets: the payoff (-1 Influence and -1 Power to the target, +2
@@ -1106,82 +1133,6 @@ func _get_total_category_factions() -> int:
 		total += category.size()
 	return total
 
-func _get_faction_mission_type(faction: Dictionary) -> String:
-	## Get mission type for faction
-	var mission_types = faction.get("mission_types", ["generic"])
-	return mission_types.pick_random()
-
-func _generate_faction_mission_name(faction: Dictionary) -> String:
-	## Generate mission name for faction
-	var faction_name = faction.get("name", "Unknown Faction")
-	var mission_type = _get_faction_mission_type(faction)
-
-	var templates = {
-		"security": "Security Operation for %s",
-		"diplomacy": "Diplomatic Mission with %s",
-		"transport": "Transport Contract from %s",
-		"trade": "Trade Agreement with %s",
-		"combat": "Combat Mission for %s",
-		"escort": "Escort Duty for %s",
-		"smuggling": "Smuggling Run for %s",
-		"heist": "Heist Operation for %s",
-		"generic": "Mission for %s"
-	}
-
-	var template = templates.get(mission_type, "Mission for %s")
-	return template % faction_name
-
-func _generate_faction_mission_description(faction: Dictionary) -> String:
-	## Generate mission description for faction
-	var mission_type = _get_faction_mission_type(faction)
-	var descriptions = {
-		"security": "Provide security services for faction operations.",
-		"diplomacy": "Conduct diplomatic negotiations on behalf of the faction.",
-		"transport": "Transport valuable cargo for the faction.",
-		"trade": "Facilitate trade agreements and deals.",
-		"combat": "Engage in combat operations for the faction.",
-		"escort": "Provide escort services for faction personnel.",
-		"smuggling": "Conduct discrete smuggling operations.",
-		"heist": "Execute high-risk acquisition missions.",
-		"generic": "Complete important tasks for the faction."
-	}
-
-	return descriptions.get(mission_type, "Complete the assigned mission objectives.")
-
-func _calculate_faction_mission_difficulty(faction: Dictionary) -> int:
-	## Calculate mission difficulty based on faction power
-	var base_difficulty = faction.get("power", 3)
-	return clamp(base_difficulty + randi_range(-1, 1), 1, 5)
-
-func _generate_faction_mission_rewards(faction: Dictionary) -> Dictionary:
-	## Generate mission rewards based on faction resources
-	var influence = faction.get("influence", 3)
-	var base_credits = influence * 500
-
-	return {
-		"credits": base_credits + randi_range(-100, 200),
-		"reputation": randi_range(5, 15),
-		"faction_standing": randi_range(5, 10)
-	}
-
-func _generate_faction_mission_bonus(faction: Dictionary) -> Dictionary:
-	## Generate faction-specific mission bonuses with type safety
-	var faction_type_value = faction.get("type", "generic")
-	var faction_type: String = faction_type_value as String if faction_type_value is String else "generic"
-
-	var bonuses = {
-		"government": {"security_clearance": true},
-		"corporate": {"trade_discount": 0.1},
-		"criminal": {"black_market_access": true},
-		"military": {"weapon_upgrade": true},
-		"religious": {"medical_support": true},
-		"mercenary": {"combat_bonus": 1},
-		"pirate": {"salvage_rights": true},
-		"alien": {"tech_knowledge": true}
-	}
-
-	return bonuses.get(faction_type, {})
-
 # ── Invasion Handling (Compendium p.116) ──────────────────────────
 
 func process_invasion(destination_world_id: String = "") -> Array[Dictionary]:
@@ -1210,7 +1161,7 @@ func process_invasion(destination_world_id: String = "") -> Array[Dictionary]:
 			result["war_bonus"] = 1
 			results.append(result)
 		else:
-			var roll: int = randi_range(1, 6)
+			var roll: int = _die(6, "Faction Invasion response")
 			if roll < power:
 				# Flee to same destination, with stat loss
 				f["power"] = max(1, power - 1)
@@ -1317,7 +1268,7 @@ func _destroy_faction(
 		var best_ids: Array[String] = []
 		for fid in active_factions:
 			var f: Dictionary = active_factions[fid]
-			var roll: int = randi_range(1, 6) + f.get("power", 0)
+			var roll: int = _die(6, "Faction destruction: Influence roll-off") + f.get("power", 0)
 			if roll > best_roll:
 				best_roll = roll
 				best_ids = [fid]
@@ -1400,8 +1351,8 @@ func _apply_faction_event(event: Dictionary) -> void:
 	match event_name:
 		"New Faction":
 			var new_f: Dictionary = _generate_faction_data("Secretive organization")
-			new_f["influence"] = randi_range(1, 3)
-			new_f["power"] = randi_range(1, 3)
+			new_f["influence"] = _die(3, "Faction Event: New Faction Influence")
+			new_f["power"] = _die(3, "Faction Event: New Faction Power")
 			new_f["offers_job_next_turn"] = true
 			var fid: String = new_f["name"].replace(
 				" ", "_"
@@ -1414,8 +1365,8 @@ func _apply_faction_event(event: Dictionary) -> void:
 				faction_ids.shuffle()
 				var f1: Dictionary = active_factions[faction_ids[0]]
 				var f2: Dictionary = active_factions[faction_ids[1]]
-				var r1: int = randi_range(1, 6) + f1.get("power", 0)
-				var r2: int = randi_range(1, 6) + f2.get("power", 0)
+				var r1: int = _die(6, "Faction Event: Shoot out, first") + f1.get("power", 0)
+				var r2: int = _die(6, "Faction Event: Shoot out, second") + f2.get("power", 0)
 				var loser: Dictionary = f2 if r1 >= r2 else f1
 				loser["cannot_act_next_turn"] = true
 				_decrease_highest_stat(loser)
@@ -1452,8 +1403,8 @@ func _apply_faction_event(event: Dictionary) -> void:
 		"New Leadership":
 			var fid: String = faction_ids.pick_random()
 			var f: Dictionary = active_factions[fid]
-			var ri: int = randi_range(1, 6)
-			var rp: int = randi_range(1, 6)
+			var ri: int = _die(6, "Faction Event: New Leadership, Influence")
+			var rp: int = _die(6, "Faction Event: New Leadership, Power")
 			if ri == 1:
 				f["influence"] = max(1, f.get("influence", 2) - 1)
 			elif ri == 6:
@@ -1465,12 +1416,12 @@ func _apply_faction_event(event: Dictionary) -> void:
 		"Outside interference":
 			var fid: String = faction_ids.pick_random()
 			var f: Dictionary = active_factions[fid]
-			if randi_range(1, 6) > f.get("power", 0):
+			if _die(6, "Faction Event: Outside interference") > f.get("power", 0):
 				f["influence"] = max(1, f.get("influence", 2) - 1)
 		"Internal struggle":
 			var fid: String = faction_ids.pick_random()
 			var f: Dictionary = active_factions[fid]
-			var r: int = randi_range(1, 6)
+			var r: int = _die(6, "Faction Event: Internal struggle")
 			if r == 1:
 				f["influence"] = max(1, f.get("influence", 2) - 1)
 			elif r == 6:
@@ -1610,6 +1561,28 @@ func check_faction_job_available(faction_id: String) -> bool:
 	return roll <= influence
 
 func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Array[Dictionary]:
+	## The turn's p.111 check, made once and then answered from the stored verdict.
+	var key: String = _job_check_turn_key()
+	if not key.is_empty() and key == _job_check_key:
+		return _job_check_offers.duplicate(true)
+	var offers: Array[Dictionary] = _roll_faction_job_opportunities(preferred_faction_id)
+	if not key.is_empty():
+		_job_check_key = key
+		_job_check_offers = offers.duplicate(true)
+	return offers
+
+
+## "<campaign id>|<turn>", or "" with no campaign (nothing to remember it against).
+func _job_check_turn_key() -> String:
+	var gs: Node = get_node_or_null("/root/GameState")
+	var c: Variant = gs.get("current_campaign") if gs else null
+	if c == null or not ("progress_data" in c):
+		return ""
+	var cid: String = str(c.get("campaign_id")) if "campaign_id" in c else ""
+	return "%s|%d" % [cid, int(c.progress_data.get("turns_played", 0))]
+
+
+func _roll_faction_job_opportunities(preferred_faction_id: String) -> Array[Dictionary]:
 	## Compendium p.111 Faction Jobs, verbatim: "Before taking your crew tasks,
 	## each turn your captain may check for a Faction job... SELECT A FACTION you
 	## would like to work for and ROLL 1D6. If the roll is equal to or below the
@@ -1647,9 +1620,6 @@ func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Arr
 	if promised != "":
 		var promised_mission: Dictionary = generate_faction_mission(promised)
 		if not promised_mission.is_empty():
-			promised_mission["mission_source"] = "faction"
-			promised_mission["skip_danger_pay"] = true
-			promised_mission["skip_benefits"] = true
 			_apply_tensions_rising(promised_mission, tensions)
 			opportunities.append(promised_mission)
 			return opportunities
@@ -1670,13 +1640,9 @@ func get_faction_mission_opportunities(preferred_faction_id: String = "") -> Arr
 		if not mission.is_empty():
 			_apply_tensions_rising(mission, tensions)
 			# "Faction jobs are treated as a Patron job, but do not roll for
-			# Danger Pay or Benefits." Stamped explicitly so the p.83 roller and
-			# the p.120 Step 4 payment path both skip them — PaymentProcessor
-			# already zeroes Danger Pay on a non-patron source, and this keeps
-			# the source honest rather than disguising the job as an Opportunity.
-			mission["mission_source"] = "faction"
-			mission["skip_danger_pay"] = true
-			mission["skip_benefits"] = true
+			# Danger Pay or Benefits": JobOfferComponent._faction_job_offer() builds
+			# the job on the Patron tables without those two rolls. The
+			# skip_danger_pay / skip_benefits flags this used to stamp had no reader.
 			opportunities.append(mission)
 	return opportunities
 
@@ -1692,7 +1658,6 @@ func _apply_tensions_rising(mission: Dictionary, active: bool) -> void:
 	# PaymentProcessor's non-patron zeroing, hence the explicit override rather
 	# than relying on the skip flag.
 	mission["danger_pay"] = int(mission.get("danger_pay", 0)) + 1
-	mission["skip_danger_pay"] = false
 	mission["tensions_rising_bonus"] = true
 
 func check_affiliated_patron(patron: Dictionary) -> String:

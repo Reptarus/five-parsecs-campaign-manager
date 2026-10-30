@@ -14,7 +14,7 @@ description: "Use this skill when working with character data models, the two-en
 | `references/character-model.md` | Character.gd full API (~1,900 lines), BaseCharacterResource, flat stats, dual-key aliases, implant system, serialization format |
 | `references/enum-systems.md` | Two-enum alignment table (GlobalEnums vs GameEnums), sync protocol, diff-check |
 | `references/json-data-catalog.md` | All 132 JSON files: path, schema summary, consumer system, validation rules |
-| `references/equipment-world.md` | EquipmentManager API, equipment_data key, sell value logic, PlanetDataManager, PlanetCache, WorldEconomyManager |
+| `references/equipment-world.md` | EquipmentManager API, equipment_data key, sell value logic, PlanetDataManager, WorldEconomyManager |
 
 ## Quick Decision Tree
 

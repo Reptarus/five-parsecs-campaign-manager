@@ -1,30 +1,9 @@
 {
-	"_source": "Core Rules pp.83-84 — Patron Job Generation. CANONICAL DATA in data/patron_generation.json. This file provides legacy compatibility format for PatronJobManager.gd fallback.",
-	"_note": "PatronJobManager, PatronJobGenerator, and PatronSystem now load from patron_generation.json first. This file is retained as fallback only.",
+	"_source": "Core Rules pp.83-84 — Patron Job Generation. CANONICAL DATA in data/patron_generation.json. JobOfferComponent reads job_type_table from here.",
+	"_note": "Its 2D6 patron_contact_table (in neither book; p.77 Find a Patron is 1D6 + crew looking + 1 per Patron) and job_payment_modifiers (a copy of the p.83 Danger Pay table in patron_generation.json) were removed 2026-10-29.",
 	"name": "Patron Job Generation Table (Legacy Format)",
 	"version": "2.0",
 	"source": "Five Parsecs from Home Core Rules pp.83-84",
-	"patron_contact_table": {
-		"_note": "Core Rules p.82: Assign crew to Find a Patron task. Roll 2D6, 5+ = 1 patron found.",
-		"dice_type": "2d6",
-		"description": "Roll 2D6 for patron contact (crew task: Find a Patron)",
-		"results": {
-			"2-4": {
-				"outcome": "no_contact",
-				"description": "No patron contact made this turn"
-			},
-			"5-8": {
-				"outcome": "patron_found",
-				"patron_count": 1,
-				"description": "Found 1 patron. Roll D10 for patron type (see patron_generation.json)."
-			},
-			"9-12": {
-				"outcome": "patron_found",
-				"patron_count": 1,
-				"description": "Found 1 patron with favorable terms. Roll D10 for patron type."
-			}
-		}
-	},
 	"job_type_table": {
 		"_note": "DEPRECATED — mission objectives now in patron_generation.json mission_objectives section. These are Core Rules D10 objective types, not job categories.",
 		"dice_type": "D10",
@@ -41,16 +20,5 @@
 			"9": {"objective": "Fight Off", "source": "core"},
 			"10": {"objective": "Fight Off", "source": "core"}
 		}
-	},
-	"job_payment_modifiers": {
-		"_note": "Danger Pay from Core Rules p.83. No patron tiers — that was fabricated.",
-		"danger_pay": {
-			"1-4": 1,
-			"5-8": 2,
-			"9": 3,
-			"10+": 3
-		},
-		"corporation_bonus": "+1 to Danger Pay roll",
-		"secretive_group_bonus": "+1 to Time Frame roll"
 	}
 }

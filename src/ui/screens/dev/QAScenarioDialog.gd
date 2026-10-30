@@ -477,6 +477,41 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 		"note": "p.22 - 97-00 Access Denied: +1 Story Point; 01-05 Army: +1 Reactions"},
 	{"key": "Planetfall Notable Event", "sides": 100, "target": 41,
 		"note": "p.22 - 41-45 Went missing; story only"},
+	# --- Patrons (PatronContact, JobOfferComponent).
+	{"key": "Patron Type", "sides": 10, "target": 10,
+		"note": "p.83 - 10 = Secretive Group (+1 to the Time Frame roll)"},
+	{"key": "Got Yourself Noticed", "sides": 10, "target": 1,
+		"note": "p.81 - which Rival comes after you (1 = first on the list; above the count is ignored)"},
+	# --- Rolls that probed DiceManager for a roll_dice() it never had, so none
+	# could be forced before 2026-10-29 (test_dice_reach_the_manager.gd).
+	{"key": "Travel Event", "sides": 100, "target": 1,
+		"note": "pp.70-71 - Starship Travel Events (the re-roll uses this key too)"},
+	{"key": "Quest Progression", "sides": 100, "target": 1,
+		"note": "Compendium p.79 - 01-10 a source of information that costs 1D6 credits"},
+	{"key": "Story Clock", "sides": 6, "target": 6,
+		"note": "a battle not won: 1 = no tick, 2-5 = 1, 6 = 2"},
+	{"key": "Evidence Search", "sides": 6, "target": 6,
+		"note": "1D6 + Evidence, 7+ finds it"},
+	{"key": "Patron Job Type", "sides": 10, "target": 1, "note": "pp.83-84"},
+	{"key": "Lay Low", "sides": 6, "target": 6, "note": "errata v1.06 - costs 1D6+1 credits"},
+	{"key": "Rainy Day Fund", "sides": 6, "target": 6, "note": "p.67 - 1D6+5 credits"},
+	{"key": "Unity Agent favor", "min": 2, "sides": 12, "target": 12,
+		"note": "p.20 - Call in a Favor"},
+	{"key": "Business Elsewhere XP", "sides": 6, "target": 6, "note": "Character Event XP"},
+	{"key": "Bureaucratic mess", "min": 2, "sides": 12, "target": 2,
+		"note": "world trait - 2-4 delays departure"},
+	{"key": "World trait: travel surcharge", "sides": 3, "target": 3,
+		"note": "world trait - +1D3 credits to travel"},
+	{"key": "Personal trinket", "min": 2, "sides": 12, "target": 12,
+		"note": "p.121 Battlefield Finds - 9+ on a new world returns it"},
+	# --- Factions and Fringe World Strife (Compendium pp.113-115, p.148).
+	{"key": "Faction Activity", "sides": 100, "target": 1,
+		"note": "Compendium p.113 - the D100 comes first; its follow-up D6 shares the key"},
+	{"key": "Faction Vengeance", "sides": 100, "target": 15,
+		"note": "Compendium p.115 - the Hired Muscle column"},
+	{"key": "Fringe World Strife: arrival", "sides": 6, "target": 1, "note": "Compendium p.148"},
+	{"key": "Criminal Elements", "sides": 100, "target": 11,
+		"note": "Fringe World Strife - 11 = Punks"},
 ]
 
 var _roll_picker: OptionButton = null

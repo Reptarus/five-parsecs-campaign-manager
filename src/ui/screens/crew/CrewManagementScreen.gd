@@ -387,16 +387,6 @@ func _parse_traits(traits: Array) -> Dictionary:
 				result.cls = trait_str.substr(7)
 	return result
 
-func _resolve_background_name(val) -> String:
-	if val is String:
-		return val
-	if val is int or val is float:
-		var idx := int(val)
-		var keys: Array = GlobalEnums.Background.keys()
-		if idx >= 0 and idx < keys.size():
-			return keys[idx].capitalize()
-	return "Unknown"
-
 ## T11-31 - the class name in the book's spelling.
 ##
 ## A String was returned VERBATIM, so the stored key "BOUNTY_HUNTER" printed as

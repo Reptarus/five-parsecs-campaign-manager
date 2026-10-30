@@ -319,6 +319,8 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 
 		# Step 4b: Black Zone Rewards (Core Rules Appendix III pp.150-151)
 		_payment.process_black_zone_rewards(_ctx)
+		# Core Rules p.81 Promising lead: +3 credits on an Opportunity mission.
+		_payment.process_promising_lead(_ctx)
 
 		# Step 4d: Salvage tally (Compendium p.147), verbatim: "In Post-battle
 		# Step 4. Get paid, tally up how many units of Salvage you have obtained."
@@ -737,6 +739,8 @@ func _complete_post_battle_phase() -> void:
 	# Runs BEFORE the journal entry so the recovered sight appears in the same
 	# battle record rather than a turn later.
 	_completion.apply_notable_sight_reward(_ctx)
+	# Core Rules p.82: this turn's Explore bounties, paid if the crew claimed them.
+	_completion.apply_explore_bounties(_ctx)
 	_completion.create_battle_journal_entry(_ctx)
 	_completion.record_planet_mission(_ctx)
 	# Compendium p.81: the Connection was an opportunity attached to THIS mission.
@@ -870,7 +874,9 @@ func _log_traveler_events(results: Array) -> void:
 					"auto_generated": true,
 					"title": "Traveler's Gift",
 					"description": (
-						"%s revealed a Quest lead (rolled %d)."
+						"%s led the crew to a Quest (rolled %d)." % [char_name, roll]
+						if bool(result.get("received", false)) else
+						"%s pointed to a Quest (rolled %d), but the crew is already on one."
 						% [char_name, roll]),
 					# T11-44: was "discovery" (not in the vocabulary, fell to NEUTRAL).
 					"mood": "exciting",
@@ -922,10 +928,10 @@ func _check_bitter_day_story_point() -> void:
 				break
 	elif raw_casualties is int or raw_casualties is float:
 		# Legacy int shape carries no per-entry type, but "casualty" means DEATH in
-		# this codebase — TacticalBattleUI:4398-4408 appends to crew_casualties only
-		# on instant_kill / dead / a death roll of 1-2, with the survivors going to
-		# crew_injuries, and BattleResultNormalizer step 8 stamps every derived
-		# entry type "killed". So a non-zero count IS one or more deaths.
+		# this codebase, and BattleResultNormalizer step 8 stamps every derived entry
+		# type "killed". So a non-zero count IS one or more deaths. (Auto-resolve no
+		# longer produces any: its D6 death check, in neither book, was removed on
+		# 2026-10-29, and every casualty now rolls the Injury Table, Core Rules p.121.)
 		has_fatal = int(raw_casualties) > 0
 	# Played path: deaths surface as is_fatal on the processed Injury Table roll,
 	# not as pre-classified casualties. Scan those too (Core Rules p.67).

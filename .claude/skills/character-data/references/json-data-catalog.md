@@ -20,7 +20,6 @@ All game data lives in `data/` at project root. Loaded by `GameDataManager` auto
 | `data/status_effects.json` | GameDataManager.load_status_effects() | {id: {name, duration, effect_type, modifier}} |
 | `data/world_traits.json` | GameDataManager.load_world_traits() | {id: {name, description, modifiers}} |
 | `data/planet_types.json` | GameDataManager | {id: {name, danger_level, traits[], locations[]}} |
-| `data/location_types.json` | GameDataManager | {id: {name, services[], danger_modifier}} |
 
 ### Character Creation Data (Phase 38 — Book-Accurate)
 | File | Consumer | Schema |

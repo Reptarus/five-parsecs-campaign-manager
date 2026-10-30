@@ -65,6 +65,9 @@ Whether you're a seasoned Five Parsecs veteran or picking up the game for the fi
 - **{{chapter:18}}** [Battle Simulator](18_battle_simulator.md)
   A standalone practice battle with no campaign: setup, the battle, and the results screen.
 
+- **{{chapter:19}}** [Co-op Campaign](19_coop_campaign.md)
+  The Bug Hunt Co-op Campaign: several players, one shared sector map, the common Support pool and the Enemy Moves.
+
 ### Extras
 
 - **{{chapter:13}}** [DLC and Expansion Content](13_dlc_store.md)

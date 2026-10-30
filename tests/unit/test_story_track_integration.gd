@@ -30,12 +30,12 @@ class ScriptedDice extends Node:
 	# from the test bodies ("Invalid assignment ... of type 'Array'").
 	var queue: Array = []
 	var default_value: int = 3
-	func roll_dice(_context: String = "", _type: String = "D6") -> int:
+	# Only roll_d6(), the method the real DiceManager has. A roll_dice() here once
+	# let these cases pass while production, handed the autoload, rolled raw.
+	func roll_d6(_context: String = "") -> int:
 		if queue.is_empty():
 			return default_value
 		return queue.pop_front()
-	func roll_d6(_context: String = "") -> int:
-		return roll_dice(_context, "D6")
 
 
 func before_test() -> void:

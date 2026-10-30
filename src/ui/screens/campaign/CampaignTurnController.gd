@@ -15,6 +15,8 @@ const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultN
 const BattleCheckpointRef = preload(
 	"res://src/core/battle/BattleCheckpoint.gd")
 const BattleSetupRulesClass = preload("res://src/core/battle/BattleSetupRules.gd")
+const DeferredCrewEventsRef = preload("res://src/core/campaign/DeferredCrewEvents.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
 # Path preload: BattlefieldGrid is new (2026-07-02) and the global
 # class cache is stale until the editor reopens (project gotcha).
 const BattlefieldGridClass = preload("res://src/core/battle/BattlefieldGrid.gd")
@@ -533,16 +535,20 @@ func _check_rival_encounter_backend(_planet_id: String, _turn_number: int) -> vo
 	# that prohibition wins, and the forced battle must survive to the next
 	# eligible turn rather than being silently spent.
 	var forced_rival_id: String = ""
+	var forced_cite: String = ""
 	if "progress_data" in campaign:
 		forced_rival_id = str(campaign.progress_data.get(
 			"forced_rival_battle", ""))
+		# p.81 "Got yourself noticed" rides the same flag and names its own rule.
+		forced_cite = str(campaign.progress_data.get("forced_rival_cite", ""))
 	var check: Dictionary = RivalEncounterCheckClass.check(
 		rivals, decoy_count, null, _story_rival_suppression_reason(),
-		forced_rival_id)
+		forced_rival_id, forced_cite)
 	if not check.get("has_encounter", false):
 		return
 	if not forced_rival_id.is_empty() and bool(check.get("forced", false)):
 		campaign.progress_data.erase("forced_rival_battle")
+		campaign.progress_data.erase("forced_rival_cite")
 
 	# p.91 attack type. A Rival you Tracked down yourself is always a Showdown;
 	# one that tracked YOU down rolls on the D10 table.
@@ -634,7 +640,42 @@ static func build_encounter_data(check: Dictionary, attack: Dictionary) -> Dicti
 		# T11-35 — whether this encounter was FORCED rather than rolled, so the
 		# caller can tell the flag was consumed.
 		"forced": bool(check.get("forced", false)),
+		# Core Rules p.81 K'Erin rider: "-1 enemy" only "the first time you meet them
+		# in battle". Named here because this literal deletes any key it omits.
+		"rival_first_battle_rider": bool(check.get("rival_first_battle_rider", false)),
 	}
+
+## Drop the p.81 one-shot from the Rival it rode on, so the next meeting fights the
+## full force.
+func _spend_first_battle_rider(rival_id: String) -> void:
+	# Through the main loop, not get_node_or_null(): the override that calls this
+	# also runs on a controller outside the tree, where an absolute lookup errors.
+	var loop := Engine.get_main_loop() as SceneTree
+	var gsm: Node = loop.root.get_node_or_null("/root/GameStateManager") if loop else null
+	if gsm == null or rival_id.is_empty():
+		return
+	var rivals: Array = gsm.get_rivals()
+	for r in rivals:
+		if r is Dictionary and RivalEncounterCheckClass.rival_id_of(r) == rival_id:
+			(r as Dictionary).erase("first_battle_enemy_modifier")
+	gsm.set_rivals(rivals)
+
+## p.92 "Once a Rival has been established, they will always be the same type": the
+## first battle against a Rival ends the choice between its two rolled types.
+func _establish_rival(rival_id: String) -> void:
+	var loop := Engine.get_main_loop() as SceneTree
+	var gsm: Node = loop.root.get_node_or_null("/root/GameStateManager") if loop else null
+	if gsm == null or rival_id.is_empty():
+		return
+	var rivals: Array = gsm.get_rivals()
+	var changed := false
+	for r in rivals:
+		if r is Dictionary and RivalEncounterCheckClass.rival_id_of(r) == rival_id \
+				and (r as Dictionary).has("type_alternative"):
+			RivalContactRef.establish(r)
+			changed = true
+	if changed:
+		gsm.set_rivals(rivals)
 
 ## A Rival tracked the crew down (Core Rules p.85 Step 6), so the battle they had
 ## planned does not happen. Rewrites `mission_data` in place, BEFORE the enemy
@@ -682,6 +723,13 @@ func _apply_rival_ambush_override(mission_data: Dictionary, rival_enc: Dictionar
 	var nemesis_bonus: int = int(rival_enc.get("rival_enemy_count_bonus", 0))
 	if nemesis_bonus != 0:
 		mission_data["rival_enemy_count_bonus"] = nemesis_bonus
+	# p.81 Pick a fight: a K'Erin's Rival has "-1 enemy" only the first time. It is
+	# folded into the bonus above; spent here, on the battle it applies to.
+	if bool(rival_enc.get("rival_first_battle_rider", false)):
+		_spend_first_battle_rider(str(rival_enc.get("rival_id", "")))
+	# p.92: this battle establishes the Rival, so the type it is fought as now is
+	# the one it keeps. Ends the pick the Rivals screen offers.
+	_establish_rival(str(rival_enc.get("rival_id", "")))
 
 	# p.92 — the same type, every time. Empty for a legacy String-shaped Rival and
 	# for a STARTING Rival, whose `type` is a faction category ("Corporate") rather
@@ -1052,6 +1100,42 @@ func _crew_has_engineer(crew: Array) -> bool:
 func _is_quest_finale_mission(mission_data: Dictionary) -> bool:
 	return bool(mission_data.get("is_quest_finale", false)) \
 		or str(mission_data.get("mission_source", "")) == "quest_finale"
+
+
+## This turn's held Explore bounties (Core Rules p.82), one entry per held row:
+## {kind, event_id, crew_id, target, rule, credits}. The target is seeded off the
+## table's seed, so a resumed battle names the same figure and feature.
+func _stamp_explore_bounties(contract: Dictionary, enemy_force: Dictionary) -> Array:
+	var campaign = game_state.current_campaign if game_state else null
+	if campaign == null or not ("progress_data" in campaign) \
+			or not (campaign.progress_data is Dictionary):
+		return []
+	var pd: Dictionary = campaign.progress_data
+	var turn: int = int(pd.get("turns_played", 0))
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash("%d|explore_bounty" % int(contract.get("seed", 0)))
+	var features: Array = []
+	for sector in contract.get("sectors", []):
+		if sector is Dictionary:
+			for feat in (sector as Dictionary).get("features", []):
+				features.append("%s (sector %s)" % [str(feat), str(sector.get("label", ""))])
+	var count: int = int(enemy_force.get("count", 0))
+	var out: Array = []
+	for kind: String in ["Offered a small job", "Offered a reward"]:
+		for held: Dictionary in DeferredCrewEventsRef.live(pd, kind, turn):
+			var row: Dictionary = held.get("effect", {})
+			var target: String
+			if kind == "Offered a small job":
+				target = ("enemy figure %d of %d" % [rng.randi_range(1, count), count]) \
+						if count > 0 else "a random enemy figure"
+			else:
+				target = str(features[rng.randi_range(0, features.size() - 1)]) \
+						if not features.is_empty() else "a random terrain feature"
+			out.append({"kind": kind, "event_id": str(held.get("id", "")),
+				"crew_id": str(held.get("crew_id", "")), "target": target,
+				"rule": str(row.get("effect", "")),
+				"credits": int(row.get("bounty_credits", 0))})
+	return out
 
 
 func _initiate_battle_sequence() -> void:
@@ -1581,6 +1665,13 @@ func _initiate_battle_sequence() -> void:
 			if campaign_phase_manager else 0,
 		"terrain_guide": terrain_guide,
 	}
+	# Core Rules p.82 Explore 83-86 / 87-90: "When fighting this campaign turn, select
+	# a random enemy figure" / "a random terrain feature". Both rows were held after
+	# the Explore task and nothing read them back.
+	var bounties: Array = _stamp_explore_bounties(active_battlefield, enemy_force_info)
+	if not bounties.is_empty():
+		active_battlefield["explore_bounties"] = bounties
+		mission_data["explore_bounties"] = bounties
 	battle_results["battlefield_data"] = active_battlefield
 	if game_state.has_method("set_battlefield_data"):
 		game_state.set_battlefield_data(active_battlefield)
@@ -2601,8 +2692,8 @@ func _on_lay_low_requested() -> void:
 	# context — a missing autoload must not be able to make laying low free.
 	var cost: int = 0
 	var dice: Node = get_node_or_null("/root/DiceManager")
-	if dice and dice.has_method("roll_dice"):
-		cost = int(dice.roll_dice(1, 6)) + 1
+	if dice and dice.has_method("roll_d6"):
+		cost = int(dice.roll_d6("Lay Low (errata v1.06)")) + 1
 	else:
 		cost = randi_range(1, 6) + 1
 	if not gsm.remove_credits(cost):

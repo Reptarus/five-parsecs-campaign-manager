@@ -707,7 +707,6 @@ Cross-platform in-app review prompts via ReviewManager autoload:
 | NPCTracker | src/core/campaign/NPCTracker.gd | NPC tracking |
 | KeywordDB | src/autoload/KeywordDB.gd | Keyword tooltips |
 | PlanetDataManager | src/core/world/PlanetDataManager.gd | Planet persistence |
-| PlanetCache | src/core/world/PlanetCache.gd | Planet data cache |
 | WorldEconomyManager | src/core/world/WorldEconomyManager.gd | World economy |
 | ResourceSystem | src/core/systems/ResourceSystem.gd | Resource management |
 | TweenFX | addons/TweenFX/TweenFX.gd | Animation addon (70 animations, auto-lifecycle) |

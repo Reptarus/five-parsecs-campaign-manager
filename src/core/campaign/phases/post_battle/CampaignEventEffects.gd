@@ -441,6 +441,7 @@ func apply_effect(event_title: String, ctx: PostBattleContextClass) -> String:
 				camp = ctx.game_state.current_campaign
 			if camp != null and "progress_data" in camp and not notice_id.is_empty():
 				camp.progress_data["forced_rival_battle"] = notice_id
+				camp.progress_data.erase("forced_rival_cite")
 			return ("Got noticed: +1 Rival - on a Quest, so next campaign turn is "
 				+ "automatically a battle against them, and they add +1 to enemy numbers")
 

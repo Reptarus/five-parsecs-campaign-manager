@@ -104,10 +104,9 @@ Starting balance: 1000 credits
 
 ---
 
-## PlanetCache (Autoload)
-- **Path**: `src/core/world/PlanetCache.gd`
-- Caches planet data to avoid regeneration
-- Works alongside PlanetDataManager
+## PlanetCache — DELETED 2026-10-29
+It was an autoload whose cache nothing ever filled (`add_planet` had no caller), so
+`PlanetDataManager`'s sync into it always did nothing. `PlanetDataManager` is the only planet store.
 
 ---
 
@@ -148,7 +147,6 @@ var injury_tables: Dictionary
 var enemy_types: Dictionary
 var world_traits: Dictionary
 var planet_types: Dictionary
-var location_types: Dictionary
 var gear_database: Dictionary
 var equipment_database: Dictionary
 var loot_tables: Dictionary

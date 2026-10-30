@@ -210,9 +210,10 @@ static func _to_species_id(token: String) -> String:
 ##   Strange Char    69.2%             10%
 ##
 ## So a randomised crew came out roughly seven times too strange and sixteen
-## times too rarely human, and p.78 recruits inherit it — that rule's own text
-## is "Each recruit rolls using the random method in the character creation
-## process (see p.14)".
+## times too rarely human. p.78 recruits roll this same table ("Each recruit
+## rolls using the random method in the character creation process (see p.14)")
+## in CrewTaskComponent._apply_recruit(); until 2026-10-29 they rolled nothing
+## and were all Baseline Humans.
 ##
 ## The spans live in data/character_species.json under `crew_type_tables`, with
 ## `_source` and `_provenance_warning` keys, so a DLC species cannot be dropped
@@ -266,5 +267,15 @@ static func has_crew_type_tables() -> bool:
 
 static func _roll_on(table_name: String, rng: RandomNumberGenerator) -> Dictionary:
 	var roll: int = (rng.randi_range(1, 100) if rng != null
-		else randi_range(1, 100))
+		else _roll_d100("Crew Type: %s (p.14)" % table_name))
 	return crew_type_row_for(table_name, roll)
+
+
+## Through DiceManager so QA can force a species ("Crew Type" reaches both steps,
+## first in first out). A RefCounted cannot use get_node_or_null("/root/X").
+static func _roll_d100(context: String) -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var dice: Node = tree.root.get_node_or_null("/root/DiceManager") if tree else null
+	if dice and dice.has_method("roll_d100"):
+		return int(dice.roll_d100(context))
+	return randi_range(1, 100)

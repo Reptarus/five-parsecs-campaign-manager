@@ -165,14 +165,16 @@ func test_world_names_matches_the_books_worked_example() -> void:
 	assert_str(str(rows[0].get("name", ""))).is_equal("Samsonov")
 
 
-## The three titles the live loaders look for must all resolve, or a name
-## generator silently returns "Unknown" forever.
+## These three titles must keep resolving. Since 2026-10-29 no live loader names a
+## Patron or Rival from them: the book gives a contact a TYPE only, and
+## PatronContact / RivalContact name it by that type. They stay pinned because the
+## Corporate Patron generator is book content (Compendium p.160).
 func test_the_titles_the_live_loaders_request_all_exist() -> void:
 	for title in ["Corporate Patron Names Generator", "Gang Names Generator",
 			"Rival Names Generator"]:
 		var entry: Dictionary = _by_title(title)
 		assert_bool(entry.is_empty()).override_failure_message(
-			"CharacterGeneration/ContactManager load '%s' by exact title" % title
+			"'%s' is missing from the name tables" % title
 		).is_false()
 		assert_bool(_all_rows(entry).is_empty()).override_failure_message(
 			"'%s' resolves but has no rows" % title).is_false()

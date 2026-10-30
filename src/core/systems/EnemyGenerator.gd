@@ -439,7 +439,6 @@ func generate_enemies_as_dicts(
 	## 2. Roll base enemy count (crew-size dice formula)
 	## 3. Add Numbers modifier from enemy type
 	## 4. Apply difficulty modifiers
-	var danger_level: int = mission_data.get("danger_level", 2)
 	var mission_source: String = mission_data.get(
 		"mission_source", "patron"
 	)
@@ -587,8 +586,15 @@ func generate_enemies_as_dicts(
 	var rival_nemesis_mod: int = int(
 		mission_data.get("rival_enemy_count_bonus", 0))
 
+	# Compendium p.111: "Factions only ask if there is a serious need: Add 1
+	# additional standard opponent to the enemy force you will face." In the sum, so
+	# the Red Job replacement below discards it like every other modifier.
+	var faction_enemy_mod: int = 1 \
+		if str(mission_data.get("mission_source", "")) == "faction" else 0
+
 	var enemy_count: int = maxi(1, base_count + numbers_mod + trait_enemy_mod
-		+ patron_enemy_mod + grudge_mod + quest_enemy_mod + rival_nemesis_mod)
+		+ patron_enemy_mod + grudge_mod + quest_enemy_mod + rival_nemesis_mod
+		+ faction_enemy_mod)
 
 	# Red Job Increased Opposition (p.150), verbatim: "Do not roll for opposing
 	# numbers. Instead, you will encounter a base of 7 figures + any modifier

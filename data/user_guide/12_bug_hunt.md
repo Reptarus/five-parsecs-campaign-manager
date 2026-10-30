@@ -158,4 +158,5 @@ The **CharacterTransferService** allows bidirectional character transfer between
 
 - For standard campaign play: {{chapter:04}} — Campaign Turn Structure
 - For character stats and species: {{chapter:09}} — Characters and Crew
+- To play Bug Hunt with several players on one shared map: {{chapter:19}} — Co-op Campaign
 - For DLC details: {{chapter:13}} — DLC and Expansion Content

@@ -15,6 +15,7 @@ const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 const UniversalResourceLoader = preload("res://src/core/systems/UniversalResourceLoader.gd")
 # DataManager accessed via autoload singleton (not preload)
 const SafeDataAccess = preload("res://src/utils/SafeDataAccess.gd")
+const SpeciesData = preload("res://src/core/character/SpeciesDataService.gd")
 
 # Data-driven character creation tables
 # Note: _skills_data + character_skills.json removed Sprint B Phase B.1
@@ -27,8 +28,6 @@ static var _is_data_loaded: bool = false
 static var _creation_tables_loaded: bool = false
 
 # Name generation tables (lazy-loaded)
-static var _name_tables: Dictionary = {}
-static var _name_tables_loaded: bool = false
 
 static func _ensure_creation_tables_loaded() -> void:
 	if _creation_tables_loaded:
@@ -61,6 +60,8 @@ static func _load_d100_table(path: String) -> Array:
 		var roll_min: int = parts[0].to_int()
 		var roll_max: int = parts[1].to_int()
 		var converted := {"roll_min": roll_min, "roll_max": roll_max, "name": entry.get("name", "")}
+		if entry.has("enum_key"):
+			converted["enum_key"] = str(entry["enum_key"])
 		# Map JSON keys to the format expected by _roll_on_table consumers
 		var stat_bonuses: Dictionary = entry.get("stat_bonuses", {})
 		var special: Dictionary = entry.get("special", {})
@@ -69,7 +70,12 @@ static func _load_d100_table(path: String) -> Array:
 		for k in stat_bonuses:
 			stat_bonus[k] = stat_bonuses[k]
 		for k in special:
-			stat_bonus[k] = special[k]
+			# XP is not a stat. It goes to `xp`, which roll_character_tables() sums into
+			# resources.xp; folded in here it reached no arm and was dropped.
+			if k == "xp":
+				converted["xp"] = int(special[k])
+			else:
+				stat_bonus[k] = special[k]
 		if not stat_bonus.is_empty():
 			converted["stat_bonus"] = stat_bonus
 		var resources: Dictionary = entry.get("resources", {})
@@ -104,152 +110,19 @@ static func _load_d100_table(path: String) -> Array:
 	result.sort_custom(func(a, b): return a["roll_min"] < b["roll_min"])
 	return result
 
-## D100 Background Table (Core Rules p.24) — loaded from JSON
-## Each entry: {roll_min, roll_max, name, stat_bonus, credits_dice, story_points, patron, rumors, starting_rolls}
-static var BACKGROUND_TABLE: Array = [
-	# 1-4: Peaceful, High-Tech Colony
-	{"roll_min": 1, "roll_max": 4, "name": "Peaceful, High-Tech Colony", "stat_bonus": {"savvy": 1}, "credits_dice": 1},
-	# 5-9: Giant, Overcrowded, Dystopian City
-	{"roll_min": 5, "roll_max": 9, "name": "Giant, Overcrowded, Dystopian City", "stat_bonus": {"speed": 1}},
-	# 10-13: Low-Tech Colony
-	{"roll_min": 10, "roll_max": 13, "name": "Low-Tech Colony", "starting_rolls": ["low_tech_weapon"]},
-	# 14-17: Mining Colony
-	{"roll_min": 14, "roll_max": 17, "name": "Mining Colony", "stat_bonus": {"toughness": 1}},
-	# 18-21: Military Brat
-	{"roll_min": 18, "roll_max": 21, "name": "Military Brat", "stat_bonus": {"combat": 1}},
-	# 22-25: Space Station
-	{"roll_min": 22, "roll_max": 25, "name": "Space Station", "starting_rolls": ["gear"]},
-	# 26-29: Military Outpost
-	{"roll_min": 26, "roll_max": 29, "name": "Military Outpost", "stat_bonus": {"reactions": 1}},
-	# 30-34: Drifter
-	{"roll_min": 30, "roll_max": 34, "name": "Drifter", "starting_rolls": ["gear"]},
-	# 35-39: Lower Megacity Class
-	{"roll_min": 35, "roll_max": 39, "name": "Lower Megacity Class", "starting_rolls": ["low_tech_weapon"]},
-	# 40-42: Wealthy Merchant Family
-	{"roll_min": 40, "roll_max": 42, "name": "Wealthy Merchant Family", "credits_dice": 2},
-	# 43-46: Frontier Gang
-	{"roll_min": 43, "roll_max": 46, "name": "Frontier Gang", "stat_bonus": {"combat": 1}},
-	# 47-49: Religious Cult - PATRON + STORY POINT
-	{"roll_min": 47, "roll_max": 49, "name": "Religious Cult", "patron": 1, "story_points": 1},
-	# 50-52: War-Torn Hell-Hole
-	{"roll_min": 50, "roll_max": 52, "name": "War-Torn Hell-Hole", "stat_bonus": {"reactions": 1}, "starting_rolls": ["military_weapon"]},
-	# 53-55: Tech Guild
-	{"roll_min": 53, "roll_max": 55, "name": "Tech Guild", "stat_bonus": {"savvy": 1}, "credits_dice": 1, "starting_rolls": ["high_tech_weapon"]},
-	# 56-59: Subjugated Colony on Alien World
-	{"roll_min": 56, "roll_max": 59, "name": "Subjugated Colony on Alien World", "starting_rolls": ["gadget"]},
-	# 60-64: Long-Term Space Mission
-	{"roll_min": 60, "roll_max": 64, "name": "Long-Term Space Mission", "stat_bonus": {"savvy": 1}},
-	# 65-68: Research Outpost
-	{"roll_min": 65, "roll_max": 68, "name": "Research Outpost", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
-	# 69-72: Primitive or Regressed World
-	{"roll_min": 69, "roll_max": 72, "name": "Primitive or Regressed World", "stat_bonus": {"toughness": 1}, "starting_rolls": ["low_tech_weapon"]},
-	# 73-76: Orphan Utility Program - PATRON + STORY POINT
-	{"roll_min": 73, "roll_max": 76, "name": "Orphan Utility Program", "patron": 1, "story_points": 1},
-	# 77-80: Isolationist Enclave - 2 QUEST RUMORS
-	{"roll_min": 77, "roll_max": 80, "name": "Isolationist Enclave", "rumors": 2},
-	# 81-84: Comfortable Megacity Class
-	{"roll_min": 81, "roll_max": 84, "name": "Comfortable Megacity Class", "credits_dice": 1},
-	# 85-89: Industrial World
-	{"roll_min": 85, "roll_max": 89, "name": "Industrial World", "starting_rolls": ["gear"]},
-	# 90-93: Bureaucrat
-	{"roll_min": 90, "roll_max": 93, "name": "Bureaucrat", "credits_dice": 1},
-	# 94-97: Wasteland Nomads
-	{"roll_min": 94, "roll_max": 97, "name": "Wasteland Nomads", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
-	# 98-100: Alien Culture
-	{"roll_min": 98, "roll_max": 100, "name": "Alien Culture", "starting_rolls": ["high_tech_weapon"]}
-]
-
-## D100 Motivation Table (Core Rules p.25)
-static var MOTIVATION_TABLE: Array = [
-	# 1-8: Wealth
-	{"roll_min": 1, "roll_max": 8, "name": "Wealth", "credits_dice": 1},
-	# 9-14: Fame
-	{"roll_min": 9, "roll_max": 14, "name": "Fame", "story_points": 1},
-	# 15-19: Glory
-	{"roll_min": 15, "roll_max": 19, "name": "Glory", "stat_bonus": {"combat": 1}, "starting_rolls": ["military_weapon"]},
-	# 20-26: Survival
-	{"roll_min": 20, "roll_max": 26, "name": "Survival", "stat_bonus": {"toughness": 1}},
-	# 27-32: Escape
-	{"roll_min": 27, "roll_max": 32, "name": "Escape", "stat_bonus": {"speed": 1}},
-	# 33-39: Adventure
-	{"roll_min": 33, "roll_max": 39, "name": "Adventure", "credits_dice": 1, "starting_rolls": ["low_tech_weapon"]},
-	# 40-44: Truth - RUMOR + STORY POINT
-	{"roll_min": 40, "roll_max": 44, "name": "Truth", "rumors": 1, "story_points": 1},
-	# 45-49: Technology
-	{"roll_min": 45, "roll_max": 49, "name": "Technology", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
-	# 50-56: Discovery
-	{"roll_min": 50, "roll_max": 56, "name": "Discovery", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gear"]},
-	# 57-63: Loyalty - PATRON + STORY POINT
-	{"roll_min": 57, "roll_max": 63, "name": "Loyalty", "patron": 1, "story_points": 1},
-	# 64-69: Revenge - RIVAL + XP
-	{"roll_min": 64, "roll_max": 69, "name": "Revenge", "rival": 1, "xp": 2},
-	# 70-74: Romance - RUMOR + STORY POINT
-	{"roll_min": 70, "roll_max": 74, "name": "Romance", "rumors": 1, "story_points": 1},
-	# 75-79: Faith - RUMOR + STORY POINT
-	{"roll_min": 75, "roll_max": 79, "name": "Faith", "rumors": 1, "story_points": 1},
-	# 80-84: Political - PATRON + STORY POINT
-	{"roll_min": 80, "roll_max": 84, "name": "Political", "patron": 1, "story_points": 1},
-	# 85-90: Power - RIVAL + XP
-	{"roll_min": 85, "roll_max": 90, "name": "Power", "rival": 1, "xp": 2},
-	# 91-95: Order - PATRON + STORY POINT
-	{"roll_min": 91, "roll_max": 95, "name": "Order", "patron": 1, "story_points": 1},
-	# 96-100: Freedom
-	{"roll_min": 96, "roll_max": 100, "name": "Freedom", "xp": 2}
-]
-
-## D100 Class Table (Core Rules p.26)
-static var CLASS_TABLE: Array = [
-	# 1-5: Working Class
-	{"roll_min": 1, "roll_max": 5, "name": "Working Class", "stat_bonus": {"savvy": 1, "luck": 1}},
-	# 6-9: Technician
-	{"roll_min": 6, "roll_max": 9, "name": "Technician", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gear"]},
-	# 10-13: Scientist
-	{"roll_min": 10, "roll_max": 13, "name": "Scientist", "stat_bonus": {"savvy": 1}, "starting_rolls": ["gadget"]},
-	# 14-17: Hacker - RIVAL
-	{"roll_min": 14, "roll_max": 17, "name": "Hacker", "stat_bonus": {"savvy": 1}, "rival": 1},
-	# 18-22: Soldier
-	{"roll_min": 18, "roll_max": 22, "name": "Soldier", "stat_bonus": {"combat": 1}, "credits_dice": 1},
-	# 23-27: Mercenary
-	{"roll_min": 23, "roll_max": 27, "name": "Mercenary", "stat_bonus": {"combat": 1}, "starting_rolls": ["military_weapon"]},
-	# 28-32: Agitator - RIVAL
-	{"roll_min": 28, "roll_max": 32, "name": "Agitator", "rival": 1},
-	# 33-36: Primitive
-	{"roll_min": 33, "roll_max": 36, "name": "Primitive", "stat_bonus": {"speed": 1}, "starting_rolls": ["low_tech_weapon"]},
-	# 37-40: Artist
-	{"roll_min": 37, "roll_max": 40, "name": "Artist", "credits_dice": 1},
-	# 41-44: Negotiator - PATRON + STORY POINT
-	{"roll_min": 41, "roll_max": 44, "name": "Negotiator", "patron": 1, "story_points": 1},
-	# 45-49: Trader
-	{"roll_min": 45, "roll_max": 49, "name": "Trader", "credits_dice": 2},
-	# 50-54: Starship Crew
-	{"roll_min": 50, "roll_max": 54, "name": "Starship Crew", "stat_bonus": {"savvy": 1}},
-	# 55-58: Petty Criminal
-	{"roll_min": 55, "roll_max": 58, "name": "Petty Criminal", "stat_bonus": {"speed": 1}},
-	# 59-63: Ganger
-	{"roll_min": 59, "roll_max": 63, "name": "Ganger", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
-	# 64-67: Scoundrel
-	{"roll_min": 64, "roll_max": 67, "name": "Scoundrel", "stat_bonus": {"speed": 1}},
-	# 68-71: Enforcer - PATRON
-	{"roll_min": 68, "roll_max": 71, "name": "Enforcer", "stat_bonus": {"combat": 1}, "patron": 1},
-	# 72-75: Special Agent - PATRON + GADGET
-	{"roll_min": 72, "roll_max": 75, "name": "Special Agent", "stat_bonus": {"reactions": 1}, "patron": 1, "starting_rolls": ["gadget"]},
-	# 76-79: Troubleshooter
-	{"roll_min": 76, "roll_max": 79, "name": "Troubleshooter", "stat_bonus": {"reactions": 1}, "starting_rolls": ["low_tech_weapon"]},
-	# 80-83: Bounty Hunter - RUMOR + LOW-TECH WEAPON
-	{"roll_min": 80, "roll_max": 83, "name": "Bounty Hunter", "stat_bonus": {"speed": 1}, "rumors": 1, "starting_rolls": ["low_tech_weapon"]},
-	# 84-88: Nomad
-	{"roll_min": 84, "roll_max": 88, "name": "Nomad", "starting_rolls": ["gear"]},
-	# 89-92: Explorer
-	{"roll_min": 89, "roll_max": 92, "name": "Explorer", "xp": 2, "starting_rolls": ["gear"]},
-	# 93-96: Punk - RIVAL + XP
-	{"roll_min": 93, "roll_max": 96, "name": "Punk", "rival": 1, "xp": 2},
-	# 97-100: Scavenger - RUMOR + HIGH-TECH WEAPON
-	{"roll_min": 97, "roll_max": 100, "name": "Scavenger", "rumors": 1, "starting_rolls": ["high_tech_weapon"]}
-]
+## The three D100 creation tables (Core Rules pp.25-27), loaded from
+## data/character_creation_tables/ on the first roll. They used to start as hand-copied
+## literals: a second copy of the book that had drifted from the JSON.
+static var BACKGROUND_TABLE: Array = []
+static var MOTIVATION_TABLE: Array = []
+static var CLASS_TABLE: Array = []
 
 ## Roll on a D100 table and return the matching entry
-static func _roll_on_table(table: Array) -> Dictionary:
-	var roll = randi_range(1, 100)
+static func _roll_on_table(table: Array, context: String = "Creation Table") -> Dictionary:
+	var tree := Engine.get_main_loop() as SceneTree
+	var dice: Node = tree.root.get_node_or_null("/root/DiceManager") if tree else null
+	var roll: int = int(dice.roll_d100(context)) if dice and dice.has_method("roll_d100") \
+			else randi_range(1, 100)
 	for entry in table:
 		if roll >= entry.get("roll_min", 0) and roll <= entry.get("roll_max", 0):
 			var result = entry.duplicate(true)
@@ -263,12 +136,39 @@ static func _roll_on_table(table: Array) -> Dictionary:
 	return {"roll": roll, "name": "Unknown"}
 
 ## Roll on all three character creation tables and aggregate resources
-## Returns: {background_result, motivation_result, class_result, resources}
-static func roll_character_tables() -> Dictionary:
+## Returns: {background_result, motivation_result, class_result, extra_results,
+## resources}, or {} for a species that makes no creation rolls.
+##
+## With a species_id it follows that species' creation rules, as the creation
+## wizard does: Bots and Assault Bots roll nothing (p.15, p.21); a forced
+## Background or Motivation replaces the roll (Mutant, Manipulator, Primitive,
+## De-converted, Unity Agent, Emo-suppressed, Traveler); Hakshan gain Truth on top
+## of their roll (p.20); Mysterious Past roll two Backgrounds (p.20) and Feelers
+## two Motivations (p.22).
+static func roll_character_tables(species_id: String = "") -> Dictionary:
 	_ensure_creation_tables_loaded()
-	var bg_result = _roll_on_table(BACKGROUND_TABLE)
-	var mot_result = _roll_on_table(MOTIVATION_TABLE)
-	var class_result = _roll_on_table(CLASS_TABLE)
+	if not species_id.is_empty() and not SpeciesData.can_roll_creation_tables(species_id):
+		return {}
+	var bg_result = _roll_on_table(BACKGROUND_TABLE, "Background Table (p.25)")
+	var mot_result = _roll_on_table(MOTIVATION_TABLE, "Motivation Table (p.26)")
+	var class_result = _roll_on_table(CLASS_TABLE, "Class Table (p.27)")
+	var extras: Array = []
+	if not species_id.is_empty():
+		var forced_bg: String = SpeciesData.get_forced_background(species_id)
+		if not forced_bg.is_empty():
+			bg_result = _row_for_key(BACKGROUND_TABLE, forced_bg, bg_result)
+		var forced_mot: String = SpeciesData.get_forced_motivation(species_id)
+		if not forced_mot.is_empty():
+			if SpeciesData.is_motivation_additional(species_id):
+				extras.append(_tag(_row_for_key(MOTIVATION_TABLE, forced_mot, {}), "Motivation"))
+			else:
+				mot_result = _row_for_key(MOTIVATION_TABLE, forced_mot, mot_result)
+		if SpeciesData.has_double_background(species_id):
+			extras.append(_tag(_roll_on_table(BACKGROUND_TABLE, "Background Table (p.25)"),
+					"Background"))
+		if SpeciesData.has_double_motivation(species_id):
+			extras.append(_tag(_roll_on_table(MOTIVATION_TABLE, "Motivation Table (p.26)"),
+					"Motivation"))
 
 	# Aggregate resources from all three tables
 	var resources = {
@@ -282,7 +182,7 @@ static func roll_character_tables() -> Dictionary:
 	}
 
 	# Sum up all resources
-	for result in [bg_result, mot_result, class_result]:
+	for result in [bg_result, mot_result, class_result] + extras:
 		resources.patrons += result.get("patron", 0)
 		resources.rivals += result.get("rival", 0)
 		resources.rumors += result.get("rumors", 0)
@@ -301,8 +201,45 @@ static func roll_character_tables() -> Dictionary:
 		"background_result": bg_result,
 		"motivation_result": mot_result,
 		"class_result": class_result,
+		"extra_results": extras,
 		"resources": resources
 	}
+
+
+## The row a forced key names (an enum key like "LOWER_MEGACITY_CLASS" or a name
+## like "truth"), or the fallback when the table has no such row.
+static func _row_for_key(table: Array, key: String, fallback: Dictionary) -> Dictionary:
+	var want := key.to_upper()
+	var non_word := RegEx.create_from_string("[^A-Z0-9]+")
+	for row: Dictionary in table:
+		var by_name: String = non_word.sub(str(row.get("name", "")).to_upper(), "_", true) \
+			.trim_prefix("_").trim_suffix("_")
+		if str(row.get("enum_key", "")).to_upper() == want or by_name == want:
+			return row.duplicate(true)
+	return fallback
+
+
+static func _tag(row: Dictionary, table_label: String) -> Dictionary:
+	if not row.is_empty():
+		row["_table"] = table_label
+	return row
+
+
+## One stat step with the creation clamps, for table rows and species modifiers.
+static func _add_stat(character: Character, stat_name: String, bonus: int) -> void:
+	match stat_name:
+		"combat":
+			character.combat = clampi(character.combat + bonus, 0, 5)
+		"reactions", "reaction":
+			character.reactions = clampi(character.reactions + bonus, 1, 6)
+		"toughness":
+			character.toughness = clampi(character.toughness + bonus, 1, 6)
+		"speed":
+			character.speed = clampi(character.speed + bonus, 4, 8)
+		"savvy":
+			character.savvy = clampi(character.savvy + bonus, 0, 5)
+		"luck":
+			character.luck = clampi(character.luck + bonus, 0, 3)
 
 ## Apply table results to a character (stat bonuses and traits)
 static func apply_table_results_to_character(character: Character, table_results: Dictionary) -> void:
@@ -312,20 +249,7 @@ static func apply_table_results_to_character(character: Character, table_results
 		var stat_bonuses = result.get("stat_bonus", {})
 
 		for stat_name in stat_bonuses:
-			var bonus = stat_bonuses[stat_name]
-			match stat_name:
-				"combat":
-					character.combat = clampi(character.combat + bonus, 0, 5)
-				"reactions":
-					character.reactions = clampi(character.reactions + bonus, 1, 6)
-				"toughness":
-					character.toughness = clampi(character.toughness + bonus, 1, 6)
-				"speed":
-					character.speed = clampi(character.speed + bonus, 4, 8)
-				"savvy":
-					character.savvy = clampi(character.savvy + bonus, 0, 5)
-				"luck":
-					character.luck = clampi(character.luck + bonus, 0, 3)
+			_add_stat(character, str(stat_name), int(stat_bonuses[stat_name]))
 
 		# Add trait for the table result
 		var result_name = result.get("name", "")
@@ -338,19 +262,45 @@ static func apply_table_results_to_character(character: Character, table_results
 				"class_result":
 					character.add_trait("Class: " + result_name)
 
-	# Apply the creation-table XP bonus.
+		# The rolled result IS the character's background, motivation and class. It was
+		# kept only as a trait, so the field kept create_character()'s default
+		# (MILITARY, SURVIVAL, SOLDIER) and every screen that reads the field showed a
+		# background the character never rolled.
+		var key: String = _enum_key_for(result_key, result)
+		if not key.is_empty():
+			match result_key:
+				"background_result":
+					character.background = key
+				"motivation_result":
+					character.motivation = key
+				"class_result":
+					character.character_class = key
+
+	# The species' extra rows (a second Background or Motivation, Hakshan's Truth)
+	# give their bonuses and a trait; the field keeps the main roll.
+	for extra: Dictionary in table_results.get("extra_results", []):
+		var extra_bonuses: Dictionary = extra.get("stat_bonus", {})
+		for stat_name in extra_bonuses:
+			_add_stat(character, str(stat_name), int(extra_bonuses[stat_name]))
+		if str(extra.get("name", "")) != "":
+			character.add_trait("%s: %s" % [str(extra.get("_table", "Background")),
+				str(extra.get("name", ""))])
+
+	# Apply the creation-table XP (Core Rules pp.26-27: Revenge, Power, Freedom,
+	# Explorer and Punk are +2 XP). It wrote `experience_points`, which Character does
+	# not have, and the loader had folded the XP into the stat bonuses where no arm
+	# read it, so those five rows granted nothing.
 	#
 	# A "rookie_crew" house rule used to zero this instead. It was invented
 	# (tagged "source": "Community", no book page) and was removed 2026-09-04.
 	var resources = table_results.get("resources", {})
-	var xp_bonus = resources.get("xp", 0)
+	var xp_bonus: int = int(resources.get("xp", 0))
 	if xp_bonus > 0:
-		character.experience_points += xp_bonus
+		character.experience += xp_bonus
 
-	# Apply bonus credits
-	var bonus_credits = resources.get("bonus_credits", 0)
-	if bonus_credits > 0:
-		character.credits_earned += bonus_credits
+	# No credits here. Rolled credits are a crew resource, and the only caller is the
+	# recruit path, where errata v1.06 says "IGNORE ALL CREDITS". They used to land on
+	# `credits_earned`, the character's career tally, as money nobody earned.
 
 	# Store table results on character for later reference
 	character.set_meta("creation_table_results", table_results)
@@ -358,197 +308,53 @@ static func apply_table_results_to_character(character: Character, table_results
 
 	pass # Table results and resources applied
 
-## Aggregate resources from all crew members and apply to campaign
-static func finalize_crew_resources(characters: Array, campaign) -> Dictionary:
-	var total_resources = {
-		"patrons": 0,
-		"rivals": 0,
-		"rumors": 0,
-		"story_points": 0,
-		"xp": 0,
-		"credits": 0
-	}
 
-	# Sum resources from all characters
-	for character in characters:
-		var char_resources = character.get_meta("creation_resources", {})
-		total_resources.patrons += char_resources.get("patrons", 0)
-		total_resources.rivals += char_resources.get("rivals", 0)
-		total_resources.rumors += char_resources.get("rumors", 0)
-		total_resources.story_points += char_resources.get("story_points", 0)
-		total_resources.xp += char_resources.get("xp", 0)
-		total_resources.credits += char_resources.get("bonus_credits", 0)
+## The enum key a rolled table row stands for, or "". Background names do not
+## transcribe to their members (p.25 prints "Giant, Overcrowded, Dystopian City" for
+## GIANT_OVERCROWDED_CITY), so that table carries an explicit enum_key. Motivation and
+## Class names upper-case to their members exactly; test_creation_table_results pins it.
+static func _enum_key_for(result_key: String, result: Dictionary) -> String:
+	var members: Dictionary = {}
+	match result_key:
+		"background_result":
+			members = GlobalEnums.Background
+		"motivation_result":
+			members = GlobalEnums.Motivation
+		"class_result":
+			members = GlobalEnums.CharacterClass
+	var key: String = str(result.get("enum_key", ""))
+	if key.is_empty():
+		var non_word := RegEx.create_from_string("[^A-Z0-9]+")
+		key = non_word.sub(str(result.get("name", "")).to_upper(), "_", true) \
+			.trim_prefix("_").trim_suffix("_")
+	return key if members.has(key) else ""
 
-	if not campaign:
-		return total_resources
 
-	# Apply to campaign — generate patron/rival entities linked to source characters
-	# QA-FIX: Preserve per-character context so patrons/rivals track their origin
-	var patron_idx: int = 0
-	var rival_idx: int = 0
-	for character in characters:
-		var char_res = character.get_meta("creation_resources", {})
-		var char_name: String = character.character_name if "character_name" in character else str(character)
-		for _p in range(char_res.get("patrons", 0)):
-			var patron = _create_starting_patron(patron_idx, char_name)
-			if campaign is Resource and "patrons" in campaign:
-				campaign.patrons.append(patron)
-			elif campaign is Dictionary:
-				if not campaign.has("patrons"):
-					campaign["patrons"] = []
-				campaign["patrons"].append(patron)
-			patron_idx += 1
-
-		for _r in range(char_res.get("rivals", 0)):
-			var rival = _create_starting_rival(rival_idx, char_name)
-			if campaign is Resource and "rivals" in campaign:
-				campaign.rivals.append(rival)
-			elif campaign is Dictionary:
-				if not campaign.has("rivals"):
-					campaign["rivals"] = []
-				campaign["rivals"].append(rival)
-			rival_idx += 1
-
-	# Add quest rumors
-	if campaign is Resource and "quest_rumors" in campaign:
-		campaign.quest_rumors += total_resources.rumors
-	elif campaign is Dictionary:
-		campaign["quest_rumors"] = campaign.get("quest_rumors", 0) + total_resources.rumors
-
-	# Add story points and credits via GameStateManager (SSOT pattern)
-	var gsm = Engine.get_main_loop().root.get_node_or_null("/root/GameStateManager") if Engine.get_main_loop() else null
-	if gsm:
-		# Use GameStateManager for credits (single source of truth)
-		if gsm.has_method("add_credits") and total_resources.credits > 0:
-			gsm.add_credits(total_resources.credits)
-		elif gsm.has_method("set_credits") and total_resources.credits > 0:
-			gsm.set_credits(gsm.get_credits() + total_resources.credits)
-
-		# Use GameStateManager for story points if available
-		if gsm.has_method("add_story_points") and total_resources.story_points > 0:
-			gsm.add_story_points(total_resources.story_points)
-		elif gsm.has_method("set_story_progress") and total_resources.story_points > 0:
-			var current = gsm.get_story_progress() if gsm.has_method("get_story_progress") else 0
-			gsm.set_story_progress(current + total_resources.story_points)
-	else:
-		# Fallback: Direct campaign modification (legacy support)
-		if campaign is Resource and "story_points" in campaign:
-			campaign.story_points += total_resources.story_points
-		elif campaign is Dictionary:
-			campaign["story_points"] = campaign.get("story_points", 0) + total_resources.story_points
-
-		if campaign is Resource and "credits" in campaign:
-			campaign.credits += total_resources.credits
-		elif campaign is Dictionary:
-			campaign["credits"] = campaign.get("credits", 0) + total_resources.credits
-
-	pass # Crew resources finalized
-
-	return total_resources
-
-## Load name generation tables from JSON (lazy)
-static func _ensure_name_tables_loaded() -> void:
-	if _name_tables_loaded:
-		return
-	_name_tables_loaded = true
-	var file := FileAccess.open("res://data/RulesReference/NameGenerationTables.json", FileAccess.READ)
-	if not file:
-		push_warning("CharacterGeneration: Name tables not found, using fallback names")
-		return
-	var json := JSON.new()
-	if json.parse(file.get_as_text()) != OK or not json.data is Dictionary:
-		push_warning("CharacterGeneration: Failed to parse name tables")
-		file.close()
-		return
-	file.close()
-	var content: Array = json.data.get("NameGenerationTables", {}).get("content", [])
-	for entry in content:
-		var title: String = entry.get("title", "")
-		# The book's table is "Corporate PATRON Names Generator" (Compendium
-		# p.160). A fabricated "Corporate Names Generator" used to sit under this
-		# key with entirely invented contents — the book's Part 1 opens
-		# Interstellar / Agile / Calibrated / Synergistic, the fabricated one
-		# opened Unity / Stellar / Fringe / Core, sharing nothing. Every
-		# corporate patron the player met was named off a table that is in no
-		# rulebook.
-		if title == "Corporate Patron Names Generator":
-			_name_tables["corporate"] = entry.get("tables", [])
-		elif title == "Gang Names Generator":
-			_name_tables["gang"] = entry.get("tables", [])
-		elif title == "Rival Names Generator":
-			_name_tables["rival_title"] = entry.get("table", [])
-
-## Pick a random name from a D100 table array
-static func _pick_from_table(table: Array) -> String:
-	if table.is_empty():
-		return "Unknown"
-	return table[randi() % table.size()].get("name", "Unknown")
-
-## Generate a 2-part name from a named table set (e.g., corporate, gang)
-static func _generate_two_part_name(table_key: String) -> String:
-	_ensure_name_tables_loaded()
-	var tables: Array = _name_tables.get(table_key, [])
-	if tables.size() < 2:
-		return "Unknown %s" % table_key.capitalize()
-	var part1_table: Array = tables[0].get("table", [])
-	var part2_table: Array = tables[1].get("table", [])
-	return "%s %s" % [_pick_from_table(part1_table), _pick_from_table(part2_table)]
-
-## Create a starting patron from character creation (linked to source character)
+## A Patron from a character's creation rolls (Core Rules pp.24-27). The book
+## gives a Patron a TYPE from the p.83 Patron Table and nothing else, so it is built
+## by PatronContact like every other new Patron. This used to pick from six
+## invented types ("Trade Guild", "Religious Order" ...) that no Patron table
+## has, so the job a creation Patron later offered rolled its p.83 Benefits,
+## Hazards and Conditions against a type the thresholds do not know.
 static func _create_starting_patron(index: int, source_character: String = "") -> Dictionary:
-	var patron_types = ["Corporate", "Government", "Criminal",
-		"Military", "Trade Guild", "Religious Order"]
-	var patron_type: String = patron_types[randi() % patron_types.size()]
+	var patron: Dictionary = load("res://src/core/patrons/PatronContact.gd").make("creation")
+	patron["id"] = "starting_patron_%d_%d" % [Time.get_unix_time_from_system(), index]
+	patron["is_starting_patron"] = true
+	patron["source_character"] = source_character
+	return patron
 
-	# Generate name based on type using Core Rules name tables
-	var patron_name: String
-	if patron_type in ["Corporate", "Trade Guild"]:
-		patron_name = _generate_two_part_name("corporate")
-	else:
-		# Use gang name table for criminal/military orgs, with type prefix for flavor
-		patron_name = _generate_two_part_name("gang")
-
-	return {
-		"id": "starting_patron_%d_%d" % [
-			Time.get_unix_time_from_system(), index],
-		"name": patron_name,
-		"type": patron_type,
-		"reputation": 0,
-		"jobs_completed": 0,
-		"jobs_failed": 0,
-		"is_starting_patron": true,
-		"source_character": source_character,
-	}
-
-## Create a starting rival from character creation (linked to source character)
+## A Rival from a character's creation rolls. Core Rules p.92: "You can also use
+## that table [the p.94 Enemy Table] to set up new, unexpected Rivals", and "Once a
+## Rival has been established, they will always be the same type." Built by
+## RivalContact like every other new Rival. This used to pick from five invented
+## types ("Gang", "Personal Enemy" ...) that are not enemy types, with an
+## invented strength and hostility, so the type pinned nothing at its first battle.
 static func _create_starting_rival(index: int, source_character: String = "") -> Dictionary:
-	var rival_types = ["Gang", "Corporate", "Criminal",
-		"Personal Enemy", "Mercenary Band"]
-	var rival_type: String = rival_types[randi() % rival_types.size()]
-
-	# Generate name based on type using Core Rules name tables
-	var rival_name: String
-	if rival_type == "Personal Enemy":
-		# Personal enemies get a title from the Rival Names table
-		_ensure_name_tables_loaded()
-		var title_table: Array = _name_tables.get("rival_title", [])
-		rival_name = _pick_from_table(title_table) if not title_table.is_empty() else "The Hunter"
-	elif rival_type == "Corporate":
-		rival_name = _generate_two_part_name("corporate")
-	else:
-		# Gang, Criminal, Mercenary Band — use gang name table
-		rival_name = _generate_two_part_name("gang")
-
-	return {
-		"id": "starting_rival_%d_%d" % [
-			Time.get_unix_time_from_system(), index],
-		"name": rival_name,
-		"type": rival_type,
-		"strength": 1,
-		"hostility": 5,
-		"is_starting_rival": true,
-		"source_character": source_character,
-	}
+	var rival: Dictionary = load("res://src/core/campaign/RivalContact.gd").make("creation", "",
+		{"id": "starting_rival_%d_%d" % [Time.get_unix_time_from_system(), index]})
+	rival["is_starting_rival"] = true
+	rival["source_character"] = source_character
+	return rival
 
 ## Legacy no-op. The fabricated character_creation_data.json / character_backgrounds.json
 ## parallel creation data was removed in the 2026-06-01 rules-accuracy consolidation.
@@ -558,10 +364,6 @@ static func _create_starting_rival(index: int, source_character: String = "") ->
 static func _load_character_data() -> void:
 	_is_data_loaded = true
 
-## Generate Five Parsecs attribute using official 2D6 / 3.0 formula
-static func generate_attribute() -> int:
-	var roll := randi_range(2, 12) # 2D6
-	return ceili(float(roll) / 3.0) # Divide by 3, round up
 
 ## Generate d66 for tables (two d6 read as tens and ones)
 static func roll_d66() -> int:
@@ -650,15 +452,34 @@ static func create_character(config: Dictionary = {}) -> Character:
 	else:
 		character.origin = "HUMAN"
 
+	# A species from the p.14 Crew Type table (Core Rules p.78: "Each recruit rolls
+	# using the random method in the character creation process"). A primary species
+	# is also an Origin key; a Strange Character is recorded by name, as the creation
+	# wizard records it.
+	var species_id: String = str(config.get("species_id", "")).to_lower()
+	var is_primary: bool = species_id.to_upper() in GlobalEnums.Origin
+	if not species_id.is_empty():
+		character.origin = species_id.to_upper() if is_primary \
+				else SpeciesData.get_species_name(species_id)
+		character.species_id = species_id
+		character.special_rules.assign(SpeciesData.get_special_rules(species_id))
+
 	# Five Parsecs base profile + species modifiers (Core Rules pp.15-22, p.27)
 	generate_character_attributes(character)
 	set_character_flags(character)
+	# set_character_flags() knows the primary species only; a Strange Character's
+	# modifiers are in character_species.json (pp.19-23).
+	if not species_id.is_empty() and not is_primary:
+		var mods: Dictionary = SpeciesData.get_stat_modifiers(species_id)
+		for stat_name in mods:
+			_add_stat(character, str(stat_name), int(mods[stat_name]))
 
 	# Background / Class / Motivation: roll on the canonical D100 creation tables
 	# (data/character_creation_tables/) and apply their stat bonuses + traits.
 	# Replaces the fabricated character_backgrounds.json bonus path (removed 2026-06-01).
-	var table_results := roll_character_tables()
-	apply_table_results_to_character(character, table_results)
+	var table_results := roll_character_tables(species_id)
+	if not table_results.is_empty():
+		apply_table_results_to_character(character, table_results)
 
 	# Health (Core Rules: Toughness + 2)
 	character.max_health = character.toughness + 2
@@ -710,71 +531,6 @@ static func generate_character_attributes(character: Character) -> void:
 # bonuses on top of the canonical D100 CLASS/BACKGROUND/MOTIVATION tables. Background stat
 # bonuses now come solely from apply_table_results_to_character().
 
-## Apply class-specific bonuses
-static func apply_class_bonuses(character: Character) -> void:
-	## Apply class bonuses matching Core Rules Class Table (pp.26-27).
-	## Stat bonuses are already applied via CLASS_TABLE roll results.
-	## This method adds class-specific traits for gameplay effects.
-	match character.character_class:
-		"WORKING_CLASS":
-			character.add_trait("Working Class Grit")
-		"TECHNICIAN":
-			character.add_trait("Technical Training")
-		"SCIENTIST":
-			character.add_trait("Scientific Training")
-		"HACKER":
-			character.add_trait("Hacker Skills")
-		"SOLDIER":
-			character.add_trait("Military Training")
-		"MERCENARY":
-			character.add_trait("Mercenary Experience")
-		"AGITATOR":
-			character.add_trait("Rabble Rouser")
-		"PRIMITIVE":
-			character.add_trait("Primitive Instincts")
-		"ARTIST":
-			character.add_trait("Creative Eye")
-		"NEGOTIATOR":
-			character.add_trait("Silver Tongue")
-		"TRADER":
-			character.add_trait("Trade Contacts")
-		"STARSHIP_CREW":
-			character.add_trait("Spacer Skills")
-		"PETTY_CRIMINAL":
-			character.add_trait("Street Smarts")
-		"GANGER":
-			character.add_trait("Gang Tactics")
-		"SCOUNDREL":
-			character.add_trait("Quick Feet")
-		"ENFORCER":
-			character.add_trait("Law Enforcement")
-		"SPECIAL_AGENT":
-			character.add_trait("Covert Ops")
-		"TROUBLESHOOTER":
-			character.add_trait("Problem Solver")
-		"BOUNTY_HUNTER":
-			character.add_trait("Tracker Instinct")
-		"NOMAD":
-			character.add_trait("Wanderer")
-		"EXPLORER":
-			character.add_trait("Pathfinder")
-		"PUNK":
-			character.add_trait("Rebellious Spirit")
-		"SCAVENGER":
-			character.add_trait("Salvage Expertise")
-		# Legacy aliases (pre-table-roll code paths)
-		"MEDIC":
-			character.add_trait("Medical Training")
-		"ENGINEER":
-			character.add_trait("Engineering Training")
-		"PILOT":
-			character.add_trait("Pilot Training")
-		"MERCHANT":
-			character.add_trait("Merchant Training")
-		"SECURITY":
-			character.add_trait("Security Training")
-		"BROKER":
-			character.add_trait("Broker Training")
 
 # NOTE (2026-06-01 rules-accuracy consolidation): the fabricated origin/background
 # equipment chain (generate_starting_equipment / _get_starting_equipment_data /
@@ -862,286 +618,6 @@ static func _grant_precursor_psionic_power(character: Character) -> void:
 	character.add_trait("Psionic Power: %s" % chosen_id)
 
 
-## Validate character meets Five Parsecs constraints
-static func validate_character(character: Character) -> Dictionary:
-	var result: Dictionary = {
-		"valid": true,
-		"errors": []
-	}
-
-	# Check attribute ranges according to Five Parsecs rules
-	if character.reactions < 1 or character.reactions > 6:
-		result.errors.append("Reaction must be 1-6")
-		result.valid = false
-
-	if character.speed < 4 or character.speed > 8:
-		result.errors.append("Speed must be 4-8")
-		result.valid = false
-
-	if character.combat < 0 or character.combat > 3:
-		result.errors.append("Combat skill must be 0-3")
-		result.valid = false
-
-	if character.toughness < 3 or character.toughness > 6:
-		result.errors.append("Toughness must be 3-6")
-		result.valid = false
-
-	if character.savvy < 0 or character.savvy > 3:
-		result.errors.append("Savvy must be 0-3")
-		result.valid = false
-
-	# Check character name
-	if character.character_name.is_empty():
-		result.errors.append("Give this crew member a name to continue.")
-		result.valid = false
-
-	# Check health calculation (Five Parsecs rule: toughness + 2)
-	var expected_health = character.toughness + 2
-	if character.max_health != expected_health:
-		result.errors.append("Max health should be toughness + 2")
-		result.valid = false
-
-	return result
-
-## Generate a complete character with full Five Parsecs relationships and equipment
-## Now uses D100 table rolling for Background/Motivation/Class per Core Rules
-static func generate_complete_character(config: Dictionary = {}) -> Character:
-	var character = create_character(config)
-
-	if not character:
-		push_error("CharacterGeneration: Failed to create character in generate_complete_character")
-		return null
-
-	# Base profile, species modifiers, D100 table rolls/bonuses, and starting
-	# equipment are all produced by create_character() (2026-06-01 consolidation).
-	# This wrapper only adds relationship + narrative-effect extras on top.
-
-	# Legacy relationship generation (now supplemented by table resources)
-	# These are kept for backward compatibility but resource counting comes from tables
-	character.patrons = _generate_patrons(character)
-	character.rivals = _generate_rivals(character)
-
-	# Apply any additional background/motivation effects not covered by tables
-	_apply_background_effects(character)
-	_apply_motivation_effects(character)
-
-	return character
-
-## Generate a random character using ALL available enum values
-static func generate_random_character() -> Character:
-	_load_character_data()
-	var config: Dictionary = {
-		"name": _generate_random_full_name()
-	}
-	
-	# Select random class from ALL available classes (core rules D100 table)
-	var all_classes = [
-		GlobalEnums.CharacterClass.WORKING_CLASS,
-		GlobalEnums.CharacterClass.TECHNICIAN,
-		GlobalEnums.CharacterClass.SCIENTIST,
-		GlobalEnums.CharacterClass.HACKER,
-		GlobalEnums.CharacterClass.SOLDIER,
-		GlobalEnums.CharacterClass.MERCENARY,
-		GlobalEnums.CharacterClass.AGITATOR,
-		GlobalEnums.CharacterClass.PRIMITIVE,
-		GlobalEnums.CharacterClass.ARTIST,
-		GlobalEnums.CharacterClass.NEGOTIATOR,
-		GlobalEnums.CharacterClass.TRADER,
-		GlobalEnums.CharacterClass.STARSHIP_CREW,
-		GlobalEnums.CharacterClass.PETTY_CRIMINAL,
-		GlobalEnums.CharacterClass.GANGER,
-		GlobalEnums.CharacterClass.SCOUNDREL,
-		GlobalEnums.CharacterClass.ENFORCER,
-		GlobalEnums.CharacterClass.SPECIAL_AGENT,
-		GlobalEnums.CharacterClass.TROUBLESHOOTER,
-		GlobalEnums.CharacterClass.BOUNTY_HUNTER,
-		GlobalEnums.CharacterClass.NOMAD,
-		GlobalEnums.CharacterClass.EXPLORER,
-		GlobalEnums.CharacterClass.PUNK,
-		GlobalEnums.CharacterClass.SCAVENGER
-	]
-	config["class"] = all_classes[randi() % all_classes.size()]
-	
-	# Select random background from ALL available backgrounds (core rules D100 table)
-	var all_backgrounds = [
-		GlobalEnums.Background.PEACEFUL_HIGH_TECH_COLONY,
-		GlobalEnums.Background.GIANT_OVERCROWDED_CITY,
-		GlobalEnums.Background.LOW_TECH_COLONY,
-		GlobalEnums.Background.MINING_COLONY,
-		GlobalEnums.Background.MILITARY_BRAT,
-		GlobalEnums.Background.SPACE_STATION,
-		GlobalEnums.Background.MILITARY_OUTPOST,
-		GlobalEnums.Background.DRIFTER,
-		GlobalEnums.Background.LOWER_MEGACITY_CLASS,
-		GlobalEnums.Background.WEALTHY_MERCHANT_FAMILY,
-		GlobalEnums.Background.FRONTIER_GANG,
-		GlobalEnums.Background.RELIGIOUS_CULT,
-		GlobalEnums.Background.WAR_TORN_HELLHOLE,
-		GlobalEnums.Background.TECH_GUILD,
-		GlobalEnums.Background.SUBJUGATED_COLONY,
-		GlobalEnums.Background.LONG_TERM_SPACE_MISSION,
-		GlobalEnums.Background.RESEARCH_OUTPOST,
-		GlobalEnums.Background.PRIMITIVE_WORLD,
-		GlobalEnums.Background.ORPHAN_UTILITY_PROGRAM,
-		GlobalEnums.Background.ISOLATIONIST_ENCLAVE,
-		GlobalEnums.Background.COMFORTABLE_MEGACITY,
-		GlobalEnums.Background.INDUSTRIAL_WORLD,
-		GlobalEnums.Background.BUREAUCRAT,
-		GlobalEnums.Background.WASTELAND_NOMADS,
-		GlobalEnums.Background.ALIEN_CULTURE
-	]
-	config["background"] = all_backgrounds[randi() % all_backgrounds.size()]
-	
-	# Select random motivation from ALL available motivations (core rules D100 table)
-	var all_motivations = [
-		GlobalEnums.Motivation.WEALTH,
-		GlobalEnums.Motivation.FAME,
-		GlobalEnums.Motivation.GLORY,
-		GlobalEnums.Motivation.SURVIVAL,
-		GlobalEnums.Motivation.ESCAPE,
-		GlobalEnums.Motivation.ADVENTURE,
-		GlobalEnums.Motivation.TRUTH,
-		GlobalEnums.Motivation.TECHNOLOGY,
-		GlobalEnums.Motivation.DISCOVERY,
-		GlobalEnums.Motivation.LOYALTY,
-		GlobalEnums.Motivation.REVENGE,
-		GlobalEnums.Motivation.ROMANCE,
-		GlobalEnums.Motivation.FAITH,
-		GlobalEnums.Motivation.POLITICAL,
-		GlobalEnums.Motivation.POWER,
-		GlobalEnums.Motivation.ORDER,
-		GlobalEnums.Motivation.FREEDOM
-	]
-	config["motivation"] = all_motivations[randi() % all_motivations.size()]
-	
-	# Select random origin from ALL available origins
-	var all_origins = [
-		GlobalEnums.Origin.HUMAN,
-		GlobalEnums.Origin.ENGINEER,
-		GlobalEnums.Origin.KERIN,
-		GlobalEnums.Origin.SOULLESS,
-		GlobalEnums.Origin.PRECURSOR,
-		GlobalEnums.Origin.FERAL,
-		GlobalEnums.Origin.SWIFT,
-		GlobalEnums.Origin.BOT,
-		GlobalEnums.Origin.CORE_WORLDS,
-		GlobalEnums.Origin.FRONTIER,
-		GlobalEnums.Origin.DEEP_SPACE,
-		GlobalEnums.Origin.COLONY,
-		GlobalEnums.Origin.HIVE_WORLD,
-		GlobalEnums.Origin.FORGE_WORLD
-	]
-	config["origin"] = all_origins[randi() % all_origins.size()]
-	
-	var character = generate_complete_character(config)
-	if not character:
-		push_error("CharacterGeneration: generate_complete_character returned null, using fallback")
-		return _create_simple_character()
-	
-	# Ensure character has proper equipment and relationships
-	_ensure_character_equipment_static(character)
-	_ensure_character_relationships_static(character)
-	
-	pass # Character generated
-	
-	return character
-
-## Create a simple character without complex dependencies
-static func _create_simple_character() -> Character:
-	## Create a basic character with minimal dependencies for fallback
-	if not Character:
-		push_error("CharacterGeneration: Character class not available for simple creation")
-		return null
-	
-	var character = Character.new()
-	if not character:
-		push_error("CharacterGeneration: Failed to create simple character")
-		return null
-	
-	# Set basic properties
-	character.character_name = "Fallback Character"
-	character.character_class = "SOLDIER"
-	character.background = "MILITARY"
-	character.motivation = "SURVIVAL"
-	character.origin = "HUMAN"
-	
-	# Set basic stats (Five Parsecs defaults)
-	character.reactions = 3
-	character.combat = 1
-	character.toughness = 4
-	character.savvy = 1
-	character.speed = 6
-	character.luck = 0
-	
-	# Set health (Five Parsecs rule: Toughness + 2)
-	character.max_health = character.toughness + 2
-	character.health = character.max_health
-	
-	return character
-
-## Helper methods for random generation
-static func _generate_random_full_name() -> String:
-	## Generate a full name with first and last name
-	var first_names = ["Alex", "Morgan", "Casey", "Taylor", "Jordan", "Riley", "Avery", "Quinn", "Blake", "Cameron", "Jamie", "Sage", "Rowan", "Kai", "Drew", "Sam", "Parker", "Reese", "Dakota", "Skyler"]
-	var last_names = ["Vega", "Cruz", "Stone", "Hunter", "Fox", "Storm", "Reeves", "Cross", "Vale", "Kane", "Steele", "Raven", "Wolf", "Shaw", "Grey", "Black", "White", "Brown", "Green", "Blue"]
-	
-	var first = first_names[randi() % first_names.size()]
-	var last = last_names[randi() % last_names.size()]
-	return first + " " + last
-
-static func _roll_random_class() -> int:
-	var classes = [
-		GlobalEnums.CharacterClass.WORKING_CLASS,
-		GlobalEnums.CharacterClass.TECHNICIAN,
-		GlobalEnums.CharacterClass.SCIENTIST,
-		GlobalEnums.CharacterClass.HACKER,
-		GlobalEnums.CharacterClass.SOLDIER,
-		GlobalEnums.CharacterClass.MERCENARY,
-		GlobalEnums.CharacterClass.AGITATOR,
-		GlobalEnums.CharacterClass.PRIMITIVE,
-		GlobalEnums.CharacterClass.ARTIST,
-		GlobalEnums.CharacterClass.NEGOTIATOR,
-		GlobalEnums.CharacterClass.TRADER,
-		GlobalEnums.CharacterClass.STARSHIP_CREW,
-		GlobalEnums.CharacterClass.PETTY_CRIMINAL,
-		GlobalEnums.CharacterClass.GANGER,
-		GlobalEnums.CharacterClass.SCOUNDREL,
-		GlobalEnums.CharacterClass.ENFORCER,
-		GlobalEnums.CharacterClass.SPECIAL_AGENT,
-		GlobalEnums.CharacterClass.TROUBLESHOOTER,
-		GlobalEnums.CharacterClass.BOUNTY_HUNTER,
-		GlobalEnums.CharacterClass.NOMAD,
-		GlobalEnums.CharacterClass.EXPLORER,
-		GlobalEnums.CharacterClass.PUNK,
-		GlobalEnums.CharacterClass.SCAVENGER
-	]
-	return classes[randi() % classes.size()]
-
-static func _roll_random_background() -> String:
-	var backgrounds = GlobalEnums.Background.keys()
-	if "NONE" in backgrounds: backgrounds.erase("NONE")
-	if "UNKNOWN" in backgrounds: backgrounds.erase("UNKNOWN")
-	return backgrounds[randi() % backgrounds.size()]
-
-static func _roll_random_motivation() -> int:
-	var motivations = GlobalEnums.Motivation.keys()
-	if "NONE" in motivations: motivations.erase("NONE")
-	if "UNKNOWN" in motivations: motivations.erase("UNKNOWN")
-	return GlobalEnums.Motivation[motivations[randi() % motivations.size()]]
-
-static func _roll_random_origin() -> int:
-	var origins = GlobalEnums.Origin.keys()
-	if "NONE" in origins: origins.erase("NONE")
-	if "UNKNOWN" in origins: origins.erase("UNKNOWN")
-	# Filter DLC species if not enabled
-	var _dlc_gen = Engine.get_main_loop().root.get_node_or_null("/root/DLCManager") if Engine.get_main_loop() else null
-	if _dlc_gen:
-		if not _dlc_gen.is_feature_enabled(_dlc_gen.ContentFlag.SPECIES_KRAG):
-			origins.erase("KRAG")
-		if not _dlc_gen.is_feature_enabled(_dlc_gen.ContentFlag.SPECIES_SKULKER):
-			origins.erase("SKULKER")
-	return GlobalEnums.Origin[origins[randi() % origins.size()]]
-
 ## Enhanced equipment generation with DiceManager integration
 static func _generate_starting_equipment_enhanced(character: Character) -> Dictionary:
 	# Get DiceManager through AutoloadManager for safe access
@@ -1189,309 +665,3 @@ static func _generate_fallback_equipment(character: Character) -> Dictionary:
 
 ## Public API for UI access
 ## These methods wrap the private implementations for external use
-
-static func generate_patrons(character: Character) -> Array:
-	return _generate_patrons(character)
-
-static func generate_rivals(character: Character) -> Array:
-	return _generate_rivals(character)
-
-static func apply_background_effects(character: Character) -> void:
-	_apply_background_effects(character)
-
-static func apply_motivation_effects(character: Character) -> void:
-	_apply_motivation_effects(character)
-
-static func generate_starting_equipment_enhanced(character: Character) -> Dictionary:
-	return _generate_starting_equipment_enhanced(character)
-
-## Generate patron relationships using GameStateManager systems
-static func _generate_patrons(character: Character) -> Array:
-	var patrons = []
-	
-	# Get GameStateManager through AutoloadManager
-	var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
-	if not game_state_manager or not game_state_manager.has_method("get_manager"):
-		push_warning("CharacterGeneration: GameStateManager not available, using fallback patron generation")
-		return _generate_fallback_patrons(character)
-	
-	# Get PatronManager from GameStateManager
-	var patron_manager = game_state_manager.get_manager("PatronManager")
-	if not patron_manager:
-		# Try direct PatronSystem access
-		if ResourceLoader.exists("res://src/core/systems/PatronSystem.gd"):
-			var patron_system = preload("res://src/core/systems/PatronSystem.gd").new()
-			patron_manager = patron_system
-		else:
-			push_warning("CharacterGeneration: PatronManager/PatronSystem not available")
-			return _generate_fallback_patrons(character)
-	
-	# Generate 1-3 patrons based on character background
-	var patron_count = randi_range(1, 3)
-	for i in patron_count:
-		var patron = null
-		if patron_manager.has_method("generate_patron"):
-			patron = patron_manager.generate_patron()
-		elif patron_manager.has_method("create_patron"):
-			patron = patron_manager.create_patron()
-		
-		if patron:
-			# Link patron to character background if possible
-			_link_patron_to_character(patron, character)
-			patrons.append(patron)
-	
-	pass # Patrons generated
-	return patrons
-
-## Generate rival relationships using GameStateManager systems
-static func _generate_rivals(character: Character) -> Array:
-	var rivals = []
-	
-	# Get GameStateManager through AutoloadManager
-	var game_state_manager = AutoloadManager.get_autoload_safe("GameStateManager")
-	if not game_state_manager or not game_state_manager.has_method("get_manager"):
-		push_warning("CharacterGeneration: GameStateManager not available, using fallback rival generation")
-		return _generate_fallback_rivals(character)
-	
-	# Get RivalManager from GameStateManager
-	var rival_manager = game_state_manager.get_manager("RivalManager")
-	if not rival_manager:
-		# Try direct RivalSystem access
-		if ResourceLoader.exists("res://src/core/rivals/RivalSystem.gd"):
-			var rival_system = preload("res://src/core/rivals/RivalSystem.gd").new()
-			rival_manager = rival_system
-		else:
-			push_warning("CharacterGeneration: RivalManager/RivalSystem not available")
-			return _generate_fallback_rivals(character)
-	
-	# Generate 0-2 rivals based on character background/class
-	var rival_count = randi_range(0, 2)
-	for i in rival_count:
-		var rival = null
-		if rival_manager.has_method("create_rival"):
-			# Create rival with character-appropriate parameters
-			var rival_params = _get_rival_params_for_character(character)
-			rival = rival_manager.create_rival(rival_params)
-		
-		if rival:
-			rivals.append(rival)
-	
-	pass # Rivals generated
-	return rivals
-
-## Fallback patron generation when systems unavailable
-static func _generate_fallback_patrons(character: Character) -> Array:
-	var patrons = []
-	var patron_count = randi_range(1, 2) # Reduced count for fallback
-	
-	for i in patron_count:
-		var patron = {
-			"id": "patron_%d_%d" % [character.get_instance_id(), i],
-			"name": "Patron %d" % (i + 1),
-			"type": "Corporate",
-			"reputation": 0,
-			"job_rate": 50,
-			"linked_character_id": character.get_instance_id()
-		}
-		patrons.append(patron)
-	
-	return patrons
-
-## Fallback rival generation when systems unavailable  
-static func _generate_fallback_rivals(character: Character) -> Array:
-	var rivals = []
-	var rival_count = randi_range(0, 1) # Reduced count for fallback
-	
-	for i in rival_count:
-		var rival = {
-			"id": "rival_%d_%d" % [character.get_instance_id(), i],
-			"name": "Rival %d" % (i + 1),
-			"type": 0, # Default enemy type
-			"level": 1,
-			"reputation": 0,
-			"active": true
-		}
-		rivals.append(rival)
-	
-	return rivals
-
-## Link patron to character background/motivation
-static func _link_patron_to_character(patron: Dictionary, character: Character) -> void:
-	if patron.has("linked_character_id"):
-		patron.linked_character_id = character.get_instance_id()
-	
-	# Adjust patron type based on character background - now using string comparison
-	if patron.has("type"):
-		match character.background:
-			"CORPORATE":
-				patron.type = "Corporate"
-			"MILITARY":
-				patron.type = "Military"
-			"CRIMINAL":
-				patron.type = "Criminal"
-			_:
-				patron.type = "Independent"
-
-## Get rival parameters appropriate for character
-static func _get_rival_params_for_character(character: Character) -> Dictionary:
-	var params = {}
-	
-	# Base rival on character background/class for thematic consistency - now using string comparison
-	match character.background:
-		"MILITARY":
-			params.type = GlobalEnums.EnemyType.get("PIRATES", 0)
-			params.name = "Military Deserter"
-		"CRIMINAL":
-			params.type = GlobalEnums.EnemyType.get("GANGERS", 1)
-			params.name = "Gang Rival"
-		"CORPORATE":
-			params.type = GlobalEnums.EnemyType.get("CORPORATE", 2)
-			params.name = "Corporate Enforcer"
-		_:
-			params.type = GlobalEnums.EnemyType.get("RAIDERS", 3)
-			params.name = "Personal Enemy"
-	
-	params.level = 1
-	params.reputation = 0
-	
-	return params
-
-## Apply background effects
-static func _apply_background_effects(character: Character) -> void:
-	match character.background:
-		"MILITARY":
-			character.add_trait("Military Discipline")
-		"CRIMINAL":
-			character.add_trait("Street Smarts")
-		"ACADEMIC":
-			character.add_trait("Academic Training")
-		"MERCENARY":
-			character.add_trait("Mercenary Experience")
-		"COLONIST":
-			character.add_trait("Colony Experience")
-		"EXPLORER":
-			character.add_trait("Exploration Experience")
-		"TRADER":
-			character.add_trait("Trade Experience")
-		"OUTCAST":
-			character.add_trait("Outcast Experience")
-
-## Apply motivation effects to character (Core Rules p.25 — 17 motivations)
-## Note: Primary stat/resource bonuses come from D100 MOTIVATION_TABLE.
-## This method adds thematic traits for flavor.
-static func _apply_motivation_effects(character: Character) -> void:
-	match character.motivation:
-		"WEALTH":
-			character.add_trait("Wealth Seeker")
-		"FAME":
-			character.add_trait("Fame Seeker")
-		"GLORY":
-			character.add_trait("Glory Seeker")
-		"SURVIVAL":
-			character.add_trait("Survivalist")
-		"ESCAPE":
-			character.add_trait("Driven to Escape")
-		"ADVENTURE":
-			character.add_trait("Adventurer")
-		"TRUTH":
-			character.add_trait("Truth Seeker")
-		"TECHNOLOGY":
-			character.add_trait("Technology Enthusiast")
-		"DISCOVERY":
-			character.add_trait("Explorer at Heart")
-		"LOYALTY":
-			character.add_trait("Loyal to the Cause")
-		"REVENGE":
-			character.add_trait("Driven by Revenge")
-		"ROMANCE":
-			character.add_trait("Romantic Idealist")
-		"FAITH":
-			character.add_trait("Person of Faith")
-		"POLITICAL":
-			character.add_trait("Political Idealist")
-		"POWER":
-			character.add_trait("Power Hungry")
-		"ORDER":
-			character.add_trait("Seeker of Order")
-		"FREEDOM":
-			character.add_trait("Freedom Fighter")
-
-## Create basic character without external dependencies (safe fallback)
-static func create_basic_character(config: Dictionary = {}) -> Character:
-	return create_character(config)
-
-static func _ensure_character_equipment_static(character: Character) -> void:
-	## Ensure character has proper starting equipment
-	if not character.has_method("set_personal_equipment"):
-		# Set equipment directly on character properties
-		var equipment = _generate_starting_equipment_enhanced(character)
-		character.set_meta("personal_equipment", equipment)
-		character.set_meta("credits_earned", equipment.get("credits", 1000))
-
-static func _ensure_character_relationships_static(character: Character) -> void:
-	## Ensure character has proper relationships
-	# Generate some random patrons and rivals based on background
-	var patrons = []
-	var rivals = []
-	
-	# Add background-appropriate relationships - now using string comparison
-	match character.background:
-		"MILITARY":
-			patrons.append("Military Command")
-			rivals.append("Deserters")
-		"MERCENARY":
-			patrons.append("Mercenary Guild")
-			rivals.append("Competing Mercs")
-		"CRIMINAL":
-			patrons.append("Criminal Syndicate")
-			rivals.append("Law Enforcement")
-		"ACADEMIC":
-			patrons.append("Research Institute")
-			rivals.append("Competing Scholars")
-		"TRADER":
-			patrons.append("Trade Federation")
-			rivals.append("Competing Traders")
-		_:
-			patrons.append("Local Authorities")
-			rivals.append("Local Criminals")
-	
-	character.set_meta("patrons", patrons)
-	character.set_meta("rivals", rivals)
-
-func _ensure_character_equipment(character: Character) -> void:
-	## Ensure character has proper starting equipment
-	if not character.has_method("set_personal_equipment"):
-		# Set equipment directly on character properties
-		var equipment = _generate_starting_equipment_enhanced(character)
-		character.set_meta("personal_equipment", equipment)
-		character.set_meta("credits_earned", equipment.get("credits", 1000))
-
-func _ensure_character_relationships(character: Character) -> void:
-	## Ensure character has proper relationships
-	# Generate some random patrons and rivals based on background
-	var patrons = []
-	var rivals = []
-	
-	# Add background-appropriate relationships - now using string comparison
-	match character.background:
-		"MILITARY":
-			patrons.append("Military Command")
-			rivals.append("Deserters")
-		"MERCENARY":
-			patrons.append("Mercenary Guild")
-			rivals.append("Competing Mercs")
-		"CRIMINAL":
-			patrons.append("Criminal Syndicate")
-			rivals.append("Law Enforcement")
-		"ACADEMIC":
-			patrons.append("Research Institute")
-			rivals.append("Competing Scholars")
-		"TRADER":
-			patrons.append("Trade Federation")
-			rivals.append("Competing Traders")
-		_:
-			patrons.append("Local Authorities")
-			rivals.append("Local Criminals")
-	
-	character.set_meta("patrons", patrons)
-	character.set_meta("rivals", rivals)

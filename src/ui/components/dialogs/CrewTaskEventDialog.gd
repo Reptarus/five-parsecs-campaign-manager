@@ -36,6 +36,8 @@ enum EventType {
 	TECH_FANATIC, # Complex conditional (damage + repair + engineer)
 	DEFERRED, # Cached for future trigger
 	IMMUNE, # Species immunity — skip with badge
+	FORCED_RIVAL_BATTLE, # p.81 Got yourself noticed: fight an existing Rival this turn
+	TRINKET_SALE, # p.79 Luxury trinket: keep it as a gift, or sell it
 }
 
 # ── Deep Space Theme ──────────────────────────────────────────────────
@@ -231,8 +233,16 @@ func _build_ui() -> void:
 		EventType.GAIN_RIVAL:
 			_show_outcome("Gained a Rival!", COLOR_DANGER)
 			var kerin_bonus: String = str(_event_data.get("kerin_bonus", ""))
-			if not kerin_bonus.is_empty():
+			# Shown only when a K'Erin rolled it: p.81 gives the -1 enemy to them alone.
+			if not kerin_bonus.is_empty() and bool(_event_data.get("kerin_rider", false)):
 				_add_outcome_line("K'Erin bonus: %s" % kerin_bonus, COLOR_DEFERRED)
+			_action_taken = true
+		EventType.FORCED_RIVAL_BATTLE:
+			var rival_name: String = str(_event_data.get("forced_rival_name", ""))
+			if rival_name.is_empty():
+				_show_outcome("You have no Rivals, so nobody comes after you.", COLOR_DEFERRED)
+			else:
+				_show_outcome("%s will fight you this campaign turn." % rival_name, COLOR_DANGER)
 			_action_taken = true
 		EventType.GAIN_RUMOR:
 			var rumors: int = maxi(1, int(_event_data.get("rumor_count", 1)))
@@ -281,7 +291,8 @@ func _build_art_area() -> Control:
 	match event_type:
 		EventType.GAIN_CREDITS, EventType.ROLL_FOR_CREDITS, EventType.SELL_WEAPONS:
 			art.color = ART_TINT_MONEY
-		EventType.GAIN_RIVAL, EventType.DISCARD_ITEM, EventType.SICK_BAY:
+		EventType.GAIN_RIVAL, EventType.FORCED_RIVAL_BATTLE, EventType.DISCARD_ITEM, \
+		EventType.SICK_BAY:
 			art.color = ART_TINT_DANGER
 		EventType.ROLL_ON_TABLE, EventType.ROLL_FOR_BONUS:
 			art.color = ART_TINT_DICE
@@ -315,6 +326,8 @@ func _build_interactive_area(event_type: int) -> void:
 			_build_pay_or_lose_buttons()
 		EventType.TECH_FANATIC:
 			_build_tech_fanatic_area()
+		EventType.TRINKET_SALE:
+			_build_trinket_sale_buttons()
 		EventType.RECRUIT:
 			_build_recruit_button()
 		EventType.SICK_BAY:
@@ -627,19 +640,58 @@ func _build_pay_or_lose_buttons() -> void:
 	_interactive_area.add_child(lose_btn)
 
 func _build_tech_fanatic_area() -> void:
-	var is_engineer: bool = _event_data.get("is_engineer", false)
-	if is_engineer:
-		_show_outcome("+2 XP (Engineer bonus!)", COLOR_SUCCESS)
+	## The p.81 roll was made when the task resolved; the effect text reports it.
+	## The player only picks which damaged item the fanatic fixes.
+	var choices: Array = _event_data.get("repair_choices", [])
+	if not bool(_event_data.get("repair_success", false)) or choices.size() <= 1:
 		_action_taken = true
-		_outcome = {"xp": 2, "engineer_bonus": true}
-	else:
-		var random_item: String = str(_event_data.get("random_damaged_item", ""))
-		if random_item.is_empty():
-			_show_outcome("No items to damage", COLOR_TEXT_SECONDARY)
-			_action_taken = true
-		else:
-			_show_outcome("Your %s is damaged!" % random_item, COLOR_DANGER)
-			_build_roll_button("Roll for Repair (5+ to fix)")
+		return
+	var desc := Label.new()
+	desc.text = "Pick the damaged item to fix:"
+	desc.add_theme_font_size_override("font_size", ScreenChrome.font_size(14))
+	desc.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	_interactive_area.add_child(desc)
+	for label: Variant in choices:
+		var btn := Button.new()
+		btn.text = str(label)
+		btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		_style_button(btn, COLOR_ELEVATED)
+		btn.pressed.connect(_on_repair_chosen.bind(str(label)))
+		_interactive_area.add_child(btn)
+
+func _on_repair_chosen(label: String) -> void:
+	_show_outcome("Fixed for free: %s" % label, COLOR_SUCCESS)
+	_outcome = {"repair_choice": label}
+	for child in _interactive_area.get_children():
+		child.queue_free()
+	_action_taken = true
+
+func _build_trinket_sale_buttons() -> void:
+	## Core Rules p.79: the trinket is a +2 gift when Recruiting, or it can be sold by
+	## rolling twice on the Trade Table and keeping the result you prefer.
+	var keep_btn := Button.new()
+	keep_btn.text = "Keep it (+2 to a Recruit roll)"
+	keep_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	keep_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(keep_btn, COLOR_ELEVATED)
+	keep_btn.pressed.connect(_on_trinket_choice.bind(false))
+	_interactive_area.add_child(keep_btn)
+	var sell_btn := Button.new()
+	sell_btn.text = "Sell it (roll twice on the Trade Table)"
+	sell_btn.custom_minimum_size = Vector2(0, TOUCH_TARGET_MIN)
+	sell_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_style_button(sell_btn, COLOR_ACCENT)
+	sell_btn.pressed.connect(_on_trinket_choice.bind(true))
+	_interactive_area.add_child(sell_btn)
+
+func _on_trinket_choice(sell: bool) -> void:
+	_show_outcome("Selling the trinket" if sell else "Kept for Recruiting",
+		COLOR_TEXT_GOLD)
+	_outcome = {"sell": sell}
+	for child in _interactive_area.get_children():
+		child.queue_free()
+	_action_taken = true
 
 func _build_recruit_button() -> void:
 	var recruit_btn := Button.new()
@@ -668,11 +720,21 @@ func _on_roll_pressed() -> void:
 			_handle_skill_check()
 		EventType.SICK_BAY:
 			_handle_sick_bay_roll()
-		EventType.TECH_FANATIC:
-			_handle_tech_repair_roll()
+
+## Every die this dialog rolls goes through DiceManager, so it reaches the roll
+## history and a QA tester can force it. The context is "<what>: <event name>".
+func _die(sides: int, what: String) -> int:
+	var context: String = "%s: %s" % [what, str(_event_data.get("event_name", "Event"))]
+	var dice: Node = get_node_or_null("/root/DiceManager") if is_inside_tree() else null
+	if dice:
+		match sides:
+			3: return int(dice.roll_d3(context))
+			6: return int(dice.roll_d6(context))
+			100: return int(dice.roll_d100(context))
+	return randi_range(1, sides)
 
 func _handle_roll_for_bonus() -> void:
-	var roll: int = randi() % 6 + 1
+	var roll: int = _die(6, "Bonus roll")
 	var savvy_mod: int = _event_data.get("savvy_modifier", 0)
 	var total: int = roll + savvy_mod
 	var threshold: int = _event_data.get("success_threshold", 6)
@@ -696,7 +758,7 @@ func _handle_roll_for_credits() -> void:
 	var credits: int = _event_data.get("credits", 0)
 	if credits == 0:
 		# Not pre-rolled — this is the interactive roll moment
-		credits = randi() % 6 + 1
+		credits = _die(6, "Credits")
 	_show_outcome("Rolled %d — %d credits" % [credits, credits], COLOR_TEXT_GOLD)
 	_outcome = {"credits": credits, "roll": credits}
 	_action_taken = true
@@ -779,7 +841,7 @@ func _roll_creation_table(table_name: String, fallback: String) -> Array:
 func _roll_main_loot() -> Array:
 	## Roll D100 on main loot table, then resolve subtable (Core Rules pp.131-133)
 	var main_data: Array = _LootConstants.get_main_loot_data()
-	var roll: int = randi_range(1, 100)
+	var roll: int = _die(100, "Loot table (Core Rules pp.131-133)")
 	for entry in main_data:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
@@ -813,7 +875,7 @@ func _roll_subtable(subtable_data: Array) -> String:
 	## (p.131, "finally the exact item in question") to the canonical resolver.
 	## The random pick this replaced flattened every printed frequency on
 	## pp.131-134 to uniform.
-	var roll: int = randi_range(1, 100)
+	var roll: int = _die(100, "Loot subtable")
 	for entry in subtable_data:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
@@ -827,7 +889,7 @@ func _roll_subtable(subtable_data: Array) -> String:
 func _roll_reward() -> Dictionary:
 	## Roll on rewards subtable — returns description dict
 	var rewards_data: Array = _LootConstants.get_rewards_subtable_data()
-	var roll: int = randi_range(1, 100)
+	var roll: int = _die(100, "Rewards subtable")
 	for entry in rewards_data:
 		if entry is Dictionary:
 			var r: Array = entry.get("roll_range", [0, 0])
@@ -836,7 +898,7 @@ func _roll_reward() -> Dictionary:
 				if entry.has("credits"):
 					return {"description": "%s: +%d credits" % [item_name, entry["credits"]]}
 				elif entry.has("credits_dice"):
-					var credits: int = randi_range(1, 6)
+					var credits: int = _die(6, "Reward credits")
 					return {"description": "%s: +%d credits" % [item_name, credits]}
 				elif entry.has("rumors"):
 					return {"description": "%s: +%d Quest Rumor(s)" % [item_name, entry["rumors"]]}
@@ -846,7 +908,7 @@ func _roll_reward() -> Dictionary:
 	return {"description": "Nothing notable"}
 
 func _handle_skill_check() -> void:
-	var roll: int = randi() % 6 + 1
+	var roll: int = _die(6, "Skill check")
 	var stat_mod: int = _event_data.get("stat_modifier", 0)
 	var total: int = roll + stat_mod
 	var threshold: int = _event_data.get("success_threshold", 4)
@@ -864,23 +926,10 @@ func _handle_skill_check() -> void:
 	_action_taken = true
 
 func _handle_sick_bay_roll() -> void:
-	var turns: int = (randi() % 3) + 1 # 1D3
+	var turns: int = _die(3, "Sick Bay turns")  # 1D3
 	_show_outcome("Rolled %d — %d turns in Sick Bay" % [turns, turns], COLOR_DANGER)
 	_outcome = {"sick_bay_turns": turns}
 	_event_data["sick_bay_turns"] = turns
-	_action_taken = true
-
-func _handle_tech_repair_roll() -> void:
-	var roll: int = randi() % 6 + 1
-	var item_name: String = str(_event_data.get("random_damaged_item", "item"))
-	if roll >= 5:
-		_add_outcome_line("Rolled %d — Repaired for free!" % roll, COLOR_SUCCESS)
-		_outcome = {"repaired": true, "roll": roll, "damaged_item": item_name}
-	else:
-		_add_outcome_line("Rolled %d — Still damaged" % roll, COLOR_DANGER)
-		_outcome = {"repaired": false, "roll": roll, "damaged_item": item_name}
-	if _roll_btn:
-		_roll_btn.disabled = true
 	_action_taken = true
 
 func _on_accept_risk() -> void:
@@ -1248,13 +1297,14 @@ func _resize_dialog(event_type: int) -> void:
 	match event_type:
 		EventType.INFO_ONLY, EventType.GAIN_CREDITS, EventType.GAIN_XP, \
 		EventType.GAIN_STORY_POINT, EventType.IMMUNE, EventType.DEFERRED, \
-		EventType.GAIN_RIVAL, EventType.GAIN_RUMOR, EventType.GAIN_PATRON:
+		EventType.GAIN_RIVAL, EventType.GAIN_RUMOR, EventType.GAIN_PATRON, \
+		EventType.FORCED_RIVAL_BATTLE:
 			base_height = 340
 		EventType.ROLL_FOR_BONUS, EventType.ROLL_FOR_CREDITS, EventType.ROLL_ON_TABLE, \
 		EventType.SKILL_CHECK, EventType.SICK_BAY, EventType.RECRUIT:
 			base_height = 380
 		EventType.ROLL_FOR_CREDITS_RISK, EventType.CONDITIONAL_PURCHASE, \
-		EventType.PAY_OR_LOSE, EventType.TECH_FANATIC:
+		EventType.PAY_OR_LOSE, EventType.TECH_FANATIC, EventType.TRINKET_SALE:
 			base_height = 400
 		EventType.CHOICE_ITEM:
 			var opts: int = _event_data.get("choice_options", []).size()

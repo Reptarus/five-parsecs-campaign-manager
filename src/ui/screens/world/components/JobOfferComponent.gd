@@ -6,10 +6,10 @@ class_name JobOfferComponent
 ## Implements Core Rules p.78-80 - Patron jobs and opportunities
 
 # Five Parsecs dependencies
-const WorldPhaseResources = preload("res://src/core/world_phase/WorldPhaseResources.gd")
 const GameDataLoader = preload("res://src/utils/GameDataLoader.gd")
 const CompendiumMissionsExpanded = preload("res://src/data/compendium_missions_expanded.gd")
 const PatronJobEffectsClass = preload("res://src/core/patrons/PatronJobEffects.gd")
+const PatronContactRef = preload("res://src/core/patrons/PatronContact.gd")
 const ExpandedQuestRef = preload("res://src/core/campaign/ExpandedQuestProgression.gd")
 ## Fixer's Guidebook mission types. Each generator self-gates on its own DLC
 ## ContentFlag and returns {} when the pack is not owned, so calling them
@@ -19,6 +19,7 @@ const StreetFightGenerator = preload("res://src/core/mission/StreetFightGenerato
 const SalvageJobGenerator = preload("res://src/core/mission/SalvageJobGenerator.gd")
 ## Core Rules p.72 step 3 — the Freelancer License that gates Patron work.
 const NewWorldArrivalRef = preload("res://src/core/campaign/NewWorldArrival.gd")
+const RivalContactRef = preload("res://src/core/campaign/RivalContact.gd")
 
 # UI Components
 @onready var job_offer_container: VBoxContainer = %JobOfferContainer
@@ -208,7 +209,7 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 	if not quest_job.is_empty():
 		all_jobs.append(quest_job)
 	all_jobs.append_array(patron_offers)
-	all_jobs.append_array(_generate_compendium_missions())
+	all_jobs.append_array(_generate_compendium_missions(location))
 
 	# Store and display
 	job_accepted = false
@@ -228,7 +229,7 @@ func initialize_job_offers(world_phase_data: Dictionary) -> void:
 		selected_job_index = 0
 		accept_selected_job()
 
-func _generate_compendium_missions() -> Array[Dictionary]:
+func _generate_compendium_missions(location: String = "") -> Array[Dictionary]:
 	## Fixer's Guidebook mission types — Stealth Missions, Street Fights and
 	## Salvage Jobs — offered alongside the Patron and Opportunity jobs.
 	##
@@ -306,13 +307,7 @@ func _generate_compendium_missions() -> Array[Dictionary]:
 	var faction_sys: Node = get_node_or_null("/root/FactionSystem")
 	if faction_sys and faction_sys.has_method("get_faction_mission_opportunities"):
 		for faction_job in faction_sys.get_faction_mission_opportunities():
-			var job: Dictionary = faction_job
-			job["type"] = str(job.get("type", "faction_job"))
-			job["name"] = str(job.get("name", "Faction Job"))
-			# mission_source stays "faction" (stamped by the generator) so the
-			# p.120 Step 4 payment path and the post-battle Loyalty roll can both
-			# tell this apart from an Opportunity job.
-			missions.append(job)
+			missions.append(_faction_job_offer(faction_job, location))
 
 	return missions
 
@@ -341,6 +336,35 @@ func initialize_job_phase(patron_data: Dictionary, current_location: String) -> 
 		accept_selected_job()
 
 ## Core Five Parsecs job generation (Core Rules p.78-80)
+## Compendium p.111: "Faction jobs are treated as a Patron job, but do not roll for
+## Danger Pay or Benefits." So the Patron builder rolls the objective, Time Frame,
+## Hazards and Conditions with the Faction as the employer, and FactionSystem says
+## only who is asking. The extra opponent p.111 adds is applied by EnemyGenerator
+## off mission_source "faction".
+##
+## No patron_id: p.119 Step 2 adds the employer of a won job as a Patron, and a
+## Faction is not one. A won Faction job raises Loyalty instead (p.112), which the
+## post-battle resolver reads off faction_id.
+func _faction_job_offer(faction_job: Dictionary, location: String) -> Dictionary:
+	var faction_name: String = str(faction_job.get("faction_name", "")).strip_edges()
+	if faction_name.is_empty():
+		faction_name = "Faction"
+	var table: Dictionary = GameDataLoader.get_patron_jobs_table().get("job_type_table", {})
+	var job: Dictionary = _create_job_offer_from_table(
+		{"patron_name": faction_name, "patron_type": "Faction"}, location, 0, table)
+	job.erase("patron_id")
+	job["faction_id"] = str(faction_job.get("faction_id", ""))
+	job["type"] = "faction_job"
+	job["name"] = "Faction job: %s" % faction_name
+	# p.115 Tensions rising, "Faction jobs next turn increase Danger Pay by +1": the
+	# only Danger Pay a Faction job ever carries.
+	if bool(faction_job.get("tensions_rising_bonus", false)):
+		job["danger_pay"] = int(job.get("danger_pay", 0)) + 1
+		job["pay"] = int(job.get("pay", 0)) + 1
+		job["tensions_rising_bonus"] = true
+	return job
+
+
 func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Dictionary]:
 	## Generate job offers based on Five Parsecs rules and JSON data tables
 	var jobs: Array[Dictionary] = []
@@ -352,262 +376,87 @@ func _generate_job_offers(patron_data: Dictionary, location: String) -> Array[Di
 		push_error("JobOfferComponent: Failed to load patron_jobs.json - falling back to basic generation")
 		return _generate_job_offers_fallback(patron_data, location)
 	
-	# If no patron, roll on patron contact table to see if we get one
-	var effective_patron = patron_data.duplicate()
-	if effective_patron.is_empty():
-		var contact_result = _roll_patron_contact(patron_table.get("patron_contact_table", {}))
-		if contact_result.is_empty() or contact_result.get("outcome", "") == "no_contact":
-			effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
-		else:
-			var patron_tier = contact_result.get("patron_tier", "regular")
-			effective_patron = {
-				"patron_name": _generate_patron_name(patron_tier),
-				"patron_type": patron_tier,
-				"tier": patron_tier
-			}
+	# WHO is offering, resolved once here because every offer enters through this
+	# function: an owed p.77 offer, a p.84 Busy follow-up and the p.85 Opportunity
+	# mission. See _offer_patron().
+	var effective_patron: Dictionary = _offer_patron(patron_data)
 
-	# Roll for number of available jobs using job_type_table
+	# ONE job per offer. p.77 grants a job per Patron found ("you've found a Patron
+	# to hire you for a job"; two on a 6+, each from its own Patron), and p.85's
+	# Opportunity mission is one mission. Until 2026-10-29 a Patron handed out 1-3
+	# jobs by an invented tier, and the Opportunity mission first rolled a 2D6
+	# "contact table" in neither book that, on a 5+, turned it into a Patron job
+	# from an employer the app made up.
 	var job_type_table = patron_table.get("job_type_table", {})
-	var job_count = 1
-	
-	if not job_type_table.is_empty():
-		# Generate 1-3 jobs based on patron tier
-		var tier = effective_patron.get("tier", effective_patron.get("patron_type", "regular"))
-		job_count = _get_job_count_for_tier(tier)
-	else:
-		# Fallback: roll d6/2
-		job_count = max(1, int(GameDataLoader.roll_d6() / 2))
-
-	var seen_types: Array[String] = []
-	for i in range(job_count):
-		var job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
-		var job_key: String = job.get("job_type", "") + "_" + job.get("objective", "")
-		# Re-roll duplicates (up to 3 attempts)
-		var attempts := 0
-		while job_key in seen_types and attempts < 3:
-			job = _create_job_offer_from_table(effective_patron, location, i, job_type_table, patron_table)
-			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
-			attempts += 1
-		seen_types.append(job_key)
-		_enhance_job_with_compendium(job)
-		jobs.append(job)
-
+	var job = _create_job_offer_from_table(effective_patron, location, 0, job_type_table)
+	_enhance_job_with_compendium(job)
+	jobs.append(job)
 	return jobs
 
 ## Fallback job generation if JSON loading fails
 func _generate_job_offers_fallback(patron_data: Dictionary, location: String) -> Array[Dictionary]:
 	## Fallback to original job generation if JSON fails
 	var jobs: Array[Dictionary] = []
-	var effective_patron = patron_data.duplicate()
-	if effective_patron.is_empty():
-		effective_patron = {"patron_name": "Open Market", "patron_type": "generic"}
-	
-	var job_count = max(1, int(GameDataLoader.roll_d6() / 2))
-
-	var seen_types: Array[String] = []
-	for i in range(job_count):
-		var job = _create_job_offer(effective_patron, location, i)
-		var job_key: String = job.get("job_type", "") + "_" + job.get("objective", "")
-		var attempts := 0
-		while job_key in seen_types and attempts < 3:
-			job = _create_job_offer(effective_patron, location, i)
-			job_key = job.get("job_type", "") + "_" + job.get("objective", "")
-			attempts += 1
-		seen_types.append(job_key)
-		_enhance_job_with_compendium(job)
-		jobs.append(job)
-
+	var job = _create_job_offer(_offer_patron(patron_data), location, 0)
+	_enhance_job_with_compendium(job)
+	jobs.append(job)
 	return jobs
 
-## Roll on patron contact table (2d6)
-func _roll_patron_contact(contact_table: Dictionary) -> Dictionary:
-	## Roll to see if patron makes contact with skill modifiers
-	if contact_table.is_empty():
-		return {}
-	
-	# Base 2d6 roll
-	var base_roll: int = GameDataLoader.roll_2d6()
-	
-	# Apply skill modifiers
-	var skill_bonus: int = _get_patron_contact_skill_modifiers(contact_table)
-	
-	# Apply world trait modifiers
-	var world_bonus: int = _get_world_trait_modifiers(contact_table)
-	
-	var total_roll: int = base_roll + skill_bonus + world_bonus
-	
-	# Lookup result in range-based table
-	var result: Dictionary = _lookup_patron_contact_result(contact_table.get("results", {}), total_roll)
-	
-	return result
+## The Patron behind an offer, resolved ONCE so both job builders agree.
+##
+## No Patron (the p.85 Opportunity mission) is the Open Market and stays that:
+## its builders used to roll it a Patron type and a generated name, so it carried
+## p.83 Benefits, Hazards and Conditions and a p.112 affiliation roll for an
+## employer that does not exist.
+##
+## A real contact keeps who it is. Stored contacts carry `name`/`type` while the
+## builders read `patron_name`/`patron_type`, so a job from the crew's OWN Patron
+## re-rolled its type and showed a generated stranger's name. A contact with no
+## type (creation tables store a bare name) rolls one on the p.83 Patron Table, as
+## the book does when a job arrives ("As well as who the Patron is..."); before,
+## its empty type read as an Opportunity mission.
+func _offer_patron(patron_data: Dictionary) -> Dictionary:
+	if patron_data.is_empty():
+		return {"patron_name": "Open Market", "patron_type": "generic"}
+	var p: Dictionary = patron_data.duplicate()
+	var ptype: String = str(p.get("patron_type", p.get("type", ""))).strip_edges()
+	if ptype.is_empty() or ptype == "generic":
+		ptype = PatronContactRef.roll_type()
+	p["patron_type"] = ptype
+	var pname: String = str(p.get("patron_name", p.get("name", ""))).strip_edges()
+	p["patron_name"] = pname if not pname.is_empty() else ptype
+	return p
 
-## Get skill bonuses for patron contact (CONNECTIONS +2, SAVVY +1)
-func _get_patron_contact_skill_modifiers(contact_table: Dictionary) -> int:
-	## Calculate skill bonuses from crew for patron contact
-	var skill_bonuses: Dictionary = contact_table.get("modifiers", {}).get("skill_bonuses", {})
-	if skill_bonuses.is_empty():
-		return 0
-	
-	var total_bonus: int = 0
-	
-	# Access crew data from GameStateManager
-	var crew_list: Array = GameStateManager.get_crew_members()
-	if crew_list.is_empty():
-		return 0
-	
-	# Check for CONNECTIONS skill (+2)
-	if skill_bonuses.has("CONNECTIONS"):
-		for member in crew_list:
-			if member is Character:
-				# Check if character has skills property
-				if member.get("skills") != null:
-					var member_skills = member.get("skills")
-					if member_skills is Array and "CONNECTIONS" in member_skills:
-						total_bonus += skill_bonuses["CONNECTIONS"].get("bonus", 0)
-						break  # Only apply once
-	
-	# Check for SAVVY skill (+1)
-	if skill_bonuses.has("SAVVY"):
-		for member in crew_list:
-			if member is Character:
-				# Check if character has skills property
-				if member.get("skills") != null:
-					var member_skills = member.get("skills")
-					if member_skills is Array and "SAVVY" in member_skills:
-						total_bonus += skill_bonuses["SAVVY"].get("bonus", 0)
-						break  # Only apply once
-	
-	return total_bonus
+## Danger Pay and the Benefits/Hazards/Conditions subtables are PATRON tables: p.83
+## opens "If you received a job offer from a Patron" and p.120 pays Danger Pay only
+## "If you did a Patron job". Faction jobs are "treated as a Patron job" (Compendium
+## p.111).
+func _is_patron_source(mission_source: String) -> bool:
+	return mission_source == "patron" or mission_source == "faction"
 
-## Get world trait modifiers for patron contact
-func _get_world_trait_modifiers(contact_table: Dictionary) -> int:
-	## Calculate world trait modifiers for patron contact
-	var world_modifiers: Dictionary = contact_table.get("modifiers", {}).get("world_modifiers", {})
-	if world_modifiers.is_empty():
-		return 0
-	
-	# Access current world traits from campaign data
-	var current_world: Dictionary = {}
-	var gs = get_node_or_null("/root/GameState")
-	if gs:
-		var campaign = gs.get_current_campaign()
-		if campaign and "world_data" in campaign:
-			current_world = campaign.world_data
-	var world_traits: Array = current_world.get("traits", [])
-	
-	if world_traits.is_empty():
-		return 0
-	
-	var total_modifier: int = 0
-	
-	for world_trait in world_traits:
-		var trait_name: String = world_trait if world_trait is String else world_trait.get("name", "")
-		if world_modifiers.has(trait_name):
-			var modifier_data: Dictionary = world_modifiers[trait_name]
-			if modifier_data.has("bonus"):
-				total_modifier += modifier_data["bonus"]
-			elif modifier_data.has("penalty"):
-				total_modifier += modifier_data["penalty"]  # Penalty is negative
-	
-	return total_modifier
-
-## Lookup patron contact result with range checking
-func _lookup_patron_contact_result(results_table: Dictionary, roll: int) -> Dictionary:
-	## Lookup result in range-based table (handles "2-6", "7-8", etc.)
-	if results_table.is_empty():
-		return {}
-	
-	for range_str in results_table.keys():
-		if _is_roll_in_range(roll, range_str):
-			return results_table[range_str]
-	
-	# Fallback: no_contact
-	return {"outcome": "no_contact", "description": "No patron contact"}
-
-## Check if roll falls within range string
-func _is_roll_in_range(value: int, range_str: String) -> bool:
-	## Check if value is in range (handles "2-6", "7-8", "11", etc.)
-	if "-" in range_str:
-		# Range format: "2-6"
-		var parts: PackedStringArray = range_str.split("-")
-		if parts.size() == 2:
-			var min_val: int = int(parts[0])
-			var max_val: int = int(parts[1])
-			return value >= min_val and value <= max_val
-	else:
-		# Single value: "11", "12"
-		return value == int(range_str)
-	
-	return false
-
-## Get job count based on patron tier
-func _get_job_count_for_tier(tier: String) -> int:
-	match tier:
-		"minor":
-			return 1
-		"regular":
-			return randi_range(1, 2)
-		"major":
-			return randi_range(2, 3)
-		"elite":
-			return 3
-		_:
-			return 1
-
-## Generate patron name based on tier
-func _generate_patron_name(tier: String) -> String:
-	var prefixes = {
-		"minor": ["Local", "Small-time", "Independent"],
-		"regular": ["Regional", "Established", "Reputable"],
-		"major": ["Sector", "Corporate", "Government"],
-		"elite": ["Galactic", "Imperial", "High Council"]
-	}
-	
-	var suffixes = ["Contractor", "Broker", "Agent", "Representative", "Official"]
-	
-	var prefix_list = prefixes.get(tier, prefixes["regular"])
-	var prefix = prefix_list[randi() % prefix_list.size()]
-	var suffix = suffixes[randi() % suffixes.size()]
-	
-	return "%s %s" % [prefix, suffix]
+func _patron_bhc(dice_manager, patron_type: String, mission_source: String) -> Dictionary:
+	if not _is_patron_source(mission_source):
+		return {"benefits": [], "hazards": [], "conditions": []}
+	# Compendium p.111: a Faction job does not roll for Benefits.
+	if mission_source == "faction":
+		return _roll_bhc(dice_manager, patron_type, ["hazards", "conditions"])
+	return _roll_bhc(dice_manager, patron_type)
 
 ## Create job offer using JSON data tables
-func _create_job_offer_from_table(patron_data: Dictionary, location: String, job_index: int, job_type_table: Dictionary, patron_table: Dictionary) -> Dictionary:
+func _create_job_offer_from_table(patron_data: Dictionary, location: String, job_index: int,
+		job_type_table: Dictionary) -> Dictionary:
 	## Create job using patron_jobs.json table data (Core Rules pp.83-84)
 	if job_type_table.is_empty():
 		return _create_job_offer(patron_data, location, job_index)
 
 	var dice_manager = get_node_or_null("/root/DiceManager")
 
-	# Resolve patron type — roll on patron_type_table if not provided
+	# The Patron is already resolved by _offer_patron(): a book type (p.83) and a
+	# name, or the Open Market.
 	var patron_type: String = str(patron_data.get("patron_type", ""))
 	var patron_name: String = str(patron_data.get("patron_name", ""))
 	var danger_pay_bonus: int = 0
 	var time_frame_bonus: int = 0
-
-	if patron_type.is_empty() or patron_type == "generic":
-		# Roll on patron_type_table from JSON (Core Rules p.83)
-		var type_table: Dictionary = patron_table.get(
-			"patron_type_table", {}
-		)
-		var type_entries: Array = type_table.get("entries", [])
-		if not type_entries.is_empty():
-			var type_roll: int = _roll_d10(dice_manager)
-			for entry in type_entries:
-				if entry is Dictionary:
-					var r: Array = entry.get("roll_range", [0, 0])
-					if r.size() >= 2 and type_roll >= (r[0] as int) and type_roll <= (r[1] as int):
-						patron_type = str(entry.get("type", "Private Organization"))
-						break
-		else:
-			var info: Dictionary = _roll_patron_type(dice_manager)
-			patron_type = info.type
-		# Generate a proper name ONLY when the caller didn't provide one —
-		# overwriting a provided name made jobs from the crew's OWN patrons
-		# display a random generated stranger instead
-		if patron_name.is_empty() or patron_name == "Open Market":
-			var name_tier: String = _patron_type_to_name_tier(patron_type)
-			patron_name = _generate_patron_name(name_tier)
 
 	# Apply patron type bonuses (Core Rules p.83)
 	if patron_type == "Corporation":
@@ -616,7 +465,7 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		time_frame_bonus = 1
 
 	# Roll on job type table (d10)
-	var job_roll: int = GameDataLoader.roll_d10()
+	var job_roll: int = GameDataLoader.roll_d10("Patron Job Type (Core Rules pp.83-84)")
 	var job_result: Dictionary = GameDataLoader.roll_on_table(
 		job_type_table, job_roll
 	)
@@ -635,36 +484,21 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	var job_description: String = str(job_result.get(
 		"description", job_result.get("objective", "Unknown job")
 	))
-	var base_pay: int = job_result.get("base_pay", 4) as int
-	var danger_level: int = job_result.get("danger_level", 1) as int
 	var requirements: Array = job_result.get("typical_requirements", [])
 
-	# Roll danger pay with patron bonus (Core Rules p.83)
-	var danger_pay_result: Dictionary = _roll_danger_pay(
-		dice_manager, danger_pay_bonus
-	)
+	# Derive mission source for Compendium battle type selection (p.118)
+	var mission_source: String = _derive_mission_source(patron_data)
+
+	# Roll danger pay with patron bonus (Core Rules p.83). Compendium p.111: a
+	# Faction job "does not roll for Danger Pay".
+	var danger_pay_result: Dictionary = {"credits": 0, "double_roll_bonus": false} \
+		if mission_source == "faction" else _roll_danger_pay(dice_manager, danger_pay_bonus)
 	var danger_pay_credits: int = danger_pay_result.credits
-
-	# Apply patron tier multiplier to base pay
-	var payment_modifiers: Dictionary = patron_table.get(
-		"job_payment_modifiers", {}
-	)
-	var tier_multipliers: Dictionary = payment_modifiers.get(
-		"patron_tier_multipliers", {}
-	)
-	var patron_tier: String = patron_data.get(
-		"tier", patron_type.to_lower()
-	)
-	var tier_multiplier: float = tier_multipliers.get(patron_tier, 1.0)
-
-	# Apply danger level bonus
-	var danger_bonuses: Dictionary = payment_modifiers.get(
-		"danger_level_bonuses", {}
-	)
-	var danger_bonus: int = danger_bonuses.get(str(danger_level), 0) as int
-
-	# Final pay = base × tier + danger level bonus + danger pay roll
-	var final_pay: int = int(base_pay * tier_multiplier) + danger_bonus + danger_pay_credits
+	# What the offer adds on top of the p.120 base. The base itself is 1D6, rolled
+	# at Get Paid after the battle, so an offer cannot quote it as a number. This
+	# used to add an invented base of 4, a tier multiplier and a "danger level"
+	# bonus, none of them in either book.
+	var final_pay: int = danger_pay_credits
 
 	# Roll time frame with patron bonus (Core Rules p.83)
 	var time_frame_result: Dictionary = _roll_time_frame(
@@ -672,9 +506,6 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 	)
 	var time_frame: String = time_frame_result.label
 	var offered_turn: int = _current_campaign_turn()
-
-	# Derive mission source for Compendium battle type selection (p.118)
-	var mission_source: String = _derive_mission_source(patron_data)
 
 	# Danger Pay is a PATRON payment. The p.83 table sits under "3. Determine Job
 	# Offers — If you received a job offer from a Patron", and p.120 Step 4 pays
@@ -689,9 +520,11 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		danger_pay_result.double_roll_bonus = false
 
 	# Benefits/Hazards/Conditions (Core Rules p.83) — same roller the fallback
-	# builder uses, so both paths produce a complete job offer.
-	var bhc: Dictionary = _roll_bhc(dice_manager, patron_type)
-	_apply_remembered_benefit(bhc, _patron_identity(patron_data, patron_name))
+	# builder uses, so both paths produce a complete job offer. An Opportunity
+	# mission rolls none (see _is_patron_source); it rolled all three until 2026-10-29.
+	var bhc: Dictionary = _patron_bhc(dice_manager, patron_type, mission_source)
+	if mission_source == "patron":
+		_apply_remembered_benefit(bhc, _patron_identity(patron_data, patron_name))
 
 	var job: Dictionary = {
 		"id": "job_%d_%s" % [job_index, Time.get_ticks_msec()],
@@ -715,7 +548,6 @@ func _create_job_offer_from_table(patron_data: Dictionary, location: String, job
 		# inflated total as "Danger Pay" and Get Paid added 0.)
 		"danger_pay": danger_pay_credits,
 		"pay": final_pay,
-		"danger_level": danger_level,
 		"time_frame": time_frame,
 		# The deadline as a NUMBER, so it can actually run out. Core Rules p.83:
 		# "the number of campaign turns within which you must finish the job. If
@@ -1104,12 +936,12 @@ func _on_forge_licence() -> void:
 			# "you must add a Rival on this world, as local law enforcement, crime
 			# bosses, or business cartels take a dim view of your actions."
 			if campaign != null and "rivals" in campaign and campaign.rivals is Array:
-				campaign.rivals.append({
-					"id": "rival_forged_licence_%d" % (randi() % 100000),
-					"name": "Local Enforcers",
-					"type": "Enforcers",
-					"source": "forged_licence",
-				})
+				# Through the one Rival producer, on THIS world. Enforcers is p.92's
+				# "most appropriate entry" for the first of the three the page names.
+				campaign.rivals.append(RivalContactRef.make("forged_licence",
+					"Local Enforcers", {"type": "Enforcers",
+						"planet_id": _current_planet_id(),
+						"created_turn": _current_campaign_turn()}))
 			lines.append("A natural 1 — local enforcement takes a dim view. Rival added.")
 	if job_details_label:
 		job_details_label.text = "
@@ -1134,13 +966,22 @@ func _licence_fee_here() -> int:
 
 
 ## "If you received a job offer from a Patron" (p.83) — the licence gates PATRON
-## work only. Open-market Opportunity offers carry no patron identity.
+## work only, and Faction jobs are "treated as a Patron job" (Compendium p.111).
+##
+## Decided by mission_source. This used to answer true for any job with a
+## patron_name or patron_id, and the Open Market offer always had both ("Open
+## Market", or until 2026-10-29 a generated name), so on a world that requires a
+## licence the p.85 "always available" Opportunity mission was blocked too, and an
+## accepted one was banked as a Patron commitment. The name test survives only for
+## a job saved before mission_source existed.
 func _is_patron_job(job: Dictionary) -> bool:
-	if not str(job.get("patron_id", "")).is_empty():
-		return true
-	if not str(job.get("patron_name", "")).is_empty():
-		return true
-	return str(job.get("mission_source", job.get("source", ""))).to_lower() == "patron"
+	var source: String = str(job.get("mission_source", job.get("source", ""))).to_lower()
+	if not source.is_empty():
+		return _is_patron_source(source)
+	var pname: String = str(job.get("patron_name", ""))
+	if pname == "Open Market":
+		return false
+	return not pname.is_empty() or not str(job.get("patron_id", "")).is_empty()
 
 
 ## Crew who could actually take the field — the p.84 "Full Squad" Condition asks
@@ -1217,14 +1058,14 @@ func _fail_expired_job(job: Dictionary, current_turn: int) -> void:
 	if PatronJobEffectsClass.patron_becomes_rival_on_failure(job):
 		var campaign = _campaign()
 		if campaign and "rivals" in campaign:
-			campaign.rivals.append({
-				"id": "rival_expired_%d_%d" % [Time.get_ticks_msec(), randi() % 1000],
-				"name": patron_name,
-				"type": "Personal",
-				"hostility": 4,
-				"resources": 2,
-				"source": "vengeful_patron",
-			})
+			# p.84 Vengeful: the Patron becomes the Rival, so the name is theirs. The
+			# book gives them no enemy type, which makes this p.92's "unexpected
+			# Rival": two rolls, the player picks on the Rivals screen. The old
+			# "Personal" type (in no enemy table), "hostility" and "resources" were
+			# invented.
+			campaign.rivals.append(RivalContactRef.make("vengeful_patron", patron_name,
+				{"planet_id": _current_planet_id(),
+					"created_turn": _current_campaign_turn()}))
 			became_rival = true
 
 	var summary: String = "%s's job expired unfinished (%s)." % [
@@ -1270,36 +1111,26 @@ func _roll_d10(dice_manager) -> int:
 		return dice_manager.roll_d10()
 	return (randi() % 10) + 1
 
-func _patron_type_to_name_tier(patron_type: String) -> String:
-	## Map Core Rules patron type to name generation tier
-	match patron_type:
-		"Corporation", "Sector Government":
-			return "major"
-		"Local Government", "Wealthy Individual":
-			return "regular"
-		"Private Organization":
-			return "regular"
-		"Secretive Group":
-			return "elite"
-		_:
-			return "regular"
-
 ## Original job creation method (fallback)
 func _create_job_offer(patron_data: Dictionary, location: String, job_index: int) -> Dictionary:
 	## Create a single job offer using Core Rules tables
 	var dice_manager = get_node_or_null("/root/DiceManager")
 
-	# 1. Determine Patron Type (or use provided)
-	var patron_info = _roll_patron_type(dice_manager)
-	var patron_type = patron_data.get("patron_type", patron_info.type)
-	var patron_name = patron_data.get("patron_name", patron_type)
+	# 1. The Patron, already resolved by _offer_patron() (a p.83 type and a name,
+	# or the Open Market).
+	var patron_type: String = str(patron_data.get("patron_type", ""))
+	var patron_name: String = str(patron_data.get("patron_name", patron_type))
+	var mission_source: String = _derive_mission_source(patron_data)
 
-	# 2. Roll Danger Pay with patron bonus
-	var danger_pay_bonus = patron_info.danger_pay_bonus if patron_type == "Corporation" else 0
-	var danger_pay = _roll_danger_pay(dice_manager, danger_pay_bonus)
+	# 2. Roll Danger Pay with patron bonus. A Patron payment (p.83, p.120), so an
+	# Opportunity mission is offered none.
+	var danger_pay_bonus: int = 1 if patron_type == "Corporation" else 0
+	var danger_pay: Dictionary = _roll_danger_pay(dice_manager, danger_pay_bonus)
+	if not _is_patron_source(mission_source):
+		danger_pay = {"credits": 0, "double_roll_bonus": false}
 
 	# 3. Roll Time Frame with patron bonus
-	var time_frame_bonus = patron_info.time_frame_bonus if patron_type == "Secretive Group" else 0
+	var time_frame_bonus: int = 1 if patron_type == "Secretive Group" else 0
 	var time_frame_result: Dictionary = _roll_time_frame(dice_manager, time_frame_bonus)
 	var time_frame: String = time_frame_result.label
 	var offered_turn: int = _current_campaign_turn()
@@ -1307,11 +1138,8 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 	# 4. Roll Objective
 	var objective_info = _roll_objective(dice_manager)
 
-	# 5. Roll Benefits/Hazards/Conditions
-	var bhc = _roll_bhc(dice_manager, patron_type)
-
-	# Derive mission source for Compendium battle type selection (p.118)
-	var mission_source: String = _derive_mission_source(patron_data)
+	# 5. Roll Benefits/Hazards/Conditions (Patron jobs only, p.83)
+	var bhc: Dictionary = _patron_bhc(dice_manager, patron_type, mission_source)
 
 	# Build complete job structure
 	var job = {
@@ -1335,7 +1163,6 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 		"enemy_type": _determine_enemy_type(mission_source),
 		# Legacy fields for compatibility
 		"pay": danger_pay.credits,
-		"danger_level": (dice_manager.roll_d6() % 3) + 1 if dice_manager else 1,
 		"patron": patron_name,
 		"source": mission_source,
 		"mission_source": mission_source,
@@ -1343,41 +1170,7 @@ func _create_job_offer(patron_data: Dictionary, location: String, job_index: int
 
 	return job
 
-## Core Rules Tables (pp.78-80)
-
-func _roll_patron_type(dice_manager) -> Dictionary:
-	## Roll on Patron Table (D10) - Core Rules p.78
-	var roll = 5
-	if dice_manager and dice_manager.has_method("roll_d10"):
-		roll = dice_manager.roll_d10()
-	elif dice_manager:
-		roll = (dice_manager.roll_d6() + dice_manager.roll_d6()) % 10 + 1
-
-	var patron_type = ""
-	var danger_pay_bonus = 0
-	var time_frame_bonus = 0
-
-	match roll:
-		1, 2:
-			patron_type = "Corporation"
-			danger_pay_bonus = 1
-		3, 4:
-			patron_type = "Local Government"
-		5:
-			patron_type = "Sector Government"
-		6, 7:
-			patron_type = "Wealthy Individual"
-		8, 9:
-			patron_type = "Private Organization"
-		10, _:
-			patron_type = "Secretive Group"
-			time_frame_bonus = 1
-
-	return {
-		"type": patron_type,
-		"danger_pay_bonus": danger_pay_bonus,
-		"time_frame_bonus": time_frame_bonus
-	}
+## Core Rules Tables (p.83). The Patron type itself is PatronContact.roll_type().
 
 func _roll_danger_pay(dice_manager, bonus: int = 0) -> Dictionary:
 	## Roll on Danger Pay Table (D10) - Core Rules p.78
@@ -1467,7 +1260,8 @@ func _roll_objective(dice_manager) -> Dictionary:
 		"description": description
 	}
 
-func _roll_bhc(dice_manager, patron_type: String) -> Dictionary:
+func _roll_bhc(dice_manager, patron_type: String,
+		categories: Array = PatronJobEffectsClass.CATEGORIES) -> Dictionary:
 	## Roll Benefits, Hazards and Conditions for this patron type (Core Rules
 	## p.83: "Roll 1D10 for each category").
 	##
@@ -1478,7 +1272,7 @@ func _roll_bhc(dice_manager, patron_type: String) -> Dictionary:
 	## gives each attached entry a stable `id` for the consumers to gate on.
 	var result: Dictionary = {"benefits": [], "hazards": [], "conditions": []}
 
-	for category in PatronJobEffectsClass.CATEGORIES:
+	for category in categories:
 		var roll: int = _roll_d10_simulated(dice_manager)
 		if roll < PatronJobEffectsClass.threshold(patron_type, category):
 			continue
@@ -1594,7 +1388,6 @@ func _build_quest_job(location: String) -> Dictionary:
 		# did a Patron job". Leaving these at 0 keeps Get Paid honest.
 		"danger_pay": 0,
 		"pay": 0,
-		"danger_level": 0,
 		"time_frame": "No time limit",
 		"requirements": [],
 		"benefits": [],
@@ -1846,7 +1639,7 @@ func _update_ui_display() -> void:
 			var job_text = "%s (%s) - +%d cr - %s" % [
 				job.get("objective", "Unknown"),
 				job.get("patron_type", "Unknown"),
-				job.get("pay", job.get("danger_pay", 0)),  # total estimate, not the pure danger-pay component
+				job.get("pay", job.get("danger_pay", 0)),  # Danger Pay on top of the p.120 1D6 base
 				PatronJobEffectsClass.deadline_label(job, current_turn)
 			]
 			job_list.add_item(job_text)
@@ -1915,10 +1708,11 @@ func _update_job_details() -> void:
 	if not str(job.get("objective_description", "")).strip_edges().is_empty():
 		details += "%s\n\n" % job.get("objective_description", "")
 
-	# Pay and timing. Payout is 1D6 base (won -> 1-2 count as 3) + Danger Pay for a
-	# Patron job (Core Rules p.120). "pay" is the composite estimate; DANGER PAY is
-	# the pure component actually added on top of the base at Get Paid.
-	details += "PAY (est.): ~%d credits\n" % job.get("pay", 0)
+	# Pay and timing. Payout is a 1D6 base rolled at Get Paid (Core Rules p.120)
+	# plus Danger Pay for a Patron job. The base cannot be quoted as a number before
+	# the battle, so it is printed as the die; it read "~N credits" from an invented
+	# base of 4 until 2026-10-29.
+	details += "PAY: 1D6 credits after the battle (p.120)\n"
 	details += "DANGER PAY: +%d credits\n" % job.get("danger_pay", 0)
 	if job.get("double_roll_bonus", false):
 		details += "(Bonus: Roll twice for mission pay, keep higher)\n"
@@ -1933,7 +1727,7 @@ func _update_job_details() -> void:
 
 	# Enemy
 	details += "ENEMY: %s\n" % job.get("enemy_type", "Unknown")
-	details += "Danger Level: %d\n\n" % job.get("danger_level", 1)
+	details += "\n"
 
 	# Benefits
 	var benefits = job.get("benefits", [])
@@ -2152,7 +1946,6 @@ func _check_introductory_mission() -> Dictionary:
 		"pay": 0,
 		"double_roll_bonus": false,
 		"time_frame": "This Turn",
-		"danger_level": 0,
 		"benefits": [],
 		"hazards": [],
 		"conditions": [],

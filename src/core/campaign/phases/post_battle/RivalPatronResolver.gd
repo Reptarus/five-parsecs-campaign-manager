@@ -883,16 +883,16 @@ func _append_rival(campaign, ctx, enemy_type: String, is_psi_hunter: bool = fals
 		new_rival["attack_bonus_vs_psionic"] = 1
 	# The canonical rival list on FiveParsecsCampaignCore is `rivals`
 	# (FiveParsecsCampaignCore.gd:44, serialised at :225 and :346). `active_rivals`
-	# belongs to DIFFERENT classes — RivalManager, RivalSystem, FactionSystem and
-	# the legacy Campaign — so this was written against the wrong type. Both
+	# belongs to a DIFFERENT class (FactionSystem; RivalSystem had one too and was
+	# deleted 2026-10-29) — so this was written against the wrong type. Both
 	# branches were permanently false for a real campaign: the Resource has no
 	# `active_rivals` property, and it is not a Dictionary either. The rival was
 	# built, silently discarded, and its id returned as though it had been recorded.
 	# Core Rules p.86 rival acquisition therefore never happened.
 	#
-	# `rivals` is a mixed Array of Strings and Dictionaries (CharacterGeneration
-	# appends names, CrewTaskComponent.gd:2320 and CharacterTransferService.gd:487
-	# append dicts), which is why _remove_rival below reads both shapes.
+	# `rivals` is a mixed Array of Strings and Dictionaries (creation stores names;
+	# every later Rival is a dict, built by RivalContact.make()), which is why
+	# _remove_rival below reads both shapes.
 	if "rivals" in campaign:
 		campaign.rivals.append(new_rival)
 	elif campaign is Dictionary:

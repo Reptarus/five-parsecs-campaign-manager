@@ -124,21 +124,10 @@ func get_rival_history(rival_id: String) -> Dictionary:
 func get_location_history(location_id: String) -> Dictionary:
 	return locations.get(location_id, {})
 
-## Backward-compatible add methods (create with default data)
-func add_patron(patron: Dictionary) -> void:
-	var pid: String = patron.get("patron_id", patron.get("name", "patron_%d" % patrons.size()))
-	if not patrons.has(pid):
-		var entry := _create_default_patron(pid)
-		entry.merge(patron, true)
-		patrons[pid] = entry
-
-func add_rival(rival: Dictionary) -> void:
-	var rid: String = rival.get("rival_id", rival.get("name", "rival_%d" % rivals.size()))
-	if not rivals.has(rid):
-		var entry := _create_default_rival(rid)
-		entry.merge(rival, true)
-		rivals[rid] = entry
-
+## Patrons and Rivals live on the campaign (campaign.patrons / campaign.rivals);
+## this tracker keeps only their history. add_patron() and add_rival() were
+## removed 2026-10-29: the crew-task Rival was their only caller, and putting a
+## Rival here instead of on the campaign is why it never attacked.
 func add_location(location: Dictionary) -> void:
 	var lid: String = location.get("location_id", location.get("name", "location_%d" % locations.size()))
 	if not locations.has(lid):

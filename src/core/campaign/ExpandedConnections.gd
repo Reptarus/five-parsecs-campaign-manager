@@ -12,9 +12,11 @@ extends RefCounted
 ##
 ## All three had zero callers.
 ##
-## (`src/core/character/connections/CharacterConnections.gd` is a DIFFERENT
-## system — creation-time starting contacts, patrons and rivals. The chapter
-## trace conflated the two; they share only the word.)
+## (Creation-time starting contacts, patrons and rivals are a DIFFERENT system:
+## `CharacterCreator._roll_and_store_creation_bonuses()`
+## (`src/core/character/Generation/CharacterCreator.gd`) stores them in
+## `Character.creation_bonuses`. The old `CharacterConnections.gd` was deleted.
+## The chapter trace conflated the two; they share only the word.)
 ##
 ## THE BOOK, verbatim.
 ##

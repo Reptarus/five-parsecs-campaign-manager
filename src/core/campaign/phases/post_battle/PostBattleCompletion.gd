@@ -6,12 +6,14 @@ extends RefCounted
 ## Extracted from PostBattlePhase.gd — orchestrator delegates here.
 
 const PostBattleContextClass = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const DeferredCrewEventsRef = preload("res://src/core/campaign/DeferredCrewEvents.gd")
 ## Path-preloaded: BattleResultNormalizer deliberately declares NO class_name
 ## (see its header — the global class cache is stale), so it cannot be referenced
 ## as a global identifier. Reused here for _to_crew_entry(), which is the exact
 ## character-object -> crew_id resolution the journal harvest below needs.
 const BattleResultNormalizerClass = preload("res://src/core/battle/BattleResultNormalizer.gd")
 const ExpandedConnectionsRef = preload("res://src/core/campaign/ExpandedConnections.gd")
+const QuestReceiptRef = preload("res://src/core/campaign/QuestReceipt.gd")
 
 func update_character_lifetime_statistics(ctx: PostBattleContextClass) -> void:
 	## Update character lifetime statistics from battle results (kills, damage, participation)
@@ -351,7 +353,11 @@ func check_traveler_disappearance(
 		if sid != "traveler":
 			continue
 
-		var roll: int = (randi() % 6 + 1) + (randi() % 6 + 1)
+		var dice: Node = null
+		if Engine.get_main_loop():
+			dice = Engine.get_main_loop().root.get_node_or_null("/root/DiceManager")
+		var roll: int = int(dice.roll_2d6("Traveler (p.22)")) if dice \
+				else (randi() % 6 + 1) + (randi() % 6 + 1)
 		var char_name: String = ""
 		if member is Dictionary:
 			char_name = member.get(
@@ -371,8 +377,10 @@ func check_traveler_disappearance(
 			results.append({
 				"type": "quest",
 				"character": char_name, "roll": roll})
-			if ctx.has_method("add_quest_rumor"):
-				ctx.add_quest_rumor()
+			# p.22: "the crew immediately receives a Quest". This added a Quest Rumor.
+			var got: Dictionary = QuestReceiptRef.receive("Traveler (p.22)",
+					"A Traveler's passing word points to something important.")
+			results[-1]["received"] = bool(got.get("received", false))
 	return results
 
 func check_manipulator_bonus(
@@ -465,6 +473,32 @@ func process_consumed_items(ctx: PostBattleContextClass) -> Array:
 			push_warning("PostBattleCompletion: Could not remove consumed item '%s' from character '%s'" % [weapon_name, char_id])
 
 	return results
+
+
+## Core Rules p.82 Explore 83-86 "Offered a small job" ("If your crew kills them,
+## earn 2 credits. No reward if they run away") and 87-90 "Offered a reward" ("you
+## can retrieve a package and earn 2 credits"). Both rows were held after the
+## Explore task and nothing read them back. The battle card names each target and
+## the results form asks whether it fell; the amount is the row's bounty_credits.
+## Every held row of the two is spent here, claimed or not: they last "this
+## campaign turn". Returns one line per bounty paid.
+func apply_explore_bounties(ctx: PostBattleContextClass) -> Array:
+	var paid: Array = []
+	var claimed: Array = ctx.battle_result.get("explore_bounties_claimed", [])
+	for bounty in ctx.battle_result.get("explore_bounties", []):
+		if bounty is Dictionary and str(bounty.get("event_id", "")) in claimed:
+			var credits: int = int(bounty.get("credits", 0))
+			_grant_credits(ctx, credits)
+			paid.append("%s: +%d credits" % [str(bounty.get("kind", "")), credits])
+	var campaign: Variant = ctx.campaign
+	if campaign == null and ctx.game_state:
+		campaign = ctx.game_state.current_campaign
+	if campaign != null and "progress_data" in campaign \
+			and campaign.progress_data is Dictionary:
+		var pd: Dictionary = campaign.progress_data
+		for kind: String in ["Offered a small job", "Offered a reward"]:
+			DeferredCrewEventsRef.take_all(pd, kind, int(pd.get("turns_played", 0)))
+	return paid
 
 
 func apply_notable_sight_reward(ctx: PostBattleContextClass) -> Dictionary:

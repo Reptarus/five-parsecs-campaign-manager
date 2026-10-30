@@ -65,6 +65,15 @@ const EliteEnemiesRef = preload("res://src/data/compendium_elite_enemies.gd")
 ## GATING
 ## ============================================================================
 
+## Every Strife die goes through DiceManager, so it reaches the roll history and a
+## QA tester can force it by its context. A local roll only with no DiceManager.
+static func _die(sides: int, context: String) -> int:
+	var tree := Engine.get_main_loop() as SceneTree
+	var dice: Node = tree.root.get_node_or_null("/root/DiceManager") if tree and tree.root else null
+	if dice:
+		return int(dice.roll_d100(context)) if sides == 100 else int(dice.roll_d6(context))
+	return randi_range(1, sides)
+
 static func _get_dlc_manager() -> Node:
 	if not Engine.get_main_loop():
 		return null
@@ -161,7 +170,7 @@ static func roll_arrival(campaign: Variant, planet_id: String,
 		return existing
 
 	var threshold: int = 5 if use_calmer_setting else 4
-	var roll: int = randi_range(1, 6)
+	var roll: int = _die(6, "Fringe World Strife: arrival (Compendium p.148)")
 	var unstable: bool = roll >= threshold
 	var state := {
 		"planet_id": planet_id,
@@ -209,7 +218,7 @@ static func accumulate(campaign: Variant, planet_id: String,
 		return idle
 
 	var state: Dictionary = get_state(campaign, planet_id)
-	var die: int = randi_range(1, 6)
+	var die: int = _die(6, "Fringe World Strife: Instability")
 	var rival_mod: int = maxi(active_rivals, 0)
 	var patron_mod: int = -1 if patron_job_completed else 0
 	var roving_mod: int = -1 if held_field_vs_roving_threat else 0
@@ -431,7 +440,7 @@ static func roll_criminal_elements_name() -> String:
 	for category in json.data.get("enemy_categories", []):
 		if not (category is Dictionary) or str(category.get("id", "")) != "criminal_elements":
 			continue
-		var roll: int = randi_range(1, 100)
+		var roll: int = _die(100, "Fringe World Strife: Criminal Elements")
 		for enemy in category.get("enemies", []):
 			var span: Array = enemy.get("roll_range", [])
 			if span.size() >= 2 and roll >= int(span[0]) and roll <= int(span[1]):

@@ -1243,14 +1243,11 @@ static func get_class_display_name(char_class) -> String:
 		return char_class.capitalize().replace("_", " ")
 	return "Unknown"
 
-static func get_background_display_name(bg) -> String:
-	if bg is int:
-		var keys = Background.keys()
-		if bg >= 0 and bg < keys.size():
-			return keys[bg].capitalize().replace("_", " ")
-	elif bg is String:
-		return bg.capitalize().replace("_", " ")
-	return "Unknown"
+static func get_background_display_name(bg, fallback: String = "Unknown") -> String:
+	## The book's own name (Core Rules p.25), read from the one owner. This used to
+	## capitalise the enum key, so GIANT_OVERCROWDED_CITY printed "Giant Overcrowded
+	## City" and WAR_TORN_HELLHOLE printed "War Torn Hellhole".
+	return load("res://src/core/character/BackgroundDataService.gd").display_name(bg, fallback)
 
 static func get_origin_display_name(origin) -> String:
 	if origin is int:

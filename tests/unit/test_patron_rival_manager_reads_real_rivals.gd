@@ -191,3 +191,27 @@ func test_a_patron_card_prints_no_invented_score_and_no_empty_status() -> void:
 		assert_str(t).override_failure_message("printed: %s" % t).not_contains("Relationship")
 		assert_bool(t.strip_edges() == "Status:").override_failure_message(
 			"an empty status line was printed").is_false()
+
+
+
+## Core Rules p.92: "If you are not sure, or have acquired an unexpected Rival, roll
+## twice and pick the more interesting or appropriate." The pick is the one write
+## this viewer makes, on the player's press, through GameStateManager.
+func test_an_unfixed_rival_offers_its_second_roll_and_the_pick_is_saved() -> void:
+	GameState.current_campaign.rivals = [{"id": "r9", "name": "Gangers",
+		"type": "Gangers", "type_alternative": "Enforcers", "origin": "crew_task"}]
+	var screen := await _open()
+	screen._on_rival_selected(GameState.current_campaign.rivals[0])
+	await await_idle_frame()
+	var pick: Button = screen.find_child("SwapTypeButton", true, false)
+	assert_object(pick).override_failure_message(
+		"no p.92 pick on a Rival whose type is still open").is_not_null()
+	assert_str(pick.text).contains("Enforcers")
+	pick.pressed.emit()
+	var saved: Dictionary = GameStateManager.get_rivals()[0]
+	assert_str(str(saved["type"])).is_equal("Enforcers")
+	assert_str(str(saved["type_alternative"])).is_equal("Gangers")
+	await await_idle_frame()
+	var texts: Array[String] = []
+	_all_text(screen, texts)
+	assert_str("\n".join(texts)).contains("Fight them as Gangers")

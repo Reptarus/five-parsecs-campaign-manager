@@ -50,8 +50,18 @@ static func weapon_profile(weapon_name: String) -> Dictionary:
 			if parsed is Dictionary:
 				for w: Variant in (parsed as Dictionary).get("weapons", []):
 					if w is Dictionary:
-						_weapons[str(w.get("name", "")).to_lower()] = w
-	return _weapons.get(weapon_name.strip_edges().to_lower(), {})
+						_weapons[weapon_key(str(w.get("name", "")))] = w
+	return _weapons.get(weapon_key(weapon_name), {})
+
+
+## The one key a weapon name is looked up by: case, spaces, hyphens, apostrophes
+## and dots ignored, so a legacy "Handgun" finds the book's "Hand Gun" and
+## "Marksmans Rifle" finds "Marksman's Rifle". No two database weapons share a key.
+static func weapon_key(raw: String) -> String:
+	var out: String = raw.strip_edges().to_lower()
+	for ch in [" ", "-", "'", "’", "."]:
+		out = out.replace(ch, "")
+	return out
 
 
 ## A Bot that can take a p.26 upgrade: "Soulless characters cannot use these

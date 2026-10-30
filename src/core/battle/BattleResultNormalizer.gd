@@ -158,7 +158,10 @@ static func normalize(results: Dictionary, mission: Dictionary, current_turn: in
 			# missing: PostBattleCompletion.apply_notable_sight_reward() looks for
 			# it on the result and only then falls back to a nested mission_data
 			# copy that most paths do not carry.
-			"deployment_condition", "notable_sight"]:
+			"deployment_condition", "notable_sight",
+			# explore_bounties added 2026-10-29 (Core Rules p.82): the targets stamped
+			# by CampaignTurnController, read by PostBattleCompletion on every exit.
+			"explore_bounties"]:
 		if not results.has(key) and mission.has(key):
 			results[key] = mission[key]
 	# 5c) enemy_count is DERIVED, not copied — same reason as is_invasion below.

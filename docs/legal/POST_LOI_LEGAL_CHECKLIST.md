@@ -18,8 +18,9 @@ This is the master list. When the LOI is signed, work this page top to bottom.
 
 ## 1. Placeholders in the shipped legal documents
 
-These four files ship inside the APK (`data/*` export filter, verified by
-unzipping) and are displayed by `EULAScreen`, `LegalTextViewer`, MainMenu and
+These two files carry **7 bracketed placeholders** (4 in `eula.md`, 3 in
+`privacy_policy.md`; counted line by line 2026-10-29). They ship inside the APK
+(`data/*` export filter, verified by unzipping) and are displayed by `EULAScreen`, `LegalTextViewer`, MainMenu and
 Settings.
 
 | File | Line | Placeholder | Settled by |
@@ -43,8 +44,24 @@ rights by contacting us. Worth filling in ahead of the rest.
 | `data/legal/privacy_policy.md` | shipped in the app | **1.1** | yes |
 | `docs/legal/gh-pages/privacy.html` | public web copy | **1.0** | **no** |
 
-The web copy also still carries its own placeholders (`privacy.html` 3,
-`eula.html` 5). Store listings require a public privacy policy URL, so if the
+The web copy also still carries its own placeholders, **8 in total** (counted line
+by line 2026-10-29). They are NOT the same set as the shipped files: the web
+`eula.html` carries a `[DATE OF RELEASE]` that `eula.md` does not, and its
+governing-law marker lacks the "Likely England and Wales" sentence `eula.md:78`
+carries.
+
+| File | Line | Placeholder |
+|---|---|---|
+| `docs/legal/gh-pages/eula.html` | 74 | `[DATE OF RELEASE]` |
+| `docs/legal/gh-pages/eula.html` | 88 | `[PENDING MODIPHIUS REVIEW: Exact license grant scope, sublicensing terms, and attribution requirements…]` |
+| `docs/legal/gh-pages/eula.html` | 98 | `[PENDING MODIPHIUS REVIEW: Revenue share terms, if any…]` |
+| `docs/legal/gh-pages/eula.html` | 132 | `[PENDING MODIPHIUS REVIEW: Governing law jurisdiction…]` |
+| `docs/legal/gh-pages/eula.html` | 139 | `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` |
+| `docs/legal/gh-pages/privacy.html` | 62 | `[DATE OF RELEASE]` |
+| `docs/legal/gh-pages/privacy.html` | 66 | `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` |
+| `docs/legal/gh-pages/privacy.html` | 139 | `[CONTACT EMAIL - TO BE ADDED BEFORE RELEASE]` |
+
+Store listings require a public privacy policy URL, so if the
 GitHub Pages site is live it currently contradicts what the app shows.
 
 **Whenever a legal document changes, both copies must change.** Nothing enforces

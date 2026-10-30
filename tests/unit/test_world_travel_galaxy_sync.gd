@@ -47,7 +47,9 @@ func test_upsert_current_world_seeds_planet_from_world_data() -> void:
 
 	var planet = pdm.visited_planets["world_test_1"]
 	assert_str(planet.name).is_equal("Fuller VI")
-	assert_int(planet.danger_level).is_equal(2)
+	# The sample carries the keys an older save still holds (danger_level,
+	# locations, special_features). They are read and dropped, never rendered.
+	assert_bool("danger_level" in planet).is_false()
 	# Typed Array[String] traits mapped defensively via .assign()
 	assert_bool(planet.traits.has("DANGEROUS")).is_true()
 	assert_bool(planet.traits.has("WEALTHY")).is_true()

@@ -33,8 +33,12 @@ const CreatorScript := preload("res://src/core/character/Generation/CharacterCre
 ## The three entries whose label is not a transcription of the enum member. Named
 ## explicitly so that if someone reworders a label to match its enum, this list going
 ## stale is visible rather than silently reducing what the suite covers.
-const KNOWN_DIVERGENT := ["GIANT_OVERCROWDED_CITY", "WAR_TORN_HELLHOLE",
-	"COMFORTABLE_MEGACITY"]
+## Grew from 3 to 8 on 2026-10-29, when the labels moved TO the printed names (Core
+## Rules p.25): commas, hyphens, "on Alien World" and "or Regressed" all defeat text
+## normalisation, which is why every background lookup now goes key to key.
+const KNOWN_DIVERGENT := ["PEACEFUL_HIGH_TECH_COLONY", "GIANT_OVERCROWDED_CITY",
+	"LOW_TECH_COLONY", "WAR_TORN_HELLHOLE", "SUBJUGATED_COLONY", "LONG_TERM_SPACE_MISSION",
+	"PRIMITIVE_WORLD", "COMFORTABLE_MEGACITY"]
 
 
 ## Built from the SCENE, in the tree: the dropdowns are `%`-unique scene nodes populated
