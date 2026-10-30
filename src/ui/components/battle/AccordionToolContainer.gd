@@ -21,6 +21,9 @@ var _vbox: VBoxContainer
 var _section_headers: Array[Button] = []
 var _section_bodies: Array[Control] = []
 var _section_titles: Array[String] = []
+## The optional one-line description under each header (null when there is none), so
+## remove_section() can free it with its header and body.
+var _section_subtitles: Array[Control] = []
 
 ## Only one section open at a time
 var exclusive_mode: bool = true
@@ -40,8 +43,6 @@ func _init() -> void:
 
 ## Add a collapsible section wrapping a tool component
 func add_section(title: String, content: Control, subtitle: String = "") -> void:
-	var index := _section_bodies.size()
-
 	# Header button
 	var header := Button.new()
 	header.text = "[+] %s" % title
@@ -60,7 +61,9 @@ func add_section(title: String, content: Control, subtitle: String = "") -> void
 	header.add_theme_stylebox_override("hover", hover_style)
 	header.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 
-	header.pressed.connect(_toggle_section.bind(index))
+	# Bound to the header, not to its index, so removing an earlier section cannot
+	# leave this one toggling its neighbour.
+	header.pressed.connect(func() -> void: _toggle_section(_section_headers.find(header)))
 	_vbox.add_child(header)
 	_section_headers.append(header)
 
@@ -68,13 +71,15 @@ func add_section(title: String, content: Control, subtitle: String = "") -> void
 	# does. Separate sibling Label — the [+]/[-] toggle text is untouched, and
 	# toggling works off _section_headers/_section_bodies indices, not child
 	# order, so the extra node is safe.
+	var sub: Label = null
 	if not subtitle.is_empty():
-		var sub := Label.new()
+		sub = Label.new()
 		sub.text = subtitle
 		sub.add_theme_font_size_override("font_size", FONT_SIZE_SM)
 		sub.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
 		sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_vbox.add_child(sub)
+	_section_subtitles.append(sub)
 
 	# Body — starts collapsed
 	content.visible = false
@@ -115,6 +120,29 @@ func open_section(index: int) -> void:
 			_section_headers[i].text = "[+] %s" % _section_titles[i]
 	_section_bodies[index].visible = true
 	_section_headers[index].text = "[-] %s" % _section_titles[index]
+
+
+## Index of the section with this title, or -1.
+func find_section(title: String) -> int:
+	return _section_titles.find(title)
+
+
+## Remove a section and free its header, description and body. Freed rather than
+## hidden: a battle that never shows a tool should not carry its nodes ("every node
+## has a cost", Godot docs, CPU optimization). Out-of-range indices do nothing.
+func remove_section(index: int) -> void:
+	if index < 0 or index >= _section_bodies.size():
+		return
+	var nodes: Array[Control] = [_section_headers[index], _section_subtitles[index],
+		_section_bodies[index]]
+	_section_headers.remove_at(index)
+	_section_subtitles.remove_at(index)
+	_section_bodies.remove_at(index)
+	_section_titles.remove_at(index)
+	for node: Control in nodes:
+		if node != null:
+			node.get_parent().remove_child(node)
+			node.queue_free()
 
 
 ## Collapse all sections

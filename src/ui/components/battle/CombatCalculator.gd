@@ -1,334 +1,192 @@
 class_name FPCM_CombatCalculator
 extends MarginContainer
 
-## Combat Calculator - Five Parsecs Combat Math Assistant
+## Combat Calculator: the To Hit table and the Hit table of the battle's own book.
 ##
-## Helps calculate to-hit chances, damage resolution, and modifiers
-## based on Five Parsecs from Home Core Rules for tabletop-style play.
+## To Hit lists the rows the book prints (Core Rules p.44 with its errata row, Bug Hunt
+## p.177, Planetfall p.37) and says what the die must show once Combat Skill is added.
+## Damage resolves a Hit through BattleCalculations.resolve_hit_for_mode(), the function
+## the battle screen's hit sheet applies, once for each face of the die, so the odds it
+## shows are the outcomes that sheet would apply. Saving Throws are rolled first and are
+## left out here.
+##
+## Until 2026-10-30 this file also had Brawling and Reaction modes. Both printed rules
+## the books do not have: a brawl "loser takes a hit at Damage +1" (Core Rules p.45 uses
+## the highest Melee or Pistol Damage carried, +0 with neither) and a reaction "1D6 +
+## Reactions, higher acts first" (p.112 compares one die per figure with its Reactions).
+## Brawls have the Brawl Resolver and the Reference tab; reactions are rolled on the
+## battle screen itself. Its To Hit mode added a cover spinner and a range spinner to a
+## base of 3, which matches none of the printed rows.
 
-# Signals
 signal calculation_completed(calc_type: String, result: Dictionary)
 
-# UI References
 @onready var calculation_mode: OptionButton = %CalculationMode
 @onready var attacker_combat: SpinBox = %AttackerCombat
-@onready var target_cover: SpinBox = %TargetCover
-@onready var range_modifier: SpinBox = %RangeModifier
+@onready var shot_option: OptionButton = %ShotOption
+@onready var weapon_damage: SpinBox = %WeaponDamage
+@onready var target_toughness: SpinBox = %TargetToughness
 @onready var calculate_button: Button = %CalculateButton
 @onready var result_label: RichTextLabel = %ResultLabel
 
-# Calculation modes
 enum CalcMode {
 	TO_HIT,
 	DAMAGE,
-	BRAWLING,
-	REACTION
 }
 
-# Current calculation settings
+const RESULT_TEXT := {
+	"down": "Casualty",
+	"wounded": "Wounded",
+	"sprawling": "Knocked Sprawling",
+	"kp_lost": "Loses a Kill Point",
+	"stun": "Stunned",
+}
+
+## What the odds above cannot show, because they depend on the figure's state.
+const DAMAGE_NOTES := {
+	"core": "A Hit deflected by a Saving Throw still Stuns.",
+	"bug_hunt": "A second Wound makes a casualty.",
+	"planetfall": "A figure with Kill Points loses one instead of becoming a casualty.",
+}
+
 var current_mode: CalcMode = CalcMode.TO_HIT
+var _rules_mode: String = "core"
+var _hit_rows: Array = []
+
 
 func _ready() -> void:
-	## Initialize combat calculator
 	_setup_calculation_modes()
 	_connect_signals()
+	_fill_shot_rows()
 	_update_ui_for_mode()
 
+
+## The battle's book: "core", "bug_hunt" or "planetfall".
+func set_rules_mode(mode: String) -> void:
+	_rules_mode = mode
+	_fill_shot_rows()
+	if result_label:
+		result_label.clear()
+
+
 func _setup_calculation_modes() -> void:
-	## Set up calculation mode dropdown
 	if calculation_mode:
 		calculation_mode.clear()
-		calculation_mode.add_item("To-Hit Calculation", CalcMode.TO_HIT)
-		calculation_mode.add_item("Damage Resolution", CalcMode.DAMAGE)
-		calculation_mode.add_item("Brawling", CalcMode.BRAWLING)
-		calculation_mode.add_item("Reaction Roll", CalcMode.REACTION)
+		calculation_mode.add_item("To Hit", CalcMode.TO_HIT)
+		calculation_mode.add_item("Damage", CalcMode.DAMAGE)
 		calculation_mode.selected = CalcMode.TO_HIT
 
+
+func _fill_shot_rows() -> void:
+	_hit_rows = BattleCalculations.hit_rows_for_mode(_rules_mode)
+	if shot_option == null:
+		return
+	shot_option.clear()
+	for i in _hit_rows.size():
+		var row: Dictionary = _hit_rows[i]
+		shot_option.add_item("%s: %d+" % [str(row.label), int(row.target)], i)
+	shot_option.selected = 0
+
+
 func _connect_signals() -> void:
-	## Connect UI signals
 	if calculation_mode:
 		calculation_mode.item_selected.connect(_on_mode_changed)
 	if calculate_button:
 		calculate_button.pressed.connect(_on_calculate_pressed)
 
-# =====================================================
-# COMBAT CALCULATIONS
-# =====================================================
 
 func _on_calculate_pressed() -> void:
-	## Perform calculation based on current mode
 	match current_mode:
 		CalcMode.TO_HIT:
 			_calculate_to_hit()
 		CalcMode.DAMAGE:
 			_calculate_damage()
-		CalcMode.BRAWLING:
-			_calculate_brawling()
-		CalcMode.REACTION:
-			_calculate_reaction()
+
 
 func _calculate_to_hit() -> void:
-	## Calculate to-hit chance per Five Parsecs Core Rules
-	var combat_skill: int = int(attacker_combat.value) if attacker_combat else 0
-	var cover: int = int(target_cover.value) if target_cover else 0
-	var range_mod: int = int(range_modifier.value) if range_modifier else 0
-
-	# Five Parsecs To-Hit Formula (Core Rules p.46):
-	# Roll 1D6 + Combat Skill, need to roll >= Target Number
-	# Target Number: 3+ (open), 5+ (cover at range OR close with cover), 6+ (cover at weapon range)
-	# Higher rolls are BETTER (roll high system)
-	var base_target: int = 3  # Base target number (3+)
-	var target_number: int = base_target + cover + range_mod  # Cover/range make it harder (higher target)
-
-	# Calculate hit chance: What do we need to roll on D6 to reach target?
-	# With Combat Skill bonus, effective target we need to roll = target_number - combat_skill
-	var effective_target: int = max(1, target_number - combat_skill)  # Can't go below 1
-	effective_target = min(7, effective_target)  # Can't go above 7 (impossible on D6)
-
-	# Probability of rolling >= effective_target on D6
-	# Rolling 3+ = 4/6 = 66.67%, Rolling 5+ = 2/6 = 33.33%, etc.
-	var hit_chance: float = 0.0
-	if effective_target <= 6:
-		hit_chance = ((7.0 - effective_target) / 6.0) * 100.0
+	var skill: int = int(attacker_combat.value) if attacker_combat else 0
+	var index: int = shot_option.selected if shot_option else 0
+	var row: Dictionary = _hit_rows[clampi(index, 0, _hit_rows.size() - 1)]
+	var target: int = int(row.target)
+	# The modified score must equal or beat the row's number, so the die needs
+	# target - skill. A die can only show 1-6.
+	var need: int = target - skill
+	var faces: int = clampi(7 - maxi(need, 1), 0, 6)
+	var lines: PackedStringArray = [
+		"[b]To Hit (%s)[/b]" % str(row.cite),
+		"%s: %d+" % [str(row.label), target],
+		"Roll 1D6 + Combat Skill (%+d)." % skill,
+	]
+	if faces == 0:
+		lines.append("The die cannot reach it: no chance to hit.")
+	elif need <= 1:
+		lines.append("Any roll hits.")
 	else:
-		hit_chance = 0.0  # Impossible (need 7+ on D6)
-
+		lines.append("The die must show [b]%d+[/b]: %d in 6." % [need, faces])
 	var result := {
 		"calc_type": "to_hit",
-		"combat_skill": combat_skill,
-		"cover": cover,
-		"range_modifier": range_mod,
-		"base_target": base_target,
-		"target_number": target_number,
-		"effective_target": effective_target,
-		"hit_chance_percent": hit_chance,
-		"explanation": _format_to_hit_explanation(combat_skill, cover, range_mod, target_number, effective_target, hit_chance)
+		"rules_mode": _rules_mode,
+		"combat_skill": skill,
+		"target_number": target,
+		"die_needed": need,
+		"hit_faces": faces,
+		"explanation": "\n".join(lines),
 	}
-
 	_display_result(result)
 	calculation_completed.emit("to_hit", result)
 
+
 func _calculate_damage() -> void:
-	## Calculate damage resolution per Five Parsecs Core Rules
-	# Note: Actual damage uses dice rolls, this calculates probabilities
-	var weapon_damage: int = 0 # Would come from weapon selection
-	var target_toughness: int = 4 # Default toughness
-
-	# Five Parsecs Damage System:
-	# Roll 1D6 + weapon Damage rating
-	# Compare to target Toughness:
-	#   - Less than Toughness: Stun marker
-	#   - Equal or greater: Casualty
-	#   - Natural 6: Always casualty (before modifiers)
-
+	var damage: int = int(weapon_damage.value) if weapon_damage else 0
+	var toughness: int = int(target_toughness.value) if target_toughness else 4
+	var counts: Dictionary = {}
+	var order: Array = []
+	for face in range(1, 7):
+		var roll_face: int = face
+		var out: Dictionary = BattleCalculations.resolve_hit_for_mode(_rules_mode, damage,
+			toughness, 0, Callable(), func() -> int: return roll_face)
+		var key: String = str(out.result)
+		if not counts.has(key):
+			counts[key] = 0
+			order.append(key)
+		counts[key] += 1
+	var page: String = {"bug_hunt": "Bug Hunt p.178", "planetfall": "Planetfall pp.37-38"} \
+		.get(_rules_mode, "Core Rules p.46")
+	var lines: PackedStringArray = [
+		"[b]Damage (%s)[/b]" % page,
+		"1D6 + %d against Toughness %d:" % [damage, toughness],
+	]
+	for key: String in order:
+		lines.append("  %s: %d in 6" % [str(RESULT_TEXT.get(key, key)), int(counts[key])])
+	lines.append(str(DAMAGE_NOTES.get(_rules_mode, DAMAGE_NOTES.core)))
 	var result := {
 		"calc_type": "damage",
-		"weapon_damage": weapon_damage,
-		"target_toughness": target_toughness,
-		"explanation": _format_damage_explanation(weapon_damage, target_toughness)
+		"rules_mode": _rules_mode,
+		"weapon_damage": damage,
+		"target_toughness": toughness,
+		"outcomes": counts,
+		"explanation": "\n".join(lines),
 	}
-
 	_display_result(result)
 	calculation_completed.emit("damage", result)
 
-func _calculate_brawling() -> void:
-	## Calculate brawling (melee) combat per Five Parsecs Core Rules
-	var attacker_combat_skill: int = int(attacker_combat.value) if attacker_combat else 0
-
-	# Five Parsecs Brawling:
-	# Both combatants roll 1D6 + Combat Skill
-	# Higher roll wins, ties favor defender
-	# Winner can inflict damage or push opponent
-
-	var result := {
-		"calc_type": "brawling",
-		"attacker_combat": attacker_combat_skill,
-		"explanation": _format_brawling_explanation(attacker_combat_skill)
-	}
-
-	_display_result(result)
-	calculation_completed.emit("brawling", result)
-
-func _calculate_reaction() -> void:
-	## Calculate reaction roll per Five Parsecs Core Rules
-	var reactions_stat: int = 1 # Default Reactions value
-
-	# Five Parsecs Reactions:
-	# Roll 1D6 + Reactions stat
-	# Result determines who acts first in surprise situations
-
-	var result := {
-		"calc_type": "reaction",
-		"reactions_stat": reactions_stat,
-		"explanation": _format_reaction_explanation(reactions_stat)
-	}
-
-	_display_result(result)
-	calculation_completed.emit("reaction", result)
-
-# =====================================================
-# RESULT FORMATTING
-# =====================================================
-
-func _format_to_hit_explanation(combat: int, cover: int, range_mod: int, target_number: int, effective_target: int, hit_chance: float) -> String:
-	## Format to-hit calculation explanation
-	var lines: Array[String] = []
-
-	lines.append("[b]Five Parsecs To-Hit Calculation[/b]\n")
-	lines.append("(Core Rules p.46: Roll High System)\n\n")
-
-	lines.append("Target Number: %d+\n" % target_number)
-	lines.append("  Base: 3+\n")
-	if cover != 0:
-		lines.append("  Cover Penalty: +%d\n" % cover)
-	if range_mod != 0:
-		lines.append("  Range Modifier: %+d\n" % range_mod)
-
-	lines.append("\nYour Roll: 1D6 + Combat Skill\n")
-	if combat != 0:
-		lines.append("  Combat Skill: %+d\n" % combat)
-
-	lines.append("\n[color=yellow]Need to roll %d+ on D6[/color]\n" % effective_target)
-	lines.append("(After adding Combat Skill bonus)\n\n")
-
-	lines.append("[color=cyan]Hit Chance: %.1f%%[/color]\n\n" % hit_chance)
-	lines.append("Roll 1D6 + Combat Skill.\n")
-	lines.append("Success if result ≥ %d" % target_number)
-
-	return "".join(lines)
-
-func _format_damage_explanation(weapon_dmg: int, toughness: int) -> String:
-	## Format damage calculation explanation
-	var lines: Array[String] = []
-
-	lines.append("[b]Five Parsecs Damage Resolution[/b]\n")
-	lines.append("Roll 1D6 + %d (weapon damage)\n" % weapon_dmg)
-	lines.append("vs Toughness %d\n\n" % toughness)
-
-	lines.append("[color=yellow]Results:[/color]\n")
-	lines.append("• Natural 6: Always casualty\n")
-	lines.append("• Roll ≥ Toughness: Casualty\n")
-	lines.append("• Roll < Toughness: Stun marker\n")
-
-	return "".join(lines)
-
-func _format_brawling_explanation(attacker_combat: int) -> String:
-	## Format brawling calculation explanation
-	var lines: Array[String] = []
-
-	lines.append("[b]Five Parsecs Brawling[/b]\n")
-	lines.append("Both combatants roll 1D6 + Combat Skill\n")
-	lines.append("Attacker Combat: %+d\n\n" % attacker_combat)
-
-	lines.append("[color=yellow]Weapon Bonuses:[/color]\n")
-	lines.append("• Melee weapon: +2\n")
-	lines.append("• Pistol: +1\n\n")
-
-	lines.append("[color=yellow]Results:[/color]\n")
-	lines.append("• Higher roll wins (ties = both take a hit)\n")
-	lines.append("• Loser takes a hit at Damage +1\n")
-	lines.append("• Natural 6: inflict hit regardless of total\n")
-	lines.append("• Natural 1: opponent inflicts hit regardless\n")
-
-	return "".join(lines)
-
-func _format_reaction_explanation(reactions: int) -> String:
-	## Format reaction roll explanation
-	var lines: Array[String] = []
-
-	lines.append("[b]Five Parsecs Reaction Roll[/b]\n")
-	lines.append("Roll 1D6 + %d (Reactions)\n\n" % reactions)
-
-	lines.append("[color=yellow]Purpose:[/color]\n")
-	lines.append("• Determines initiative\n")
-	lines.append("• Resolves surprise encounters\n")
-	lines.append("• Higher roll acts first\n")
-
-	return "".join(lines)
 
 func _display_result(result: Dictionary) -> void:
-	## Display calculation result
 	if result_label:
 		result_label.clear()
-		result_label.append_text(result.explanation)
+		result_label.append_text(str(result.explanation))
 
-# =====================================================
-# UI MODE SWITCHING
-# =====================================================
 
 func _on_mode_changed(index: int) -> void:
-	## Handle calculation mode change
-	current_mode = index as CalcMode
+	var id: int = calculation_mode.get_item_id(index) if calculation_mode else index
+	current_mode = id as CalcMode
 	_update_ui_for_mode()
 
+
 func _update_ui_for_mode() -> void:
-	## Update UI based on selected calculation mode
-	# Show/hide relevant input fields based on mode
-	match current_mode:
-		CalcMode.TO_HIT:
-			_show_to_hit_inputs()
-		CalcMode.DAMAGE:
-			_show_damage_inputs()
-		CalcMode.BRAWLING:
-			_show_brawling_inputs()
-		CalcMode.REACTION:
-			_show_reaction_inputs()
-
-func _show_to_hit_inputs() -> void:
-	## Show inputs for to-hit calculation
-	if attacker_combat:
-		attacker_combat.visible = true
-	if target_cover:
-		target_cover.visible = true
-	if range_modifier:
-		range_modifier.visible = true
-
-func _show_damage_inputs() -> void:
-	## Show inputs for damage calculation
-	if attacker_combat:
-		attacker_combat.visible = false
-	if target_cover:
-		target_cover.visible = false
-	if range_modifier:
-		range_modifier.visible = false
-
-func _show_brawling_inputs() -> void:
-	## Show inputs for brawling calculation
-	if attacker_combat:
-		attacker_combat.visible = true
-	if target_cover:
-		target_cover.visible = false
-	if range_modifier:
-		range_modifier.visible = false
-
-func _show_reaction_inputs() -> void:
-	## Show inputs for reaction calculation
-	if attacker_combat:
-		attacker_combat.visible = false
-	if target_cover:
-		target_cover.visible = false
-	if range_modifier:
-		range_modifier.visible = false
-
-# =====================================================
-# PUBLIC INTERFACE
-# =====================================================
-
-func quick_to_hit(combat: int, cover: int, range_mod: int = 0) -> Dictionary:
-	## Quick to-hit calculation from code
-	if attacker_combat:
-		attacker_combat.value = combat
-	if target_cover:
-		target_cover.value = cover
-	if range_modifier:
-		range_modifier.value = range_mod
-
-	current_mode = CalcMode.TO_HIT
-	_calculate_to_hit()
-
-	# Return last calculation result
-	return {
-		"combat": combat,
-		"cover": cover,
-		"range": range_mod
-	}
+	var to_hit: bool = current_mode == CalcMode.TO_HIT
+	for node: Control in [attacker_combat, shot_option]:
+		if node and node.get_parent():
+			(node.get_parent() as Control).visible = to_hit
+	for node: Control in [weapon_damage, target_toughness]:
+		if node and node.get_parent():
+			(node.get_parent() as Control).visible = not to_hit

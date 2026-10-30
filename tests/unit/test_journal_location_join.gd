@@ -153,3 +153,29 @@ func test_get_used_locations_includes_milestone_planet() -> void:
 	})
 	var used: Array = j.get_used_locations()
 	assert_bool(used.has("Solo Planet")).is_true()
+
+
+# ============================================================================
+# The default turn is the turn being played (2026-10-30)
+# ============================================================================
+
+## turns_played counts COMPLETED turns, so turn 4 is in progress when it reads 3. A battle
+## that turn is stamped 4 (CampaignTurnController._normalize_battle_results), and an entry
+## with no turn of its own must land beside it, or the dashboard's "Last turn" recap
+## (get_turn_summary) counts it a turn early.
+func test_an_entry_without_a_turn_lands_on_the_turn_being_played() -> void:
+	var prior: Resource = GameState.current_campaign
+	var core = preload("res://src/game/campaign/FiveParsecsCampaignCore.gd").new()
+	core.progress_data["turns_played"] = 3
+	GameState.current_campaign = core
+	var j: Node = _make_journal()
+	j.create_entry({"type": "battle", "title": "Battle", "turn_number": 4})
+	j.create_entry({"type": "custom", "title": "Patron benefits paid"})
+	GameState.current_campaign = prior
+	var paid: Dictionary = {}
+	for e: Dictionary in j.entries:
+		if str(e.get("title", "")) == "Patron benefits paid":
+			paid = e
+	assert_int(int(paid.get("turn_number", -1))).is_equal(4)
+	assert_int(int(j.get_turn_summary(4).get("total", 0))).override_failure_message(
+		"the battle and the entry that followed it are one turn apart").is_equal(2)

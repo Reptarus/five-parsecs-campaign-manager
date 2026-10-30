@@ -398,6 +398,20 @@ func test_the_turn_controller_payload_carries_the_force_and_the_stamp() -> void:
 	assert_bool((md.opposition_force_rows as Array).is_empty()).is_false()
 
 
+## p.30: each fireteam rolls one Reaction die, so the battle needs the number Lock and
+## Load deployed, not only the grunt count (Sprint 7b BS4).
+func test_the_payload_carries_the_fireteams_deployed() -> void:
+	var core := _core("outlaws")
+	var tc: Control = await _tc(core)
+	tc._mission_context = _mission("skirmish")
+	tc._deployed_data = {"deployed_characters": {"c1": {"weapon_id": ""}},
+		"grunts_deployed": 6, "grunt_fireteams": 2}
+	_force("Planetfall Enemy Number D3", [3, 3])
+	var md: Dictionary = tc.build_battle_payload().context.mission_data
+	assert_int(int(md.get("grunts_deployed", -1))).is_equal(6)
+	assert_int(int(md.get("grunt_fireteams", -1))).is_equal(2)
+
+
 ## A Skirmish against the second enemy's sector fights THAT enemy (pp.123-124), and the
 ## sector picked at Step 6 is stamped for Step 12's map effects.
 func test_the_stamp_carries_the_sector_and_its_enemy() -> void:

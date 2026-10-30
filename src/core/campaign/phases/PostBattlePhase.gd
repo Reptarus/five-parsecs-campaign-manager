@@ -164,8 +164,8 @@ func _ensure_subsystems() -> void:
 # ── Introductory Campaign post-battle gating (Compendium pp.104-109) ──────────
 #
 # The guided turns run only SOME post-battle steps, and the book is explicit
-# about which. Turn 0 (Training Battle, p.104): "No experience points or other
-# post-battle functions are carried out." Turn 1 (p.105): steps 4, 5, 7, 8, 9 —
+# about which. Turn 0 (Training Battle, p.105): "No experience points or other
+# post-battle functions are carried out." Turn 1 (p.106): steps 4, 5, 7, 8, 9 —
 # note 6 (Check for Invasion) is deliberately absent. Turn 2 (p.106) adds 11, 12
 # and 13. Turn 5 is "ALL standard rules".
 #
@@ -197,6 +197,20 @@ func _intro_allows(step_key: String) -> bool:
 	if not _intro_gating_active:
 		return true
 	return _intro_allowed_steps.has(step_key)
+
+## The post-battle screen's question: does the Introductory Campaign skip this step
+## on the battle just fought? Answered from the snapshot `_refresh_intro_gating()`
+## took when this run started. Asking the campaign instead would be wrong: step 14c
+## of this same run advances the Introductory Campaign to its next turn, before the
+## player has paged through the steps. An empty key is steps 1-3, which no turn's
+## list names.
+func intro_skips_step(step_key: String) -> bool:
+	return not _intro_allows(step_key)
+
+## Turn 0's training battle (Compendium p.105): "No experience points or other
+## post-battle functions are carried out."
+func is_intro_training_battle() -> bool:
+	return _intro_gating_active and _intro_allowed_steps.is_empty()
 
 func _sync_context() -> void:
 	## Sync orchestrator state to context before each pipeline run.
@@ -276,7 +290,7 @@ func start_post_battle_phase(battle_data: Dictionary = {}) -> void:
 	# lists start at step 4 and enumerate exactly what to carry out, so these are
 	# skipped on every guided turn before turn 5 — including turn 0, where the
 	# book says "No experience points or other post-battle functions are carried
-	# out" (Compendium p.104).
+	# out" (Compendium p.105).
 	if not _intro_gating_active:
 		# Step 1: Resolve Rival Status
 		_emit_substep(GlobalEnums.PostBattleSubPhase.RIVAL_STATUS)

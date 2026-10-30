@@ -170,7 +170,9 @@ func _on_roll_pressed() -> void:
 		return
 
 	# Roll D6 - if equal or below rumor count, generate quest
-	last_roll = randi() % 6 + 1
+	var dice: Node = get_node_or_null("/root/DiceManager")
+	last_roll = int(dice.roll_d6("Rumors Quest Check")) if dice \
+		else randi_range(1, 6)
 	var rumor_count = rumors.size()
 
 	# On-board item, Analyzer (Core Rules p.57): "Add +1 when rolling to see if

@@ -516,6 +516,80 @@ p.125 one-credit basics. What the check found was not in the numbers:
   `AssignEquipmentComponent.tscn:98` "Rules p.85" to Core Rules p.49 (weapon limits).
 - The agent reported the chapters as CRLF. They are LF, before and after; nothing changed.
 
+## Sprint 7b — Slice A: the shared battle screen and 5PFH (2026-10-30)
+
+Rows A1-A8 of the plan's Sprint 7b, found by the pre-tablet verification pass. Every
+logic fix has an isolated-revert arm in `su_7b/arms.log`; every label there ends
+DETECTED. Two first ran UNDETECTED and are explained under Instruments below.
+
+**The shape:** the battle screen is shared by four modes and taught one book. A Bug Hunt
+or Planetfall battle printed the Core Rules reference, rolled the Core Rules Battle
+Events, resolved hits on Core Rules p.46, offered Core Rules calculators and rolled one
+Reaction die per figure. Each mode now gets its own book at each of those points, and a
+5PFH battle is unchanged.
+
+| Row | Verdict and fix | Pinned by | Arms |
+|---|---|---|---|
+| A1 BS1 Reference tab | A Bug Hunt battle showed the 5PFH sheet (Morale, Core weapons, the natural 6, brawling, AI). `CheatSheetSections.bug_hunt_sections()` renders `bug_hunt_combat_rules.json` (pp.173-180, 198-201) and the p.179 weapon table from `bug_hunt_weapons.json`; the panel has a `bug_hunt` mode. Per the Godot docs check, section bodies parse their BBCode only when first opened, and the nodes build deferred. | `test_bug_hunt_battle_reference.gd` (7) | A1a-A1e |
+| A1t (found by the gate) | **The deferred build cost the Reference tab its touch scroll.** The battle screen sweeps itself once; the sections now landed after that sweep, and `set_rules_mode()` and the "This Battle" insert rebuild them later still. A Button is STOP, so a finger drag over the sheet died on the first header. Both builders now open what they add. | `test_touch_scroll_sweep.gd` (the full-screen case: TacticalBattleUI 26 -> 0), `test_battle_tools_by_mode.gd::test_the_this_battle_section_lets_a_drag_through` | A1t-a, A1t-b |
+| A2 BS3 hits | `BattleCalculations.resolve_hit_for_mode()`. Core p.46 unchanged. Bug Hunt p.178: equal to Toughness Wounds, a second Wound is a casualty, no natural-6 rule. Planetfall pp.37-38: equal knocks Sprawling, a hit above Toughness takes a Kill Point first and does not Stun, a Sprawling figure has no save and Toughness 1 lower. The hit sheet rolls through `DiceManager` ("Hit Resolution") and Luck applies in core battles only. | `test_hit_resolution_modes.gd` (13) | A2a-A2j |
+| A3 BS2 Battle Events | One predicate, `_battle_events_apply()`, false in Bug Hunt and Planetfall, read by the end-phase checklist, the trigger handler, the pending check and the round HUD's prompt, indicator and reminder. The Battle Simulator keeps them (it plays 5PFH). | `test_battle_events_by_mode.gd` (4) | A3a-A3f |
+| A4 BS5 tools | `AccordionToolContainer.remove_section()` frees header and body (Godot docs: removing beats hiding). Bug Hunt and Planetfall battles drop the Character Quick Roll, the Brawl Resolver and the Core weapon table. **Widened:** the Combat Situation panel is deleted in every mode: its ten To Hit modifiers (Light Cover -1, Heavy Cover -2, Elevated +1 and seven more) are in neither book, Core p.44 handles cover through the row's number, and its wire into the calculator called a method with no definition. The calculator lists each book's To Hit rows (Core four with the errata row, Bug Hunt p.177 and Planetfall p.37 three), says what the die needs, and resolves damage per book. It no longer prints a Brawling "Damage +1" or a Reaction "1D6 + Reactions" rule the books lack. The Quick Roll's Snap Fire -1 is gone (p.113 has none). The Planetfall reference gains its weapon table (pp.76-79). | `test_battle_tools_by_mode.gd` (9) | A4a-A4l |
+| A5 BS4 Reaction dice | Bug Hunt p.173: grunts form combat teams of 2-4 and each team rolls one die. The Mission screen offers the legal splits as one picker (**deviation:** a split picker, not a per-grunt one), keeps the split with `set_combat_teams()`, stamps each grunt's team at launch and starts on the last split fielded. Planetfall pp.29-30: each fireteam is one die and each scientist adds one; excess dice are discarded. The fireteam size is read from `character_classes.json` (grunt `fireteam_size` 4), not a literal. A team die that would be Quick only in formation says so. **Found on the way:** Lock and Load reported the mission's fireteam LIMIT as the fireteams deployed, and the turn controller dropped the count; both fixed. ⓘ p.173's one-figure "elite" teams (e.g. the sniper) are p.188 Support Teams, not regimental grunts, so the 2-4 rule for grunts is complete. | `test_reaction_dice_by_book.gd` (8), `test_planetfall_battle_payload.gd::test_the_payload_carries_the_fireteams_deployed` | A5a-A5p |
+| A6 5P-1 auto-resolve | An auto-resolved battle rolled a D6 per downed member and sent a 1 straight to "killed", skipping the Injury Table. Core p.121: "Any character that became a casualty in the battle must roll on the Injury Table"; p.122's rows 1-15 are the deaths. Every downed member now goes to `injuries`, as the played path and the in-battle auto-resolve already did. The cite read p.114, which has no casualty roll. Both auto-resolve buttons now roll through one `BattleResolverRouter.dice_roller()` ("Auto-resolve Combat"). | `test_auto_resolve_pipeline.gd` (+2) | A6a-A6e |
+| A7 5P-3 journal bodies | Three entries passed `content`, which `create_entry()` drops, so their bodies were empty. They now pass `description`. **Widened:** ten `turn` keys were dropped the same way and are deleted rather than renamed. Eight read the battle result's `turn`, which some paths leave absent (0), and `create_entry()` derives `turn_number` itself. ⚠ This row first said renaming "would have stamped the next turn": it would not. The derived turn was the one behind, and J1 below fixes it. `lint_journal_vocabulary.py` gains a fourth check: any key `create_entry()` drops, measured at zero false hits before it went in. | the lint | A7a-A7c (lint arms) |
+| A8 5P-2/4 dice | Through `DiceManager`, each with a `QAScenarioDialog` force row: the p.85 Rumors -> Quest D6, the p.31 Ship Table D100 and 1D6 debt, the p.32 Crew Table, the p.28 high-tech swap, the Quick Roll, the p.121 Debris 1D3 (backend AND screen, which had raw copies of the same row) and the p.134 Loot credit dice. **Also:** `FallbackDiceManager`'s rolls take a context (EquipmentPanel already called `roll_d6("Condition")`, a latent abort); four zero-caller credit helpers in `EquipmentPanel` are deleted (credits are granted once, via `creation_bonuses`); the Ship Table cites read p.31. | `test_creation_and_rumor_dice.gd` (6), `test_battle_tools_by_mode.gd` | A8a-A8j, A8m |
+| A8w (found doing A8) | **Gather the Loot paid twice.** `LootProcessor` rolls p.120's Loot and stashes it while the backend runs. The wizard's handler disabled its own button only `if current_step == 6` (false when the signal arrives), and Previous / Next rebuild the card anyway, so a live button came back and a press added a second result. The handler now records the step in `_backend_resolved` like the other backend steps, and the builder shows the recorded result. | `test_post_battle_wizard_honesty.gd` (2 new, and `STEP_LOOT` pinned to the card's index) | A8k, A8l |
+| J1 (found doing A8) | **A journal entry with no turn filed one turn back.** `create_entry()` defaulted `turn_number` to `turns_played`, the count of turns COMPLETED. A battle result carries `turns_played + 1` (`CampaignTurnController`), the dashboard shows `turns_played + 1`, and `JobOfferComponent._current_campaign_turn()`'s docblock already said the journal used that convention. So a battle's entry and the payment entry written beside it filed under different turns, and the turn summary split them. `_resolve_current_turn()` now returns the turn being played. The variant cores have no `progress_data` and are unaffected. | `test_journal_location_join.gd::test_an_entry_without_a_turn_lands_on_the_turn_being_played` | J1 |
+| BL (found while checking J1) | **The Battle Log never reached the campaign journal**, though guide chapter 6 says it does three times. The log's `merge_into_campaign_journal()` had no caller, and it could not have been the route: the battle's entry is written by the post-battle sequence after the battle screen is done, so it would have made a second battle entry. It is deleted. The battle screen now carries the log through the temp-data channel the Battle Notes use, rewritten on every log entry and only by a battle the campaign owns, and `auto_create_battle_entry()` reads and clears it. The text is plain, because the journal renders a description as BBCode and exports it as Markdown. | `test_battle_log_reaches_journal.gd` (3, through `initialize_battle()`) | BL1-BL4 |
+| IG (the INFERRED lead below, verified and wider) | **The post-battle screen ignored the Introductory Campaign's step lists.** The backend skips every step a guided turn leaves out (Compendium pp.104-109), and the screen then offered its own roll for each one. On the turn-0 training battle, where p.105 says "No experience points or other post-battle functions are carried out", that was Battlefield Finds, the Loot Table, an Injury roll for every knocked-out recruit and a Character Event, beside a Campaign Event card saying the event was rolled and applied when it was not. The screen now asks the backend, which answers from the snapshot its run took at the start. Asking the campaign would be wrong, because step 14c of the same run moves the Introductory Campaign to its next turn before the player pages through. The screen also redraws its first step when the run starts, since it draws that step before the backend has run. Two cites corrected by the page tails: the training rule is p.105 and Turn 1's list p.106. | `test_post_battle_intro_gating.gd` (4; the fixture holds the field and has two casualties, so a reverted gate shows live rolls) | IG1-IG5 |
+
+Guide: chapter 12's Mission stage described objectives, enemies and terrain that are in
+neither book and said the battle "otherwise functions the same". It now lists the p.185
+objectives and the five ways a Bug Hunt battle differs, with pages. Chapter 16 gains the
+same for Planetfall. Chapter 6 (5PFH) was correct and is unchanged.
+
+### Instruments in Slice A
+
+- **A3c first ran UNDETECTED.** The case looked for a fired event where the LOG_ONLY
+  tier already suppresses one, so it passed with the gate removed. It now reads the
+  battle log, which the handler writes before its tier check, and a core-mode premise
+  proves the probe can see a trigger at all. Rerun: DETECTED.
+- **A8f-A8j first ran UNDETECTED, all five at once.** The new suite seeds the global RNG
+  so a reverted route fails the same way every run, and that seed's first draws are
+  D3 = 2 and D6 = 5 (measured with a one-line probe) — exactly the values the cases
+  forced. The routes were reached; the forced values were indistinguishable from the raw
+  ones. Moved to 3 and 1: DETECTED. ⚠ An arm that reverts to a raw roll is only
+  discriminating if the raw roll cannot land on the forced row; at 15% (Glare Sword) or
+  33% (a D3) chance it often can. Seed, then measure the seed.
+- Two fixture errors in the same suite were caught before any arm ran: an `Array` literal
+  assigned to a typed `Array[Dictionary]` member (a runtime error, booked `errors=1`),
+  and a Rumors case that never fed the component its Rumors (it now uses
+  `initialize_rumors_phase()`, the World Phase controller's own entry point).
+- **A7c's first spec was a BAD ANCHOR** (it named a key the file does not have) and was
+  re-anchored before it ran.
+- **IG's first run failed its own premise**: a test process never runs
+  `CampaignPhaseManager.setup()`, so the screen had no backend to ask. That run is also a
+  record of the defect, because with no answer steps 4-11 offered live rolls. The fixture
+  now builds the handler the way `setup()` does and asserts the screen can find it.
+- **IG4's first spec was a BAD ANCHOR.** It was written through a shell heredoc, which
+  dropped one backslash from the anchored line continuation. The generator's count
+  assertion stopped it before any arm ran, and it was rewritten with the Write tool
+  (CLAUDE.md names this trap).
+
+### Leads recorded, not fixed
+
+- The Introductory Campaign lead is VERIFIED, wider than it was written (every step, not
+  only Finds and Loot), and FIXED: row IG.
+- The journal turn lead is VERIFIED and FIXED: row J1.
+- `TacticalBattleUI._check_standalone_mode()` still has an `elif "tactics"` arm under a
+  key list that, as its own comment says, has no Tactics entry. It is unreachable and
+  harmless. It is deleted with Slice B's first edit to that file, so this slice's gate
+  stays a measure of this slice.
+- Chapter 12's Post-Battle bullets ("Loot: mission-specific rewards", "Movie Magic: may
+  earn additional one-time abilities") are unverified. They are checked with Slice B,
+  whose B8 rewrites that chapter's transfer section.
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.

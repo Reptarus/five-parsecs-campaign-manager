@@ -134,6 +134,24 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 		"note": "Compendium pp.142-145 - 100 Doomsday protocol"},
 	{"key": "Salvage Discovery Table", "sides": 100, "target": 1,
 		"note": "Compendium p.146 - the auto-resolve's Discovery roll"},
+	{"key": "Rumors Quest Check", "sides": 6, "target": 1,
+		"note": "Core p.85 step 5 - at or under the Rumor count starts a Quest"},
+	{"key": "Ship Table", "sides": 100, "target": 100,
+		"note": "Core p.31 - the creation ship type"},
+	{"key": "Ship Debt", "sides": 6, "target": 6,
+		"note": "Core p.31 - the 1D6 added to the ship type's debt base"},
+	{"key": "Crew Flavor", "sides": 100, "target": 1,
+		"note": "Core p.32 - We met through / Best characterized as"},
+	{"key": "High-Tech Weapon", "sides": 100, "target": 100,
+		"note": "Core p.28 - a creation roll swapped to the High-tech Weapon table"},
+	{"key": "Quick Roll", "sides": 6, "target": 6,
+		"note": "Battle screen Character Quick Roll (to hit, damage, saves, brawl)"},
+	{"key": "Auto-resolve Combat", "sides": 6, "target": 1,
+		"note": "Each combat die of an auto-resolved battle (both auto-resolve buttons)"},
+	{"key": "Loot Credits", "sides": 6, "target": 6,
+		"note": "Core p.134 Rewards - the credit dice on a Loot result"},
+	{"key": "Debris Credits", "sides": 3, "target": 3,
+		"note": "Core p.121 Battlefield Finds 61-75 - Debris, 1D3 credits"},
 	# --- Bug Hunt (Compendium). Every key below has a LIVE producer in src/
 	# today, and that is the standing rule for this block: a row whose key
 	# matches no roll is worse than a missing row, because the tester queues a
@@ -487,6 +505,40 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	# could be forced before 2026-10-29 (test_dice_reach_the_manager.gd).
 	{"key": "Travel Event", "sides": 100, "target": 1,
 		"note": "pp.70-71 - Starship Travel Events (the re-roll uses this key too)"},
+	# --- Rolls inside a travel event (TravelEventResolver) and on arrival
+	# (NewWorldArrival). None of these contexts contains "Travel Event", so a value
+	# queued for the table is not eaten by them.
+	{"key": "Travel Crew Pick", "sides": 100, "target": 1,
+		"note": "pp.70-72 - WHICH crew member Navigation trouble, Accident or Time to "
+			+ "Read a Book lands on: entry (roll - 1) mod crew size"},
+	{"key": "Travel Hull Damage", "sides": 6, "target": 6,
+		"note": "pp.70-71 - Asteroids per failed roll; Distress call and Escape pod 1D6+1"},
+	{"key": "Travel Savvy Test", "sides": 6, "target": 1,
+		"note": "p.70 - the Asteroids, Raided and Drive trouble 1D6+Savvy tests"},
+	{"key": "Travel Asteroids Avoid", "sides": 6, "target": 5,
+		"note": "p.70 - 5+ charts a safe path and rolls again on the table"},
+	{"key": "Travel Distress Call", "sides": 6, "target": 1,
+		"note": "p.71 - 1: the drive detonates, 1D6+1 Hull Point damage"},
+	{"key": "Travel Patrol Ship", "sides": 6, "target": 6,
+		"note": "p.71 - two dice; each above 3 confiscates an item"},
+	{"key": "Travel Escape Pod", "sides": 6, "target": 1,
+		"note": "p.71 - 1: a wanted criminal"},
+	{"key": "Travel Pod Credits", "sides": 6, "target": 6,
+		"note": "p.71 - the 1D3 credits, rolled as ceil(1D6/2), so 6 = 3"},
+	{"key": "Travel Read a Book", "sides": 6, "target": 1,
+		"note": "p.72 - 1-2: one crew member earns +3 XP"},
+	{"key": "Travel Item Pick", "sides": 100, "target": 1,
+		"note": "p.71 - WHICH carried item an Accident damages"},
+	{"key": "New World Rival Follow", "sides": 6, "target": 1,
+		"note": "p.72 - each Rival follows on 5+ (4+ for an Elite Rival)"},
+	{"key": "New World Licensing", "sides": 6, "target": 6,
+		"note": "p.72 - 5-6: the world requires a Freelancer License"},
+	{"key": "New World Licence Fee", "sides": 6, "target": 6,
+		"note": "p.72 - the License costs 1D6 credits"},
+	{"key": "New World Forged Licence", "sides": 6, "target": 1,
+		"note": "p.72 - a natural 1 adds a Rival on this world"},
+	{"key": "Injury Recovery Time", "sides": 6, "target": 6,
+		"note": "p.122 - Sick Bay turns: 1D6, or 1D3+1 rolled as ceil(1D6/2)+1"},
 	{"key": "Quest Progression", "sides": 100, "target": 1,
 		"note": "Compendium p.79 - 01-10 a source of information that costs 1D6 credits"},
 	{"key": "Story Clock", "sides": 6, "target": 6,
@@ -513,6 +565,12 @@ const FORCEABLE_ROLLS: Array[Dictionary] = [
 	{"key": "Fringe World Strife: arrival", "sides": 6, "target": 1, "note": "Compendium p.148"},
 	{"key": "Criminal Elements", "sides": 100, "target": 11,
 		"note": "Fringe World Strife - 11 = Punks"},
+	# --- The battle screen's hit sheet, in every mode (Core p.46, Bug Hunt p.178,
+	# Planetfall pp.37-38). The save is rolled first, then the damage die.
+	{"key": "Hit Resolution: save", "sides": 6, "target": 5,
+		"note": "5 = a Trooper armor save (Bug Hunt p.178, Planetfall p.37)"},
+	{"key": "Hit Resolution: damage", "sides": 6, "target": 4,
+		"note": "with Damage 0 vs Toughness 4: Wounded (Bug Hunt), Sprawling (Planetfall)"},
 ]
 
 var _roll_picker: OptionButton = null

@@ -34,7 +34,7 @@ description: "Use this skill when working with the Bug Hunt gamemode — creatio
 | `src/ui/screens/bug_hunt/BugHuntCreationUI.gd` | Control | 4-step creation wizard |
 | `src/core/character/CharacterTransferService.gd` | `CharacterTransferService` | Canonical-hub transfer for all 4 modes (any-to-any via 5PFH canonical); Bug Hunt ↔ 5PFH legs shipped |
 | `src/ui/screens/campaign/CampaignScreenBase.gd` | `CampaignScreenBase` | Generic pending-transfer pickup (`_check_pending_transfers`, `_add_character_to_mode` → `add_main_character` for Bug Hunt) |
-| `data/bug_hunt/` | 15 JSON files | Bug Hunt-specific data |
+| `data/bug_hunt/` | 16 JSON files | Bug Hunt-specific data |
 
 ## Rules Data Authority
 

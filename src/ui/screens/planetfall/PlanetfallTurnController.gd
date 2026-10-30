@@ -1025,6 +1025,8 @@ func build_battle_payload() -> Dictionary:
 		"table_size_ft": table_size_ft(str(_mission_context.get("table_size", "3x3"))),
 		"battlefield_conditions": _mission_context.get("battlefield_conditions", false),
 		"grunts_deployed": _deployed_data.get("grunts_deployed", 0),
+		# p.30: one Reaction die per fireteam, read by TacticalBattleUI.
+		"grunt_fireteams": _deployed_data.get("grunt_fireteams", 0),
 		"opposition_type": opp_type,
 		"slyn_attacking": bool(resolved.get("slyn_attacking", false)),
 		"opposition": opposition.duplicate(true),

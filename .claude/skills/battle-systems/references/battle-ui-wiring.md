@@ -133,7 +133,7 @@ Controls per-stage UI element visibility (added QA Sprint Mar 15, 2026):
 **FULL_ORACLE** (adds AI guidance):
 - + enemy_intent_panel, enemy_generation_wizard
 
-**Always visible**: cheat_sheet_panel, weapon_table_display, combat_situation_panel, dual_input_roll
+**Always visible**: cheat_sheet_panel, weapon_table_display, dual_input_roll. In Bug Hunt and Planetfall battles `_apply_rules_mode_to_tools()` frees the weapon table, the Character Quick Roll and the Brawl Resolver (Core Rules only) and tells the Combat Calculator the book. The Combat Situation panel was deleted 2026-10-30: none of its ten modifiers is in either book.
 
 **Compendium DLC**: no_minis_combat_panel, stealth_mission_panel
 

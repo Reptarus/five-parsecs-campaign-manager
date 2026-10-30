@@ -184,7 +184,7 @@ func test_the_briefing_renders_instructions_not_bare_headings() -> void:
 # These assertions are the links. They are cheap and they are the only thing
 # standing between the book's one roll and two.
 
-const PB_PHASE_SRC := "res://src/core/campaign/phases/PostBattlePhase.gd"
+const PostBattleScene := preload("res://src/ui/screens/postbattle/PostBattleSequence.tscn")
 
 func test_gather_loot_substep_maps_to_the_wizard_loot_step() -> void:
 	# The wizard's step list is built in _initialize_steps(); "7. Gather the Loot"
@@ -209,35 +209,61 @@ func test_gather_loot_substep_maps_to_the_wizard_loot_step() -> void:
 		% [expected_index, step_names[expected_index]]
 		+ " to the wrong card and leave the loot button live"
 	).contains("Gather the Loot")
+	var consts: Dictionary = load(WIZARD_SRC).get_script_constant_map()
+	assert_int(int(consts.get("STEP_LOOT", -1))).override_failure_message(
+		"STEP_LOOT is not the loot card, so a backend loot result is recorded on the"
+		+ " wrong step").is_equal(expected_index)
 
 
-func test_backend_announces_the_loot_substep_before_it_emits_the_loot() -> void:
-	var src: String = _src(PB_PHASE_SRC)
-	var substep_at: int = src.find("PostBattleSubPhase.GATHER_LOOT")
-	var emit_at: int = src.find("loot_gathered.emit")
-	assert_int(substep_at).override_failure_message(
-		"PostBattlePhase no longer announces the GATHER_LOOT substep").is_greater(-1)
-	assert_int(emit_at).override_failure_message(
-		"PostBattlePhase no longer emits loot_gathered").is_greater(-1)
-	assert_bool(substep_at < emit_at).override_failure_message(
-		"loot_gathered is emitted BEFORE the GATHER_LOOT substep is announced, so"
-		+ " the wizard is still on an earlier card when the loot lands: its"
-		+ " `current_step == 6` arm never runs and the manual roll button stays"
-		+ " enabled. Two Loot Table results per battle (Core Rules p.120: one)."
-	).is_true()
+## Core Rules p.120 rolls the Loot Table once (three times at a Quest finale).
+## LootProcessor rolls and stashes it while the backend runs, so the loot card must show
+## that result and offer no second roll WHENEVER it is built. The old guard disabled the
+## button only on the card on screen when the signal arrived; Previous / Next rebuild
+## the card through _add_loot_content(), which offered a live second roll every time.
+func test_the_loot_card_offers_no_second_roll_after_the_backend_rolled() -> void:
+	var ui: Control = auto_free(PostBattleScene.instantiate())
+	add_child(ui)
+	await get_tree().process_frame
+	ui.current_step = ui.STEP_LOOT
+	ui._show_current_step()
+	assert_int(_live_loot_buttons(ui).size()).override_failure_message(
+		"premise: before the backend rolls, the loot card offers the roll").is_equal(1)
+
+	ui._on_backend_loot_generated([{"name": "Hand Laser"}])
+	ui.current_step = 0
+	ui._show_current_step()
+	ui.current_step = ui.STEP_LOOT  # the player pages back to Gather the Loot
+	ui._show_current_step()
+	assert_int(_live_loot_buttons(ui).size()).override_failure_message(
+		"the loot card offers a second Loot Table roll after LootProcessor stashed one"
+	).is_equal(0)
+	assert_str(_card_text(ui)).contains("Hand Laser").contains("Already applied")
 
 
-func test_the_wizard_disables_its_manual_roll_when_the_backend_rolls() -> void:
-	var src: String = _src(WIZARD_SRC)
-	assert_bool(src.contains("func _on_backend_loot_generated")).override_failure_message(
-		"the wizard no longer listens for backend loot").is_true()
-	# The handler must both satisfy the inline-roll gate and kill the button;
-	# doing only the first leaves a live button the player will press.
-	var handler_start: int = src.find("func _on_backend_loot_generated")
-	var handler_end: int = src.find("\nfunc ", handler_start + 10)
-	var body: String = src.substr(handler_start, handler_end - handler_start)
-	assert_bool(body.contains("_increment_inline_roll")).override_failure_message(
-		"backend loot no longer satisfies the step's inline-roll gate").is_true()
-	assert_bool(body.contains("disabled = true")).override_failure_message(
-		"backend loot no longer disables the manual 'Roll on Loot Table' button —"
-		+ " the player can roll a second, independent result").is_true()
+## A backend run that gathered nothing (an Invasion, a story battle with no loot) still
+## resolves the step: the card says so instead of offering the roll the backend withheld.
+func test_an_empty_backend_loot_still_resolves_the_step() -> void:
+	var ui: Control = auto_free(PostBattleScene.instantiate())
+	add_child(ui)
+	await get_tree().process_frame
+	ui._on_backend_loot_generated([])
+	ui.current_step = ui.STEP_LOOT
+	ui._show_current_step()
+	assert_int(_live_loot_buttons(ui).size()).is_equal(0)
+	assert_str(_card_text(ui)).contains("No loot was gathered.")
+
+
+func _live_loot_buttons(ui: Node) -> Array:
+	var out: Array = []
+	for n in ui.step_content.find_children("*", "Button", true, false):
+		if not n.is_queued_for_deletion() and (n as Button).text == "Roll on Loot Table (D100)":
+			out.append(n)
+	return out
+
+
+func _card_text(ui: Node) -> String:
+	var parts: PackedStringArray = []
+	for n in ui.step_content.find_children("*", "Label", true, false):
+		if not n.is_queued_for_deletion():
+			parts.append((n as Label).text)
+	return " | ".join(parts)

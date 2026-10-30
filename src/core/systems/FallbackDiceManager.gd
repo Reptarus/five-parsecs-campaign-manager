@@ -28,14 +28,14 @@ func roll_sum(count: int, sides: int = 6) -> int:
 		sum += result
 	return sum
 
-func roll_d6() -> int:
+func roll_d6(_context: String = "") -> int:
 	## Roll 1D6
 	return roll_dice(6)
 
-func roll_2d6() -> int:
+func roll_2d6(_context: String = "") -> int:
 	## Roll 2D6
 	return roll_sum(2, 6)
 
-func roll_d100() -> int:
+func roll_d100(_context: String = "") -> int:
 	## Roll 1D100
 	return roll_dice(100)

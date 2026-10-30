@@ -223,7 +223,6 @@ func _log_penalty(
 		"type": "battle",
 		"title": text,
 		"description": reason,
-		"turn": int(ctx.battle_result.get("turn", 0)),
 		"tags": tags,
 	})
 
@@ -672,7 +671,7 @@ func _apply_strife_event(ctx: PostBattleContextClass, planet_id: String,
 		ctx.campaign_journal.create_entry({
 			"type": "campaign_event",
 			"title": "Fringe World Strife: %s" % str(event.get("name", "")),
-			"content": str(event.get("instruction", "")),
+			"description": str(event.get("instruction", "")),
 		})
 
 
@@ -752,7 +751,7 @@ func _roll_battlefield_find(ctx: PostBattleContextClass) -> Dictionary:
 		"DEBRIS":
 			# p.121, 61-75: "Debris: 1D3 credits' worth on the scrap market."
 			# The amount was rolled and never paid — nothing added the credits.
-			var scrap: int = randi_range(1, 3)
+			var scrap: int = ctx.roll_d3("Debris Credits")
 			find["amount"] = scrap
 			_grant_find_credits(ctx, scrap)
 		"STARSHIP_PART":

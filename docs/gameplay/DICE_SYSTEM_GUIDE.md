@@ -97,8 +97,8 @@ var damage = dice_manager.roll_damage(2, "Plasma Rifle")
 var mission_type = dice_manager.roll_mission_type("New Mission")
 var difficulty = dice_manager.roll_mission_difficulty("Mission Setup")
 
-# Injury Resolution
-var injury_result = dice_manager.roll_injury_table("Post-Battle Casualty")
+# Injury Resolution: the Injury Table is a D100 (Core Rules p.122)
+var injury_roll = dice_manager.roll_d100("Post-Battle Injury")
 ```
 
 ---

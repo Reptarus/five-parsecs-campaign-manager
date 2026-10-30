@@ -59,11 +59,17 @@ var _post_battle_phase: Node = null
 ## Recorded rather than acted on immediately because the orchestrator's signals
 ## can arrive before the step's UI exists; the step builders consult this, so
 ## the fix holds whichever order they happen in.
+##
+## Gather the Loot joined them on 2026-10-30. Its handler disabled the screen's loot
+## button only `if current_step == 6`, which is false when the orchestrator runs
+## (before the player reaches the step), so the button was offered anyway and a
+## press added a SECOND Loot Table result to the stash on top of LootProcessor's.
 var _backend_resolved: Dictionary = {}
 
 ## Wizard step indices, from the _register_inline_rolls() calls.
 const STEP_RIVAL_STATUS := 0
 const STEP_BATTLEFIELD_FINDS := 4
+const STEP_LOOT := 6
 const STEP_INJURIES := 7
 const STEP_CAMPAIGN_EVENT := 11
 const STEP_CHARACTER_EVENT := 12
@@ -75,6 +81,53 @@ var _backend_rival_lines: Array = []
 ## the p.122 Crippling wound surgery buy-out against the right crew member.
 var _backend_injuries: Array = []
 
+
+## The Introductory Campaign's step keys (Compendium pp.104-109), by wizard step. Steps
+## 1-3 have no key because no guided turn lists them, and step 14 (Galactic War) is not
+## gated because the run carries it out every turn. Steps 9 and 10 share a key: the
+## book lists "9. Experience and Character Upgrades" as one item.
+const _INTRO_STEP_KEYS: Dictionary = {
+	3: "get_paid", 4: "battlefield_finds", 5: "check_invasion", 6: "gather_loot",
+	7: "injuries", 8: "experience", 9: "experience", 10: "purchase",
+	11: "campaign_event", 12: "character_event",
+}
+
+## Whether the Introductory Campaign skips this step on the battle just fought.
+##
+## ⚠ Until 2026-10-30 the screen did not ask. The backend skipped every step the turn's
+## list leaves out, and the screen then offered its own roll for each one, so a
+## turn-0 training battle (Compendium p.105: "No experience points or other
+## post-battle functions are carried out") offered Finds, Loot, an Injury roll for
+## every knocked-out recruit, and a Character Event.
+func _intro_skips_step(step_index: int) -> bool:
+	if step_index == 13:
+		return false
+	var pbp: Node = _post_battle_phase
+	if pbp == null or not is_instance_valid(pbp) or not pbp.has_method("intro_skips_step"):
+		return false
+	return bool(pbp.intro_skips_step(str(_INTRO_STEP_KEYS.get(step_index, ""))))
+
+func _add_intro_skipped_content(step_index: int) -> void:
+	var pbp: Node = _post_battle_phase
+	var training: bool = pbp != null and is_instance_valid(pbp) \
+			and pbp.has_method("is_intro_training_battle") and bool(pbp.is_intro_training_battle())
+	var label := Label.new()
+	label.name = "IntroSkippedStep"
+	label.text = (
+		"Training battle: no post-battle steps are carried out (Compendium p.105)."
+		if training else
+		"The Introductory Campaign skips this step on this turn (Compendium pp.104-109).")
+	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_color_override("font_color", COLOR_TEXT_SECONDARY)
+	step_content.add_child(label)
+	_register_inline_rolls(step_index, 0)
+
+## The screen draws its first step before the backend has run, so redraw it once the
+## run has taken its snapshot of the turn's step list.
+func _on_backend_phase_started() -> void:
+	if current_step < max_steps:
+		_show_current_step()
 
 func _record_backend_step(step_index: int, lines: Array) -> void:
 	## Store what the backend applied, and refresh the step if the player is
@@ -464,6 +517,10 @@ func _connect_backend_signals() -> void:
 
 
 	# Connect all backend signals to UI handlers
+	if post_battle_phase.has_signal("post_battle_phase_started"):
+		if not post_battle_phase.post_battle_phase_started.is_connected(_on_backend_phase_started):
+			post_battle_phase.post_battle_phase_started.connect(_on_backend_phase_started)
+
 	if post_battle_phase.has_signal("payment_received"):
 		if not post_battle_phase.payment_received.is_connected(_on_backend_payment_received):
 			post_battle_phase.payment_received.connect(_on_backend_payment_received)
@@ -565,6 +622,8 @@ func _exit_tree() -> void:
 	# (PostBattlePhase is a child of CampaignPhaseManager autoload — persists across scenes)
 	if _post_battle_phase and is_instance_valid(_post_battle_phase):
 		var _pbp := _post_battle_phase
+		if _pbp.has_signal("post_battle_phase_started") and _pbp.post_battle_phase_started.is_connected(_on_backend_phase_started):
+			_pbp.post_battle_phase_started.disconnect(_on_backend_phase_started)
 		if _pbp.has_signal("payment_received") and _pbp.payment_received.is_connected(_on_backend_payment_received):
 			_pbp.payment_received.disconnect(_on_backend_payment_received)
 		if _pbp.has_signal("quest_progress_updated") and _pbp.quest_progress_updated.is_connected(_on_backend_quest_progress):
@@ -1016,15 +1075,15 @@ func _on_backend_loot_generated(loot: Array) -> void:
 			var item_name = item.get("name", item.get("description", "Unknown Item"))
 			_add_result_to_log("Loot found: %s" % item_name)
 
-	# Auto-complete the inline roll so Next enables (backend already resolved loot)
-	if current_step == 6:  # Step 7: Gather the Loot
-		_increment_inline_roll()
-		# Disable the manual roll button since backend already handled it
-		for child in step_content.get_children():
-			if child is Button and child.text == "Roll on Loot Table (D100)":
-				child.disabled = true
-				child.text = "Loot Rolled (see results)"
-				break
+	# p.120 rolls the Loot Table once (three times at a Quest finale). LootProcessor
+	# rolled and stashed it, so the step shows that result and offers no second roll.
+	var lines: Array = []
+	for item in loot:
+		if item is Dictionary:
+			lines.append(str(item.get("name", item.get("description", "Unknown Item"))))
+	if lines.is_empty():
+		lines.append("No loot was gathered.")
+	_record_backend_step(STEP_LOOT, lines)
 
 func _on_backend_items_consumed(consumed: Array) -> void:
 	## Handle single-use items consumed during battle (Session 47)
@@ -1284,7 +1343,8 @@ func _show_current_step() -> void:
 
 	# Update button states
 	previous_button.disabled = (current_step == 0)
-	roll_button.visible = step.get("requires_roll", false)
+	roll_button.visible = step.get("requires_roll", false) \
+			and not _intro_skips_step(current_step)
 	var is_final: bool = (current_step == max_steps - 1)
 	next_button.visible = not is_final
 	finish_button.visible = is_final
@@ -1359,6 +1419,9 @@ func _update_next_button_state() -> void:
 
 func _add_step_specific_content(step_index: int) -> void:
 	## Add specific content for each step
+	if _intro_skips_step(step_index):
+		_add_intro_skipped_content(step_index)
+		return
 	match step_index:
 		0: # Rival Status
 			_add_rival_status_content()
@@ -1594,6 +1657,14 @@ func _add_loot_content() -> void:
 		label.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 		step_content.add_child(label)
 		_register_inline_rolls(6, 0)
+	elif _backend_resolved.has(STEP_LOOT):
+		var done := Label.new()
+		done.text = "Gather the Loot (Core Rules p.120):"
+		done.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		done.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		step_content.add_child(done)
+		_present_backend_result(STEP_LOOT)
+		_register_inline_rolls(STEP_LOOT, 0)
 	else:
 		var label := Label.new()
 		label.text = "Roll on the Loot Table (Core Rules p.131) for items earned."
@@ -2701,7 +2772,7 @@ func _on_battlefield_finds_d100_pressed(btn: Button = null) -> void:
 	## Core Rules p.121: Single D100 roll on Battlefield Finds table (if Held Field)
 	if btn:
 		btn.disabled = true
-	var roll: int = randi_range(1, 100)
+	var roll: int = _roll_die(100, "Battlefield Find")
 	var find_result: Dictionary = _resolve_battlefield_find(roll)
 
 	var result_label = step_content.find_child("BattlefieldFindsResult")
@@ -2991,7 +3062,7 @@ func _on_generate_loot_pressed(btn: Button = null) -> void:
 		loot_rolls = 3  # Core Rules p.121: "roll three times and claim all"
 
 	for i in range(loot_rolls):
-		var loot_roll: int = randi_range(1, 100)
+		var loot_roll: int = _roll_die(100, "Loot Category")
 		var loot_result: Dictionary = _resolve_main_loot(loot_roll)
 		var description: String = loot_result.get("description", "Nothing")
 		total_loot.append(loot_result)
@@ -3055,7 +3126,7 @@ func _resolve_battlefield_find(roll: int) -> Dictionary:
 				"TRINKET":
 					result["description"] = "Personal trinket (future loot roll on 9+ per planet)"
 				"DEBRIS":
-					var debris_credits: int = randi_range(1, 3)
+					var debris_credits: int = _roll_die(3, "Debris Credits")
 					result["credits"] = debris_credits
 					result["description"] = "Debris: %d credits" % debris_credits
 				"VITAL_INFO":
@@ -3124,7 +3195,7 @@ func _resolve_main_loot(roll: int) -> Dictionary:
 ## came out 50/50. `loot_tables.json` now carries the per-item ranges and
 ## `LootTableResolver.roll_item_in()` is the one place they are rolled.
 func _roll_on_subtable(subtable_data: Array) -> String:
-	var sub_roll: int = randi_range(1, 100)
+	var sub_roll: int = _roll_die(100, "Loot Subtable")
 	for entry in subtable_data:
 		var r: Array = entry.get("roll_range", [0, 0])
 		if sub_roll >= r[0] and sub_roll <= r[1]:
@@ -3137,7 +3208,7 @@ func _roll_on_subtable(subtable_data: Array) -> String:
 ## Resolve the Rewards subtable (Core Rules p.133) — credits, rumors, story points
 func _resolve_rewards_subtable(result: Dictionary) -> Dictionary:
 	var rewards_data: Array = LootSystemConstants.get_rewards_subtable_data()
-	var sub_roll: int = randi_range(1, 100)
+	var sub_roll: int = _roll_die(100, "Loot Rewards Subtable")
 	for entry in rewards_data:
 		var r: Array = entry.get("roll_range", [0, 0])
 		if sub_roll >= r[0] and sub_roll <= r[1]:
@@ -3172,15 +3243,31 @@ func _resolve_rewards_subtable(result: Dictionary) -> Dictionary:
 func _roll_credits_dice(dice_str: String) -> int:
 	match dice_str:
 		"1d6":
-			return randi_range(1, 6)
+			return _roll_die(6, "Loot Credits")
 		"1d3":
-			return randi_range(1, 3)
+			return _roll_die(3, "Loot Credits")
 		"1d6+2":
-			return randi_range(1, 6) + 2
+			return _roll_die(6, "Loot Credits") + 2
 		"2d6_pick_highest":
-			return maxi(randi_range(1, 6), randi_range(1, 6))
+			return maxi(_roll_die(6, "Loot Credits"), _roll_die(6, "Loot Credits"))
 		_:
-			return randi_range(1, 6)
+			return _roll_die(6, "Loot Credits")
+
+
+## The screen's own Finds and Loot rolls, through DiceManager so a QA tester can force
+## them with the same keys the backend uses. They run only when the backend did not
+## resolve the step (see _backend_resolved), so a forced value reaches one roll.
+func _roll_die(sides: int, context: String) -> int:
+	var dm: Node = get_node_or_null("/root/DiceManager") if is_inside_tree() else null
+	if dm:
+		match sides:
+			3:
+				return int(dm.roll_d3(context))
+			6:
+				return int(dm.roll_d6(context))
+			100:
+				return int(dm.roll_d100(context))
+	return randi_range(1, sides)
 
 
 ## ==========================================

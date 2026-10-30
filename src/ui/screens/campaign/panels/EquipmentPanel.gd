@@ -1679,7 +1679,8 @@ func _on_savvy_swap_pressed(equipment_index: int) -> void:
 	var ht_table: Array = _gear_db_cache.get("weapon_tables", {}).get("high_tech_weapon", [])
 	if ht_table.is_empty():
 		return
-	var roll: int = randi_range(1, 100)
+	var roll: int = int(dice_manager.roll_d100("High-Tech Weapon")) if dice_manager \
+		else randi_range(1, 100)
 	for entry in ht_table:
 		var rr: Array = entry.get("roll_range", [0, 0])
 		if roll >= rr[0] and roll <= rr[1]:
@@ -1803,65 +1804,6 @@ func _find_starting_rolls_in_table(table: Array, name: String) -> Array:
 			if name_lower.replace(" ", "_") == entry_id:
 				return entry.get("starting_rolls", [])
 	return []
-
-func _lookup_credits_dice_for_character(crew_member) -> Array[Dictionary]:
-	## Look up credits_dice contributions from background + motivation + class
-	## Returns array of {source: String, dice: String} for credits breakdown
-	_ensure_gear_db()
-
-	var contributions: Array[Dictionary] = []
-	var bg_name: String = ""
-	var mot_name: String = ""
-	var cls_name: String = ""
-
-	if "background" in crew_member:
-		bg_name = str(crew_member.background) if crew_member.background else ""
-		mot_name = str(crew_member.motivation) if "motivation" in crew_member and crew_member.motivation else ""
-		cls_name = str(crew_member.character_class) if "character_class" in crew_member and crew_member.character_class else ""
-	elif crew_member is Dictionary:
-		bg_name = str(crew_member.get("background", ""))
-		mot_name = str(crew_member.get("motivation", ""))
-		cls_name = str(crew_member.get("character_class", ""))
-
-	var bg_dice: String = _find_credits_dice_in_table(
-		_gear_db_cache.get("backgrounds", []), bg_name)
-	if not bg_dice.is_empty():
-		contributions.append({"source": "background", "dice": bg_dice, "name": bg_name})
-
-	var mot_dice: String = _find_credits_dice_in_table(
-		_gear_db_cache.get("motivations", []), mot_name)
-	if not mot_dice.is_empty():
-		contributions.append({"source": "motivation", "dice": mot_dice, "name": mot_name})
-
-	var cls_dice: String = _find_credits_dice_in_table(
-		_gear_db_cache.get("classes", []), cls_name)
-	if not cls_dice.is_empty():
-		contributions.append({"source": "class", "dice": cls_dice, "name": cls_name})
-
-	return contributions
-
-func _find_credits_dice_in_table(table: Array, name: String) -> String:
-	## Find credits_dice for a given name in a gear_database.json table array
-	if name.is_empty():
-		return ""
-	var name_lower: String = name.to_lower().strip_edges()
-	for entry in table:
-		if entry is Dictionary:
-			var entry_name: String = entry.get("name", "").to_lower()
-			var entry_id: String = entry.get("id", "").to_lower()
-			if entry_name == name_lower or entry_id == name_lower or name_lower.replace(" ", "_") == entry_id:
-				var resources: Dictionary = entry.get("resources", {})
-				return resources.get("credits_dice", "")
-	return ""
-
-func _roll_credits_dice(dice_str: String) -> int:
-	## Roll credits dice string like "1d6" or "2d6"
-	var lower: String = dice_str.to_lower().strip_edges()
-	if lower == "2d6":
-		return randi_range(1, 6) + randi_range(1, 6)
-	elif lower == "1d6" or lower == "d6":
-		return randi_range(1, 6)
-	return 0
 
 var _equipment_db_cache: Dictionary = {}
 
@@ -2324,15 +2266,6 @@ func _force_display_update() -> void:
 		pass
 
 # --- Additions to EquipmentPanel.gd ---
-
-## Look up background credit bonus from character_creation_tables/background_table.json
-## Returns "1D6", "2D6", or "" (no bonus) per Core Rules pp.24-27
-func _get_background_credits_roll(background_name: String) -> String:
-	## Look up credits_dice for a background name from gear_database.json
-	## Returns "1d6", "2d6", or "" (no bonus)
-	_ensure_gear_db()
-	return _find_credits_dice_in_table(
-		_gear_db_cache.get("backgrounds", []), background_name)
 
 func _validate_and_complete() -> void:
 	local_equipment_data.equipment = generated_equipment

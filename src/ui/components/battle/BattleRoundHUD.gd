@@ -65,6 +65,10 @@ var _casualties_this_round: int = 0
 
 # Session 48: Battle context for contextual phase reminders
 var _battle_context: Dictionary = {}
+## The book this battle is fought under ("core", "bug_hunt", "planetfall"). Battle
+## Events (Core Rules pp.116-117) are in the Core Rules only, and Bug Hunt has no
+## morale at all (p.200: "Nowhere to run").
+var _rules_mode: String = "core"
 
 ## AI type descriptions for contextual enemy reminder (Core Rules pp.94-103)
 const AI_BRIEF: Dictionary = {
@@ -135,7 +139,15 @@ func _on_tracker_round_changed(new_round: int) -> void:
 
 func _on_tracker_battle_event(round: int, event_type: String) -> void:
 	## Handle battle event trigger
+	if _rules_mode != "core":
+		return
 	_show_event_indicator(round, event_type)
+
+
+func set_rules_mode(mode: String) -> void:
+	_rules_mode = mode
+	_check_battle_event_indicator()
+	_update_reminder_text()
 
 func _on_tracker_battle_started() -> void:
 	## Handle battle start
@@ -390,7 +402,8 @@ func _update_phase_display() -> void:
 
 func _check_battle_event_indicator() -> void:
 	## Show/hide battle event indicator
-	if _current_round in BattleRoundTrackerClass.BATTLE_EVENT_ROUNDS:
+	if _rules_mode == "core" \
+			and _current_round in BattleRoundTrackerClass.BATTLE_EVENT_ROUNDS:
 		_show_event_indicator(_current_round, "random_event")
 	else:
 		_hide_event_indicator()
@@ -460,6 +473,17 @@ const PHASE_REMINDERS: Dictionary = {
 	4: "If the enemy lost ANY figures this round, roll 1D6 per figure lost for Morale. Then any end-of-round condition rolls, Battle Event on R2/R4, and check the objective.",
 }
 
+## The end of a round in the other books. Bug Hunt has no morale ("Nowhere to run",
+## p.200) and ends each round with its Spawn Points (p.199). Planetfall's Tactical enemies
+## test Panic when each one falls, "immediately afterwards", and Lifeforms and Sleepers
+## never do (p.40). Neither book has Battle Events.
+const END_PHASE_BY_MODE := {
+	"bug_hunt": "No morale in Bug Hunt (p.200). Resolve the Spawn Points (p.199), then"
+		+ " check the objective.",
+	"planetfall": "Panic is tested as each Tactical enemy falls, not here (p.40). Resolve"
+		+ " any end-of-round rolls, then check the objective.",
+}
+
 func _update_reminder_text() -> void:
 	if not _reminder_label:
 		return
@@ -510,13 +534,15 @@ func _update_auto_prompt() -> void:
 		3:  # SLOW_ACTIONS
 			prompt_text = "Remaining crew act now."
 		4:  # END_PHASE
-			if _casualties_this_round > 0:
+			if _rules_mode != "core":
+				prompt_text = str(END_PHASE_BY_MODE.get(_rules_mode, ""))
+			elif _casualties_this_round > 0:
 				# Core Rules p.114: one die PER figure the enemy lost this round.
 				prompt_text = "Morale: roll %dD6 (enemy lost %d figure%s). Each die in the Bail range removes one enemy, closest to their edge first." % [
 					_casualties_this_round,
 					_casualties_this_round,
 					"" if _casualties_this_round == 1 else "s"]
-			if _current_round == 2 or _current_round == 4:
+			if _rules_mode == "core" and (_current_round == 2 or _current_round == 4):
 				if not prompt_text.is_empty():
 					prompt_text += " "
 				prompt_text += "Roll d100 for Battle Event (Core Rules p.116)."
@@ -567,6 +593,8 @@ func _get_contextual_reminder() -> String:
 	## Generate phase reminder text with battle-specific context.
 	## Max 2 lines: base instruction + one contextual line.
 	var base: String = PHASE_REMINDERS.get(_current_phase, "")
+	if _current_phase == 4 and END_PHASE_BY_MODE.has(_rules_mode):
+		base = str(END_PHASE_BY_MODE[_rules_mode])
 
 	if _battle_context.is_empty():
 		return base

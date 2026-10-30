@@ -64,7 +64,6 @@ func _roll_intrigue(ctx: PostBattleContextClass) -> void:
 			"title": "Something the bounty hunters knew",
 			"description": "Intrigue: rolled %d%s — a Quest Rumor (Core Rules p.99)."
 				% [roll, " +1 for a Lieutenant or Unique" if killed_notable else ""],
-			"turn": int(ctx.battle_result.get("turn", 0)),
 			"tags": ["rumor", "quest"],
 		})
 
@@ -121,7 +120,6 @@ func _pay_out_benefits(ctx: PostBattleContextClass) -> void:
 			"title": "Patron benefits paid",
 			"description": "The job came with more than the fee — %s (Core Rules p.83)."
 				% ", ".join(paid),
-			"turn": int(ctx.battle_result.get("turn", 0)),
 			"tags": ["patron", "reward"],
 		})
 
@@ -334,7 +332,6 @@ func _apply_corporate_blacklist(ctx: PostBattleContextClass) -> void:
 			"description": "The job failed on a Corporate State world. The crew is "
 				+ "blacklisted here and can no longer find Patrons on this planet "
 				+ "(Core Rules p.74).",
-			"turn": int(ctx.battle_result.get("turn", 0)),
 			"tags": ["patron", "world_trait"],
 		})
 
@@ -404,7 +401,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 				"title": "One-time contract closed",
 				"description": "The job is done and the contact ends with it — a "
 					+ "One-time Contract patron cannot be retained (Core Rules p.119).",
-				"turn": int(ctx.battle_result.get("turn", 0)),
 				"tags": ["patron"],
 			})
 
@@ -451,7 +447,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 					"title": "A patron turns on you",
 					"description": "%s took the failure personally. Vengeful: they are now a Rival (Core Rules p.84)."
 						% vengeful_name,
-					"turn": int(ctx.battle_result.get("turn", 0)),
 					"tags": ["patron", "rival", "defeat"],
 				})
 
@@ -467,7 +462,6 @@ func process_patron_status(ctx: PostBattleContextClass) -> Array[String]:
 					"title": "Patron contract failed",
 					"description": "Failing an accepted job removed this Patron "
 						+ "from your known contacts (Core Rules p.119, errata v1.06).",
-					"turn": int(ctx.battle_result.get("turn", 0)),
 					"tags": ["patron", "defeat"],
 				})
 
@@ -561,7 +555,6 @@ func process_quest_progress(ctx: PostBattleContextClass) -> int:
 				"title": "Quest Concluded",
 				"description": "The crew fought the final battle of their Quest."
 					+ (" Quests completed: %d." % completed if completed > 0 else ""),
-				"turn": int(ctx.battle_result.get("turn", 0)),
 				"tags": ["quest", "milestone"],
 				"auto_generated": true,
 				"mood": "triumphant",

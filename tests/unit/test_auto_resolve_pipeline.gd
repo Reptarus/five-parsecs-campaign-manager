@@ -197,3 +197,53 @@ func test_a_sick_bay_member_is_excluded_from_the_next_deployment() -> void:
 	assert_array(ids).override_failure_message(
 		"a Sick Bay crew member is still deployable: %s" % str(ids)
 	).is_equal(["c2"])
+
+
+# --- Sprint 7b 5P-1: the Injury Table decides who dies -------------------------
+
+const CTCScript = preload("res://src/ui/screens/campaign/CampaignTurnController.gd")
+const Router = preload("res://src/core/battle/BattleResolverRouter.gd")
+
+
+## Core Rules p.121: "Any character that became a casualty in the battle must roll on
+## the Injury Table" (p.122 rows 1-15 are the deaths). The map path used to roll a D6
+## first and record a 1 as killed outright, so that member skipped the Injury Table.
+## Forty downed members: an old-style D6 misses every 1 about 0.07% of the time.
+func test_every_downed_member_rolls_on_the_injury_table() -> void:
+	var crew: Array = []
+	var finals: Array = []
+	for i in 40:
+		crew.append({"character_id": "c%d" % i, "character_name": "C%d" % i})
+		finals.append({"is_alive": false})
+	var resolved: Dictionary = {"success": false, "crew_units_final": finals}
+	var ctc: Node = auto_free(CTCScript.new())
+	ctc._map_resolver_crew_outcome(resolved, crew)
+	assert_int((resolved.crew_injuries_data as Array).size()).override_failure_message(
+		"p.121: every casualty rolls on the Injury Table").is_equal(40)
+	assert_array(resolved.crew_casualties_data).override_failure_message(
+		"no one is killed before the Injury Table is rolled").is_empty()
+	assert_int((resolved.crew_participants as Array).size()).is_equal(40)
+
+
+## Both auto-resolve buttons roll their combat dice through DiceManager, so a tester can
+## force them (QAScenarioDialog "Auto-resolve Combat").
+func test_the_auto_resolve_dice_go_through_dice_manager() -> void:
+	var dm: Node = get_tree().root.get_node_or_null("/root/DiceManager")
+	assert_object(dm).is_not_null()
+	dm.clear_forced_results()
+	# Five forced 1s: a roller that ignored DiceManager returns all five 1/6^5 of the time.
+	for _i in 5:
+		dm.queue_forced_result(Router.DICE_CONTEXT, 1)
+	var roller: Callable = Router.dice_roller(dm)
+	var rolls: Array = []
+	for _i in 5:
+		rolls.append(int(roller.call()))
+	dm.clear_forced_results()
+	assert_array(rolls).contains_exactly([1, 1, 1, 1, 1])
+	var ctc_src: String = FileAccess.get_file_as_string(
+		"res://src/ui/screens/campaign/CampaignTurnController.gd")
+	var tbui_src: String = FileAccess.get_file_as_string(
+		"res://src/ui/screens/battle/TacticalBattleUI.gd")
+	assert_str(ctc_src).contains("var dice_roller: Callable = BattleResolverRouter.dice_roller(")
+	assert_str(tbui_src).contains(
+		"var dice_roller: Callable = BattleResolverRouterClass.dice_roller(")

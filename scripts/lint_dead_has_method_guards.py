@@ -149,7 +149,6 @@ ALLOWLIST: dict[str, str] = {
     "set_equipment": _DUCK,
     "set_gear": _DUCK,
     "set_ship_stash": _DUCK,
-    "set_situation_modifier": _DUCK,
     "set_weapons": _DUCK,
     "transfer_from_ship_stash": _DUCK,
     "update_navigation_state": _DUCK,

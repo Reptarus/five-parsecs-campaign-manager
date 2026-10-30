@@ -37,6 +37,8 @@ const CHOICE_TITLES: PackedStringArray = [
 
 
 const AdvancementSystemRef = preload("res://src/core/character/advancement/AdvancementSystem.gd")
+const PostBattleContextScript = preload("res://src/core/campaign/phases/post_battle/PostBattleContext.gd")
+const InjuryProcessorScript = preload("res://src/core/campaign/phases/post_battle/InjuryProcessor.gd")
 
 static func _savvy_of(member) -> int:
 	if member is Dictionary:
@@ -78,10 +80,100 @@ static func _best_savvy(crew: Array):
 ## rolling 1D6 inline.
 ##
 ## The Savvy stat itself is added by the caller, exactly as before.
-static func _savvy_test_die(character) -> int:
+static func _savvy_test_die(character, context: String = "Travel Savvy Test") -> int:
 	if character != null and AdvancementSystemRef.member_has_training(character, "pilot"):
-		return maxi(randi_range(1, 6), randi_range(1, 6)) + 2
-	return randi_range(1, 6)
+		return maxi(_d6(context), _d6(context)) + 2
+	return _d6(context)
+
+
+## Every die in this file goes through DiceManager, so QA can force it. No context
+## here contains "Travel Event", the key that forces the table roll itself, so a
+## value queued for the table is never eaten by a roll inside an event.
+##
+## This class is RefCounted, so it reaches the autoload through the main loop: a
+## bare /root lookup from here errors and aborts the event. randi_range is the
+## fallback only when the autoload is absent (a test outside a tree).
+static func _d6(context: String) -> int:
+	var dice: Node = _dice_manager()
+	return int(dice.roll_d6(context)) if dice else randi_range(1, 6)
+
+
+## A uniform 1D3 through the forceable D6: ceil(1D6 / 2).
+static func _d3(context: String) -> int:
+	return int(ceil(_d6(context) / 2.0))
+
+
+## WHICH crew member or item a random result lands on, through the D100 so QA can
+## force it: entry (roll - 1) % size, the way the Bug Hunt resolver picks.
+static func _pick(pool: Array, context: String) -> Variant:
+	if pool.is_empty():
+		return null
+	if pool.size() == 1:
+		return pool[0]
+	var dice: Node = _dice_manager()
+	var roll: int = int(dice.roll_d100(context)) if dice else randi_range(1, 100)
+	return pool[(roll - 1) % pool.size()]
+
+
+static func _dice_manager() -> Node:
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		return (loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+	return null
+
+
+static func _member_id(member) -> String:
+	if member is Dictionary:
+		return str(member.get("character_id", member.get("id", "")))
+	if member != null and "character_id" in member:
+		return str(member.character_id)
+	return ""
+
+
+## Core Rules p.70 Navigation trouble: "a random crew member must roll on the
+## Injury Table". It is the post-battle step 8 roll (p.122), run through the same
+## processor, so the Bot table, Feel Great, a Nano-doc ("no matter the source",
+## p.58), the Luck death save and the equipment rows all apply exactly as they do
+## after a battle. This used to put the victim in Sick Bay for one turn, which is
+## in neither book: a roll of 1-15 kills, and most results last longer than a turn.
+static func _injury_table_roll(campaign, victim, out: Dictionary) -> void:
+	var who: String = _name_of(victim)
+	var crew_id: String = _member_id(victim)
+	if campaign == null or crew_id.is_empty():
+		out["applied"].append("%s must roll on the Injury Table (Core Rules p.122)" % who)
+		return
+	var ctx = PostBattleContextScript.new()
+	ctx.campaign = campaign
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		var root: Node = (loop as SceneTree).root
+		ctx.dice_manager = root.get_node_or_null("/root/DiceManager")
+		ctx.game_state_manager = root.get_node_or_null("/root/GameStateManager")
+		ctx.game_state = root.get_node_or_null("/root/GameState")
+		ctx.campaign_journal = root.get_node_or_null("/root/CampaignJournal")
+		ctx.equipment_manager = root.get_node_or_null("/root/EquipmentManager")
+		ctx.dlc_manager = root.get_node_or_null("/root/DLCManager")
+	var turn: int = 0
+	if "progress_data" in campaign:
+		turn = int(campaign.progress_data.get("turns_played", 0)) + 1
+	ctx.battle_result = {"turn": turn}
+	var injury: Dictionary = InjuryProcessorScript.new().process_single_injury(
+		ctx, {"crew_id": crew_id})
+	out["injury"] = injury
+	if injury.is_empty():
+		out["applied"].append("%s must roll on the Injury Table (Core Rules p.122)" % who)
+		return
+	var kind: String = str(injury.get("name", injury.get("type", "")))
+	kind = kind.replace("_", " ").to_lower()
+	if bool(injury.get("is_fatal", false)):
+		out["applied"].append(
+			"%s was killed when life support failed (Injury Table: %s)" % [who, kind])
+	elif str(injury.get("type", "")) == "ignored" or bool(injury.get("luck_death_save", false)):
+		out["applied"].append("%s: %s" % [who, str(injury.get("description", ""))])
+	else:
+		out["applied"].append(
+			"%s injured by life-support failure (Injury Table: %s, %d turn(s) to recover)"
+			% [who, kind, int(injury.get("recovery_turns", 0))])
 
 
 static func _add_credits(campaign, amount: int) -> void:
@@ -220,7 +312,7 @@ static func _damage_random_item(member) -> String:
 		equipment = member.equipment
 	if equipment.is_empty():
 		return ""
-	var entry = equipment[randi() % equipment.size()]
+	var entry = _pick(equipment, "Travel Item Pick")
 	var item_name: String = str(entry.get("name", "")) if entry is Dictionary else str(entry)
 	if item_name.is_empty():
 		return ""
@@ -318,7 +410,7 @@ static func _resolve_asteroids(campaign, crew: Array, choice: String) -> Diction
 	## to succeed each time. Each failed roll inflicts 1D6 Hull Point damage."
 	var out: Dictionary = _blank_report()
 	if choice == "avoid":
-		var avoid_roll: int = randi_range(1, 6)
+		var avoid_roll: int = _d6("Travel Asteroids Avoid")
 		if avoid_roll >= 5:
 			out["applied"].append("Charted a safe path (rolled %d, needed 5+)" % avoid_roll)
 			out["reroll"] = true
@@ -333,7 +425,7 @@ static func _resolve_asteroids(campaign, crew: Array, choice: String) -> Diction
 	for _attempt in range(3):
 		if _savvy_test_die(pilot) + savvy < 4:
 			failures += 1
-			damage += randi_range(1, 6)
+			damage += _d6("Travel Hull Damage")
 	if failures == 0:
 		out["applied"].append("%s threaded the field cleanly" % _name_of(pilot))
 	else:
@@ -412,10 +504,10 @@ static func _resolve_distress_call(campaign, crew: Array, choice: String) -> Dic
 		out["applied"].append("You stayed on course")
 		return out
 
-	var d6: int = randi_range(1, 6)
+	var d6: int = _d6("Travel Distress Call")
 	match d6:
 		1:
-			out["hull_damage"] = randi_range(1, 6) + 1
+			out["hull_damage"] = _d6("Travel Hull Damage") + 1
 			out["applied"].append(
 				"The drive detonated as you closed — %d Hull Points of damage"
 				% out["hull_damage"])
@@ -442,7 +534,7 @@ static func _resolve_distress_call(campaign, crew: Array, choice: String) -> Dic
 					"%s saved their drive — 3 Gear Table rolls and 1 Gadget Table roll owed"
 					% _name_of(engineer))
 			else:
-				out["hull_damage"] = randi_range(1, 6) + 1
+				out["hull_damage"] = _d6("Travel Hull Damage") + 1
 				out["applied"].append(
 					"The drive detonated — %d Hull Points of damage" % out["hull_damage"])
 	return out
@@ -455,7 +547,7 @@ static func _resolve_patrol_ship(campaign) -> Dictionary:
 	var out: Dictionary = _blank_report()
 	var confiscate: int = 0
 	for _d in range(2):
-		confiscate += maxi(0, randi_range(1, 6) - 3)
+		confiscate += maxi(0, _d6("Travel Patrol Ship") - 3)
 
 	if campaign != null and "progress_data" in campaign:
 		campaign.progress_data["next_world_cannot_be_invaded"] = true
@@ -489,7 +581,7 @@ static func _resolve_escape_pod(campaign, crew: Array, choice: String) -> Dictio
 		out["applied"].append("You left the pod drifting")
 		return out
 
-	var d6: int = randi_range(1, 6)
+	var d6: int = _d6("Travel Escape Pod")
 	match d6:
 		1:
 			# "They're a wanted criminal." Letting them go is the default read:
@@ -501,7 +593,7 @@ static func _resolve_escape_pod(campaign, crew: Array, choice: String) -> Dictio
 				"A wanted criminal — released on arrival. The next new Rival can be"
 				+ " removed on a 1D6 roll of 4+ (p.71)")
 		2, 3:
-			var credits: int = randi_range(1, 3)
+			var credits: int = _d3("Travel Pod Credits")
 			_add_credits(campaign, credits)
 			out["applied"].append(
 				"Rescued for %d credits, plus a Loot Table roll on arrival" % credits)
@@ -597,12 +689,8 @@ static func apply(campaign, event: Dictionary, choices: Dictionary = {}) -> Dict
 			var hull: int = int(ship.get("hull_points", 0))
 			var max_hull: int = int(ship.get("max_hull", hull))
 			if max_hull > 0 and hull < max_hull and not crew.is_empty():
-				var victim = crew[randi() % crew.size()]
-				_bump(victim, "recovery_turns", 1)
-				if victim is Dictionary:
-					victim["in_sick_bay"] = true
-				out["applied"].append(
-					"%s injured by life-support failure" % _name_of(victim))
+				var victim = _pick(crew, "Travel Crew Pick: Navigation trouble")
+				_injury_table_roll(campaign, victim, out)
 
 		"Deep Space Wreckage":
 			# p.70: "you get 2 rolls on the Gear Subtable. Both items are damaged
@@ -642,7 +730,7 @@ static func apply(campaign, event: Dictionary, choices: Dictionary = {}) -> Dict
 			# p.71: "A crew member gets Injured ... They must rest up for one
 			# campaign turn ... and one item they carry is damaged."
 			if not crew.is_empty():
-				var hurt = crew[randi() % crew.size()]
+				var hurt = _pick(crew, "Travel Crew Pick: Accident")
 				_bump(hurt, "recovery_turns", 1)
 				if hurt is Dictionary:
 					hurt["in_sick_bay"] = true
@@ -684,9 +772,14 @@ static func apply(campaign, event: Dictionary, choices: Dictionary = {}) -> Dict
 			# 3-4, a random crew member earns +2 XP and a second random crew
 			# member earns +1 XP. On a 5-6, three random crew each earn +1 XP."
 			if not crew.is_empty():
-				var d6: int = randi_range(1, 6)
-				var shuffled: Array = crew.duplicate()
-				shuffled.shuffle()
+				var d6: int = _d6("Travel Read a Book")
+				# Distinct random crew, drawn in order through the forceable pick.
+				var shuffled: Array = []
+				var pool: Array = crew.duplicate()
+				while not pool.is_empty() and shuffled.size() < 3:
+					var who = _pick(pool, "Travel Crew Pick: Time to Read a Book")
+					shuffled.append(who)
+					pool.erase(who)
 				if d6 <= 2:
 					_bump(shuffled[0], "experience", 3)
 					out["applied"].append("%s earned +3 XP" % _name_of(shuffled[0]))

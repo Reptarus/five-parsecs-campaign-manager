@@ -75,13 +75,17 @@ const DATA_DIR := "res://data/bug_hunt"
 const RESOLVER_PATH := "res://src/core/campaign/BugHuntPostBattleResolver.gd"
 const NORMALIZER_PATH := "res://src/core/battle/BugHuntBattleResultNormalizer.gd"
 
-## Keys whose reader is deliberately NOT a bug-hunt-named file. One entry, measured.
+## Keys whose reader is deliberately NOT a bug-hunt-named file. Two entries, measured.
 ## CompendiumDataProvider registers the key as `"json_key": "<key>"` and resolves it
 ## with `cat.get("json_key", "")` (:250), so for a named reader that registration form
 ## counts as the read. It is accepted HERE only, never in the general census.
+## (2026-10-30) CheatSheetSections renders the battle rules for the Reference tab of
+## every battle mode, so the Bug Hunt rules are read from a file the path filter misses.
 const NAMED_READERS := {
 	"bug_hunt_enemies.json::enemy_table":
 		"res://src/core/compendium/CompendiumDataProvider.gd",
+	"bug_hunt_combat_rules.json::sections":
+		"res://src/ui/components/battle/CheatSheetSections.gd",
 }
 
 ## "<file>.json::<section key>" -> why nothing reads it. Read off the data, 2026-09-20.
@@ -249,7 +253,9 @@ func test_the_source_index_and_the_data_directory_are_both_populated() -> void:
 	assert_int(index.size()).is_greater(400)
 
 	var files := _bug_hunt_data_files()
-	assert_int(files.size()).is_equal(15)
+	# 16 since 2026-10-30: bug_hunt_combat_rules.json (pp.173-180, pp.198-201), the battle
+	# rules the Reference tab prints in a Bug Hunt battle.
+	assert_int(files.size()).is_equal(16)
 
 	# Comment stripping must remove comments and KEEP strings, or note (a) is not true
 	# of the code that implements it. Proven on a line that is both.

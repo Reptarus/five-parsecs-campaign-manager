@@ -39,7 +39,7 @@ layout_mode = 2
 
 [node name="InputsLabel" type="Label" parent="CalculatorLayout/InputSection"]
 layout_mode = 2
-text = "Modifiers"
+text = "Inputs"
 horizontal_alignment = 1
 
 [node name="CombatRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
@@ -58,34 +58,50 @@ min_value = -3.0
 max_value = 6.0
 value = 1.0
 
-[node name="CoverRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+[node name="ShotRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
 layout_mode = 2
 
-[node name="CoverLabel" type="Label" parent="CalculatorLayout/InputSection/CoverRow"]
+[node name="ShotLabel" type="Label" parent="CalculatorLayout/InputSection/ShotRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Target Cover:"
+text = "Shot:"
 
-[node name="TargetCover" type="SpinBox" parent="CalculatorLayout/InputSection/CoverRow"]
+[node name="ShotOption" type="OptionButton" parent="CalculatorLayout/InputSection/ShotRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+clip_text = true
+fit_to_longest_item = false
+
+[node name="DamageRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+layout_mode = 2
+
+[node name="DamageLabel" type="Label" parent="CalculatorLayout/InputSection/DamageRow"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+text = "Weapon Damage:"
+
+[node name="WeaponDamage" type="SpinBox" parent="CalculatorLayout/InputSection/DamageRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 max_value = 4.0
 
-[node name="RangeRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
+[node name="ToughnessRow" type="HBoxContainer" parent="CalculatorLayout/InputSection"]
 layout_mode = 2
 
-[node name="RangeLabel" type="Label" parent="CalculatorLayout/InputSection/RangeRow"]
+[node name="ToughnessLabel" type="Label" parent="CalculatorLayout/InputSection/ToughnessRow"]
 custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
-text = "Range Modifier:"
+text = "Toughness:"
 
-[node name="RangeModifier" type="SpinBox" parent="CalculatorLayout/InputSection/RangeRow"]
+[node name="TargetToughness" type="SpinBox" parent="CalculatorLayout/InputSection/ToughnessRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-min_value = -2.0
-max_value = 2.0
+min_value = 1.0
+max_value = 6.0
+value = 4.0
 
 [node name="HSeparator3" type="HSeparator" parent="CalculatorLayout"]
 layout_mode = 2

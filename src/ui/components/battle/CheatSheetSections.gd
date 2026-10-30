@@ -45,6 +45,17 @@ const NEUTRAL_CHARACTERS_PATH := "res://data/RulesReference/NeutralCharacters.js
 ## Planetfall pp.26-40 and pp.32-33, rendered for a Planetfall battle.
 const PF_COMBAT_PATH := "res://data/planetfall/combat_rules.json"
 const PF_AI_PATH := "res://data/planetfall/ai_enemy_variations.json"
+## Bug Hunt pp.173-180 and pp.198-201, and the p.179 weapon table, for a Bug Hunt battle.
+const BH_COMBAT_PATH := "res://data/bug_hunt/bug_hunt_combat_rules.json"
+const BH_WEAPONS_PATH := "res://data/bug_hunt/bug_hunt_weapons.json"
+const PF_ARMORY_PATH := "res://data/planetfall/armory.json"
+
+## Every data file this module renders, parsed once per process. The battle screen
+## rebuilds the Reference tab on every battle, and these files never change at runtime.
+## ⚠ A static var is safe here only because this script extends a NATIVE class
+## (godot#117975, test_no_static_vars_on_script_subclasses.gd). The cached Dictionary is
+## handed out as-is, so every caller must treat it as READ-ONLY.
+static var _json_cache: Dictionary = {}
 
 const COLOR_HEAD := "#4FC3F7"
 const COLOR_WARN := "#D97706"
@@ -620,7 +631,7 @@ Rumors is fine. These are the book\'s own ceilings.[/color]"""
 ## battle's Reference drawer printed the Core Rules sheet, Luck and Seize the Initiative
 ## included. Returns [{title, content}]; a section whose data is missing is left out.
 static func planetfall_sections() -> Array:
-	var combat: Dictionary = _pf_json(PF_COMBAT_PATH)
+	var combat: Dictionary = _json(PF_COMBAT_PATH)
 	var diff: Dictionary = combat.get("differences_from_5pfh", {})
 	var out: Array = []
 	var add := func(title: String, content: String) -> void:
@@ -704,6 +715,7 @@ static func planetfall_sections() -> Array:
 	if str(diff.get("no_luck_stat", "")) != "":
 		add.call("Imported Characters (Planetfall p.26)", "  %s" % str(diff.no_luck_stat))
 
+	add.call("Weapons (Planetfall pp.76-79)", _weapons_table(PF_ARMORY_PATH, "planetfall"))
 	add.call("AI Enemy Variations (optional rule, Planetfall pp.32-33)", _pf_ai_variations())
 	return out
 
@@ -711,7 +723,7 @@ static func planetfall_sections() -> Array:
 ## pp.32-33: "roll 1D6 at the start of the Enemy Actions Phase". Lifeforms and Tactical
 ## Enemies only, "It does not apply to the Slyn or Sleeper enemy types."
 static func _pf_ai_variations() -> String:
-	var ai: Dictionary = _pf_json(PF_AI_PATH)
+	var ai: Dictionary = _json(PF_AI_PATH)
 	if ai.is_empty():
 		return ""
 	var out := "[color=%s]Optional, battle by battle. Lifeforms and Tactical Enemies only, " \
@@ -742,10 +754,84 @@ static func _pf_roll(roll: Variant) -> String:
 	return str(int(roll))
 
 
-static func _pf_json(path: String) -> Dictionary:
+## A Bug Hunt battle is fought under the Bug Hunt rules, not the Core Rules. There is no
+## morale ("Nowhere to run", p.200), a 5-6 armor save knocks the trooper back instead of
+## leaving them Stunned (p.178), a roll equal to Toughness Wounds (p.178), and the squad
+## carries its own fifteen weapons (p.179). Until 2026-10-30 the battle screen's Reference
+## tab printed the Core Rules sheet in a Bug Hunt battle, Morale (p.114) and the natural-6
+## casualty included. Returns [{title, content}] like planetfall_sections(); a section
+## whose data is missing is left out.
+static func bug_hunt_sections() -> Array:
+	var out: Array = []
+	var add := func(title: String, content: String) -> void:
+		if content.strip_edges() != "":
+			out.append({"title": title, "content": content.strip_edges()})
+	for section: Variant in _json(BH_COMBAT_PATH).get("sections", []):
+		if not (section is Dictionary):
+			continue
+		var body := ""
+		for line: Variant in (section as Dictionary).get("lines", []):
+			body += "  - %s\n" % str(line)
+		add.call("%s (Bug Hunt %s)" % [str(section.get("title", "")),
+			str(section.get("pages", ""))], body)
+	add.call("Weapons (Bug Hunt p.179)", _weapons_table(BH_WEAPONS_PATH, "bug_hunt"))
+	return out
+
+
+## p.179, printed the way the page prints it. The data stores 0 where the page prints a
+## dash: a melee weapon's range is "Brawl" and it has no Shots, and a ranged weapon with
+## no Shots (the Flash grenade and the Mounted launcher) has no Damage either.
+## A weapon table from a mode's weapons file, printed the way that book prints it.
+## Bug Hunt p.179 shows Damage "–" for a weapon with no Shots (its grenades and the
+## launcher). Planetfall prints Damage signed whatever the Shots (the Flame projector is
+## Shots "–", Damage "+1", p.77) and Shots "Special" for its Area weapon, the Bio-gun
+## (p.78).
+static func _weapons_table(path: String, book: String) -> String:
+	var data: Dictionary = _json(path)
+	var planetfall: bool = book == "planetfall"
+	var traits: Dictionary = data.get("weapon_traits", {})
+	var out := ""
+	for w: Variant in data.get("weapons", []):
+		if not (w is Dictionary):
+			continue
+		var rng: int = int(w.get("range", 0))
+		var shots: int = int(w.get("shots", 0))
+		var names: PackedStringArray = []
+		for t: Variant in w.get("traits", []):
+			var td: Variant = traits.get(str(t), {})
+			names.append(str(td.get("name", str(t))) if td is Dictionary else str(t))
+		var dmg: int = int(w.get("damage", 0))
+		var shot_text: String = str(shots)
+		if shots <= 0:
+			shot_text = "Special" if planetfall and "area" in w.get("traits", []) else "–"
+		var dmg_text: String = "%+d" % dmg if planetfall else str(dmg)
+		if not planetfall and shots <= 0 and rng > 0:
+			dmg_text = "–"
+		out += "  [b]%s[/b]  %s | Shots %s | Damage %s | %s\n" % [
+			str(w.get("name", "")),
+			"Brawl" if rng <= 0 else "%d\"" % rng,
+			shot_text,
+			dmg_text,
+			", ".join(names) if not names.is_empty() else "–"]
+	if out != "" and not traits.is_empty():
+		out += "\n%s" % _head("Traits")
+		for key: Variant in traits.keys():
+			var td: Variant = traits[key]
+			if td is Dictionary:
+				out += "  [b]%s:[/b] %s\n" % [str(td.get("name", key)),
+					str(td.get("description", ""))]
+	return out
+
+
+static func _json(path: String) -> Dictionary:
+	if _json_cache.has(path):
+		return _json_cache[path]
+	var out: Dictionary = {}
 	var f := FileAccess.open(path, FileAccess.READ)
-	if f == null:
-		return {}
-	var parsed: Variant = JSON.parse_string(f.get_as_text())
-	f.close()
-	return parsed if parsed is Dictionary else {}
+	if f != null:
+		var parsed: Variant = JSON.parse_string(f.get_as_text())
+		f.close()
+		if parsed is Dictionary:
+			out = parsed
+	_json_cache[path] = out
+	return out

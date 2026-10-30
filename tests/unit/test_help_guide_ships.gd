@@ -252,3 +252,74 @@ func test_the_store_chapter_lists_each_pack_as_the_store_sells_it() -> void:
 		"premise: the catalog lists the packs' features").is_greater(20)
 	assert_array(wrong).override_failure_message(
 		"chapter 13 disagrees with the Store: " + ", ".join(wrong)).is_empty()
+
+
+## Chapter 6 described the tiers as a simulator: Full Oracle "Rolls all dice
+## automatically", "Resolves hits, damage, and saves" and "Calculates optimal enemy
+## actions", none of which the battle screen does. BattleTierController.TIER_INFO is the
+## app's one description of each tier (its docblock records why it was rewritten), so the
+## chapter carries each tier's description verbatim under that tier's heading.
+func test_the_battle_chapter_describes_each_tier_as_the_app_does() -> void:
+	var text := FileAccess.get_file_as_string("res://data/user_guide/06_battle_companion.md")
+	assert_str(text).override_failure_message("premise: chapter 6 loads").is_not_empty()
+	var info: Dictionary = FPCM_BattleTierController.TIER_INFO
+	assert_int(info.size()).override_failure_message("premise: three tiers").is_equal(3)
+	var wrong: Array[String] = []
+	for tier: int in info:
+		var head := "### %s\n" % info[tier]["name"]
+		var at := text.find(head)
+		if at < 0:
+			wrong.append("no heading for %s" % info[tier]["name"])
+			continue
+		var next := text.find("\n#", at + head.length())
+		var block := text.substr(at, (next if next > 0 else text.length()) - at)
+		if not block.contains(str(info[tier]["description"])):
+			wrong.append("%s does not carry the app's description" % info[tier]["name"])
+	assert_array(wrong).override_failure_message(
+		"chapter 6 disagrees with the battle screen: " + ", ".join(wrong)).is_empty()
+
+
+## Chapter 4's turn overview summarised the tiers with the same fiction ("The app
+## resolves all mechanics"), so it carries the same three descriptions.
+func test_the_turn_overview_describes_each_tier_as_the_app_does() -> void:
+	var text := FileAccess.get_file_as_string(
+		"res://data/user_guide/04_campaign_turn_overview.md")
+	assert_str(text).override_failure_message("premise: chapter 4 loads").is_not_empty()
+	var info: Dictionary = FPCM_BattleTierController.TIER_INFO
+	for tier: int in info:
+		assert_str(text).override_failure_message(
+			"chapter 4: %s" % info[tier]["name"]).contains(str(info[tier]["description"]))
+
+
+## Chapter 7's Galactic War step described tracking "the overall galactic conflict state",
+## the war-track system that is in neither book and was deleted on 2026-07-29. Core Rules
+## p.126 is a 2D6 roll per previously Invaded planet with four results.
+func test_the_post_battle_chapter_gives_the_galactic_war_table() -> void:
+	var text := FileAccess.get_file_as_string("res://data/user_guide/07_post_battle.md")
+	var at := text.find("### Step 14")
+	assert_int(at).override_failure_message("premise: chapter 7 has Step 14").is_greater(0)
+	var next := text.find("\n## ", at)
+	var block := text.substr(at, (next if next > 0 else text.length()) - at)
+	for result: String in ["Lost to Unity", "Contested", "Making Ground", "Unity Victorious"]:
+		assert_str(block).contains(result)
+	assert_str(block).contains("Core Rules p.126")
+	assert_str(block.to_lower()).not_contains("conflict state")
+
+
+## Chapter 5 said an Invasion came from "a galactic war check" and that a failed escape
+## cost crew or equipment. Core Rules p.69: the post-battle Check for Invasion arms it,
+## and a failed 2D6 forces an Invasion Battle (p.92). It also offered Patrons on a new
+## world, where p.72 leaves them behind unless they are Persistent.
+func test_the_travel_chapter_follows_the_flee_and_arrival_rules() -> void:
+	var text := FileAccess.get_file_as_string("res://data/user_guide/05_travel_and_world.md")
+	assert_str(text).override_failure_message("premise: chapter 5 loads").is_not_empty()
+	var at := text.find("### Fleeing an Invasion")
+	assert_int(at).override_failure_message("premise: the flee section").is_greater(0)
+	var flee := text.substr(at, text.find("\n### ", at + 1) - at)
+	assert_str(flee).contains("Core Rules p.92")
+	assert_str(flee).contains("Check for Invasion")
+	assert_str(text.to_lower()).not_contains("galactic war check")
+	assert_str(text.to_lower()).not_contains("for reputation")
+	var arrive := text.substr(text.find("### Arriving at a New World"))
+	assert_str(arrive).contains("Persistent")
+	assert_str(arrive).contains("Core Rules p.72")

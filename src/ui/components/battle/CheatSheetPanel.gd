@@ -11,6 +11,7 @@ extends PanelContainer
 const CompendiumGridMovementRef = preload(
 	"res://src/data/compendium_grid_movement.gd")
 const CheatSheetSectionsRef = preload("res://src/ui/components/battle/CheatSheetSections.gd")
+const TouchScrollOpenerRef = preload("res://src/ui/components/common/TouchScrollOpener.gd")
 
 # Design system constants
 const SPACING_SM: int = 8
@@ -37,12 +38,42 @@ var _scroll: ScrollContainer
 var _vbox: VBoxContainer
 var _title_label: Label
 var _rules_mode: String = "core"
+## True once the accordion nodes exist for the current `_sections`.
+var _nodes_built := false
 
+const MODE_TITLES := {"core": "Quick Reference", "planetfall": "Planetfall Quick Reference",
+	"bug_hunt": "Bug Hunt Quick Reference"}
+
+## The section DATA is built now, because callers read `_sections` straight after
+## add_child(). The NODES wait for the end of the frame: the battle screen adds this panel
+## and then calls set_rules_mode() in the same frame, so a Bug Hunt or Planetfall battle
+## never builds the Core Rules nodes only to free them ("every node has a cost", Godot
+## docs, CPU optimization).
 func _ready() -> void:
 	_build_sections_data()
 	_setup_ui()
+	_ensure_section_nodes.call_deferred()
 
+## Fills `_sections` for the current rules mode. A "This Battle" section already on top
+## is kept there.
 func _build_sections_data() -> void:
+	var battle: Dictionary = {}
+	if not _sections.is_empty() and bool(_sections[0].get("_is_battle", false)):
+		battle = _sections[0]
+	_sections.clear()
+	match _rules_mode:
+		"planetfall":
+			for s: Dictionary in CheatSheetSectionsRef.planetfall_sections():
+				_sections.append(s)
+		"bug_hunt":
+			for s: Dictionary in CheatSheetSectionsRef.bug_hunt_sections():
+				_sections.append(s)
+		_:
+			_build_core_sections_data()
+	if not battle.is_empty():
+		_sections.insert(0, battle)
+
+func _build_core_sections_data() -> void:
 	_sections = [
 		{
 			"title": "Turn Sequence (pp.112-113)",
@@ -125,12 +156,42 @@ func _setup_ui() -> void:
 	_vbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_vbox.add_theme_constant_override("separation", 4)
 	_scroll.add_child(_vbox)
+	_title_label.text = str(MODE_TITLES.get(_rules_mode, MODE_TITLES.core))
 
-	# Build accordion sections
-	for i in range(_sections.size()):
-		var section: Dictionary = _sections[i]
-		_build_section(i, section.title, section.content)
+## Build the accordion for `_sections`, once. Every entry point that touches a section
+## node calls this first, so the deferred build can never be outrun.
+func _ensure_section_nodes() -> void:
+	if _nodes_built or _vbox == null:
+		return
+	_rebuild_section_nodes()
 
+func _rebuild_section_nodes() -> void:
+	var battle_header: Node = _vbox.get_node_or_null("_battle_header")
+	var battle_body: Node = _vbox.get_node_or_null("_battle_body")
+	for child in _vbox.get_children():
+		if child != battle_header and child != battle_body:
+			_vbox.remove_child(child)
+			child.queue_free()
+	_section_buttons.clear()
+	_section_bodies.clear()
+	var first := 0
+	if battle_header and battle_body and not _sections.is_empty() \
+			and bool(_sections[0].get("_is_battle", false)):
+		_section_buttons.append(battle_header)
+		_section_bodies.append(battle_body)
+		first = 1
+	for i in range(first, _sections.size()):
+		_build_section(i, str(_sections[i].title), str(_sections[i].content))
+	_nodes_built = true
+	# The nodes land after the battle screen has swept itself (the build is deferred, and
+	# set_rules_mode() rebuilds them), and a Button is STOP by default, so a finger drag
+	# over the sections would die before reaching _scroll. open_subtree() is STOP -> PASS
+	# only and idempotent, so a tap still opens a section.
+	TouchScrollOpenerRef.open_subtree(_vbox)
+
+## A section body's BBCode is parsed when the section is first OPENED, not when it is
+## built. Assigning `text` parses the whole string (Godot docs, RichTextLabel), and most
+## sections are never opened in a battle.
 func _build_section(index: int, title: String, content: String) -> void:
 	# Section header button (touch-friendly)
 	var header := Button.new()
@@ -157,7 +218,7 @@ func _build_section(index: int, title: String, content: String) -> void:
 	# Section body (collapsed by default)
 	var body := RichTextLabel.new()
 	body.bbcode_enabled = true
-	body.text = content
+	body.set_meta(&"pending_text", content)
 	body.fit_content = true
 	body.scroll_active = false
 	ScreenChrome.size_rich_text(body, FONT_SIZE_SM)
@@ -166,7 +227,17 @@ func _build_section(index: int, title: String, content: String) -> void:
 	_vbox.add_child(body)
 	_section_bodies.append(body)
 
+## Parse a section's text the first time it is shown, with one assignment (never `+=`,
+## which re-parses everything).
+func _show_body(index: int) -> void:
+	var body: RichTextLabel = _section_bodies[index]
+	if body.has_meta(&"pending_text"):
+		body.text = str(body.get_meta(&"pending_text"))
+		body.remove_meta(&"pending_text")
+	body.visible = true
+
 func _toggle_section(index: int) -> void:
+	_ensure_section_nodes()
 	if index < 0 or index >= _section_bodies.size():
 		return
 
@@ -174,53 +245,41 @@ func _toggle_section(index: int) -> void:
 	var button: Button = _section_buttons[index]
 	var title: String = _sections[index].title
 
-	body.visible = not body.visible
 	if body.visible:
-		button.text = "[-] %s" % title
-	else:
+		body.visible = false
 		button.text = "[+] %s" % title
+	else:
+		_show_body(index)
+		button.text = "[-] %s" % title
 
 ## Expand all sections.
 func expand_all() -> void:
+	_ensure_section_nodes()
 	for i in range(_section_bodies.size()):
-		_section_bodies[i].visible = true
+		_show_body(i)
 		_section_buttons[i].text = "[-] %s" % _sections[i].title
 
 ## Collapse all sections.
 func collapse_all() -> void:
+	_ensure_section_nodes()
 	for i in range(_section_bodies.size()):
 		_section_bodies[i].visible = false
 		_section_buttons[i].text = "[+] %s" % _sections[i].title
 
-## A Planetfall battle reads Planetfall's combat rules (pp.26-40) instead of the Core Rules
-## sections: "Some rules have been tailored to the characters and combat environments of
-## Planetfall" (p.28). Until 2026-10-28 every battle mode got the Core Rules sheet, so a
-## colonist was told about Luck and Seize the Initiative, neither of which Planetfall has.
-## A "This Battle" section already inserted stays on top.
+## Each battle mode reads its own book's battle rules instead of the Core Rules sections.
+## Planetfall (pp.26-40): "Some rules have been tailored to the characters and combat
+## environments of Planetfall" (p.28). Bug Hunt (pp.173-180, pp.198-201): no morale, its
+## own hit table and its own weapons. Until 2026-10-28 every mode got the Core Rules
+## sheet, and Bug Hunt kept it until 2026-10-30. A "This Battle" section stays on top.
 func set_rules_mode(mode: String) -> void:
-	if mode == _rules_mode or _vbox == null:
+	if mode == _rules_mode:
 		return
 	_rules_mode = mode
-	if mode == "planetfall":
-		_sections.clear()
-		for s in CheatSheetSectionsRef.planetfall_sections():
-			_sections.append(s)
-		_title_label.text = "Planetfall Quick Reference"
-	else:
-		_build_sections_data()
-		_title_label.text = "Quick Reference"
-	for child in _vbox.get_children():
-		if child.name != "_battle_header" and child.name != "_battle_body":
-			_vbox.remove_child(child)
-			child.queue_free()
-	_section_buttons.clear()
-	_section_bodies.clear()
-	for i in range(_sections.size()):
-		_build_section(i, str(_sections[i].title), str(_sections[i].content))
-	for keep_name in ["_battle_body", "_battle_header"]:
-		var keep: Node = _vbox.get_node_or_null(keep_name)
-		if keep:
-			_vbox.move_child(keep, 0)
+	_build_sections_data()
+	if _title_label:
+		_title_label.text = str(MODE_TITLES.get(mode, MODE_TITLES.core))
+	if _vbox != null:
+		_rebuild_section_nodes()
 
 
 ## Session 48: Set battle context and insert "This Battle" section at top.
@@ -240,14 +299,17 @@ func _insert_battle_section_at_top(title: String, content: String) -> void:
 	## Starts expanded (unlike other sections which start collapsed).
 	if not _vbox:
 		return
+	_ensure_section_nodes()
 
-	# Remove any previous battle section
+	# Remove any previous battle section. Detach before freeing: a node only queued for
+	# deletion still holds its name, so the new "_battle_header" would be renamed and
+	# _rebuild_section_nodes() could no longer find it.
 	var existing_header: Node = _vbox.get_node_or_null("_battle_header")
 	var existing_body: Node = _vbox.get_node_or_null("_battle_body")
-	if existing_header:
-		existing_header.queue_free()
-	if existing_body:
-		existing_body.queue_free()
+	for old: Node in [existing_header, existing_body]:
+		if old:
+			_vbox.remove_child(old)
+			old.queue_free()
 
 	# Rebuild arrays without old battle entry (index 0 if it existed)
 	if not _sections.is_empty() and _sections[0].get("_is_battle", false):
@@ -299,6 +361,7 @@ func _insert_battle_section_at_top(title: String, content: String) -> void:
 	_vbox.move_child(header, 0)
 	_vbox.add_child(body)
 	_vbox.move_child(body, 1)
+	TouchScrollOpenerRef.open_subtree(_vbox)
 
 	# Update tracking arrays
 	_section_buttons.insert(0, header)

@@ -30,8 +30,14 @@ extends PanelContainer
 
 const BattleCalculationsRef = preload("res://src/core/battle/BattleCalculations.gd")
 
-## outcome: {result: "down"|"stun", roll, total, natural_6, damage, save_roll,
-##           saved, declared, credited_to}
+## ── THREE BOOKS ─────────────────────────────────────────────────────────────
+## The sheet serves every battle mode, and each resolves a Hit differently (Bug Hunt
+## p.178 Wounds, Planetfall pp.37-38 Sprawling and Kill Points). Until 2026-10-30 it
+## applied Core Rules p.46 everywhere. The rule itself lives in
+## `BattleCalculations.resolve_hit_for_mode()`; this sheet only offers its outcomes.
+
+## outcome: {result: "down"|"stun"|"wounded"|"sprawling"|"kp_lost"|"saved", roll, total,
+##           natural_6, damage, save_roll, saved, declared, credited_to}
 signal hit_resolved(outcome: Dictionary)
 signal cancelled
 
@@ -41,6 +47,11 @@ var _tier: int = 0
 var _is_enemy: bool = false
 var _crew_names: Array[String] = []
 var _credited_default: String = ""
+## "core", "bug_hunt" or "planetfall", and the figure's state that mode's rule reads.
+var _mode: String = "core"
+var _wounds: int = 0
+var _kp: int = 0
+var _sprawling: bool = false
 
 var _damage_spin: SpinBox = null
 var _save_spin: SpinBox = null
@@ -51,11 +62,8 @@ var _apply_btn: Button = null
 ## Emitting straight from the roll would apply the outcome in the same frame the
 ## player first sees the number, which is the thing they most want to read.
 var _pending: Dictionary = {}
-var _rng := RandomNumberGenerator.new()
-
-
-func _init() -> void:
-	_rng.randomize()
+## Resolved once, on the first roll (Godot docs: cache node lookups).
+var _dice: Node = null
 
 
 ## `crew_names` / `credited_default` drive the kill-attribution picker and are only
@@ -63,8 +71,13 @@ func _init() -> void:
 ## casualty of the battle" and for killing a Unique Individual, and the app could
 ## not see who scored either — those keys had no producer outside the manual
 ## results form, so a played battle never earned them.
+## `rules` is {mode, wounds, kp, sprawling}; omitted, the sheet is the Core Rules one.
 func setup(figure_name: String, toughness: int, tier: int, is_enemy: bool,
-		crew_names: Array = [], credited_default: String = "") -> void:
+		crew_names: Array = [], credited_default: String = "", rules: Dictionary = {}) -> void:
+	_mode = str(rules.get("mode", "core"))
+	_wounds = int(rules.get("wounds", 0))
+	_kp = int(rules.get("kp", 0))
+	_sprawling = bool(rules.get("sprawling", false))
 	_figure_name = figure_name
 	_toughness = maxi(1, toughness)
 	_tier = tier
@@ -101,10 +114,7 @@ func _build() -> void:
 	col.add_child(title)
 
 	var rule := Label.new()
-	rule.text = ("Roll 1D6 and add the attack's Damage. Equal to or above "
-		+ "Toughness %d, or a natural 6, and the figure is a casualty — remove "
-		+ "it. Below that, push it 1\" away and mark it Stunned. "
-		+ "(Core Rules p.46)") % _toughness
+	rule.text = _rule_text()
 	rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rule.add_theme_font_size_override("font_size", UIColors.FONT_SIZE_SM)
 	rule.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
@@ -121,14 +131,10 @@ func _build() -> void:
 	declare.add_theme_color_override("font_color", UIColors.COLOR_TEXT_SECONDARY)
 	col.add_child(declare)
 
-	var down_btn := _make_button("Casualty — remove the figure",
-		UIColors.COLOR_DANGER)
-	down_btn.pressed.connect(_on_declared.bind("down"))
-	col.add_child(down_btn)
-
-	var stun_btn := _make_button("Stunned — push back 1\"", UIColors.COLOR_WARNING)
-	stun_btn.pressed.connect(_on_declared.bind("stun"))
-	col.add_child(stun_btn)
+	for choice: Array in _declare_choices():
+		var btn := _make_button(str(choice[1]), choice[2])
+		btn.pressed.connect(_on_declared.bind(str(choice[0])))
+		col.add_child(btn)
 
 	if _tier >= 1:
 		col.add_child(HSeparator.new())
@@ -137,6 +143,54 @@ func _build() -> void:
 	var cancel := _make_button("Cancel", UIColors.COLOR_ELEVATED)
 	cancel.pressed.connect(func() -> void: cancelled.emit())
 	col.add_child(cancel)
+
+
+func _rule_text() -> String:
+	match _mode:
+		"bug_hunt":
+			return ("A save shrugs the Hit off: not Stunned, knocked back 1\". Otherwise "
+				+ "roll 1D6 and add the attack's Damage. Above Toughness %d: casualty. "
+				+ "Equal: knocked back 1\" and Wounded, and a second Wound is a casualty. "
+				+ "Below: knocked back 1\" and Stunned. (Bug Hunt p.178)") % _toughness
+		"planetfall":
+			var text := ("A save negates the Hit: no Toughness roll, not Stunned. Otherwise "
+				+ "roll 1D6 and add the attack's Damage. Above Toughness %d: lose 1 Kill "
+				+ "Point if any are left (no Stun), otherwise casualty. Equal: knocked "
+				+ "Sprawling. Below: Stunned. (Planetfall pp.37-38)") % _effective_toughness()
+			if _sprawling:
+				text += "\nSprawling: no Saving Throw, and Toughness counts 1 lower (p.38)."
+			return text
+	return ("Roll 1D6 and add the attack's Damage. Equal to or above "
+		+ "Toughness %d, or a natural 6, and the figure is a casualty — remove "
+		+ "it. Below that, push it 1\" away and mark it Stunned. "
+		+ "(Core Rules p.46)") % _toughness
+
+
+func _effective_toughness() -> int:
+	return _toughness - (1 if _mode == "planetfall" and _sprawling else 0)
+
+
+## [result, button text, colour] for each outcome this mode's book allows.
+func _declare_choices() -> Array:
+	var down := ["down", "Casualty — remove the figure", UIColors.COLOR_DANGER]
+	match _mode:
+		"bug_hunt":
+			var wound_text := ("Wounded again — a casualty (p.178)" if _wounds >= 1
+				else "Wounded — knocked back 1\"")
+			return [down, ["wounded", wound_text, UIColors.COLOR_DANGER],
+				["stun", "Stunned — knocked back 1\"", UIColors.COLOR_WARNING],
+				["saved", "Saved — knocked back 1\", not Stunned", UIColors.COLOR_ELEVATED]]
+		"planetfall":
+			var out: Array = [down]
+			if _kp > 0:
+				out.append(["kp_lost", "Lose 1 Kill Point (%d left)" % _kp,
+					UIColors.COLOR_DANGER])
+			out.append(["sprawling", "Knocked Sprawling", UIColors.COLOR_WARNING])
+			out.append(["stun", "Stunned", UIColors.COLOR_WARNING])
+			if not _sprawling:
+				out.append(["saved", "Saved — no effect", UIColors.COLOR_ELEVATED])
+			return out
+	return [down, ["stun", "Stunned — push back 1\"", UIColors.COLOR_WARNING]]
 
 
 func _build_credit_row() -> Control:
@@ -170,7 +224,10 @@ func _build_roller() -> Control:
 	_damage_spin = _labelled_spin(box, "Weapon Damage", 0, 0, 6)
 	# p.46: "A successful Saving Throw roll means the Hit has been deflected.
 	# However, the deflection still leaves the figure Stunned." 0 = no save.
+	# Planetfall p.38: a Sprawling figure "foregoes any Saving Throw".
 	_save_spin = _labelled_spin(box, "Saving Throw (0 = none)", 0, 0, 6)
+	if _mode == "planetfall" and _sprawling:
+		_save_spin.editable = false
 
 	var roll_btn := _make_button("Roll 1D6", UIColors.COLOR_ACCENT)
 	roll_btn.pressed.connect(_on_roll_pressed)
@@ -239,54 +296,65 @@ func _credited_to() -> String:
 
 
 func _on_declared(result: String) -> void:
+	# Bug Hunt p.178: "If Wounded a second time in the mission, the trooper is removed
+	# as a casualty." The button says so, and the outcome carries it.
+	if result == "wounded" and _wounds >= 1:
+		result = "down"
 	hit_resolved.emit({
 		"result": result,
 		"declared": true,
-		"saved": false,
+		"saved": result == "saved",
 		"credited_to": _credited_to() if result == "down" else "",
 	})
 
 
+func _d6(context: String) -> int:
+	if _dice == null and is_inside_tree():
+		_dice = get_node_or_null("/root/DiceManager")
+	return int(_dice.roll_d6(context)) if _dice else randi_range(1, 6)
+
+
 func _on_roll_pressed() -> void:
 	var damage: int = int(_damage_spin.value)
-	var save_target: int = int(_save_spin.value)
-	var roller: Callable = func() -> int: return _rng.randi_range(1, 6)
-
-	# p.46: the save is rolled against the Hit and, when it succeeds, replaces the
-	# casualty with a Stun — it does not remove the Stun as well.
-	if save_target > 0:
-		var save_roll: int = roller.call()
-		if save_roll >= save_target:
-			_show_result("[color=#D97706]Save %d vs %d+ — deflected. The figure is still Stunned (p.46).[/color]"
-				% [save_roll, save_target])
-			_stage({
-				"result": "stun",
-				"declared": false,
-				"saved": true,
-				"save_roll": save_roll,
-				"credited_to": "",
-			})
-			return
-
-	var out: Dictionary = BattleCalculationsRef.resolve_hit_outcome(
-		damage, _toughness, roller)
-	var txt: String = "Rolled %d + %d Damage = %d vs Toughness %d" % [
-		int(out.get("roll", 0)), damage, int(out.get("total", 0)), _toughness]
-	if bool(out.get("natural_6", false)):
-		txt += " — natural 6"
-	if bool(out.get("casualty", false)):
-		_show_result("[color=#DC2626]%s → CASUALTY, remove the figure.[/color]" % txt)
+	var save_target: int = int(_save_spin.value) if _save_spin.editable else 0
+	var out: Dictionary = BattleCalculationsRef.resolve_hit_for_mode(_mode, damage,
+		_toughness, save_target, _d6.bind("Hit Resolution: save"),
+		_d6.bind("Hit Resolution: damage"), {"wounds": _wounds, "kp": _kp,
+		"sprawling": _sprawling})
+	var result: String = str(out.result)
+	if bool(out.saved):
+		var effect: String = {"core": "deflected. The figure is still Stunned (p.46)",
+			"bug_hunt": "shrugged off: not Stunned, knocked back 1\" (p.178)",
+			"planetfall": "negated: no Toughness roll, not Stunned (p.37)"}.get(_mode, "")
+		_show_result("[color=#D97706]Save %d vs %d+ — %s.[/color]"
+			% [int(out.save_roll), save_target, effect])
 	else:
-		_show_result("[color=#D97706]%s → Stunned, push back 1\".[/color]" % txt)
+		var txt: String = "Rolled %d + %d Damage = %d vs Toughness %d" % [
+			int(out.roll), damage, int(out.total), int(out.toughness_used)]
+		if bool(out.natural_6):
+			txt += " — natural 6"
+		if result == "down" and _mode == "bug_hunt" \
+				and int(out.total) == int(out.toughness_used):
+			txt += " — a second Wound"
+		var effects := {"down": "CASUALTY, remove the figure",
+			"stun": "Stunned" if _mode == "planetfall" else "Stunned, push back 1\"",
+			"wounded": "Wounded, knocked back 1\"",
+			"sprawling": "knocked Sprawling",
+			"kp_lost": "lose 1 Kill Point, no Stun"}
+		var colour: String = "#DC2626" if result == "down" else "#D97706"
+		_show_result("[color=%s]%s → %s.[/color]" % [colour, txt,
+			str(effects.get(result, result))])
 	_stage({
-		"result": "down" if bool(out.get("casualty", false)) else "stun",
+		"result": result,
 		"declared": false,
-		"saved": false,
-		"roll": int(out.get("roll", 0)),
-		"total": int(out.get("total", 0)),
-		"natural_6": bool(out.get("natural_6", false)),
+		"saved": bool(out.saved),
+		"save_roll": int(out.save_roll),
+		"roll": int(out.roll),
+		"total": int(out.total),
+		"toughness_used": int(out.toughness_used),
+		"natural_6": bool(out.natural_6),
 		"damage": damage,
-		"credited_to": _credited_to() if bool(out.get("casualty", false)) else "",
+		"credited_to": _credited_to() if result == "down" else "",
 	})
 
 
@@ -294,9 +362,10 @@ func _stage(outcome: Dictionary) -> void:
 	## Hold the rolled outcome until the player confirms it.
 	_pending = outcome
 	if _apply_btn and is_instance_valid(_apply_btn):
-		_apply_btn.text = ("Apply — remove the figure"
-			if str(outcome.get("result", "")) == "down"
-			else "Apply — Stunned")
+		_apply_btn.text = "Apply — %s" % str({"down": "remove the figure",
+			"stun": "Stunned", "wounded": "Wounded", "sprawling": "Sprawling",
+			"kp_lost": "lose 1 Kill Point", "saved": "no effect"}.get(
+				str(outcome.get("result", "")), "Stunned"))
 		_apply_btn.visible = true
 
 

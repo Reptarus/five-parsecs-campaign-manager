@@ -112,13 +112,18 @@ func create_entry(data: Dictionary) -> String:
 	return entry_id
 
 func _resolve_current_turn() -> int:
-	## Authoritative turn for an entry that didn't supply one.
-	## SSOT is progress_data["turns_played"] (the data-ownership table).
+	## Authoritative turn for an entry that didn't supply one: the turn being PLAYED.
+	## progress_data["turns_played"] counts COMPLETED turns and is raised only when the
+	## next turn starts, so the turn in progress is turns_played + 1. That is the turn the
+	## dashboard shows and the one every battle result carries
+	## (CampaignTurnController._normalize_battle_results). Until 2026-10-30 this returned
+	## turns_played, so an entry that relied on it landed one turn before the battle it
+	## followed, and the dashboard's "Last turn" recap mixed two turns.
 	var gs: Node = get_node_or_null("/root/GameState")
 	if gs and gs.current_campaign and "progress_data" in gs.current_campaign:
 		var pd: Variant = gs.current_campaign.progress_data
 		if pd is Dictionary:
-			return int(pd.get("turns_played", 0))
+			return int(pd.get("turns_played", 0)) + 1
 	return 0
 
 func _resolve_current_location() -> String:
@@ -294,6 +299,12 @@ func auto_create_battle_entry(battle_result: Dictionary) -> void:
 			stats["notable_sight"] = sight_type
 			stats["notable_sight_effect"] = str((sight as Dictionary).get("effect", ""))
 
+	# The round-by-round Battle Log, carried from the battle screen through the same
+	# temp-data channel as the notes below (TacticalBattleUI._wire_battle_log_carryback).
+	var battle_log: String = _consume_temp_text("battle_log_narrative")
+	if not battle_log.is_empty():
+		description += "\n\n%s" % battle_log
+
 	# Battle Notes carryback (Sprint 1 QOL Item 5) — player jots from the
 	# TacticalBattleUI floating notes textbox arrive via GameStateManager
 	# temp-data. Append to description and clear after read so the next
@@ -324,16 +335,21 @@ func _consume_battle_player_notes(battle_result: Dictionary) -> String:
 	var explicit: String = str(battle_result.get("player_notes", ""))
 	if not explicit.is_empty():
 		return explicit
+	return _consume_temp_text("battle_player_notes")
+
+## Read a temp-data string the battle screen carried forward, and clear it so one
+## battle's text never lands on the next battle's entry.
+func _consume_temp_text(key: String) -> String:
 	var tree := Engine.get_main_loop()
 	if tree == null:
 		return ""
 	var gsm: Node = tree.root.get_node_or_null("/root/GameStateManager")
 	if gsm == null or not gsm.has_method("get_temp_data"):
 		return ""
-	var notes: String = str(gsm.get_temp_data("battle_player_notes", ""))
-	if gsm.has_method("clear_temp_data") and not notes.is_empty():
-		gsm.clear_temp_data("battle_player_notes")
-	return notes
+	var text: String = str(gsm.get_temp_data(key, ""))
+	if gsm.has_method("clear_temp_data") and not text.is_empty():
+		gsm.clear_temp_data(key)
+	return text
 
 func auto_create_milestone_entry(milestone_type: String, data: Dictionary) -> void:
 	## Auto-generate milestone entry

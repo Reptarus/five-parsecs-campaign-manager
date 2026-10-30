@@ -88,15 +88,18 @@ This is the Bug Hunt equivalent of the World Phase, but much simpler — no upke
 
 ### Stage 2: Mission
 
-Select and execute a combat mission:
+Set the mission up on the Mission screen, then fight it on the battle screen.
 
-- **Mission types**: Hold position, retrieve item, assassination, area sweep, escort, demolition
-- **Enemy types**: Bug creatures with unique AI behaviors
-- **Terrain**: Military bunkers, alien hives, derelict ships, wilderness outposts
+- **Objectives** come from the Bug Hunt objective table (Compendium p.185): Patrol, Scout, Secure, Retrieve, Beacon and Hack.
+- **Combat teams.** Choose how your grunts split into combat teams of 2-4 (p.173). The app keeps the split for the next mission. Main characters always act alone.
 
-The battle uses the same **TacticalBattleUI** as standard campaigns, but in `bug_hunt` mode:
-- Morale tracker is hidden (Bug Hunt uses its own system)
-- Standard battle features otherwise function the same
+The battle screen is the one a standard campaign uses, set to Bug Hunt's rules:
+
+- **Reaction dice.** Each main character rolls one die, and each combat team rolls one die for all its members (p.173). The result lists each team beside the characters.
+- **No morale.** The morale tracker is hidden, and the standard campaign's Battle Events are not rolled.
+- **Hits.** When you resolve a hit, a roll equal to the target's Toughness Wounds it, and a second Wound makes it a casualty (p.178).
+- **Reference tab.** It holds the Bug Hunt combat rules and the p.179 weapon table, not the Core Rules sheet.
+- **Tools tab.** It keeps the dice roller and the Combat Calculator, which follows Bug Hunt's hit table. The Character Quick Roll and the Brawl Resolver work Core Rules maths, so a Bug Hunt battle does not offer them.
 
 ### Stage 3: Post-Battle
 
@@ -153,7 +156,7 @@ The **CharacterTransferService** allows bidirectional character transfer between
 - **Spend reputation wisely.** It's tempting to reroll every bad result, but reputation is hard to earn back.
 - **Use grunts as shields.** Position them to absorb enemy fire while main characters take key shots.
 - **Save Movie Magic for emergencies.** One-time abilities are most valuable when things go very wrong.
-- **Build combat teams.** Organize your squad into fire teams for better tactical coordination.
+- **Keep combat teams in formation.** A team in formation gets the p.173 formation bonus on its Reaction roll, and the battle screen says when that bonus would let it act Quick.
 
 ## What's Next?
 

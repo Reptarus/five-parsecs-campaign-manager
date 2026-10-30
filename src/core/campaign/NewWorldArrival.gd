@@ -91,15 +91,25 @@ static func display_name(entity: Variant, fallback: String) -> String:
 ## Returns {rivals_left: Array[String], patrons_left: Array[String]} for the
 ## caller to surface — without a report the step reads to the player as a bug
 ## ("where did my Patron go?").
+## A generator passed by a caller keeps a test deterministic. Without one the die
+## goes through DiceManager, so QA can force each p.72 roll; every production
+## caller passes none. RefCounted, so the autoload is reached through the main
+## loop (a bare /root lookup from here errors and aborts the step).
+static func _d6(rng: RandomNumberGenerator, context: String) -> int:
+	if rng != null:
+		return rng.randi_range(1, 6)
+	var dice: Node = null
+	var loop := Engine.get_main_loop()
+	if loop is SceneTree:
+		dice = (loop as SceneTree).root.get_node_or_null("/root/DiceManager")
+	return int(dice.roll_d6(context)) if dice else randi_range(1, 6)
+
+
 static func apply(campaign: Resource, rng: RandomNumberGenerator = null) -> Dictionary:
 	var out: Dictionary = {"rivals_left": [], "patrons_left": []}
 	if campaign == null:
 		return out
 
-	var gen: RandomNumberGenerator = rng
-	if gen == null:
-		gen = RandomNumberGenerator.new()
-		gen.randomize()
 
 	# Step 1 — each Rival rolls 1D6; 5+ follows, otherwise it remains behind.
 	if "rivals" in campaign and campaign.rivals is Array:
@@ -112,7 +122,7 @@ static func apply(campaign: Resource, rng: RandomNumberGenerator = null) -> Dict
 			# Compendium p.49 lowers the target to 4+ for an Elite Rival.
 			var target: int = ELITE_FOLLOW_TARGET if is_elite_rival(rival) \
 				else FOLLOW_TARGET
-			if gen.randi_range(1, 6) >= target:
+			if _d6(rng, "New World Rival Follow") >= target:
 				following.append(rival)
 			else:
 				out["rivals_left"].append(display_name(rival, "A Rival"))
@@ -194,16 +204,12 @@ static func roll_licensing_requirement(
 			"freelancer_licence_fees", {}).get(planet_id, 0))
 		return out
 
-	var gen: RandomNumberGenerator = rng
-	if gen == null:
-		gen = RandomNumberGenerator.new()
-		gen.randomize()
 
-	var roll: int = gen.randi_range(1, 6)
+	var roll: int = _d6(rng, "New World Licensing")
 	out["roll"] = roll
 	out["applies"] = roll >= LICENCE_REQUIRED_ON
 	if out["applies"]:
-		out["fee"] = gen.randi_range(1, 6)
+		out["fee"] = _d6(rng, "New World Licence Fee")
 
 	var req: Dictionary = known if known is Dictionary else {}
 	req[planet_id] = out["applies"]
@@ -274,12 +280,8 @@ static func attempt_forged_licence(
 		out["reason"] = "Only one attempt is permitted (Core Rules p.72)."
 		return out
 
-	var gen: RandomNumberGenerator = rng
-	if gen == null:
-		gen = RandomNumberGenerator.new()
-		gen.randomize()
 
-	var roll: int = gen.randi_range(1, 6)
+	var roll: int = _d6(rng, "New World Forged Licence")
 	out["roll"] = roll
 	# "If the roll is a 1 BEFORE MODIFIERS" — the natural die, not the total. A
 	# high-Savvy character is no safer from being caught, which is the whole shape

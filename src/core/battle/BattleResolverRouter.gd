@@ -44,6 +44,21 @@ static func use_no_minis(dlc_manager, battle_mode_id: String, mission_type: Stri
 	return true
 
 
+## The QA force key for the combat dice of an auto-resolved battle.
+const DICE_CONTEXT := "Auto-resolve Combat"
+
+
+## The combat dice for an auto-resolved battle. The campaign map's "Play it out for me"
+## and the battle screen's Auto-resolve both roll through this one roller, and through
+## DiceManager so a QA tester can force them. dice_manager is the /root/DiceManager
+## autoload, passed in because a RefCounted cannot look it up; null (a bare test) falls
+## back to the engine RNG.
+static func dice_roller(dice_manager: Node) -> Callable:
+	if dice_manager != null and dice_manager.has_method("roll_d6"):
+		return func() -> int: return int(dice_manager.roll_d6(DICE_CONTEXT))
+	return func() -> int: return randi_range(1, 6)
+
+
 ## Resolve an auto-resolved battle, picking the resolver via use_no_minis().
 ## Returns the resolver result Dictionary (identical shape from either path).
 ## `options` is forwarded only to NoMinisResolver (BattleResolver takes no options).

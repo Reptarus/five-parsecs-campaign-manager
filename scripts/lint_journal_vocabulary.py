@@ -43,6 +43,17 @@ Validated against MOOD_STRING_TO_ENUM only - deliberately NOT against
 MOOD_LEGACY_ALIASES, which exists so entries already written into save files still
 render correctly. Old data is tolerated at runtime; new code is not.
 
+KEYS - the fourth check, added 2026-10-30 (Sprint 7b)
+-----------------------------------------------------
+create_entry() rebuilds every entry from a FIXED key literal and drops every other
+key. Three producers passed their text as `content`, so those entries had an empty
+body; ten passed `turn`, which never reached the entry (the chokepoint derives the
+turn). Every top-level key of a dict literal handed to create_entry() must be one the
+chokepoint reads, and that set is parsed out of create_entry() itself so the lint
+cannot drift from it. Nested dicts (`stats`) are not checked: their keys are the
+entry's own data. Measured on introduction: 90 literal calls, 13 dropped keys, no
+false hits.
+
 Exit 0 clean, 1 on any finding. Add `# lint:ignore` on the offending line for a
 deliberate exception.
 """
@@ -52,6 +63,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TYPES_FILE = ROOT / "src" / "core" / "campaign" / "JournalEntryTypes.gd"
+JOURNAL_FILE = ROOT / "src" / "core" / "campaign" / "CampaignJournal.gd"
 SRC = ROOT / "src"
 
 # How far past a create_entry( call the dict literal may run.
@@ -74,14 +86,69 @@ def canonical_sets():
     )
 
 
+def kept_keys():
+    """The keys CampaignJournal.create_entry() reads from its argument."""
+    text = JOURNAL_FILE.read_text(encoding="utf-8")
+    m = re.search(r"\nfunc create_entry\(.*?(?=\nfunc )", text, re.S)
+    keys = set(re.findall(r'data\.get\("([a-z_]+)"', m.group(0))) if m else set()
+    if not keys:
+        print("lint_journal_vocabulary: could not parse create_entry()", file=sys.stderr)
+        sys.exit(2)
+    return keys
+
+
+def top_level_keys(text, start):
+    """(key, line index) for each key at depth 1 of the dict literal at text[start]."""
+    depth = 0
+    i = start
+    keys = []
+    while i < len(text):
+        c = text[i]
+        if c == '"':
+            j = i + 1
+            while j < len(text) and text[j] != '"':
+                j += 2 if text[j] == "\\" else 1
+            k = j + 1
+            while k < len(text) and text[k] in " \t":
+                k += 1
+            if depth == 1 and k < len(text) and text[k] == ":":
+                keys.append((text[i + 1:j], text.count("\n", 0, i)))
+            i = j + 1
+            continue
+        if c == "#":
+            i = text.find("\n", i)
+            if i == -1:
+                break
+            continue
+        if c in "{[(":
+            depth += 1
+        elif c in "}])":
+            depth -= 1
+            if depth == 0:
+                break
+        i += 1
+    return keys
+
+
 def main():
     types, tags, moods = canonical_sets()
+    kept = kept_keys()
     findings = []
 
     for path in sorted(SRC.rglob("*.gd")):
         if path.name == "JournalEntryTypes.gd":
             continue
         lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
+        full = "\n".join(lines)
+        for call in re.finditer(r"create_entry\(\s*", full):
+            if full[call.end():call.end() + 1] != "{":
+                continue
+            for key, at in top_level_keys(full, call.end()):
+                if key in kept or "lint:ignore" in lines[at]:
+                    continue
+                findings.append(
+                    f"{path.relative_to(ROOT).as_posix()}:{at + 1}  journal key '{key}'"
+                    f" is dropped by create_entry() (it keeps: {', '.join(sorted(kept))})")
         for i, line in enumerate(lines):
             if "create_entry(" not in line:
                 continue

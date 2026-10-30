@@ -46,6 +46,55 @@ static func roll_pool(figure_count: int, dice_roller: Callable = Callable()) -> 
 	return out
 
 
+## Who gets a Reaction die, as each book counts it.
+##   Core Rules p.113: one die per character.
+##   Bug Hunt p.173 and p.198: one die per main character and one per combat team, "and
+##     every figure in a given combat team acts in the same phase".
+##   Planetfall pp.29-30: one die per character and one per grunt fireteam, plus one more
+##     die for each scientist ("Quick Thinking"). Those extra dice give no one a second
+##     action: "After assigning one die to each character, any excess dice are discarded."
+##
+## members: [{"id", "name", "reactions", "is_feral", "team" (0 = not in a team),
+##   "is_scientist"}], one per figure on the screen.
+## stand_ins: [{"id", "name", "reactions", "size"}] for figures the screen does not hold
+##   (Planetfall's fireteams are not tracked as units).
+## Returns {"figures": Array (pass to auto_assign), "dice": int,
+##   "figure_of": {member_id: figure_id}}. A team takes its first member's Reactions:
+##   every grunt shares one profile.
+static func build_figures(members: Array, stand_ins: Array = []) -> Dictionary:
+	var figures: Array = []
+	var figure_of: Dictionary = {}
+	var team_index: Dictionary = {}
+	var extra_dice: int = 0
+	for m: Variant in members:
+		if not (m is Dictionary):
+			continue
+		var mid: String = str(m.get("id", ""))
+		var team: int = int(m.get("team", 0))
+		if team > 0:
+			var fid: String = "team_%d" % team
+			if not team_index.has(fid):
+				team_index[fid] = figures.size()
+				figures.append({"id": fid, "name": "Combat Team %d" % team,
+					"reactions": int(m.get("reactions", 1)), "is_feral": false, "team": team,
+					"size": 0})
+			figures[int(team_index[fid])]["size"] += 1
+			figure_of[mid] = fid
+		else:
+			figures.append({"id": mid, "name": str(m.get("name", "")),
+				"reactions": int(m.get("reactions", 1)),
+				"is_feral": bool(m.get("is_feral", false))})
+			figure_of[mid] = mid
+		if bool(m.get("is_scientist", false)):
+			extra_dice += 1
+	for s: Variant in stand_ins:
+		if s is Dictionary:
+			var fig: Dictionary = (s as Dictionary).duplicate()
+			fig["is_feral"] = false
+			figures.append(fig)
+	return {"figures": figures, "dice": figures.size() + extra_dice, "figure_of": figure_of}
+
+
 static func has_feral(figures: Array) -> bool:
 	for f in figures:
 		if f is Dictionary and bool((f as Dictionary).get("is_feral", false)):

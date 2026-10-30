@@ -225,14 +225,6 @@ func roll_combat_check(modifier: int = 0, context: String = "Combat Check") -> i
 	dice_result_ready.emit(result, context)
 	return result
 
-## Replace: injury table rolls
-func roll_injury_table(context: String = "Injury Roll") -> int:
-	var result: int = randi_range(1, 6)
-	_record_roll(result, context, "D6")
-	dice_roll_requested.emit(context, "D6")
-	dice_result_ready.emit(result, context)
-	return result
-
 ## Replace: reaction tests
 func roll_reaction_test(context: String = "Reaction Test") -> int:
 	var result: int = randi_range(1, 6) + randi_range(1, 6)

@@ -537,6 +537,102 @@ func _build_loadout_selection() -> void:
 		hc_check.custom_minimum_size.y = 48
 		hbox.add_child(hc_check)
 		loadout_card.add_child(profile_lbl)
+	_build_combat_teams(loadout_card)
+
+
+## p.173: "grunts are usually organized into combat teams of 2-4 troopers". The legal
+## numbers of teams for this many grunts. A lone grunt still gets a die, so one grunt is
+## one team.
+static func combat_team_counts(grunt_count: int) -> Array:
+	if grunt_count <= 0:
+		return []
+	if grunt_count == 1:
+		return [1]
+	var out: Array = []
+	for k in range(ceili(grunt_count / 4.0), floori(grunt_count / 2.0) + 1):
+		out.append(k)
+	return out
+
+
+## Grunt ids dealt into team_count teams in order, sizes differing by at most one, so
+## every legal count from combat_team_counts() gives teams of 2-4.
+static func deal_combat_teams(ids: Array, team_count: int) -> Array:
+	var teams: Array = []
+	if team_count <= 0:
+		return teams
+	var base: int = floori(float(ids.size()) / team_count)
+	var extra: int = ids.size() - base * team_count
+	var at: int = 0
+	for t in range(team_count):
+		var size: int = base + (1 if t < extra else 0)
+		teams.append(ids.slice(at, at + size))
+		at += size
+	return teams
+
+
+## The deploy step's Combat Teams block. Each team rolls one Reaction die in battle and
+## all its grunts act in that phase (p.173, p.198). The choice defaults to the split the
+## campaign last fielded, and is stamped onto each grunt at launch.
+func _build_combat_teams(card: Control) -> void:
+	_mission_context.erase("combat_teams")
+	var grunts: Array = _campaign.grunts if "grunts" in _campaign and _campaign.grunts is Array \
+		else []
+	var ids: Array = []
+	var names: Dictionary = {}
+	for g: Variant in grunts:
+		if g is Dictionary:
+			var gid: String = str(g.get("id", g.get("character_id", "")))
+			ids.append(gid)
+			names[gid] = str(g.get("name", g.get("character_name", "Grunt")))
+	var counts: Array = combat_team_counts(ids.size())
+	if counts.is_empty():
+		return
+	var saved: int = (_campaign.combat_teams as Array).size() \
+		if "combat_teams" in _campaign and _campaign.combat_teams is Array else 0
+	var chosen: int = saved if saved in counts else int(counts[0])
+	var head := Label.new()
+	head.text = "Combat teams (p.173): each team rolls one Reaction die and acts together."
+	head.add_theme_color_override("font_color", COLOR_TEXT)
+	head.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(head)
+	var opt := OptionButton.new()
+	for k: int in counts:
+		opt.add_item("%d team%s" % [k, "" if k == 1 else "s"])
+	opt.custom_minimum_size = Vector2(180, 48)
+	opt.selected = counts.find(chosen)
+	card.add_child(opt)
+	var members_lbl := Label.new()
+	members_lbl.add_theme_color_override("font_color", COLOR_TEXT_SEC)
+	members_lbl.add_theme_font_size_override("font_size", _scaled_font(13))
+	members_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	card.add_child(members_lbl)
+	var show_split := func(team_count: int) -> void:
+		var teams: Array = deal_combat_teams(ids, team_count)
+		_mission_context["combat_teams"] = teams
+		var lines: PackedStringArray = []
+		for t in range(teams.size()):
+			var who: PackedStringArray = []
+			for gid: Variant in teams[t]:
+				who.append(str(names.get(str(gid), gid)))
+			lines.append("Team %d: %s" % [t + 1, ", ".join(who)])
+		members_lbl.text = "\n".join(lines)
+	opt.item_selected.connect(func(idx: int) -> void: show_split.call(int(counts[idx])))
+	show_split.call(chosen)
+
+
+## Stamps each grunt's combat team (1 and up) for the battle's Reaction Roll, and keeps
+## the split on the campaign as the next mission's default.
+func _stamp_combat_teams(crew: Array) -> void:
+	var teams: Array = _mission_context.get("combat_teams", [])
+	var team_of: Dictionary = {}
+	for t in range(teams.size()):
+		for gid: Variant in teams[t]:
+			team_of[str(gid)] = t + 1
+	for member: Variant in crew:
+		if member is Dictionary and bool(member.get("is_grunt", false)):
+			member["combat_team"] = int(team_of.get(str(member.get("id", "")), 0))
+	if not teams.is_empty() and _campaign and _campaign.has_method("set_combat_teams"):
+		_campaign.set_combat_teams(teams)
 
 
 func _calculate_priority(turn: int, difficulty: String) -> int:
@@ -1094,6 +1190,7 @@ func _launch_mission() -> void:
 		if "grunts" in _campaign and _campaign.grunts is Array:
 			crew.append_array(_campaign.grunts.duplicate(true))
 	_apply_loadout(crew)
+	_stamp_combat_teams(crew)
 	var wrapped := {
 		"crew": crew,
 		"enemies": [],

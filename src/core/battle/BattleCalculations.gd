@@ -252,6 +252,25 @@ static func calculate_hit_modifier(
 ## Uses lookup table: roll 1D6 + Combat Skill >= threshold
 ## Returns the minimum roll needed on d6 (before combat skill)
 ##
+## The To Hit table as each book prints it, for a reader that shows the rows rather
+## than computing one. All three books print the same three numbers: Core Rules p.44,
+## Bug Hunt p.177 and Planetfall p.37. The covered-within-6" row is the Core Rules
+## errata (v1.06, correction to p.118) and corrects that book only.
+static func hit_rows_for_mode(mode: String) -> Array:
+	var page: String = {"bug_hunt": "Bug Hunt p.177", "planetfall": "Planetfall p.37"} \
+		.get(mode, "Core Rules p.44")
+	var rows: Array = [
+		{"label": "Within 6\" and in the open", "target": HIT_OPEN_CLOSE, "cite": page}]
+	if mode != "bug_hunt" and mode != "planetfall":
+		rows.append({"label": "Within 6\" and in Cover", "target": HIT_COVER_CLOSE,
+			"cite": "errata v1.06"})
+	rows.append({"label": "Within range and in the open", "target": HIT_OPEN_RANGE,
+		"cite": page})
+	rows.append({"label": "Within range and in Cover", "target": HIT_COVER_RANGE,
+		"cite": page})
+	return rows
+
+
 ## attacker_elevated / target_elevated are retained ONLY so the four existing
 ## call sites keep working; they are deliberately unused. There is no elevation
 ## modifier anywhere in the Core Rules or the Compendium — the p.44 table has
@@ -347,6 +366,60 @@ static func resolve_hit_outcome(damage_rating: int, target_toughness: int, dice_
 		"total": total,
 		"natural_6": natural_6,
 	}
+
+
+## Resolving a Hit in each battle mode, saving throw first. The three books differ:
+##   core       (Core Rules p.46)  a save deflects the Hit but the figure is still Stunned;
+##              total >= Toughness, or a natural 6, is a casualty; below it, Stunned.
+##   bug_hunt   (Bug Hunt p.178)   a save shrugs the Hit off: not Stunned, knocked back 1".
+##              Above Toughness: casualty. Equal: knocked back 1" and Wounded, and a second
+##              Wound is a casualty. Below: knocked back 1" and Stunned. No natural-6 rule.
+##   planetfall (Planetfall pp.37-38) a save negates the Hit: no Toughness roll, no Stun.
+##              Above Toughness: lose 1 Kill Point if any are left ("Hits that remove KP
+##              do not cause a Stun"), otherwise a casualty. Equal: knocked Sprawling.
+##              Below: Stunned. A Sprawling figure "foregoes any Saving Throw" and its
+##              "Toughness is considered 1 point lower". No natural-6 rule.
+## `state` carries the figure's {wounds, kp, sprawling}. `save_target` 0 means no save.
+## Returns {result, saved, save_roll, roll, total, natural_6, toughness_used, damage}, where
+## result is "down", "stun", "wounded", "sprawling", "kp_lost" or "saved".
+static func resolve_hit_for_mode(mode: String, damage: int, toughness: int, save_target: int,
+		save_roller: Callable, damage_roller: Callable, state: Dictionary = {}) -> Dictionary:
+	var out := {"result": "", "saved": false, "save_roll": 0, "roll": 0, "total": 0,
+		"natural_6": false, "toughness_used": toughness, "damage": damage}
+	var sprawling: bool = mode == "planetfall" and bool(state.get("sprawling", false))
+	if save_target > 0 and not sprawling:
+		var save_roll: int = int(save_roller.call())
+		out.save_roll = save_roll
+		if save_roll >= save_target:
+			out.saved = true
+			out.result = "stun" if mode == "core" else "saved"
+			return out
+	if mode == "core":
+		var core: Dictionary = resolve_hit_outcome(damage, toughness, damage_roller)
+		out.roll = core.roll
+		out.total = core.total
+		out.natural_6 = core.natural_6
+		out.result = "down" if core.casualty else "stun"
+		return out
+	var t: int = toughness - (1 if sprawling else 0)
+	var roll: int = int(damage_roller.call())
+	var total: int = roll + damage
+	out.roll = roll
+	out.total = total
+	out.toughness_used = t
+	if total > t:
+		if mode == "planetfall" and int(state.get("kp", 0)) > 0:
+			out.result = "kp_lost"
+		else:
+			out.result = "down"
+	elif total == t:
+		if mode == "bug_hunt":
+			out.result = "down" if int(state.get("wounds", 0)) >= 1 else "wounded"
+		else:
+			out.result = "sprawling"
+	else:
+		out.result = "stun"
+	return out
 
 ## Innate armor plating (Core Rules p.46): "Bot, Soulless, De-converted, and
 ## Assault Bot characters have built-in armor plating, which grants them a 6+

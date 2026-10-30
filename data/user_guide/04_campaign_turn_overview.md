@@ -74,7 +74,7 @@ See {{chapter:05}} for detailed guidance on each sub-step.
 
 Once you've chosen a mission, the app generates the battlefield:
 
-- **Terrain layout** — A 4x4 sector grid with terrain features (buildings, walls, rocks, trees, cover)
+- **Terrain layout** — A 4x4 sector map. With the Compendium's terrain generation switched on, the app fills it with terrain features; otherwise you lay out your own table on it
 - **Enemy forces** — Generated based on mission type and difficulty
 - **Deployment conditions** — Where your crew starts (standard, ambush, surrounded, etc.)
 - **Objectives** — What you need to accomplish
@@ -86,9 +86,9 @@ You'll review this setup and select which crew members to deploy. See {{chapter:
 The battle phase uses the **Battle Companion** — a tabletop assistant that helps you run combat on your physical playing surface. The companion provides text instructions, tracks activations, and handles dice rolls.
 
 Three tracking tiers are available:
-- **Log Only** — You run everything on the tabletop; the app just records results
-- **Assisted** — The app suggests actions and reminds you of rules
-- **Full Oracle** — The app resolves all mechanics, you just move miniatures
+- **Log Only** — The full table companion — map, figure tracker, scenario rules, battle log. You roll every die yourself.
+- **Assisted** — Adds the dice: reaction rolls, Seize the Initiative, end-of-round morale and condition checks, plus live objective tracking.
+- **Full Oracle** — Adds an enemy AI oracle to the enemy tracker — reference, dice table or card draw. You still move the figures.
 
 See {{chapter:06}} for the complete battle system guide.
 
@@ -107,7 +107,7 @@ The most detailed phase — 14 sequential steps resolve everything that happens 
 1. Resolve rival status
 2. Resolve patron status
 3. Determine quest progress
-4. Get paid (base + danger + difficulty bonus)
+4. Get paid (1D6 credits plus the modifiers on Core Rules p.120)
 5. Battlefield finds
 6. Check for invasion
 7. Gather loot
@@ -125,9 +125,9 @@ See {{chapter:07}} for full details on each step.
 
 Spend accumulated XP to improve your crew:
 
-- Each stat costs XP to increase (costs scale upward)
-- Bots and Precursors use credits instead of XP
-- Special training unlocks new abilities
+- Each +1 to an ability score has a fixed XP cost, from 5 (Speed, Savvy) to 10 (Luck), up to each score's maximum (Core Rules p.123)
+- Bots earn no XP; they pay the same cost in credits instead, once per ability
+- Advanced Training courses add new skills (Core Rules pp.124-125)
 
 See {{chapter:08}} for advancement details.
 

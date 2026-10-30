@@ -41,6 +41,9 @@ var _max_deploy: int = 6
 var _max_grunts: int = 0
 var _grunt_fireteams: int = 0
 var _grunts_deployed: int = 0
+## Fireteams the player ticked. Each rolls one Reaction die in battle (p.30). This step
+## used to report the mission's fireteam LIMIT whenever any grunt deployed.
+var _fireteams_deployed: int = 0
 var _force_limits: Dictionary = {}
 var _active_condition: Dictionary = {}
 var _opposition_type: String = ""
@@ -109,6 +112,7 @@ func refresh() -> void:
 	_weapon_selects = {}
 	_rows.clear()
 	_grunts_deployed = 0
+	_fireteams_deployed = 0
 	_clear_container(_roster_container)
 	if _grunt_section:
 		_clear_container(_grunt_section)
@@ -519,8 +523,10 @@ func _build_grunt_section() -> void:
 func _on_grunt_fireteam_toggled(toggled: bool, ft_idx: int, count: int) -> void:
 	if toggled:
 		_grunts_deployed += count
+		_fireteams_deployed += 1
 	else:
 		_grunts_deployed = maxi(0, _grunts_deployed - count)
+		_fireteams_deployed = maxi(0, _fireteams_deployed - 1)
 	_update_deploy_count()
 
 
@@ -546,7 +552,7 @@ func _on_confirm_pressed() -> void:
 		"deployed_characters": _deployed.duplicate(true),
 		"deploy_count": _deployed.size(),
 		"grunts_deployed": _grunts_deployed,
-		"grunt_fireteams": _grunt_fireteams if _grunts_deployed > 0 else 0,
+		"grunt_fireteams": _fireteams_deployed,
 		"force_limits": _force_limits
 	})
 

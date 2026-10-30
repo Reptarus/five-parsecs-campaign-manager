@@ -369,9 +369,7 @@ func process_single_injury(ctx: PostBattleContextClass, injury_data: Dictionary)
 
 	var recovery_time: int = 0
 	if recovery_info.has("dice"):
-		var min_time: int = recovery_info.get("min", 0)
-		var max_time: int = recovery_info.get("max", 0)
-		recovery_time = randi_range(min_time, max_time) if max_time > 0 else min_time
+		recovery_time = _roll_recovery(recovery_info)
 	else:
 		recovery_time = recovery_info.get("max", 0)
 
@@ -512,7 +510,7 @@ func _roll_sick_bay(row: Dictionary) -> int:
 	var sides: int = maxi(int(parts[1]), 1)
 	var total: int = bonus
 	for _i in range(count):
-		total += randi_range(1, sides)
+		total += _roll_sided(sides, "Injury Recovery Time")
 	return maxi(total, 0)
 
 
@@ -740,6 +738,27 @@ func _apply_crippling_wound(ctx: PostBattleContextClass,
 ## autoload through the main loop, because a bare /root lookup from here errors
 ## and aborts the step. randi_range is the fallback only when the autoload is
 ## absent (a unit test building this class outside a tree).
+## The Sick Bay column (p.122): 1D6 or 1D3+1 turns, read from the row's min and
+## max. Rolled through the forceable D6 like every other die in this file; a
+## range of three is ceil(1D6 / 2), a uniform 1D3.
+static func _roll_recovery(info: Dictionary) -> int:
+	var lo: int = int(info.get("min", 0))
+	var hi: int = int(info.get("max", 0))
+	if hi <= lo:
+		return maxi(hi, lo)
+	return lo - 1 + _roll_sided(hi - lo + 1, "Injury Recovery Time")
+
+
+## One die of `sides` faces through the forceable D6 where it can be: a D6
+## directly and a D3 as ceil(1D6 / 2). Any other die falls back to randi_range.
+static func _roll_sided(sides: int, context: String) -> int:
+	if sides == 6:
+		return _roll(6, context)
+	if sides == 3:
+		return int(ceil(_roll(6, context) / 2.0))
+	return randi_range(1, maxi(sides, 1))
+
+
 static func _roll(sides: int, context: String) -> int:
 	var dice: Node = null
 	if Engine.get_main_loop():
@@ -774,9 +793,7 @@ func _process_bot_injury(ctx: PostBattleContextClass, injury_data: Dictionary, c
 
 	var recovery_time: int = 0
 	if recovery_info.has("dice"):
-		var min_time: int = recovery_info.get("min", 0)
-		var max_time: int = recovery_info.get("max", 0)
-		recovery_time = randi_range(min_time, max_time) if max_time > 0 else min_time
+		recovery_time = _roll_recovery(recovery_info)
 	else:
 		recovery_time = recovery_info.get("max", 0)
 

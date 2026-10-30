@@ -47,6 +47,11 @@ func roll_d6(context: String = "D6 Roll") -> int:
 		return dice_manager.roll_d6(context)
 	return randi_range(1, 6)
 
+func roll_d3(context: String = "D3 Roll") -> int:
+	if dice_manager and dice_manager.has_method("roll_d3"):
+		return dice_manager.roll_d3(context)
+	return randi_range(1, 3)
+
 func roll_2d6(context: String = "2D6 Roll") -> int:
 	if dice_manager and dice_manager.has_method("roll_d6"):
 		return dice_manager.roll_d6(context + " (die 1)") + dice_manager.roll_d6(context + " (die 2)")

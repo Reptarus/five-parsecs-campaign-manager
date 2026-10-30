@@ -2053,8 +2053,8 @@ func _on_auto_resolve_completed(_result: Dictionary) -> void:
 		return
 
 	# Use BattleResolver for real combat resolution
-	var dice_roller := func() -> int:
-		return randi_range(1, 6)
+	var dice_roller: Callable = BattleResolverRouter.dice_roller(
+		get_node_or_null("/root/DiceManager"))
 
 	# Resolver selection (No-Minis vs Standard, incl. the Salvage fallback —
 	# Compendium p.116, pp.66-73) is centralized in BattleResolverRouter so this
@@ -2107,25 +2107,22 @@ func _map_resolver_crew_outcome(resolved: Dictionary, deployed: Array) -> void:
 	## attributes the battle to NO crew member (empty characters_involved in the journal,
 	## so it never appears in CharacterHistoryPanel) and PaymentProcessor:101 computes
 	## zero battlefield-find search attempts.
+	##
+	## Every downed member goes to the Injury Table, which is where death is decided
+	## (Core Rules p.121: "Any character that became a casualty in the battle must roll
+	## on the Injury Table"; p.122 rows 1-15 are the deaths). Until 2026-10-30 a D6
+	## found in neither page ran first, and on a 1 the member was recorded as killed
+	## outright: they skipped the Injury Table and post-battle never killed them either.
 	var finals: Array = resolved.get("crew_units_final", [])
-	var casualties: Array = []
 	var injuries: Array = []
 	for i in range(deployed.size()):
 		var is_alive := true
 		if i < finals.size() and finals[i] is Dictionary:
 			is_alive = bool((finals[i] as Dictionary).get("is_alive", true))
-		if is_alive:
-			continue
-		# Core Rules p.114 post-battle casualty roll decides dead vs injured. The
-		# resolver only reports "down", so the distinction is rolled here — matching
-		# how the tactical path treats a downed crew member.
-		var roll: int = (randi() % 6) + 1
-		if roll == 1:
-			casualties.append(deployed[i])
-		else:
+		if not is_alive:
 			injuries.append(deployed[i])
 	if not resolved.has("crew_casualties_data"):
-		resolved["crew_casualties_data"] = casualties
+		resolved["crew_casualties_data"] = []
 	if not resolved.has("crew_injuries_data"):
 		resolved["crew_injuries_data"] = injuries
 	if not resolved.has("crew_participants"):

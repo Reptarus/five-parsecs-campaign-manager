@@ -58,15 +58,23 @@ func test_story_points_floor_at_zero() -> void:
 
 
 ## p.70: with the hull already damaged, "a random crew member must roll on the
-## Injury Table, as system failures cause life support malfunctions".
+## Injury Table, as system failures cause life support malfunctions". This asserted
+## a flat one turn of rest until 2026-10-30, which is in neither book; the roll is
+## the p.122 table, pinned in full by test_travel_event_dice.gd. A forced Serious
+## injury (46-54, 1D3+1 turns) proves the table was rolled.
 func test_navigation_trouble_injures_when_the_hull_is_damaged() -> void:
-	var c: Resource = _campaign([_member("Rin")], 2)
+	var c: Resource = _campaign([_member("Rin", {"character_id": "rin"})], 2)
 	c.ship_data = {"hull_points": 4, "max_hull": 10}
+	var detailed: bool = DLCManager.is_feature_enabled(DLCManager.ContentFlag.DETAILED_INJURIES)
+	DLCManager.set_feature_enabled(DLCManager.ContentFlag.DETAILED_INJURIES, false)
+	DiceManager.queue_forced_result("Post-Battle Injury", 50)
 	Resolver.apply(c, _event("Navigation Trouble"))
+	DiceManager.clear_forced_results()
+	DLCManager.set_feature_enabled(DLCManager.ContentFlag.DETAILED_INJURIES, detailed)
 	assert_int(int(c.crew_data["members"][0].get("recovery_turns", 0))
 		).override_failure_message(
-			"a damaged hull must injure a crew member on Navigation Trouble"
-		).is_equal(1)
+			"a damaged hull must send a crew member to the Injury Table (p.70)"
+		).is_greater_equal(2)
 
 
 func test_navigation_trouble_spares_the_crew_on_an_intact_hull() -> void:

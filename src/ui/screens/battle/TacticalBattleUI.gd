@@ -27,6 +27,7 @@ const PlanetfallBattleGuideClass = preload("res://src/core/battle/PlanetfallBatt
 const RedZoneSystemRef = preload("res://src/core/mission/RedZoneSystem.gd")
 const WorldOptionsRef = preload("res://src/data/compendium_world_options.gd")
 const ReactionRollPoolClass = preload("res://src/core/battle/ReactionRollPool.gd")
+const PlanetfallRosterRulesRef = preload("res://src/core/systems/PlanetfallRosterRules.gd")
 const EscalatingBattlesManagerRef = preload("res://src/core/managers/EscalatingBattlesManager.gd")
 const CompendiumDifficultyTogglesRef = preload("res://src/data/compendium_difficulty_toggles.gd")
 const BotUpgradeEffectsRef = preload("res://src/core/character/BotUpgradeEffects.gd")
@@ -67,7 +68,6 @@ const _SCENE_REGISTRY: Dictionary = {
 	"story_marker_panel": "res://src/ui/components/battle/StoryMarkerPanel.gd",
 	"cheat_sheet": "res://src/ui/components/battle/CheatSheetPanel.gd",
 	"weapon_table": "res://src/ui/components/battle/WeaponTableDisplay.tscn",
-	"combat_situation": "res://src/ui/components/battle/CombatSituationPanel.tscn",
 	"dual_input_roll": "res://src/ui/components/battle/DualInputRoll.gd",
 	"character_quick_roll": "res://src/ui/components/battle/CharacterQuickRollPanel.gd",
 	"brawl_resolver": "res://src/ui/components/battle/BrawlResolverPanel.gd",
@@ -241,12 +241,14 @@ var enemy_intent_panel: PanelContainer = null
 # Always-visible component instances (Sprint 6)
 var cheat_sheet_panel: PanelContainer = null
 var weapon_table_display: PanelContainer = null
-var combat_situation_panel: PanelContainer = null
 var dual_input_roll: HFlowContainer = null
 
 # Battle Parity components (Phase 34 — Core Rules combat companion)
 var character_quick_roll: PanelContainer = null
 var brawl_resolver: PanelContainer = null
+## The Tools tab's accordion, kept so a battle under another book can drop the tools
+## that only work the Core Rules (_apply_rules_mode_to_tools).
+var _tools_accordion: FPCM_AccordionToolContainer = null
 var reaction_assignment: PanelContainer = null
 
 # Quick Dice Bar (always visible in right panel)
@@ -988,6 +990,21 @@ func _unit_minicard(nm: String, hp: int, mx: int, dead: bool,
 		pips.add_theme_font_size_override("font_size", _scaled_font(11))
 		pips.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
 		top.add_child(pips)
+	# Bug Hunt p.178 Wounded, Planetfall p.38 Sprawling and Kill Points.
+	if unit and not dead:
+		var marks: PackedStringArray = []
+		if int(unit.wounds) > 0:
+			marks.append("Wounded")
+		if bool(unit.is_sprawling):
+			marks.append("Sprawling")
+		if int(unit.kill_points) > 0:
+			marks.append("KP %d" % int(unit.kill_points))
+		if not marks.is_empty():
+			var ml := Label.new()
+			ml.text = " ".join(marks)
+			ml.add_theme_font_size_override("font_size", _scaled_font(11))
+			ml.add_theme_color_override("font_color", UIColors.COLOR_WARNING)
+			top.add_child(ml)
 	if badge != "":
 		var bl := Label.new()
 		bl.text = badge
@@ -1754,10 +1771,6 @@ func _instance_log_only_components() -> void:
 				action_bar.add_child(turn_indicator)
 				action_bar.move_child(turn_indicator, 0)
 
-	# CombatSituationPanel
-	combat_situation_panel = _get_res("combat_situation").instantiate()
-	combat_situation_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
 	# DualInputRoll (compact, always visible outside accordion)
 	dual_input_roll = _get_res("dual_input_roll").new()
 	dual_input_roll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -1788,14 +1801,13 @@ func _instance_log_only_components() -> void:
 		tools_accordion.add_section("Quick Dice Rolls", dice_dashboard,
 			"Roll dice for any check (d6, 2d6, d100)")
 		tools_accordion.add_section("Combat Calculator", combat_calculator,
-			"Compute hit chance and damage for an attack")
-		tools_accordion.add_section("Combat Situation", combat_situation_panel,
-			"Track cover, range and modifiers for the current shot")
+			"The To Hit and Hit tables of this battle's book")
 		tools_accordion.add_section("Character Quick Roll", character_quick_roll,
 			"Roll a stat check for a specific crew member")
 		tools_accordion.add_section("Brawl Resolver", brawl_resolver,
 			"Resolve a melee brawl between two fighters")
 		tools_content.add_child(tools_accordion)
+		_tools_accordion = tools_accordion
 		# BUG-104: default-expand the most-used section so the panel is not
 		# all-collapsed on entry (reuses existing open_section()).
 		tools_accordion.open_section(0)
@@ -2155,15 +2167,6 @@ func _connect_component_signals() -> void:
 				unified_log.log_action("Calculator", explanation)
 		)
 
-	# Wire CombatSituationPanel modifier changes to CombatCalculator
-	if combat_situation_panel and combat_calculator:
-		if combat_situation_panel.has_signal("modifiers_changed"):
-			combat_situation_panel.modifiers_changed.connect(
-				func(total_mod: int) -> void:
-					if combat_calculator.has_method("set_situation_modifier"):
-						combat_calculator.set_situation_modifier(total_mod)
-			)
-
 	# Wire DualInputRoll results to journal
 	if dual_input_roll and unified_log:
 		if dual_input_roll.has_signal("roll_completed"):
@@ -2422,11 +2425,21 @@ var _fickle_scans_resolved: bool = false
 var _quest_survival_score: int = 0
 var _quest_survival_announced: bool = false
 
+## Battle Events are a Core Rules table (pp.116-117). Neither the Bug Hunt rules nor
+## Planetfall has one, so their battles never roll it. Until 2026-10-30 all three call
+## sites below fired at the end of Rounds 2 and 4 in every mode. The Battle Simulator
+## plays the Core Rules and keeps them.
+func _battle_events_apply() -> bool:
+	return _rules_mode_id() == "core"
+
+
 func _check_pending_battle_event() -> void:
 	## Check if a battle event should trigger this round (Core Rules pp.116-117:
 	## end of Round 2 and end of Round 4, and no more after that).
 	## Called after overlay dismissal so overlays don't collide.
 	## Guarded so it only fires once per round (not on every overlay dismiss).
+	if not _battle_events_apply():
+		return
 	if not round_tracker or not round_tracker.has_method("check_battle_event"):
 		return
 	# Core Rules p.116 heads this table "BATTLE EVENTS (OPTIONAL)" and closes it
@@ -4188,6 +4201,8 @@ func _battle_event_roll_instructions(effects: Dictionary) -> String:
 
 func _on_battle_event_triggered(round_num: int, _event_type: String) -> void:
 	## Handle battle event trigger (end of Rounds 2 and 4, Core Rules pp.116-117)
+	if not _battle_events_apply():
+		return
 	_log_message(
 		"BATTLE EVENT! (Round %d) - Rolling on event table..." % round_num,
 		UIColors.COLOR_AMBER
@@ -5324,7 +5339,7 @@ func _build_end_phase_checklist() -> Control:
 			open_dice, "1D6"))
 
 	# Step: Battle Event — end of Round 2 and Round 4 only (Core Rules pp.116-117).
-	if round_num == 2 or round_num == 4:
+	if _battle_events_apply() and (round_num == 2 or round_num == 4):
 		step_num += 1
 		vbox.add_child(_make_checklist_step(
 			step_num,
@@ -5809,6 +5824,9 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	_battle_mode_id = str(mode_dict.get("battle_mode", ""))
 	_is_bug_hunt_mode = _battle_mode_id == "bug_hunt"
 	_is_planetfall_mode = _battle_mode_id == "planetfall"
+	# Wired after the ownership answer above, so a standalone or variant-mode battle
+	# never writes the campaign's channel.
+	_wire_battle_log_carryback()
 	# Per-battle movement system (Compendium p.90) — resolved BEFORE the setup
 	# tab renders, because the tab prints the grid procedure. A scenario may
 	# stamp `use_grid_movement`; otherwise the DLC flag is the opt-in and the
@@ -5856,9 +5874,13 @@ func initialize_battle(crew_members: Array, enemies: Array, mission_data = null)
 	# (see _on_tier_selected → _apply_stage_visibility(SETUP) → checklist → DEPLOYMENT)
 	# _battle_mode_id, _is_bug_hunt_mode and _is_planetfall_mode are assigned above,
 	# before the setup tab, because the tab reads them.
-	# p.28: a Planetfall battle reads Planetfall's combat rules in the Reference drawer.
+	# Each mode's Reference drawer prints its own book's battle rules: Planetfall p.28,
+	# Bug Hunt pp.173-180 and pp.198-201. Every other battle keeps the Core Rules sheet.
 	if cheat_sheet_panel and cheat_sheet_panel.has_method("set_rules_mode"):
-		cheat_sheet_panel.set_rules_mode("planetfall" if _is_planetfall_mode else "core")
+		cheat_sheet_panel.set_rules_mode(_rules_mode_id())
+	if battle_round_hud and battle_round_hud.has_method("set_rules_mode"):
+		battle_round_hud.set_rules_mode(_rules_mode_id())
+	_apply_rules_mode_to_tools()
 	if _is_bug_hunt_mode:
 		_log_message("Bug Hunt mode — morale hidden, contact markers active", UIColors.COLOR_AMBER)
 	elif _is_planetfall_mode:
@@ -6371,10 +6393,47 @@ func _on_card_hit_requested(_char_name: String, unit, is_crew: bool) -> void:
 	var sheet := HitResolutionSheetClass.new()
 	var tier: int = int(tier_controller.current_tier) if tier_controller else 0
 	sheet.setup(str(unit.node_name), int(unit.toughness), tier, not is_crew,
-		_living_crew_names(), _last_activated_crew_name())
+		_living_crew_names(), _last_activated_crew_name(),
+		{"mode": _rules_mode_id(), "wounds": int(unit.wounds),
+			"kp": int(unit.kill_points), "sprawling": bool(unit.is_sprawling)})
 	sheet.hit_resolved.connect(_on_hit_resolved.bind(unit, is_crew))
 	sheet.cancelled.connect(_hide_overlay)
 	_show_overlay(sheet)
+
+
+## The book this battle is fought under: "planetfall" (Planetfall), "bug_hunt" (the
+## Compendium's Bug Hunt), or "core" (Core Rules) for every other battle. One answer for
+## the Reference drawer and the hit sheet.
+## The Tools and Reference tabs under the battle's own book. The Character Quick Roll
+## (Core Rules pp.44-46 and p.112, with Luck and the natural 6), the Brawl Resolver
+## (p.45, K'Erin and all) and the Weapon Table (the Core Rules weapons) work only the
+## Core Rules. Bug Hunt resolves hits and brawls on pp.177-178 and lists its weapons on
+## p.179; Planetfall does so on pp.37-39 and pp.76-79. Their battles drop all three: the
+## Reference tab's sheet carries each book's weapons, and the Combat Calculator follows
+## the book. Freed rather than hidden, because nothing brings them back mid-battle.
+func _apply_rules_mode_to_tools() -> void:
+	var mode := _rules_mode_id()
+	if combat_calculator and combat_calculator.has_method("set_rules_mode"):
+		combat_calculator.set_rules_mode(mode)
+	if mode == "core":
+		return
+	if _tools_accordion:
+		for title: String in ["Character Quick Roll", "Brawl Resolver"]:
+			_tools_accordion.remove_section(_tools_accordion.find_section(title))
+	character_quick_roll = null
+	brawl_resolver = null
+	if weapon_table_display:
+		weapon_table_display.get_parent().remove_child(weapon_table_display)
+		weapon_table_display.queue_free()
+		weapon_table_display = null
+
+
+func _rules_mode_id() -> String:
+	if _is_planetfall_mode:
+		return "planetfall"
+	if _is_bug_hunt_mode:
+		return "bug_hunt"
+	return "core"
 
 
 func _living_crew_names() -> Array:
@@ -6396,28 +6455,71 @@ func _last_activated_crew_name() -> String:
 
 
 func _on_hit_resolved(outcome: Dictionary, unit, is_crew: bool) -> void:
-	## Apply a resolved Hit. One of exactly two book outcomes (p.46).
+	## Apply a resolved Hit, in this battle's book: Core Rules p.46, Bug Hunt p.178 or
+	## Planetfall pp.37-38 (BattleCalculations.resolve_hit_for_mode()).
 	_hide_overlay()
 	if unit == null or unit.is_dead:
 		return
+	var result: String = str(outcome.get("result", ""))
+	var who: String = str(unit.node_name)
 	var detail: String = ""
 	if not bool(outcome.get("declared", true)):
 		if bool(outcome.get("saved", false)):
-			detail = " (save %d — deflected)" % int(outcome.get("save_roll", 0))
+			detail = " (save %d)" % int(outcome.get("save_roll", 0))
 		else:
 			detail = " (rolled %d + %d = %d vs Toughness %d%s)" % [
 				int(outcome.get("roll", 0)), int(outcome.get("damage", 0)),
-				int(outcome.get("total", 0)), int(unit.toughness),
+				int(outcome.get("total", 0)),
+				int(outcome.get("toughness_used", unit.toughness)),
 				", natural 6" if bool(outcome.get("natural_6", false)) else ""]
-	if str(outcome.get("result", "")) == "stun":
-		if unified_log:
-			unified_log.log_action(str(unit.node_name),
-				"Hit — Stunned, pushed back 1\"%s" % detail)
-		_on_card_stun(str(unit.node_name), unit)
-		return
+	# Bug Hunt p.178: "If Wounded a second time in the mission, the trooper is removed
+	# as a casualty", and "A second Wound will kill the enemy".
+	if result == "wounded" and int(unit.wounds) >= 1:
+		result = "down"
+		detail += " — a second Wound"
+	match result:
+		"saved":
+			if unified_log:
+				unified_log.log_action(who, "Hit — saved%s: %s" % [detail,
+					"not Stunned, knocked back 1\" (Bug Hunt p.178)" if _is_bug_hunt_mode
+					else "no Toughness roll, not Stunned (Planetfall p.37)"])
+			return
+		"stun":
+			if unified_log:
+				unified_log.log_action(who, "Hit — Stunned%s%s" % [
+					"" if _is_planetfall_mode else ", pushed back 1\"", detail])
+			_on_card_stun(who, unit)
+			return
+		"wounded":
+			_capture_undo_snapshot(unit, "Wound", is_crew)
+			unit.wounds += 1
+			if unified_log:
+				unified_log.log_action(who, ("Hit — knocked back 1\" and Wounded%s. %s "
+					+ "A second Wound is a casualty (Bug Hunt p.178).") % [detail,
+					"-1 to Brawling, no Dash moves for the rest of the mission." if is_crew
+					else "It falls and cannot move; a trooper moving within 1\" is attacked in a Brawl."])
+			_refresh_unit_rails()
+			return
+		"sprawling":
+			_capture_undo_snapshot(unit, "Sprawling", is_crew)
+			unit.is_sprawling = true
+			if unified_log:
+				unified_log.log_action(who, ("Hit — knocked Sprawling%s. No actions next "
+					+ "activation except to regain its footing; until then no Saving Throw and "
+					+ "Toughness 1 lower (Planetfall p.38).") % detail)
+			_refresh_unit_rails()
+			return
+		"kp_lost":
+			_capture_undo_snapshot(unit, "Kill Point", is_crew)
+			unit.kill_points = maxi(0, int(unit.kill_points) - 1)
+			if unified_log:
+				unified_log.log_action(who, ("Hit — loses 1 Kill Point%s, %d left. "
+					+ "No Stun (Planetfall p.38).") % [detail, int(unit.kill_points)])
+			_refresh_unit_rails()
+			return
 	# Casualty. Luck is checked FIRST and is not optional.
 	if unified_log:
-		unified_log.log_action(str(unit.node_name), "Hit — casualty%s" % detail)
+		unified_log.log_action(who, "Hit — casualty%s" % detail)
 	if _spend_luck_if_any(unit, is_crew):
 		return
 	if not is_crew:
@@ -6440,6 +6542,10 @@ func _spend_luck_if_any(unit, is_crew: bool) -> bool:
 	## the campaign.
 	if not is_crew:
 		return false
+	# Luck is a Core Rules stat. Bug Hunt troopers have none, and Planetfall p.26 turns an
+	# imported character's Luck into Kill Points, so neither mode spends it here.
+	if _is_bug_hunt_mode or _is_planetfall_mode:
+		return false
 	if int(unit.luck_remaining) <= 0:
 		return false
 	unit.luck_remaining -= 1
@@ -6460,6 +6566,16 @@ func _on_card_stun(char_name: String, unit) -> void:
 	## CharacterStatusCard "Stun" -> model. Stackable; persists across rounds
 	## (Core Rules: removed only after the stunned figure acts).
 	_capture_undo_snapshot(unit, "Stun")
+	# Planetfall p.38: "A character can receive a total of 3 Stun markers at a time.
+	# Ignore any additional markers... characters are not knocked out upon receiving a
+	# third Stun marker."
+	if _is_planetfall_mode:
+		unit.stun_markers = mini(int(unit.stun_markers) + 1, 3)
+		if unified_log:
+			unified_log.log_action(char_name, "Stunned (x%d, 3 at most, Planetfall p.38)"
+				% unit.stun_markers)
+		_refresh_unit_rails()
+		return
 	unit.stun_markers += 1
 	if unified_log:
 		unified_log.log_action(char_name, "Stunned (x%d)" % unit.stun_markers)
@@ -6524,6 +6640,11 @@ func _on_card_action(char_name: String, action_type: String, unit) -> void:
 				unified_log.log_action(char_name,
 					"acted while Stunned — remove 1 Stun marker (%d left)"
 						% unit.stun_markers)
+		# Planetfall p.38: "After their next activation, they are recovered."
+		if unit.is_sprawling:
+			unit.is_sprawling = false
+			if unified_log:
+				unified_log.log_action(char_name, "regains its footing — no longer Sprawling")
 	if unified_log:
 		unified_log.log_action(char_name, action_type)
 	_refresh_unit_rails()
@@ -6703,6 +6824,9 @@ func _capture_undo_snapshot(unit, label: String, is_crew: bool = false) -> void:
 		"is_activated": unit.is_activated,
 		"is_dead": unit.is_dead,
 		"actions_remaining": unit.actions_remaining,
+		"wounds": unit.wounds,
+		"kill_points": unit.kill_points,
+		"is_sprawling": unit.is_sprawling,
 		"label": label,
 	}
 	_refresh_undo_button()
@@ -6721,6 +6845,9 @@ func _undo_last_mutation() -> void:
 	unit.stun_markers = int(_undo_snapshot.get("stun_markers", unit.stun_markers))
 	unit.is_activated = bool(_undo_snapshot.get("is_activated", unit.is_activated))
 	unit.actions_remaining = int(_undo_snapshot.get("actions_remaining", unit.actions_remaining))
+	unit.wounds = int(_undo_snapshot.get("wounds", unit.wounds))
+	unit.kill_points = int(_undo_snapshot.get("kill_points", unit.kill_points))
+	unit.is_sprawling = bool(_undo_snapshot.get("is_sprawling", unit.is_sprawling))
 	# Reviving from a just-applied casualty: un-count it for End Phase Morale.
 	# (unit.is_dead here is still the POST-mutation value; restored just below.)
 	if unit.is_dead and not was_dead and not bool(_undo_snapshot.get("is_crew", false)) \
@@ -6833,6 +6960,11 @@ func _assign_crew_reaction_slots(verbose: bool = false) -> void:
 	## then re-read off the per-figure lines below.
 	##
 	## Enemies never roll (always the Enemy Actions phase).
+	##
+	## Bug Hunt and Planetfall count the dice differently: a Bug Hunt combat team rolls one
+	## die for all its grunts (pp.173, 198), and Planetfall adds one die per grunt fireteam
+	## and an extra die per scientist (pp.29-30). ReactionRollPool.build_figures() holds
+	## those rules; until 2026-10-30 every figure rolled its own die in every mode.
 	var living: Array = []
 	for unit in crew_units:
 		if unit.is_dead:
@@ -6848,23 +6980,27 @@ func _assign_crew_reaction_slots(verbose: bool = false) -> void:
 	if dm and dm.has_method("roll_d6"):
 		roller = func() -> int: return dm.roll_d6("Reaction Roll")
 
-	var figures: Array = []
+	var members: Array = []
 	for i in range(living.size()):
-		figures.append({
+		members.append({
 			"id": str(i),
 			"name": str(living[i].node_name),
 			"reactions": int(living[i].reactions),
 			"is_feral": _unit_is_feral(living[i]),
+			"team": _combat_team_of(living[i]) if _is_bug_hunt_mode else 0,
+			"is_scientist": _is_planetfall_mode and _class_of(living[i]) == "scientist",
 		})
+	var plan: Dictionary = ReactionRollPoolClass.build_figures(members, _planetfall_fireteams())
+	var figures: Array = plan.figures
 
-	var dice: Array[int] = ReactionRollPoolClass.roll_pool(living.size(), roller)
+	var dice: Array[int] = ReactionRollPoolClass.roll_pool(int(plan.dice), roller)
 	var assignment: Dictionary = ReactionRollPoolClass.auto_assign(dice, figures)
 
 	var q: int = 0
 	var s: int = 0
 	for i in range(living.size()):
 		var unit = living[i]
-		var die: int = int(assignment.get(str(i), 6))
+		var die: int = int(assignment.get(str(plan.figure_of.get(str(i), str(i))), 6))
 		unit.initiative_roll = die
 		unit.react_slot = ReactionRollPoolClass.slot_for(die, unit.reactions)
 		if unit.react_slot == ReactionRollPoolClass.SLOT_QUICK:
@@ -6886,7 +7022,61 @@ func _assign_crew_reaction_slots(verbose: bool = false) -> void:
 		if ReactionRollPoolClass.feral_die_required(dice, figures):
 			unified_log.log_action("Reaction Roll",
 				"Feral: exactly one 1 was rolled, so it must go to a Feral character (p.113).")
+		for line: String in _team_reaction_lines(figures, assignment):
+			unified_log.log_action("Reaction Roll", line)
 	_refresh_unit_rails()
+
+
+## One line per combat team or fireteam, since a team's die is shared and a Planetfall
+## fireteam has no card to show it on. A team in formation counts its Reactions 1 higher
+## (Bug Hunt p.173; Planetfall p.30, which needs at least two grunts left), and only the
+## player can see whether it is, so a die one over the score says so.
+func _team_reaction_lines(figures: Array, assignment: Dictionary) -> PackedStringArray:
+	var out: PackedStringArray = []
+	var cite: String = "Bug Hunt p.173" if _is_bug_hunt_mode else "Planetfall p.30"
+	for f: Dictionary in figures:
+		if not f.has("size"):
+			continue
+		var die: int = int(assignment.get(str(f.id), 6))
+		var r: int = int(f.reactions)
+		var line: String = "  %s: %d vs Reactions %d — %s" % [str(f.name), die, r,
+			"QUICK" if ReactionRollPoolClass.slot_for(die, r) == ReactionRollPoolClass.SLOT_QUICK
+			else "SLOW"]
+		if die == r + 1 and int(f.size) >= 2:
+			line += " (Quick if in formation, %s)" % cite
+		out.append(line)
+	return out
+
+
+func _combat_team_of(unit) -> int:
+	var oc: Variant = unit.original_character if "original_character" in unit else null
+	return int(oc.get("combat_team", 0)) if oc is Dictionary else 0
+
+
+func _class_of(unit) -> String:
+	var oc: Variant = unit.original_character if "original_character" in unit else null
+	return str(oc.get("class", "")) if oc is Dictionary else ""
+
+
+## Planetfall p.30: each grunt fireteam rolls one die, at the grunt's Reactions (the
+## class profile, p.30 "a grunt's usual 2"). Lock and Load packs grunts a full fireteam at a
+## time (the class's fireteam_size), so a team's size follows from the count deployed.
+func _planetfall_fireteams() -> Array:
+	if not _is_planetfall_mode or not (_stored_mission_data is Dictionary):
+		return []
+	var md: Dictionary = _stored_mission_data
+	var grunt: Dictionary = PlanetfallRosterRulesRef.class_data().get("classes", {}) \
+		.get("grunt", {})
+	var per_team: int = maxi(1, int(grunt.get("fireteam_size", 4)))
+	var grunts: int = int(md.get("grunts_deployed", 0))
+	var teams: int = int(md.get("grunt_fireteams", ceili(float(grunts) / per_team)))
+	var profile: Dictionary = grunt.get("profiles", {})
+	var out: Array = []
+	for t in range(teams):
+		out.append({"id": "fireteam_%d" % (t + 1), "name": "Fireteam %d" % (t + 1),
+			"reactions": int(profile.get("reactions", 2)),
+			"size": clampi(grunts - t * per_team, 0, per_team)})
+	return out
 
 
 func _unit_is_feral(unit) -> bool:
@@ -7336,7 +7526,8 @@ func _on_auto_resolve_battle() -> void:
 	# Use BattleResolver for rules-accurate combat resolution
 	var battlefield_data: Dictionary = {}
 	var deployment_condition: Dictionary = {}
-	var dice_roller: Callable = func(): return randi_range(1, 6)
+	var dice_roller: Callable = BattleResolverRouterClass.dice_roller(
+		get_node_or_null("/root/DiceManager"))
 
 	# Resolver selection routed through BattleResolverRouter so No-Minis / Standard /
 	# Salvage-fallback (Compendium p.116) matches the campaign auto-resolve path.
@@ -9228,6 +9419,15 @@ class TacticalUnit:
 	## Which crew figure is credited with removing THIS enemy. Feeds the p.123
 	## per-character XP bonuses, which had no producer on the played path.
 	var killed_by: String = ""
+	## Bug Hunt p.178: Wounds taken this mission. "If Wounded a second time in the
+	## mission, the trooper is removed as a casualty", and a second Wound kills an enemy.
+	var wounds: int = 0
+	## Planetfall p.38: Kill Points left. "Each damage roll that exceeds Toughness will
+	## remove 1 KP", and "Hits that remove KP do not cause a Stun".
+	var kill_points: int = 0
+	## Planetfall p.38: knocked Sprawling. No save and Toughness 1 lower until the figure
+	## next activates, which recovers it.
+	var is_sprawling: bool = false
 
 	var enemy_type: String = ""
 	var is_lieutenant: bool = false
@@ -9270,6 +9470,7 @@ class TacticalUnit:
 		elif crew_member:
 			luck_val = crew_member.get("luck")
 		luck_remaining = maxi(int(luck_val) if luck_val != null else 0, 0)
+		kill_points = _kp_of(crew_member)
 
 		# Set health based on toughness
 		max_health = max(1, toughness)
@@ -9283,6 +9484,15 @@ class TacticalUnit:
 
 		# Initialize reaction economy from character (Swift = 1 max)
 		initialize_reactions_from_character()
+
+	## Planetfall characters and creatures carry Kill Points as "kp" (PlanetfallRosterRules,
+	## PlanetfallBattleGuide). Any other mode's figures have none.
+	static func _kp_of(src) -> int:
+		if src is Dictionary:
+			return maxi(int(src.get("kp", src.get("kill_points", 0))), 0)
+		if src is Object and "kp" in src:
+			return maxi(int(src.get("kp")), 0)
+		return 0
 
 	static func _stun_threshold_for(crew_member) -> int:
 		## 3 by default (Core Rules p.40), 2 while an Injured torso is untreated
@@ -9328,6 +9538,7 @@ class TacticalUnit:
 			is_unique_individual = _role == "unique" \
 				or bool(enemy.get("is_unique_individual", false))
 			guardian_attached_to = str(enemy.get("guardian_attached_to", ""))
+			kill_points = _kp_of(enemy)
 		else:
 			var _name_val = enemy.get("name") if enemy else null
 			node_name = str(_name_val) if _name_val else "Enemy"
@@ -9931,6 +10142,34 @@ func _setup_battle_notes_widget() -> void:
 		"font_size", UIColors.FONT_SIZE_SM)
 	_battle_note_edit.text_changed.connect(_on_battle_note_changed)
 	vbox.add_child(_battle_note_edit)
+
+## Carry the Battle Log to the campaign journal (guide chapter 6 promises it).
+##
+## ⚠ Until 2026-10-30 nothing did. The log's own `merge_into_campaign_journal()` had no
+## caller, and it could not have been the route: the battle's journal entry is written
+## by the post-battle sequence after this screen is done. So the log rides the channel
+## the Battle Notes below already use. It is written to temp data on every entry, and
+## `CampaignJournal.auto_create_battle_entry()` reads and clears it. The first write
+## here replaces any earlier battle's log, because `start_battle()` has just cleared it.
+## Only a battle the 5PFH campaign owns writes it.
+func _wire_battle_log_carryback() -> void:
+	if not (unified_log and is_instance_valid(unified_log)):
+		return
+	if not unified_log.entry_added.is_connected(_on_battle_log_entry_added):
+		unified_log.entry_added.connect(_on_battle_log_entry_added)
+	_write_battle_log_carryback()
+
+func _on_battle_log_entry_added(_entry: Dictionary) -> void:
+	_write_battle_log_carryback()
+
+func _write_battle_log_carryback() -> void:
+	if _is_standalone_battle():
+		return
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null:
+		return
+	# The key CampaignJournal.auto_create_battle_entry() reads.
+	gsm.set_temp_data("battle_log_narrative", unified_log.serialize_for_journal())
 
 func _on_battle_note_changed() -> void:
 	if _battle_note_edit == null:

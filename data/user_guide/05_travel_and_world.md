@@ -27,36 +27,39 @@ At the start of each turn's travel phase, you decide:
 | Starship | 5 credits | Using your own ship |
 | Commercial passage | 1 credit per crew member | No ship required |
 
-If your ship is damaged or you can't afford starship travel, commercial passage is the fallback.
+Commercial passage is for a crew without a ship, and it rolls no travel event. A crew with a ship that cannot pay the 5 credits stays where it is until it can (Core Rules p.69).
 
 ### Travel Events
 
-When you travel, the app rolls a D100 travel event. Most trips are uneventful, but sometimes you'll encounter:
+When you travel in your own ship, the app rolls D100 on the Starship Travel Events Table (Core Rules pp.70-72). It has 16 results, among them:
 
-- **Asteroid fields** — Risk of ship damage
-- **Pirates** — Possible combat encounter
-- **Navigation trouble** — Delays or detours
-- **Discovered wrecks** — Salvage opportunities
-- **Drive troubles** — Mechanical issues requiring repair
-- **Distress signals** — Help others for reputation, or ignore them
+- **Asteroids** — Steer around them (1D6, 5+) or go through (three 1D6+Savvy rolls at 4+, each failure costing 1D6 Hull Points)
+- **Navigation trouble** — Lose 1 story point and roll again; if the ship already has Hull Point damage, a random crew member rolls on the Injury Table
+- **Raided** — Talk your way out (1D6+Savvy, 6+) or fight a battle
+- **Deep space wreckage** — Two Gear rolls, both items damaged
+- **Drive trouble** — Three crew roll 1D6+Savvy (6+); each failure grounds you on the next world for a campaign turn
+- **Distress call** — Go to help and roll 1D6 for what you find, or ignore it
 
 Each event has specific consequences described on screen. Some require dice rolls; others present choices.
 
-### Invasion Escape
+### Fleeing an Invasion
 
-If your current world is under invasion (triggered by a galactic war check in a previous turn), you must decide whether to flee:
+If the post-battle Check for Invasion has told you this world is being Invaded, you must try to flee (Core Rules p.69):
 
-- Roll **2d6** — need **8+** to escape successfully
-- **Success**: You travel to a safe world
-- **Failure**: You may lose crew members or equipment before escaping
+- Roll **2D6**; on **8+** you get safely off-world and travel to a new world as usual
+- If the roll fails, the only World step you get is Assign Equipment, and you **must** fight an Invasion Battle (Core Rules p.92). Survive it and you leave
+- No payment, purchases or Campaign Events happen while you flee, but you may roll a Character Event
+- Short of the 5 credits for fuel, you can sell gear at 1 credit per two items or take evacuation passage. A crew without a ship takes an evacuation ship and loses all its credits and 1D6 items
+- However you leave, every Rival, Patron and contact on that world is lost
 
 ### Arriving at a New World
 
-When you arrive at a new world, the app generates:
+When you arrive at a new world, the app works through the New World Arrival steps in order (Core Rules p.72):
 
-- World traits (Core Rules pp.72-75)
-- Available patrons and job offers
-- Any special conditions or events
+1. Each Rival rolls 1D6 and follows you on a 5+
+2. Patrons stay behind unless they are Persistent
+3. On a 1D6 roll of 5-6 the world requires a Freelancer License for Patron jobs, costing 1D6 credits. You may try once to forge one (1D6+Savvy, 6+)
+4. The world's trait is rolled on the World Traits table (Core Rules pp.72-75)
 
 ## The World Phase
 

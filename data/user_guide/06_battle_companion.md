@@ -47,51 +47,48 @@ The Battle Companion operates at three levels of assistance. Choose the tier tha
 
 ### Log Only
 
-**You do everything on the tabletop.** The app simply records what happens.
+The full table companion — map, figure tracker, scenario rules, battle log. You roll every die yourself.
 
 Best for:
 - Experienced players who know the rules well
-- Players who prefer full manual control
-- Quick games where you don't need rule lookups
+- Players who prefer to roll and decide everything at the table
 
 What the app does:
-- Records combat results you enter
-- Tracks turn count
-- Maintains a battle log for the campaign journal
+- Shows the battlefield map, your crew and the enemy roster, and the mission's own rules
+- Walks the battle round by round
+- Keeps the dice roller, the Combat Calculator and the rules reference to hand
+- Keeps the Battle Log, which goes into the campaign journal with the battle
+- Records the result when you enter it
 
 ### Assisted
 
-**The app suggests actions and reminds you of rules.** You still execute everything on the tabletop.
+Adds the dice: reaction rolls, Seize the Initiative, end-of-round morale and condition checks, plus live objective tracking.
 
 Best for:
 - Players learning the rules
-- Complex battles with many modifiers
-- When you want rule reminders without full automation
+- Battles with many rules to keep track of
 
 What the app does:
 - Everything in Log Only, plus:
-- Suggests legal actions for each unit
-- Calculates hit modifiers for you
-- Reminds you of reaction opportunities
-- Tracks morale and panic status
-- Highlights when special rules apply
+- Rolls the Reaction dice and Seize the Initiative
+- Tracks enemy morale and Panic, and prompts the checks at the end of each round
+- Tracks the mission objective as you play
+- Shows the deployment conditions and resolves Battle Events when they are rolled
 
 ### Full Oracle
 
-**The app resolves all mechanics.** You move miniatures and the app tells you what happens.
+Adds an enemy AI oracle to the enemy tracker — reference, dice table or card draw. You still move the figures.
 
 Best for:
-- Solo players who want the app to handle bookkeeping
-- New players learning the system
-- When you want to focus purely on tactical decisions
+- Solo players who want help deciding what the enemy does
 
 What the app does:
-- Everything in Assisted, plus:
-- Rolls all dice automatically
-- Resolves hits, damage, and saves
-- Determines enemy AI behavior and movement
-- Calculates optimal enemy actions
-- Handles all morale checks
+- Everything in Assisted, plus an enemy oracle with three modes:
+  - **Reference** shows each enemy's AI rules
+  - **D6 Table** rolls the Compendium AI Variations (Compendium pp.42-43), and appears only when that option is on
+  - **Card Oracle** draws a card and reads the enemy's action from its suit and rank
+
+The core rules' enemy AI uses no dice (Core Rules p.42), and its instructions are shown at every tier. You still roll your own shots and move every figure.
 
 You can raise the tier during a battle: tap the tier badge and pick a higher level. A tier cannot be lowered once the battle has started.
 
@@ -119,13 +116,14 @@ A **Battle Log** records what happens for the campaign journal.
    - Within 6" and in the open: **3+**
    - Within weapon range and in the open: **5+**
    - Within weapon range and in Cover: **6+**
+   - Within 6" and in Cover: **5+** (errata v1.06 adds this row to the p.118 table)
 3. If the modified score equals or exceeds the target number, the shot Hits.
 
 ### Resolving Hits (Core Rules p.46)
 
 - Roll 1D6 and add the weapon's Damage. If the result equals or exceeds the target's **Toughness**, or is a natural 6, the target becomes a casualty.
 - A lower roll pushes the target back 1" and Stuns it.
-- A target with a Saving Throw (from armor or a screen) rolls 1D6 first; a roll equal to or above the Saving Throw number negates the Hit. See {{chapter:10}}.
+- A target with a Saving Throw (from armor or a screen) rolls 1D6 when it takes the Hit; a roll equal to or above the Saving Throw number negates the Hit, but the figure is still Stunned. See {{chapter:10}}.
 
 ### Holding the Field
 
@@ -133,7 +131,7 @@ Whether you Held the Field is set by how the battle ended (Core Rules p.115). It
 
 ### Morale
 
-Enemy morale is checked with Panic rolls, which the Tracking drawer helps you keep (Core Rules p.116 lists the battle events that can change it). There is no crew morale score in the rulebook.
+Enemy morale is checked with Panic rolls (Core Rules p.114), which the Tracking drawer helps you keep at the Assisted tier and above. Some Battle Events change it (Core Rules p.116). There is no crew morale score in the rulebook.
 
 ## Battle Flow
 

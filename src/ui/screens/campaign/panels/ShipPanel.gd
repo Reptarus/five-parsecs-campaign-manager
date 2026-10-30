@@ -56,7 +56,7 @@ var ship_data: Dictionary = {
 }
 var available_ships: Array[Dictionary] = []
 
-# Ship data loaded from ships.json (Core Rules pp.68-71)
+# Ship data loaded from ships.json (Core Rules p.31)
 var _ships_db: Dictionary = {}
 
 # Flavor data loaded from flavor_table.json (Core Rules p.32)
@@ -689,7 +689,7 @@ func _roll_flavor_table(table_name: String) -> Dictionary:
 	var entries: Dictionary = table.get("entries", {})
 	if entries.is_empty():
 		return {"description": "Unknown", "details": ""}
-	var roll: int = randi_range(1, 100)
+	var roll: int = _d100("Crew Flavor: %s" % table_name)
 	for range_key in entries.keys():
 		var parts: PackedStringArray = range_key.split("-")
 		if parts.size() == 2:
@@ -898,7 +898,7 @@ func _generate_ship_name() -> String:
 	return "%s %s" % [prefixes[randi() % prefixes.size()], suffixes[randi() % suffixes.size()]]
 
 func _populate_ship_types() -> void:
-	## Populate ship type dropdown from ships.json (Core Rules pp.68-71)
+	## Populate ship type dropdown from ships.json (Core Rules p.31)
 	if not ship_type_option:
 		return
 	ship_type_option.clear()
@@ -920,15 +920,7 @@ func _calculate_starting_hull(ship_type: String) -> int:
 func _calculate_starting_debt(ship_type: String) -> int:
 	## Calculate starting debt from ships.json (Core Rules p.31: 1D6 + base)
 	var data: Dictionary = _get_ship_type_data(ship_type)
-	# New format: debt_base + 1D6
-	if data.has("debt_base"):
-		return int(data.get("debt_base", 20)) + randi_range(1, 6)
-	# Legacy format fallback
-	var debt_min: int = int(data.get("debt_min", 20))
-	var debt_max: int = int(data.get("debt_max", 26))
-	if debt_min == debt_max:
-		return debt_min
-	return randi_range(debt_min, debt_max)
+	return _roll_debt(data)
 
 func _calculate_cargo_capacity(_ship_type: String) -> int:
 	## Cargo capacity — not in Core Rules ship table, app feature
@@ -1254,8 +1246,8 @@ func set_data(data: Dictionary) -> void:
 	ship_updated.emit(ship_data)
 
 func _generate_ship() -> void:
-	## Generate ship following Five Parsecs Ship Table from ships.json (Core Rules pp.68-71)
-	var ship_roll: int = randi_range(1, 100)
+	## Generate ship following Five Parsecs Ship Table from ships.json (Core Rules p.31)
+	var ship_roll: int = _d100("Ship Table")
 	var gen_table: Array = _ships_db.get("generation_table", [])
 	var chosen_type_id: String = ""
 
@@ -1296,13 +1288,7 @@ func _create_ship_from_type_id(type_id: String) -> void:
 			var hull: int = int(entry.get("hull_points", 30))
 			ship_data.hull_points = hull
 			ship_data.max_hull = hull
-			# Core Rules: debt = 1D6 + base
-			if entry.has("debt_base"):
-				ship_data.debt = int(entry.get("debt_base", 20)) + randi_range(1, 6)
-			else:
-				var debt_min: int = int(entry.get("debt_min", 20))
-				var debt_max: int = int(entry.get("debt_max", 26))
-				ship_data.debt = debt_min if debt_min == debt_max else randi_range(debt_min, debt_max)
+			ship_data.debt = _roll_debt(entry)
 			# Core Rules p.31: traits are fixed per ship type, no random rolling
 			ship_data.traits = entry.get("traits", [])
 			return
@@ -1324,9 +1310,37 @@ func _create_ship_from_type_id(type_id: String) -> void:
 func _worn_freighter_debt() -> int:
 	for entry in _ships_db.get("ship_types", []):
 		if entry is Dictionary and str(entry.get("name", "")) == "Worn Freighter":
-			return int(entry.get("debt_base", 20)) + randi_range(1, 6)
+			return _roll_debt(entry)
 	# The DB itself is missing: use the book value rather than a made-up one.
-	return 20 + randi_range(1, 6)
+	return _roll_debt({})
+
+
+## Core Rules p.31: a ship's debt is 1D6 plus its type's base. Every type in ships.json
+## carries debt_base; the old debt_min/debt_max fallback matched none of them. A
+## missing entry falls back to the Worn Freighter's 20.
+func _roll_debt(entry: Dictionary) -> int:
+	return int(entry.get("debt_base", 20)) + _d6("Ship Debt")
+
+
+## Every die this panel rolls goes through DiceManager so a QA tester can force it.
+## Resolved once; a panel outside the tree cannot reach the autoload, and falls back.
+var _dice: Node = null
+
+
+func _dice_manager() -> Node:
+	if _dice == null and is_inside_tree():
+		_dice = get_node_or_null("/root/DiceManager")
+	return _dice
+
+
+func _d6(context: String) -> int:
+	var dm: Node = _dice_manager()
+	return int(dm.roll_d6(context)) if dm else randi_range(1, 6)
+
+
+func _d100(context: String) -> int:
+	var dm: Node = _dice_manager()
+	return int(dm.roll_d100(context)) if dm else randi_range(1, 100)
 
 
 func set_ship_data(data: Dictionary) -> void:

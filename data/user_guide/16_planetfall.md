@@ -108,7 +108,13 @@ The app saves when a turn ends and before it launches a battle. You can also pre
 
 ### The Battle and the Return
 
-On the battle screen you play the mission with the app's battle companion, as described in {{chapter:06}}, with Planetfall's own mission card and contact tools. When the fight is over, use **Record Result** to fill in the outcome. When the battle ends you are returned to the Planetfall turn screen and the turn carries on at Step 9. The turn screen is rebuilt on return, and the app has kept the mission details for the post-battle steps.
+On the battle screen you play the mission with the app's battle companion, as described in {{chapter:06}}, with Planetfall's own mission card and contact tools. Planetfall's rules replace the standard campaign's there:
+
+- **Reaction dice.** Each character rolls one die, each fireteam you deployed rolls one die for the whole team, and each scientist on the table adds one more die. Excess dice are discarded (pp.29-30).
+- **Hits.** A roll above the target's Toughness makes it a casualty, and a roll equal to it knocks the target Sprawling (p.37). A figure with Kill Points loses one instead, and is not Stunned (p.38).
+- **Reference tab.** It holds Planetfall's combat rules and weapons. The standard campaign's Battle Events are not rolled.
+
+When the fight is over, use **Record Result** to fill in the outcome. When the battle ends you are returned to the Planetfall turn screen and the turn carries on at Step 9. The turn screen is rebuilt on return, and the app has kept the mission details for the post-battle steps.
 
 If you leave the app mid-turn, **Continue Campaign** puts you back on the step you were on.
 

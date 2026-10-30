@@ -13,7 +13,9 @@ extends PanelContainer
 ##   - Damage: p.46 (1D6 + Damage vs Toughness)
 ##   - Reaction: p.112 (D6 vs Reactions stat → Quick/Slow)
 ##   - Aim: p.46 (reroll 1s if didn't move)
-##   - Snap Fire: p.113 (-1 to hit during enemy actions)
+##   - Snap Fire: p.113 (hold a Quick Action to fire during the enemy move). It
+##     carries no To Hit modifier: until 2026-10-30 this panel took 1 off the shot,
+##     which neither p.113, the errata nor Bug Hunt's p.198 version says.
 ##   - Luck: p.91-92 (spend to reroll any die)
 
 signal roll_completed(character_name: String, roll_type: String, result: Dictionary)
@@ -60,6 +62,7 @@ var _selected_character: Dictionary = {}
 var _current_roll_type: RollType = RollType.HIT
 var _last_result: Dictionary = {}
 var _rng := RandomNumberGenerator.new()
+var _dice: Node = null
 
 # UI node references (built in _ready)
 var _crew_list: VBoxContainer
@@ -842,7 +845,13 @@ func _on_roll_type_changed(index: int) -> void:
 # DICE ROLLING
 # =====================================================
 
+## Every die on this panel goes through DiceManager ("Quick Roll") so a QA tester can
+## force it. The panel's own RNG is the fallback for a panel outside the tree.
 func _roll_d6() -> int:
+	if _dice == null and is_inside_tree():
+		_dice = get_node_or_null("/root/DiceManager")
+	if _dice != null:
+		return int(_dice.roll_d6("Quick Roll"))
 	return _rng.randi_range(1, 6)
 
 func _on_roll_pressed() -> void:
@@ -871,7 +880,6 @@ func _execute_hit_roll() -> void:
 	var species: String = str(_selected_character.get("species", "human"))
 	var stuns: int = _selected_character.get("stun_markers", 0)
 	var is_aiming: bool = _selected_character.get("is_aiming", false)
-	var is_snap_fire: bool = _selected_character.get("is_holding_snap", false)
 
 	var target_in_cover: bool = _cover_check.button_pressed
 	var range_inches: float = _range_spin.value
@@ -937,12 +945,9 @@ func _execute_hit_roll() -> void:
 		roll = _roll_d6()
 		aim_rerolled = true
 
-	# Snap fire penalty (Core Rules p.113)
-	var snap_penalty: int = -1 if is_snap_fire else 0
-
 	# Compendium p.102 Injured arm — non-Pistol shots only.
 	var arm_penalty: int = _injured_arm_penalty(_weapon_is_pistol(weapon), combat_skill)
-	var effective_roll: int = roll + combat_skill + snap_penalty + arm_penalty
+	var effective_roll: int = roll + combat_skill + arm_penalty
 	var hit: bool = effective_roll >= threshold
 
 	_last_result = {
@@ -961,8 +966,6 @@ func _execute_hit_roll() -> void:
 		bbcode += " [color=#10B981](rerolled 1 — Aimed)[/color]"
 	bbcode += "\n"
 	bbcode += "+ Combat Skill: [b]+%d[/b]\n" % combat_skill
-	if snap_penalty != 0:
-		bbcode += "[color=#DC2626]+ Snap Fire: %d[/color]\n" % snap_penalty
 	if arm_penalty != 0:
 		bbcode += "[color=#DC2626]+ Injured arm (non-Pistol, p.102): %d[/color]\n" % arm_penalty
 	if stuns > 0:
@@ -1192,7 +1195,7 @@ func _execute_reaction_roll() -> void:
 
 	if is_quick:
 		bbcode += "[color=#10B981][b]QUICK ACTIONS[/b] — Acts before enemies![/color]\n"
-		bbcode += "May also hold for Snap Fire (-1 to hit)"
+		bbcode += "May hold the action for Snap Fire (p.113)"
 	else:
 		bbcode += "[color=#D97706][b]SLOW ACTIONS[/b] — Acts after enemies[/color]"
 

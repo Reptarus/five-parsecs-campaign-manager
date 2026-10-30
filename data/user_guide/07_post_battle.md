@@ -13,6 +13,8 @@ After every battle, the app walks you through a 14-step post-battle sequence. Mo
 
 The Post-Battle Sequence runs in a fixed order. You can't skip steps, but some resolve instantly if they don't apply to your situation.
 
+In the Introductory Campaign, each guided turn carries out only the steps the Compendium lists for it (Compendium pp.104-109), and the turn-0 training battle carries out none: "No experience points or other post-battle functions are carried out" (Compendium p.105). The screen marks each step the turn skips.
+
 ## The 14 Steps
 
 ### Step 1: Resolve Rival Status (Core Rules p.119)
@@ -111,21 +113,25 @@ Roll D100 on the Campaign Events table and apply the result immediately (Core Ru
 
 ### Step 13: Character Event
 
-One random crew member (not a Bot or Soulless) rolls a personal event (Core Rules p.126):
+One random crew member (not a Bot or Soulless) rolls D100 on the Character Event Table (Core Rules p.126; the table is on pp.128-130):
 
-- Development opportunities: gain contacts, learn secrets
-- Complications: addictions, romantic entanglements, personal rivalries
-- These events add narrative depth and sometimes mechanical effects
+- 30 results, most of them XP, a story point, credits, a Quest Rumor, a Patron or a Rival
+- Some cost you: Sick Bay time, a damaged or lost item, or ship damage
+- Some last into the next campaign turn: sitting out the next battle, away on business for two turns, refusing crew tasks, or earning no XP
+- The event and its consequence are shown on screen
 
 ### Step 14: Galactic War Check
 
-The final step tracks the state of the galaxy:
+If you are tracking any planets that were previously Invaded, the app rolls 2D6 for each (Core Rules p.126):
 
-- Check if any planets have been invaded
-- Update invasion status for worlds you've visited
-- Track the overall galactic conflict state
+| Roll (2D6) | Result |
+|-----------|--------|
+| 2-4 | Lost to Unity: the planet is lost to the invaders and cannot be visited again |
+| 5-7 | Contested: no progress |
+| 8-9 | Making Ground: +1 to all future rolls on this table |
+| 10+ | Unity Victorious: the planet can be visited again, and its future Invasion Threat rolls are at -2 |
 
-This is mostly bookkeeping — the app handles it automatically.
+If no planet you know of was Invaded, there is nothing to roll.
 
 ## Post-Battle Tips
 
