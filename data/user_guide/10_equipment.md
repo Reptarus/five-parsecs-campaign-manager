@@ -1,131 +1,72 @@
 # Chapter 10: Equipment and Weapons
 
 > **Quick Start** (for tabletop veterans)
-> - Each crew member: 1 primary weapon, 1 secondary weapon, 1 armor, up to 3 accessories
-> - Ship stash holds unequipped gear under `equipment_data["equipment"]`
-> - Sell value: 50% good, 25% damaged; condition-aware pricing via EquipmentManager
-> - Available marketplace stock varies by world tech level
-> - Equipment comparison available in the inventory screen
+> - A character may carry 2 weapons, plus a Pistol-class weapon or a Blade (Core Rules p.49)
+> - Armor and screens give a Saving Throw, not damage reduction (Core Rules p.46); one armor and one screen at most (p.54)
+> - Implants: up to 2 per character, permanent (Core Rules p.55)
+> - Equipment moves at the World Phase **Assign Equipment** step, on **Character Details**, and during creation
+> - Buying and selling is the post-battle **Purchase Items** step (Core Rules p.125)
 
 ## Overview
 
-Equipment determines your crew's combat effectiveness. The right loadout can make the difference between a clean victory and a devastating defeat. This chapter covers weapon types, armor, gear management, and the marketplace.
+Equipment determines your crew's combat effectiveness. This chapter covers what a character can carry, how armor works, where equipment moves in the app, and how to buy and sell. Every item's stats come from the rulebook tables and are shown in the app next to the item.
 
-## Equipment Slots
+## What a Character Can Carry
 
-Each crew member has the following equipment slots:
+- **Weapons.** A character may carry 2 weapons, plus a Pistol-class weapon or a Blade (Core Rules p.49).
+- **Protective devices.** A character may wear no more than one piece of armor and one screen (Core Rules p.54).
+- **Implants.** Up to 2 per character; some species differ (Core Rules pp.19, 23, 55). Bots and Soulless cannot use implants.
+- **Consumables.** These are not carried by a specific character. If any are in the ship stash, any crew member may use them (Core Rules p.54). Bots and Soulless cannot use consumables.
 
-| Slot | Count | Notes |
-|------|-------|-------|
-| Primary Weapon | 1 | Your main combat weapon |
-| Secondary Weapon | 1 | Backup weapon or sidearm |
-| Armor | 1 | Protective gear |
-| Accessories | Up to 3 | Gadgets, tools, consumables |
+Everything else lives in the **ship stash**, a shared pool. An item is in exactly one place: on a character or in the stash, never both.
 
-Unequipped items are stored in your **ship stash** — a shared pool accessible during the World Phase and Trading Phase.
+## Weapons
 
-## Weapon Types
+Weapons are rated by **Range** (tabletop inches), **Shots** (the number of D6 you roll to hit) and **Damage** (added to the damage roll), and many have traits that add special rules (Core Rules p.49). Weapon tables and stats are printed on Core Rules pp.50-52, and the app shows them on the item when you select it.
 
-Weapons in Five Parsecs fall into several categories:
+The Piercing trait negates a Saving Throw from armor (Core Rules p.46).
 
-### Ranged Weapons
+## Armor and Screens
 
-| Category | Range | Damage | Notes |
-|----------|-------|--------|-------|
-| Pistols | Short | Low-Medium | Can be used as secondary |
-| Rifles | Medium-Long | Medium | Standard combat weapon |
-| Shotguns | Short | High | Devastating up close |
-| Heavy Weapons | Long | Very High | Expensive, slow |
-| Energy Weapons | Medium | Medium-High | Ignore some armor |
+Armor and screens give a **Saving Throw** against Hits. They do not reduce damage points.
 
-### Melee Weapons
+- When a character with a Saving Throw takes a Hit, roll 1D6. A roll equal to or above the Saving Throw number negates the Hit. The figure is still left Stunned (Core Rules p.46).
+- With two or more Saving Throws, roll only for the best one and lower its target number by 1 (Core Rules p.46).
+- Bots, Soulless, De-converted and Assault Bot characters have built-in armor plating (a 6+ Saving Throw, 5+ for Assault Bots) and may also be fitted with regular armor (Core Rules p.46).
+- The protective devices and their effects are listed on Core Rules pp.54-55. Where an item is a screen, the app labels it as one.
 
-| Category | Damage | Notes |
-|----------|--------|-------|
-| Blade | Medium | Silent, no ammo |
-| Power Weapon | High | Expensive, very effective |
-| Improvised | Low | Always available |
+## Where Equipment Moves in the App
 
-### Special Weapons
+There is no separate inventory screen on the Campaign Dashboard. Equipment moves in these places:
 
-Some weapons have unique properties:
-- **Area effect** — Hits multiple targets
-- **Stun** — Incapacitates without killing
-- **Suppression** — Forces enemies into cover
-- **Piercing** — Ignores armor
+1. **Campaign creation, Step 4 (Starting Equipment).** Each item has an **Assign...** control with **Assign to:** buttons for each crew member, **Ship Stash**, or **Unassigned**.
+2. **World Phase, Assign Equipment** (sub-step 4). The panel has **CREW MEMBERS**, **CREW EQUIPMENT** and **SHIP STASH** lists. Use **→ Stash**, **← Give to Crew** and **Trade** to move the selected item, then **Confirm Equipment Assignments**.
+3. **Character Details.** The character's equipment is listed, with **Add Item** and **Remove Selected**.
 
-## Armor Types
-
-| Armor | Protection | Notes |
-|-------|-----------|-------|
-| Light Armor | 1 point | Minimal movement penalty |
-| Heavy Armor | 2 points | Reduces speed slightly |
-| Powered Armor | 3 points | Expensive, very protective |
-| Shields | 1 point | Can be combined with armor |
-
-Armor reduces incoming damage by its protection value. A hit dealing 3 damage against 2 points of armor only deals 1 damage.
-
-## Equipment Condition
-
-Equipment degrades over use:
-
-| Condition | Sell Value | Effect |
-|-----------|-----------|--------|
-| Good | 50% of full price | Full effectiveness |
-| Damaged | 25% of full price | May have reduced stats |
-| Heavily Damaged | 10% of full price | Significantly impaired |
-
-Equipment can be damaged during battle (critical hits, special events) or through campaign events.
-
-### Repairing Equipment
-
-- Repair at the marketplace during the Trading Phase
-- Cost varies by item type and damage severity
-- The Mechanic crew skill reduces repair costs
-- Sometimes it's cheaper to replace than repair
-
-## Managing Equipment
-
-### The Inventory Screen
-
-Access from the Campaign Dashboard or during World Phase:
-
-- **Crew loadouts** — See who has what equipped
-- **Ship stash** — Browse unequipped items
-- **Comparison view** — Compare two items side-by-side
-- **Quick equip** — Drag items between crew members and stash
+Hover the **?** on the Assign Equipment panel for the weapon limit reminder.
 
 ### Assignment Tips
 
-- **Match weapons to roles.** Give rifles to your best shooters (high Combat), melee weapons to tough characters.
-- **Always equip armor.** Even light armor makes a difference — 1 point of damage reduction adds up over many hits.
-- **Carry a secondary weapon.** If your primary runs out of ammo or breaks, a sidearm keeps you in the fight.
-- **Don't hoard.** Sell equipment you're not using — credits are more useful than unused gear.
+- Give the best weapons to the characters with the highest Combat Skill.
+- Put armor on anyone who will stand in the open. A Saving Throw is checked after every Hit.
+- Keep consumables in the stash, where the whole crew can use them.
 
 ### Loot and Implants
 
 When you find loot after battles (see {{chapter:07}}):
-- Standard items go to the ship stash
-- **Implants are auto-installed** to eligible characters via the `LOOT_TO_IMPLANT_MAP` pipeline
-- If no eligible character exists (all at max implants), the implant goes to stash
+- Standard items go to the ship stash.
+- A looted **implant** is installed on an eligible crew member automatically. If no crew member can take it (everyone is at their limit, or is a Bot or Soulless), it goes to the stash.
 
-## The Marketplace
+## Buying and Selling
 
-### Buying
+Buying and selling happen at post-battle **Step 11, Purchase Items** (Core Rules p.125). There is no tech level, no rotating stock and no condition-based pricing. The panel shows:
 
-- Available stock depends on **world tech level** (0-12)
-- Higher tech level = better and more varied equipment
-- Stock rotates each turn — check back if you don't find what you need
-- Some items are rare and appear only on high-tech worlds
-
-### Selling
-
-Sell through the marketplace during the Trading Phase:
-- Good condition: **50%** of full price
-- Damaged: **25%** of full price
-- The app calculates sell prices automatically
+- **BASIC ITEMS (1 credit each).** Any number of Hand Guns, Blades, Colony Rifles or Shotguns for 1 credit each.
+- **TABLE ROLLS (3 credits each).** **Roll Military Weapons**, **Roll Gear** or **Roll Gadget**: pay 3 credits for one roll on that table. You may buy more than one roll per campaign turn.
+- **SHOPPING CART** and **Confirm Purchase**.
+- **SELL ITEMS (1 credit each, max 3).** You may sell up to 3 items per turn, earning 1 credit for each. Use **Sell Selected**.
 
 ## What's Next?
 
-- For stat upgrades and skill training: {{chapter:08}} — Advancement and Trading
-- For character loadout strategies: {{chapter:09}} — Characters and Crew
+- For stat upgrades and Advanced Training: {{chapter:08}} - Advancement and Trading
+- For character species and crew management: {{chapter:09}} - Characters and Crew

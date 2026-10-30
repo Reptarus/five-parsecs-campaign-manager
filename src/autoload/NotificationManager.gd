@@ -68,9 +68,11 @@ func _ready() -> void:
 	_setup_container()
 
 
+## The container is this node's own child, so it leaves and re-enters the tree with
+## it. It used to be nulled here, and _ready() (which builds it) runs only once, so a
+## detach and re-attach left every later toast aborting on a null container.
 func _exit_tree() -> void:
 	clear_all()
-	_container = null
 
 func _setup_container() -> void:
 	## Create the container that holds notifications
@@ -186,6 +188,8 @@ func _cleanup_dismissed() -> void:
 
 func _show_notification(data: Dictionary) -> void:
 	## Create and display a notification
+	if not is_instance_valid(_container):
+		_setup_container()
 	var notification = _create_notification_panel(data)
 	_container.add_child(notification)
 	_active_notifications.append(notification)

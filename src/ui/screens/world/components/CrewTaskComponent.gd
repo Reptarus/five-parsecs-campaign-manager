@@ -4785,7 +4785,10 @@ func _roll_on_military_weapons_table() -> String:
 			return str(entry.get("name", ""))
 	return str(table[table.size() - 1].get("name", ""))
 
-static var _military_weapon_table_cache: Array = []
+# Per instance, not static: a script that extends another project script must not
+# declare a static var on Godot 4.6 (exit-time use-after-free, godot#117975; see
+# test_no_static_vars_on_script_subclasses.gd).
+var _military_weapon_table_cache: Array = []
 func _get_military_weapon_table() -> Array:
 	if not _military_weapon_table_cache.is_empty():
 		return _military_weapon_table_cache

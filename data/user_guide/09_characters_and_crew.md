@@ -1,9 +1,9 @@
 # Chapter 9: Characters and Crew
 
 > **Quick Start** (for tabletop veterans)
-> - Six flat stats: Combat, Reaction, Speed, Toughness, Savvy, Luck (no sub-objects)
-> - Captain gets min 3 in Combat/Toughness/Savvy, +1 HP, 2 Luck
-> - Implants: up to 3 per character, 6 types, auto-installed from loot
+> - Six stats: Reactions, Speed, Combat Skill, Toughness, Savvy, Luck (Core Rules p.123)
+> - The Leader receives 1 Luck point and never leaves the crew through random events (Core Rules p.24)
+> - Implants: up to 2 per character (some species differ), auto-installed from loot (Core Rules p.55)
 > - Species affect stat caps, abilities, and upgrade methods (Bots use credits, not XP)
 > - Character events fire during the Character Phase of each turn
 
@@ -15,31 +15,22 @@ Your crew members are the heart of your campaign. Each character has stats, equi
 
 Every character has six core attributes:
 
-| Stat | Range | What It Does |
-|------|-------|-------------|
-| **Combat** | 0-5 | Ranged and melee attack accuracy |
-| **Reaction** | 1-6 | Initiative order and response speed |
-| **Speed** | 4-8 | Movement distance per activation |
-| **Toughness** | 2-8 | Base durability; health = Toughness + modifier |
-| **Savvy** | 0-5 | Technical checks, awareness, non-combat actions |
-| **Luck** | 0-3 | Reroll tokens; spent to redo bad dice results |
+| Stat | Maximum | What It Does |
+|------|---------|-------------|
+| **Reactions** | 6 | Decides who acts in the Quick Actions step |
+| **Speed** | 8" | Movement distance |
+| **Combat Skill** | +5 | Added to your roll to hit |
+| **Toughness** | 6 | The number a damage roll must reach to make the character a casualty |
+| **Savvy** | +5 | Added to Savvy rolls and several crew tasks |
+| **Luck** | 1 (3 for Humans) | Lets a character who would become a casualty survive (Core Rules p.46) |
 
-Stats are stored as flat properties on each character — there is no nested "stats" sub-object. Health is derived from Toughness: captains get Toughness + 3, crew members get Toughness + 2.
+The maximums are the ability caps from the Ability Increase Table (Core Rules p.123). There is no hit point total: a character is either hit or a casualty.
 
-### Species and Stat Caps
+### Species
 
-Different species have different maximum stat values:
+Each species starts from its own profile (Core Rules pp.15-22). A baseline Human starts with Reactions 1, Speed 4", Combat Skill +0, Toughness 3 and Savvy +0, and is the only character type that can exceed 1 point of Luck. A standard Bot starts with Reactions 2, Speed 4", Combat Skill +1, Toughness 4 and Savvy +2, earns no XP (it upgrades with credits), takes no rolls on the creation tables, and cannot use implants or consumables (Core Rules p.15).
 
-| Species | Combat | Reaction | Speed | Toughness | Savvy | Luck | Special |
-|---------|--------|----------|-------|-----------|-------|------|---------|
-| Human | 5 | 6 | 8 | 6 | 5 | 3 | Standard |
-| Bot | 4 | 4 | 6 | 8 | 3 | 0 | Credits for upgrades |
-| K'Erin | 5 | 5 | 7 | 7 | 4 | 2 | Combat bonus |
-| Soulless | 4 | 6 | 7 | 5 | 6 | 1 | Cannot train skills |
-| Engineer | 4 | 5 | 7 | 5 | 6 | 3 | Tech bonus |
-| Precursor | 5 | 5 | 7 | 6 | 5 | 2 | Credits for upgrades |
-| Krag (DLC) | 6 | 4 | 6 | 8 | 3 | 1 | Heavy fighter |
-| Skulker (DLC) | 4 | 6 | 8 | 4 | 5 | 2 | Stealth bonus |
+The Primary Aliens, Strange Characters and Compendium species each have their own profile and special rules in the rulebook. The app applies them automatically and shows them on the character.
 
 ## Backgrounds and Motivations
 
@@ -61,15 +52,15 @@ A character's motivation drives their personal goals. Motivations can trigger sp
 Cybernetic implants are permanent upgrades installed in your crew members.
 
 ### Rules
-- Maximum **3 implants** per character
-- **6 types** available
-- Implants are **auto-installed from loot** when found — the `LOOT_TO_IMPLANT_MAP` pipeline handles this
-- Cannot be removed once installed
-- Provide permanent stat or ability bonuses
+- Up to **2 implants** per character; some species differ (Core Rules pp.19, 23, 55)
+- Bots and Soulless cannot use implants (Core Rules p.55)
+- A looted implant is **installed automatically** on an eligible crew member; if nobody can take it, it goes to the ship stash
+- Once applied, an implant cannot be damaged or removed (Core Rules p.55)
+- The implant table is on Core Rules p.55; the app shows each implant's effect on the character
 
 ### Decision Guidance
 
-Since implants are permanent and limited to 3, be strategic about which characters receive them. Frontline fighters benefit most from combat and toughness implants, while support characters benefit from savvy and reaction implants.
+Since implants are permanent and limited to 2 for most species, be strategic about which characters receive them. Frontline fighters benefit most from combat and toughness implants, while support characters benefit from savvy and reaction implants.
 
 ## Managing Your Crew
 
@@ -77,7 +68,6 @@ Since implants are permanent and limited to 3, be strategic about which characte
 
 Access from the Campaign Dashboard to:
 - View detailed character sheets
-- Reassign equipment between members
 - Review skills and advancement history
 - Check injury status and recovery countdown
 - Compare crew member stats side-by-side
@@ -86,18 +76,18 @@ Access from the Campaign Dashboard to:
 
 During certain campaign events or World Phase tasks, you can:
 - **Recruit new crew members** — Generated with random stats and background
-- **Dismiss crew members** — Remove them from your roster (equipment is returned to stash)
+- **Dismiss crew members** — Remove them from your roster at the upkeep step. You may take one item they carried back to the stash; they keep the rest (Core Rules p.76)
 
-Crew size affects upkeep costs (1 credit per member per turn) and tactical options (more members = more deployed in battle).
+Crew size affects upkeep (1 credit for 4-6 crew, +1 per crew member past 6; Core Rules p.76).
 
 ### Injury Recovery
 
 When a crew member is injured:
 - Recovery time is shown in turns remaining
-- Injured members can only **Rest** or **Guard** during crew tasks
-- Resting speeds recovery
-- Some injuries have permanent effects (stat reduction)
-- Medical skill on another crew member improves recovery
+- Characters in Sick Bay do not count toward upkeep and cannot be deployed (Core Rules p.76)
+- You can pay 4 credits to remove 1 campaign turn from a character's recovery time (Core Rules p.76)
+- Some injuries have permanent effects (Core Rules p.122)
+- Medical School training lets you roll twice on the Injury Table after a battle (Core Rules p.125)
 
 ## Character Events
 
@@ -107,19 +97,11 @@ During the Character Phase of each turn, crew members may experience personal ev
 - **Negative**: Pick up an addiction, make a personal enemy, romantic complication
 - **Neutral**: Philosophical reflection, nostalgic memory, unusual encounter
 
-These events are generated from the `character_events.gd` system and add narrative depth to your crew's story.
+These events add narrative depth to your crew's story.
 
-## Captain Privileges
+## The Leader
 
-Your captain has special status:
-
-- Minimum stats of 3 in Combat, Toughness, and Savvy
-- +1 bonus health (Toughness + 3 vs crew's Toughness + 2)
-- 2 Luck points (crew gets 1)
-- Captain death has severe morale consequences
-- Legacy system tracks captain achievements across campaigns
-
-If your captain dies, you must promote another crew member to captain. The promoted member gains captain health but not the minimum stat bonuses.
+After creating your characters you pick one to be the Leader (the app calls this character the captain). The Leader receives 1 Luck point and will never leave the crew through random events, although they can be slain. A Bot can be the Leader but receives no Luck (Core Rules p.24).
 
 ## What's Next?
 

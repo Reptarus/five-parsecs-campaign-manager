@@ -4,7 +4,7 @@
 > - Travel: Stay (free) or move to new world (5 credits ship / 1 credit per crew commercial)
 > - Travel events rolled on D100 table; invasion escape needs 8+ on 2d6
 > - World Phase has 6 sub-steps: Upkeep, Crew Tasks, Job Offers, Assign Equipment, Rumors, Mission Prep
-> - Upkeep is 1 credit per crew per turn + ship maintenance
+> - Upkeep is 1 credit for a crew of 4-6, plus 1 per crew member past 6; ship debt and repairs are paid at the same step (Core Rules p.76)
 > - Crew tasks are the main strategic lever between battles
 
 ## Overview
@@ -54,9 +54,8 @@ If your current world is under invasion (triggered by a galactic war check in a 
 
 When you arrive at a new world, the app generates:
 
-- World traits (danger level, tech level, government)
+- World traits (Core Rules pp.72-75)
 - Available patrons and job offers
-- Local marketplace inventory
 - Any special conditions or events
 
 ## The World Phase
@@ -67,12 +66,12 @@ The World Phase contains six sub-steps that you work through in order.
 
 Pay your crew and ship maintenance costs before doing anything else.
 
-**Costs per turn:**
-- **Crew upkeep**: 1 credit per crew member
-- **Ship maintenance**: Varies by ship type (typically 1-5 credits)
-- **Equipment repairs**: Variable, if any gear is damaged
+**Costs per turn (Core Rules p.76):**
+- **Crew upkeep**: 1 credit for a crew of 4-6, plus 1 additional credit per crew member past 6. Crew in Sick Bay do not count.
+- **Ship debt**: if you owe money on your ship you may make a payment; the debt then grows by 1 credit (2 if you owe 31 or more), and at 75 or more you roll 2D6 to see if the ship is seized.
+- **Ship repairs**: 1 Hull Point is repaired automatically, and each credit you spend repairs 1 more.
 
-If you can't afford upkeep, the app handles the consequences per the rules — crew morale drops, and you may need to make difficult choices about what to prioritize.
+For each credit you are short, one crew member refuses to do any jobs this campaign turn. You can sell equipment for 1 credit each to cover upkeep, or dismiss a crew member (you may take one item they carried back to the stash).
 
 ### Sub-Step 2: Crew Tasks
 
@@ -80,24 +79,23 @@ Assign each available crew member a task for the turn. This is one of the most i
 
 Available tasks:
 
-| Task | Effect |
+| Task | Effect (Core Rules pp.77-78) |
 |------|--------|
-| **Guard the ship** | Prevents theft events, protects cargo |
-| **Repair the ship** | Restores hull points (if damaged) |
-| **Scout for enemies** | Reveals information about upcoming battle |
-| **Scout for jobs** | Discovers additional mission opportunities |
-| **Explore the underworld** | Finds black market deals, risks encounters |
-| **Seek patrons** | Increases chance of patron job offers |
-| **Train** | Gains training points toward skill improvements |
-| **Rest / Recover** | Speeds up injury recovery |
+| **Find a Patron** | Roll 1D6 and add the number of crew looking; 5+ finds a Patron job, 6+ finds two. Credits spent add +1 each |
+| **Train** | The character earns 1 XP |
+| **Trade** | One roll on the Trade Table per crew member trading; extra rolls cost 3 credits each |
+| **Recruit** | With fewer than 6 crew, each crew member sent recruits a new character automatically; with 6 or more, roll a D6 and add the number sent, and a 6+ adds a recruit |
+| **Explore** | One roll on the Exploration Table per crew member exploring |
+| **Track** | If you have Rivals, roll 1D6 and add the number tracking; 6+ locates a Rival so you can fight them this turn |
+| **Repair Your Kit** | Roll 1D6 and add the character's Savvy; 6+ repairs a destroyed item |
+| **Decoy** | Adds +1 to the roll that decides whether Rivals track you down, for each crew member sent |
 
 **Decision Guidance:**
-- Always assign someone to **guard the ship** if you have valuable cargo
-- **Training** is a long-term investment — characters need multiple training turns to gain skills
-- **Seeking patrons** is valuable early in a campaign when you have few patron contacts
-- **Resting** crew members with injuries recover faster than those on active duty
+- Send at least one crew member to **Find a Patron** early in a campaign, when you have few patron contacts
+- **Train** is a steady source of XP for characters who are sitting out
+- Credits spent before the roll add to **Find a Patron**, **Track** and **Repair Your Kit** rolls
 
-Crew members with active injuries have limited task options — they can only rest or guard.
+Crew members who are locked out by unpaid upkeep, or who are in Sick Bay, have limited task options.
 
 ### Sub-Step 3: Job Offers
 
@@ -117,9 +115,9 @@ You don't have to accept any job. You can also encounter missions through random
 Redistribute weapons, armor, and items among your crew before heading into battle.
 
 The equipment panel shows:
-- Each crew member's current loadout
-- Items in your ship stash (unequipped gear)
-- Equipment stats for comparison
+- **CREW MEMBERS**, **CREW EQUIPMENT** and **SHIP STASH** lists
+- **→ Stash**, **← Give to Crew** and **Trade** buttons to move the selected item
+- **Confirm Equipment Assignments** when you are done
 
 Make sure everyone going into battle has appropriate gear. See {{chapter:10}} for details on equipment management.
 

@@ -80,6 +80,28 @@ func test_nothing_and_an_unrelated_argument_leave_it_off() -> void:
 	assert_bool(ReviewBuild.evaluate(false, PackedStringArray(["--server"]), true)).is_false()
 
 
+func test_the_qa_tools_open_in_a_debug_or_review_build_and_never_in_an_alpha_release() -> void:
+	# Plan "Product calls": reviewers reach Scenarios and "Force the next roll"; an
+	# Alpha-1 release export stays unable to reach either.
+	assert_bool(ReviewBuild.qa_tools_allowed(false, false)).is_false()
+	assert_bool(ReviewBuild.qa_tools_allowed(true, false)).is_true()
+	assert_bool(ReviewBuild.qa_tools_allowed(false, true)).is_true()
+	assert_bool(ReviewBuild.qa_tools_allowed(true, true)).is_true()
+
+
+func test_dice_forcing_reads_the_qa_gate_at_both_ends() -> void:
+	var dm: Node = load("res://src/core/managers/DiceManager.gd").new()
+	# Premise: this gdUnit4 process is a debug build, so the gate starts open.
+	assert_bool(dm._forcing_allowed).is_true()
+	assert_bool(dm.queue_forced_result("Gate Probe", 4)).is_true()
+	dm._forcing_allowed = false
+	assert_int(dm._take_forced("Gate Probe roll", 1, 6)).override_failure_message(
+		"a closed gate still consumed a queued value").is_equal(-1)
+	assert_bool(dm.queue_forced_result("Gate Probe", 5)).override_failure_message(
+		"a closed gate still queued a value").is_false()
+	dm.free()
+
+
 func test_this_process_is_the_alpha_build() -> void:
 	# The premise every other Alpha-1 suite relies on: no tag in an editor or gdUnit4 run,
 	# so the menu keeps its Alpha-1 scope (pinned behaviourally by

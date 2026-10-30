@@ -5,13 +5,18 @@ extends RefCounted
 const GlobalEnums = preload("res://src/core/systems/GlobalEnums.gd")
 
 ## Check victory conditions for a campaign.
-## Returns {achieved: bool, message: String}
+## Returns {achieved: bool, message: String}, plus {name, progress, required, type}
+## whenever a condition is set (type is its FiveParsecsCampaignVictoryType).
+## CampaignPhaseManager's victory event, the dashboard's progress row and the End
+## Phase's summary and Elite Rank award all read these, so every one of them counts
+## exactly what the win check counts.
 static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary:
 	if not campaign:
 		return {"achieved": false, "message": ""}
 
 	# Read victory condition — supports both enum int and dict-based formats
 	var vc: int = 0
+	var custom_target: int = 0
 	if campaign.has_method("get_victory_condition"):
 		vc = campaign.get_victory_condition()
 	elif "victory_conditions" in campaign and campaign.victory_conditions is Dictionary:
@@ -26,8 +31,18 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 			if not sc.is_empty():
 				vc = _map_condition_key_to_enum(sc.keys()[0])
 		elif not vcd.is_empty():
-			# Direct dict with condition keys (legacy/simple format)
-			vc = _map_condition_key_to_enum(vcd.keys()[0])
+			# Dict keyed by condition id -- the shape ExpandedConfigPanel writes and
+			# CampaignFinalizationService copies onto every new campaign.
+			var key: String = str(vcd.keys()[0])
+			vc = _map_condition_key_to_enum(key)
+			# A CustomVictoryDialog goal is keyed custom_<type>_<target>, which no key
+			# map can know; it carries its own enum type and target, so read those.
+			# Without this a custom goal reported "No victory condition set".
+			var entry: Variant = vcd[key]
+			if vc == GlobalEnums.FiveParsecsCampaignVictoryType.NONE \
+					and entry is Dictionary and bool(entry.get("is_custom", false)):
+				vc = int(entry.get("type", 0))
+				custom_target = int(entry.get("target", 0))
 	if vc == GlobalEnums.FiveParsecsCampaignVictoryType.NONE:
 		return {"achieved": false, "message": "No victory condition set"}
 
@@ -179,10 +194,16 @@ static func check_victory(campaign: Variant, turn_number: int = 0) -> Dictionary
 			progress = 0
 			required = 1
 
+	if custom_target > 0:
+		required = custom_target
+
+	var counts := {"name": vc_name, "progress": progress, "required": required, "type": vc,
+		"is_custom": custom_target > 0}
 	if progress >= required:
-		return {"achieved": true, "message": "VICTORY! %s achieved!" % vc_name}
+		return {"achieved": true, "message": "VICTORY! %s achieved!" % vc_name}.merged(counts)
 	else:
-		return {"achieved": false, "message": "%s: %d / %d" % [vc_name, progress, required]}
+		return {"achieved": false, "message": "%s: %d / %d" % [vc_name, progress, required]} \
+			.merged(counts)
 
 static func _difficulty_at_least(campaign: Variant, mode_name: String) -> bool:
 	## The three "50 turns in X mode" conditions (Core Rules p.64) only count while

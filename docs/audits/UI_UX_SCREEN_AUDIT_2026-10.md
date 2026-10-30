@@ -490,6 +490,32 @@ government, a Patron's tier, a Faction job's payment.
   Equipment actually moves at the World Phase's Assign Equipment step and on Character
   Details. Sprint 7 reads chapters 01-15 against both books and the shipped app.
 
+## Sprint 7 — verifying the documentation agent (2026-10-30)
+
+The guide rewrite (chapters 02-11), the handoff note and the doc corrections were done by an
+agent at the owner's request. Every number it restated was checked against the Core Rules PDF
+(PyPDF2): pp.15, 24, 46, 49, 54-55, 64-65, 76, 119-126. All of them match, including the
+p.123 costs and maxima, the pp.124-125 courses, the p.46 Multiple Saving Throws rule and the
+p.125 one-credit basics. What the check found was not in the numbers:
+
+- **VC1. Chapters 03 and 11 described a victory UI that does not exist** (progress bars,
+  25/50/75% markers, a highlighted condition, a dedicated screen; `victory_progress` has no
+  `navigate_to` caller). Checking what the dashboard DOES render found the dict keyed by
+  condition id read at the wrong level by three screens, and a p.65 Elite Rank that no
+  campaign could ever earn. All four readers now go through `VictoryChecker`; a custom goal
+  wins but earns no Elite Rank. VA1-VA8 below. Both chapters rewritten to the real strip,
+  the End Phase card and the Save / Continue / Retire buttons; the Legacy list now names what
+  the archive records (no battles won, no "notable achievements").
+- **Chapter 12** gains a Co-op Campaign Map bullet linking chapter 19, because Help routes by
+  SceneRouter key and the co-op map is an overlay on `bug_hunt_dashboard`.
+- **P-05** re-read at every cited line: all four resolvers are reached from play. Verified.
+- **Handoff note**: no deal terms; the QA-tool wording is current; the placeholder counts
+  reconcile (shipped 7: eula 22/36/78/87, privacy 4/8/120; gh-pages 8). A first count of 4
+  was my regex, whose tail was shorter than the governing-law sentence.
+- **Two cites**: `PostBattleSequence.gd:2117` p.123 to p.125 (purchasing),
+  `AssignEquipmentComponent.tscn:98` "Rules p.85" to Core Rules p.49 (weapon limits).
+- The agent reported the chapters as CRLF. They are LF, before and after; nothing changed.
+
 ## Instruments — tests that were wrong first
 
 Recorded so the next reader does not trust a green case that cannot fail.
@@ -685,9 +711,42 @@ Recorded so the next reader does not trust a green case that cannot fail.
   `test_compendium_mission_types.gd` searching for the old `missions())` text, so the case
   failed and the suite's last two cases never ran (s6final delta 2). The anchor now matches
   the call's prefix. CM1 (the generator call removed) and CM2 (the offer store written
-  after the generator, so the Compendium missions are persisted) are both DETECTED. **This is the third pass in a row where my own edit moved an anchor** (SH1 in
-  su5p, three in susim). A source assertion should anchor on the call's prefix, never on
-  its argument list.
+  after the generator, so the Compendium missions are persisted) are both DETECTED.
+  **This is the third pass in a row where my own edit moved an anchor** (SH1 in su5p,
+  three in susim). A source assertion should anchor on the call's prefix, never on its
+  argument list.
+- **Two batches passed every case and then crashed the PROCESS, and the cause is an
+  engine bug, not ours.** s6final b14 and f65reg b04 ended `rc=3221225477` (0xC0000005)
+  after gdUnit4 had printed "Exit code: 0", with ~190 GDScripts "still in use at exit".
+  It is godot#117975: at exit `GDScriptLanguage::finish()` walks the script list, a base
+  script loaded just before its subclass is the next node, and a subclass whose function
+  touches its own `static var` can hold the last reference, so clearing it frees the base
+  and the loop reads freed memory. PR #117991 fixes it for 4.8 (not in 4.6, and not on
+  the 4.7 branch as of 2026-10-29). Two scripts matched: `WorldInfoPanel` (two statics;
+  crashed every process that loaded its scene, and also at 6d27ea10c, so it predates
+  the suite that found it) and `CrewTaskComponent` (one cache; crashed only the
+  three-suite combination psi_hunter + quest_generation + rival_contact, found by
+  leave-one-out). Both are instance members now. WI1 and CT2 (the static restored) bring
+  the crash back, WI2 (the generator never freed) brings back an orphan Node per wizard
+  visit, and CT1 proves `test_no_static_vars_on_script_subclasses.gd` fails on the
+  pattern. **Read the process rc, not only gdUnit's summary.** And I ran a dozen
+  experiments before searching for the engine bug, which named the trigger in one query.
+- **NM1. A suite that detaches an autoload broke every later toast.** NotificationManager's
+  `_exit_tree()` nulled its container and `_ready()` never ran again, so after
+  `test_bug_hunt_coop_mission.gd` detached and re-attached it, `_show_notification()`
+  aborted on `add_child` (six errors in a later batch). The container is rebuilt on demand.
+  NM1 restores the null and the re-attach case reads errors=2 failures=1.
+- **RB1-RB3. The review build opens the QA tools.** `ReviewBuild.qa_tools_allowed()` is the
+  truth table and `DiceManager._forcing_allowed` is read at both ends. RB1 drops the review
+  term, RB2 the queue gate, RB3 the take gate; all DETECTED. The Alpha-1 release arm stays
+  closed (truth-table row `false, false`).
+- **VA1-VA8. Victory progress and the Elite Rank** (`s7/arms_vc*.log`). VA1 the dashboard's
+  old top-level read; VA2 the checker without counts (two cases); VA3 the custom branch; VA4
+  the archive's old progress/target read; VA5 and VA6 the two call sites bypassed (a helper
+  is not a fix); VA7 the enum type dropped; VA8 a custom win spending the book rank. All
+  DETECTED with clean controls. The dashboard case builds the script detached and reads the
+  rendered labels, so it asserts where the damage lands; two battles won against one Quest
+  makes the old "battles for everything" count visible too.
 
 ## Gates
 
@@ -703,6 +762,7 @@ Recorded so the next reader does not trust a green case that cannot fail.
 | sub3 (Bug Hunt pass, and the Planetfall battle checklist) | 368 | 4090 / 4090 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=bug_hunt` 24/24 and `-- only=planetfall` 24/24; `test_touch_scroll_sweep` 3/3. The third full run: `sub` failed two instruments and `sub2` a pre-existing intermittent case (see Instruments) |
 | susim2 (Battle Simulator pass) | 369 | 4103 / 4103 | 0 | 0 | 8/8 exit 0; `files=576 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout -- only=battle_simulator` 8/8; `test_touch_scroll_sweep` 3/3; 22 arms DETECTED (`su_sim/arms_sim.log`). The first run, `susim`, read 4095 / 4102 with one failure: three source anchors of mine (see Instruments) |
 | su5p2 (5PFH and shared pass, Sprint 5 Co-op, guide chapters 16-18) | 392 | 4276 / 4276 | 0 | 0 | 8/8 exit 0; `files=578 orphans=0 test_only=0 unwired_rules=0`. Windowed `verify_layout` (full) 296/296; `test_touch_scroll_sweep` 4/4; 123 arms DETECTED, 2 UNDETECTED by measurement (`su_5p/arms_5p.log`). Declared 4275 at launch: the +1 is the chapter-13 case added during the run, and the recount on the final tree is 4276. The first run, `su5p`, read 4270 / 4275 with one failure, a source anchor my SH1 fix moved (see Instruments) |
+| s7final (Sprint 6 tail and Sprint 7: exit crash, review-build QA tools, NM1, the victory counter, guide corrections) | 415 | 4455 / 4455 | 0 | 0 | 8/8 exit 0; `files=567 orphans=0 test_only=0 unwired_rules=0`; `lint_audit_citations` 127/127. No crashed batch. Windowed `verify_layout` (full) 296/296; `test_touch_scroll_sweep` 4/4 (a first run segfaulted because I passed `--quit-after 300`, which counts frames and ended the 11 s sweep at about 5 s; re-run without it, as the batch gate runner does). Release export of preset 3: `build/FiveParsecsReview.apk`, 57,113,152 bytes, sha256 `969fd178…`, `apksigner verify` passes with the release key, not debuggable, `com.reptarus.fiveparsecs.review` 19 / `0.9.8-review`; every file under `data/bug_hunt` (15), `planetfall` (38), `tactics` (25), `user_guide` (21) and `legal` (4) is in it; `git diff project.godot export_presets.cfg` empty after the export; the idle Gradle daemon killed, not the wrapper. Windows preset 4: `build/FiveParsecsReview.exe`, 483 MB, its embedded PCK parsed: 2,709 files, no `docs/`, no PDF, no `tests/`, 20 guide chapters; 369.5 MB is imported textures, because the Windows presets (cloned from the alpha's) never carried the Android preset's `assets/scenes/*` exclusions. Config diff empty again |
 
 ⚠ su2's delta of −1 was batch b08 executing one case more than its suites declared at
 launch. That run overlapped with adding `test_every_creation_step_fits_a_phone`. su3

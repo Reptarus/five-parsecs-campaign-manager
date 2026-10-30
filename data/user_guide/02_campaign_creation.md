@@ -2,9 +2,9 @@
 
 > **Quick Start** (for tabletop veterans)
 > - New Campaign launches a 7-step wizard: Config, Captain, Crew, Equipment, Ship, World, Review
-> - Captain gets minimum stats of 3 in Combat/Toughness/Savvy, +1 health, and 2 Luck
-> - Crew size is 4-6 total (including captain); stats generated via 2d6/3 rounded up
-> - Starting credits and equipment are rolled per Core Rules p.13
+> - The Leader (captain) receives 1 Luck and never leaves the crew through random events (Core Rules p.24)
+> - Crew size is 4, 5 or 6 (Core Rules p.63); characters start from the species profile and roll the Background, Motivation and Class tables (Core Rules pp.15, 24-27)
+> - Starting equipment and credits follow Core Rules p.28
 > - You can go back to any step before finalizing
 
 ## Overview
@@ -21,11 +21,11 @@ The first step sets the overall parameters for your campaign.
 
 - **Campaign Name** — Give your campaign a memorable name. This appears on save files and the dashboard.
 - **Campaign Type** — Choose from:
-  - **Standard** — The default Five Parsecs experience with all rules
-  - **Story** — Emphasis on narrative events and story tracks
-  - **Combat** — More frequent and challenging battles
-  - **Exploration** — Focus on world discovery and travel
-- **Victory Conditions** — Select one or more conditions that define when your campaign is "won." You can choose up to 5 from 21 available types across categories like Duration, Combat, Story, Wealth, and Challenge. See {{chapter:11}} for details.
+  - **Standard Campaign** — A full campaign with all systems enabled
+  - **Story-Focused Campaign** — Emphasis on narrative and story track progression
+  - **Combat-Focused Campaign** — Emphasis on tactical combat and missions
+  - **Exploration-Focused Campaign** — Emphasis on exploration and discovery
+- **Victory Conditions** — Select a condition that defines when your campaign is "won." Choosing one is optional (Core Rules p.64), and tapping another card replaces the current choice. See {{chapter:11}} for details.
 - **Story Track** — If using the Story Track expansion rules (DLC), select which story arc to follow.
 - **Tutorial Mode** — Toggle on for extra guidance during your first few turns.
 
@@ -42,38 +42,17 @@ Your captain is the leader of your crew — the one constant throughout the camp
 ### What You'll Choose
 
 - **Name** — Your captain's name
-- **Species/Origin** — Determines starting traits and stat bonuses:
-  - **Human** — Balanced stats, standard luck
-  - **Engineer** — Bonus to Savvy, technical aptitude
-  - **K'Erin** — Strong combat-oriented species
-  - **Soulless** — Cannot train skills, unique abilities
-  - **Bot** — Higher Toughness, no Luck, uses credits for upgrades instead of XP
-  - **Precursor** — Rare, powerful, uses credits for upgrades
-  - **Krag** — Heavy fighters (requires Trailblazer's Toolkit DLC)
-  - **Skulker** — Stealthy operatives (requires Freelancer's Handbook DLC)
-- **Background** — Your captain's history, which provides skill and stat bonuses
+- **Species/Origin** — Determines the starting profile and special rules: Baseline Human, Bot, the Primary Aliens and the Strange Characters (Core Rules pp.15-22). Compendium species appear when the pack that adds them is on (see {{chapter:13}}).
+- **Background** — Your captain's history, from the Background table (Core Rules pp.24-27)
 - **Motivation** — What drives your captain, affecting certain game events
 
 ### How Stats Work
 
-Your captain's six core attributes are:
+Your captain's six abilities are Reactions, Speed, Combat Skill, Toughness, Savvy and Luck. A character starts from the species profile (a baseline Human is Reactions 1, Speed 4", Combat Skill +0, Toughness 3, Savvy +0; Core Rules p.15), then the Background, Motivation and Class rolls add to it (Core Rules pp.24-27).
 
-| Stat | What It Does |
-|------|-------------|
-| **Combat** | Accuracy in ranged and melee attacks |
-| **Reaction** | Initiative and response speed |
-| **Speed** | Movement distance on the battlefield |
-| **Toughness** | Durability and health points |
-| **Savvy** | Technical skill and awareness |
-| **Luck** | Rerolls and lucky breaks |
+The Leader receives 1 Luck point and will never leave the crew through random events, though they can be slain (Core Rules p.24).
 
-Stats are generated using the formula **2d6 / 3** (rounded up), giving values typically between 1 and 4. Your captain gets special bonuses:
-
-- Minimum of **3** in Combat, Toughness, and Savvy
-- **+1 bonus health** (Toughness + 3 instead of Toughness + 2)
-- Starts with **2 Luck points** (crew members get 1)
-
-You can either accept the randomly generated captain or customize stats manually.
+You can either accept the randomly generated captain or customize the character manually.
 
 ## Step 3: Crew Setup
 
@@ -86,7 +65,7 @@ Your crew are the spacers who travel and fight alongside your captain.
   - Name
   - Species/origin
   - Background
-  - Stats (using the same 2d6/3 formula, but without captain bonuses)
+  - Starting profile and the Background, Motivation and Class results (Core Rules pp.15, 24-27)
 
 You can regenerate individual crew members if you don't like the result, or customize them manually.
 
@@ -104,16 +83,17 @@ The app generates your starting equipment pool based on the core rules.
 
 ### What Happens
 
-- A **D100 roll** determines your starting gear package (per Core Rules p.13)
-- You receive a pool of weapons, armor, and items
-- Starting credits are calculated (base 100, modified by difficulty)
-- The roll may also grant extras: patron contacts, rival enemies, story points, or rumors
+- The crew receives 3 rolls on the Military Weapon Table, 3 rolls on the Low-tech Weapon Table, 1 roll on the Gear Table and 1 roll on the Gadget Table (Core Rules p.28)
+- Starting credits are 1 credit per crew member, plus any credit dice rolled by a crew member's background, motivation or class (Core Rules p.28)
+- For each crew member who rolled at least one Savvy increase, one Military roll may be swapped for a High-tech Weapon roll (Core Rules p.28)
+- Character creation rolls may also grant extras: patron contacts, rival enemies, story points, or rumors
 
 ### What You'll Do
 
 - Review the generated equipment
 - Distribute weapons and armor among your crew members
-- Each crew member can equip: 1 primary weapon, 1 secondary weapon, 1 armor, and up to 3 accessories
+- Assign each item to a crew member, the **Ship Stash**, or leave it **Unassigned**. A character may carry 2 weapons plus a Pistol-class weapon or a Blade (Core Rules p.49), and one armor and one screen (Core Rules p.54)
+- **Reroll Shared Pool**, **Reroll Everything** and **Manual Selection** are available on this step
 
 ### Decision Guidance
 
@@ -132,7 +112,6 @@ Every crew needs a ship to travel between worlds.
 ### Ship Properties
 
 - **Hull Points** — How much damage your ship can take
-- **Armor** — Damage reduction in space encounters
 - **Modifications** — Upgrade slots for ship equipment
 
 Your ship determines travel costs and available storage for extra equipment. See {{chapter:10}} for equipment stash management.
@@ -143,16 +122,12 @@ The app generates your starting world — where your first mission takes place.
 
 ### What's Generated
 
-- **World Name** — Randomly generated or customizable
-- **Danger Level** — How hazardous the planet is (affects mission difficulty)
-- **Tech Level** — Available technology (0-12 scale, affects marketplace)
-- **Government Type** — The ruling authority (affects laws and enforcement)
-- **World Traits** — Special features like spaceports, religious sites, alien presence
-- **Starting Opportunities** — Available missions and patron contacts
+- **Current World** — The world's name
+- **World Traits** — The traits rolled for the world, each with its category and mechanical effect (Core Rules pp.72-75)
 
 ### Decision Guidance
 
-You can regenerate the world if the starting conditions seem too harsh or too easy. A medium danger level with a decent tech level makes for a good first world.
+You can regenerate the world if the starting conditions seem too harsh or too easy. Read the traits and their effects before you commit, because they change how the world behaves in play. A world with few harsh traits makes for a good first world.
 
 ## Step 7: Final Review
 

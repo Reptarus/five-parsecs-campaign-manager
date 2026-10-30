@@ -123,9 +123,9 @@ The app can handle all dice rolling digitally, but many players prefer rolling p
 The app uses a **Deep Space** visual theme with a dark navy background. Key visual cues:
 
 - **Cards** (raised panels with borders) group related information together
-- **Cyan highlights** indicate focused or selected elements
+- **Blue highlights** indicate focused or selected elements
 - **Green text** indicates success or positive outcomes
-- **Orange text** indicates warnings or costs
+- **Amber text** indicates warnings or costs
 - **Red text** indicates danger, errors, or negative outcomes
 
 ### Navigation

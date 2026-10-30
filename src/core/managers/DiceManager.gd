@@ -65,18 +65,22 @@ func set_auto_mode(enabled: bool) -> void:
 ## (docs/qa/PICKUP_2026-08-14.md §3).
 ##
 ## queue_forced_result() parks a value that the NEXT roll whose context contains
-## `context_key` consumes, once. Both ends are gated on OS.is_debug_build(), so a
-## release export can neither queue a value nor consume one — the same gate the
-## QA scenario dialog uses. The shipped rules data is never touched.
+## `context_key` consumes, once. Both ends are gated on ReviewBuild.qa_tools_enabled()
+## (a debug build, or the Modiphius review build), so an Alpha-1 release export can
+## neither queue a value nor consume one — the same gate the dashboard's Scenarios
+## button uses. The shipped rules data is never touched.
 ##
 ## Matching is a case-insensitive SUBSTRING of the roll context, because contexts
 ## carry runtime detail ("Character Event: Bryn Ito").
+const ReviewBuildRef = preload("res://src/core/systems/ReviewBuild.gd")
 var _forced_results: Dictionary = {} # lowercase key -> Array[int] (FIFO)
+## Computed once: the gate is read on every roll, and neither input changes at runtime.
+var _forcing_allowed: bool = ReviewBuildRef.qa_tools_enabled()
 
 ## Queue `value` for the next roll whose context contains `context_key`.
-## Returns false in a release build, or on an empty key.
+## Returns false in an Alpha-1 release build, or on an empty key.
 func queue_forced_result(context_key: String, value: int) -> bool:
-	if not OS.is_debug_build():
+	if not _forcing_allowed:
 		return false
 	var key: String = context_key.strip_edges().to_lower()
 	if key.is_empty():
@@ -98,9 +102,9 @@ func get_forced_results() -> Dictionary:
 	return _forced_results.duplicate(true)
 
 ## Consume a queued value for `context` if one matches and is legal for the die.
-## Returns -1 when the roll should be random — always so in a release build.
+## Returns -1 when the roll should be random — always so in an Alpha-1 release build.
 func _take_forced(context: String, min_value: int, max_value: int) -> int:
-	if not OS.is_debug_build() or _forced_results.is_empty():
+	if not _forcing_allowed or _forced_results.is_empty():
 		return -1
 	var haystack: String = context.to_lower()
 	for key in _forced_results.keys():

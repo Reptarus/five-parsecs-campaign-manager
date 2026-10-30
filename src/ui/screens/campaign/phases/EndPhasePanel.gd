@@ -4,6 +4,7 @@ extends "res://src/ui/screens/campaign/phases/BasePhasePanel.gd"
 
 const ThisClass = preload("res://src/ui/screens/campaign/phases/EndPhasePanel.gd")
 const PlayerProfileRef = preload("res://src/core/player/PlayerProfile.gd")
+const VictoryCheckerRef = preload("res://src/core/victory/VictoryChecker.gd")
 
 signal cycle_completed
 signal campaign_saved
@@ -94,31 +95,16 @@ func generate_cycle_summary() -> void:
 	elif "crew_data" in campaign:
 		members = campaign.crew_data.get("members", [])
 	cycle_summary["crew_size"] = members.size()
-	var vc: Dictionary = campaign.victory_conditions \
-		if "victory_conditions" in campaign else {}
-	if not vc.is_empty():
-		# Victory conditions may be stored in two formats:
-		# 1) Direct: {target, type, progress}
-		# 2) Creation format: {selected_conditions: {type: {target: N}}}
-		var vc_target: int = 0
-		var vc_type: String = ""
-		var vc_progress: int = int(pd.get("turns_played", 0))
-		if vc.has("target"):
-			vc_target = int(vc.get("target", 0))
-			vc_type = str(vc.get("type", ""))
-			vc_progress = int(vc.get("progress", vc_progress))
-		elif vc.has("selected_conditions"):
-			var sel: Dictionary = vc.get("selected_conditions", {})
-			for cond_type in sel:
-				vc_type = str(cond_type)
-				var cond_data = sel[cond_type]
-				if cond_data is Dictionary:
-					vc_target = int(cond_data.get("target", 0))
-				break
-		if vc_target > 0:
-			cycle_summary["victory_progress"] = "%d / %d (%s)" % [
-				vc_progress, vc_target, vc_type
-			]
+	# Victory progress (Core Rules p.64) from VictoryChecker, the one counter. This
+	# used to accept a top-level {target, type, progress} or a {selected_conditions}
+	# wrapper; the wizard writes neither (it keys the dict by condition id), so the
+	# card never rendered, and it counted turns for every condition.
+	var vc_result: Dictionary = VictoryCheckerRef.check_victory(campaign, turn_num)
+	if vc_result.has("required"):
+		cycle_summary["victory_progress"] = "%s: %d / %d" % [
+			str(vc_result.get("name", "")),
+			int(vc_result.get("progress", 0)), int(vc_result.get("required", 0))
+		]
 
 func update_summary_display() -> void:
 	if summary_label:
@@ -262,25 +248,31 @@ func _retire_crew() -> void:
 	campaign_retired.emit()
 
 
+## Was the picked Victory Condition met, and which one (Core Rules pp.64-65)? Pure,
+## so a test can drive it without the player profile on disk. This used to read
+## "progress" and "target" off the top of campaign.victory_conditions, a dict keyed
+## by condition id that has neither, so no campaign ever earned an Elite Rank.
+## A custom goal still wins (and is filed as a victory), but its type is -1: p.65's
+## Elite Ranks are for the p.64 conditions, and a custom "7 turns" stored as TURNS_20
+## would otherwise spend the real Turns-20 rank, which can be awarded only once.
+static func victory_for_archive(campaign, turns: int) -> Dictionary:
+	var r: Dictionary = VictoryCheckerRef.check_victory(campaign, turns)
+	var vc_type: int = -1 if bool(r.get("is_custom", false)) else int(r.get("type", -1))
+	return {"is_victory": bool(r.get("achieved", false)), "type": vc_type}
+
 func _try_archive_campaign() -> void:
 	if not game_state or not game_state.campaign:
 		return
 	var campaign = game_state.campaign
-	var vc: Dictionary = campaign.victory_conditions \
-		if "victory_conditions" in campaign else {}
-	var is_victory: bool = false
-	if not vc.is_empty():
-		var progress: int = vc.get("progress", 0)
-		var target: int = vc.get("target", 0)
-		is_victory = target > 0 and progress >= target
-
 	var pd: Dictionary = campaign.progress_data \
 		if "progress_data" in campaign else {}
 	var turns: int = pd.get("turns_played", 0)
+	var outcome: Dictionary = victory_for_archive(campaign, turns)
+	var is_victory: bool = bool(outcome.get("is_victory", false))
 
 	# Award Elite Rank on victory (Core Rules p.65)
 	if is_victory:
-		var vc_type: int = vc.get("type", -1)
+		var vc_type: int = int(outcome.get("type", -1))
 		var profile = PlayerProfileRef.get_instance()
 		if profile and vc_type >= 0:
 			var awarded: bool = profile.award_elite_rank(vc_type)

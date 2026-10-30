@@ -48,12 +48,12 @@ You decide whether to stay on your current world or travel to a new one.
 **Staying** is free — you continue operating on the same world.
 
 **Traveling** costs credits:
-- **Starship travel**: 5 credits (using your own ship)
-- **Commercial passage**: 1 credit per crew member
+- **Starship travel**: 5 credits of fuel, using your own ship (Core Rules p.69)
+- **Commercial passage**: 1 credit per crew member, for a crew without a ship (Core Rules p.60)
 
 If you travel, you may encounter a **travel event** (rolled on a D100 table) — things like asteroid fields, pirates, navigation trouble, or discovered wrecks.
 
-If your current world is under **invasion**, you may need to flee (roll 2d6, need 8+ to escape).
+If your current world is under **invasion**, you must attempt to flee: roll 2D6, and 8+ gets you safely off-world (Core Rules p.69).
 
 See {{chapter:05}} for full travel details.
 
@@ -61,8 +61,8 @@ See {{chapter:05}} for full travel details.
 
 The World Phase is where most of your between-battle decisions happen. It contains six sub-steps:
 
-1. **Upkeep** — Pay maintenance costs (1 credit per crew member per turn, plus ship costs)
-2. **Crew Tasks** — Assign each crew member a task: guard ship, repair, scout, seek patrons, train, rest, etc.
+1. **Travel & Upkeep** — Pay upkeep: 1 credit for a crew of 4-6, plus 1 more credit per crew member past 6 (Core Rules p.76)
+2. **Crew Tasks** — Assign each crew member a task: Find a Patron, Train, Trade, Recruit, Explore, Track, Repair Your Kit or Decoy (Core Rules pp.77-78)
 3. **Job Offers** — Review available patron missions with rewards and difficulty ratings
 4. **Assign Equipment** — Redistribute weapons and gear among your crew
 5. **Resolve Rumors** — Follow up on leads that may start quests
@@ -98,7 +98,7 @@ After battle, the app determines the outcome:
 
 - **Victory** — Your crew eliminated enough enemies or completed the objective
 - **Defeat** — Your crew was forced to retreat or suffered too many casualties
-- **Hold Field** — You eliminated 3+ enemies and can search the battlefield for bonus loot
+- **Hold the Field** — You held the field when the battle ended (Core Rules p.115) and can search the battlefield for Battlefield Finds (Core Rules p.120)
 
 ### Post-Battle Sequence (14 Steps)
 
@@ -135,9 +135,8 @@ See {{chapter:08}} for advancement details.
 
 Buy and sell equipment at the local marketplace:
 
-- Available inventory depends on the world's tech level
-- Damaged equipment sells at reduced prices
-- You can repair damaged gear for a cost
+- Pay 3 credits for a roll on the Military Weapon, Gear or Gadget table; buy basic weapons for 1 credit each
+- Sell up to 3 items for 1 credit each (Core Rules p.125)
 
 See {{chapter:08}} for trading details.
 

@@ -71,6 +71,7 @@ Your command center between missions:
 - **Grunt Pool** — Available expendable soldiers
 - **Reputation** — Expendable resource for rerolls and bonuses
 - **Movie Magic** — 10 one-time special abilities
+- **Co-op Campaign Map** — only on a campaign created as co-op: the shared sector map, its Support pool and the end of the operational turn. See {{chapter:19}}.
 
 ## The 3-Stage Turn
 

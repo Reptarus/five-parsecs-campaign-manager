@@ -1,0 +1,113 @@
+{
+  "_source": "Five Parsecs From Home: Compendium, Bug Hunt. Main Rules printed pp.177-180 and Battle Round pp.198-201, with Combat Teams p.173. Read from the PDF with PyPDF2 (printed page N = reader.pages[N+1]) on 2026-10-30. The wording is the book's, shortened; every number is as printed.",
+  "description": "The Bug Hunt battle rules a player looks up mid-battle. Rendered as the battle screen's Reference tab in a Bug Hunt battle (CheatSheetSections.bug_hunt_sections). The weapon table is not repeated here: it is read from bug_hunt_weapons.json (p.179).",
+  "sections": [
+    {
+      "id": "battle_round",
+      "title": "Battle Round",
+      "pages": "p.198, p.173",
+      "lines": [
+        "Four phases each round: 1. Quick Action, 2. Enemy Action, 3. Slow Action, 4. Spawn.",
+        "Roll one D6 for each main character and each combat team, and assign one die to each.",
+        "A die equal to or below the Reaction score acts in the Quick Action phase; above it, in the Slow Action phase. Every figure still acts each round.",
+        "A combat team rolls a single die, and every figure in it acts in the same phase. A team in formation (every member within 2\" of one chosen member) gets +1 to its Reaction score (p.173).",
+        "All enemies act in the Enemy Action phase, nearest to a player figure first."
+      ]
+    },
+    {
+      "id": "actions",
+      "title": "Actions and Snap Fire",
+      "pages": "pp.198-199",
+      "lines": [
+        "A figure may Move and then take a Combat Action (fire, or fight a Brawl), never in the reverse order.",
+        "A Stunned trooper may Move OR take a Combat Action, not both. A Stunned enemy stays in place and takes no actions. Remove 1 Stun marker after the figure acts.",
+        "Snap Fire: a trooper eligible for the Quick Action phase may hold, to fire when an opponent moves or to act in the Slow Action phase. A target Stunned while moving loses its other actions this round. Firing during an opponent's move stops the firer moving this round.",
+        "A held trooper who found no chance to fire may Move or Fire in the Slow Action phase, not both. Enemies carry no ranged weapons."
+      ]
+    },
+    {
+      "id": "shooting",
+      "title": "Shooting",
+      "pages": "p.177",
+      "lines": [
+        "Fire any single weapon carried as a Combat Action. With an enemy within 3\", you must target an enemy within that range.",
+        "Roll 1D6 + Combat Skill. To Hit: within 6\" and in the open 3+; within weapon range and in the open 5+; within weapon range and in cover 6+.",
+        "Several shots may be resolved one at a time; if the target is destroyed, the next shot may go to another target within 3\" of it.",
+        "Rapid Fire: every natural 6 allows an extra shot at the same target or a figure within 2\". You may forgo it.",
+        "Malfunctions: a weapon that rolls two or more natural 1s in one round (firing and Rapid Fire dice together) is unusable. Restoring it takes a Combat Action and 1D6+Savvy scoring 7+.",
+        "Area weapons ignore Rapid Fire and Malfunctions. Roll a separately colored D6 with the shot: on a 1 the weapon is out of ammunition for the rest of the battle."
+      ]
+    },
+    {
+      "id": "brawling",
+      "title": "Brawling",
+      "pages": "pp.177-178",
+      "lines": [
+        "Figures in base contact Brawl instead of firing. Troopers roll 1D6 + Combat Skill, +2 with a Melee weapon or +1 with a Pistol. Only one weapon bonus counts.",
+        "Enemies roll 1D6 + Combat Skill with no other modifiers.",
+        "The lower total takes a Hit; on a draw both take a Hit. An enemy rolling a natural 1 takes a Hit, and if it survives it rolls again immediately.",
+        "Damage is the highest of any Melee or Pistol weapon carried; with neither, Damage 0. Enemies use the Damage in their profile.",
+        "A character who eliminates their opponent may move 2\" but cannot enter a new Brawl. An enemy that wins moves toward the nearest visible trooper, or into the defeated trooper's position."
+      ]
+    },
+    {
+      "id": "hits",
+      "title": "Resolving Hits",
+      "pages": "p.178",
+      "lines": [
+        "Trooper armor saves on 5-6. A save shrugs off the Hit: the figure is not Stunned but is knocked back 1\". Every damaging Hit on a trooper gets a save unless a rule says otherwise.",
+        "Otherwise roll 1D6 + Damage. Exceeds Toughness: casualty. Equal to Toughness: knocked back 1\" and Wounded. Below Toughness: knocked back 1\" and Stunned.",
+        "A Wounded trooper is at -1 to Brawling and cannot Dash, for the rest of the mission. A second Wound makes them a casualty.",
+        "A Wounded enemy falls and cannot move. A trooper moving within 1\" of it is attacked in a Brawl. A second Wound kills it.",
+        "A figure with 3 Stun markers is knocked out. A Stunned figure in a Brawl fights at -1, and removes 1 Stun marker if it survives."
+      ]
+    },
+    {
+      "id": "situations",
+      "title": "Unusual Situations",
+      "pages": "p.180",
+      "lines": [
+        "Brawl with two opponents: fight one chosen at random, then the other immediately, adding +1 to its Combat Skill.",
+        "Random moves are not slowed by Difficult terrain. Hitting a Linear, Block or Individual feature stops the move, and with more than 1\" left the figure is Stunned. An enemy and a trooper moved into contact Brawl at Combat Skill +0, ignoring all modifiers.",
+        "Cover is made of people: if another trooper partly obscures the line of sight you may NOT fire, and Area weapons may not be fired so as to threaten other troopers. A target obscured by another enemy may be swapped, or the obscuring figure shot instead.",
+        "Equal options when moving an opponent: roll a D6, 1-3 for one, 4-6 for the other."
+      ]
+    },
+    {
+      "id": "enemy_movement",
+      "title": "Enemy Movement",
+      "pages": "p.200",
+      "lines": [
+        "Enemies move in order of nearness to a player figure, at full Speed toward the nearest trooper by path, to fight a Brawl.",
+        "They know where every trooper is, ignore any trooper they have no path to, and may move through each other.",
+        "They take the path with better protection from fire if it is no slower, but never slow down just to take cover.",
+        "Nowhere to run: there is no morale system in Bug Hunt. The enemies keep coming until they are all destroyed.",
+        "A trooper may leave the battle across any battlefield edge, then rolls on the Lost Marine table (p.202)."
+      ]
+    },
+    {
+      "id": "spawn_points",
+      "title": "Spawn Points",
+      "pages": "p.199",
+      "lines": [
+        "Used only when the mission's Spawn Rating is above 0. At the end of each round:",
+        "1. Reveal one unrevealed Spawn Point: make a random direction roll from the center and place it at the battlefield edge.",
+        "2. (Not in Round 1.) Lower every Countdown marker by 1. At 0, remove it and place a Contact marker on the Spawn Point.",
+        "3. Roll a D6 for each Spawn Point without a Countdown marker: 1-4 place a Countdown at that score; 5-6 none this round.",
+        "Closing a Spawn Point: a trooper within 3\" who does not fire rolls 1D6+Savvy, 6+ removes it and its marker. One worker per point; one helper within 1\" adds +1 and cannot fire either."
+      ]
+    },
+    {
+      "id": "ending",
+      "title": "Ending the Mission",
+      "pages": "p.201",
+      "lines": [
+        "Two or more Objectives is a success; a Vital Objective counts 2 and a Critical Objective 3. With 4 or more signals at the start, investigate at least 2 before Evac or the total drops by 1.",
+        "From Round 5, a stationary, unstunned character taking no other action may request Evac: 2D6 + Objectives completed (packages held count), +1 if their Savvy is +1 or better. 10+: Evac arrives at the end of the next round. Otherwise roll again at the end of each round.",
+        "Place the landing marker; any trooper within 3\" may leave the table. The ship leaves after 3 rounds. Each arrival raises the Priority by +1 for the rest of the mission.",
+        "While hovering, the drop ship fires two Light Machine Guns at +1 Combat Skill. They cannot malfunction.",
+        "No Objectives at all: the character in charge may face a court martial. D6, on a 1 they are removed from the campaign; 3 Reputation avoids it."
+      ]
+    }
+  ]
+}

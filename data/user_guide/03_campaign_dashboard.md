@@ -3,7 +3,7 @@
 > **Quick Start** (for tabletop veterans)
 > - The Dashboard is your hub between turns — shows crew, credits, turn number, and phase progress
 > - Access crew management, equipment, ship details, and save, load and export from here
-> - Victory progress is tracked with progress bars for each selected condition
+> - If you picked a Victory Condition, the progress strip shows how close you are (Core Rules p.64)
 > - The Campaign Journal logs everything that happens each turn
 
 ## Overview
@@ -50,13 +50,7 @@ Your current resources at a glance:
 
 ### Victory Progress
 
-If you selected victory conditions during campaign creation, the dashboard shows progress bars for each:
-
-- **Percentage complete** (0-100%) for each condition
-- **Milestone markers** at 25%, 50%, and 75%
-- The condition closest to completion is highlighted
-
-When any condition reaches 100%, your campaign is won! See {{chapter:11}} for details.
+If you picked a Victory Condition during campaign creation (Core Rules p.64 allows one, or none), the progress strip shows it as **Victory:** followed by the condition and its count, for example *Victory: Complete 3 Quests 1 / 3*. It is the same count the app checks at the end of each turn. See {{chapter:11}} for winning and Elite Ranks.
 
 ## Dashboard Actions
 
@@ -71,7 +65,6 @@ The primary action button launches the Campaign Turn Controller to begin your ne
 Opens the full crew management screen where you can:
 
 - View detailed character sheets for each crew member
-- Reassign equipment between crew members
 - Review skills, abilities, and advancement history
 - Check injury status and recovery progress
 
@@ -79,14 +72,7 @@ See {{chapter:09}} for details on character management.
 
 ### Equipment
 
-Opens your equipment inventory:
-
-- View all owned weapons, armor, and items
-- Check equipment in the ship stash (unequipped gear)
-- Compare equipment stats side-by-side
-- Assign or swap equipment between crew members
-
-See {{chapter:10}} for equipment details.
+The dashboard has no separate equipment screen. Move equipment at the World Phase **Assign Equipment** step, or from **Character Details**. See {{chapter:10}}.
 
 ### Ship
 

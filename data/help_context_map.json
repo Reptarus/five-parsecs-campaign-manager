@@ -77,7 +77,7 @@
 	},
 	"phase_TRADING": {
 		"chapter": "08",
-		"section": "the_trading_phase"
+		"section": "trading_purchase_items"
 	},
 	"phase_CHARACTER": {
 		"chapter": "09",
@@ -129,7 +129,7 @@
 	},
 	"equipment_manager": {
 		"chapter": "10",
-		"section": "managing_equipment"
+		"section": "where_equipment_moves_in_the_app"
 	},
 	"ship_manager": {
 		"chapter": "02",

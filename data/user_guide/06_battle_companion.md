@@ -3,9 +3,9 @@
 > **Quick Start** (for tabletop veterans)
 > - The app is a **companion**, not a simulator — it gives text instructions for your physical tabletop
 > - Three tracking tiers: Log Only (you track), Assisted (app suggests), Full Oracle (app resolves)
-> - Tabbed interface: Crew, Enemies, Battle Log, Tracking, Tools, Reference, Setup
-> - Hit threshold: 4+ on d6, modified by range, cover (-1), and deployment bonuses
-> - Hold field at 3+ enemy casualties for bonus loot
+> - Slide-over drawers: Crew, Enemy Tracker, Battlefield Intel, Dice Roller, Battle Round Reference, Tracking, Mission Rules, Record Battle Result
+> - To Hit: roll 1D6 plus Combat Skill; 3+ within 6" in the open, 5+ in range in the open, 6+ in range in Cover (Core Rules p.44)
+> - Whether you Held the Field depends on how the battle ends (Core Rules p.115)
 
 ## Overview
 
@@ -93,116 +93,62 @@ What the app does:
 - Calculates optimal enemy actions
 - Handles all morale checks
 
-You can switch between tiers at any time during a battle.
+You can raise the tier during a battle: tap the tier badge and pick a higher level. A tier cannot be lowered once the battle has started.
 
 ## The Battle Interface
 
-The Tactical Battle UI uses a tabbed layout with information organized into three columns:
+The battle screen shows the battlefield, and the rest of its information sits in **slide-over drawers** that you open from the toolbar. Which drawers appear depends on your tracking tier and the mission:
 
-### Left Tabs: Units
+- **Crew** - your deployed crew members, with their stats and status
+- **Enemy Tracker** - the enemy roster, with each figure's type and status
+- **Battlefield Intel** - the objective, visibility and terrain key
+- **Dice Roller** - roll any dice combination; results are tracked
+- **Battle Round Reference (Core Rules p.118)** - the round reference, with the cheat sheet and weapon tables
+- **Tracking** - morale and panic tracking, victory progress and reaction dice
+- **Mission Rules** - appears only when the mission has its own rules panel (stealth, street fight, salvage, No-Minis)
+- **Record Battle Result** - where you enter the outcome when the battle ends
 
-**Crew Content** — Your deployed crew members:
-- Character cards with current health, weapon, and status
-- Active/inactive indicators
-- Quick action buttons
-
-**Units Content** — Generic unit tracking for larger battles
-
-**Enemies Content** — Enemy roster:
-- Enemy type and stats
-- Remaining health
-- Active/eliminated status
-
-### Center Tabs: Battle State
-
-**Battle Log** — Running text log of everything that happens:
-- Actions taken by each unit
-- Dice rolls and results
-- Casualties and morale events
-- Automatically recorded for the campaign journal
-
-**Tracking Content** — Combat state tracking:
-- **Morale/Panic Tracker** — Monitors crew and enemy morale
-- **Activation Tracker** — Shows which units have acted this round
-
-**Events Content** — Battle event resolution:
-- Dynamic events triggered at specific rounds (end of rounds 2 and 4)
-- Environmental hazards
-- Special conditions
-
-### Right Tabs: Tools and Reference
-
-**Tools Content**:
-- **Dice Dashboard** — Roll any dice combination; results tracked
-- **Combat Calculator** — Enter modifiers, get hit probability
-- **Dual Input Roll** — For situations requiring two simultaneous rolls
-
-**Reference Content**:
-- **Weapon Tables** — Quick lookup for weapon stats (range, damage, special rules)
-- **Cheat Sheet** — Core combat rules at a glance
-
-**Setup Content**:
-- **Pre-Battle Checklist** — Verify deployment is correct
-- **Deployment Panel** — Review deployment conditions
+A **Battle Log** records what happens for the campaign journal.
 
 ## Combat Rules Quick Reference
 
-### Basic Hit Resolution
+### Basic Hit Resolution (Core Rules p.44)
 
-1. Roll **1d6** per attack
-2. Base hit threshold: **4+**
-3. Apply modifiers:
+1. Roll **1D6** per shot and add the firer's **Combat Skill**.
+2. The target number depends on the shot:
+   - Within 6" and in the open: **3+**
+   - Within weapon range and in the open: **5+**
+   - Within weapon range and in Cover: **6+**
+3. If the modified score equals or exceeds the target number, the shot Hits.
 
-| Modifier | Effect |
-|----------|--------|
-| Target in cover | -1 to hit |
-| Aimed shot | +1 to hit |
-| Ambush deployment | +2 to hit (first round) |
-| Defensive position | +1 to hit |
-| Long range | -1 to hit |
+### Resolving Hits (Core Rules p.46)
 
-4. If hit, roll damage vs. target's Toughness
-5. Target may get an armor save
+- Roll 1D6 and add the weapon's Damage. If the result equals or exceeds the target's **Toughness**, or is a natural 6, the target becomes a casualty.
+- A lower roll pushes the target back 1" and Stuns it.
+- A target with a Saving Throw (from armor or a screen) rolls 1D6 first; a roll equal to or above the Saving Throw number negates the Hit. See {{chapter:10}}.
 
-### Armor Saves
+### Holding the Field
 
-- Subtract **1 per armor point** from the damage roll
-- Light armor: 1 point
-- Heavy armor: 2 points
-- Powered armor: 3 points
-
-### Hold Field
-
-After battle, if you eliminated **3 or more enemies**, you "hold the field" and get bonus loot rolls in the post-battle phase.
+Whether you Held the Field is set by how the battle ended (Core Rules p.115). It matters after the battle: it affects the Rival status roll, Battlefield Finds and the invasion check (Core Rules pp.119-121).
 
 ### Morale
 
-- Crew morale decreases when members are injured or killed
-- Below 25 morale: crew suffers penalties
-- Enemies have their own morale — they may flee when taking casualties
+Enemy morale is checked with Panic rolls, which the Tracking drawer helps you keep (Core Rules p.116 lists the battle events that can change it). There is no crew morale score in the rulebook.
 
 ## Battle Flow
 
 A typical battle follows this sequence:
 
-1. **Deployment** — Place miniatures per deployment conditions
-2. **Round 1** — Initiative, then alternating activations
-3. **Rounds 2-6** — Combat continues; events may trigger at rounds 2 and 4
-4. **Resolution** — When all enemies are eliminated, flee, or your crew retreats
-
-Each round:
-- Determine initiative order
-- Activate units one at a time (alternating between sides)
-- Each activation: move, shoot, or take a special action
-- Reactions may trigger between activations (overwatch, counter-attacks)
+1. **Deployment** - place miniatures per the deployment conditions
+2. **Rounds** - each round, resolve the reaction, quick action, enemy and slow action steps in order (Core Rules pp.40-41)
+3. **Battle events** - optionally rolled at the end of round 2 and again at the end of round 4; no more are rolled (Core Rules p.116)
+4. **Resolution** - the battle ends when the opposition is beaten, withdraws, or your crew leaves the field (Core Rules p.115)
 
 ## Tips for Battle
 
-- **Use cover.** The -1 hit modifier for cover is significant — always position your crew behind terrain.
-- **Focus fire.** Eliminating enemies reduces their actions per round. Don't spread damage around.
-- **Watch your morale.** If morale gets low, consider tactical retreat over total party wipe.
-- **Deploy smart.** Ambush deployment gives a massive +2 hit bonus in the first round.
-- **Use the dice dashboard.** Even if you roll physical dice, entering results into the app keeps accurate records for the campaign journal.
+- **Use cover.** A target in Cover needs a 6+ to be hit at range, so position your crew behind terrain.
+- **Focus fire.** Eliminating enemies reduces what they can do each round.
+- **Use the Dice Roller.** Even if you roll physical dice, entering results into the app keeps accurate records for the campaign journal.
 
 ## What's Next?
 

@@ -277,3 +277,95 @@ func test_the_tally_counts_off_the_stored_battle_result() -> void:
 	assert_str(src).override_failure_message(
 		"the tally must read battle_results (the stored original), not the results parameter"
 	).contains("for enemy in battle_results.get(\"defeated_enemies\", [])")
+
+# ── The shape the wizard WRITES, end to end ────────────────────────────────
+
+## ExpandedConfigPanel stores {id: {name, target, type}} and CampaignFinalizationService
+## copies it verbatim, so this is the shape every real campaign carries.
+func _picked(key: String, entry: Dictionary, progress: Dictionary = {}):
+	var c := _StubCampaign.new()
+	c.victory_conditions = {key: entry}
+	c.progress_data = progress
+	return c
+
+func test_the_checker_returns_the_counts_its_readers_consume() -> void:
+	# CampaignPhaseManager's victory event reads "progress" and "required" off this
+	# result; the checker used to write neither, so every event carried 0 / 0.
+	var c = _picked("quests_3", {"name": "Complete 3 Quests", "target": 3, "type": "quests"},
+		{"quests_completed": 1})
+	var r: Dictionary = VictoryChecker.check_victory(c, 4)
+	assert_int(int(r.get("progress", -1))).is_equal(1)
+	assert_int(int(r.get("required", -1))).is_equal(3)
+
+func test_a_custom_goal_is_tracked_at_its_own_target() -> void:
+	# CustomVictoryDialog keys a goal custom_<type>_<target>, which maps to no enum.
+	var t20: int = GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20
+	var key := "custom_%d_7" % t20
+	var entry := {"name": "Custom goal", "target": 7, "type": t20, "is_custom": true}
+	assert_int(int(VictoryChecker.check_victory(_picked(key, entry), 3).get("required", -1))) \
+		.override_failure_message("a custom goal reported no condition, so it could never be won") \
+		.is_equal(7)
+	assert_bool(VictoryChecker.check_victory(_picked(key, entry), 7).get("achieved", false)).is_true()
+
+func test_the_dashboard_shows_progress_for_the_stored_shape() -> void:
+	# The dashboard read a top-level "type" off this keyed dict, so it never showed a
+	# Victory row; and it counted battles won for every non-turn condition. Two battles
+	# won against one Quest makes the second defect visible too.
+	var dash = load("res://src/ui/screens/campaign/CampaignDashboard.gd").new()
+	dash.progress_hbox = HBoxContainer.new()
+	var c = _picked("quests_3", {"name": "Complete 3 Quests", "target": 3, "type": "quests"},
+		{"quests_completed": 1, "turns_played": 4, "battles_won": 2})
+	dash._update_progress_strip(c)
+	var texts := PackedStringArray()
+	for row in dash.progress_hbox.get_children():
+		for node in row.get_children():
+			if node is Label:
+				texts.append((node as Label).text)
+	var shown := " | ".join(texts)
+	dash.progress_hbox.free()
+	dash.free()
+	assert_str(shown).override_failure_message(
+		"the dashboard does not show the picked condition's progress: %s" % shown) \
+		.contains("Complete 3 Quests 1 / 3")
+
+# ── The End Phase: summary card and the p.65 Elite Rank ──────────────────────
+
+const END_PHASE := "res://src/ui/screens/campaign/phases/EndPhasePanel.gd"
+
+func test_a_met_condition_is_a_victory_for_the_elite_rank() -> void:
+	# p.65: "If you have finished a campaign after achieving a Victory Condition, you
+	# will earn an Elite Rank." The archive read progress/target off the top of the
+	# keyed dict, found neither, and so never awarded one.
+	var panel: GDScript = load(END_PHASE)
+	var entry := {"name": "Complete 3 Quests", "target": 3, "type": "quests"}
+	var met: Dictionary = panel.victory_for_archive(
+		_picked("quests_3", entry, {"quests_completed": 3}), 9)
+	assert_bool(bool(met.get("is_victory", false))).override_failure_message(
+		"a met Victory Condition is not a victory, so no Elite Rank is ever awarded").is_true()
+	assert_int(int(met.get("type", -1))) \
+		.is_equal(GlobalEnums.FiveParsecsCampaignVictoryType.QUESTS_3)
+	var short: Dictionary = panel.victory_for_archive(
+		_picked("quests_3", entry, {"quests_completed": 2}), 9)
+	assert_bool(bool(short.get("is_victory", true))).is_false()
+
+func test_the_archive_and_the_summary_read_the_shared_counter() -> void:
+	# A helper is not a fix: these are the two call sites that make it bite.
+	var src: String = _read_src(END_PHASE)
+	assert_str(src).override_failure_message(
+		"_try_archive_campaign no longer decides victory through victory_for_archive()") \
+		.contains("var outcome: Dictionary = victory_for_archive(campaign, turns)")
+	assert_str(src).override_failure_message(
+		"the End Phase summary no longer reads VictoryChecker") \
+		.contains("VictoryCheckerRef.check_victory(campaign, turn_num)")
+
+func test_a_custom_win_is_filed_but_earns_no_elite_rank() -> void:
+	# A custom goal is not a p.64 condition. Stored as TURNS_20 with target 7, it would
+	# otherwise spend the real Turns-20 Elite Rank, which p.64 lets a player earn once.
+	var t20: int = GlobalEnums.FiveParsecsCampaignVictoryType.TURNS_20
+	var entry := {"name": "Custom goal", "target": 7, "type": t20, "is_custom": true}
+	var o: Dictionary = (load(END_PHASE) as GDScript).victory_for_archive(
+		_picked("custom_%d_7" % t20, entry), 7)
+	assert_bool(bool(o.get("is_victory", false))).is_true()
+	assert_int(int(o.get("type", 0))).override_failure_message(
+		"a custom goal would award the book's Elite Rank for its stored type") \
+		.is_equal(-1)

@@ -27,3 +27,25 @@ func test_the_notification_layer_runs_under_a_paused_tree() -> void:
 	assert_bool(toasts_run).override_failure_message(
 		"NotificationManager stops while paused, so a toast freezes under Settings") \
 		.is_true()
+
+
+## A suite that detaches the autoload and puts it back (test_bug_hunt_coop_mission
+## does, to stop a launch navigating) must not leave the manager unable to show a
+## toast: _exit_tree() used to null the container and _ready() never rebuilds it,
+## so every later toast in that process aborted at _show_notification().
+func test_a_detached_and_reattached_manager_still_shows_a_toast() -> void:
+	var root := get_tree().root
+	var nm: Node = root.get_node_or_null("NotificationManager")
+	assert_object(nm).is_not_null()
+	var index := nm.get_index()
+	root.remove_child(nm)
+	root.add_child(nm)
+	root.move_child(nm, index)
+	nm.show_info("detach probe", 0.1)
+	await await_idle_frame()
+	var container: Variant = nm.get("_container")
+	assert_bool(is_instance_valid(container)).override_failure_message(
+		"the notification container is gone after a detach and re-attach").is_true()
+	assert_int((container as Node).get_child_count()).override_failure_message(
+		"the toast never reached the container").is_greater(0)
+	nm.clear_all()

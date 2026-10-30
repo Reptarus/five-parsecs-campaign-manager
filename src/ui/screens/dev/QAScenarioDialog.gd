@@ -2,9 +2,10 @@ extends Window
 
 ## QA Scenarios — jump a loaded campaign to a state that is expensive to play to.
 ##
-## DEBUG BUILDS ONLY. The dashboard entry point is gated on OS.is_debug_build(),
-## which is the honest gate: a release export physically cannot open this, so
-## there is no "hidden unlock gesture" that can be found by a player or left on
+## DEBUG AND REVIEW BUILDS ONLY. The dashboard entry point is gated on
+## ReviewBuild.qa_tools_enabled() (a debug build, or the Modiphius review build),
+## which is the honest gate: an Alpha-1 release export physically cannot open this,
+## so there is no "hidden unlock gesture" that can be found by a player or left on
 ## by accident. Remote-deploy QA builds ARE debug builds, so the tablet gets it.
 ##
 ## This dialog is presentation only. Every mutation happens in

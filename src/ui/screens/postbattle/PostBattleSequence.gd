@@ -2114,7 +2114,7 @@ func _add_training_content() -> void:
 			dialog.setup(crew, credits)
 
 func _add_purchase_content() -> void:
-	## Add purchase content using PurchaseItemsComponent (Core Rules p.123)
+	## Add purchase content using PurchaseItemsComponent (Core Rules p.125)
 	if not step_content:
 		return
 

@@ -422,15 +422,15 @@ recreate the exact defect the audit existed to find:
   2026-10-29: all four have live call sites on real gameplay paths, so this
   scope-out is stale and `docs/COMPENDIUM_CHAPTER_TRACE_2026-08.md` (which says
   LIVE) is the correct record.** `ELITE_ENEMIES`:
-  `EnemyGenerator.gd:668/776/1075/1273/1535` call `compendium_elite_enemies.gd`
-  from `generate_enemies_as_dicts()` (`CampaignTurnController.gd:1185`).
-  `DEPLOYMENT_VARIABLES`: `TacticalBattleUI._on_initiative_calculated` (`:5131`,
-  connected `:2111`) calls `_apply_enemy_deployment_variable()` (`:5163`), which
-  rolls at `:5180`. `GRID_BASED_MOVEMENT`: `TacticalBattleUI._resolve_grid_movement_choice()`
-  (`:5800`) and `PreBattleChecklist.gd:185-188`. `TERRAIN_GENERATION`:
+  `EnemyGenerator.gd:675/783/1082/1542` call `compendium_elite_enemies.gd`
+  from `generate_enemies_as_dicts()` (`CampaignTurnController.gd:1243`).
+  `DEPLOYMENT_VARIABLES`: `TacticalBattleUI._on_initiative_calculated` (`:5147`,
+  connected `:2118`) calls `_apply_enemy_deployment_variable()` (`:5192`), which
+  rolls at `:5196`. `GRID_BASED_MOVEMENT`: `TacticalBattleUI._resolve_grid_movement_choice()`
+  (`:8789`, called `:5816`) and `PreBattleChecklist.gd:186-187`. `TERRAIN_GENERATION`:
   `CampaignPhaseManager.generate_battlefield()` gates on
-  `WorldOptionsRef.is_terrain_generation_enabled()` (`:2237`), reached from
-  `CampaignTurnController.gd:1519`.
+  `WorldOptionsRef.is_terrain_generation_enabled()` (`:2247`), reached from
+  `CampaignTurnController.gd:1577`.
 
 **Cosmetic / bloat, still open:**
 

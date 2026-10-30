@@ -519,9 +519,9 @@ data* rather than guessed at.
 ## Method note
 
 The flag audit and the chapter trace are **different measurements** and the first
-does not imply the second. All 33 `ContentFlag`s except `DEPLOYMENT_VARIABLES` and
-`ELITE_ENEMIES` are read somewhere — but six more chapters are dead, because the
-flag is read *inside the gated getter that nobody calls*. Gating is not wiring.
+does not imply the second. All 33 `ContentFlag`s are read somewhere (`DEPLOYMENT_VARIABLES`
+and `ELITE_ENEMIES` by a third spelling, below) — but six more chapters were dead, because
+the flag is read *inside the gated getter that nobody calls*. Gating is not wiring.
 
 Two spellings must both be searched or the count comes out wrong:
 
@@ -549,5 +549,15 @@ var flag_value: int = dlc_mgr.ContentFlag.get(FLAG, -1)   # :85
 So `DEPLOYMENT_VARIABLES` and `ELITE_ENEMIES` ARE read, and neither literal form above
 finds them: the enum search misses a string, and a search for `"DEPLOYMENT_VARIABLES"`
 finds the constant's declaration but not the check. Grep `const FLAG :=` (3 files in
-`src/data/`) beside the two forms above. Whether each of those resolvers is reached from
-play is the separate P-05 question, which the review-build plan's Sprint 7 doc pass owns.
+`src/data/`) beside the two forms above. **P-05 RESOLVED 2026-10-30: all four
+resolvers are reached from play, and this trace's LIVE rows are correct.** Call chains,
+re-traced at HEAD: `ELITE_ENEMIES` — `CampaignTurnController.gd:1243` →
+`EnemyGenerator.generate_enemies_as_dicts()` → `CompendiumEliteEnemiesRef` at
+`EnemyGenerator.gd:675/783/1082/1542` (also `FringeWorldStrife.gd:428`);
+`DEPLOYMENT_VARIABLES` — `TacticalBattleUI._on_initiative_calculated` (`:5147`, connected
+`:2118`) → `_apply_enemy_deployment_variable` (`:5179`, defined `:5192`) → `roll_deployment`
+(`:5196`); `GRID_BASED_MOVEMENT` — `TacticalBattleUI._resolve_grid_movement_choice`
+(`:8789`, called `:5816`) and `PreBattleChecklist.gd:186-187`; `TERRAIN_GENERATION` —
+`CampaignTurnController.gd:1577` → `CampaignPhaseManager.generate_battlefield()` →
+`WorldOptionsRef.is_terrain_generation_enabled()` gate at `:2247`. The scope-out in
+`WIRING_CLEANUP_BACKLOG.md` is the stale record (already marked SUPERSEDED there).

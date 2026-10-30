@@ -5,6 +5,8 @@ extends CampaignScreenBase
 ## T11-16. FPCM_BattleCheckpoint has a class_name, but this screen preloads its
 ## references explicitly (see the note on the other consts), so it is named here.
 const BattleCheckpointRef = preload("res://src/core/battle/BattleCheckpoint.gd")
+const ReviewBuildRef = preload("res://src/core/systems/ReviewBuild.gd")
+const VictoryCheckerRef = preload("res://src/core/victory/VictoryChecker.gd")
 
 const GameEnums = preload(
 	"res://src/core/enums/GameEnums.gd")
@@ -258,8 +260,12 @@ func _on_edit_campaign_pressed() -> void:
 ## It sits next to Edit deliberately: both mutate a loaded campaign through owner
 ## setters, and Edit is where a tester already looks for "put the campaign in a
 ## different state".
+##
+## The Modiphius review build opens it too (ReviewBuild.qa_tools_enabled()), labelled
+## "Scenarios", so a reviewer can see late-game states without hours of play. An
+## Alpha-1 build is unchanged: hidden in release, "QA" in debug.
 func _add_qa_scenarios_button() -> void:
-	if not OS.is_debug_build():
+	if not ReviewBuildRef.qa_tools_enabled():
 		return
 	if export_button == null or not is_instance_valid(export_button):
 		return
@@ -267,9 +273,14 @@ func _add_qa_scenarios_button() -> void:
 	if parent == null:
 		return
 	var qa_btn := Button.new()
-	qa_btn.text = "QA"
-	qa_btn.tooltip_text = ("Debug build only — jump this campaign to a seeded test state "
-		+ "(injuries, Compendium missions, rivals/quests, endgame)")
+	if ReviewBuildRef.is_active():
+		qa_btn.text = "Scenarios"
+		qa_btn.tooltip_text = ("Jump this campaign to a prepared state (injuries, "
+			+ "Compendium missions, rivals and quests, endgame), and force rare table rolls")
+	else:
+		qa_btn.text = "QA"
+		qa_btn.tooltip_text = ("Debug build only — jump this campaign to a seeded test state "
+			+ "(injuries, Compendium missions, rivals/quests, endgame)")
 	_style_button(qa_btn)
 	qa_btn.pressed.connect(_on_qa_scenarios_pressed)
 	parent.add_child(qa_btn)
@@ -1732,23 +1743,22 @@ func _update_progress_strip(campaign) -> void:
 		)
 	)
 
-	# Victory condition
-	var vc: Dictionary = campaign.victory_conditions \
-		if "victory_conditions" in campaign else {}
-	if not vc.is_empty():
-		var vc_type: String = vc.get("type", "")
-		var vc_target: int = vc.get("target", 0)
-		if not vc_type.is_empty() and vc_target > 0:
-			var progress_val: int = turns if vc_type == "turns" \
-				else won
-			progress_hbox.add_child(
-				_create_progress_stat(
-					"Victory",
-					"%d / %d (%s)" % [
-						progress_val, vc_target, vc_type
-					]
-				)
+	# Victory condition (Core Rules p.64: at most one). The counts come from
+	# VictoryChecker, the same function the turn-end win check runs. This used to
+	# read a top-level "type" off campaign.victory_conditions, but that dict is keyed
+	# by condition id ({"turns_20": {...}}), so the row never rendered; and it counted
+	# battles won for every condition that was not a turn count.
+	var vc_result: Dictionary = VictoryCheckerRef.check_victory(campaign, turns)
+	if vc_result.has("required"):
+		progress_hbox.add_child(
+			_create_progress_stat(
+				"Victory",
+				"%s %d / %d" % [
+					_victory_condition_name(campaign, str(vc_result.get("name", ""))),
+					int(vc_result.get("progress", 0)), int(vc_result.get("required", 0))
+				]
 			)
+		)
 
 	# Difficulty — book names only, via the SSOT (T9-05). This used to be a local map
 	# rendering "Story" / "Standard" / "Nightmare"; none of the three appear in the
@@ -1758,6 +1768,16 @@ func _update_progress_strip(campaign) -> void:
 	progress_hbox.add_child(
 		_create_progress_stat("Difficulty", diff_name)
 	)
+
+## The name the player picked, which is the p.64 wording (or their custom goal's
+## name). VictoryChecker's own names are internal labels, so they are the fallback.
+func _victory_condition_name(campaign, fallback: String) -> String:
+	var vc: Variant = campaign.victory_conditions if "victory_conditions" in campaign else {}
+	if vc is Dictionary and not (vc as Dictionary).is_empty():
+		var entry: Variant = (vc as Dictionary).values()[0]
+		if entry is Dictionary and not str(entry.get("name", "")).is_empty():
+			return str(entry.get("name"))
+	return fallback
 
 func _create_progress_stat(
 	label: String, value: String

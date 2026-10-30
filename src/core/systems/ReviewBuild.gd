@@ -39,3 +39,15 @@ static func evaluate(has_feature: bool, user_args: PackedStringArray, is_debug: 
 	if has_feature:
 		return true
 	return is_debug and DEBUG_ARG in user_args
+
+
+## The QA tools (dashboard Scenarios jump, DiceManager "Force the next roll") open in
+## a debug build, as they always have, and in a review build, so a reviewer can reach
+## late-game states and rare table rows without hours of play. An Alpha-1 release
+## build has neither input, so it still cannot reach them.
+static func qa_tools_enabled() -> bool:
+	return qa_tools_allowed(OS.is_debug_build(), is_active())
+
+
+static func qa_tools_allowed(is_debug: bool, review_active: bool) -> bool:
+	return is_debug or review_active
