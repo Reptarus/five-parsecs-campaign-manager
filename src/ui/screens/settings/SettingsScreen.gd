@@ -4,7 +4,7 @@ extends Control
 ## Options/Settings Screen — platform-adaptive, Deep Space themed
 ## Accessible from MainMenu via SceneRouter key "settings"
 ## Desktop: Audio, Display (Fullscreen/VSync/UI Scale), Gameplay, Accessibility, Difficulty
-## Mobile: Audio, Display (UI Scale only), Gameplay, Touch/Haptics, Accessibility, Difficulty
+## Mobile: Audio, Display (UI Scale only), Gameplay, Haptics, Accessibility, Difficulty
 ## Persists to user://options.cfg. Window state saved to user://window.ini (desktop only).
 ##
 ## When overlay_mode is true, this screen is embedded in the SettingsOverlay
@@ -73,17 +73,17 @@ var _fullscreen_check: CheckButton
 var _vsync_option: OptionButton
 var _ui_scale_slider: HSlider
 var _ui_scale_label: Label
-var _auto_save_check: CheckButton
 var _continue_launch_check: CheckButton
 var _show_tooltips_check: CheckButton
 var _show_fps_check: CheckButton
-var _screen_shake_check: CheckButton
 var _narrative_events_check: CheckButton
 var _connections_no_roll_check: CheckButton
 var _connections_variety_check: CheckButton
+var _battle_events_check: CheckButton
+var _critical_hit_check: CheckButton
+var _table_size_option: OptionButton
 # Mobile-only
 var _haptic_check: CheckButton
-var _touch_sensitivity_slider: HSlider
 
 # Responsive computed sizes
 var _touch_target: int
@@ -434,11 +434,6 @@ func _build_display_section(parent: VBoxContainer) -> void:
 func _build_gameplay_section(parent: VBoxContainer) -> void:
 	var card := _create_section_card("Gameplay", parent)
 
-	_auto_save_check = _add_toggle_row(card, "Auto-Save",
-		_sm.is_auto_save_enabled() if _sm else true, "Toggle automatic saving",
-		"Automatically save your campaign at the end of each turn.")
-	_bind_toggle(_auto_save_check, "gameplay", "auto_save")
-
 	# ⚠ NOT _bind_toggle'd, and the exception is the point. Every other row here
 	# writes through SettingsManager into user://options.cfg; this one lives in
 	# GameState's user://settings.cfg because GameState._init() must read it
@@ -469,11 +464,6 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		"Show a framerate counter in the corner of the screen.")
 	_bind_toggle(_show_fps_check, "gameplay", "show_fps")
 
-	_screen_shake_check = _add_toggle_row(card, "Screen Shake",
-		_sm.is_screen_shake_enabled() if _sm else true, "Toggle screen shake effects",
-		"Enable camera shake during combat and critical events.")
-	_bind_toggle(_screen_shake_check, "gameplay", "screen_shake")
-
 	_narrative_events_check = _add_toggle_row(card, "Narrative Events",
 		_sm.are_narrative_events_enabled() if _sm else true,
 		"Toggle full-screen narrative event windows",
@@ -495,6 +485,28 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 		"Compendium p.81: swap a Connection you have already had this campaign for the first new result in the same subtable.")
 	_bind_toggle(_connections_variety_check, "gameplay", "connections_variety")
 
+	# Core Rules p.116 heads its table "BATTLE EVENTS (OPTIONAL)": "you may choose
+	# to use it occasionally during your campaign, or not at all." The battle screen
+	# has read this key since the switch was promised; until 2026-10-30 no control
+	# wrote it, so the optional table could not be turned off.
+	_battle_events_check = _add_toggle_row(card, "Battle Events",
+		_sm.are_battle_events_enabled() if _sm else true,
+		"Toggle the optional Battle Events table",
+		"Core Rules p.116: roll on the Battle Events table at the end of rounds 2 and 4 "
+		+ "of a Five Parsecs battle. The book makes the table optional.")
+	_bind_toggle(_battle_events_check, "gameplay", "use_battle_events")
+
+	# Compendium p.100 Critical Hit, "an additional optional rule" on top of the
+	# Casualty Tables. The battle screen's auto-resolve reads it; until 2026-10-30
+	# no control wrote it, so the option could never be turned on.
+	_critical_hit_check = _add_toggle_row(card, "Critical Hit",
+		_sm.use_critical_hit() if _sm else false,
+		"Toggle the Compendium Critical Hit option",
+		"Compendium p.100: when a natural 6 takes a crew member down, roll the Casualty "
+		+ "table once more and use the highest result. Applies with the Casualty Tables "
+		+ "option on, when the app resolves a battle for you.")
+	_bind_toggle(_critical_hit_check, "gameplay", "critical_hit")
+
 	# My Table Size — the player's physical battle table (Core Rules p.108).
 	# Drives the battlefield map grid + Standard Terrain Set guidance (p.109).
 	# Item ids are ft x10 (OptionButton ids must be ints).
@@ -506,7 +518,8 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 	table_label.add_theme_font_size_override("font_size", ScreenChrome.font_size(_font_md))
 	table_label.add_theme_color_override("font_color", COLOR_TEXT_PRIMARY)
 	table_row.add_child(table_label)
-	var table_option := OptionButton.new()
+	_table_size_option = OptionButton.new()
+	var table_option := _table_size_option
 	table_option.add_item("2x2 ft", 20)
 	table_option.add_item("2.5x2.5 ft", 25)
 	table_option.add_item("3x3 ft", 30)
@@ -534,16 +547,13 @@ func _build_gameplay_section(parent: VBoxContainer) -> void:
 
 # ============ MOBILE-ONLY ============
 func _build_mobile_section(parent: VBoxContainer) -> void:
-	var card := _create_section_card("Touch & Haptics", parent)
+	var card := _create_section_card("Haptics", parent)
 
 	_haptic_check = _add_toggle_row(card, "Haptic Feedback",
 		_sm.is_haptic_enabled() if _sm else true, "Toggle vibration feedback",
 		"Vibrate on dice rolls, critical hits, and important events.")
 	_bind_toggle(_haptic_check, "mobile", "haptic_feedback")
 
-	_touch_sensitivity_slider = _add_slider_row(card, "Touch Sensitivity", 0.5, 2.0, 0.1,
-		_sm.get_touch_sensitivity() if _sm else 1.0, "Adjust touch input sensitivity")
-	_bind_slider(_touch_sensitivity_slider, "mobile", "touch_sensitivity")
 
 
 # ============ EXPANSIONS ============
@@ -1044,7 +1054,6 @@ func _on_reset_pressed() -> void:
 				_vsync_option.select(i)
 				break
 	_ui_scale_slider.value = _sm.get_ui_scale() if _sm else 1.0
-	_auto_save_check.button_pressed = _sm.is_auto_save_enabled() if _sm else true
 	# Reset restores this one to its default too, even though it is not a
 	# SettingsManager key — assigning button_pressed re-fires `toggled`, which
 	# writes through to GameState and persists. Leaving it out would make Reset
@@ -1052,11 +1061,21 @@ func _on_reset_pressed() -> void:
 	_continue_launch_check.button_pressed = true
 	_show_tooltips_check.button_pressed = _sm.are_tooltips_enabled() if _sm else true
 	_show_fps_check.button_pressed = _sm.is_fps_visible() if _sm else false
-	_screen_shake_check.button_pressed = _sm.is_screen_shake_enabled() if _sm else true
 	_narrative_events_check.button_pressed = _sm.are_narrative_events_enabled() if _sm else true
+	_connections_no_roll_check.button_pressed = _sm.use_connections_no_roll() if _sm else false
+	_connections_variety_check.button_pressed = _sm.use_connections_variety() if _sm else false
+	_battle_events_check.button_pressed = _sm.are_battle_events_enabled() if _sm else true
+	_critical_hit_check.button_pressed = _sm.use_critical_hit() if _sm else false
+	# select() does not emit item_selected, which is right here: the reset has
+	# already written the default, so the picker only has to show it.
+	var reset_ft: float = _sm.get_table_size_ft() if _sm \
+		and _sm.has_method("get_table_size_ft") else 3.0
+	for i in range(_table_size_option.item_count):
+		if _table_size_option.get_item_id(i) == int(roundf(reset_ft * 10.0)):
+			_table_size_option.select(i)
+			break
 	if _is_mobile:
 		_haptic_check.button_pressed = _sm.is_haptic_enabled() if _sm else true
-		_touch_sensitivity_slider.value = _sm.get_touch_sensitivity() if _sm else 1.0
 
 
 func _on_ui_scale_changed(value: float) -> void:

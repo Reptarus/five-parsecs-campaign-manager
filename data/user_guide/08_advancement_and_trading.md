@@ -53,7 +53,7 @@ Each crew member can only ever be trained in a single course, and you cannot ben
 
 ### Decision Guidance
 
-- **Luck is the most expensive stat** (10 XP) but extremely powerful — rerolls save lives
+- **Luck is the most expensive stat** (10 XP) but extremely powerful: a character who would become a casualty loses 1 Luck instead, and all Luck comes back after each battle (Core Rules p.46)
 - **Combat and Reaction** are the most impactful combat stats — prioritize for frontline fighters
 - **Savvy** helps with non-combat tasks and events
 - **Save XP for big upgrades** rather than spending 1-2 XP on minor gains each turn

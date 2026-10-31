@@ -159,7 +159,7 @@ The turn wraps up:
 
 ## Turn Flow Tips
 
-- **Save before risky phases.** The app auto-saves at turn start, but manual saves before battles are wise.
+- **Saving.** The app saves at the end of every phase, and you can also save from the Campaign Dashboard. See {{chapter:14}}.
 - **Don't skip the World Phase.** Crew task assignments and equipment management matter more than you'd think.
 - **Read event text carefully.** Story and character events often present choices that affect future turns.
 - **Track your victory progress.** The End Phase summary shows how close you are to winning.

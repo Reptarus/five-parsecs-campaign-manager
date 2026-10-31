@@ -118,7 +118,6 @@ load_campaign(path: String) → Dictionary
 import_campaign(external_path: String) → Dictionary
 get_available_campaigns() → Array
 get_campaign_info(path: String) → Dictionary
-auto_save() → void
 persist_game_state() → void
 ```
 
@@ -216,8 +215,6 @@ section is migrated into the sectioned schema once at boot via
 
 Settings consumed live across the codebase via SettingsManager's typed getters
 (each is a single chokepoint):
-- `is_auto_save_enabled()` → `GameState.auto_save()`
-- `is_screen_shake_enabled()` → `TweenFX.shake()` gate
 - `are_tooltips_enabled()` → `KeywordTooltip.show_for_keyword()` gate
 - `is_haptic_enabled()` + `vibrate(ms)` → `NotificationManager.show_success/error`
 - `is_fps_visible()` → SettingsManager-owned FPS overlay (CanvasLayer 95)

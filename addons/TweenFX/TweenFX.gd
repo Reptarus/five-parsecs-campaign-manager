@@ -846,13 +846,15 @@ func punch_in(node: CanvasItem, duration: float = 0.15, strength: float = 0.3) -
 
 ## Moves the node back and forth rapidly.
 ## axis: Vector2.RIGHT for horizontal only, Vector2.DOWN for vertical only, Vector2.ONE for both.
-## Gated by SettingsManager.is_screen_shake_enabled() — when off, returns null
-## (callers tolerate null per the reduced-motion precedent in ThemeManager).
+## Returns null when the player has Reduced Motion on (ThemeManager), so a shake
+## is never forced on someone who asked for less motion; callers tolerate null.
+## (It was gated on a Screen Shake setting, removed 2026-10-30 because nothing
+## in the app calls shake(), so that toggle changed nothing.)
 func shake(node: CanvasItem, duration: float = 0.3, amount: float = 10.0, shakes: int = 5, axis: Vector2 = Vector2.ONE) -> Tween:
 	var tree := node.get_tree()
 	if tree:
-		var sm := tree.root.get_node_or_null("/root/SettingsManager")
-		if sm and not sm.is_screen_shake_enabled():
+		var tm := tree.root.get_node_or_null("/root/ThemeManager")
+		if tm and tm.is_reduced_animation_enabled():
 			return null
 	TweenManager.stop(node, Animations.SHAKE)
 	var original_pos: Vector2 = node.position

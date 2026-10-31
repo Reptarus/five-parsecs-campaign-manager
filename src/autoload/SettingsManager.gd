@@ -11,7 +11,7 @@ extends Node
 ##   - `_ready()` loads + migrates + applies. Everything below "is wired" by the
 ##     time any other autoload's `_ready()` runs (this autoload is registered
 ##     before `GameState`).
-##   - Consumers read through typed getters (`is_auto_save_enabled()`, etc.) or
+##   - Consumers read through typed getters (`is_fps_visible()`, etc.) or
 ##     the generic `get_setting(section, key)`.
 ##   - UI writes via `set_setting(section, key, value)` — never touches the file
 ##     directly. The setter applies the change live, debounces the disk write,
@@ -40,16 +40,14 @@ const DEFAULTS := {
 		"ui_scale": 1.0,
 	},
 	"gameplay": {
-		"auto_save": true,
 		"show_tooltips": true,
 		"show_fps": false,
-		"screen_shake": true,
 		"use_narrative_events": true,
 		# Core Rules p.116 "BATTLE EVENTS (OPTIONAL)". Default on so existing
 		# campaigns behave exactly as before; the switch exists because the book
 		# says the table is the player's choice.
 		"use_battle_events": true,
-		# Compendium p.80 Expanded Connections, the two variations the chapter
+		# Compendium p.81 Expanded Connections, the two variations the chapter
 		# explicitly leaves to the player. Both default OFF, which is the book's
 		# main line: roll 1D6 on every Opportunity mission, and let a result
 		# repeat if the dice say so.
@@ -78,7 +76,6 @@ const DEFAULTS := {
 	},
 	"mobile": {
 		"haptic_feedback": true,
-		"touch_sensitivity": 1.0,
 	},
 	# Remembered so a tester filing repeat bug reports does not retype it.
 	# Not applied to anything at boot — _apply_one() ignores unknown sections.
@@ -96,11 +93,11 @@ const LEGACY_KEY_MAP := {
 	"sfx_volume":   ["audio", "sfx_volume"],
 	"fullscreen":   ["display", "fullscreen"],
 	"ui_scale":     ["display", "ui_scale"],
-	"auto_save":    ["gameplay", "auto_save"],
 	# Intentionally dropped during migration:
 	#   tutorials_enabled  — handled by per-campaign GameSettings.gd
 	#   enable_animations  — ThemeManager owns reduced_animation
 	#   enable_combat_log  — no consumers; orphaned
+	#   auto_save          — the Auto-Save setting was removed 2026-10-30
 }
 
 const SAVE_DEBOUNCE_SECONDS := 0.1
@@ -144,6 +141,8 @@ func _load_with_migration() -> void:
 		push_warning("SettingsManager: failed to load %s (err=%d) — using defaults"
 			% [CONFIG_PATH, err])
 		return
+	if drop_retired_keys(_config):
+		_config.save(CONFIG_PATH)
 	if not _config.has_section(LEGACY_SECTION):
 		return
 
@@ -164,6 +163,28 @@ func _load_with_migration() -> void:
 	_config.erase_section(LEGACY_SECTION)
 	if migrated:
 		_config.save(CONFIG_PATH)
+
+
+## Settings removed because they changed nothing (2026-10-30). Screen Shake gated a
+## shake nothing in the app plays, Touch Sensitivity had no reader at all, and
+## Auto-Save gated a save function nothing called while the app saves at every
+## phase boundary regardless. A key left in the file outlives the control that
+## wrote it and reads as a live setting to the next person who opens it.
+const RETIRED_KEYS := [
+	["gameplay", "screen_shake"],
+	["mobile", "touch_sensitivity"],
+	["gameplay", "auto_save"],
+]
+
+
+## Erases every retired key from `cfg`. True when anything was erased.
+static func drop_retired_keys(cfg: ConfigFile) -> bool:
+	var dropped := false
+	for pair: Array in RETIRED_KEYS:
+		if cfg.has_section_key(pair[0], pair[1]):
+			cfg.erase_section_key(pair[0], pair[1])
+			dropped = true
+	return dropped
 
 
 func _save_now() -> void:
@@ -430,7 +451,7 @@ func vibrate(duration_ms: int = 50) -> void:
 
 # ============ TYPED CONVENIENCE GETTERS ============
 # (Consumers prefer these over the generic get_setting so the call site reads
-#  as "is_auto_save_enabled()" rather than 'get_setting("gameplay","auto_save")'.)
+#  as "is_fps_visible()" rather than 'get_setting("gameplay","show_fps")'.)
 
 func get_master_volume() -> float:
 	return get_setting("audio", "master_volume")
@@ -450,17 +471,11 @@ func get_vsync_mode() -> int:
 func get_ui_scale() -> float:
 	return get_setting("display", "ui_scale")
 
-func is_auto_save_enabled() -> bool:
-	return get_setting("gameplay", "auto_save")
-
 func are_tooltips_enabled() -> bool:
 	return get_setting("gameplay", "show_tooltips")
 
 func is_fps_visible() -> bool:
 	return get_setting("gameplay", "show_fps")
-
-func is_screen_shake_enabled() -> bool:
-	return get_setting("gameplay", "screen_shake")
 
 func are_narrative_events_enabled() -> bool:
 	return get_setting("gameplay", "use_narrative_events")
@@ -482,13 +497,13 @@ func use_critical_hit() -> bool:
 	return get_setting("gameplay", "critical_hit")
 
 func use_connections_no_roll() -> bool:
-	## Compendium p.80: "If you prefer to reduce dice-rolling, a Connection occurs
+	## Compendium p.81: "If you prefer to reduce dice-rolling, a Connection occurs
 	## any time you play an Opportunity mission AND the prior Opportunity mission
 	## did not have a Connection (in other words, every other time)."
 	return get_setting("gameplay", "connections_no_roll")
 
 func use_connections_variety() -> bool:
-	## Compendium p.80 designer note: "If you prefer to maintain variety, swap a
+	## Compendium p.81 designer note: "If you prefer to maintain variety, swap a
 	## result you have already had this campaign for the first new result in the
 	## same subtable."
 	return get_setting("gameplay", "connections_variety")
@@ -515,5 +530,3 @@ func set_last_combat_mode(mode: String) -> void:
 func is_haptic_enabled() -> bool:
 	return get_setting("mobile", "haptic_feedback")
 
-func get_touch_sensitivity() -> float:
-	return get_setting("mobile", "touch_sensitivity")

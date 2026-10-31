@@ -107,7 +107,6 @@ save_campaign(campaign, path: String = "") → Dictionary
 load_campaign(path: String) → Dictionary
 import_campaign(external_path: String) → Dictionary
 get_available_campaigns() → Array
-auto_save() → void
 ```
 
 ### State Accessors
@@ -124,7 +123,6 @@ get_resource(resource: int) → int
 set_resource(resource: int, value: int) → bool
 get_difficulty_level() → int
 is_permadeath_enabled() → bool
-is_auto_save_enabled() → bool
 ```
 
 ### Battle/Mission

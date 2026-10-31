@@ -25,7 +25,6 @@ var story_progress: int = 0
 
 # Settings
 var enable_tutorials: bool = true
-var auto_save_enabled: bool = true
 var language: String = "English"
 var settings: Dictionary = {
 	"disable_tutorial_popup": false,
@@ -87,11 +86,6 @@ func set_game_state(new_state: GameState) -> void:
 
 
 
-# Settings management
-	
-func set_auto_save_enabled(enabled: bool) -> void:
-	auto_save_enabled = enabled
-	
 
 # Resource management.
 # PHASE 2.1 (persistence audit): the canonical owner of credits / supplies /

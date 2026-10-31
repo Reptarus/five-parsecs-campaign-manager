@@ -39,7 +39,7 @@ var campaign:
 var game_settings: Dictionary = {}
 ## game_options removed — owned by SettingsManager autoload (user://options.cfg).
 ## Consumers call /root/SettingsManager.get_setting(section, key) or the typed
-## getters (is_auto_save_enabled(), get_master_volume(), etc.) instead.
+## getters (is_fps_visible(), get_master_volume(), etc.) instead.
 
 # Game state variables
 var _turn_number: int = 1
@@ -520,7 +520,8 @@ func _notification(what: int) -> void:
 	## THE GAP THIS CLOSES: there was NO app-lifecycle save anywhere in src/. A grep
 	## for NOTIFICATION_APPLICATION_PAUSED / _FOCUS_OUT / WM_CLOSE_REQUEST /
 	## WM_GO_BACK_REQUEST returned nothing outside addons. The two functions written
-	## for it — GameState.auto_save() and persist_game_state() — both had ZERO callers,
+	## for it — GameState.auto_save() (deleted 2026-10-30 with the Auto-Save setting)
+	## and persist_game_state() — both had ZERO callers,
 	## and project.godot sets no auto_accept_quit override, so the Android Back button
 	## quit with no hook at all.
 	##
@@ -1378,21 +1379,6 @@ func get_date_string(unix_time: int) -> String:
 		datetime.hour, datetime.minute
 	]
 
-# Auto-save functionality
-
-func auto_save() -> void:
-	# Auto-save toggle lives in SettingsManager (single owner of options).
-	var sm := get_node_or_null("/root/SettingsManager")
-	if sm and not sm.is_auto_save_enabled():
-		return
-
-	if current_campaign == null:
-		return
-	
-	# Path specifically for auto-save
-	var path = SAVE_DIRECTORY + current_campaign.campaign_id + "_autosave.save"
-	save_campaign(current_campaign, path)
-
 # State persistence
 
 func persist_game_state() -> void:
@@ -1442,14 +1428,6 @@ func set_use_story_track(value: bool) -> bool:
 		game_settings.use_story_track = value
 	return true
 	
-## Compat shim — delegates to the canonical owner.
-func set_auto_save_enabled(value: bool) -> bool:
-	var sm := get_node_or_null("/root/SettingsManager")
-	if sm and sm.has_method("set_setting"):
-		sm.set_setting("gameplay", "auto_save", value)
-		return true
-	return false
-	
 func set_last_save_time(time: int) -> bool:
 	if not game_settings.has("last_save_time"):
 		game_settings["last_save_time"] = time
@@ -1470,21 +1448,12 @@ func is_permadeath_enabled() -> bool:
 func is_story_track_enabled() -> bool:
 	return game_settings.get("use_story_track", true)
 	
-## Compat shim — delegates to the canonical owner.
-func is_auto_save_enabled() -> bool:
-	var sm := get_node_or_null("/root/SettingsManager")
-	if sm and sm.has_method("is_auto_save_enabled"):
-		return sm.is_auto_save_enabled()
-	return true
-
 # Campaign options methods
 func get_campaign_option(option_name: String, default_value = null) -> Variant:
 	if option_name == "permadeath_enabled":
 		return is_permadeath_enabled()
 	elif option_name == "story_track_enabled":
 		return is_story_track_enabled()
-	elif option_name == "auto_save_enabled":
-		return is_auto_save_enabled()
 
 	# Check game_settings first
 	if game_settings.has(option_name):
@@ -1499,8 +1468,6 @@ func set_campaign_option(option_name: String, value) -> bool:
 	elif option_name == "story_track_enabled":
 		game_settings["use_story_track"] = value
 		return true
-	elif option_name == "auto_save_enabled":
-		return set_auto_save_enabled(value)
 
 	# Campaign-scoped state lives in game_settings. App-wide preferences
 	# (volume, vsync, ui_scale, etc.) belong in SettingsManager; routing
@@ -1650,7 +1617,7 @@ func has_crew() -> bool:
 # Get an option value with default fallback
 ## Compat shim — delegates to the canonical owner. Section is inferred
 ## from the SettingsManager DEFAULTS so legacy callers using flat keys
-## (e.g. get_option("auto_save")) still resolve correctly.
+## (e.g. get_option("show_fps")) still resolve correctly.
 func get_option(option_name: String, default_value = null) -> Variant:
 	var sm := get_node_or_null("/root/SettingsManager")
 	if not sm or not sm.has_method("get_setting"):

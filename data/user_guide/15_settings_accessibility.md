@@ -2,7 +2,7 @@
 
 > **Quick Start** (for tabletop veterans)
 > - Open Settings from the Main Menu **Settings** button
-> - Settings is one scrolling page of cards: Audio, Display, Gameplay, Touch & Haptics, Accessibility, Expansions, Legal & Privacy and About
+> - Settings is one scrolling page of cards: Audio, Display, Gameplay, Haptics, Accessibility, Expansions, Legal & Privacy and About
 > - Accessibility offers six visual themes, a Reduce Animations switch and a font size choice
 > - **UI Scale** in the Display card makes the whole interface larger or smaller
 
@@ -24,26 +24,27 @@ Open Settings from the **Settings** button on the Main Menu.
 
 ## Display
 
-- **VSync Mode**, in builds where it applies
+- **Fullscreen** and **VSync Mode**, in builds where they apply
 - **UI Scale**, a slider with a percentage readout. The hint under it reads "Lower = more fits on screen; higher = larger text".
 
 ## Gameplay
 
-- **Auto-Save.** Saves your campaign at the end of each turn. See {{chapter:14}}.
+There is no Auto-Save switch. A Five Parsecs campaign is saved at the end of every turn phase, and the app saves when it goes to the background. See {{chapter:14}}.
+
 - **Continue Last Campaign on Launch.** Reopens your most recent campaign when the app starts. Turn it off to start at the Main Menu.
 - **Show Tooltips.** Shows keyword explanations for game terms.
 - **Show FPS Counter.**
-- **Screen Shake.** Camera shake during combat and critical events.
 - **Narrative Events.** Full-screen story moments with art and advisor reactions. When off, events use the classic card layout.
 - **Connections: No-Roll Option** and **Connections: Prefer Variety.** Two optional Compendium rules for Connections (Compendium p.81).
+- **Battle Events.** Rolls the optional Battle Events table at the end of rounds 2 and 4 of a Five Parsecs battle (Core Rules p.116). On by default.
+- **Critical Hit.** An optional Compendium rule (p.100): when a natural 6 takes a crew member down, roll the Casualty table once more and use the highest result. It applies with the Casualty Tables option on, when the app resolves a battle for you. Off by default.
 - **My Table Size.** Battle maps match your physical table (Core Rules p.108).
 
-## Touch & Haptics
+## Haptics
 
 Shown on phones and tablets.
 
 - **Haptic Feedback.** Vibration on dice rolls, critical hits and important events.
-- **Touch Sensitivity.** A slider for touch input sensitivity.
 
 ## Accessibility
 
